@@ -45,8 +45,8 @@ import numpy as np
 import h5py
 class CIDataContainer:
 
-    def __init__(self,filepath,algotype,Masks=[],Signal=[],BackgroundSignal=[],BackgroundMasks=[],TraceResiduals=[],rawfileloc=None,
-                DeconvolvedActivity=[],accepted_lst=None,CorrelationImage=[],ROIidx=[],ROIlocs=None,SampFreq=None,nback=1):
+    def __init__(self,filepath, algotype, masks=None, signal=None, background_signal=None, background_masks=None, 
+                 trace_residuals=None, rawfileloc=None, deconvolved_activity=None,accepted_lst=None,CorrelationImage=[],ROIidx=[],ROIlocs=None,SampFreq=None,nback=1):
         self.filepath=filepath
         self.algotype=algotype
         self.rf,self.group0=self.FileExtractor_IO()
