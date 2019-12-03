@@ -9,9 +9,9 @@ try:
 except ImportError:
     HAVE_SNTE = False
 
-print('running outside class snitzer also')
-class ScnitzerTraceExtractor(CIExtractor,CIDataContainer):
-    name='ScnitzerTraceExtractor'
+print('running outside class schnitzer also')
+class SchnitzerTraceExtractor(CIExtractor,CIDataContainer):
+    name='SchnitzerTraceExtractor'
     installed=HAVE_SNTE
 
     installation_mesg = "To use the ScnitzerTraceExtractor install h5py: \n\n pip install h5py\n\n"  # error message when not installed
