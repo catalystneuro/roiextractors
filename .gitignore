@@ -1,0 +1,12 @@
+*.mat
+*.hdf5
+*.nwb
+test.py
+test2.py
+/CaImAn-MATLAB-master
+/CaImAn-master
+/calciumImagingAnalysis-master
+**/*.mat
+*_dir.txt
+estimatestest.py
+nwbdemotest.py
