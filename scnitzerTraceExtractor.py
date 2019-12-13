@@ -10,7 +10,7 @@ except ImportError:
     HAVE_SNTE = False
 
 print('running outside class snitzer also')
-class ScnitzerTraceExtractor(CIExtractor,CIDataContainer):
+class ScnitzerTraceExtractor(CIExtractor,TraceExtractor):
     name='ScnitzerTraceExtractor'
     installed=HAVE_SNTE
 

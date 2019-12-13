@@ -10,3 +10,7 @@ test2.py
 *_dir.txt
 estimatestest.py
 nwbdemotest.py
+nwbextractor_SI.py
+ophys.py
+ecephys.py
+scnitzerTraceExtractor.py

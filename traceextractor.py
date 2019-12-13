@@ -43,7 +43,10 @@
 '''
 import numpy as np
 import h5py
-class CIDataContainer:
+from ciextractor import CIExtractor
+from nwbwriter import save_NWB
+
+class TraceExtractor(CIExtractor):
 
     def __init__(self,filepath,algotype,Masks=[],Signal=[],BackgroundSignal=[],BackgroundMasks=[],TraceResiduals=[],rawfileloc=None,
                 DeconvolvedActivity=[],accepted_lst=None,CorrelationImage=[],ROIidx=[],ROIlocs=None,SampFreq=None,nback=1):
@@ -53,14 +56,14 @@ class CIDataContainer:
         if len(Masks) is 0:
             self.MaskExtracter_IO()
         elif len(Masks.shape)>2:
-            self.A=temp.reshape([Masks.shape[2],np.prod(Masks.shape[0:1])]).T
+            self.Masks=temp.reshape([Masks.shape[2],np.prod(Masks.shape[0:1])]).T
         else:
-            self.A=Masks
+            self.Masks=Masks
 
         if len(Signal) is 0:
             self.TraceExtracter_IO()
         else:
-            self.C=Signal
+            self.Roi_response=Signal
 
         if len(CorrelationImage) is 0:
             self.SummaryImage_IO()
@@ -76,19 +79,19 @@ class CIDataContainer:
              self.raw_data_file=rawfileloc
 
         if len(BackgroundMasks) is 0:
-            self.b=np.nan*np.ones([self.A.shape[0],nback])
+            self.Masks_b=np.nan*np.ones([self.Masks.shape[0],nback])
         else:
-            self.b=BackgroundMasks
+            self.Masks_b=BackgroundMasks
 
         if len(BackgroundSignal) is 0:
-            self.f=np.nan*np.ones([nback,self.C.shape[1]])
+            self.Roi_response_b=np.nan*np.ones([nback,self.Roi_response.shape[1]])
         else:
-            self.f=BackgroundSignal
+            self.Roi_response_b=BackgroundSignal
 
         if len(TraceResiduals) is 0:
-            self.YrA=np.nan*np.ones(self.C.shape)
+            self.Roi_response_residual=np.nan*np.ones(self.Roi_response.shape)
         else:
-            self.YrA=TraceResiduals
+            self.Roi_response_residual=TraceResiduals
 
          #remains to mine from mat file or nan it
          # need to resolve the diff between correlation image and summary image
@@ -97,9 +100,9 @@ class CIDataContainer:
         self._noROIs=None
         self._SampFreq=SampFreq
         self._NumOfFrames=None
-        self.SNR_comp=np.nan*np.ones(self.C.shape)    #remains to mine from mat file or nan it
-        self.r_values=np.nan*np.ones(self.C.shape)     #remains to mine from mat file or nan it
-        self.cnn_preds=np.nan*np.ones(self.C.shape)    #remains to mine from mat file or nan it
+        self.SNR_comp=np.nan*np.ones(self.Roi_response.shape)    #remains to mine from mat file or nan it
+        self.r_values=np.nan*np.ones(self.Roi_response.shape)     #remains to mine from mat file or nan it
+        self.cnn_preds=np.nan*np.ones(self.Roi_response.shape)    #remains to mine from mat file or nan it
         self._rejected_list=[] #remains to mine from mat file or nan it
         self._accepted_list=accepted_lst #remains to mine from mat file or nan it
         self.idx_components=self.accepted_list #remains to mine from mat file or nan it
@@ -126,9 +129,9 @@ class CIDataContainer:
             raise Exception('unknown analysis type, enter ''cnmfe'' or ''extract')
         temp=np.array(raw_images).transpose()
         self.images=temp
-        self.A=temp.reshape([np.prod(temp.shape[0:2]),temp.shape[2]])
+        self.Masks=temp.reshape([np.prod(temp.shape[0:2]),temp.shape[2]])
         self.extdims=temp.shape[0:2]
-        return self.A
+        return self.Masks
 
     def TraceExtracter_IO(self):
         if self.algotype=='cnmfe':
@@ -137,8 +140,8 @@ class CIDataContainer:
             extractedSignals=self.rf[self.group0[0]]['traces']
         else:
             raise Exception('unknown analysis type, enter ''cnmfe'' or ''extract')
-        self.C=np.array(extractedSignals).T
-        return self.C
+        self.Roi_response=np.array(extractedSignals).T
+        return self.Roi_response
 
     def TotExpTimeExtractor_IO(self):
         self.TotalTime=self.rf[self.group0[0]]['time']['totalTime'][0][0]
@@ -179,7 +182,7 @@ class CIDataContainer:
     @property
     def noROIs(self):
         if self._noROIs is None:
-            raw_images=self.A
+            raw_images=self.Masks
             return raw_images.shape[1]
         else:
             return self._noROIs
@@ -206,7 +209,7 @@ class CIDataContainer:
     def ROIlocs(self):
         if self._ROIlocs is None:
             no_ROIs=self.noROIs
-            raw_images=self.A
+            raw_images=self.Masks
             ROI_loca=np.ndarray([2,no_ROIs],dtype='int')
             for i in range(no_ROIs):
                 temp=np.where(raw_images[:,:,i]==np.amax(raw_images[:,:,i]))
@@ -218,7 +221,7 @@ class CIDataContainer:
     @property
     def NumOfFrames(self):
         if self._NumOfFrames is None:
-            extractedSignals=self.C
+            extractedSignals=self.Roi_response
             return extractedSignals.shape[1]
         else:
             return self._NumOfFrames
@@ -231,3 +234,44 @@ class CIDataContainer:
             return nframes/time
         else:
             return self._SampFreq
+
+    @staticmethod
+    def nwbwrite(nwbfilename,sourcefilepath,analysis_type,propertydict):
+        save_NWB(ScnitzerTraceExtractor(sourcefilepath,analysis_type),propertydict,nwbfilename)
+        print(f'successfully saved nwb as {nwbfilename}')
+
+    #defining the abstract class enformed methods:
+    def get_ROI_ids(self):
+        return list(range(self.noROIs))
+
+    def get_num_ROIs(self):
+        return self.noROIs
+
+    def get_ROI_locations(self,ROI_ids=None):
+        if ROI_ids is None:
+            return self.ROIlocs
+        else:
+            return self.ROIlocs[:,ROI_ids]
+
+    def get_num_frames(self):
+        return self.NumOfFrames
+
+    def get_sampling_frequency(self):
+        return self.SampFreq
+
+    def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None):
+        if start_frame is None:
+            start_frame = 0
+        if end_frame is None:
+            end_frame = self.get_num_frames()
+        if ROI_ids is None:#!!need to make ROI as a 2-d array, specifying the location in image plane
+            ROI_ids = range(self.get_ROI_ids())
+        return self.Roi_response[ROI_ids,start_frame:end_frame]
+
+    def get_masks(self, ROI_ids=None):
+        if ROI_ids is None:#!!need to make ROI as a 2-d array, specifying the location in image plane
+            ROI_ids = range(self.get_ROI_ids())
+        return self.Masks.reshape([*self.dims,*self.noROIs])[:,:,ROI_ids]
+
+    def get_movie_framesize(self):
+        return self.dims

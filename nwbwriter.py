@@ -8,7 +8,56 @@ from datetime import datetime
 from dateutil.tz import tzlocal
 import time,logging
 import numpy as np
-def save_NWB(CIDataContainerObj,filename,imaging_plane_name=None,imaging_series_name=None,sess_desc='TraceExtractor Results',exp_desc=None,identifier=None,
+
+
+def set_dynamic_table_property(dynamic_table, row_ids, property_name, values, index=False,
+                               default_value=np.nan, description='no description'):
+    check_nwb_install()
+    if not isinstance(row_ids, list) or not all(isinstance(x, int) for x in row_ids):
+        raise TypeError("'ids' must be a list of integers")
+    ids = list(dynamic_table.id[:])
+    if any([i not in ids for i in row_ids]):
+        raise ValueError("'ids' contains values outside the range of existing ids")
+    if not isinstance(property_name, str):
+        raise TypeError("'property_name' must be a string")
+    if len(row_ids) != len(values) and index is False:
+        raise ValueError("'ids' and 'values' should be lists of same size")
+
+    if index is False:
+        if property_name in dynamic_table:
+            for (row_id, value) in zip(row_ids, values):
+                dynamic_table[property_name].data[ids.index(row_id)] = value
+        else:
+            col_data = [default_value] * len(ids)  # init with default val
+            for (row_id, value) in zip(row_ids, values):
+                col_data[ids.index(row_id)] = value
+            dynamic_table.add_column(
+                name=property_name,
+                description=description,
+                data=col_data,
+                index=index
+            )
+    else:
+        if property_name in dynamic_table:
+            # TODO
+            raise NotImplementedError
+        else:
+            dynamic_table.add_column(
+                name=property_name,
+                description=description,
+                data=values,
+                index=index
+            )
+
+def get_dynamic_table_property(dynamic_table, *, row_ids=None, property_name):
+    all_row_ids = list(dynamic_table.id[:])
+    if row_ids is None:
+        row_ids = all_row_ids
+    return [dynamic_table[property_name][all_row_ids.index(x)] for x in row_ids]
+
+
+
+def save_NWB(TraceExtractor,propertydict=[],filename,imaging_plane_name=None,imaging_series_name=None,sess_desc='TraceExtractor Results',exp_desc=None,identifier=None,
              starting_time=0.,session_start_time=datetime.now(tzlocal()),excitation_lambda=488.0,imaging_plane_description='some imaging plane description',emission_lambda=520.0,indicator='OGB-1',
              location='brain'):
         """writes NWB file
@@ -32,8 +81,8 @@ def save_NWB(CIDataContainerObj,filename,imaging_plane_name=None,imaging_series_
             indicator: str
             location: str
         """
-        imaging_rate=CIDataContainerObj.SampFreq
-        raw_data_file=CIDataContainerObj.raw_data_file
+        imaging_rate=TraceExtractor.SampFreq
+        raw_data_file=TraceExtractor.raw_data_file
 
         if identifier is None:
             import uuid
@@ -88,7 +137,7 @@ def save_NWB(CIDataContainerObj,filename,imaging_plane_name=None,imaging_series_
                     mod = nwbfile.create_processing_module('ophys1', 'contains caiman estimates for the main '
                                                                      'imaging plane')
             else:
-                mod = nwbfile.create_processing_module('ophys', 'contains caiman estimates for the main imaging plane')
+                mod = nwbfile.create_processing_module('ophys', 'contains optical physiology processed data')
 
             img_seg = ImageSegmentation()
             mod.add_data_interface(img_seg)
@@ -118,49 +167,54 @@ def save_NWB(CIDataContainerObj,filename,imaging_plane_name=None,imaging_series_
                     raise Exception('There is more than one imaging plane in the file, you need to specify the name'
                                     ' via the "imaging_series_name" parameter')
 
-            ps = img_seg.create_plane_segmentation('CNMF_ROIs', imaging_plane, 'PlaneSegmentation', image_series)
-
-            ps.add_column('r', 'description of r values')
-            ps.add_column('snr', 'signal to noise ratio')
-            ps.add_column('cnn', 'description of CNN')
-            ps.add_column('keep', 'in idx_components')
-            ps.add_column('accepted', 'in accepted list')
-            ps.add_column('rejected', 'in rejected list')
+            ps = img_seg.create_plane_segmentation('ROIs', imaging_plane, 'PlaneSegmentation', image_series)
+            if len(propertydict):#propertydict is a list of dictionaries containing [{'name':'','discription':''}, {}..]
+                for i in range(len(propertydict)):
+                    property_name=propertydict[i].['name']
+                    property_desc=propertydict[i].['discription']
+                    set_dynamic_table_property(ps, row_ids, property_name, values, index=False,
+                                                   default_value=np.nan, description=property_desc):
+            # ps.add_column('r', 'description of r values')
+            # ps.add_column('snr', 'signal to noise ratio')
+            # ps.add_column('cnn', 'description of CNN')
+            # ps.add_column('keep', 'in idx_components')
+            # ps.add_column('accepted', 'in accepted list')
+            # ps.add_column('rejected', 'in rejected list')
 
             # Add ROIs
-            if not hasattr(CIDataContainerObj, 'accepted_list'):
-                for i, (roi, snr, r, cnn) in enumerate(zip(CIDataContainerObj.A.T, CIDataContainerObj.SNR_comp, CIDataContainerObj.r_values, CIDataContainerObj.cnn_preds)):
-                    ps.add_roi(image_mask=roi.T.reshape(CIDataContainerObj.dims), r=r, snr=snr, cnn=cnn,
-                               keep=i in CIDataContainerObj.idx_components, accepted=False, rejected=False)
+            if not hasattr(TraceExtractor, 'accepted_list'):
+                for i, (roi, snr, r, cnn) in enumerate(zip(TraceExtractor.Masks.T, TraceExtractor.SNR_comp, TraceExtractor.r_values, TraceExtractor.cnn_preds)):
+                    ps.add_roi(image_mask=roi.T.reshape(TraceExtractor.dims), r=r, snr=snr, cnn=cnn,
+                               keep=i in TraceExtractor.idx_components, accepted=False, rejected=False)
             else:
-                for i, (roi, snr, r, cnn) in enumerate(zip(CIDataContainerObj.A.T, CIDataContainerObj.SNR_comp, CIDataContainerObj.r_values, CIDataContainerObj.cnn_preds)):
-                    ps.add_roi(image_mask=roi.T.reshape(CIDataContainerObj.dims), r=r, snr=snr, cnn=cnn,
-                               keep=i in CIDataContainerObj.idx_components, accepted=i in CIDataContainerObj.accepted_list, rejected=i in CIDataContainerObj.rejected_list)
+                for i, (roi, snr, r, cnn) in enumerate(zip(TraceExtractor.Masks.T, TraceExtractor.SNR_comp, TraceExtractor.r_values, TraceExtractor.cnn_preds)):
+                    ps.add_roi(image_mask=roi.T.reshape(TraceExtractor.dims), r=r, snr=snr, cnn=cnn,
+                               keep=i in TraceExtractor.idx_components, accepted=i in TraceExtractor.accepted_list, rejected=i in TraceExtractor.rejected_list)
 
-            for bg in CIDataContainerObj.b.T:  # Backgrounds
-                ps.add_roi(image_mask=bg.reshape(CIDataContainerObj.dims), r=np.nan, snr=np.nan, cnn=np.nan, keep=False, accepted=False, rejected=False)
+            for bg in TraceExtractor.Masks_b.T:  # Backgrounds
+                ps.add_roi(image_mask=bg.reshape(TraceExtractor.dims), r=np.nan, snr=np.nan, cnn=np.nan, keep=False, accepted=False, rejected=False)
             # Add Traces
-            n_rois = CIDataContainerObj.A.shape[-1]
-            n_bg = len(CIDataContainerObj.f)
+            n_rois = TraceExtractor.Masks.shape[-1]
+            n_bg = len(TraceExtractor.Roi_response_b)
             rt_region_roi = ps.create_roi_table_region(
                 'ROIs', region=list(range(n_rois)))
 
             rt_region_bg = ps.create_roi_table_region(
                 'Background', region=list(range(n_rois, n_rois+n_bg)))
 
-            timestamps = np.arange(CIDataContainerObj.f.shape[1]) / imaging_rate + starting_time
+            timestamps = np.arange(TraceExtractor.Roi_response_b.shape[1]) / imaging_rate + starting_time
 
             # Neurons
-            fl.create_roi_response_series(name='RoiResponseSeries', data=CIDataContainerObj.C.T, rois=rt_region_roi, unit='lumens', timestamps=timestamps)
+            fl.create_roi_response_series(name='RoiResponseSeries', data=TraceExtractor.Roi_response.T, rois=rt_region_roi, unit='lumens', timestamps=timestamps)
             # Background
-            fl.create_roi_response_series(name='Background_Fluorescence_Response', data=CIDataContainerObj.f.T, rois=rt_region_bg, unit='lumens',
+            fl.create_roi_response_series(name='Background_Fluorescence_Response', data=TraceExtractor.Roi_response_b.T, rois=rt_region_bg, unit='lumens',
                                           timestamps=timestamps)
 
-            mod.add(TimeSeries(name='residuals', description='residuals', data=CIDataContainerObj.YrA.T, timestamps=timestamps,
+            mod.add(TimeSeries(name='residuals', description='residuals', data=TraceExtractor.Roi_response_residual.T, timestamps=timestamps,
                                unit='NA'))
-            if hasattr(CIDataContainerObj, 'Cn'):
+            if hasattr(TraceExtractor, 'Cn'):
                 images = Images('summary_images')
-                images.add_image(GrayscaleImage(name='local_correlations', data=CIDataContainerObj.Cn))
+                images.add_image(GrayscaleImage(name='local_correlations', data=TraceExtractor.Cn))
 
                 # Add MotionCorreciton
     #            create_corrected_image_stack(corrected, original, xy_translation, name='CorrectedImageStack')
