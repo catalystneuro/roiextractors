@@ -3,7 +3,7 @@ Python-based module for extracting from, converting between, and handling record
 
 # Summary of initial code files: 
 
-* class **ScnitzerTraceExtractor:** 
+* class **SchnitzerTraceExtractor:** 
 The main trace extractor class. 
 
 * class **CIDataContainer:**
@@ -18,6 +18,6 @@ The main trace extractor class.
   * Saves the data into nwb format. 
   
 * class **CIExtractor:**
-  * The abstract class which is inherited by *ScnitzerTraceExtractor* 
+  * The abstract class which is inherited by *SchnitzerTraceExtractor* 
 
 

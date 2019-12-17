@@ -3,7 +3,7 @@ from pynwb.base import Images
 from pynwb.image import GrayscaleImage
 from pynwb.ophys import ImageSegmentation, Fluorescence, OpticalChannel, ImageSeries
 from pynwb.device import Device
-import os
+import os,uuid
 from datetime import datetime
 from dateutil.tz import tzlocal
 import time,logging
@@ -57,9 +57,14 @@ def get_dynamic_table_property(dynamic_table, *, row_ids=None, property_name):
 
 
 
-def save_NWB(TraceExtractor,propertydict=[],filename,imaging_plane_name=None,imaging_series_name=None,sess_desc='TraceExtractor Results',exp_desc=None,identifier=None,
-             starting_time=0.,session_start_time=datetime.now(tzlocal()),excitation_lambda=488.0,imaging_plane_description='some imaging plane description',emission_lambda=520.0,indicator='OGB-1',
-             location='brain'):
+def write_recording(TraceExtractor,propertydict=[],filename,imaging_plane_name=None,imaging_series_name=None,identifier=None,
+             starting_time=0.,session_start_time=datetime.now(tzlocal()),excitation_lambda=np.nan,imaging_plane_description='no description',
+             emission_lambda=np.nan,indicator='none',location='brain',device_name='MyDevice',
+             optical_channel_name='MyOpticalChannel',optical_channel_description='MyOpticalChannelDescription',
+             imaging_plane_name='MyImagingPlane',imaging_plane_description='MyImagingPlaneDescription',
+             image_series_name='MyImageSeries',image_series_description='MyImageSeriesDescription',
+             processing_module_name='Ophys',processing_module_description='ContainsProcessedData',
+             **nwbfile_kwargs):
         """writes NWB file
         Args:
             filename: str
@@ -81,35 +86,85 @@ def save_NWB(TraceExtractor,propertydict=[],filename,imaging_plane_name=None,ima
             indicator: str
             location: str
         """
-        imaging_rate=TraceExtractor.SampFreq
-        raw_data_file=TraceExtractor.raw_data_file
+        imaging_rate=TraceExtractor.get_sampling_frequency()
+        raw_data_file=TraceExtractor.get_raw_file()
 
         if identifier is None:
-            import uuid
             identifier = uuid.uuid1().hex
 
         if '.nwb' != os.path.splitext(filename)[-1].lower():
             raise Exception("Wrong filename")
 
-        if not os.path.isfile(filename):  # if the file doesn't exist create new and add the original data path
-            print('filename does not exist. Creating new NWB file with only estimates output')
+        if os.path.exists(save_path):
+            read_mode = 'r+'
+            exist=True
+        else:
+            exist=False
+            read_mode = 'w'
 
-            nwbfile = NWBFile(sess_desc, identifier, session_start_time, experiment_description=exp_desc)
-            device = Device('imaging_device')
-            nwbfile.add_device(device)
-            optical_channel = OpticalChannel('OpticalChannel',
-                                             'main optical channel',
+        with NWBHDF5IO(save_path, mode=read_mode) as io:
+            if exist:
+                nwbfile = io.read()
+                #check existance of device, optical channel, imaging plane, image series:
+                try:
+                    nwbfile.add_device(Device(device_name))
+                except ValueError:
+                    pass
+
+                try:
+                    optical_channel = OpticalChannel(optical_channel_name,
+                                                 optical_channel_description,
+                                                 emission_lambda=emission_lambda)
+                except ValueError:
+                    pass
+
+                try:
+                    nwbfile.create_imaging_plane(name=imaging_plane_name,
+                                                 optical_channel=optical_channel,
+                                                 description=imaging_plane_description,
+                                                 device=device,
+                                                 excitation_lambda=excitation_lambda,
+                                                 imaging_rate=imaging_rate,
+                                                 indicator=indicator,
+                                                 location=location)
+                except ValueError:
+                    pass
+
+                try:
+                    nwbfile.add_acquisition(ImageSeries(name=image_series_name,
+                                                        description=image_series_description,
+                                                        external_file=[raw_data_file],
+                                                        format='external',
+                                                        rate=imaging_rate,
+                                                        starting_frame=[0]))
+                except ValueError:
+                    pass
+
+                # _device_exist = [i for i in nwbfile.children if isinstance(i, Device)]
+                #     if len(_device_exist)>0:
+                #         if not any(i for i in _device_exist if i==device_name):
+                #             nwbfile.add_device(Device(device_name))
+            else:
+                kwargs = {'session_description': 'No description',
+                          'identifier': str(uuid.uuid4()),
+                          'session_start_time': datetime.now()}
+                kwargs.update(**nwbfile_kwargs)
+                nwbfile = NWBFile(**kwargs)
+                nwbfile.add_device(Device(device_name))
+
+                optical_channel = OpticalChannel(optical_channel_name,
+                                             optical_channel_description,
                                              emission_lambda=emission_lambda)
-            nwbfile.create_imaging_plane(name='ImagingPlane',
-                                         optical_channel=optical_channel,
-                                         description=imaging_plane_description,
-                                         device=device,
-                                         excitation_lambda=excitation_lambda,
-                                         imaging_rate=imaging_rate,
-                                         indicator=indicator,
-                                         location=location)
-            if raw_data_file:
-                nwbfile.add_acquisition(ImageSeries(name='TwoPhotonSeries',
+                nwbfile.create_imaging_plane(name=imaging_plane_name,
+                                             optical_channel=optical_channel,
+                                             description=imaging_plane_description,
+                                             device=device,
+                                             excitation_lambda=excitation_lambda,
+                                             imaging_rate=imaging_rate,
+                                             indicator=indicator,
+                                             location=location)
+                nwbfile.add_acquisition(ImageSeries(name=image_series_name,
+                                                    description=image_series_description,
                                                     external_file=[raw_data_file],
                                                     format='external',
                                                     rate=imaging_rate,
@@ -125,49 +180,34 @@ def save_NWB(TraceExtractor,propertydict=[],filename,imaging_plane_name=None,ima
             # Add processing results
 
             # Create the module as 'ophys' unless it is taken and append 'ophysX' instead
-            ophysmodules = [s[5:] for s in list(nwbfile.modules) if s.startswith('ophys')]
-            if any('' in s for s in ophysmodules):
-                if any([s for s in ophysmodules if s.isdigit()]):
-                    nummodules = max([int(s) for s in ophysmodules if s.isdigit()])+1
-                    print('ophys module previously created, writing to ophys'+str(nummodules)+' instead')
-                    mod = nwbfile.create_processing_module('ophys'+str(nummodules), 'contains caiman estimates for '
-                                                                                    'the main imaging plane')
-                else:
-                    print('ophys module previously created, writing to ophys1 instead')
-                    mod = nwbfile.create_processing_module('ophys1', 'contains caiman estimates for the main '
-                                                                     'imaging plane')
+            ophysmodules = [s for s in list(nwbfile.modules)]
+            if processing_module_name not in ophysmodules:
+                mod = nwbfile.create_processing_module(processing_module_name,processing_module_description)
             else:
-                mod = nwbfile.create_processing_module('ophys', 'contains optical physiology processed data')
+                mod = nwbfile.processing[processing_module_name]
 
-            img_seg = ImageSegmentation()
-            mod.add_data_interface(img_seg)
-            fl = Fluorescence()
-            mod.add_data_interface(fl)
-#            mot_crct = MotionCorrection()
-#            mod.add_data_interface(mot_crct)
+            try:
+                img_seg = ImageSegmentation()
+                mod.add_data_interface(img_seg)
+            except:
+                print('ImageSegmentation interface already exists')
+
+            try:
+                fl = Fluorescence()
+                mod.add_data_interface(fl)
+            except:
+                print('Fluorescence interface already exists')
+
+
 
             # Add the ROI-related stuff
-            if imaging_plane_name is not None:
-                imaging_plane = nwbfile.imaging_planes[imaging_plane_name]
-            else:
-                if len(nwbfile.imaging_planes) == 1:
-                    imaging_plane = list(nwbfile.imaging_planes.values())[0]
-                else:
-                    raise Exception('There is more than one imaging plane in the file, you need to specify the name'
-                                    ' via the "imaging_plane_name" parameter')
+            imaging_plane = nwbfile.imaging_planes[imaging_plane_name]
+            image_series = nwbfile.acquisition[imaging_series_name]
+            try:
+                ps = img_seg.create_plane_segmentation('ROIs', imaging_plane, 'PlaneSegmentation', image_series)
+            except:
+                ps = mod['ImageSegmentation'].get_plane_segmentation()
 
-            if imaging_series_name is not None:
-                image_series = nwbfile.acquisition[imaging_series_name]
-            else:
-                if not len(nwbfile.acquisition):
-                    image_series = None
-                elif len(nwbfile.acquisition) == 1:
-                    image_series = list(nwbfile.acquisition.values())[0]
-                else:
-                    raise Exception('There is more than one imaging plane in the file, you need to specify the name'
-                                    ' via the "imaging_series_name" parameter')
-
-            ps = img_seg.create_plane_segmentation('ROIs', imaging_plane, 'PlaneSegmentation', image_series)
             if len(propertydict):#propertydict is a list of dictionaries containing [{'name':'','discription':''}, {}..]
                 for i in range(len(propertydict)):
                     property_name=propertydict[i].['name']
@@ -183,38 +223,38 @@ def save_NWB(TraceExtractor,propertydict=[],filename,imaging_plane_name=None,ima
 
             # Add ROIs
             if not hasattr(TraceExtractor, 'accepted_list'):
-                for i, (roi, snr, r, cnn) in enumerate(zip(TraceExtractor.Masks.T, TraceExtractor.SNR_comp, TraceExtractor.r_values, TraceExtractor.cnn_preds)):
+                for i, (roi, snr, r, cnn) in enumerate(zip(TraceExtractor.masks.T, TraceExtractor.snr_comp, TraceExtractor.r_values, TraceExtractor.cnn_preds)):
                     ps.add_roi(image_mask=roi.T.reshape(TraceExtractor.dims), r=r, snr=snr, cnn=cnn,
                                keep=i in TraceExtractor.idx_components, accepted=False, rejected=False)
             else:
-                for i, (roi, snr, r, cnn) in enumerate(zip(TraceExtractor.Masks.T, TraceExtractor.SNR_comp, TraceExtractor.r_values, TraceExtractor.cnn_preds)):
+                for i, (roi, snr, r, cnn) in enumerate(zip(TraceExtractor.masks.T, TraceExtractor.snr_comp, TraceExtractor.r_values, TraceExtractor.cnn_preds)):
                     ps.add_roi(image_mask=roi.T.reshape(TraceExtractor.dims), r=r, snr=snr, cnn=cnn,
                                keep=i in TraceExtractor.idx_components, accepted=i in TraceExtractor.accepted_list, rejected=i in TraceExtractor.rejected_list)
 
-            for bg in TraceExtractor.Masks_b.T:  # Backgrounds
+            for bg in TraceExtractor.masks_bk.T:  # Backgrounds
                 ps.add_roi(image_mask=bg.reshape(TraceExtractor.dims), r=np.nan, snr=np.nan, cnn=np.nan, keep=False, accepted=False, rejected=False)
             # Add Traces
-            n_rois = TraceExtractor.Masks.shape[-1]
-            n_bg = len(TraceExtractor.Roi_response_b)
+            n_rois = TraceExtractor.masks.shape[-1]
+            n_bg = len(TraceExtractor.roi_response_bk)
             rt_region_roi = ps.create_roi_table_region(
                 'ROIs', region=list(range(n_rois)))
 
             rt_region_bg = ps.create_roi_table_region(
                 'Background', region=list(range(n_rois, n_rois+n_bg)))
 
-            timestamps = np.arange(TraceExtractor.Roi_response_b.shape[1]) / imaging_rate + starting_time
+            timestamps = np.arange(TraceExtractor.roi_response_bk.shape[1]) / imaging_rate + starting_time
 
             # Neurons
-            fl.create_roi_response_series(name='RoiResponseSeries', data=TraceExtractor.Roi_response.T, rois=rt_region_roi, unit='lumens', timestamps=timestamps)
+            fl.create_roi_response_series(name='RoiResponseSeries', data=TraceExtractor.roi_response.T, rois=rt_region_roi, unit='lumens', timestamps=timestamps)
             # Background
-            fl.create_roi_response_series(name='Background_Fluorescence_Response', data=TraceExtractor.Roi_response_b.T, rois=rt_region_bg, unit='lumens',
+            fl.create_roi_response_series(name='Background_Fluorescence_Response', data=TraceExtractor.roi_response_bk.T, rois=rt_region_bg, unit='lumens',
                                           timestamps=timestamps)
 
-            mod.add(TimeSeries(name='residuals', description='residuals', data=TraceExtractor.Roi_response_residual.T, timestamps=timestamps,
+            mod.add(TimeSeries(name='residuals', description='residuals', data=TraceExtractor.roi_response_residual.T, timestamps=timestamps,
                                unit='NA'))
-            if hasattr(TraceExtractor, 'Cn'):
+            if hasattr(TraceExtractor, 'cn'):
                 images = Images('summary_images')
-                images.add_image(GrayscaleImage(name='local_correlations', data=TraceExtractor.Cn))
+                images.add_image(GrayscaleImage(name='local_correlations', data=TraceExtractor.cn))
 
                 # Add MotionCorreciton
     #            create_corrected_image_stack(corrected, original, xy_translation, name='CorrectedImageStack')

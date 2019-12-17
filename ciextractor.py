@@ -46,17 +46,17 @@ class CIExtractor(ABC):
         '''
         pass
     @abstractmethod
-    def get_ROI_locations(self):
+    def get_roi_locations(self):
         '''
         Returns the locations of the Regions of Interest
         Returns
         ------
-        ROIlocs: numpy.ndarray
+        roi_locs: numpy.ndarray
             2-D array: 2 X no_ROIs. The pixel ids (x,y) where the centroid of the ROI is.
         '''
         pass
     @abstractmethod
-    def get_ROI_ids(self):
+    def get_roi_ids(self):
         '''Returns the list of channel ids. If not specified, the range from 0 to num_channels - 1 is returned.
         Returns
         -------
