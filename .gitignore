@@ -1,13 +1,12 @@
-*.mat
-*.hdf5
-*.nwb
-/CaImAn-MATLAB-master
-/CaImAn-master
-/calciumImagingAnalysis-master
-/misc
-**/*.mat
-*_dir.txt
+# Dataset file / log file types:
+/**/*.mat
+/**/*.hdf5
+/**/*.nwb
+/**/*.log
 
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
 
 
 

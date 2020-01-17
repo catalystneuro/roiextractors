@@ -1,12 +1,11 @@
 import numpy as np
 import h5py
-from ciextractor import CIExtractor
-from nwbwriter import write_recording
+from segmentationextractor import SegmentationExtractor
+from writenwb import write_nwb
 import re
-import sima
 
 
-class TraceExtractor(CIExtractor):
+class ExtractSegmentationExtractor(SegmentationExtractor):
     ''' TraceExtractor class:
         input all releveant data and metadata related to the main analysis file parsed by h5py
 
@@ -274,10 +273,9 @@ class TraceExtractor(CIExtractor):
             return self._samp_freq
 
     @staticmethod
-    def nwbwrite(nwbfilename, sourcefilepath, analysis_type, propertydict):
-        write_recording(TraceExtractor(sourcefilepath, analysis_type),
-                        propertydict, nwbfilename)
-        print(f'successfully saved nwb as {nwbfilename}')
+    def write_recording_nwb(segmentation_object, savepath, sourcefilepath, propertydict):
+        write_nwb(segmentation_object, propertydict, savepath)
+        print(f'successfully saved nwb as {savepath}')
 
     # defining the abstract class enformed methods:
     def get_roi_ids(self):

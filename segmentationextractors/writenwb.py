@@ -60,15 +60,15 @@ def get_dynamic_table_property(dynamic_table, *, row_ids=None, property_name):
     return [dynamic_table[property_name][all_row_ids.index(x)] for x in row_ids]
 
 
-def write_recording(TraceExtractor, propertydict=[], filename, imaging_plane_name=None, imaging_series_name=None, identifier=None,
-                    starting_time=0., session_start_time=datetime.now(tzlocal()), excitation_lambda=np.nan, imaging_plane_description='no description',
-                    emission_lambda=np.nan, indicator='none', location='brain', device_name='MyDevice',
-                    optical_channel_name='MyOpticalChannel', optical_channel_description='MyOpticalChannelDescription',
-                    imaging_plane_name='MyImagingPlane', imaging_plane_description='MyImagingPlaneDescription',
-                    image_series_name='MyImageSeries', image_series_description='MyImageSeriesDescription',
-                    processing_module_name='Ophys', processing_module_description='ContainsProcessedData',
-                    neuron_roi_response_series_name='NeuronTimeSeriesData',
-                    background_roi_response_series_name='BackgroundTimeSeriesData', **nwbfile_kwargs):
+def write_nwb(TraceExtractor, propertydict=[], filename, imaging_plane_name=None, imaging_series_name=None, identifier=None,
+                starting_time=0., session_start_time=datetime.now(tzlocal()), excitation_lambda=np.nan, imaging_plane_description='no description',
+                emission_lambda=np.nan, indicator='none', location='brain', device_name='MyDevice',
+                optical_channel_name='MyOpticalChannel', optical_channel_description='MyOpticalChannelDescription',
+                imaging_plane_name='MyImagingPlane', imaging_plane_description='MyImagingPlaneDescription',
+                image_series_name='MyImageSeries', image_series_description='MyImageSeriesDescription',
+                processing_module_name='Ophys', processing_module_description='ContainsProcessedData',
+                neuron_roi_response_series_name='NeuronTimeSeriesData',
+                background_roi_response_series_name='BackgroundTimeSeriesData', **nwbfile_kwargs):
     """writes NWB file
     Args:
         filename: str

@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 import numpy as np
 print('running outside class ciextractor also')
-class CIExtractor(ABC):
+
+
+class SegmentationExtractor(ABC):
     def __init__(self):
         self._epochs = {}
         self._channel_properties = {}
@@ -21,7 +23,7 @@ class CIExtractor(ABC):
         Returns
         ----------
         traces: numpy.ndarray
-            A 3D array that contains all of the traces from each channel.
+            A 2D array that contains all of the traces from each channel.
             Dimensions are: (number of ROIs x num_frames)
         '''
         pass
@@ -45,6 +47,7 @@ class CIExtractor(ABC):
             Sampling frequency of the recordings in Hz.
         '''
         pass
+
     @abstractmethod
     def get_roi_locations(self):
         '''
@@ -55,6 +58,7 @@ class CIExtractor(ABC):
             2-D array: 2 X no_ROIs. The pixel ids (x,y) where the centroid of the ROI is.
         '''
         pass
+
     @abstractmethod
     def get_roi_ids(self):
         '''Returns the list of channel ids. If not specified, the range from 0 to num_channels - 1 is returned.
