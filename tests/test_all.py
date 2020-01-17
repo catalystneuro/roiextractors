@@ -1,8 +1,8 @@
 
-from SchnitzerTraceExtractor import SchnitzerTraceExtractor
+from SchnitzerSegmentationExtractor import SchnitzerSegmentationExtractor
 import matplotlib.pyplot as plt
 
-trext = SchnitzerTraceExtractor(
+trext = SchnitzerSegmentationExtractor(
     '2014_04_01_p203_m19_check01_cnmfeAnalysis.mat', 'cnmfe', 'recording_device')
 type(trext.data.samp_freq)
 print(trext.data.A.shape, trext.data.b.shape, trext.data.C.shape,

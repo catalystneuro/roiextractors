@@ -60,7 +60,7 @@ def get_dynamic_table_property(dynamic_table, *, row_ids=None, property_name):
     return [dynamic_table[property_name][all_row_ids.index(x)] for x in row_ids]
 
 
-def write_nwb(TraceExtractor, propertydict=[], filename, imaging_plane_name=None, imaging_series_name=None, identifier=None,
+def write_nwb(SegmentationExtractor, propertydict=[], filename, imaging_plane_name=None, imaging_series_name=None, identifier=None,
                 starting_time=0., session_start_time=datetime.now(tzlocal()), excitation_lambda=np.nan, imaging_plane_description='no description',
                 emission_lambda=np.nan, indicator='none', location='brain', device_name='MyDevice',
                 optical_channel_name='MyOpticalChannel', optical_channel_description='MyOpticalChannelDescription',
@@ -90,8 +90,8 @@ def write_nwb(TraceExtractor, propertydict=[], filename, imaging_plane_name=None
         indicator: str
         location: str
     """
-    imaging_rate = TraceExtractor.get_sampling_frequency()
-    raw_data_file = TraceExtractor.get_raw_file()
+    imaging_rate = SegmentationExtractor.get_sampling_frequency()
+    raw_data_file_location = SegmentationExtractor.get_raw_file()
 
     if identifier is None:
         identifier = uuid.uuid1().hex
@@ -151,7 +151,7 @@ def write_nwb(TraceExtractor, propertydict=[], filename, imaging_plane_name=None
             if not _image_series_exist:
                 nwbfile.add_acquisition(ImageSeries(name=image_series_name,
                                                     description=image_series_description,
-                                                    external_file=[raw_data_file],
+                                                    external_file=[raw_data_file_location],
                                                     format='external',
                                                     rate=imaging_rate,
                                                     starting_frame=[0]))
@@ -181,7 +181,7 @@ def write_nwb(TraceExtractor, propertydict=[], filename, imaging_plane_name=None
                                          location=location)
             nwbfile.add_acquisition(ImageSeries(name=image_series_name,
                                                 description=image_series_description,
-                                                external_file=[raw_data_file],
+                                                external_file=[raw_data_file_location],
                                                 format='external',
                                                 rate=imaging_rate,
                                                 starting_frame=[0]))
@@ -232,11 +232,11 @@ def write_nwb(TraceExtractor, propertydict=[], filename, imaging_plane_name=None
         # Adding custom columns and their values to the PlaneSegmentation table:
         # propertydict is a list of dictionaries containing [{'name':'','discription':''}, {}..]
         if len(propertydict):
-            trace_exctractor_attrs=dir(TraceExtractor)
+            trace_exctractor_attrs=dir(SegmentationExtractor)
             for i in range(len(propertydict)):
                 _property_name = propertydict[i]['name']
                 _property_desc = propertydict[i].get('description','no description'])
-                _property_row_ids = propertydict[i].get('id',list(np.arange(TraceExtractor.no_rois))])
+                _property_row_ids = propertydict[i].get('id',list(np.arange(SegmentationExtractor.no_rois))])
                 _property_name_attr=[re.findall('^' + _property_name,i,re.I) for i in trace_exctractor_attrs]
                 assert not _property_name_attr or len(_property_name_attr)>1, \
                 print('Enter one of the Names and their descriptions in the Property Dictionary:\n'
@@ -245,33 +245,33 @@ def write_nwb(TraceExtractor, propertydict=[], filename, imaging_plane_name=None
                       '\'keep\' : ROIs to keep \n'
                       '\'accepted\' : accepted ROIs \n'
                       '\'rejected\' : rejected ROIs \n')
-                value = getattr(TraceExtractor,_property_name_attr,False)
+                value = getattr(SegmentationExtractor,_property_name_attr,False)
                 if value:
                     set_dynamic_table_property(ps, _property_row_ids, _property_name, value, index=False,
                                                description=_property_desc)
 
        # Adding Image and Pixel Masks(default colnames in PlaneSegmentation):
-        if hasattr(TraceExtractor, 'pixel_masks'):
-            for i, (img_roi, pix_roi) in enumerate(zip(TraceExtractor.image_masks.T, TraceExtractor.pixel_masks):
-                ps.add_roi(image_mask=img_roi.T.reshape(TraceExtractor.dims),
+        if hasattr(SegmentationExtractor, 'pixel_masks'):
+            for i, (img_roi, pix_roi) in enumerate(zip(SegmentationExtractor.image_masks.T, SegmentationExtractor.pixel_masks):
+                ps.add_roi(image_mask=img_roi.T.reshape(SegmentationExtractor.image_dims),
                            pixel_mask=pix_roi)
         else:
-            for i, img_roi in enumerate(TraceExtractor.image_masks.T):
-                ps.add_roi(image_mask=img_roi.T.reshape(TraceExtractor.dims))
+            for i, img_roi in enumerate(SegmentationExtractor.image_masks.T):
+                ps.add_roi(image_mask=img_roi.T.reshape(SegmentationExtractor.image_dims))
 
         # Background components addition:
-        if hasattr(TraceExtractor, 'image_masks_bk'):
-            if hasattr(TraceExtractor, 'pixel_masks_bk'):
-                for i, (img_roi_bk, pix_roi_bk) in enumerate(zip(TraceExtractor.image_masks_bk.T, TraceExtractor.pixel_masks_bk):
-                    ps.add_roi(image_mask=img_roi_bk.T.reshape(TraceExtractor.dims),
+        if hasattr(SegmentationExtractor, 'image_masks_bk'):
+            if hasattr(SegmentationExtractor, 'pixel_masks_bk'):
+                for i, (img_roi_bk, pix_roi_bk) in enumerate(zip(SegmentationExtractor.image_masks_bk.T, SegmentationExtractor.pixel_masks_bk):
+                    ps.add_roi(image_mask=img_roi_bk.T.reshape(SegmentationExtractor.image_dims),
                                pixel_mask=pix_roi_bk)
             else:
-                for i, img_roi_bk in enumerate(TraceExtractor.image_masks_bk.T):
-                    ps.add_roi(image_mask=img_roi_bk.T.reshape(TraceExtractor.dims))
+                for i, img_roi_bk in enumerate(SegmentationExtractor.image_masks_bk.T):
+                    ps.add_roi(image_mask=img_roi_bk.T.reshape(SegmentationExtractor.image_dims))
 
         # Add Traces
-        no_neurons_rois = TraceExtractor.image_masks.shape[-1]
-        no_background_rois = len(TraceExtractor.roi_response_bk)
+        no_neurons_rois = SegmentationExtractor.image_masks.shape[-1]
+        no_background_rois = len(SegmentationExtractor.roi_response_bk)
         neuron_rois = ps.create_roi_table_region(
             'NeuronROIs', region=list(range(no_neurons_rois)))
 
@@ -279,12 +279,12 @@ def write_nwb(TraceExtractor, propertydict=[], filename, imaging_plane_name=None
             'BackgroundROIs', region=list(range(no_neurons_rois, no_neurons_rois+no_background_rois)))
 
         timestamps = np.arange(
-            TraceExtractor.roi_response_bk.shape[1]) / imaging_rate + starting_time
+            SegmentationExtractor.roi_response_bk.shape[1]) / imaging_rate + starting_time
 
         # Neurons TimeSeries
         neuron_roi_response_exist = [i for i, e in enumerate(_nwbchildren_name) if e == neuron_roi_response_series_name]
         if not neuron_roi_response_exist:
-            fl.create_roi_response_series(name=neuron_roi_response_series_name, data=TraceExtractor.roi_response.T,
+            fl.create_roi_response_series(name=neuron_roi_response_series_name, data=SegmentationExtractor.roi_response.T,
                                           rois=neuron_rois, unit='lumens', timestamps=timestamps,
                                           starting_time=starting_time, rate=imaging_rate)
         else:
@@ -294,7 +294,7 @@ def write_nwb(TraceExtractor, propertydict=[], filename, imaging_plane_name=None
         # Background TimeSeries
         background_roi_response_exist = [i for i, e in enumerate(_nwbchildren_name) if e == background_roi_response_series_name]
         if not background_roi_response_exist:
-            fl.create_roi_response_series(name=background_roi_response_series_name, data=TraceExtractor.roi_response.T,
+            fl.create_roi_response_series(name=background_roi_response_series_name, data=SegmentationExtractor.roi_response.T,
                                           rois=neuron_rois, unit='lumens', timestamps=timestamps,
                                           starting_time=starting_time, rate=imaging_rate)
         else:
@@ -302,11 +302,11 @@ def write_nwb(TraceExtractor, propertydict=[], filename, imaging_plane_name=None
                             ' already exists , provide another name')
 
         # Residual TimeSeries
-        mod.add(TimeSeries(name='residuals', description='residuals', data=TraceExtractor.roi_response_residual.T, timestamps=timestamps,
+        mod.add(TimeSeries(name='residuals', description='residuals', data=SegmentationExtractor.roi_response_residual.T, timestamps=timestamps,
                            unit='NA'))
-        if hasattr(TraceExtractor, 'cn'):
+        if hasattr(SegmentationExtractor, 'cn'):
             images = Images('summary_images')
-            images.add_image(GrayscaleImage(name='local_correlations', data=TraceExtractor.cn))
+            images.add_image(GrayscaleImage(name='local_correlations', data=SegmentationExtractor.cn))
 
             # Add MotionCorreciton
     #            create_corrected_image_stack(corrected, original, xy_translation, name='CorrectedImageStack')

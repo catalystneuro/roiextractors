@@ -1,12 +1,12 @@
-# Traceextractors
+# SegmentationExtractors
 Python-based module for extracting from, converting between, and handling recorded and optical imaging data from several file format. Inspired by SpikeExtractor
 
 # Summary of initial code files: 
 
 * class **CIExtractor:**
-  * The abstract class which is inherited by *TraceExtractor* 
+  * The abstract class which is inherited by *SegmentationExtractor* 
   
-* class **TraceExtractor:**
+* class **SegmentationExtractor:**
   * Contains all data and meta data from the .mat analysis files. 
   * Has various methods to interface with the .mat files and extract relevent meta data. 
   
