@@ -49,7 +49,9 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         self.filepath = filepath
         self.dataset_file = self._file_extractor_read()
         self.sima_segmentation_label = sima_segmentation_label
-        self.image_masks, self.extimage_dims = self._mask_extracter_read()
+        self.image_masks, self.extimage_dims, self.raw_images =\
+            self._image_mask_extracter_read()
+        self.pixel_masks = self._pixel_mask_extracter_read()
         self.roi_response = self._trace_extracter_read()
         self.cn = self._summary_image_read()
         self.total_time = self._tot_exptime_txtractor_read()
@@ -81,7 +83,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         _img_dataset = sima.ImagingDataset.load(self.filepath)
         return _img_dataset
 
-    def _mask_extracter_read(self):
+    def _image_mask_extracter_read(self):
         _sima_rois = self.dataset_file.ROIs
         if len(_sima_rois) > 1:
             if self.sima_segmentation_label in list(_sima_rois.keys()):
@@ -97,10 +99,26 @@ class SimaSegmentationExtractor(SegmentationExtractor):
 
         image_masks_ = [roi_dat.mask for roi_dat in _sima_rois_data]
         raw_images = np.array(image_masks_).transpose()
-        temp = np.array(raw_images).transpose()
-        self.images = temp
-        return temp.reshape([np.prod(temp.shape[0:2]), temp.shape[2]], order='F'),\
-            temp.shape[0:2]
+        _raw_images_trans = np.array(raw_images).transpose()
+        return _raw_images_trans.reshape(
+                                [np.prod(_raw_images_trans.shape[0:2]),
+                                 _raw_images_trans.shape[2]],
+                                 order='F'),\
+            _raw_images_trans.shape[0:2],\
+            _raw_images_trans
+
+    def _pixel_mask_extracter_read(self):
+        _raw_images_trans = self.raw_images
+        temp = np.empty((1, 4))
+        for i in range(_raw_images_trans.shape[2]):
+            _locs = np.where(_raw_images_trans[:, :, i] > 0)
+            _pix_values = _raw_images_trans[_raw_images_trans[:, :, i] > 0]
+            np.append(temp, np.concatenate(
+                                _locs[0].reshape([1, np.size(_locs[0])]),
+                                _locs[1].reshape([1, np.size(_locs[1])]),
+                                _pix_values.reshape([1, np.size(_locs[1])]),
+                                i*np.ones(1, np.size(_locs[1]))).T)
+        return temp
 
     def _trace_extracter_read(self):
         extracted_signals = self.dataset_file.extract(

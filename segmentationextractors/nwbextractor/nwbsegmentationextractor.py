@@ -72,7 +72,7 @@ class NwbSegmentationExtractor(segmentationextractor):
 
     def __init__(self):
         pass
-        
+
     @staticmethod
     def write_nwb(SegmentationExtractor, filename, propertydict=[], imaging_series_name=None, identifier=None,
                     starting_time=0., session_start_time=datetime.now(tzlocal()), excitation_lambda=np.nan,
@@ -261,33 +261,31 @@ class NwbSegmentationExtractor(segmentationextractor):
             # Adding custom columns and their values to the PlaneSegmentation table:
             # propertydict is a list of dictionaries containing [{'name':'','discription':'','id':''}, {}..]
             if len(propertydict):
-                segmentation_exctractor_attrs = dir(SegmentationExtractor)
+                _segmentation_exctractor_attrs = dir(SegmentationExtractor)
                 for i in range(len(propertydict)):
                     _property_name = propertydict[i]['name']
                     _property_desc = propertydict[i].get('description', 'no description')
                     _property_row_ids = propertydict[i].get('id', list(np.arange(SegmentationExtractor.no_rois)))
-                    # checking if any property is specified which is a non existent field in the SegmentationExtractor:
-                    _property_name_attr = [re.findall('^' + _property_name, i, re.I) for i in segmentation_exctractor_attrs]
-                    assert not _property_name_attr or len(_property_name_attr) > 1,\
-                    print('Enter one of the Names and their descriptions in the Property Dictionary:\n'
-                          '\'r\' : Residual Noise \n'
-                          '\'cnn\' : CNN predictions for each component \n'
-                          '\'keep\' : ROIs to keep \n'
-                          '\'accepted\' : accepted ROIs \n'
-                          '\'rejected\' : rejected ROIs \n')
-                    value = getattr(SegmentationExtractor, _property_name_attr, False)
+                    # stop execution if the property name is non existant OR there are multiple such properties:
+                    _property_name_exist = [i for i in _segmentation_exctractor_attrs if len(re.findall('^' + _property_name, i, re.I))]
+                    assert not _property_name_exist or len(_property_name_exist) > 1,\
+                        print('Enter one of the Names and their descriptions in the Property Dictionary:\n'
+                              '\'r\' : Residual Noise \n'
+                              '\'cnn\' : CNN predictions for each component \n'
+                              '\'keep\' : ROIs to keep \n'
+                              '\'accepted\' : accepted ROIs \n'
+                              '\'rejected\' : rejected ROIs \n')
+                    value = getattr(SegmentationExtractor, _property_name_exist[0], False)
                     if value:
                         set_dynamic_table_property(ps, _property_row_ids, _property_name, value, index=False,
                                                    description=_property_desc)
 
-           # Adding Image and Pixel Masks(default colnames in PlaneSegmentation):
-            if hasattr(SegmentationExtractor, 'image_masks'):
-                for i, (img_roi, pix_roi) in enumerate(zip(SegmentationExtractor.image_masks.T, SegmentationExtractor.pixel_masks)):
-                    ps.add_roi(image_mask=img_roi.T.reshape(SegmentationExtractor.image_dims),
-                               pixel_mask=pix_roi)
-            else:
-                for i, img_roi in enumerate(SegmentationExtractor.image_masks.T):
-                    ps.add_roi(image_mask=img_roi.T.reshape(SegmentationExtractor.image_dims))
+            # Adding Image and Pixel Masks(default colnames in PlaneSegmentation):
+            for i in range(SegmentationExtractor.no_rois):
+                img_roi = SegmentationExtractor.image_masks[:, i]
+                pix_roi = SegmentationExtractor.pixel_masks[SegmentationExtractor.pixel_masks[3] == i, :]
+                ps.add_roi(image_mask=img_roi.T.reshape(SegmentationExtractor.image_dims),
+                           pixel_mask=pix_roi)
 
             # Background components addition:
             if hasattr(SegmentationExtractor, 'image_masks_bk'):
@@ -315,7 +313,7 @@ class NwbSegmentationExtractor(segmentationextractor):
             neuron_roi_response_exist = [i for i, e in enumerate(_nwbchildren_name) if e == neuron_roi_response_series_name]
             if not neuron_roi_response_exist:
                 fl.create_roi_response_series(name=neuron_roi_response_series_name, data=SegmentationExtractor.roi_response.T,
-                                              rois=neuron_rois, unit='lumens', timestamps=timestamps,
+                                              rois=neuron_rois, unit='lumens'
                                               starting_time=starting_time, rate=imaging_rate)
             else:
                 raise Exception('Time Series for' + neuron_roi_response_series_name +
@@ -325,7 +323,7 @@ class NwbSegmentationExtractor(segmentationextractor):
             background_roi_response_exist = [i for i, e in enumerate(_nwbchildren_name) if e == background_roi_response_series_name]
             if not background_roi_response_exist:
                 fl.create_roi_response_series(name=background_roi_response_series_name, data=SegmentationExtractor.roi_response.T,
-                                              rois=background_rois, unit='lumens', timestamps=timestamps,
+                                              rois=background_rois, unit='lumens',
                                               starting_time=starting_time, rate=imaging_rate)
             else:
                 raise Exception('Time Series for' + background_roi_response_series_name +
@@ -340,4 +338,4 @@ class NwbSegmentationExtractor(segmentationextractor):
 
                 # Add MotionCorreciton
         #            create_corrected_image_stack(corrected, original, xy_translation, name='CorrectedImageStack')
-                io.write(nwbfile)
+            io.write(nwbfile)
