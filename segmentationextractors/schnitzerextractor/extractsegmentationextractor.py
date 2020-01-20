@@ -1,7 +1,7 @@
 import numpy as np
 import h5py
-from segmentationextractor import SegmentationExtractor
-from writenwb import write_nwb
+from ..segmentationextractor import SegmentationExtractor
+from ..writenwb import write_nwb
 import re
 
 
@@ -167,9 +167,8 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
             return self._samp_freq
 
     @staticmethod
-    def write_recording_nwb(segmentation_object, savepath, sourcefilepath, propertydict):
-        write_nwb(segmentation_object, propertydict, savepath)
-        print(f'successfully saved nwb as {savepath}')
+    def write_recording(segmentation_object, savepath):
+        raise NotImplementedError
 
     # defining the abstract class enformed methods:
     def get_roi_ids(self):

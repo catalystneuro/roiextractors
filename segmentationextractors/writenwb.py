@@ -1,8 +1,3 @@
-from pynwb import NWBHDF5IO, TimeSeries, NWBFile
-from pynwb.base import Images
-from pynwb.image import GrayscaleImage
-from pynwb.ophys import ImageSegmentation, Fluorescence, OpticalChannel, ImageSeries
-from pynwb.device import Device
 import os
 import uuid
 from datetime import datetime
@@ -11,6 +6,21 @@ import time
 import logging
 import numpy as np
 import re
+
+try:
+    from pynwb import NWBHDF5IO, TimeSeries, NWBFile
+    from pynwb.base import Images
+    from pynwb.image import GrayscaleImage
+    from pynwb.ophys import ImageSegmentation, Fluorescence, OpticalChannel, ImageSeries
+    from pynwb.device import Device
+
+    HAVE_NWB = True
+except ModuleNotFoundError:
+    HAVE_NWB = False
+
+
+def check_nwb_install():
+    assert HAVE_NWB, "To use the Nwb extractors, install pynwb: \n\n pip install pynwb\n\n"
 
 
 def set_dynamic_table_property(dynamic_table, row_ids, property_name, values, index=False,
@@ -60,8 +70,8 @@ def get_dynamic_table_property(dynamic_table, *, row_ids=None, property_name):
     return [dynamic_table[property_name][all_row_ids.index(x)] for x in row_ids]
 
 
-def write_nwb(SegmentationExtractor, propertydict=[], filename, imaging_plane_name=None, imaging_series_name=None, identifier=None,
-                starting_time=0., session_start_time=datetime.now(tzlocal()), excitation_lambda=np.nan, imaging_plane_description='no description',
+def write_nwb(SegmentationExtractor, filename, propertydict=[], imaging_series_name=None, identifier=None,
+                starting_time=0., session_start_time=datetime.now(tzlocal()), excitation_lambda=np.nan,
                 emission_lambda=np.nan, indicator='none', location='brain', device_name='MyDevice',
                 optical_channel_name='MyOpticalChannel', optical_channel_description='MyOpticalChannelDescription',
                 imaging_plane_name='MyImagingPlane', imaging_plane_description='MyImagingPlaneDescription',
@@ -99,40 +109,45 @@ def write_nwb(SegmentationExtractor, propertydict=[], filename, imaging_plane_na
     if '.nwb' != os.path.splitext(filename)[-1].lower():
         raise Exception("Wrong filename")
 
-    if os.path.exists(save_path):
+    if os.path.exists(filename):
         read_mode = 'r+'
         _nwbfile_exist = True
     else:
         _nwbfile_exist = False
         read_mode = 'w'
 
-    with NWBHDF5IO(save_path, mode=read_mode) as io:
+    with NWBHDF5IO(filename, mode=read_mode) as io:
         if _nwbfile_exist:
             nwbfile = io.read()
             _nwbchildren_type = [type(i).__name__ for i in nwbfile.all_children()]
             _nwbchildren_name = [i.name for i in nwbfile.all_children()]
             _custom_names = [device_name, optical_channel_name, imaging_plane_name,
                              image_series_name]
-            # ADDING ACQUISITION DATA:
-            # check existance of device, optical channel, imaging plane, image series:
+            # ADDING ACQUISITION DATA: device, optical channel, imaging plane, image series
+
+            # check existence of device:
             _device_exist = [i for i, e in enumerate(_nwbchildren_name) if e == device_name]
             if not _device_exist:
                 nwbfile.add_device(Device(device_name))
             elif len(_device_exist > 1):
                 raise Exception('Multiple Devices exist, provide name of one')
+            device = list(nwbfile.devices.values())[0]
 
+            # check existence of optical channel:
             _optical_channel_exist = [i for i, e in enumerate(
                 _nwbchildren_name) if e == optical_channel_name]
             if not _optical_channel_exist:
                 optical_channel = OpticalChannel(optical_channel_name,
                                                  optical_channel_description,
                                                  emission_lambda=emission_lambda)
-             elif len(_optical_channel_exist)==1:
-                 optical_channel=nwbfile.all_children()[_optical_channel_exist[0]]
-             else:
-                 raise Exception('Multiple Optical Channels exist, provide name of one')
+            elif len(_optical_channel_exist) == 1:
+                optical_channel = nwbfile.all_children()[_optical_channel_exist[0]]
+            else:
+                raise Exception('Multiple Optical Channels exist, provide name of one')
 
-            _imaging_plane_exist = [i for i, e in enumerate(_nwbchildren_name) if e == imaging_plane_name]
+            # check existence of imaging plane:
+            _imaging_plane_exist = [i for i, e in enumerate(
+                _nwbchildren_name) if e == imaging_plane_name]
             if not _imaging_plane_exist:
                 nwbfile.create_imaging_plane(name=imaging_plane_name,
                                              optical_channel=optical_channel,
@@ -142,12 +157,14 @@ def write_nwb(SegmentationExtractor, propertydict=[], filename, imaging_plane_na
                                              imaging_rate=imaging_rate,
                                              indicator=indicator,
                                              location=location)
-            elif len(_imaging_plane_exist)==1:
-                optical_channel=nwbfile.all_children()[_imaging_plane_exist[0]]
+            elif len(_imaging_plane_exist) == 1:
+                imaging_plane = nwbfile.all_children()[_imaging_plane_exist[0]]
             else:
                 raise Exception('Multiple Imaging Planes exist, provide name of one')
 
-            _image_series_exist = [i for i, e in enumerate(_nwbchildren_name) if e == image_series_name]
+            # check existence of image series:
+            _image_series_exist = [i for i, e in enumerate(
+                _nwbchildren_name) if e == image_series_name]
             if not _image_series_exist:
                 nwbfile.add_acquisition(ImageSeries(name=image_series_name,
                                                     description=image_series_description,
@@ -155,8 +172,8 @@ def write_nwb(SegmentationExtractor, propertydict=[], filename, imaging_plane_na
                                                     format='external',
                                                     rate=imaging_rate,
                                                     starting_frame=[0]))
-            elif len(_image_series_exist)==1:
-                optical_channel=nwbfile.all_children()[_image_series_exist[0]]
+            elif len(_image_series_exist) == 1:
+                image_series = nwbfile.all_children()[_image_series_exist[0]]
             else:
                 raise Exception('Multiple Imaging Series exist, provide name of one')
 
@@ -195,23 +212,28 @@ def write_nwb(SegmentationExtractor, propertydict=[], filename, imaging_plane_na
         nwbfile = io.read()
         # ADDING PROCESSING DATA:
         # Adding Ophys
-        _ophys_module_exist = [i for i, e in enumerate(_nwbchildren_name) if e == processing_module_name]
+        _ophys_module_exist = [i for i, e in enumerate(
+            _nwbchildren_name) if e == processing_module_name]
         if not _ophys_module_exist:
             mod = nwbfile.create_processing_module(
                 processing_module_name, processing_module_description)
-        elif len(_ophys_module_exist)==1:
+        elif len(_ophys_module_exist) == 1:
             mod = nwbfile.all_children()[_ophys_module_exist[0]]
         else:
             raise Exception('Multiple Ophys modules exist, provide name of one')
+
         # Adding ImageSegmentation:
-        _image_segmentation_exist = [i for i, e in enumerate(_nwbchildren_name) if e == 'ImageSegmentation']
+        _image_segmentation_exist = [i for i, e in enumerate(
+            _nwbchildren_name) if e == 'ImageSegmentation']
         if not _image_segmentation_exist:
             img_seg = ImageSegmentation()
             mod.add_data_interface(img_seg)
         else:
             img_seg = nwbfile.all_children()[_image_segmentation_exist[0]]
+
         # Adding Fluorescence:
-        _fluorescence_module_exist = [i for i, e in enumerate(_nwbchildren_name) if e == 'Fluorescence']
+        _fluorescence_module_exist = [i for i, e in enumerate(
+            _nwbchildren_name) if e == 'Fluorescence']
         if not _fluorescence_module_exist:
             fl = Fluorescence()
             mod.add_data_interface(fl)
@@ -221,8 +243,10 @@ def write_nwb(SegmentationExtractor, propertydict=[], filename, imaging_plane_na
         # Adding the ROI-related stuff:
         imaging_plane = nwbfile.imaging_planes[imaging_plane_name]
         image_series = nwbfile.acquisition[imaging_series_name]
+
         # Adding PlaneSegmentation:
-        _plane_segmentation_exist = [i for i, e in enumerate(_nwbchildren_name) if e == 'PlaneSegmentation']
+        _plane_segmentation_exist = [i for i, e in enumerate(
+            _nwbchildren_name) if e == 'PlaneSegmentation']
         if not _plane_segmentation_exist:
             ps = img_seg.create_plane_segmentation(
                 'ROIs', imaging_plane, 'PlaneSegmentation', image_series)
@@ -232,27 +256,27 @@ def write_nwb(SegmentationExtractor, propertydict=[], filename, imaging_plane_na
         # Adding custom columns and their values to the PlaneSegmentation table:
         # propertydict is a list of dictionaries containing [{'name':'','discription':''}, {}..]
         if len(propertydict):
-            trace_exctractor_attrs=dir(SegmentationExtractor)
+            segmentation_exctractor_attrs = dir(SegmentationExtractor)
             for i in range(len(propertydict)):
                 _property_name = propertydict[i]['name']
-                _property_desc = propertydict[i].get('description','no description'])
-                _property_row_ids = propertydict[i].get('id',list(np.arange(SegmentationExtractor.no_rois))])
-                _property_name_attr=[re.findall('^' + _property_name,i,re.I) for i in trace_exctractor_attrs]
-                assert not _property_name_attr or len(_property_name_attr)>1, \
+                _property_desc = propertydict[i].get('description', 'no description')
+                _property_row_ids = propertydict[i].get('id', list(np.arange(SegmentationExtractor.no_rois)))
+                _property_name_attr = [re.findall('^' + _property_name, i, re.I) for i in segmentation_exctractor_attrs]
+                assert not _property_name_attr or len(_property_name_attr) > 1,\
                 print('Enter one of the Names and their descriptions in the Property Dictionary:\n'
                       '\'r\' : Residual Noise \n'
                       '\'cnn\' : CNN predictions for each component \n'
                       '\'keep\' : ROIs to keep \n'
                       '\'accepted\' : accepted ROIs \n'
                       '\'rejected\' : rejected ROIs \n')
-                value = getattr(SegmentationExtractor,_property_name_attr,False)
+                value = getattr(SegmentationExtractor, _property_name_attr, False)
                 if value:
                     set_dynamic_table_property(ps, _property_row_ids, _property_name, value, index=False,
                                                description=_property_desc)
 
        # Adding Image and Pixel Masks(default colnames in PlaneSegmentation):
         if hasattr(SegmentationExtractor, 'pixel_masks'):
-            for i, (img_roi, pix_roi) in enumerate(zip(SegmentationExtractor.image_masks.T, SegmentationExtractor.pixel_masks):
+            for i, (img_roi, pix_roi) in enumerate(zip(SegmentationExtractor.image_masks.T, SegmentationExtractor.pixel_masks)):
                 ps.add_roi(image_mask=img_roi.T.reshape(SegmentationExtractor.image_dims),
                            pixel_mask=pix_roi)
         else:
@@ -262,7 +286,7 @@ def write_nwb(SegmentationExtractor, propertydict=[], filename, imaging_plane_na
         # Background components addition:
         if hasattr(SegmentationExtractor, 'image_masks_bk'):
             if hasattr(SegmentationExtractor, 'pixel_masks_bk'):
-                for i, (img_roi_bk, pix_roi_bk) in enumerate(zip(SegmentationExtractor.image_masks_bk.T, SegmentationExtractor.pixel_masks_bk):
+                for i, (img_roi_bk, pix_roi_bk) in enumerate(zip(SegmentationExtractor.image_masks_bk.T, SegmentationExtractor.pixel_masks_bk)):
                     ps.add_roi(image_mask=img_roi_bk.T.reshape(SegmentationExtractor.image_dims),
                                pixel_mask=pix_roi_bk)
             else:
@@ -276,7 +300,7 @@ def write_nwb(SegmentationExtractor, propertydict=[], filename, imaging_plane_na
             'NeuronROIs', region=list(range(no_neurons_rois)))
 
         background_rois = ps.create_roi_table_region(
-            'BackgroundROIs', region=list(range(no_neurons_rois, no_neurons_rois+no_background_rois)))
+            'BackgroundROIs', region=list(range(no_neurons_rois, no_neurons_rois + no_background_rois)))
 
         timestamps = np.arange(
             SegmentationExtractor.roi_response_bk.shape[1]) / imaging_rate + starting_time
