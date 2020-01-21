@@ -195,7 +195,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             ROI_ids = range(self.get_roi_ids())
         return self.roi_response[ROI_ids, start_frame:end_frame]
 
-    def get_masks(self, ROI_ids=None):
+    def get_image_masks(self, ROI_ids=None):
         if ROI_ids is None:  # !!need to make ROI as a 2-d array, specifying the location in image plane
             ROI_ids = range(self.get_roi_ids())
         return self.image_masks.reshape([*self.image_dims, *self.no_rois])[:, :, ROI_ids]

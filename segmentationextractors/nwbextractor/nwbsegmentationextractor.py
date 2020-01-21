@@ -70,11 +70,61 @@ def get_dynamic_table_property(dynamic_table, *, row_ids=None, property_name):
 
 class NwbSegmentationExtractor(segmentationextractor):
 
-    def __init__(self):
-        pass
+    def __init__(self, filepath, optical_channel_name=None,
+                 imaging_plane_name=None, image_series_name=None,
+                 processing_module_name=None,
+                 neuron_roi_response_series_name=None,
+                 background_roi_response_series_name=None):
+
+        check_nwb_install()
+        if not os.path.exists(filepath):
+            raise Exception('file does not exist')
+
+        self.filepath = filepath
+        self.dataset_file =
+
+        with NWBHDF5IO(filepath, mode='r+') as io:
+            _nwbchildren_type = [type(i).__name__ for i in nwbfile.all_children()]
+            _nwbchildren_name = [i.name for i in nwbfile.all_children()]
+
+            # Extract image_mask/background:
+
+            # Extract pixel_mask/background:
+
+            # Extract Image dimensions:
+
+            # Extract roi_response:
+
+            # Extract planesegmentation dictionary values:
+
+            # Extract samp_freq:
+
+            # Extract no_rois/ids:
+
+    def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None):
+
+    def get_num_frames(self):
+
+    def get_sampling_frequency(self):
+
+    def get_roi_locations(self):
+
+    def get_roi_ids(self):
+
+    def get_num_rois(self):
+
+    def get_pixel_masks(self, ROI_ids=None):
+
+    def get_image_masks(self, ROI_ids=None):
+
+    def get_movie_framesize(self):
+
+    def get_raw_file(self):
+
+
 
     @staticmethod
-    def write_nwb(SegmentationExtractor, filename, propertydict=[], imaging_series_name=None, identifier=None,
+    def write_nwb(SegmentationExtractor, filename, propertydict=[], identifier=None,
                     starting_time=0., session_start_time=datetime.now(tzlocal()), excitation_lambda=np.nan,
                     emission_lambda=np.nan, indicator='none', location='brain', device_name='MyDevice',
                     optical_channel_name='MyOpticalChannel', optical_channel_description='MyOpticalChannelDescription',
@@ -281,9 +331,9 @@ class NwbSegmentationExtractor(segmentationextractor):
                                                    description=_property_desc)
 
             # Adding Image and Pixel Masks(default colnames in PlaneSegmentation):
-            for i in range(SegmentationExtractor.no_rois):
+            for i, roiid in enumerate(SegmentationExtractor.roi_idx):
                 img_roi = SegmentationExtractor.image_masks[:, i]
-                pix_roi = SegmentationExtractor.pixel_masks[SegmentationExtractor.pixel_masks[3] == i, :]
+                pix_roi = SegmentationExtractor.pixel_masks[SegmentationExtractor.pixel_masks[:, 3] == roiid, :]
                 ps.add_roi(image_mask=img_roi.T.reshape(SegmentationExtractor.image_dims),
                            pixel_mask=pix_roi)
 

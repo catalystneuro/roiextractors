@@ -98,15 +98,15 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         raw_images = self.dataset_file[self._group0[0]]['extractedImages']
         _raw_images_trans = np.array(raw_images).transpose()
         temp = np.empty((1, ))
-        for i in range(_raw_images_trans.shape[2]):
+        for i, roiid in enumerate(self.roi_idx):
             _locs = np.where(_raw_images_trans[:, :, i] > 0)
             _pix_values = _raw_images_trans[_raw_images_trans[:, :, i] > 0]
-            np.append(temp, np.concatenate(
+            temp = np.append(temp, np.concatenate(
                                 _locs[0].reshape([1, np.size(_locs[0])]),
                                 _locs[1].reshape([1, np.size(_locs[1])]),
                                 _pix_values.reshape([1, np.size(_locs[1])]),
-                                i*np.ones(1, np.size(_locs[1]))).T)
-        return temp, _raw_images_trans
+                                roiid * np.ones(1, np.size(_locs[1]))).T, axis=0)
+        return temp[1::, :], _raw_images_trans
 
     def _trace_extracter_read(self):
         extracted_signals = self.dataset_file[self._group0[0]]['extracted_signals']
@@ -191,7 +191,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
 
     # defining the abstract class enformed methods:
     def get_roi_ids(self):
-        return list(range(self.no_rois))
+        return self.roi_idx
 
     def get_num_rois(self):
         return self.no_rois
@@ -217,10 +217,19 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             ROI_ids = range(self.get_roi_ids())
         return self.roi_response[ROI_ids, start_frame:end_frame]
 
-    def get_masks(self, ROI_ids=None):
+    def get_image_masks(self, ROI_ids=None):
         if ROI_ids is None:  # !!need to make ROI as a 2-d array, specifying the location in image plane
             ROI_ids = range(self.get_roi_ids())
         return self.image_masks.reshape([*self.image_dims, *self.no_rois])[:, :, ROI_ids]
+
+    def get_pixel_masks(self, ROI_ids=None):
+        if ROI_ids is None:
+            ROI_ids = range(self.get_roi_ids())
+        temp = np.empty((1, 4))
+        for i, roiid in enumerate(ROI_ids):
+            temp = \
+                np.append(temp, self.pixel_masks[self.pixel_masks[:, 3] == roiid, :], axis=0)
+        return temp[1::, :]
 
     def get_movie_framesize(self):
         return self.image_dims
