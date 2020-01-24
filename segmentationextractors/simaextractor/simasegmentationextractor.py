@@ -50,9 +50,9 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         self.dataset_file = self._file_extractor_read()
         self.sima_segmentation_label = sima_segmentation_label
         self.image_masks, self.extimage_dims, self.raw_images =\
-            self._image_mask_extracter_read()
-        self.pixel_masks = self._pixel_mask_extracter_read()
-        self.roi_response = self._trace_extracter_read()
+            self._image_mask_extractor_read()
+        self.pixel_masks = self._pixel_mask_extractor_read()
+        self.roi_response = self._trace_extractor_read()
         self.cn = self._summary_image_read()
         self.total_time = self._tot_exptime_txtractor_read()
         self.filetype = self._file_type_extractor_read()
@@ -83,7 +83,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         _img_dataset = sima.ImagingDataset.load(self.filepath)
         return _img_dataset
 
-    def _image_mask_extracter_read(self):
+    def _image_mask_extractor_read(self):
         _sima_rois = self.dataset_file.ROIs
         if len(_sima_rois) > 1:
             if self.sima_segmentation_label in list(_sima_rois.keys()):
@@ -107,7 +107,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
             _raw_images_trans.shape[0:2],\
             _raw_images_trans
 
-    def _pixel_mask_extracter_read(self):
+    def _pixel_mask_extractor_read(self):
         _raw_images_trans = self.raw_images
         temp = np.empty((1, 4))
         for i, roiid in enumerate(self.roi_idx):
@@ -120,7 +120,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
                                 roiid * np.ones(1, np.size(_locs[1]))).T, axis=0)
         return temp[1::,:]
 
-    def _trace_extracter_read(self):
+    def _trace_extractor_read(self):
         extracted_signals = self.dataset_file.extract(
             rois=self.sima_segmentation_label, save_summary=False)['raw'][0].T
         return np.array(extracted_signals).T

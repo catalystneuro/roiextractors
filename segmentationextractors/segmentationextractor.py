@@ -150,3 +150,16 @@ class SegmentationExtractor(ABC):
             location as a string
         '''
         pass
+
+    @staticmethod
+    def _pixel_mask_extractor(_raw_images_trans, _roi_idx):
+        temp = np.empty((1, 4))
+        for i, roiid in enumerate(_roi_idx):
+            _locs = np.where(_raw_images_trans[:, :, i] > 0)
+            _pix_values = _raw_images_trans[_raw_images_trans[:, :, i] > 0]
+            temp = np.append(temp, np.concatenate(
+                                _locs[0].reshape([1, np.size(_locs[0])]),
+                                _locs[1].reshape([1, np.size(_locs[1])]),
+                                _pix_values.reshape([1, np.size(_locs[1])]),
+                                roiid * np.ones(1, np.size(_locs[1]))).T, axis=0)
+        return temp[1::, :], _raw_images_trans

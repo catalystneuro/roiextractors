@@ -48,9 +48,9 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
 
         self.filepath = filepath
         self.dataset_file, self._group0 = self._file_extractor_read()
-        self.image_masks, self.extimage_dims = self._image_mask_extracter_read()
-        self.pixel_masks, self.raw_images = self._pixel_mask_extracter_read()
-        self.roi_response = self._trace_extracter_read()
+        self.image_masks, self.extimage_dims = self._image_mask_extractor_read()
+        self.pixel_masks, self.raw_images = self._pixel_mask_extractor_read()
+        self.roi_response = self._trace_extractor_read()
         self.cn = self._summary_image_read()
         self.total_time = self._tot_exptime_txtractor_read()
         self.filetype = self._file_type_extractor_read()
@@ -83,32 +83,19 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         _group0 = [a for a in _group0_temp if '#' not in a]
         return f, _group0
 
-    def _image_mask_extracter_read(self):
-        raw_images = self.dataset_file[self._group0[0]]['extractedImages']
-        _raw_images_trans = np.zeros(np.shape(np.array(raw_images).transpose() > 0))
-        # Positive 1 represents the masking pixels:
-        _raw_images_trans[np.array(raw_images).transpose() > 0] = 1
+    def _image_mask_extractor_read(self):
+        _raw_images_trans = self.dataset_file[self._group0[0]]['extractedImages'].transpose()
         return _raw_images_trans.reshape(
                         [np.prod(_raw_images_trans.shape[0:2]),
                             _raw_images_trans.shape[2]],
                          order='F'),\
                _raw_images_trans.shape[0:2]
 
-    def _pixel_mask_extracter_read(self):
-        raw_images = self.dataset_file[self._group0[0]]['extractedImages']
-        _raw_images_trans = np.array(raw_images).transpose()
-        temp = np.empty((1, ))
-        for i, roiid in enumerate(self.roi_idx):
-            _locs = np.where(_raw_images_trans[:, :, i] > 0)
-            _pix_values = _raw_images_trans[_raw_images_trans[:, :, i] > 0]
-            temp = np.append(temp, np.concatenate(
-                                _locs[0].reshape([1, np.size(_locs[0])]),
-                                _locs[1].reshape([1, np.size(_locs[1])]),
-                                _pix_values.reshape([1, np.size(_locs[1])]),
-                                roiid * np.ones(1, np.size(_locs[1]))).T, axis=0)
-        return temp[1::, :], _raw_images_trans
+    def _pixel_mask_extractor_read(self):
+        _raw_images_trans = self.dataset_file[self._group0[0]]['extractedImages'].transpose()
+        return super()._pixel_mask_extractor(_raw_images_trans, self.roi_idx)
 
-    def _trace_extracter_read(self):
+    def _trace_extractor_read(self):
         extracted_signals = self.dataset_file[self._group0[0]]['extracted_signals']
         return np.array(extracted_signals).T
 
@@ -132,7 +119,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
     @property
     def no_rois(self):
         if self._no_rois is None:
-            raw_images = self.image_masks
+            raw_images = self.dataset_file[self._group0[0]]['extracted_signals'].transpose()
             return raw_images.shape[1]
         else:
             return self._no_rois
