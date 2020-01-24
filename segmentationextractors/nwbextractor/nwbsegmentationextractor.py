@@ -309,26 +309,35 @@ class NwbSegmentationExtractor(segmentationextractor):
 
             # Adding the ROI-related stuff:
             # Adding custom columns and their values to the PlaneSegmentation table:
-            # propertydict is a list of dictionaries containing [{'name':'','discription':'','id':''}, {}..]
+            # propertydict is a list of dictionaries containing:
+            # [{'name':'','discription':'', 'data':'', id':''}, {}..]
             if len(propertydict):
                 _segmentation_exctractor_attrs = dir(SegmentationExtractor)
                 for i in range(len(propertydict)):
-                    _property_name = propertydict[i]['name']
+                    excep_str = 'enter argument propertydict as list of dictionaries:\n'\
+                                '[{\'name\':str(required), '\
+                                '\'description\':str(optional), '\
+                                '\'data\':array_like(required), '\
+                                '\'id\':int(optional)}, {..}]'
+                    if propertydict[i].get('name', None):
+                        raise Exception(excep_str)
+                    _property_name = propertydict[i].['name']
+                    if propertydict[i].get('data', None):
+                        raise Exception(excep_str)
+                    _property_values = propertydict[i].['data']
                     _property_desc = propertydict[i].get('description', 'no description')
                     _property_row_ids = propertydict[i].get('id', list(np.arange(SegmentationExtractor.no_rois)))
                     # stop execution if the property name is non existant OR there are multiple such properties:
                     _property_name_exist = [i for i in _segmentation_exctractor_attrs if len(re.findall('^' + _property_name, i, re.I))]
-                    assert not _property_name_exist or len(_property_name_exist) > 1,\
-                        print('Enter one of the Names and their descriptions in the Property Dictionary:\n'
-                              '\'r\' : Residual Noise \n'
-                              '\'cnn\' : CNN predictions for each component \n'
-                              '\'keep\' : ROIs to keep \n'
-                              '\'accepted\' : accepted ROIs \n'
-                              '\'rejected\' : rejected ROIs \n')
-                    value = getattr(SegmentationExtractor, _property_name_exist[0], False)
-                    if value:
-                        set_dynamic_table_property(ps, _property_row_ids, _property_name, value, index=False,
-                                                   description=_property_desc)
+                    if len(_property_name_exist) == 1:
+                        print(f'adding {_property_name_exist} with supplied data')
+                    elif len(_property_name_exist) == 0:
+                        print(f'creating table for {_property_name_exist} with supplied data')
+                    else:
+                        raise Exception('multiple variables found for supplied name\n enter'
+                                        f' one of {_property_name_exist}')
+                    set_dynamic_table_property(ps, _property_row_ids, _property_name, _property_values,
+                                               index=False, description=_property_desc)
 
             # Adding Image and Pixel Masks(default colnames in PlaneSegmentation):
             for i, roiid in enumerate(SegmentationExtractor.roi_idx):
