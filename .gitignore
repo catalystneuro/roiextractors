@@ -1,7 +1,4 @@
 # Dataset file / log file types:
-/**/*.mat
-/**/*.hdf5
-/**/*.nwb
 /**/*.log
 
 # Byte-compiled / optimized / DLL files

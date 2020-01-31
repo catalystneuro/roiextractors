@@ -1,9 +1,5 @@
 import numpy as np
-import h5py
 from ..segmentationextractor import SegmentationExtractor
-from ..writenwb import write_nwb
-import re
-import sima
 
 
 class NumpySegmentationExtractor(SegmentationExtractor):
@@ -52,14 +48,15 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                  roi_locs=None, samp_freq=None, nback=1,
                  total_time=0, snr_comp=None, r_values=None,
                  rejected_list=None, no_rois=None,
-                 num_of_frames=None, cnn_preds=None):
+                 num_of_frames=None, cnn_preds=None,
+                 channel_names=None, no_of_channels=None):
 
         self.filepath = filepath
-        self.dataset_file = None
+        self._dataset_file = None
         if masks is None:
             self.image_masks = masks
         elif len(masks.shape) > 2:
-            self.image_masks = masks.reshape([masks.shape[2], np.prod(masks.shape[0:1])]).T
+            self.image_masks = masks.reshape([np.prod(masks.shape[0:1], masks.shape[2], order='F')])
         else:
             self.image_masks = masks
         self.roi_response = signal
@@ -91,10 +88,11 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             self.cnn_preds = np.nan * np.ones(self.roi_response.shape)
         else:
             self.cnn_preds = cnn_preds
-
-        self.rejected_list = rejected_list  # remains to mine from mat file or nan it
-        self.accepted_list = accepted_lst  # remains to mine from mat file or nan it
-        self.idx_components = self.accepted_list  # remains to mine from mat file or nan it
+        self.channel_names = channel_names
+        self.no_of_channels = no_of_channels
+        self.rejected_list = rejected_list
+        self.accepted_list = accepted_lst
+        self.idx_components = self.accepted_list
         self.idx_components_bad = self.rejected_list
 
     def _file_type_extractor_read(self):
@@ -198,10 +196,16 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     def get_image_masks(self, ROI_ids=None):
         if ROI_ids is None:  # !!need to make ROI as a 2-d array, specifying the location in image plane
             ROI_ids = range(self.get_roi_ids())
-        return self.image_masks.reshape([*self.image_dims, *self.no_rois])[:, :, ROI_ids]
+        return self.image_masks.reshape([*self.image_dims, *self.no_rois], order='F')[:, :, ROI_ids]
 
     def get_movie_framesize(self):
         return self.image_dims
 
     def get_raw_file(self):
         return self.raw_data_file_location
+
+    def get_channel_names(self):
+        return self.channel_names
+
+    def get_no_of_channels(self):
+        return self.no_of_channels

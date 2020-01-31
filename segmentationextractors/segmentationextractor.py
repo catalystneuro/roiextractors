@@ -3,6 +3,14 @@ import numpy as np
 
 
 class SegmentationExtractor(ABC):
+    '''An abstract class that contains all the meta-data and output data from
+        the ROI segmentation operation when applied to the pre-processed data.
+        It also contains methods to read from and write to various data formats
+        ouput from the processing pipelines like SIMA, CaImAn, Suite2p, CNNM-E.
+        All the methods with @abstract decorator have to be defined by the
+        format specific classes that inherit from this.
+    '''
+
     def __init__(self):
         self._epochs = {}
         self._channel_properties = {}
@@ -153,13 +161,43 @@ class SegmentationExtractor(ABC):
 
     @staticmethod
     def _pixel_mask_extractor(_raw_images_trans, _roi_idx):
+        '''An alternative data format for storage of image masks.
+
+        Returns
+        -------
+        pixel_mask: numpy array
+            Total pixels X 4 size. Col 1 and 2 are x and y location of the mask
+            pixel, Col 3 is the weight of that pixel, Col 4 is the ROI index.
+        '''
         temp = np.empty((1, 4))
         for i, roiid in enumerate(_roi_idx):
             _locs = np.where(_raw_images_trans[:, :, i] > 0)
-            _pix_values = _raw_images_trans[_raw_images_trans[:, :, i] > 0]
+            _pix_values = _raw_images_trans[_raw_images_trans[:, :, i] > 0, i]
             temp = np.append(temp, np.concatenate(
-                                _locs[0].reshape([1, np.size(_locs[0])]),
+                                (_locs[0].reshape([1, np.size(_locs[0])]),
                                 _locs[1].reshape([1, np.size(_locs[1])]),
                                 _pix_values.reshape([1, np.size(_locs[1])]),
-                                roiid * np.ones(1, np.size(_locs[1]))).T, axis=0)
-        return temp[1::, :], _raw_images_trans
+                                roiid * np.ones([1, np.size(_locs[1])]))).T, axis=0)
+        return temp[1::, :]
+
+        @abstractmethod
+        def get_channel_names(self):
+            '''List of  channels in the recoding.
+
+            Returns
+            -------
+            channel_names: list
+                List of strings of channel names
+            '''
+            pass
+
+        @abstractmethod
+        def get_no_of_channels(self):
+            '''Total number of active channels in the recording
+
+            Returns
+            -------
+            no_of_channels: int
+                integer count of number of channels
+            '''
+            pass
