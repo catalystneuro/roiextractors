@@ -63,7 +63,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         self.cn = summary_image
         self.total_time = total_time
         self.filetype = self._file_type_extractor_read()
-        self.raw_data_file_location = rawfileloc
+        self.raw_movie_file_location = rawfileloc
         self.image_masks_bk = background_masks
 
         if background_signal is None:
@@ -135,11 +135,11 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     def roi_locs(self):
         if self._roi_locs is None:
             no_ROIs = self.no_rois
-            raw_images = self.image_masks
+            raw_images = self.raw_images
             roi_location = np.ndarray([2, no_ROIs], dtype='int')
             for i in range(no_ROIs):
                 temp = np.where(raw_images[:, :, i] == np.amax(raw_images[:, :, i]))
-                roi_location[:, i] = np.array([temp[0][0], temp[1][0]]).T
+                roi_location[:, i] = np.array([np.median(temp[0]), np.median(temp[1])]).T
             return roi_location
         else:
             return self._roi_locs
@@ -189,23 +189,38 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             start_frame = 0
         if end_frame is None:
             end_frame = self.get_num_frames()
-        if ROI_ids is None:  # !!need to make ROI as a 2-d array, specifying the location in image plane
-            ROI_ids = range(self.get_roi_ids())
-        return self.roi_response[ROI_ids, start_frame:end_frame]
+        if ROI_ids is None:
+            ROI_idx = range(self.get_num_rois())
+        else:
+            ROI_idx = [np.where(i==self.roi_idx)[0] for i in ROI_ids]
+        return self.roi_response[ROI_idx, start_frame:end_frame]
 
     def get_image_masks(self, ROI_ids=None):
-        if ROI_ids is None:  # !!need to make ROI as a 2-d array, specifying the location in image plane
-            ROI_ids = range(self.get_roi_ids())
-        return self.image_masks.reshape([*self.image_dims, *self.no_rois], order='F')[:, :, ROI_ids]
+        if ROI_ids is None:
+            ROI_idx = range(self.get_num_rois())
+        else:
+            ROI_idx = [np.where(i==self.roi_idx)[0] for i in ROI_ids]
+        return self.image_masks.reshape(self.image_dims + [self.no_rois], order='F')[:, :, ROI_idx]
+
+    def get_pixel_masks(self, ROI_ids=None):
+        if ROI_ids is None:
+            ROI_idx = self.roi_idx
+        else:
+            ROI_idx = [np.where(i==self.roi_idx)[0] for i in ROI_ids]
+        temp = np.empty((1, 4))
+        for i, roiid in enumerate(ROI_idx):
+            temp = \
+                np.append(temp, self.pixel_masks[self.pixel_masks[:, 3] == roiid, :], axis=0)
+        return temp[1::, :]
 
     def get_movie_framesize(self):
         return self.image_dims
 
-    def get_raw_file(self):
-        return self.raw_data_file_location
+    def get_movie_location(self):
+        return self.raw_movie_file_location
 
     def get_channel_names(self):
         return self.channel_names
 
-    def get_no_of_channels(self):
+    def get_num_channels(self):
         return self.no_of_channels

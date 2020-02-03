@@ -156,11 +156,11 @@ class NwbSegmentationExtractor(segmentation_extractor_obj):
 
     def get_movie_framesize(self):
 
-    def get_raw_file(self):
+    def get_movie_location(self):
 
     def get_channel_names(self):
 
-    def get_no_of_channels(self):
+    def get_num_channels(self):
 
     @staticmethod
     def write_nwb(segmentation_extractor_obj, filename, propertydict=[], identifier=None,
@@ -194,7 +194,7 @@ class NwbSegmentationExtractor(segmentation_extractor_obj):
             location: str
         """
         imaging_rate = segmentation_extractor_obj.get_sampling_frequency()
-        raw_data_file_location = segmentation_extractor_obj.get_raw_file()
+        raw_movie_file_location = segmentation_extractor_obj.get_movie_location()
 
         if identifier is None:
             identifier = uuid.uuid1().hex
@@ -261,7 +261,7 @@ class NwbSegmentationExtractor(segmentation_extractor_obj):
                 if not _image_series_exist:
                     nwbfile.add_acquisition(TwoPhotonSeries(name=image_series_name,
                                                             description=image_series_description,
-                                                            external_file=[raw_data_file_location],
+                                                            external_file=[raw_movie_file_location],
                                                             format='external',
                                                             rate=imaging_rate,
                                                             starting_frame=[0]))
@@ -330,7 +330,7 @@ class NwbSegmentationExtractor(segmentation_extractor_obj):
                                                              location=location)
                 image_series = TwoPhotonSeries(name=image_series_name,
                                                description=image_series_description,
-                                               external_file=[raw_data_file_location],
+                                               external_file=[raw_movie_file_location],
                                                format='external',
                                                rate=imaging_rate,
                                                starting_frame=[0])

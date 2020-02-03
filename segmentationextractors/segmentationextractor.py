@@ -149,12 +149,12 @@ class SegmentationExtractor(ABC):
         pass
 
     @abstractmethod
-    def get_raw_file(self):
+    def get_movie_location(self):
         '''Raw file location on storage.
 
         Returns
         -------
-        raw_data_file_location: str
+        raw_movie_file_location: str
             location as a string
         '''
         pass
@@ -192,7 +192,7 @@ class SegmentationExtractor(ABC):
             pass
 
         @abstractmethod
-        def get_no_of_channels(self):
+        def get_num_channels(self):
             '''Total number of active channels in the recording
 
             Returns
