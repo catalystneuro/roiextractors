@@ -1,4 +1,3 @@
-
 import h5py
 from numpy.testing import assert_array_equal
 import numpy as np
@@ -19,17 +18,17 @@ class TestSchnitzer(unittest.TestCase):
             self.f = h5py.File(filelocation, 'r')
             group0_temp = list(self.f.keys())
             self.group0 = [a for a in group0_temp if '#' not in a]
-        except:
-            Exception('could not open .mat file')
+        except OSError:
+            raise Exception('could not open .mat file')
         raw_images_trans = np.array(self.f[self.group0[0]][str1]).transpose()
         raw_traces = np.array(self.f[self.group0[0]][str2]).T
         # equality of ROI data:
         assert_array_equal(raw_traces.shape[1], seg_obj.get_num_frames())
         assert_array_equal(raw_images_trans.shape[0:2], seg_obj.get_movie_framesize())
         assert_array_equal(raw_traces.shape[0], seg_obj.get_num_rois())
-        assert_array_equal(raw_traces, seg_obj.get_traces())
-        assert_array_equal(raw_images_trans[:, :, 0],
-                           seg_obj.get_image_masks()[:, :, 0])
+        assert_array_equal(raw_traces[1:4, :], seg_obj.get_traces(ROI_ids=[1, 2, 3]))
+        assert_array_equal(raw_images_trans[:, :, 1],
+                           seg_obj.get_image_masks(ROI_ids=[1, 2, 3])[:, :, 0])
 
     def _teardown(self):
         self.f.close()
@@ -39,8 +38,8 @@ class TestSchnitzer(unittest.TestCase):
         inp_str = self.fileloc + r'\2014_04_01_p203_m19_check01_extractAnalysis.mat'
         try:
             self.segobj = segmentationextractors.ExtractSegmentationExtractor(inp_str)
-        except:
-            Exception('Could not create extract segmentation object')
+        except OSError:
+            raise Exception('Could not create extract segmentation object')
 
         self._setup(inp_str, 'filters', 'traces', self.segobj)
         self._teardown()
@@ -49,8 +48,8 @@ class TestSchnitzer(unittest.TestCase):
         inp_str = self.fileloc + r'\2014_04_01_p203_m19_check01_cnmfeAnalysis.mat'
         try:
             self.segobj = segmentationextractors.CnmfeSegmentationExtractor(inp_str)
-        except:
-            Exception('Could not create cnmfe segmentation object')
+        except OSError:
+            raise Exception('Could not create cnmfe segmentation object')
 
         self._setup(inp_str, 'extractedImages', 'extractedSignals', self.segobj)
         self._teardown()

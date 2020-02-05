@@ -16,6 +16,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     its funtionality specifically applied to the dataset output from
     the \'SIMA\' ROI segmentation method.
     '''
+
     def __init__(self, filepath, sima_segmentation_label='auto_ROIs'):
         '''
         Parameters
@@ -50,8 +51,10 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         self._accepted_list = None
         self.idx_components = self.accepted_list
         self.idx_components_bad = self.rejected_list
-        self.image_masks_bk = np.nan * np.ones([self.image_masks.shape[0], self._no_background_comps])
-        self.roi_response_bk = np.nan * np.ones([self._no_background_comps, self.roi_response.shape[1]])
+        self.image_masks_bk = np.nan * \
+            np.ones([self.image_masks.shape[0], self._no_background_comps])
+        self.roi_response_bk = np.nan * \
+            np.ones([self._no_background_comps, self.roi_response.shape[1]])
 
     @staticmethod
     def _convert_sima(old_pkl_loc):
@@ -117,9 +120,9 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         image_masks_ = [np.squeeze(np.array(roi_dat)).T for roi_dat in _sima_rois_data]
         _raw_images_trans = np.array(image_masks_).T
         return _raw_images_trans.reshape(
-                                [np.prod(_raw_images_trans.shape[0:2]),
-                                 _raw_images_trans.shape[2]],
-                                order='F'),\
+            [np.prod(_raw_images_trans.shape[0:2]),
+             _raw_images_trans.shape[2]],
+            order='F'),\
             _raw_images_trans.shape[0:2],\
             _raw_images_trans
 
@@ -133,7 +136,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
                     _active_channel = channel_now
                     break
             print(f'extracting signal from channel {_active_channel}'
-                    f' from {self.no_of_channels} no of channels')
+                  f' from {self.no_of_channels} no of channels')
         # label for the extraction method in SIMA:
         for labels in self._dataset_file.signals(channel=_active_channel):
             _count = 0
@@ -143,13 +146,13 @@ class SimaSegmentationExtractor(SegmentationExtractor):
                 break
         if _count > 1:
             print('multiple labels found for extract method'
-                    f'using {_label}')
+                  f'using {_label}')
         elif _count == 0:
             print('no label found for extract method'
-                    f' using {labels}')
+                  f' using {labels}')
             _label = labels
         extracted_signals = np.array(self._dataset_file.signals(
-                            channel=_active_channel)[_label]['raw'][0])
+            channel=_active_channel)[_label]['raw'][0])
         return extracted_signals
 
     def _tot_exptime_extractor_read(self):
@@ -171,59 +174,25 @@ class SimaSegmentationExtractor(SegmentationExtractor):
 
     @property
     def image_dims(self):
-        '''
-        Returns
-        -------
-        image_dims: list
-            The width X height of the image.
-        '''
         return list(self.extimage_dims)
 
     @property
     def no_rois(self):
-        '''
-        The number of Independent sources(neurons) indentified after the
-        segmentation operation. The regions of interest for which fluorescence
-        traces will be extracted downstream.
-
-        Returns
-        -------
-        no_rois: int
-            The number of rois
-        '''
         raw_images = self.image_masks
         return raw_images.shape[1]
 
     @property
     def roi_idx(self):
-        '''
-        Integer label given to each region of interest (neuron).
-
-        Returns
-        -------
-        roi_idx: list
-            list of integers of the ROIs. Listed in the order in which the ROIs
-            occur in the image_masks (2nd dimention)
-        '''
         id_vals = np.zeros(len(list(self._dataset_file.ROIs.values())[0]))
         for ind, val in enumerate(list(self._dataset_file.ROIs.values())[0]):
             if val.id:
                 id_vals[ind] = val.id
             else:
                 id_vals[ind] = ind * -1
-        return id_vals
+        return list(id_vals)
 
     @property
     def accepted_list(self):
-        '''
-        The ids of the ROIs which are accepted after manual verification of
-        ROIs.
-
-        Returns
-        -------
-        accepted_list: list
-            List of accepted ROIs
-        '''
         if self._accepted_list is None:
             return list(range(self.no_rois))
         else:
@@ -231,29 +200,10 @@ class SimaSegmentationExtractor(SegmentationExtractor):
 
     @property
     def rejected_list(self):
-        '''
-        The ids of the ROIs which are rejected after manual verification of
-        ROIs.
-
-        Returns
-        -------
-        accepted_list: list
-            List of rejected ROIs
-        '''
         return [a for a in range(self.no_rois) if a not in set(self.accepted_list)]
 
     @property
     def roi_locs(self):
-        '''
-        The x and y pixel location of the ROIs. The location where the pixel
-        value is maximum in the image mask.
-
-        Returns
-        -------
-        roi_locs: np.array
-            Array with the first column representing the x (width) and second representing
-            the y (height) coordinates of the ROI.
-        '''
         no_ROIs = self.no_rois
         raw_images = self.raw_images
         roi_location = np.ndarray([2, no_ROIs], dtype='int')
@@ -264,25 +214,11 @@ class SimaSegmentationExtractor(SegmentationExtractor):
 
     @property
     def num_of_frames(self):
-        '''
-        Total number of images in the image sequence across time.
-
-        Returns
-        -------
-        num_of_frames: int
-            Same as the -1 dimention of the dF/F trace(roi_response).
-        '''
         extracted_signals = self.roi_response
         return extracted_signals.shape[1]
 
     @property
     def samp_freq(self):
-        '''
-        Returns
-        -------
-        samp_freq: int
-            Sampling frequency of the dF/F trace.
-        '''
         time = self.total_time
         nframes = self.num_of_frames
         if time:
@@ -292,17 +228,6 @@ class SimaSegmentationExtractor(SegmentationExtractor):
 
     @staticmethod
     def write_recording(segmentation_object, savepath):
-        '''
-        Static method to write recording back to the native format.
-
-        Parameters
-        ----------
-        segmentation_object: SegmentationExtracteor object
-            The EXTRACT segmentation object from which an EXTRACT native format
-            file has to be generated.
-        savepath: str
-            path to save the native format.
-        '''
         raise NotImplementedError
 
     # defining the abstract class enformed methods:
@@ -316,8 +241,10 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         if ROI_ids is None:
             return self.roi_locs
         else:
-            ROI_idx = [np.where(i==self.roi_idx)[0] for i in ROI_ids]
-            return self.roi_locs[:, ROI_idx]
+            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
+            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
+            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
+            return self.roi_locs[:, ROI_idx_]
 
     def get_num_frames(self):
         return self.num_of_frames
@@ -329,27 +256,33 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         if start_frame is None:
             start_frame = 0
         if end_frame is None:
-            end_frame = self.get_num_frames()
+            end_frame = self.get_num_frames() + 1
         if ROI_ids is None:
-            ROI_idx = range(self.get_num_rois())
+            ROI_idx_ = range(self.get_num_rois())
         else:
-            ROI_idx = [np.where(i==self.roi_idx)[0] for i in ROI_ids]
-        return self.roi_response[ROI_idx, start_frame:end_frame]
+            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
+            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
+            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
+        return self.roi_response[ROI_idx_, start_frame:end_frame]
 
     def get_image_masks(self, ROI_ids=None):
         if ROI_ids is None:
-            ROI_idx = range(self.get_num_rois())
+            ROI_idx_ = range(self.get_num_rois())
         else:
-            ROI_idx = [np.where(i==self.roi_idx)[0] for i in ROI_ids]
-        return self.image_masks.reshape(self.image_dims + [self.no_rois], order='F')[:, :, ROI_idx]
+            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
+            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
+            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
+        return self.image_masks.reshape(self.image_dims + [self.no_rois], order='F')[:, :, ROI_idx_]
 
     def get_pixel_masks(self, ROI_ids=None):
         if ROI_ids is None:
-            ROI_idx = self.roi_idx
+            ROI_idx_ = self.roi_idx
         else:
-            ROI_idx = [np.where(i==self.roi_idx)[0] for i in ROI_ids]
+            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
+            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
+            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
         temp = np.empty((1, 4))
-        for i, roiid in enumerate(ROI_idx):
+        for i, roiid in enumerate(ROI_idx_):
             temp = \
                 np.append(temp, self.pixel_masks[self.pixel_masks[:, 3] == roiid, :], axis=0)
         return temp[1::, :]

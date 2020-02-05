@@ -16,6 +16,129 @@ class SegmentationExtractor(ABC):
         self._channel_properties = {}
         self.id = np.random.randint(a=0, b=9223372036854775807)
 
+    @property
+    @abstractmethod
+    def image_dims(self):
+        '''
+        Returns
+        -------
+        image_dims: list
+            The width X height of the image.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def no_rois(self):
+        '''
+        The number of Independent sources(neurons) indentified after the
+        segmentation operation. The regions of interest for which fluorescence
+        traces will be extracted downstream.
+
+        Returns
+        -------
+        no_rois: int
+            The number of rois
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def roi_idx(self):
+        '''
+        Integer label given to each region of interest (neuron).
+
+        Returns
+        -------
+        roi_idx: list
+            list of integers of the ROIs. Listed in the order in which the ROIs
+            occur in the image_masks (2nd dimention)
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def accepted_list(self):
+        '''
+        The ids of the ROIs which are accepted after manual verification of
+        ROIs.
+
+        Returns
+        -------
+        accepted_list: list
+            List of accepted ROIs
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def rejected_list(self):
+        '''
+        The ids of the ROIs which are rejected after manual verification of
+        ROIs.
+
+        Returns
+        -------
+        accepted_list: list
+            List of rejected ROIs
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def roi_locs(self):
+        '''
+        The x and y pixel location of the ROIs. The location where the pixel
+        value is maximum in the image mask.
+
+        Returns
+        -------
+        roi_locs: np.array
+            Array with the first column representing the x (width) and second representing
+            the y (height) coordinates of the ROI.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def num_of_frames(self):
+        '''
+        Total number of images in the image sequence across time.
+
+        Returns
+        -------
+        num_of_frames: int
+            Same as the -1 dimention of the dF/F trace(roi_response).
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def samp_freq(self):
+        '''
+        Returns
+        -------
+        samp_freq: int
+            Sampling frequency of the dF/F trace.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def write_recording(segmentation_object, savepath):
+        '''
+        Static method to write recording back to the native format.
+
+        Parameters
+        ----------
+        segmentation_object: SegmentationExtracteor object
+            The EXTRACT segmentation object from which an EXTRACT native format
+            file has to be generated.
+        savepath: str
+            path to save the native format.
+        '''
+        pass
+
     @abstractmethod
     def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None):
         ''' Extracts specific regions of traces based on the start and end frame values
@@ -174,30 +297,30 @@ class SegmentationExtractor(ABC):
             _locs = np.where(_raw_images_trans[:, :, i] > 0)
             _pix_values = _raw_images_trans[_raw_images_trans[:, :, i] > 0, i]
             temp = np.append(temp, np.concatenate(
-                                (_locs[0].reshape([1, np.size(_locs[0])]),
-                                _locs[1].reshape([1, np.size(_locs[1])]),
-                                _pix_values.reshape([1, np.size(_locs[1])]),
-                                roiid * np.ones([1, np.size(_locs[1])]))).T, axis=0)
+                (_locs[0].reshape([1, np.size(_locs[0])]),
+                 _locs[1].reshape([1, np.size(_locs[1])]),
+                 _pix_values.reshape([1, np.size(_locs[1])]),
+                 roiid * np.ones([1, np.size(_locs[1])]))).T, axis=0)
         return temp[1::, :]
 
-        @abstractmethod
-        def get_channel_names(self):
-            '''List of  channels in the recoding.
+    @abstractmethod
+    def get_channel_names(self):
+        '''List of  channels in the recoding.
 
-            Returns
-            -------
-            channel_names: list
-                List of strings of channel names
-            '''
-            pass
+        Returns
+        -------
+        channel_names: list
+            List of strings of channel names
+        '''
+        pass
 
-        @abstractmethod
-        def get_num_channels(self):
-            '''Total number of active channels in the recording
+    @abstractmethod
+    def get_num_channels(self):
+        '''Total number of active channels in the recording
 
-            Returns
-            -------
-            no_of_channels: int
-                integer count of number of channels
-            '''
-            pass
+        Returns
+        -------
+        no_of_channels: int
+            integer count of number of channels
+        '''
+        pass

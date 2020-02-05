@@ -3,44 +3,12 @@ from ..segmentationextractor import SegmentationExtractor
 
 
 class NumpySegmentationExtractor(SegmentationExtractor):
-    ''' SegmentationExtractor class:
-        input all releveant data and metadata related to the main analysis file parsed by h5py
-
-        Arguments:
-
-        masks:
-            description: binary image for each of the regions of interest
-            type: np.ndarray (dimensions: # of pixels(d1 X d2 length) x # of ROIs), 2-D
-
-        signal:
-            description: fluorescence response of each of the ROI in time
-            type: np.ndarray (dimensions: # of ROIs x # timesteps), 2-D
-
-        background_signal:
-            description: fluorescence response of each of the background ROIs in time
-            type: np.ndarray (dimensions: # of BackgroundRegions x # timesteps), 2-D
-
-        background_masks:
-            description: binary image for the background ROIs
-            type: np.ndarray (dimensions: # of pixels(d1 X d2) x # of ROIs), 2-D
-
-        summary_image:
-            description: mean or the correlation image
-            type: np.ndarray (dimensions: d1 x d2)
-
-        roi_idx:
-            description: ids of the ROIs
-            type: np.ndarray (dimensions: 1 x # of ROIs)
-
-        roi_locs:
-            description: x and y location of centroid of ROI mask
-            type: np.ndarray (dimensions: # of ROIs x 2)
-
-        samp_freq:
-            description: frame rate
-            type: np.ndarray (dimensions: 1D)
-
     '''
+    NumpySegmentationExtractor objects are built to contain all data coming from
+    a file format for which there is currently no support. To construct this,
+    all data must be entered manually as arguments.
+    '''
+
     def __init__(self, filepath=None, masks=None, signal=None,
                  background_signal=None, background_masks=None,
                  rawfileloc=None, accepted_lst=None,
@@ -50,16 +18,40 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                  rejected_list=None, no_rois=None,
                  num_of_frames=None, cnn_preds=None,
                  channel_names=None, no_of_channels=None):
-
+        '''
+        Parameters:
+        ----------
+        filepath: str
+            The location of the folder containing the custom file format.
+        masks: np.ndarray (dimensions: image width x height x # of ROIs)
+            Binary image for each of the regions of interest
+        signal: np.ndarray (dimensions: # of ROIs x # timesteps)
+            Fluorescence response of each of the ROI in time
+        background_signal: np.ndarray (dimensions: # of BackgroundRegions x # timesteps)
+            Fluorescence response of each of the background ROIs in time
+        background_masks: np.ndarray (dimensions: image width x height x # of ROIs)
+            Binary image for the background ROIs
+        summary_image: np.ndarray (dimensions: d1 x d2)
+            Mean or the correlation image
+        roi_idx: int list (length is # of ROIs)
+            Unique ids of the ROIs if any
+        roi_locs: np.ndarray (dimensions: # of ROIs x 2)
+            x and y location of centroid of ROI mask
+        samp_freq: float
+            Frame rate of the movie
+        '''
         self.filepath = filepath
         self._dataset_file = None
         if masks is None:
-            self.image_masks = masks
+            self.image_masks = np.empty([0, 0, 0])
         elif len(masks.shape) > 2:
             self.image_masks = masks.reshape([np.prod(masks.shape[0:1], masks.shape[2], order='F')])
         else:
             self.image_masks = masks
-        self.roi_response = signal
+        if signal is None:
+            self.roi_response = np.empty([0, 0])
+        else:
+            self.roi_response = signal
         self.cn = summary_image
         self.total_time = total_time
         self.filetype = self._file_type_extractor_read()
@@ -90,8 +82,8 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             self.cnn_preds = cnn_preds
         self.channel_names = channel_names
         self.no_of_channels = no_of_channels
-        self.rejected_list = rejected_list
-        self.accepted_list = accepted_lst
+        self._rejected_list = rejected_list
+        self._accepted_list = accepted_lst
         self.idx_components = self.accepted_list
         self.idx_components_bad = self.rejected_list
 
@@ -103,13 +95,12 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     @property
     def image_dims(self):
-        return list(self.extimage_dims)
+        return list(self.image_masks.shape[0:2])
 
     @property
     def no_rois(self):
         if self._no_rois is None:
-            raw_images = self.image_masks
-            return raw_images.shape[1]
+            return self.image_masks.shape[1]
         else:
             return self._no_rois
 
@@ -129,13 +120,16 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     @property
     def rejected_list(self):
-        return [a for a in range(self.no_rois) if a not in set(self.accepted_list)]
+        if self._rejected_list is None:
+            return [a for a in range(self.no_rois) if a not in set(self.accepted_list)]
+        else:
+            return self._rejected_list
 
     @property
     def roi_locs(self):
         if self._roi_locs is None:
             no_ROIs = self.no_rois
-            raw_images = self.raw_images
+            raw_images = self.image_masks
             roi_location = np.ndarray([2, no_ROIs], dtype='int')
             for i in range(no_ROIs):
                 temp = np.where(raw_images[:, :, i] == np.amax(raw_images[:, :, i]))
@@ -147,8 +141,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     @property
     def num_of_frames(self):
         if self._num_of_frames is None:
-            extracted_signals = self.roi_response
-            return extracted_signals.shape[1]
+            return self.roi_response.shape[1]
         else:
             return self._num_of_frames
 
@@ -157,7 +150,10 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         if self._samp_freq is None:
             time = self.total_time
             nframes = self.num_of_frames
-            return nframes / time
+            try:
+                return nframes / time
+            except ZeroDivisionError:
+                return 0
         else:
             return self._samp_freq
 
@@ -176,7 +172,10 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         if ROI_ids is None:
             return self.roi_locs
         else:
-            return self.roi_locs[:, ROI_ids]
+            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
+            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
+            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
+            return self.roi_locs[:, ROI_idx_]
 
     def get_num_frames(self):
         return self.num_of_frames
@@ -188,27 +187,33 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         if start_frame is None:
             start_frame = 0
         if end_frame is None:
-            end_frame = self.get_num_frames()
+            end_frame = self.get_num_frames() + 1
         if ROI_ids is None:
-            ROI_idx = range(self.get_num_rois())
+            ROI_idx_ = list(range(self.get_num_rois()))
         else:
-            ROI_idx = [np.where(i==self.roi_idx)[0] for i in ROI_ids]
-        return self.roi_response[ROI_idx, start_frame:end_frame]
+            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
+            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
+            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
+        return self.roi_response[ROI_idx_, start_frame:end_frame]
 
     def get_image_masks(self, ROI_ids=None):
         if ROI_ids is None:
-            ROI_idx = range(self.get_num_rois())
+            ROI_idx_ = range(self.get_num_rois())
         else:
-            ROI_idx = [np.where(i==self.roi_idx)[0] for i in ROI_ids]
-        return self.image_masks.reshape(self.image_dims + [self.no_rois], order='F')[:, :, ROI_idx]
+            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
+            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
+            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
+        return self.image_masks.reshape(self.image_dims + [self.no_rois], order='F')[:, :, ROI_idx_]
 
     def get_pixel_masks(self, ROI_ids=None):
         if ROI_ids is None:
-            ROI_idx = self.roi_idx
+            ROI_idx_ = self.roi_idx
         else:
-            ROI_idx = [np.where(i==self.roi_idx)[0] for i in ROI_ids]
+            ROI_idx = [np.where(i == self.roi_idx)[0] for i in ROI_ids]
+            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
+            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
         temp = np.empty((1, 4))
-        for i, roiid in enumerate(ROI_idx):
+        for i, roiid in enumerate(ROI_idx_):
             temp = \
                 np.append(temp, self.pixel_masks[self.pixel_masks[:, 3] == roiid, :], axis=0)
         return temp[1::, :]
