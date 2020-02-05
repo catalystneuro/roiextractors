@@ -15,15 +15,16 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         self._dataset_file, self._group0 = self._file_extractor_read()
         self.image_masks, self.extimage_dims, self.raw_images =\
             self._image_mask_extractor_read()
-        self.pixel_masks = self._pixel_mask_extractor_read()
         self.roi_response = self._trace_extractor_read()
+        self._roi_ids = None
+        self.pixel_masks = self._pixel_mask_extractor_read()
         self.cn = self._summary_image_read()
         self.total_time = self._tot_exptime_extractor_read()
         self.filetype = self._file_type_extractor_read()
         self.raw_movie_file_location = self._raw_datafile_read()
         # Not found data:
         self.channel_names = None
-        self.no_of_channels = None
+        self.no_of_channels = 1
         self._no_background_comps = 1
         self.snr_comp = np.nan * np.ones(self.roi_response.shape)
         self.r_values = np.nan * np.ones(self.roi_response.shape)
@@ -47,7 +48,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         return f, _group0
 
     def _image_mask_extractor_read(self):
-        _raw_images_trans = self._dataset_file[self._group0[0]]['filters'].transpose()
+        _raw_images_trans = np.array(self._dataset_file[self._group0[0]]['filters']).T
         return _raw_images_trans.reshape(
                         [np.prod(_raw_images_trans.shape[0:2]),
                             _raw_images_trans.shape[2]],
@@ -56,15 +57,14 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
                _raw_images_trans
 
     def _pixel_mask_extractor_read(self):
-        _raw_images_trans = self._dataset_file[self._group0[0]]['filters'].transpose()
-        return super()._pixel_mask_extractor(_raw_images_trans, self.roi_idx)
+        return super()._pixel_mask_extractor(self.raw_images, self.roi_idx)
 
     def _trace_extractor_read(self):
         extracted_signals = self._dataset_file[self._group0[0]]['traces']
         return np.array(extracted_signals).T
 
     def _tot_exptime_extractor_read(self):
-        return self._dataset_file[self._group0[0]]['time']['total_time'][0][0]
+        return self._dataset_file[self._group0[0]]['time']['totalTime'][0][0]
 
     def _file_type_extractor_read(self):
         return self.filepath.split('.')[1]
@@ -74,7 +74,8 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         return np.array(summary_images_).T
 
     def _raw_datafile_read(self):
-        return self._dataset_file[self._group0[0]]['file']
+        charlist = [chr(i) for i in self._dataset_file[self._group0[0]]['file'][:]]
+        return ''.join(charlist)
 
     @property
     def image_dims(self):
@@ -98,8 +99,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         no_rois: int
             The number of rois
         '''
-        raw_images = self._dataset_file[self._group0[0]]['filters'].transpose()
-        return raw_images.shape[1]
+        return self.roi_response.shape[0]
 
     @property
     def roi_idx(self):
@@ -112,7 +112,10 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
             list of integers of the ROIs. Listed in the order in which the ROIs
             occur in the image_masks (2nd dimention)
         '''
-        return list(range(self.no_rois))
+        if self._roi_ids is None:
+            return list(range(self.no_rois))
+        else:
+            return self._roi_ids
 
     @property
     def accepted_list(self):

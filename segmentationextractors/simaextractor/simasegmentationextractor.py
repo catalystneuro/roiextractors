@@ -63,9 +63,6 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         Replaces the pickle file with a python 3 version with the same name. Saves
         the old Py2 pickle as \'oldpicklename_p2.pkl\''
 
-        If \'oldpicklename_p2.pkl\' already present, it will delete it and recreate
-        it.
-
         Parameters
         ----------
         old_pkl_loc: str
