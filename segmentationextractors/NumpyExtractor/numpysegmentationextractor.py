@@ -14,10 +14,8 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                  rawfileloc=None, accepted_lst=None,
                  summary_image=None, roi_idx=None,
                  roi_locs=None, samp_freq=None, nback=1,
-                 total_time=0, snr_comp=None, r_values=None,
-                 rejected_list=None, no_rois=None,
-                 num_of_frames=None, cnn_preds=None,
-                 channel_names=None, no_of_channels=None):
+                 total_time=0, rejected_list=None, channel_names=None,
+                 no_of_channels=None, movie_dims=None):
         '''
         Parameters:
         ----------
@@ -39,15 +37,32 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             x and y location of centroid of ROI mask
         samp_freq: float
             Frame rate of the movie
+        nback: int
+            Number of background components extracted
+        total_time: float
+            total time of the experiment data
+        rejected_list: list
+            list of ROI ids that are rejected manually or via automated rejection
+        channel_names: list
+            list of strings representing channel names
+        no_of_channels: int
+            number of channels
+        movie_dims: list(2-D)
+            height x width of the movie
         '''
         self.filepath = filepath
         self._dataset_file = None
         if masks is None:
-            self.image_masks = np.empty([0, 0, 0])
+            self.image_masks = np.empty([0, 0])
+            self.raw_image_masks = np.empty([0, 0, 0])
         elif len(masks.shape) > 2:
-            self.image_masks = masks.reshape([np.prod(masks.shape[0:1], masks.shape[2], order='F')])
+            self.image_masks = masks.reshape([np.prod(masks.shape[0:2]), masks.shape[2]], order='F')
+            self.raw_image_masks = masks
         else:
             self.image_masks = masks
+            if not movie_dims:
+                raise Exception('enter movie dimensions as height x width list')
+            self.raw_image_masks = masks.reshape(movie_dims.append(masks.shape[2]), order='F')
         if signal is None:
             self.roi_response = np.empty([0, 0])
         else:
@@ -65,21 +80,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
         self._roi_ids = roi_idx
         self._roi_locs = roi_locs
-        self._no_rois = no_rois
         self._samp_freq = samp_freq
-        self._num_of_frames = num_of_frames
-        if snr_comp is None:
-            self.snr_comp = np.nan * np.ones(self.roi_response.shape)
-        else:
-            self.snr_comp = snr_comp
-        if r_values is None:
-            self.r_values = np.nan * np.ones(self.roi_response.shape)
-        else:
-            self.r_values = r_values
-        if cnn_preds is None:
-            self.cnn_preds = np.nan * np.ones(self.roi_response.shape)
-        else:
-            self.cnn_preds = cnn_preds
         self.channel_names = channel_names
         self.no_of_channels = no_of_channels
         self._rejected_list = rejected_list
@@ -95,14 +96,11 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     @property
     def image_dims(self):
-        return list(self.image_masks.shape[0:2])
+        return list(self.raw_image_masks.shape[0:2])
 
     @property
     def no_rois(self):
-        if self._no_rois is None:
-            return self.image_masks.shape[1]
-        else:
-            return self._no_rois
+        return self.raw_image_masks.shape[2]
 
     @property
     def roi_idx(self):
@@ -129,7 +127,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     def roi_locs(self):
         if self._roi_locs is None:
             no_ROIs = self.no_rois
-            raw_images = self.image_masks
+            raw_images = self.raw_image_masks
             roi_location = np.ndarray([2, no_ROIs], dtype='int')
             for i in range(no_ROIs):
                 temp = np.where(raw_images[:, :, i] == np.amax(raw_images[:, :, i]))
@@ -140,10 +138,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     @property
     def num_of_frames(self):
-        if self._num_of_frames is None:
-            return self.roi_response.shape[1]
-        else:
-            return self._num_of_frames
+        return self.roi_response.shape[1]
 
     @property
     def samp_freq(self):
@@ -203,7 +198,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
             ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-        return self.image_masks.reshape(self.image_dims + [self.no_rois], order='F')[:, :, ROI_idx_]
+        return self.raw_image_masks[:, :, ROI_idx_]
 
     def get_pixel_masks(self, ROI_ids=None):
         if ROI_ids is None:

@@ -28,7 +28,7 @@ class TestSima(unittest.TestCase):
         assert_array_equal(self.sima_dataset.channel_names, self.simaobj.get_channel_names())
         assert_array_equal(self.sima_dataset.signals(channel='Blue')['example_ROI']['raw'][0][1:4, :],
                            self.simaobj.get_traces(ROI_ids=[-1, -2, -3]))
-        assert_array_equal(np.moveaxis(np.array([np.squeeze(self.sima_dataset.ROIs['auto_ROIs'][i])\
+        assert_array_equal(np.moveaxis(np.array([np.squeeze(self.sima_dataset.ROIs['auto_ROIs'][i])
                            for i in range(len(self.sima_dataset.ROIs['auto_ROIs']))])[1:4, :, :], 0, -1),
                            self.simaobj.get_image_masks(ROI_ids=[-1, -2, -3]))
 
