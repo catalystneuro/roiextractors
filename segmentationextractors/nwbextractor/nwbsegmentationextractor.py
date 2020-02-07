@@ -106,7 +106,7 @@ class NwbSegmentationExtractor(segmentation_extractor_obj):
             # Extract pixel_mask/background:
             self.pixel_masks = np.moveaxis(ps['pixel_mask'].data, [0, 1, 2], [2, 0, 1])
             # Extract Image dimensions:
-            self.extimage_dims = ps['image_mask'].data.shape[1::]
+            self.extimage_dims = self.image_masks.shape[0:2]
 
             # Extract roi_response:
             self._no_background_comps =
@@ -131,70 +131,210 @@ class NwbSegmentationExtractor(segmentation_extractor_obj):
                 setattr(self, i, ps[i].data)
 
             # Extract samp_freq:
-            self.samp_freq = rrs_neurons.rate
+            self._samp_freq = rrs_neurons.rate
             self.total_time = rrs_neurons.rate * rrs_neurons.num_samples
             # Extract no_rois/ids:
-            self.roi_idx = np.array(rrs_neurons.rois.data)
-            self.no_rois = self.roi_idx.size
+            self._roi_idx = np.array(ps.id.data)
 
+            #Imaging plane:
+            _imaging_plane_exist = [i for i, e in enumerate(
+                _nwbchildren_type) if e == 'ImagingPlane']
+            if not _imaging_plane_exist:
+                    self.channel_names = None
+            else:
+                self.channel_names = []
+                for i in _imaging_plane_exist:
+                    _opt_list = nwbfile.all_children()[i].optical_channel
+                    self.channel_names.append([l.name for l in _opt_list])
+            # Movie location:
+            _image_series_exist = [i for i, e in enumerate(
+                _nwbchildren_type) if e == 'TwoPhotonSeries']
+            if not _image_series_exist:
+                    self.raw_movie_file_location = None
+            else:
+                self.raw_movie_file_location = \
+            str(nwbfile.all_children()[_image_series_exist[0]].external_file[:])
+
+    @property
+    def image_dims(self):
+        return list(self.extimage_dims)
+
+    @property
+    def no_rois(self):
+        return self.roi_idx.size
+
+    @property
+    def roi_idx(self):
+        return self._roi_idx
+
+    @property
+    def accepted_list(self):
+        if self._accepted_list is None:
+            return list(range(self.no_rois))
+        else:
+            return self._accepted_list
+
+    @property
+    def rejected_list(self):
+        return [a for a in range(self.no_rois) if a not in set(self.accepted_list)]
+
+    @property
+    def roi_locs(self):
+        no_ROIs = self.no_rois
+        raw_images = self.raw_images
+        roi_location = np.ndarray([2, no_ROIs], dtype='int')
+        for i in range(no_ROIs):
+            temp = np.where(raw_images[:, :, i] == np.amax(raw_images[:, :, i]))
+            roi_location[:, i] = np.array([np.median(temp[0]), np.median(temp[1])]).T
+        return roi_location
+
+    @property
+    def num_of_frames(self):
+        extracted_signals = self.roi_response
+        return extracted_signals.shape[1]
+
+    @property
+    def samp_freq(self):
+        return self._samp_freq
 
     def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None):
+        if start_frame is None:
+            start_frame = 0
+        if end_frame is None:
+            end_frame = self.get_num_frames() + 1
+        if ROI_ids is None:
+            ROI_idx_ = range(self.get_num_rois())
+        else:
+            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
+            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
+            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
+        return self.roi_response[ROI_idx_, start_frame:end_frame]
 
     def get_num_frames(self):
+        return self.roi_response.shape[1]
 
     def get_sampling_frequency(self):
+        return self.samp_freq
 
-    def get_roi_locations(self):
+    def get_roi_locations(self, ROI_ids=None):
+        if ROI_ids is None:
+            return self.roi_locs
+        else:
+            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
+            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
+            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
+            return self.roi_locs[:, ROI_idx_]
 
     def get_roi_ids(self):
+        return self.roi_idx
 
     def get_num_rois(self):
+        return self.no_rois
 
     def get_pixel_masks(self, ROI_ids=None):
+        if ROI_ids is None:
+            ROI_idx_ = self.roi_idx
+        else:
+            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
+            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
+            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
+        temp = np.empty((1, 4))
+        for i, roiid in enumerate(ROI_idx_):
+            temp = \
+                np.append(temp, self.pixel_masks[self.pixel_masks[:, 3] == roiid, :], axis=0)
+        return temp[1::, :]
 
     def get_image_masks(self, ROI_ids=None):
+        if ROI_ids is None:
+            ROI_idx_ = range(self.get_num_rois())
+        else:
+            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
+            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
+            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
+        return self.raw_images.reshape(self.image_dims + [self.no_rois], order='F')[:, :, ROI_idx_]
 
     def get_movie_framesize(self):
+        return self.image_dims
 
     def get_movie_location(self):
+        return self.raw_movie_file_location
 
     def get_channel_names(self):
+        return self.channel_names
 
     def get_num_channels(self):
+        return len(self.channel_names)
 
     @staticmethod
-    def write_nwb(segmentation_extractor_obj, filename, propertydict=[], identifier=None,
+    def write_nwb(segmentation_extractor_obj, filename, propertydict=None, identifier=None,
                   starting_time=0., session_start_time=datetime.now(tzlocal()), excitation_lambda=np.nan,
                   emission_lambda=np.nan, indicator='none', location='brain', device_name='MyDevice',
-                  optical_channel_name='MyOpticalChannel', optical_channel_description='MyOpticalChannelDescription',
+                  optical_channel_name=None, optical_channel_description='MyOpticalChannelDescription',
                   imaging_plane_name='MyImagingPlane', imaging_plane_description='MyImagingPlaneDescription',
                   image_series_name='MyTwoPhotonSeries', image_series_description='MyTwoPhotonSeriesDescription',
                   processing_module_name='Ophys', processing_module_description='ContainsProcessedData',
                   neuron_roi_response_series_name='NeuronTimeSeriesData',
                   background_roi_response_series_name='BackgroundTimeSeriesData', **nwbfile_kwargs):
-        """writes NWB file
-        Args:
-            filename: str
-            imaging_plane_name: str, optional
-            imaging_series_name: str, optional
-            sess_desc: str, optional
-            exp_desc: str, optional
-            identifier: str, optional
-            imaging_rate: float, optional
-                default: 30 (Hz)
-            starting_time: float, optional
-                default: 0.0 (seconds)
-            location: str, optional
-            session_start_time: datetime.datetime, optional
-                Only required for new files
-            excitation_lambda: float
-            imaging_plane_description: str
-            emission_lambda: float
-            indicator: str
-            location: str
-        """
+        '''
+        Method to write a segmentation object to NWB; converting any file format
+        to NWB. Takes in various optional parameters to either append to or
+        replace data within the segmentation_object.
+
+        Parameters
+        ----------
+        segmentation_extractor_obj: SegmentationExtractor type
+            the segmentation extractor object to be saved as nwb.
+        filename: str
+            name of the nwb file to be created.
+        propertydict: list(optional)
+            propertydict is a list of dictionaries containing:
+            [{'name':'','discription':'', 'data':'', id':''}, {}..] These are
+            additional attributes to very ROI.
+        identifier: str(optional)
+            uuid identifier for the session.
+        starting_time: float(optional)
+            starting time relative to session start time.
+        session_start_time: datatime
+            complete start time of the session.
+        excitation_lambda: float(optional)
+            excitation wavelength for the indicator.
+        emission_lambda: float(optional)
+            emission lambda for the indicator.
+        indicator: str(optional)
+            name of the indicator dye.
+        location: str(optional)
+            location of the imaging plane within the brain
+        device_name: str(optional)
+            name of the device used.
+        optical_channel_name: str(optional)
+            name of optical channel if any.
+        optical_channel_description: str(optional)
+            description of the optical channel.
+        imaging_plane_name: str(optional)
+            name of the imaging plane.
+        imaging_plane_description: str(optional)
+            description of the imaging plane.
+        image_series_name: str(optional)
+            name of the imaging series.
+        image_series_description: str(optional)
+            description of the imaging series.
+        processing_module_name: str(optional)
+            name of the processing module.
+        processing_module_description: str(optional)
+            description of the processing module.
+        neuron_roi_response_series_name: str(optional)
+            name of the ROI time series.
+        background_roi_response_series_name: str(optional)
+            name of the background time series.
+        nwbfile_kwargs(optional)
+            additional arguments that an NWB file takes (check NWB documentation)
+        '''
         imaging_rate = segmentation_extractor_obj.get_sampling_frequency()
         raw_movie_file_location = segmentation_extractor_obj.get_movie_location()
+        if not optical_channel_name:
+            optical_channel_names = segmentation_extractor_obj.get_channel_names()
+        else:
+            optical_channel_names = [optical_channel_name, *segmentation_extractor_obj.get_channel_names()]
 
         if identifier is None:
             identifier = uuid.uuid1().hex
@@ -230,11 +370,18 @@ class NwbSegmentationExtractor(segmentation_extractor_obj):
                 _optical_channel_exist = [i for i, e in enumerate(
                     _nwbchildren_name) if e == optical_channel_name]
                 if not _optical_channel_exist:
-                    optical_channel = OpticalChannel(optical_channel_name,
-                                                     optical_channel_description,
-                                                     emission_lambda=emission_lambda)
+                    optical_channel_list = []
+                    for i, val in enumerate(optical_channel_names):
+                        optical_channel_list.append([OpticalChannel(val,
+                                                         optical_channel_description,
+                                                         emission_lambda=emission_lambda)])
                 elif len(_optical_channel_exist) == 1:
-                    optical_channel = nwbfile.all_children()[_optical_channel_exist[0]]
+                    optical_channel_list = []
+                    for i, val in enumerate(optical_channel_names[1::]):
+                        optical_channel_list.append([OpticalChannel(val,
+                                                         optical_channel_description,
+                                                         emission_lambda=emission_lambda)])
+                    optical_channel_list.append(nwbfile.all_children()[_optical_channel_exist[0]])
                 else:
                     raise Exception('Multiple Optical Channels exist, provide name of one')
 
@@ -243,7 +390,7 @@ class NwbSegmentationExtractor(segmentation_extractor_obj):
                     _nwbchildren_name) if e == imaging_plane_name]
                 if not _imaging_plane_exist:
                     nwbfile.create_imaging_plane(name=imaging_plane_name,
-                                                 optical_channel=optical_channel,
+                                                 optical_channel=optical_channel_list,
                                                  description=imaging_plane_description,
                                                  device=device,
                                                  excitation_lambda=excitation_lambda,
@@ -350,7 +497,7 @@ class NwbSegmentationExtractor(segmentation_extractor_obj):
             # Adding custom columns and their values to the PlaneSegmentation table:
             # propertydict is a list of dictionaries containing:
             # [{'name':'','discription':'', 'data':'', id':''}, {}..]
-            if len(propertydict):
+            if not propertydict:
                 _segmentation_exctractor_attrs = dir(segmentation_extractor_obj)
                 for i in range(len(propertydict)):
                     excep_str = 'enter argument propertydict as list of dictionaries:\n'\
@@ -383,9 +530,9 @@ class NwbSegmentationExtractor(segmentation_extractor_obj):
             # Adding Image and Pixel Masks(default colnames in PlaneSegmentation):
             for i, roiid in enumerate(segmentation_extractor_obj.roi_idx):
                 img_roi = segmentation_extractor_obj.image_masks[:, i]
-                pix_roi = segmentation_extractor_obj.pixel_masks[segmentation_extractor_obj.pixel_masks[:, 3] == roiid, :]
+                pix_roi = segmentation_extractor_obj.pixel_masks[segmentation_extractor_obj.pixel_masks[:, 3] == roiid, 0:4]
                 ps.add_roi(image_mask=img_roi.reshape(segmentation_extractor_obj.image_dims, order='F'),
-                           pixel_mask=pix_roi)
+                           pixel_mask=pix_roi, id=roiid)
 
             # Background components addition:
             if hasattr(segmentation_extractor_obj, 'image_masks_bk'):
