@@ -3,15 +3,26 @@ Python-based module for extracting from, converting between, and handling record
 
 # Summary of initial code files: 
 
-* class **CIExtractor:**
-  * The abstract class which is inherited by *SegmentationExtractor* 
-  
+* Segmentation Extractor Objects: 
+
 * class **SegmentationExtractor:**
-  * Contains all data and meta data from the .mat analysis files. 
-  * Has various methods to interface with the .mat files and extract relevent meta data. 
+	*An abstract class that contains all the meta-data and output data from the ROI segmentation operation when applied to the pre-processed data. It also contains methods to read from and write to various data formats ouput from the processing pipelines like SIMA, CaImAn, Suite2p, CNNM-E. All the methods with @abstract decorator have to be defined by the format specific classes that inherit from this.
+
+* class **NumpySegmentationExtractor:**
+	*NumpySegmentationExtractor objects are built to contain all data coming from a file format for which there is currently no support. To construct this, all data must be entered manually as arguments.
+
+* class **CnmfeSegmentationExtractor:**
+  * This class inherits from the SegmentationExtractor class, having all its funtionality specifically applied to the dataset output from the 'CNMF-E' ROI segmentation method.
   
-* method **nwbwriter:**
-  * Implemented from the calcium imaging analysis to write all the data within the *CIDataContainer* object. 
+* class **ExtractSegmentationExtractor:**
+  * This class inherits from the SegmentationExtractor class, having all its funtionality specifically applied to the dataset output from the 'EXTRACT' ROI segmentation method.
+  
+* class **SimaSegmentationExtractor:**
+	*This class inherits from the SegmentationExtractor class, having all its funtionality specifically applied to the dataset output from the 'SIMA' ROI segmentation method.
+	
+* class **NwbSegmentationExtractor:**
+	*Class used to extract data from the NWB data format. Also implements a static method to write any format specific object to NWB.
+	
   
 
 

@@ -69,6 +69,10 @@ def get_dynamic_table_property(dynamic_table, *, row_ids=None, property_name):
 
 
 class NwbSegmentationExtractor(segmentation_extractor_obj):
+    '''
+    Class used to extract data from the NWB data format. Also implements a
+    static method to write any format specific object to NWB.
+    '''
 
     def __init__(self, filepath, optical_channel_name=None,
                  imaging_plane_name=None, image_series_name=None,
@@ -76,6 +80,24 @@ class NwbSegmentationExtractor(segmentation_extractor_obj):
                  neuron_roi_response_series_name=None,
                  background_roi_response_series_name=None):
 
+        '''
+        Parameters
+        ----------
+        filepath: str
+            The location of the folder containing dataset.nwb file.
+        optical_channel_name: str(optional)
+            optical channel to extract data from
+        imaging_plane_name: str(optional)
+            imaging plane to extract data from
+        image_series_name: str(optional)
+            imaging series to extract data from
+        processing_module_name: str(optional)
+            processing module to extract data from
+        neuron_roi_response_series_name: str(optional)
+            name of roi response series to extract data from
+        background_roi_response_series_name: str(optional)
+            name of background roi response series to extract data from
+        '''
         check_nwb_install()
         if not os.path.exists(filepath):
             raise Exception('file does not exist')
@@ -136,7 +158,7 @@ class NwbSegmentationExtractor(segmentation_extractor_obj):
             # Extract no_rois/ids:
             self._roi_idx = np.array(ps.id.data)
 
-            #Imaging plane:
+            # Imaging plane:
             _imaging_plane_exist = [i for i, e in enumerate(
                 _nwbchildren_type) if e == 'ImagingPlane']
             if not _imaging_plane_exist:
