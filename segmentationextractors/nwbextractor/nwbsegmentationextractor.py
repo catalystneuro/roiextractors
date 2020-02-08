@@ -107,25 +107,30 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             nwbfile = io.read()
             _nwbchildren_type = [type(i).__name__ for i in nwbfile.all_children()]
             _nwbchildren_name = [i.name for i in nwbfile.all_children()]
-            mod = nwbfile.processing
-            if len(mod) > 1:
+            _procssing_module = [_nwbchildren_name[f]
+                                 for f, u in enumerate(_nwbchildren_type) if u == 'ProcessingModule']
+            mod = nwbfile.processing[_procssing_module[0]]
+            if len(_procssing_module) > 1:
                 print('multiple processing modules found, picking the first one')
-                mod = list(nwbfile.processing.values())[0]
             elif not mod:
                 raise Exception('no processing module found')
 
             # Extract image_mask/background:
             _plane_segmentation_exist = [i for i, e in enumerate(
-                _nwbchildren_name) if e == 'PlaneSegmentation']
+                _nwbchildren_type) if e == 'PlaneSegmentation']
             if not _plane_segmentation_exist:
                 print('could not find a plane segmentation to contain image mask')
             else:
                 ps = nwbfile.all_children()[_plane_segmentation_exist[0]]
-            self.image_masks = np.moveaxis(ps['image_mask'].data, [0, 1, 2], [2, 0, 1])
+            self.image_masks = np.moveaxis(np.array(ps['image_mask'].data), [0, 1, 2], [2, 0, 1])
             self.raw_images = self.image_masks
 
             # Extract pixel_mask/background:
-            self.pixel_masks = np.moveaxis(ps['pixel_mask'].data, [0, 1, 2], [2, 0, 1])
+            px_list = [ps['pixel_mask'][e] for e in range(ps['pixel_mask'].data.shape[0])]
+            temp = np.empty((1, 4))
+            for v, b in enumerate(px_list):
+                temp = np.append(temp, np.append(b, v * np.ones([b.shape[0], 1]), axis=1), axis=0)
+            self.pixel_masks = temp[1::, :]
             # Extract Image dimensions:
             self.extimage_dims = self.image_masks.shape[0:2]
 
@@ -135,20 +140,20 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             if not _roi_exist:
                 raise Exception('no ROI response series found')
             else:
-                rrs_neurons = mod['Fluorescence'].get_roi_response_series[_roi_exist[0]]
-                self.roi_response = rrs_neurons.data
+                rrs_neurons = mod['Fluorescence'].get_roi_response_series(_roi_exist[0])
+                self.roi_response = np.array(rrs_neurons.data)
                 self._no_background_comps = 1
                 self.roi_response_bk = np.nan * np.ones(
                     [self._no_background_comps, self.roi_response.shape[1]])
                 if len(_roi_exist) > 1:
-                    rrs_bk = mod['Fluorescence'].get_roi_response_series[_roi_exist[1]]
-                    self.roi_response_bk = rrs_bk.data
+                    rrs_bk = mod['Fluorescence'].get_roi_response_series(_roi_exist[1])
+                    self.roi_response_bk = np.array(rrs_bk.data)
                     self._no_background_comps = self.roi_response_bk.shape[0]
 
             # Extract planesegmentation dictionary values:
             _new_columns = [i for i in ps.colnames if i not in ['image_mask', 'pixel_mask']]
             for i in _new_columns:
-                setattr(self, i, ps[i].data)
+                setattr(self, i, np.array(ps[i].data))
 
             # Extract samp_freq:
             self._samp_freq = rrs_neurons.rate
@@ -165,7 +170,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 self.channel_names = []
                 for i in _imaging_plane_exist:
                     _opt_list = nwbfile.all_children()[i].optical_channel
-                    self.channel_names.append([l.name for l in _opt_list])
+                    self.channel_names.extend([l.name for l in _opt_list])
             # Movie location:
             _image_series_exist = [i for i, e in enumerate(
                 _nwbchildren_type) if e == 'TwoPhotonSeries']
@@ -286,15 +291,15 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         return len(self.channel_names)
 
     @staticmethod
-    def write_nwb(segmentation_extractor_obj, filename, propertydict=None, identifier=None,
-                  starting_time=0., session_start_time=datetime.now(tzlocal()), excitation_lambda=np.nan,
-                  emission_lambda=np.nan, indicator='none', location='brain', device_name='MyDevice',
-                  optical_channel_name='OpticalChannel', optical_channel_description='MyOpticalChannelDescription',
-                  imaging_plane_name='MyImagingPlane', imaging_plane_description='MyImagingPlaneDescription',
-                  image_series_name='MyTwoPhotonSeries', image_series_description='MyTwoPhotonSeriesDescription',
-                  processing_module_name='Ophys', processing_module_description='ContainsProcessedData',
-                  neuron_roi_response_series_name='NeuronTimeSeriesData',
-                  background_roi_response_series_name='BackgroundTimeSeriesData', **nwbfile_kwargs):
+    def write_recording(segmentation_extractor_obj, filename, propertydict=None, identifier=None,
+                        starting_time=0., session_start_time=datetime.now(tzlocal()), excitation_lambda=np.nan,
+                        emission_lambda=np.nan, indicator='none', location='brain', device_name='MyDevice',
+                        optical_channel_name='OpticalChannel', optical_channel_description='MyOpticalChannelDescription',
+                        imaging_plane_name='MyImagingPlane', imaging_plane_description='MyImagingPlaneDescription',
+                        image_series_name='MyTwoPhotonSeries', image_series_description='MyTwoPhotonSeriesDescription',
+                        processing_module_name='Ophys', processing_module_description='ContainsProcessedData',
+                        neuron_roi_response_series_name='NeuronTimeSeriesData',
+                        background_roi_response_series_name='BackgroundTimeSeriesData', **nwbfile_kwargs):
         '''
         Method to write a segmentation object to NWB; converting any file format
         to NWB. Takes in various optional parameters to either append to or
@@ -381,7 +386,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 _device_exist = [i for i, e in enumerate(_nwbchildren_name) if e == device_name]
                 if not _device_exist:
                     nwbfile.add_device(Device(device_name))
-                elif len(_device_exist > 1):
+                elif len(_device_exist) > 1:
                     raise Exception('Multiple Devices exist, provide name of one')
                 device = list(nwbfile.devices.values())[0]
 
@@ -474,13 +479,20 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                     fl = nwbfile.all_children()[_fluorescence_module_exist[0]]
 
                 # Adding PlaneSegmentation:
-                _plane_segmentation_exist = [i for i, e in enumerate(
-                    _nwbchildren_name) if e == 'PlaneSegmentation']
+                _plane_segmentation_exist = [_nwbchildren_name[i] for i, e in enumerate(
+                    _nwbchildren_type) if e == 'PlaneSegmentation']
                 if not _plane_segmentation_exist:
                     ps = img_seg.create_plane_segmentation(
-                        'ROIs', imaging_plane, 'PlaneSegmentation', image_series)
+                        'ROIs', imaging_plane, 'NeuronsPlaneSegmentation', image_series)
+                    ps_bk = img_seg.create_plane_segmentation(
+                        'ROIs', imaging_plane, 'BkPlaneSegmentation', image_series)
+                elif len(_plane_segmentation_exist) == 1:
+                    ps = nwbfile.all_children()[_plane_segmentation_exist[0]]
+                    ps_bk = img_seg.create_plane_segmentation(
+                        'ROIs', imaging_plane, 'BkPlaneSegmentation', image_series)
                 else:
                     ps = nwbfile.all_children()[_plane_segmentation_exist[0]]
+                    ps_bk = nwbfile.all_children()[_plane_segmentation_exist[1]]
 
             else:
                 kwargs = {'session_description': 'No description',
@@ -520,7 +532,9 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 fl = Fluorescence()
                 mod.add_data_interface(fl)
                 ps = img_seg.create_plane_segmentation(
-                    'ROIs', imaging_plane, 'PlaneSegmentation', image_series)
+                    'ROIs', imaging_plane, 'NeuronsPlaneSegmentation', image_series)
+                ps_bk = img_seg.create_plane_segmentation(
+                    'ROIs', imaging_plane, 'BkPlaneSegmentation', image_series)
 
             # Adding the ROI-related stuff:
             # Adding custom columns and their values to the PlaneSegmentation table:
@@ -567,12 +581,12 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             if hasattr(segmentation_extractor_obj, 'image_masks_bk'):
                 if hasattr(segmentation_extractor_obj, 'pixel_masks_bk'):
                     for i, (img_roi_bk, pix_roi_bk) in enumerate(zip(segmentation_extractor_obj.image_masks_bk.T, segmentation_extractor_obj.pixel_masks_bk)):
-                        ps.add_roi(image_mask=img_roi_bk.reshape(segmentation_extractor_obj.image_dims, order='F'),
-                                   pixel_mask=pix_roi_bk)
+                        ps_bk.add_roi(image_mask=img_roi_bk.reshape(segmentation_extractor_obj.image_dims, order='F'),
+                                      pixel_mask=pix_roi_bk)
                 else:
                     pix_roi_bk = np.nan * np.ones([1, 3])
                     for i, img_roi_bk in enumerate(segmentation_extractor_obj.image_masks_bk.T):
-                        ps.add_roi(image_mask=img_roi_bk.reshape(
+                        ps_bk.add_roi(image_mask=img_roi_bk.reshape(
                             segmentation_extractor_obj.image_dims, order='F'),
                             pixel_mask=pix_roi_bk)
 
@@ -583,7 +597,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 'NeuronROIs', region=list(range(no_neurons_rois)))
 
             background_rois = ps.create_roi_table_region(
-                'BackgroundROIs', region=list(range(no_neurons_rois, no_neurons_rois + no_background_rois)))
+                'BackgroundROIs', region=list(range(no_background_rois)))
 
             timestamps = np.arange(
                 segmentation_extractor_obj.roi_response_bk.shape[1]) / imaging_rate + starting_time
@@ -595,7 +609,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             else:
                 neuron_roi_response_exist = []
             if not neuron_roi_response_exist:
-                fl.create_roi_response_series(name=neuron_roi_response_series_name, data=segmentation_extractor_obj.roi_response.T,
+                fl.create_roi_response_series(name=neuron_roi_response_series_name, data=segmentation_extractor_obj.roi_response,
                                               rois=neuron_rois, unit='lumens',
                                               starting_time=starting_time, rate=imaging_rate)
             else:
@@ -609,7 +623,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             else:
                 background_roi_response_exist = []
             if not background_roi_response_exist:
-                fl.create_roi_response_series(name=background_roi_response_series_name, data=segmentation_extractor_obj.roi_response.T,
+                fl.create_roi_response_series(name=background_roi_response_series_name, data=segmentation_extractor_obj.roi_response_bk,
                                               rois=background_rois, unit='lumens',
                                               starting_time=starting_time, rate=imaging_rate)
             else:
