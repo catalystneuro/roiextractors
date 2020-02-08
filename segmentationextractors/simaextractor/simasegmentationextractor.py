@@ -31,7 +31,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         self.filepath = filepath
         self._convert_sima(filepath)
         self._dataset_file = self._file_extractor_read()
-        self.channel_names = self._dataset_file.channel_names
+        self.channel_names = [str(i) for i in self._dataset_file.channel_names]
         self.no_of_channels = len(self.channel_names)
         self.sima_segmentation_label = sima_segmentation_label
         self.image_masks, self.extimage_dims, self.raw_images =\
@@ -224,7 +224,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         if time:
             return nframes / time
         else:
-            return None
+            return 0.
 
     @staticmethod
     def write_recording(segmentation_object, savepath):
