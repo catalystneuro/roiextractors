@@ -21,12 +21,11 @@ def check_nwb_install():
     assert HAVE_NWB, "To use the Nwb extractors, install pynwb: \n\n pip install pynwb\n\n"
 
 
-def set_dynamic_table_property(dynamic_table, row_ids, property_name, values, index=False,
+def set_dynamic_table_property(dynamic_table, ids, row_ids, property_name, values, index=False,
                                default_value=np.nan, description='no description'):
     check_nwb_install()
     if not isinstance(row_ids, list) or not all(isinstance(x, int) for x in row_ids):
         raise TypeError("'ids' must be a list of integers")
-    ids = list(dynamic_table.id[:])
     if any([i not in ids for i in row_ids]):
         raise ValueError("'ids' contains values outside the range of existing ids")
     if not isinstance(property_name, str):
@@ -162,15 +161,14 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             self._roi_idx = np.array(ps.id.data)
 
             # Imaging plane:
-            _imaging_plane_exist = [i for i, e in enumerate(
-                _nwbchildren_type) if e == 'ImagingPlane']
-            if not _imaging_plane_exist:
+            _optical_channel_exist = [i for i, e in enumerate(
+                _nwbchildren_type) if e == 'OpticalChannel']
+            if not _optical_channel_exist:
                 self.channel_names = None
             else:
                 self.channel_names = []
-                for i in _imaging_plane_exist:
-                    _opt_list = nwbfile.all_children()[i].optical_channel
-                    self.channel_names.extend([l.name for l in _opt_list])
+                for i in _optical_channel_exist:
+                    self.channel_names.append(nwbfile.all_children()[i].name)
             # Movie location:
             _image_series_exist = [i for i, e in enumerate(
                 _nwbchildren_type) if e == 'TwoPhotonSeries']
@@ -179,6 +177,12 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             else:
                 self.raw_movie_file_location = \
                     str(nwbfile.all_children()[_image_series_exist[0]].external_file[:])
+
+            # property name/data extraction:
+            self._property_name_exist = [i for i in ps.colnames if i not in ['image_mask', 'pixel_mask']]
+            self.property_vals = []
+            for i in self._property_name_exist:
+                self.property_vals.append(np.array(ps[i].data))
 
     @property
     def image_dims(self):
@@ -290,6 +294,16 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     def get_num_channels(self):
         return len(self.channel_names)
 
+    def get_property_data(self, property_name):
+        ret_val = []
+        for j, i in enumerate(property_name):
+            if i in self._property_name_exist:
+                ret_val.append(self.property_vals[j])
+            else:
+                raise Exception('enter valid property name'
+                                f'names found: {self._property_name_exist}')
+        return ret_val
+
     @staticmethod
     def write_recording(segmentation_extractor_obj, filename, propertydict=None, identifier=None,
                         starting_time=0., session_start_time=datetime.now(tzlocal()), excitation_lambda=np.nan,
@@ -314,7 +328,9 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         propertydict: list(optional)
             propertydict is a list of dictionaries containing:
             [{'name':'','discription':'', 'data':'', id':''}, {}..] These are
-            additional attributes to very ROI.
+            additional attributes to very ROI. Name and description are str type.
+            Data and Id are lists of identical, <= length of ROIs. Id values
+            should be a subset of the values of segobj.roi_idx.
         identifier: str(optional)
             uuid identifier for the session.
         starting_time: float(optional)
@@ -537,39 +553,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                     'ROIs', imaging_plane, 'BkPlaneSegmentation', image_series)
 
             # Adding the ROI-related stuff:
-            # Adding custom columns and their values to the PlaneSegmentation table:
-            # propertydict is a list of dictionaries containing:
-            # [{'name':'','discription':'', 'data':'', id':''}, {}..]
-            if propertydict:
-                _segmentation_exctractor_attrs = dir(segmentation_extractor_obj)
-                for i in range(len(propertydict)):
-                    excep_str = 'enter argument propertydict as list of dictionaries:\n'\
-                                '[{\'name\':str(required), '\
-                                '\'description\':str(optional), '\
-                                '\'data\':array_like(required), '\
-                                '\'id\':int(optional)}, {..}]'
-                    if propertydict[i].get('name', None):
-                        raise Exception(excep_str)
-                    _property_name = propertydict[i]['name']
-                    if propertydict[i].get('data', None):
-                        raise Exception(excep_str)
-                    _property_values = propertydict[i]['data']
-                    _property_desc = propertydict[i].get('description', 'no description')
-                    _property_row_ids = propertydict[i].get('id', list(
-                        np.arange(segmentation_extractor_obj.no_rois)))
-                    # stop execution if the property name is non existant OR there are multiple such properties:
-                    _property_name_exist = [i for i in _segmentation_exctractor_attrs if len(
-                        re.findall('^' + _property_name, i, re.I))]
-                    if len(_property_name_exist) == 1:
-                        print(f'adding {_property_name_exist} with supplied data')
-                    elif len(_property_name_exist) == 0:
-                        print(f'creating table for {_property_name_exist} with supplied data')
-                    else:
-                        raise Exception('multiple variables found for supplied name\n enter'
-                                        f' one of {_property_name_exist}')
-                    set_dynamic_table_property(ps, _property_row_ids, _property_name, _property_values,
-                                               index=False, description=_property_desc)
-
             # Adding Image and Pixel Masks(default colnames in PlaneSegmentation):
             for i, roiid in enumerate(segmentation_extractor_obj.roi_idx):
                 img_roi = segmentation_extractor_obj.image_masks[:, i]
@@ -589,6 +572,40 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                         ps_bk.add_roi(image_mask=img_roi_bk.reshape(
                             segmentation_extractor_obj.image_dims, order='F'),
                             pixel_mask=pix_roi_bk)
+
+            # Adding custom columns and their values to the PlaneSegmentation table:
+            if propertydict:
+                if not isinstance(propertydict, list):
+                    propertydict = [propertydict]
+                _segmentation_exctractor_attrs = dir(segmentation_extractor_obj)
+                for i in range(len(propertydict)):
+                    excep_str = 'enter argument propertydict as list of dictionaries:\n'\
+                                '[{\'name\':str(required), '\
+                                '\'description\':str(optional), '\
+                                '\'data\':array_like(required), '\
+                                '\'id\':int(optional)}, {..}]'
+                    if not any(propertydict[i].get('name', [None])):
+                        raise Exception(excep_str)
+                    _property_name = propertydict[i]['name']
+                    if not any(propertydict[i].get('data', [None])):
+                        raise Exception(excep_str)
+                    _property_values = propertydict[i]['data']
+                    _property_desc = propertydict[i].get('description', 'no description')
+                    _property_row_ids = propertydict[i].get('id', list(
+                        range(segmentation_extractor_obj.no_rois)))
+                    # stop execution if the property name is non existant OR there are multiple such properties:
+                    _property_name_exist = [i for i in _segmentation_exctractor_attrs if len(
+                        re.findall('^' + _property_name, i, re.I))]
+                    if len(_property_name_exist) == 1:
+                        print(f'adding {_property_name_exist} with supplied data')
+                    elif len(_property_name_exist) == 0:
+                        print(f'creating table for {_property_name} with supplied data')
+                    else:
+                        raise Exception('multiple variables found for supplied name\n enter'
+                                        f' one of {_property_name_exist}')
+                    set_dynamic_table_property(ps, segmentation_extractor_obj.roi_idx,
+                                               _property_row_ids, _property_name, _property_values,
+                                               index=False, description=_property_desc)
 
             # Add Traces
             no_neurons_rois = segmentation_extractor_obj.image_masks.shape[-1]

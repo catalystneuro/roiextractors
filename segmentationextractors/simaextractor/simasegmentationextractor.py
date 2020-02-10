@@ -183,13 +183,13 @@ class SimaSegmentationExtractor(SegmentationExtractor):
 
     @property
     def roi_idx(self):
-        id_vals = np.zeros(len(list(self._dataset_file.ROIs.values())[0]))
+        id_vals = []
         for ind, val in enumerate(list(self._dataset_file.ROIs.values())[0]):
             if val.id:
-                id_vals[ind] = val.id
+                id_vals.append(int(val.id))
             else:
-                id_vals[ind] = ind * -1
-        return list(id_vals)
+                id_vals.append(int(ind * -1))
+        return id_vals
 
     @property
     def accepted_list(self):
