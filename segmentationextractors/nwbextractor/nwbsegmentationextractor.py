@@ -313,7 +313,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                         image_series_name='MyTwoPhotonSeries', image_series_description='MyTwoPhotonSeriesDescription',
                         processing_module_name='Ophys', processing_module_description='ContainsProcessedData',
                         neuron_roi_response_series_name='NeuronTimeSeriesData',
-                        background_roi_response_series_name='BackgroundTimeSeriesData', **nwbfile_kwargs):
+                        background_roi_response_series_name='BackgroundTimeSeriesData', nwbfile_kwargs={}):
         '''
         Method to write a segmentation object to NWB; converting any file format
         to NWB. Takes in various optional parameters to either append to or
@@ -367,7 +367,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             name of the ROI time series.
         background_roi_response_series_name: str(optional)
             name of the background time series.
-        nwbfile_kwargs(optional)
+        nwbfile_kwargs: dict(optional)
             additional arguments that an NWB file takes (check NWB documentation)
         '''
         imaging_rate = segmentation_extractor_obj.get_sampling_frequency()

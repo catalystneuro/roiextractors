@@ -35,6 +35,10 @@ class TestNwb(unittest.TestCase):
                            'description': 'testdesc2',
                            'data': 3 * np.arange(3),
                            'id': self.simaobj.get_roi_ids()[3:6]}],
+            nwbfile_kwargs={'session_description': 'nwbfiledesc',
+                            'experimenter': 'experimenter name',
+                            'lab': 'test lab',
+                            'session_id': 'test sess id'},
             emission_lambda=400.0, excitation_lambda=500.0)
 
     def test_nwb_segmentation(self):
@@ -56,8 +60,10 @@ class TestNwb(unittest.TestCase):
         assert_array_equal(np.moveaxis(np.array([np.squeeze(self.sima_dataset.ROIs['auto_ROIs'][i])
                                                  for i in range(len(self.sima_dataset.ROIs['auto_ROIs']))])[1:4, :, :], 0, -1),
                            self.nwbobj.get_image_masks(ROI_ids=[-1, -2, -3]))
-        assert_array_equal(np.arange(3), self.nwbobj.get_property_data(['testvals1', 'testvals2'])[0][0:3])
-        assert_array_equal(3 * np.arange(3), self.nwbobj.get_property_data(['testvals1', 'testvals2'])[1][3:6])
+        assert_array_equal(np.arange(3), self.nwbobj.get_property_data(
+            ['testvals1', 'testvals2'])[0][0:3])
+        assert_array_equal(
+            3 * np.arange(3), self.nwbobj.get_property_data(['testvals1', 'testvals2'])[1][3:6])
 
 
 if __name__ == '__main__':
