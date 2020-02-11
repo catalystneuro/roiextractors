@@ -14,8 +14,8 @@ class TestNumpy(unittest.TestCase):
     working_dir = os.getcwd()
     fileloc = working_dir + r'\tests\testdatasets'
 
-    def _setup(self, filelocation):
-        self.sima_dataset = sima.ImagingDataset.load(filelocation)
+    def test_numpy(self):
+        self.sima_dataset = sima.ImagingDataset.load(self.fileloc + r'\dataset_hdf5.sima')
         # Making variables:
         _masks = np.moveaxis(np.array([np.squeeze(
             self.sima_dataset.ROIs['auto_ROIs'][i])
@@ -27,7 +27,7 @@ class TestNumpy(unittest.TestCase):
         _channel_names = self.sima_dataset.channel_names
         try:
             self.numpyobj = segmentationextractors.NumpySegmentationExtractor(
-                filepath=filelocation, masks=_masks, signal=_signal,
+                filepath=self.fileloc + r'\dataset_hdf5.sima', masks=_masks, signal=_signal,
                 roi_idx=_roi_idx, accepted_lst=_accepted_list,
                 channel_names=_channel_names)
         except OSError:
@@ -43,13 +43,11 @@ class TestNumpy(unittest.TestCase):
         assert_array_equal(np.moveaxis(np.array([np.squeeze(self.sima_dataset.ROIs['auto_ROIs'][i])
                                                  for i in range(len(self.sima_dataset.ROIs['auto_ROIs']))])[1:4, :, :], 0, -1),
                            self.numpyobj.get_image_masks(ROI_ids=[1, 2, 3]))
+        self._teardown()
 
     def _teardown(self):
         del self.numpyobj
         del self.sima_dataset
-
-    def test_numpy(self):
-        self._setup(self.fileloc + r'\dataset_hdf5.sima')
 
 
 if __name__ == '__main__':
