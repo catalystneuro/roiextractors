@@ -55,7 +55,7 @@ class TestNwb(unittest.TestCase):
         assert_array_equal(self.sima_dataset.frame_shape[1:3], self.nwbobj.get_movie_framesize())
         assert_array_equal(len(self.sima_dataset.ROIs['auto_ROIs']), self.nwbobj.get_num_rois())
         assert_array_equal(self.sima_dataset.channel_names, self.nwbobj.get_channel_names())
-        assert_array_equal(self.sima_dataset.signals(channel='Blue')['example_ROI']['raw'][0][1:4, :],
+        assert_array_equal(self.sima_dataset.signals(channel='Green')['example_ROI']['raw'][0][1:4, :],
                            self.nwbobj.get_traces(ROI_ids=[-1, -2, -3]))
         assert_array_equal(np.moveaxis(np.array([np.squeeze(self.sima_dataset.ROIs['auto_ROIs'][i])
                                                  for i in range(len(self.sima_dataset.ROIs['auto_ROIs']))])[1:4, :, :], 0, -1),

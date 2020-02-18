@@ -21,7 +21,7 @@ class TestNumpy(unittest.TestCase):
             self.sima_dataset.ROIs['auto_ROIs'][i])
             for i in range(len(self.sima_dataset.ROIs['auto_ROIs']))]),
             0, -1)
-        _signal = self.sima_dataset.signals(channel='Blue')['example_ROI']['raw'][0]
+        _signal = self.sima_dataset.signals(channel='Green')['example_ROI']['raw'][0]
         _roi_idx = np.arange(_signal.shape[0])
         _accepted_list = _roi_idx
         _channel_names = self.sima_dataset.channel_names
@@ -38,7 +38,7 @@ class TestNumpy(unittest.TestCase):
         assert_array_equal(self.sima_dataset.frame_shape[1:3], self.numpyobj.get_movie_framesize())
         assert_array_equal(len(self.sima_dataset.ROIs['auto_ROIs']), self.numpyobj.get_num_rois())
         assert_array_equal(self.sima_dataset.channel_names, self.numpyobj.get_channel_names())
-        assert_array_equal(self.sima_dataset.signals(channel='Blue')['example_ROI']['raw'][0][1:4, :],
+        assert_array_equal(self.sima_dataset.signals(channel='Green')['example_ROI']['raw'][0][1:4, :],
                            self.numpyobj.get_traces(ROI_ids=[1, 2, 3]))
         assert_array_equal(np.moveaxis(np.array([np.squeeze(self.sima_dataset.ROIs['auto_ROIs'][i])
                                                  for i in range(len(self.sima_dataset.ROIs['auto_ROIs']))])[1:4, :, :], 0, -1),
