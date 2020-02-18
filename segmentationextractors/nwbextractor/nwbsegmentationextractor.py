@@ -300,8 +300,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             if i in self._property_name_exist:
                 ret_val.append(self.property_vals[j])
             else:
-                raise Exception('enter valid property name'
-                                f'names found: {self._property_name_exist}')
+                raise Exception('enter valid property name. Names found: {}'.format(self._property_name_exist))
         return ret_val
 
     @staticmethod
@@ -597,12 +596,12 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                     _property_name_exist = [i for i in _segmentation_exctractor_attrs if len(
                         re.findall('^' + _property_name, i, re.I))]
                     if len(_property_name_exist) == 1:
-                        print(f'adding {_property_name_exist} with supplied data')
+                        print('adding {} with supplied data'.format(_property_name_exist))
                     elif len(_property_name_exist) == 0:
-                        print(f'creating table for {_property_name} with supplied data')
+                        print('creating table for {} with supplied data'.format(_property_name))
                     else:
                         raise Exception('multiple variables found for supplied name\n enter'
-                                        f' one of {_property_name_exist}')
+                                        ' one of {}'.format(_property_name_exist))
                     set_dynamic_table_property(ps, segmentation_extractor_obj.roi_idx,
                                                _property_row_ids, _property_name, _property_values,
                                                index=False, description=_property_desc)
@@ -651,7 +650,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             if hasattr(segmentation_extractor_obj, 'cn'):
                 for h in range(segmentation_extractor_obj.cn.shape[2]):
                     ch_name = optical_channel_list[h].name
-                    images = Images(f'summary_images_{ch_name}')
+                    images = Images('summary_images_{}'.format(ch_name))
                     images.add_image(GrayscaleImage(name='local_correlations',
                                                     data=segmentation_extractor_obj.cn[:, :, h]))
 

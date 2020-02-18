@@ -30,6 +30,7 @@ setup(
         'h5py>=2.10.0',
         'python-dateutil>=2.7.3',
         'sima>=1.3.2'
+        'dill',
         # 'sima @ git+https://github.com/losonczylab/sima'
     ],
     classifiers=(

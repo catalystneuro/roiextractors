@@ -135,8 +135,8 @@ class SimaSegmentationExtractor(SegmentationExtractor):
                 if labels:
                     _active_channel = channel_now
                     break
-            print(f'extracting signal from channel {_active_channel}'
-                  f' from {self.no_of_channels} no of channels')
+            print('extracting signal from channel {} from {} no of channels'.
+                  format(_active_channel, self.no_of_channels))
         # label for the extraction method in SIMA:
         for labels in self._dataset_file.signals(channel=_active_channel):
             _count = 0
@@ -145,11 +145,9 @@ class SimaSegmentationExtractor(SegmentationExtractor):
                 _label = labels
                 break
         if _count > 1:
-            print('multiple labels found for extract method'
-                  f'using {_label}')
+            print('multiple labels found for extract method using {}'.format(_label))
         elif _count == 0:
-            print('no label found for extract method'
-                  f' using {labels}')
+            print('no label found for extract method using {}'.format(labels))
             _label = labels
         extracted_signals = np.array(self._dataset_file.signals(
             channel=_active_channel)[_label]['raw'][0])
