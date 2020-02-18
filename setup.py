@@ -1,13 +1,11 @@
 from setuptools import setup, find_packages
-import os
 
 d = {}
 exec(open("segmentationextractors/version.py").read(), None, d)
 version = d['version']
 pkg_name = "segmentationextractors"
-here = os.path.dirname(__file__)
-with open(here + r'\README.md') as rd:
-    long_description = rd.open()
+with open('README.md') as rd:
+    long_description = rd.read()
 
 setup(
     name=pkg_name,
@@ -31,11 +29,13 @@ setup(
         'pynwb>=1.2.0',
         'h5py>=2.10.0',
         'python-dateutil>=2.7.3',
-        'sima @ git+https://github.com/losonczylab/sima@1.3.2#egg=sima'
+        'sima>=1.3.2'
+        # 'sima @ git+https://github.com/losonczylab/sima'
     ],
     classifiers=(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
+        "Intended Audience :: Science/Research"
     )
 )
