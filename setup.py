@@ -20,12 +20,6 @@ setup(
     package_data={},
     install_requires=[
         'numpy>=1.18.1',
-        'scipy>=0.13.0',
-        'scikit-image>=0.9.3',
-        'shapely>=1.2.14',
-        'scikit-learn>=0.11',
-        'pillow>=2.6.1',
-        'future>=0.14',
         'pynwb>=1.2.0',
         'h5py>=2.10.0',
         'python-dateutil>=2.7.3',
