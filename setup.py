@@ -19,13 +19,9 @@ setup(
     packages=find_packages(),
     package_data={},
     install_requires=[
-        'numpy>=1.18.1',
-        'pynwb>=1.2.0',
-        'h5py>=2.10.0',
-        'python-dateutil>=2.7.3',
-        'sima>=1.3.2'
-        'dill',
-        # 'sima @ git+https://github.com/losonczylab/sima'
+        'pynwb',
+        'sima',
+        'dill'
     ],
     classifiers=(
         "Programming Language :: Python :: 3",
