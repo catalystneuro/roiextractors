@@ -5,6 +5,7 @@ from dateutil.tz import tzlocal
 import numpy as np
 import re
 from ..segmentationextractor import SegmentationExtractor
+from lazy_ops import DatasetView
 try:
     from pynwb import NWBHDF5IO, TimeSeries, NWBFile
     from pynwb.base import Images
@@ -102,87 +103,89 @@ class NwbSegmentationExtractor(SegmentationExtractor):
 
         self.filepath = filepath
 
-        with NWBHDF5IO(filepath, mode='r+') as io:
-            nwbfile = io.read()
-            _nwbchildren_type = [type(i).__name__ for i in nwbfile.all_children()]
-            _nwbchildren_name = [i.name for i in nwbfile.all_children()]
-            _procssing_module = [_nwbchildren_name[f]
-                                 for f, u in enumerate(_nwbchildren_type) if u == 'ProcessingModule']
-            mod = nwbfile.processing[_procssing_module[0]]
-            if len(_procssing_module) > 1:
-                print('multiple processing modules found, picking the first one')
-            elif not mod:
-                raise Exception('no processing module found')
+        # with NWBHDF5IO(filepath, mode='r+') as io:
+        io = NWBHDF5IO(filepath, mode='r+')
+        nwbfile = io.read()
+        _nwbchildren_type = [type(i).__name__ for i in nwbfile.all_children()]
+        _nwbchildren_name = [i.name for i in nwbfile.all_children()]
+        _procssing_module = [_nwbchildren_name[f]
+                             for f, u in enumerate(_nwbchildren_type) if u == 'ProcessingModule']
+        mod = nwbfile.processing[_procssing_module[0]]
+        if len(_procssing_module) > 1:
+            print('multiple processing modules found, picking the first one')
+        elif not mod:
+            raise Exception('no processing module found')
 
-            # Extract image_mask/background:
-            _plane_segmentation_exist = [i for i, e in enumerate(
-                _nwbchildren_type) if e == 'PlaneSegmentation']
-            if not _plane_segmentation_exist:
-                print('could not find a plane segmentation to contain image mask')
-            else:
-                ps = nwbfile.all_children()[_plane_segmentation_exist[0]]
-            self.image_masks = np.moveaxis(np.array(ps['image_mask'].data), [0, 1, 2], [2, 0, 1])
-            self.raw_images = self.image_masks
+        # Extract image_mask/background:
+        _plane_segmentation_exist = [i for i, e in enumerate(
+            _nwbchildren_type) if e == 'PlaneSegmentation']
+        if not _plane_segmentation_exist:
+            print('could not find a plane segmentation to contain image mask')
+        else:
+            ps = nwbfile.all_children()[_plane_segmentation_exist[0]]
+        # self.image_masks = np.moveaxis(np.array(ps['image_mask'].data), [0, 1, 2], [2, 0, 1])
+        self.image_masks = DatasetView(ps['image_mask'].data).lazy_transpose([1, 2, 0])
+        self.raw_images = self.image_masks
 
-            # Extract pixel_mask/background:
-            px_list = [ps['pixel_mask'][e] for e in range(ps['pixel_mask'].data.shape[0])]
-            temp = np.empty((1, 4))
-            for v, b in enumerate(px_list):
-                temp = np.append(temp, np.append(b, v * np.ones([b.shape[0], 1]), axis=1), axis=0)
-            self.pixel_masks = temp[1::, :]
-            # Extract Image dimensions:
-            self.extimage_dims = self.image_masks.shape[0:2]
+        # Extract pixel_mask/background:
+        px_list = [ps['pixel_mask'][e] for e in range(ps['pixel_mask'].data.shape[0])]
+        temp = np.empty((1, 4))
+        for v, b in enumerate(px_list):
+            temp = np.append(temp, np.append(b, v * np.ones([b.shape[0], 1]), axis=1), axis=0)
+        self.pixel_masks = temp[1::, :]
+        # Extract Image dimensions:
+        self.extimage_dims = self.image_masks.shape[0:2]
 
-            # Extract roi_response:
-            _roi_exist = [_nwbchildren_name[val]
-                          for val, i in enumerate(_nwbchildren_type) if i == 'RoiResponseSeries']
-            if not _roi_exist:
-                raise Exception('no ROI response series found')
-            else:
-                rrs_neurons = mod['Fluorescence'].get_roi_response_series(_roi_exist[0])
-                self.roi_response = np.array(rrs_neurons.data)
-                self._no_background_comps = 1
-                self.roi_response_bk = np.nan * np.ones(
-                    [self._no_background_comps, self.roi_response.shape[1]])
-                if len(_roi_exist) > 1:
-                    rrs_bk = mod['Fluorescence'].get_roi_response_series(_roi_exist[1])
-                    self.roi_response_bk = np.array(rrs_bk.data)
-                    self._no_background_comps = self.roi_response_bk.shape[0]
+        # Extract roi_response:
+        _roi_exist = [_nwbchildren_name[val]
+                      for val, i in enumerate(_nwbchildren_type) if i == 'RoiResponseSeries']
+        if not _roi_exist:
+            raise Exception('no ROI response series found')
+        else:
+            rrs_neurons = mod['Fluorescence'].get_roi_response_series(_roi_exist[0])
+            self.roi_response = np.array(rrs_neurons.data)
+            self._no_background_comps = 1
+            self.roi_response_bk = np.nan * np.ones(
+                [self._no_background_comps, self.roi_response.shape[1]])
+            if len(_roi_exist) > 1:
+                rrs_bk = mod['Fluorescence'].get_roi_response_series(_roi_exist[1])
+                self.roi_response_bk = np.array(rrs_bk.data)
+                self._no_background_comps = self.roi_response_bk.shape[0]
 
-            # Extract planesegmentation dictionary values:
-            _new_columns = [i for i in ps.colnames if i not in ['image_mask', 'pixel_mask']]
-            for i in _new_columns:
-                setattr(self, i, np.array(ps[i].data))
+        # Extract planesegmentation dictionary values:
+        _new_columns = [i for i in ps.colnames if i not in ['image_mask', 'pixel_mask']]
+        for i in _new_columns:
+            setattr(self, i, np.array(ps[i].data))
 
-            # Extract samp_freq:
-            self._samp_freq = rrs_neurons.rate
-            self.total_time = rrs_neurons.rate * rrs_neurons.num_samples
-            # Extract no_rois/ids:
-            self._roi_idx = np.array(ps.id.data)
+        # Extract samp_freq:
+        self._samp_freq = rrs_neurons.rate
+        self.total_time = rrs_neurons.rate * rrs_neurons.num_samples
+        # Extract no_rois/ids:
+        self._roi_idx = np.array(ps.id.data)
 
-            # Imaging plane:
-            _optical_channel_exist = [i for i, e in enumerate(
-                _nwbchildren_type) if e == 'OpticalChannel']
-            if not _optical_channel_exist:
-                self.channel_names = None
-            else:
-                self.channel_names = []
-                for i in _optical_channel_exist:
-                    self.channel_names.append(nwbfile.all_children()[i].name)
-            # Movie location:
-            _image_series_exist = [i for i, e in enumerate(
-                _nwbchildren_type) if e == 'TwoPhotonSeries']
-            if not _image_series_exist:
-                self.raw_movie_file_location = None
-            else:
-                self.raw_movie_file_location = \
-                    str(nwbfile.all_children()[_image_series_exist[0]].external_file[:])
+        # Imaging plane:
+        _optical_channel_exist = [i for i, e in enumerate(
+            _nwbchildren_type) if e == 'OpticalChannel']
+        if not _optical_channel_exist:
+            self.channel_names = None
+        else:
+            self.channel_names = []
+            for i in _optical_channel_exist:
+                self.channel_names.append(nwbfile.all_children()[i].name)
+        # Movie location:
+        _image_series_exist = [i for i, e in enumerate(
+            _nwbchildren_type) if e == 'TwoPhotonSeries']
+        if not _image_series_exist:
+            self.raw_movie_file_location = None
+        else:
+            self.raw_movie_file_location = \
+                str(nwbfile.all_children()[_image_series_exist[0]].external_file[:])
 
-            # property name/data extraction:
-            self._property_name_exist = [i for i in ps.colnames if i not in ['image_mask', 'pixel_mask']]
-            self.property_vals = []
-            for i in self._property_name_exist:
-                self.property_vals.append(np.array(ps[i].data))
+        # property name/data extraction:
+        self._property_name_exist = [i for i in ps.colnames if i not in ['image_mask', 'pixel_mask']]
+        self.property_vals = []
+        for i in self._property_name_exist:
+            self.property_vals.append(np.array(ps[i].data))
 
     @property
     def image_dims(self):
@@ -280,7 +283,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
             ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-        return self.raw_images.reshape(self.image_dims + [self.no_rois], order='F')[:, :, ROI_idx_]
+        return np.array([self.raw_images[:, :, int(i)].T for i in ROI_idx_]).T
 
     def get_movie_framesize(self):
         return self.image_dims
@@ -554,10 +557,9 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             # Adding the ROI-related stuff:
             # Adding Image and Pixel Masks(default colnames in PlaneSegmentation):
             for i, roiid in enumerate(segmentation_extractor_obj.roi_idx):
-                img_roi = segmentation_extractor_obj.image_masks[:, i]
+                img_roi = segmentation_extractor_obj.raw_images[:, :, i]
                 pix_roi = segmentation_extractor_obj.pixel_masks[segmentation_extractor_obj.pixel_masks[:, 3] == roiid, 0:3]
-                ps.add_roi(image_mask=img_roi.reshape(segmentation_extractor_obj.image_dims, order='F'),
-                           pixel_mask=pix_roi, id=int(roiid))
+                ps.add_roi(image_mask=img_roi, pixel_mask=pix_roi, id=int(roiid))
 
             # Background components addition:
             if hasattr(segmentation_extractor_obj, 'image_masks_bk'):
@@ -568,9 +570,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 else:
                     pix_roi_bk = np.nan * np.ones([1, 3])
                     for i, img_roi_bk in enumerate(segmentation_extractor_obj.image_masks_bk.T):
-                        ps_bk.add_roi(image_mask=img_roi_bk.reshape(
-                            segmentation_extractor_obj.image_dims, order='F'),
-                            pixel_mask=pix_roi_bk)
+                        ps_bk.add_roi(image_mask=img_roi_bk.T, pixel_mask=pix_roi_bk)
 
             # Adding custom columns and their values to the PlaneSegmentation table:
             if propertydict:

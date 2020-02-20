@@ -1,6 +1,7 @@
 import numpy as np
 import h5py
 from ..segmentationextractor import SegmentationExtractor
+from lazy_ops import DatasetView
 
 
 class CnmfeSegmentationExtractor(SegmentationExtractor):
@@ -19,8 +20,8 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         '''
         self.filepath = filepath
         self._dataset_file, self._group0 = self._file_extractor_read()
-        self.image_masks, self.extimage_dims, self.raw_images =\
-            self._image_mask_extractor_read()
+        self.extimage_dims, self.raw_images = self._image_mask_extractor_read()
+        self.image_masks = self.raw_images
         self.roi_response = self._trace_extractor_read()
         self._roi_ids = None
         self.pixel_masks = self._pixel_mask_extractor_read()
@@ -43,11 +44,11 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         self.idx_components = self.accepted_list
         self.idx_components_bad = self.rejected_list
         self.image_masks_bk = np.nan * \
-            np.ones([self.image_masks.shape[0], self._no_background_comps])
+            np.ones(list(self.raw_images.shape[0:2]) + [self._no_background_comps])
         self.roi_response_bk = np.nan * \
             np.ones([self._no_background_comps, self.roi_response.shape[1]])
         # file close:
-        self._file_close()
+        # self._file_close()
 
     def _file_close(self):
         self._dataset_file.close()
@@ -59,20 +60,15 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         return f, _group0
 
     def _image_mask_extractor_read(self):
-        _raw_images_trans = np.array(self._dataset_file[self._group0[0]]['extractedImages']).T
-        return _raw_images_trans.reshape(
-            [np.prod(_raw_images_trans.shape[0:2]),
-             _raw_images_trans.shape[2]],
-            order='F'),\
-            _raw_images_trans.shape[0:2],\
-            _raw_images_trans
+        _raw_images_trans = DatasetView(self._dataset_file[self._group0[0]]['extractedImages']).T
+        return _raw_images_trans.shape[0:2], _raw_images_trans
 
     def _pixel_mask_extractor_read(self):
         return super()._pixel_mask_extractor(self.raw_images, self.roi_idx)
 
     def _trace_extractor_read(self):
-        extracted_signals = self._dataset_file[self._group0[0]]['extractedSignals']
-        return np.array(extracted_signals).T
+        extracted_signals = DatasetView(self._dataset_file[self._group0[0]]['extractedSignals'])
+        return extracted_signals.T
 
     def _tot_exptime_extractor_read(self):
         return self._dataset_file[self._group0[0]]['time']['totalTime'][0][0]
@@ -182,7 +178,8 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
             ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-        return self.roi_response[ROI_idx_, start_frame:end_frame]
+        return np.array([self.roi_response[i, start_frame:end_frame].T for i in ROI_idx_]).T
+        # return self.roi_response[ROI_idx_, start_frame:end_frame]
 
     def get_image_masks(self, ROI_ids=None):
         if ROI_ids is None:
@@ -191,7 +188,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
             ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-        return self.image_masks.reshape(self.image_dims + [self.no_rois], order='F')[:, :, ROI_idx_]
+        return self.raw_images[:, :, ROI_idx_]
 
     def get_pixel_masks(self, ROI_ids=None):
         if ROI_ids is None:

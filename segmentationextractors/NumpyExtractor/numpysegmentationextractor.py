@@ -54,15 +54,15 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         self._dataset_file = None
         if masks is None:
             self.image_masks = np.empty([0, 0])
-            self.raw_image_masks = np.empty([0, 0, 0])
+            self.raw_images = np.empty([0, 0, 0])
         elif len(masks.shape) > 2:
             self.image_masks = masks.reshape([np.prod(masks.shape[0:2]), masks.shape[2]], order='F')
-            self.raw_image_masks = masks
+            self.raw_images = masks
         else:
             self.image_masks = masks
             if not movie_dims:
                 raise Exception('enter movie dimensions as height x width list')
-            self.raw_image_masks = masks.reshape(movie_dims.append(masks.shape[2]), order='F')
+            self.raw_images = masks.reshape(movie_dims.append(masks.shape[2]), order='F')
         if signal is None:
             self.roi_response = np.empty([0, 0])
         else:
@@ -96,11 +96,11 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     @property
     def image_dims(self):
-        return list(self.raw_image_masks.shape[0:2])
+        return list(self.raw_images.shape[0:2])
 
     @property
     def no_rois(self):
-        return self.raw_image_masks.shape[2]
+        return self.raw_images.shape[2]
 
     @property
     def roi_idx(self):
@@ -127,7 +127,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     def roi_locs(self):
         if self._roi_locs is None:
             no_ROIs = self.no_rois
-            raw_images = self.raw_image_masks
+            raw_images = self.raw_images
             roi_location = np.ndarray([2, no_ROIs], dtype='int')
             for i in range(no_ROIs):
                 temp = np.where(raw_images[:, :, i] == np.amax(raw_images[:, :, i]))
@@ -198,7 +198,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
             ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-        return self.raw_image_masks[:, :, ROI_idx_]
+        return self.raw_images[:, :, ROI_idx_]
 
     def get_pixel_masks(self, ROI_ids=None):
         if ROI_ids is None:

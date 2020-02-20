@@ -52,7 +52,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         self.idx_components = self.accepted_list
         self.idx_components_bad = self.rejected_list
         self.image_masks_bk = np.nan * \
-            np.ones([self.image_masks.shape[0], self._no_background_comps])
+            np.ones(list(self.raw_images.shape[0:2]) + [self._no_background_comps])
         self.roi_response_bk = np.nan * \
             np.ones([self._no_background_comps, self.roi_response.shape[1]])
 
@@ -176,8 +176,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
 
     @property
     def no_rois(self):
-        raw_images = self.image_masks
-        return raw_images.shape[1]
+        return self.raw_images.shape[2]
 
     @property
     def roi_idx(self):
@@ -270,7 +269,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
             ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
             ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-        return self.image_masks.reshape(self.image_dims + [self.no_rois], order='F')[:, :, ROI_idx_]
+        return self.raw_images[:, :, ROI_idx_]
 
     def get_pixel_masks(self, ROI_ids=None):
         if ROI_ids is None:
