@@ -178,8 +178,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
             ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-        return np.array([self.roi_response[i, start_frame:end_frame].T for i in ROI_idx_]).T
-        # return self.roi_response[ROI_idx_, start_frame:end_frame]
+        return np.array([self.roi_response[int(i), start_frame:end_frame] for i in ROI_idx_])
 
     def get_image_masks(self, ROI_ids=None):
         if ROI_ids is None:
@@ -188,7 +187,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
             ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-        return self.raw_images[:, :, ROI_idx_]
+        return np.array([self.raw_images[:, :, int(i)].T for i in ROI_idx_]).T
 
     def get_pixel_masks(self, ROI_ids=None):
         if ROI_ids is None:

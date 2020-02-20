@@ -104,8 +104,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         self.filepath = filepath
 
         # with NWBHDF5IO(filepath, mode='r+') as io:
-        io = NWBHDF5IO(filepath, mode='r+')
-        nwbfile = io.read()
+        self.io = NWBHDF5IO(filepath, mode='r+')
+        nwbfile = self.io.read()
         _nwbchildren_type = [type(i).__name__ for i in nwbfile.all_children()]
         _nwbchildren_name = [i.name for i in nwbfile.all_children()]
         _procssing_module = [_nwbchildren_name[f]
@@ -143,7 +143,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             raise Exception('no ROI response series found')
         else:
             rrs_neurons = mod['Fluorescence'].get_roi_response_series(_roi_exist[0])
-            self.roi_response = np.array(rrs_neurons.data)
+            self.roi_response = DatasetView(rrs_neurons.data)
             self._no_background_comps = 1
             self.roi_response_bk = np.nan * np.ones(
                 [self._no_background_comps, self.roi_response.shape[1]])
@@ -240,7 +240,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
             ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-        return self.roi_response[ROI_idx_, start_frame:end_frame]
+        return np.array([self.roi_response[int(i), start_frame:end_frame] for i in ROI_idx_])
 
     def get_num_frames(self):
         return self.roi_response.shape[1]
