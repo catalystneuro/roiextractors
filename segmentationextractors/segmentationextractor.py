@@ -294,8 +294,9 @@ class SegmentationExtractor(ABC):
         '''
         temp = np.empty((1, 4))
         for i, roiid in enumerate(_roi_idx):
-            _locs = np.where(_raw_images_trans[:, :, i] > 0)
-            _pix_values = _raw_images_trans[_raw_images_trans[:, :, i] > 0, i]
+            _np_raw_images_trans = np.array(_raw_images_trans[:, :, i])
+            _locs = np.where(_np_raw_images_trans > 0)
+            _pix_values = _np_raw_images_trans[_np_raw_images_trans > 0]
             temp = np.append(temp, np.concatenate(
                 (_locs[0].reshape([1, np.size(_locs[0])]),
                  _locs[1].reshape([1, np.size(_locs[1])]),
