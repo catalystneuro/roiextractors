@@ -20,14 +20,16 @@ class TestNwb(unittest.TestCase):
     def test_nwb_writer(self):
         self._setup()
         if os.path.exists(self.saveloc):
-            self.nwbobj = segmentationextractors.NwbSegmentationExtractor(self.saveloc)
-            self.nwbobj.io.close()
+            try:
+                self.nwbobj = segmentationextractors.NwbSegmentationExtractor(self.saveloc)
+                self.nwbobj.io.close()
+                os.remove(self.saveloc)
+            except:
+                os.remove(self.saveloc)
         try:
             self.simaobj = segmentationextractors.SimaSegmentationExtractor(self.sima_obj_loc)
         except OSError:
             raise Exception('Could not create sima segmentation object')
-        if os.path.exists(self.saveloc):
-            os.remove(self.saveloc)
         segmentationextractors.NwbSegmentationExtractor.write_recording(
             self.simaobj, self.saveloc,
             propertydict=[{'name': 'testvals1',

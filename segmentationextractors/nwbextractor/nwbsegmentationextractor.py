@@ -6,6 +6,7 @@ import numpy as np
 import re
 from ..segmentationextractor import SegmentationExtractor
 from lazy_ops import DatasetView
+from hdmf.data_utils import DataChunkIterator
 try:
     from pynwb import NWBHDF5IO, TimeSeries, NWBFile
     from pynwb.base import Images
@@ -66,6 +67,23 @@ def get_dynamic_table_property(dynamic_table, *, row_ids=None, property_name):
     if row_ids is None:
         row_ids = all_row_ids
     return [dynamic_table[property_name][all_row_ids.index(x)] for x in row_ids]
+
+
+def iter_datasetvieww(datasetview_obj):
+    '''
+    Generator to return a row of the array each time it is called.
+    This will be wrapped with a DataChunkIterator class.
+
+    Parameters
+    ----------
+    datasetview_obj: DatasetView
+        2-D array to iteratively write to nwb.
+    '''
+
+    for i in range(datasetview_obj.shape[0]):
+        curr_data = datasetview_obj[i]
+        yield curr_data
+    return
 
 
 class NwbSegmentationExtractor(SegmentationExtractor):
@@ -182,7 +200,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 str(nwbfile.all_children()[_image_series_exist[0]].external_file[:])
 
         # property name/data extraction:
-        self._property_name_exist = [i for i in ps.colnames if i not in ['image_mask', 'pixel_mask']]
+        self._property_name_exist = [
+            i for i in ps.colnames if i not in ['image_mask', 'pixel_mask']]
         self.property_vals = []
         for i in self._property_name_exist:
             self.property_vals.append(np.array(ps[i].data))
@@ -303,7 +322,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             if i in self._property_name_exist:
                 ret_val.append(self.property_vals[j])
             else:
-                raise Exception('enter valid property name. Names found: {}'.format(self._property_name_exist))
+                raise Exception('enter valid property name. Names found: {}'.format(
+                    self._property_name_exist))
         return ret_val
 
     @staticmethod
@@ -497,7 +517,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                     fl = nwbfile.all_children()[_fluorescence_module_exist[0]]
 
                 # Adding PlaneSegmentation:
-                _plane_segmentation_exist = [_nwbchildren_name[i] for i, e in enumerate(
+                _plane_segmentation_exist = [i for i, e in enumerate(
                     _nwbchildren_type) if e == 'PlaneSegmentation']
                 if not _plane_segmentation_exist:
                     ps = img_seg.create_plane_segmentation(
@@ -553,99 +573,111 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                     'ROIs', imaging_plane, 'NeuronsPlaneSegmentation', image_series)
                 ps_bk = img_seg.create_plane_segmentation(
                     'ROIs', imaging_plane, 'BkPlaneSegmentation', image_series)
+                _plane_segmentation_exist = False
 
             # Adding the ROI-related stuff:
             # Adding Image and Pixel Masks(default colnames in PlaneSegmentation):
-            for i, roiid in enumerate(segmentation_extractor_obj.roi_idx):
-                img_roi = segmentation_extractor_obj.raw_images[:, :, i]
-                pix_roi = segmentation_extractor_obj.pixel_masks[segmentation_extractor_obj.pixel_masks[:, 3] == roiid, 0:3]
-                ps.add_roi(image_mask=img_roi, pixel_mask=pix_roi, id=int(roiid))
+            if not _plane_segmentation_exist:
+                for i, roiid in enumerate(segmentation_extractor_obj.roi_idx):
+                    # img_roi = DataChunkIterator(data=iter_datasetvieww(segmentation_extractor_obj.raw_images[:, :, i]))
+                    img_roi = segmentation_extractor_obj.raw_images[:, :, i]
+                    # pix_roi = DataChunkIterator(data=iter_datasetvieww(segmentation_extractor_obj.pixel_masks[segmentation_extractor_obj.pixel_masks[:, 3] == roiid, 0:3]))
+                    pix_roi = segmentation_extractor_obj.pixel_masks[segmentation_extractor_obj.pixel_masks[:, 3] == roiid, 0:3]
+                    ps.add_roi(image_mask=img_roi, pixel_mask=pix_roi, id=int(roiid))
 
-            # Background components addition:
-            if hasattr(segmentation_extractor_obj, 'image_masks_bk'):
-                if hasattr(segmentation_extractor_obj, 'pixel_masks_bk'):
-                    for i, (img_roi_bk, pix_roi_bk) in enumerate(zip(segmentation_extractor_obj.image_masks_bk.T, segmentation_extractor_obj.pixel_masks_bk)):
-                        ps_bk.add_roi(image_mask=img_roi_bk.reshape(segmentation_extractor_obj.image_dims, order='F'),
-                                      pixel_mask=pix_roi_bk)
-                else:
-                    pix_roi_bk = np.nan * np.ones([1, 3])
-                    for i, img_roi_bk in enumerate(segmentation_extractor_obj.image_masks_bk.T):
-                        ps_bk.add_roi(image_mask=img_roi_bk.T, pixel_mask=pix_roi_bk)
-
-            # Adding custom columns and their values to the PlaneSegmentation table:
-            if propertydict:
-                if not isinstance(propertydict, list):
-                    propertydict = [propertydict]
-                _segmentation_exctractor_attrs = dir(segmentation_extractor_obj)
-                for i in range(len(propertydict)):
-                    excep_str = 'enter argument propertydict as list of dictionaries:\n'\
-                                '[{\'name\':str(required), '\
-                                '\'description\':str(optional), '\
-                                '\'data\':array_like(required), '\
-                                '\'id\':int(optional)}, {..}]'
-                    if not any(propertydict[i].get('name', [None])):
-                        raise Exception(excep_str)
-                    _property_name = propertydict[i]['name']
-                    if not any(propertydict[i].get('data', [None])):
-                        raise Exception(excep_str)
-                    _property_values = propertydict[i]['data']
-                    _property_desc = propertydict[i].get('description', 'no description')
-                    _property_row_ids = propertydict[i].get('id', list(
-                        range(segmentation_extractor_obj.no_rois)))
-                    # stop execution if the property name is non existant OR there are multiple such properties:
-                    _property_name_exist = [i for i in _segmentation_exctractor_attrs if len(
-                        re.findall('^' + _property_name, i, re.I))]
-                    if len(_property_name_exist) == 1:
-                        print('adding {} with supplied data'.format(_property_name_exist))
-                    elif len(_property_name_exist) == 0:
-                        print('creating table for {} with supplied data'.format(_property_name))
+                # Background components addition:
+                if hasattr(segmentation_extractor_obj, 'image_masks_bk'):
+                    if hasattr(segmentation_extractor_obj, 'pixel_masks_bk'):
+                        for i, (img_roi_bk, pix_roi_bk) in enumerate(zip(segmentation_extractor_obj.image_masks_bk.T, segmentation_extractor_obj.pixel_masks_bk)):
+                            ps_bk.add_roi(image_mask=img_roi_bk.reshape(segmentation_extractor_obj.image_dims, order='F'),
+                                          pixel_mask=pix_roi_bk)
                     else:
-                        raise Exception('multiple variables found for supplied name\n enter'
-                                        ' one of {}'.format(_property_name_exist))
-                    set_dynamic_table_property(ps, segmentation_extractor_obj.roi_idx,
-                                               _property_row_ids, _property_name, _property_values,
-                                               index=False, description=_property_desc)
+                        pix_roi_bk = np.nan * np.ones([1, 3])
+                        for i, img_roi_bk in enumerate(segmentation_extractor_obj.image_masks_bk.T):
+                            ps_bk.add_roi(image_mask=img_roi_bk.T, pixel_mask=pix_roi_bk)
 
-            # Add Traces
-            no_neurons_rois = segmentation_extractor_obj.image_masks.shape[-1]
-            no_background_rois = len(segmentation_extractor_obj.roi_response_bk)
-            neuron_rois = ps.create_roi_table_region(
-                'NeuronROIs', region=list(range(no_neurons_rois)))
+                # Adding custom columns and their values to the PlaneSegmentation table:
+                if propertydict:
+                    if not isinstance(propertydict, list):
+                        propertydict = [propertydict]
+                    _segmentation_exctractor_attrs = dir(segmentation_extractor_obj)
+                    for i in range(len(propertydict)):
+                        excep_str = 'enter argument propertydict as list of dictionaries:\n'\
+                                    '[{\'name\':str(required), '\
+                                    '\'description\':str(optional), '\
+                                    '\'data\':array_like(required), '\
+                                    '\'id\':int(optional)}, {..}]'
+                        if not any(propertydict[i].get('name', [None])):
+                            raise Exception(excep_str)
+                        _property_name = propertydict[i]['name']
+                        if not any(propertydict[i].get('data', [None])):
+                            raise Exception(excep_str)
+                        _property_values = propertydict[i]['data']
+                        _property_desc = propertydict[i].get('description', 'no description')
+                        _property_row_ids = propertydict[i].get('id', list(
+                            range(segmentation_extractor_obj.no_rois)))
+                        # stop execution if the property name is non existant OR there are multiple such properties:
+                        _property_name_exist = [i for i in _segmentation_exctractor_attrs if len(
+                            re.findall('^' + _property_name, i, re.I))]
+                        if len(_property_name_exist) == 1:
+                            print('adding {} with supplied data'.format(_property_name_exist))
+                        elif len(_property_name_exist) == 0:
+                            print('creating table for {} with supplied data'.format(_property_name))
+                        else:
+                            raise Exception('multiple variables found for supplied name\n enter'
+                                            ' one of {}'.format(_property_name_exist))
+                        set_dynamic_table_property(ps, segmentation_extractor_obj.roi_idx,
+                                                   _property_row_ids, _property_name, _property_values,
+                                                   index=False, description=_property_desc)
 
-            background_rois = ps.create_roi_table_region(
-                'BackgroundROIs', region=list(range(no_background_rois)))
+                # Add Traces
+                no_neurons_rois = segmentation_extractor_obj.image_masks.shape[-1]
+                no_background_rois = len(segmentation_extractor_obj.roi_response_bk)
+                neuron_rois = ps.create_roi_table_region(
+                    'NeuronROIs', region=list(range(no_neurons_rois)))
 
-            timestamps = np.arange(
-                segmentation_extractor_obj.roi_response_bk.shape[1]) / imaging_rate + starting_time
+                background_rois = ps.create_roi_table_region(
+                    'BackgroundROIs', region=list(range(no_background_rois)))
 
-            # Neurons TimeSeries
-            if _nwbfile_exist:
-                neuron_roi_response_exist = [i for i, e in enumerate(
-                    _nwbchildren_name) if e == neuron_roi_response_series_name]
+                timestamps = np.arange(
+                    segmentation_extractor_obj.roi_response_bk.shape[1]) / imaging_rate + starting_time
+
+                # Neurons TimeSeries
+                if _nwbfile_exist:
+                    neuron_roi_response_exist = [i for i, e in enumerate(
+                        _nwbchildren_name) if e == neuron_roi_response_series_name]
+                else:
+                    neuron_roi_response_exist = []
+                if not neuron_roi_response_exist:
+                    fl.create_roi_response_series(name=neuron_roi_response_series_name,
+                                                  data=DataChunkIterator(
+                                                      data=iter_datasetvieww(segmentation_extractor_obj.roi_response)),
+                                                  # data=segmentation_extractor_obj.roi_response,
+                                                  rois=neuron_rois, unit='lumens',
+                                                  starting_time=starting_time, rate=imaging_rate)
+                else:
+                    raise Exception('Time Series for' + neuron_roi_response_series_name +
+                                    ' already exists' + 'provide another name')
+
+                # Background TimeSeries
+                if _nwbfile_exist:
+                    background_roi_response_exist = [i for i, e in enumerate(
+                        _nwbchildren_name) if e == background_roi_response_series_name]
+                else:
+                    background_roi_response_exist = []
+                if not background_roi_response_exist:
+                    fl.create_roi_response_series(name=background_roi_response_series_name,
+                                                  data=DataChunkIterator(
+                                                      data=iter_datasetvieww(segmentation_extractor_obj.roi_response)),
+                                                  # data=segmentation_extractor_obj.roi_response,
+                                                  rois=background_rois, unit='lumens',
+                                                  starting_time=starting_time, rate=imaging_rate)
+                else:
+                    raise Exception('Time Series for' + background_roi_response_series_name +
+                                    ' already exists , provide another name')
+
             else:
-                neuron_roi_response_exist = []
-            if not neuron_roi_response_exist:
-                fl.create_roi_response_series(name=neuron_roi_response_series_name, data=segmentation_extractor_obj.roi_response,
-                                              rois=neuron_rois, unit='lumens',
-                                              starting_time=starting_time, rate=imaging_rate)
-            else:
-                raise Exception('Time Series for' + neuron_roi_response_series_name +
-                                ' already exists' + 'provide another name')
-
-            # Background TimeSeries
-            if _nwbfile_exist:
-                background_roi_response_exist = [i for i, e in enumerate(
-                    _nwbchildren_name) if e == background_roi_response_series_name]
-            else:
-                background_roi_response_exist = []
-            if not background_roi_response_exist:
-                fl.create_roi_response_series(name=background_roi_response_series_name, data=segmentation_extractor_obj.roi_response_bk,
-                                              rois=background_rois, unit='lumens',
-                                              starting_time=starting_time, rate=imaging_rate)
-            else:
-                raise Exception('Time Series for' + background_roi_response_series_name +
-                                ' already exists , provide another name')
-
+                raise Exception('supply another nwb filename')
             # Adding summary image:
             if hasattr(segmentation_extractor_obj, 'cn'):
                 for h in range(segmentation_extractor_obj.cn.shape[2]):
