@@ -44,7 +44,7 @@ coverage.xml
 .pytest_cache/
 
 # Sphinx documentation
-docs/_build/
+docs/
 
 # PyBuilder
 target/

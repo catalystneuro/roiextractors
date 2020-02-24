@@ -21,7 +21,8 @@ setup(
     install_requires=[
         'pynwb',
         'sima',
-        'dill'
+        'dill',
+        'lazy_ops'
     ],
     classifiers=(
         "Programming Language :: Python :: 3",
