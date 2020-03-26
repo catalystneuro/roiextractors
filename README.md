@@ -47,7 +47,7 @@ Interconversion amongst the various data formats as well as conversion to the NW
     Any integer tags associated with an ROI, defaults to `0:num_of_rois`
 
 #### SegmentationExtractor object creation:
-```
+```python
 import segmentationextractors
 seg_obj_cnmfe = segmentationextractors.CnmfeSegmentationExtractor('cnmfe_filename.mat') # cnmfe
 seg_obj_extract = segmentationextractors.ExtractSegmentationExtractor('extract_filename.mat') # extract
@@ -68,7 +68,7 @@ seg_obj_nwb = segmentationextractors.NwbSegmentationExtractor(
                     background_roi_response_series_name=None) # nwb object
 ```
 #### Data format conversion: SegmentationExtractor to NWB:
-```    
+```python
     segmentationextractors.NwbSegmentationExtractor.write_recording(seg_obj, saveloc,
                         propertydict=[{'name': 'ROI feature 1,
                                        'description': 'additional attribute of each ROI',
