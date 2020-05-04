@@ -13,9 +13,9 @@ Will need a manual installation for package dependency **SIMA** since it does no
 
 ## Usage:
 #### Currently supported file types:
-1. [calciumImagingAnalysis](https://github.com/bahanonu/calciumImagingAnalysis) (CNMF-E, EXTRACT),
-2. [SIMA](http://www.losonczylab.org/sima/1.3.2/),
-3. [NWB](https://pynwb.readthedocs.io/en/stable/),
+1. [calciumImagingAnalysis](https://github.com/bahanonu/calciumImagingAnalysis) (CNMF-E, EXTRACT)
+2. [SIMA](http://www.losonczylab.org/sima/1.3.2/)
+3. [NWB](https://pynwb.readthedocs.io/en/stable/)
 4. Numpy (a data format for manual input of optical physiology data as various numpy datasets)
 
 #### Functionality:
@@ -47,7 +47,7 @@ Interconversion amongst the various data formats as well as conversion to the NW
     Any integer tags associated with an ROI, defaults to `0:num_of_rois`
 
 #### SegmentationExtractor object creation:
-```
+```python
 import segmentationextractors
 seg_obj_cnmfe = segmentationextractors.CnmfeSegmentationExtractor('cnmfe_filename.mat') # cnmfe
 seg_obj_extract = segmentationextractors.ExtractSegmentationExtractor('extract_filename.mat') # extract
@@ -68,7 +68,7 @@ seg_obj_nwb = segmentationextractors.NwbSegmentationExtractor(
                     background_roi_response_series_name=None) # nwb object
 ```
 #### Data format conversion: SegmentationExtractor to NWB:
-```    
+```python
     segmentationextractors.NwbSegmentationExtractor.write_recording(seg_obj, saveloc,
                         propertydict=[{'name': 'ROI feature 1,
                                        'description': 'additional attribute of each ROI',
