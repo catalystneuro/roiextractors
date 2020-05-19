@@ -1,7 +1,7 @@
 import numpy as np
 from segmentationextractors import SegmentationExtractor
 from suite2p import run_s2p
-from skimage.external.tifffile import imread
+from suite2p.io import nwb as s2p_nwb
 
 
 class Suite2pSegmentationExtractor(SegmentationExtractor):
@@ -32,59 +32,68 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         else:
             self.savepath = op['data_path'][0] + '\suite2p'
         self.fileloc = fileloc
-        self.op = op
+        self.op_inp = op
         self.no_channels = op['nchannels']
         self.no_planes = op['nplanes']
         self.stat = self._load_npy('stat.npy')
-        self.F = self._load_npy('F.npy')
-        self.Fneu = self._load_npy('Fneu.npy')
-        self.spks = self._load_npy('spks.npy')
-        self.iscell = self._load_npy('iscell.npy')
-        self.ops = self._load_npy('ops.npy')
+        self.F = self._load_npy('F.npy',mmap_mode='r')
+        self.Fneu = self._load_npy('Fneu.npy',mmap_mode='r')
+        self.spks = self._load_npy('spks.npy',mmap_mode='r')
+        self.iscell = self._load_npy('iscell.npy',mmap_mode='r')
+        self.ops = [i.item() for i in self._load_npy('ops.npy')]
+        self.rois_per_plane = [i.shape[0] for i in self.iscell]
 
-    def _load_npy(self, filename):
+    def _load_npy(self, filename, mmap_mode=None):
         ret_val = [[None]]*self.no_planes
         for i in range(self.no_planes):
-            ret_val[i] = np.load(self.savepath + f'\\Plane{i}\\' + filename, mmap_mode='r')
+            ret_val[i] = np.load(self.savepath + f'\\Plane{i}\\' + filename,
+                                 mmap_mode=mmap_mode,
+                                 allow_pickle=not mmap_mode and True)
         return ret_val
 
     @property
     def image_dims(self):
-        return [self.ops['Lx'], self.ops['Ly']]
+        return [self.ops[0]['Lx'], self.ops[0]['Ly']]
 
     @property
     def no_rois(self):
-        return [len(i) for i in self.stat]
+        return sum([len(i) for i in self.stat])
 
     @property
     def roi_idx(self):
-        return [i for i in range(self.no_rois)]
+        return [i for i in range(self.no_rois)] 
 
     @property
     def accepted_list(self):
-        return [np.where(i[:, 0] == 1) for i in self.iscell]
+        plane_wise = [np.where(i[:, 0] == 1) for i in self.iscell]
+        return [plane_wise[0],len(self.stat[0])+plane_wise[0]]
 
     @property
     def rejected_list(self):
-        return [np.where(i[:, 0] == 0) for i in self.iscell]
+        plane_wise = [np.where(i[:, 0] == 0) for i in self.iscell]
+        return [plane_wise[0], len(self.stat[0]) + plane_wise[0]]
 
     @property
     def roi_locs(self):
-        return [[j['med'] for j in i] for i in self.stat]
+        plane_wise = [[j['med'] for j in i] for i in self.stat]
+        ret_val = []
+        [ret_val.extend(i) for i in plane_wise]
+        return ret_val
+
 
     @property
     def num_of_frames(self):
-        return self.ops['nframes']
+        return sum([i['nframes'] for i in self.ops])
 
     @property
     def samp_freq(self):
-        return self.ops['fs']
+        return self.ops_inp['fs']*self.no_planes
 
     @staticmethod
-    def write_recording(segmentation_object, savepath):
-        raise NotImplementedError
+    def write_recording(nwb_file_path):
+        return s2p_nwb.read(nwb_file_path)
 
-    # defining the abstract class enformed methods:
+    # defining the abstract class enforced methods:
     def get_roi_ids(self):
         return self.roi_idx
 
@@ -122,7 +131,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return self.fileloc
 
     def get_channel_names(self):
-        return list(range(self.no_channels))
+        return [f'OpticalChannel{i}' for i in range(self.no_channels)]
 
     def get_num_channels(self):
         return self.no_channels
