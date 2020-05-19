@@ -115,14 +115,45 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     def get_sampling_frequency(self):
         return self.samp_freq
 
-    def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None):
-        pass  # TODO
+    def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None, name=None):
+        if start_frame is None:
+            start_frame = 0
+        if end_frame is None:
+            end_frame = self.get_num_frames() + 1
+        if ROI_ids is None:
+            ROI_idx_ = range(self.get_num_rois())
+        else:
+            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
+            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
+            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
+        if name=='fluorescence':
+            return np.concatenate(self.F)[[ROI_idx_],start_frame:end_frame]
+        if name=='neuropil':
+            return np.concatenate(self.Fneu)[[ROI_idx_],start_frame:end_frame]
+        if name=='deconvolved':
+            return np.concatenate(self.spks)[[ROI_idx_],start_frame:end_frame]
+        else:
+            return None
 
     def get_image_masks(self, ROI_ids=None):
-        pass  # TODO
+        return None
 
     def get_pixel_masks(self, ROI_ids=None):
-        pass  # TODO
+        pixel_mask = [None]*self.no_rois
+        c = 0
+        for i in self.no_planes:
+            for j in self.rois_per_plane[i]:
+                c +=1
+                pixel_mask[c] = np.array([self.stat[i][j]['ypix'],
+                                       self.stat[i][j]['xpix'],
+                                       self.stat[i][j]['lam']])
+        if ROI_ids is None:
+            ROI_idx_ = range(self.get_num_rois())
+        else:
+            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
+            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
+            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
+        return [pixel_mask[i] for i in ROI_idx_]
 
     def get_movie_framesize(self):
         return self.image_dims
