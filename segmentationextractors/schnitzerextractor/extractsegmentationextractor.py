@@ -30,7 +30,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         self.filetype = self._file_type_extractor_read()
         self.raw_movie_file_location = self._raw_datafile_read()
         # Not found data:
-        self.channel_names = None
+        self.channel_names = ['OpticalChannel']
         self.no_of_channels = 1
         self._no_background_comps = 1
         self.snr_comp = np.nan * np.ones(self.roi_response.shape)
