@@ -4,3 +4,4 @@ from .schnitzerextractor.cnmfesegmentationextractor import CnmfeSegmentationExtr
 from .schnitzerextractor.extractsegmentationextractor import ExtractSegmentationExtractor
 from .simaextractor.simasegmentationextractor import SimaSegmentationExtractor
 from .nwbextractor.nwbsegmentationextractor import NwbSegmentationExtractor
+from .suite2p.suite2psegmentationextractor import Suite2pSegmentationExtractor
