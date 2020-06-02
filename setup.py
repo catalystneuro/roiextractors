@@ -22,7 +22,9 @@ setup(
         'pynwb',
         'sima',
         'dill',
-        'lazy_ops'
+        'lazy_ops',
+        'nwb-conversion-tools',
+        'suite2p'
     ],
     classifiers=(
         "Programming Language :: Python :: 3",
