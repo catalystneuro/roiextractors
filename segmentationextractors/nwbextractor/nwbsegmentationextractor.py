@@ -7,6 +7,9 @@ import re
 from ..segmentationextractor import SegmentationExtractor
 from lazy_ops import DatasetView
 from hdmf.data_utils import DataChunkIterator
+from nwb_conversion_tools import gui
+from nwb_conversion_tools import NWBConverter
+from suite2p.io.nwb import save_nwb
 try:
     from pynwb import NWBHDF5IO, TimeSeries, NWBFile
     from pynwb.base import Images
@@ -86,7 +89,7 @@ def iter_datasetvieww(datasetview_obj):
     return
 
 
-class NwbSegmentationExtractor(SegmentationExtractor):
+class NwbSegmentationExtractor(SegmentationExtractor, NWBConverter):
     '''
     Class used to extract data from the NWB data format. Also implements a
     static method to write any format specific object to NWB.
@@ -185,7 +188,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         _optical_channel_exist = [i for i, e in enumerate(
             _nwbchildren_type) if e == 'OpticalChannel']
         if not _optical_channel_exist:
-            self.channel_names = None
+            self.channel_names = ['OpticalChannel']
         else:
             self.channel_names = []
             for i in _optical_channel_exist:
@@ -392,6 +395,13 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         nwbfile_kwargs: dict(optional)
             additional arguments that an NWB file takes (check NWB documentation)
         '''
+        if 'suite2p' in segmentation_extractor_obj.filepath:
+            try:
+                ops1 = np.load(segmentation_extractor_obj.filepath + r'\ops1.npy', allow_pickle=True)
+            except:
+                raise Exception('could not load ops1.npy file')
+            save_nwb(ops1)
+            return None
         imaging_rate = segmentation_extractor_obj.get_sampling_frequency()
         raw_movie_file_location = segmentation_extractor_obj.get_movie_location()
         if optical_channel_name == 'OpticalChannel':
