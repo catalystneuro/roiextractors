@@ -9,7 +9,8 @@ from lazy_ops import DatasetView
 from hdmf.data_utils import DataChunkIterator
 from nwb_conversion_tools import gui
 from nwb_conversion_tools import NWBConverter
-from suite2p.io.nwb import save_nwb
+# TODO: put this within the save method
+# from suite2p.io.nwb import save_nwb
 try:
     from pynwb import NWBHDF5IO, TimeSeries, NWBFile
     from pynwb.base import Images
@@ -54,7 +55,6 @@ def set_dynamic_table_property(dynamic_table, ids, row_ids, property_name, value
             )
     else:
         if property_name in dynamic_table:
-            # TODO
             raise NotImplementedError
         else:
             dynamic_table.add_column(
@@ -307,6 +307,9 @@ class NwbSegmentationExtractor(SegmentationExtractor, NWBConverter):
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
         return np.array([self.raw_images[:, :, int(i)].T for i in ROI_idx_]).T
 
+    def get_images(self):
+        return None
+
     def get_movie_framesize(self):
         return self.image_dims
 
@@ -395,13 +398,14 @@ class NwbSegmentationExtractor(SegmentationExtractor, NWBConverter):
         nwbfile_kwargs: dict(optional)
             additional arguments that an NWB file takes (check NWB documentation)
         '''
-        if 'suite2p' in segmentation_extractor_obj.filepath:
-            try:
-                ops1 = np.load(segmentation_extractor_obj.filepath + r'\ops1.npy', allow_pickle=True)
-            except:
-                raise Exception('could not load ops1.npy file')
-            save_nwb(ops1)
-            return None
+        # TODO trim this code, remove comments. Create a parent class within each seg extractor.
+        # if 'suite2p' in segmentation_extractor_obj.filepath:
+        #     try:
+        #         ops1 = np.load(segmentation_extractor_obj.filepath + r'\ops1.npy', allow_pickle=True)
+        #     except:
+        #         raise Exception('could not load ops1.npy file')
+        #     save_nwb(ops1)
+        #     return None
         imaging_rate = segmentation_extractor_obj.get_sampling_frequency()
         raw_movie_file_location = segmentation_extractor_obj.get_movie_location()
         if optical_channel_name == 'OpticalChannel':

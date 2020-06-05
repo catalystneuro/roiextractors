@@ -325,3 +325,18 @@ class SegmentationExtractor(ABC):
             integer count of number of channels
         '''
         pass
+
+    @abstractmethod
+    def get_images(self):
+        """
+        Retrieve any relevant greyscale images from the pipeline
+        Returns
+        -------
+        image_dict: dict
+            Keys as a list of dictionaries. Structure of the dictionary:
+            <image_group_name>:
+                -<image_name1>: <image_data1>
+                -<image_name2>: <image_data2>
+                -<image_name3>: <image_data3>
+        """
+        pass

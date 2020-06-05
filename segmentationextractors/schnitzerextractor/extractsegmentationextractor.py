@@ -174,6 +174,9 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
         return np.array([self.raw_images[:, :, int(i)].T for i in ROI_idx_]).T
 
+    def get_images(self):
+        return None
+
     def get_pixel_masks(self, ROI_ids=None):
         if ROI_ids is None:
             ROI_idx_ = range(self.get_num_rois())

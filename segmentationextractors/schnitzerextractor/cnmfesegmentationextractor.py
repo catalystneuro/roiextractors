@@ -202,6 +202,9 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
                 np.append(temp, self.pixel_masks[self.pixel_masks[:, 3] == roiid, :], axis=0)
         return temp[1::, :]
 
+    def get_images(self):
+        return None
+
     def get_movie_framesize(self):
         return self.image_dims
 

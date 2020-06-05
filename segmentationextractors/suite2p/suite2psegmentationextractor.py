@@ -142,6 +142,20 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
         return np.concatenate([pixel_mask[i] for i in ROI_idx_])
 
+    def get_images(self):
+        bg_strs = ['meanImg', 'Vcorr', 'max_proj', 'meanImg_chan2']
+        out_dict = {'Background0':{}}
+        for bstr in bg_strs:
+            if bstr in self.op_inp:
+                if bstr == 'Vcorr' or bstr == 'max_proj':
+                    img = np.zeros((self.op_inp['Ly'], self.op_inp['Lx']), np.float32)
+                    img[self.op_inp['yrange'][0]:self.op_inp['yrange'][-1],
+                    self.op_inp['xrange'][0]:self.op_inp['xrange'][-1]] = self.op_inp[bstr]
+                else:
+                    img = self.op_inp[bstr]
+                out_dict['Background0'].update({bstr:img})
+        return out_dict
+
     def get_movie_framesize(self):
         return self.image_dims
 
