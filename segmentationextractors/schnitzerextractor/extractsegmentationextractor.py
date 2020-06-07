@@ -1,6 +1,6 @@
 import numpy as np
 import h5py
-from ..segmentationextractor import SegmentationExtractor
+from segmentationextractors.segmentationextractor import SegmentationExtractor
 from lazy_ops import DatasetView
 
 

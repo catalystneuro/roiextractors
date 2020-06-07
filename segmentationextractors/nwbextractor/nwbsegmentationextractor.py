@@ -5,7 +5,7 @@ from dateutil.tz import tzlocal
 import numpy as np
 import re
 import yaml
-from ..segmentationextractor import SegmentationExtractor
+from segmentationextractors.segmentationextractor import SegmentationExtractor
 from lazy_ops import DatasetView
 from hdmf.data_utils import DataChunkIterator
 from nwb_conversion_tools import gui
@@ -22,15 +22,11 @@ try:
     HAVE_NWB = True
 except ModuleNotFoundError:
     HAVE_NWB = False
-try:
-    from nwb_conversion_tools.ophys.sima.simaconverter import Sima2NWB
-    from nwb_conversion_tools.ophys.suite2p.suite2pconverter import Suite2p2NWB
-    from nwb_conversion_tools.ophys.schnitzerlab.extractconverter import Extract2NWB
-    from nwb_conversion_tools.ophys.schnitzerlab.cnmfeconverter import Cnmfe2NWB
-    from nwb_conversion_tools.gui.nwb_conversion_gui import nwb_conversion_gui
-except:
-    print('calling from nwbconversiontools')
-
+from nwb_conversion_tools.ophys.sima.simaconverter import Sima2NWB
+from nwb_conversion_tools.ophys.suite2p.suite2pconverter import Suite2p2NWB
+from nwb_conversion_tools.ophys.schnitzerlab.extractconverter import Extract2NWB
+from nwb_conversion_tools.ophys.schnitzerlab.cnmfeconverter import Cnmfe2NWB
+from nwb_conversion_tools.gui.nwb_conversion_gui import nwb_conversion_gui
 
 def check_nwb_install():
     assert HAVE_NWB, "To use the Nwb extractors, install pynwb: \n\n pip install pynwb\n\n"

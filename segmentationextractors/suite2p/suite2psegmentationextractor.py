@@ -1,5 +1,5 @@
 import numpy as np
-from segmentationextractors import SegmentationExtractor
+from segmentationextractors.segmentationextractor import SegmentationExtractor
 import os
 
 

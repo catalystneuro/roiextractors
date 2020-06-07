@@ -1,5 +1,5 @@
 import numpy as np
-from ..segmentationextractor import SegmentationExtractor
+from segmentationextractors.segmentationextractor import SegmentationExtractor
 # from past import autotranslate
 # autotranslate(['sima'])
 import sima
