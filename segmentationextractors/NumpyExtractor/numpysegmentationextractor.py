@@ -178,7 +178,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     def get_sampling_frequency(self):
         return self.samp_freq
 
-    def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None):
+    def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None, name=None):
         if start_frame is None:
             start_frame = 0
         if end_frame is None:
@@ -190,6 +190,13 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
         return self.roi_response[ROI_idx_, start_frame:end_frame]
+
+    def get_traces_info(self):
+        roi_resp_dict = dict()
+        name_strs = ['Fluorescence']
+        for i in name_strs:
+            roi_resp_dict[i] = self.get_traces(name=i)
+        return roi_resp_dict
 
     def get_image_masks(self, ROI_ids=None):
         if ROI_ids is None:

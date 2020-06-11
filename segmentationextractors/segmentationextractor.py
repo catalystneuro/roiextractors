@@ -3,13 +3,16 @@ import numpy as np
 
 
 class SegmentationExtractor(ABC):
-    '''An abstract class that contains all the meta-data and output data from
+    # TODO:
+    #  - mine for and add channel related info like location, emission lambda
+    #  - look for image related data in schnitzer lab stuff and caiman if possible.
+    """An abstract class that contains all the meta-data and output data from
         the ROI segmentation operation when applied to the pre-processed data.
         It also contains methods to read from and write to various data formats
         ouput from the processing pipelines like SIMA, CaImAn, Suite2p, CNNM-E.
         All the methods with @abstract decorator have to be defined by the
         format specific classes that inherit from this.
-    '''
+    """
 
     def __init__(self):
         self._epochs = {}
@@ -19,18 +22,18 @@ class SegmentationExtractor(ABC):
     @property
     @abstractmethod
     def image_dims(self):
-        '''
+        """
         Returns
         -------
         image_dims: list
             The width X height of the image.
-        '''
+        """
         pass
 
     @property
     @abstractmethod
     def no_rois(self):
-        '''
+        """
         The number of Independent sources(neurons) indentified after the
         segmentation operation. The regions of interest for which fluorescence
         traces will be extracted downstream.
@@ -39,13 +42,13 @@ class SegmentationExtractor(ABC):
         -------
         no_rois: int
             The number of rois
-        '''
+        """
         pass
 
     @property
     @abstractmethod
     def roi_idx(self):
-        '''
+        """
         Integer label given to each region of interest (neuron).
 
         Returns
@@ -53,13 +56,13 @@ class SegmentationExtractor(ABC):
         roi_idx: list
             list of integers of the ROIs. Listed in the order in which the ROIs
             occur in the image_masks (2nd dimention)
-        '''
+        """
         pass
 
     @property
     @abstractmethod
     def accepted_list(self):
-        '''
+        """
         The ids of the ROIs which are accepted after manual verification of
         ROIs.
 
@@ -67,13 +70,13 @@ class SegmentationExtractor(ABC):
         -------
         accepted_list: list
             List of accepted ROIs
-        '''
+        """
         pass
 
     @property
     @abstractmethod
     def rejected_list(self):
-        '''
+        """
         The ids of the ROIs which are rejected after manual verification of
         ROIs.
 
@@ -81,13 +84,13 @@ class SegmentationExtractor(ABC):
         -------
         accepted_list: list
             List of rejected ROIs
-        '''
+        """
         pass
 
     @property
     @abstractmethod
     def roi_locs(self):
-        '''
+        """
         The x and y pixel location of the ROIs. The location where the pixel
         value is maximum in the image mask.
 
@@ -96,52 +99,53 @@ class SegmentationExtractor(ABC):
         roi_locs: np.array
             Array with the first column representing the x (width) and second representing
             the y (height) coordinates of the ROI.
-        '''
+        """
         pass
 
     @property
     @abstractmethod
     def num_of_frames(self):
-        '''
+        """
         Total number of images in the image sequence across time.
 
         Returns
         -------
         num_of_frames: int
             Same as the -1 dimention of the dF/F trace(roi_response).
-        '''
+        """
         pass
 
     @property
     @abstractmethod
     def samp_freq(self):
-        '''
+        """
         Returns
         -------
         samp_freq: int
             Sampling frequency of the dF/F trace.
-        '''
+        """
         pass
 
-    @property
+    @staticmethod
     @abstractmethod
-    def write_recording(segmentation_object, savepath):
-        '''
+    def write_recording(segext_obj, savepath, metadata_dict=None, **kwargs):
+        """
         Static method to write recording back to the native format.
-
         Parameters
         ----------
-        segmentation_object: SegmentationExtracteor object
+        segext_obj: SegmentationExtractor object
             The EXTRACT segmentation object from which an EXTRACT native format
             file has to be generated.
         savepath: str
             path to save the native format.
-        '''
+        metadata_dict: dict
+            dict of metadata, useful in case of saving to nwb (in nwbsegmentationextractor)
+        """
         pass
 
     @abstractmethod
     def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None):
-        ''' Extracts specific regions of traces based on the start and end frame values
+        """ Extracts specific regions of traces based on the start and end frame values
 
         Parameters
         ----------
@@ -158,34 +162,34 @@ class SegmentationExtractor(ABC):
         roi_response: numpy.ndarray
             A 2D array that contains all of the traces from each channel.
             Dimensions are: (number of ROIs x num_frames)
-        '''
+        """
         pass
 
     @abstractmethod
     def get_num_frames(self):
-        '''This function returns the number of frames in the recording.
+        """This function returns the number of frames in the recording.
 
         Returns
         -------
         num_of_frames: int
             Number of frames in the recording (duration of recording).
-        '''
+        """
         pass
 
     @abstractmethod
     def get_sampling_frequency(self):
-        '''This function returns the sampling frequency in units of Hz.
+        """This function returns the sampling frequency in units of Hz.
 
         Returns
         -------
         samp_freq: float
             Sampling frequency of the recordings in Hz.
-        '''
+        """
         pass
 
     @abstractmethod
     def get_roi_locations(self, ROI_ids=None):
-        '''
+        """
         Returns the locations of the Regions of Interest
 
         Parameters
@@ -198,34 +202,34 @@ class SegmentationExtractor(ABC):
         ------
         roi_locs: numpy.ndarray
             2-D array: 2 X no_ROIs. The pixel ids (x,y) where the centroid of the ROI is.
-        '''
+        """
         pass
 
     @abstractmethod
     def get_roi_ids(self):
-        '''Returns the list of channel ids. If not specified, the range from 0 to num_channels - 1 is returned.
+        """Returns the list of channel ids. If not specified, the range from 0 to num_channels - 1 is returned.
 
         Returns
         -------
         channel_ids: list
             Channel list.
-        '''
+        """
         pass
 
     @abstractmethod
     def get_num_rois(self):
-        '''Returns total number of Regions of Interest in the acquired images.
+        """Returns total number of Regions of Interest in the acquired images.
 
         Returns
         -------
         no_rois: int
             integer number of ROIs extracted.
-        '''
+        """
         pass
 
     @abstractmethod
     def get_image_masks(self, ROI_ids=None):
-        '''Returns the image masks extracted from segmentation algorithm.
+        """Returns the image masks extracted from segmentation algorithm.
 
         Parameters
         ----------
@@ -237,12 +241,12 @@ class SegmentationExtractor(ABC):
         -------
         image_masks: numpy.ndarray
             3-D array(val 0 or 1): image_height X image_width X length(ROI_ids)
-        '''
+        """
         pass
 
     @abstractmethod
     def get_pixel_masks(self, ROI_ids=None):
-        '''Returns the weights applied to each of the pixels of the mask.
+        """Returns the weights applied to each of the pixels of the mask.
 
         Parameters
         ----------
@@ -257,41 +261,41 @@ class SegmentationExtractor(ABC):
             Column 1 and 2 are x and y values of the pixels.
             Column 3 is the weight for that pixel.
             Column 4 is the id of the ROI that that pixel belongs to
-        '''
+        """
         pass
 
     @abstractmethod
     def get_movie_framesize(self):
-        '''Frame size of movie ( x and y size of image).
+        """Frame size of movie ( x and y size of image).
 
         Returns
         -------
         no_rois: array_like
             2-D array: image y x image x
-        '''
+        """
         pass
 
     @abstractmethod
     def get_movie_location(self):
-        '''Raw file location on storage.
+        """Raw file location on storage.
 
         Returns
         -------
         raw_movie_file_location: str
             location as a string
-        '''
+        """
         pass
 
     @staticmethod
     def _pixel_mask_extractor(_raw_images_trans, _roi_idx):
-        '''An alternative data format for storage of image masks.
+        """An alternative data format for storage of image masks.
 
         Returns
         -------
         pixel_mask: numpy array
             Total pixels X 4 size. Col 1 and 2 are x and y location of the mask
             pixel, Col 3 is the weight of that pixel, Col 4 is the ROI index.
-        '''
+        """
         temp = np.empty((1, 4))
         for i, roiid in enumerate(_roi_idx):
             _np_raw_images_trans = np.array(_raw_images_trans[:, :, i])
@@ -306,24 +310,24 @@ class SegmentationExtractor(ABC):
 
     @abstractmethod
     def get_channel_names(self):
-        '''List of  channels in the recoding.
+        """List of  channels in the recoding.
 
         Returns
         -------
         channel_names: list
             List of strings of channel names
-        '''
+        """
         pass
 
     @abstractmethod
     def get_num_channels(self):
-        '''Total number of active channels in the recording
+        """Total number of active channels in the recording
 
         Returns
         -------
         no_of_channels: int
             integer count of number of channels
-        '''
+        """
         pass
 
     @abstractmethod
@@ -334,9 +338,21 @@ class SegmentationExtractor(ABC):
         -------
         image_dict: dict
             Keys as a list of dictionaries. Structure of the dictionary:
-            <image_group_name>:
+            <image_group_parent_name>:
                 -<image_name1>: <image_data1>
                 -<image_name2>: <image_data2>
                 -<image_name3>: <image_data3>
         """
         pass
+
+    @abstractmethod
+    def get_traces_info(self):
+        """
+        Dictionary of timeseries of traces
+        Returns
+        -------
+        trace_dict: dict
+            keys: name of Fluorescence traces (default as 'Fluorescence')
+            values: traces
+
+        """

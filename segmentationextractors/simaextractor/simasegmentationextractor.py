@@ -38,6 +38,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
             self._image_mask_extractor_read()
         self.pixel_masks = self._pixel_mask_extractor_read()
         self.roi_response = self._trace_extractor_read()
+        self.roi_resp_dict = {'Fluorescence': self.roi_response}
         self.cn = self._summary_image_read()
         self.total_time = self._tot_exptime_extractor_read()
         self.filetype = self._file_type_extractor_read()
@@ -223,8 +224,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         else:
             return 0.
 
-    @staticmethod
-    def write_recording(segmentation_object, savepath):
+    def write_recording(self, savepath, metadata_dict=None, **kwargs):
         raise NotImplementedError
 
     # defining the abstract class enformed methods:
@@ -249,7 +249,10 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     def get_sampling_frequency(self):
         return self.samp_freq
 
-    def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None):
+    def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None, name=None):
+        if name is None:
+            name = 'Fluorescence'
+            print(f'returning traces for {name}')
         if start_frame is None:
             start_frame = 0
         if end_frame is None:
@@ -260,7 +263,14 @@ class SimaSegmentationExtractor(SegmentationExtractor):
             ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
             ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-        return self.roi_response[ROI_idx_, start_frame:end_frame]
+        return self.roi_resp_dict[name][ROI_idx_, start_frame:end_frame]
+
+    def get_traces_info(self):
+        roi_resp_dict = dict()
+        name_strs = ['Fluorescence']
+        for i in name_strs:
+            roi_resp_dict[i] = self.get_traces(name=i)
+        return roi_resp_dict
 
     def get_image_masks(self, ROI_ids=None):
         if ROI_ids is None:

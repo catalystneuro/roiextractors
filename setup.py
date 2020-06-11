@@ -24,7 +24,8 @@ setup(
         'dill',
         'lazy_ops',
         'nwb-conversion-tools',
-        'suite2p'
+        'suite2p',
+        'scipy'
     ],
     classifiers=(
         "Programming Language :: Python :: 3",

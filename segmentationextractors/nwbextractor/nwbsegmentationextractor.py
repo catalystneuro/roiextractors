@@ -8,10 +8,7 @@ import yaml
 from segmentationextractors.segmentationextractor import SegmentationExtractor
 from lazy_ops import DatasetView
 from hdmf.data_utils import DataChunkIterator
-from nwb_conversion_tools import gui
-from nwb_conversion_tools import NWBConverter
-# TODO: put this within the save method
-# from suite2p.io.nwb import save_nwb
+from segmentationextractors.nwbwriter import SegmentationExtractor2NWBConverter
 try:
     from pynwb import NWBHDF5IO, TimeSeries, NWBFile
     from pynwb.base import Images
@@ -22,11 +19,6 @@ try:
     HAVE_NWB = True
 except ModuleNotFoundError:
     HAVE_NWB = False
-from nwb_conversion_tools.ophys.sima.simaconverter import Sima2NWB
-from nwb_conversion_tools.ophys.suite2p.suite2pconverter import Suite2p2NWB
-from nwb_conversion_tools.ophys.schnitzerlab.extractconverter import Extract2NWB
-from nwb_conversion_tools.ophys.schnitzerlab.cnmfeconverter import Cnmfe2NWB
-from nwb_conversion_tools.gui.nwb_conversion_gui import nwb_conversion_gui
 
 def check_nwb_install():
     assert HAVE_NWB, "To use the Nwb extractors, install pynwb: \n\n pip install pynwb\n\n"
@@ -94,7 +86,7 @@ def iter_datasetvieww(datasetview_obj):
     return
 
 
-class NwbSegmentationExtractor(SegmentationExtractor, NWBConverter):
+class NwbSegmentationExtractor(SegmentationExtractor):
     '''
     Class used to extract data from the NWB data format. Also implements a
     static method to write any format specific object to NWB.
@@ -128,10 +120,14 @@ class NwbSegmentationExtractor(SegmentationExtractor, NWBConverter):
             raise Exception('file does not exist')
 
         self.filepath = filepath
-
+        self.image_masks = None
+        self.pixel_masks = None
+        self._roi_locs = None
+        self._accepted_list = None
         # with NWBHDF5IO(filepath, mode='r+') as io:
-        self.io = NWBHDF5IO(filepath, mode='r+')
-        nwbfile = self.io.read()
+        io = NWBHDF5IO(filepath, mode='r+')
+        nwbfile = io.read()
+        self.nwbfile = nwbfile
         _nwbchildren_type = [type(i).__name__ for i in nwbfile.all_children()]
         _nwbchildren_name = [i.name for i in nwbfile.all_children()]
         _procssing_module = [_nwbchildren_name[f]
@@ -150,42 +146,34 @@ class NwbSegmentationExtractor(SegmentationExtractor, NWBConverter):
         else:
             ps = nwbfile.all_children()[_plane_segmentation_exist[0]]
         # self.image_masks = np.moveaxis(np.array(ps['image_mask'].data), [0, 1, 2], [2, 0, 1])
-        self.image_masks = DatasetView(ps['image_mask'].data).lazy_transpose([1, 2, 0])
-        self.raw_images = self.image_masks
-
-        # Extract pixel_mask/background:
-        px_list = [ps['pixel_mask'][e] for e in range(ps['pixel_mask'].data.shape[0])]
-        temp = np.empty((1, 4))
-        for v, b in enumerate(px_list):
-            temp = np.append(temp, np.append(b, v * np.ones([b.shape[0], 1]), axis=1), axis=0)
-        self.pixel_masks = temp[1::, :]
+        if 'image_mask' in ps.colnames:
+            self.image_masks = DatasetView(ps['image_mask'].data).lazy_transpose([1, 2, 0])
+        if 'pixel_mask' in ps.colnames:
+            # Extract pixel_mask/background:
+            px_list = [ps['pixel_mask'][e] for e in range(ps['pixel_mask'].data.shape[0])]
+            temp = np.empty((1, 4))
+            for v, b in enumerate(px_list):
+                temp = np.append(temp, np.append(b, v * np.ones([b.shape[0], 1]), axis=1), axis=0)
+            self.pixel_masks = temp[1::, :]
+        if 'RoiCentroid' in ps.colnames:
+            self._roi_locs = ps['RoiCentroid']
+        if 'Accepted' in ps.colnames:
+            self._accepted_list = ps['Accepted'].data[:]
         # Extract Image dimensions:
-        self.extimage_dims = self.image_masks.shape[0:2]
 
         # Extract roi_response:
-        _roi_exist = [_nwbchildren_name[val]
+        self.roi_resp_dict = dict()
+        self._roi_names = [_nwbchildren_name[val]
                       for val, i in enumerate(_nwbchildren_type) if i == 'RoiResponseSeries']
-        if not _roi_exist:
+        if not self._roi_names:
             raise Exception('no ROI response series found')
         else:
-            rrs_neurons = mod['Fluorescence'].get_roi_response_series(_roi_exist[0])
-            self.roi_response = DatasetView(rrs_neurons.data)
-            self._no_background_comps = 1
-            self.roi_response_bk = np.nan * np.ones(
-                [self._no_background_comps, self.roi_response.shape[1]])
-            if len(_roi_exist) > 1:
-                rrs_bk = mod['Fluorescence'].get_roi_response_series(_roi_exist[1])
-                self.roi_response_bk = np.array(rrs_bk.data)
-                self._no_background_comps = self.roi_response_bk.shape[0]
-
-        # Extract planesegmentation dictionary values:
-        _new_columns = [i for i in ps.colnames if i not in ['image_mask', 'pixel_mask']]
-        for i in _new_columns:
-            setattr(self, i, np.array(ps[i].data))
+            for roi_name in self._roi_names:
+                self.roi_resp_dict[roi_name] = mod['Fluorescence'].get_roi_response_series(roi_name)
+        self.roi_response = self.roi_resp_dict[self._roi_names[0]]
 
         # Extract samp_freq:
-        self._samp_freq = rrs_neurons.rate
-        self.total_time = rrs_neurons.rate * rrs_neurons.num_samples
+        self._samp_freq = self.roi_response.rate
         # Extract no_rois/ids:
         self._roi_idx = np.array(ps.id.data)
 
@@ -203,9 +191,12 @@ class NwbSegmentationExtractor(SegmentationExtractor, NWBConverter):
             _nwbchildren_type) if e == 'TwoPhotonSeries']
         if not _image_series_exist:
             self.raw_movie_file_location = None
+            self.extimage_dims = None
         else:
             self.raw_movie_file_location = \
-                str(nwbfile.all_children()[_image_series_exist[0]].external_file[:])
+                nwbfile.all_children()[_image_series_exist[0]].external_file[:][0]
+            self.extimage_dims = \
+                nwbfile.all_children()[_image_series_exist[0]].dimension
 
         # property name/data extraction:
         self._property_name_exist = [
@@ -213,6 +204,9 @@ class NwbSegmentationExtractor(SegmentationExtractor, NWBConverter):
         self.property_vals = []
         for i in self._property_name_exist:
             self.property_vals.append(np.array(ps[i].data))
+
+        #Extracting stores images as GrayscaleImages:
+        self._greyscaleimages = [_nwbchildren_name[f] for f, u in enumerate(_nwbchildren_type) if u == 'GrayscaleImage']
 
     @property
     def image_dims(self):
@@ -231,32 +225,32 @@ class NwbSegmentationExtractor(SegmentationExtractor, NWBConverter):
         if self._accepted_list is None:
             return list(range(self.no_rois))
         else:
-            return self._accepted_list
+            return np.where(self._accepted_list==1)[0].tolist()
 
     @property
     def rejected_list(self):
-        return [a for a in range(self.no_rois) if a not in set(self.accepted_list)]
+        return [a for a in self.roi_idx if a not in set(self.accepted_list)]
 
     @property
     def roi_locs(self):
-        no_ROIs = self.no_rois
-        raw_images = self.raw_images
-        roi_location = np.ndarray([2, no_ROIs], dtype='int')
-        for i in range(no_ROIs):
-            temp = np.where(raw_images[:, :, i] == np.amax(raw_images[:, :, i]))
-            roi_location[:, i] = np.array([np.median(temp[0]), np.median(temp[1])]).T
-        return roi_location
+        if self._roi_locs is None:
+            return None
+        else:
+            return self._roi_locs.data[:].T.tolist()
 
     @property
     def num_of_frames(self):
-        extracted_signals = self.roi_response
+        extracted_signals = self.roi_response.data
         return extracted_signals.shape[1]
 
     @property
     def samp_freq(self):
         return self._samp_freq
 
-    def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None):
+    def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None, name=None):
+        if name is None:
+            name = self._roi_names[0]
+            print(f'returning traces for {name}')
         if start_frame is None:
             start_frame = 0
         if end_frame is None:
@@ -267,10 +261,16 @@ class NwbSegmentationExtractor(SegmentationExtractor, NWBConverter):
             ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
             ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-        return np.array([self.roi_response[int(i), start_frame:end_frame] for i in ROI_idx_])
+        return np.array([self.roi_resp_dict[name].data[int(i), start_frame:end_frame] for i in range(self.no_rois)])
+
+    def get_traces_info(self):
+        roi_resp_dict = dict()
+        for i in self._roi_names:
+            roi_resp_dict[i] = self.get_traces(name=i)
+        return roi_resp_dict
 
     def get_num_frames(self):
-        return self.roi_response.shape[1]
+        return self.roi_response.data.shape[1]
 
     def get_sampling_frequency(self):
         return self.samp_freq
@@ -291,6 +291,8 @@ class NwbSegmentationExtractor(SegmentationExtractor, NWBConverter):
         return self.no_rois
 
     def get_pixel_masks(self, ROI_ids=None):
+        if self.pixel_masks is None:
+            return None
         if ROI_ids is None:
             ROI_idx_ = self.roi_idx
         else:
@@ -304,16 +306,24 @@ class NwbSegmentationExtractor(SegmentationExtractor, NWBConverter):
         return temp[1::, :]
 
     def get_image_masks(self, ROI_ids=None):
+        if self.image_masks is None:
+            return None
         if ROI_ids is None:
             ROI_idx_ = range(self.get_num_rois())
         else:
             ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
             ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-        return np.array([self.raw_images[:, :, int(i)].T for i in ROI_idx_]).T
+        return np.array([self.image_masks[:, :, int(i)].T for i in ROI_idx_]).T
 
     def get_images(self):
-        return None
+        imag_dict = {i.name: np.array(i.data) for i in self.nwbfile.all_children() if i.name in self._greyscaleimages}
+        _ = {i.name: i for i in self.nwbfile.all_children() if i.name in self._greyscaleimages}
+        if imag_dict:
+            parent_name = _[self._greyscaleimages[0]].parent.name
+            return {parent_name: imag_dict}
+        else:
+            return None
 
     def get_movie_framesize(self):
         return self.image_dims
@@ -338,37 +348,7 @@ class NwbSegmentationExtractor(SegmentationExtractor, NWBConverter):
         return ret_val
 
     @staticmethod
-    def write_recording(segmentation_extractor_obj, nwb_filename, metadict, gui=False, **kwargs_fields):
-        class_name = str(type(segmentation_extractor_obj))
-        datapath = os.path.dirname(segmentation_extractor_obj.filepath)
-        if isinstance(metadict, dict):
-            with open(datapath+fr'\{class_name}_metafile.yml','r') as f:
-                metafile = yaml.safe_dump(metadict)
-        else:
-            metafile = metadict
-        if 'Sima' in class_name:
-            converter_class = Sima2NWB
-        elif 'Suite2p' in class_name:
-            converter_class = Suite2p2NWB
-        elif 'Extract' in class_name:
-            converter_class = Extract2NWB
-        elif 'Cnmfe' in class_name:
-            converter_class = Cnmfe2NWB
-        else:
-            raise Exception('invalid object type')
-        if os.path.isdir(segmentation_extractor_obj.filepath):
-            path_type='folder'
-        else:
-            path_type='file'
-        source_paths = dict(extract_path=dict(type=path_type, path=segmentation_extractor_obj.filepath))
-        if gui:
-            nwb_conversion_gui(
-                metafile=metafile,
-                conversion_class=converter_class,
-                source_paths=source_paths,
-                kwargs_fields=kwargs_fields
-            )
-        else:
-            conv_obj = converter_class(segmentation_extractor_obj, None, metafile)
-            conv_obj.run_conversion()
-            conv_obj.save(nwb_filename)
+    def write_recording(segext_obj, savepath, metadata_dict=None, **kwargs):
+        conv_obj = SegmentationExtractor2NWBConverter(segext_obj, None, metadata_dict)
+        conv_obj.run_conversion()
+        conv_obj.save(savepath)

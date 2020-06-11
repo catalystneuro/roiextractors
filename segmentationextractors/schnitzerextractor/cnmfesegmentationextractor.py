@@ -1,5 +1,6 @@
 import numpy as np
 import h5py
+import scipy
 from segmentationextractors.segmentationextractor import SegmentationExtractor
 from lazy_ops import DatasetView
 
@@ -22,7 +23,10 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         self._dataset_file, self._group0 = self._file_extractor_read()
         self.extimage_dims, self.raw_images = self._image_mask_extractor_read()
         self.image_masks = self.raw_images
-        self.roi_response = self._trace_extractor_read()
+        self.roi_response = self._trace_extractor_read('extractedSignals')
+        self.roi_response2 = self._trace_extractor_read('extractedPeaks')
+        self.roi_resp_dict = {'extractedSignals': self.roi_response,
+                              'extractedPeaks': self.roi_response2}
         self._roi_ids = None
         self.pixel_masks = self._pixel_mask_extractor_read()
         self.total_time = self._tot_exptime_extractor_read()
@@ -55,9 +59,14 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
     def _pixel_mask_extractor_read(self):
         return super()._pixel_mask_extractor(self.raw_images, self.roi_idx)
 
-    def _trace_extractor_read(self):
-        extracted_signals = DatasetView(self._dataset_file[self._group0[0]]['extractedSignals'])
-        return extracted_signals.T
+    def _trace_extractor_read(self, name):
+        if name=='extractedSignals':
+            extracted_signals = DatasetView(self._dataset_file[self._group0[0]][name]).T
+        else:
+            temp_data = self._dataset_file[self._group0[0]][name]
+            extracted_signals = scipy.sparse.csc_matrix((
+                temp_data['data'],temp_data['ir'],temp_data['jc'])).toarray()
+        return extracted_signals
 
     def _tot_exptime_extractor_read(self):
         return self._dataset_file[self._group0[0]]['time']['totalTime'][0][0]
@@ -127,8 +136,8 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             return self._samp_freq
 
     @staticmethod
-    def write_recording(segmentation_object, savepath):
-        raise NotImplementedError
+    def write_recording(segext_obj, savepath, metadata_dict=None, **kwargs):
+        return NotImplementedError
 
     # defining the abstract class enformed methods:
     def get_roi_ids(self):
@@ -152,7 +161,10 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
     def get_sampling_frequency(self):
         return self.samp_freq
 
-    def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None):
+    def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None, name=None):
+        if name is None:
+            name = 'extractedSignals'
+            print(f'returning traces for {name}')
         if start_frame is None:
             start_frame = 0
         if end_frame is None:
@@ -163,7 +175,14 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
             ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-        return np.array([self.roi_response[int(i), start_frame:end_frame] for i in ROI_idx_])
+        return np.array([self.roi_resp_dict[name][int(i), start_frame:end_frame] for i in ROI_idx_])
+
+    def get_traces_info(self):
+        roi_resp_dict = dict()
+        name_strs = ['extractedSignals','extractedPeaks']
+        for i in name_strs:
+            roi_resp_dict[i] = self.get_traces(name=i)
+        return roi_resp_dict
 
     def get_image_masks(self, ROI_ids=None):
         if ROI_ids is None:
@@ -173,6 +192,13 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
         return np.array([self.raw_images[:, :, int(i)].T for i in ROI_idx_]).T
+
+    def get_images(self):
+        bg_strs = ['Cn']
+        out_dict = {'Images': {}}
+        for bstr in bg_strs:
+            out_dict['Images'][bstr] = np.array(self._dataset_file[self._group0[0]][bstr]).T
+        return out_dict
 
     def get_pixel_masks(self, ROI_ids=None):
         if ROI_ids is None:

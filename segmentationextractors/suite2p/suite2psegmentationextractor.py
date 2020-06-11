@@ -21,6 +21,9 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self.Fneu = self._load_npy('Fneu.npy',mmap_mode='r')
         self.spks = self._load_npy('spks.npy',mmap_mode='r')
         self.iscell = self._load_npy('iscell.npy',mmap_mode='r')
+        self.roi_resp_dict = {'Fluorescence': self.F[0:self.no_planes_extract],
+                              'Neuropil':self.Fneu[0:self.no_planes_extract],
+                              'Deconvolved': self.spks[0:self.no_planes_extract]}
         self.ops = [i.item() for i in self._load_npy('ops.npy')]
         self.op_inp = self.ops[0]
         self.no_channels = self.op_inp['nchannels']
@@ -52,20 +55,19 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     @property
     def accepted_list(self):
         plane_wise = [np.where(i[:, 0] == 1)[0] for i in self.iscell]
-        return [plane_wise[0].tolist(),(len(self.stat[0])+plane_wise[0]).tolist()][0:self.no_planes_extract]
+        return np.array([plane_wise[0].tolist(),(len(self.stat[0])+plane_wise[0]).tolist()])[0:self.no_planes_extract].squeeze().tolist()
 
     @property
     def rejected_list(self):
         plane_wise = [np.where(i[:, 0] == 0)[0] for i in self.iscell]
-        return [plane_wise[0].tolist(), (len(self.stat[0]) + plane_wise[0]).tolist()][0:self.no_planes_extract]
+        return np.array([plane_wise[0].tolist(), (len(self.stat[0]) + plane_wise[0]).tolist()])[0:self.no_planes_extract].squeeze().tolist()
 
     @property
     def roi_locs(self):
         plane_wise = [[j['med'] for j in i] for i in self.stat]
         ret_val = []
         [ret_val.extend(i) for i in plane_wise]
-        return ret_val
-
+        return np.array(ret_val).T.tolist()
 
     @property
     def num_of_frames(self):
@@ -76,7 +78,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return self.ops[0]['fs']*self.no_planes
 
     @staticmethod
-    def write_recording(nwb_file_path):
+    def write_recording(segext_obj, savepath, metadata_dict=None, **kwargs):
         return NotImplementedError
 
     # defining the abstract class enforced methods:
@@ -102,6 +104,9 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return self.samp_freq
 
     def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None, name=None):
+        if name is None:
+            name = 'Fluorescence'
+            print(f'returning traces for {name}')
         if start_frame is None:
             start_frame = 0
         if end_frame is None:
@@ -112,14 +117,14 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
             ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-        if name=='Fluorescence':
-            return np.concatenate(self.F[0:self.no_planes_extract])[[ROI_idx_],start_frame:end_frame].squeeze()
-        if name=='Neuropil':
-            return np.concatenate(self.Fneu[0:self.no_planes_extract])[[ROI_idx_],start_frame:end_frame].squeeze()
-        if name=='Deconvolved':
-            return np.concatenate(self.spks[0:self.no_planes_extract])[[ROI_idx_],start_frame:end_frame].squeeze()
-        else:
-            return None
+        return np.concatenate(self.roi_resp_dict[name])[[ROI_idx_],start_frame:end_frame].squeeze()
+
+    def get_traces_info(self):
+        roi_resp_dict = dict()
+        name_strs = ['Fluorescence', 'Neuropil', 'Deconvolved']
+        for i in name_strs:
+            roi_resp_dict[i] = self.get_traces(name=i)
+        return roi_resp_dict
 
     def get_image_masks(self, ROI_ids=None):
         return None
@@ -143,7 +148,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return np.concatenate([pixel_mask[i] for i in ROI_idx_])
 
     def get_images(self):
-        bg_strs = ['meanImg', 'Vcorr', 'max_proj', 'meanImg_chan2']
+        bg_strs = ['meanImg', 'Vcorr', 'max_proj']
         out_dict = {'Background0':{}}
         for bstr in bg_strs:
             if bstr in self.op_inp:

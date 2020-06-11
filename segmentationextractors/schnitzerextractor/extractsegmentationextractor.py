@@ -23,6 +23,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         self.extimage_dims, self.raw_images = self._image_mask_extractor_read()
         self.image_masks = self.raw_images
         self.roi_response = self._trace_extractor_read()
+        self.roi_resp_dict = {'traces': self.roi_response}
         self._roi_ids = None
         self.pixel_masks = self._pixel_mask_extractor_read()
         self.total_time = self._tot_exptime_extractor_read()
@@ -112,8 +113,8 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         return nframes / time
 
     @staticmethod
-    def write_recording(segmentation_object, savepath):
-        raise NotImplementedError
+    def write_recording(segext_obj, savepath, metadata_dict=None, **kwargs):
+        return NotImplementedError
 
     # defining the abstract class enformed methods:
     def get_roi_ids(self):
@@ -137,7 +138,10 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
     def get_sampling_frequency(self):
         return self.samp_freq
 
-    def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None):
+    def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None, name=None):
+        if name is None:
+            name = 'traces'
+            print(f'returning traces for {name}')
         if start_frame is None:
             start_frame = 0
         if end_frame is None:
@@ -148,7 +152,14 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
             ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
             ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-        return np.array([self.roi_response[int(i), start_frame:end_frame] for i in ROI_idx_])
+        return np.array([self.roi_resp_dict[name][int(i), start_frame:end_frame] for i in ROI_idx_])
+
+    def get_traces_info(self):
+        roi_resp_dict = dict()
+        name_strs = ['traces']
+        for i in name_strs:
+            roi_resp_dict[i] = self.get_traces(name=i)
+        return roi_resp_dict
 
     def get_image_masks(self, ROI_ids=None):
         if ROI_ids is None:
@@ -160,7 +171,11 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         return np.array([self.raw_images[:, :, int(i)].T for i in ROI_idx_]).T
 
     def get_images(self):
-        return None
+        bg_strs = ['summary_image', 'max_image']
+        out_dict = {'Images': {}}
+        for bstr in bg_strs:
+            out_dict['Images'][bstr]=np.array(self._dataset_file[self._group0[0]]['info'][bstr]).T
+        return out_dict
 
     def get_pixel_masks(self, ROI_ids=None):
         if ROI_ids is None:
