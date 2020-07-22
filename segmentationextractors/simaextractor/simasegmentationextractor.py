@@ -2,7 +2,6 @@ import numpy as np
 from segmentationextractors.segmentationextractor import SegmentationExtractor
 # from past import autotranslate
 # autotranslate(['sima'])
-import sima
 import re
 import os
 import dill
@@ -13,11 +12,12 @@ from shutil import copyfile
 class SimaSegmentationExtractor(SegmentationExtractor):
     '''
     This class inherits from the SegmentationExtractor class, having all
-    its funtionality specifically applied to the dataset output from
+    its functionality specifically applied to the dataset output from
     the \'SIMA\' ROI segmentation method.
     '''
 
     def __init__(self, filepath, sima_segmentation_label='auto_ROIs'):
+        import sima
         '''
         Parameters
         ----------

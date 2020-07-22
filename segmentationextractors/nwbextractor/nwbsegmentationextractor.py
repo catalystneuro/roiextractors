@@ -20,6 +20,7 @@ try:
 except ModuleNotFoundError:
     HAVE_NWB = False
 
+
 def check_nwb_install():
     assert HAVE_NWB, "To use the Nwb extractors, install pynwb: \n\n pip install pynwb\n\n"
 
@@ -67,23 +68,6 @@ def get_dynamic_table_property(dynamic_table, *, row_ids=None, property_name):
     if row_ids is None:
         row_ids = all_row_ids
     return [dynamic_table[property_name][all_row_ids.index(x)] for x in row_ids]
-
-
-def iter_datasetvieww(datasetview_obj):
-    '''
-    Generator to return a row of the array each time it is called.
-    This will be wrapped with a DataChunkIterator class.
-
-    Parameters
-    ----------
-    datasetview_obj: DatasetView
-        2-D array to iteratively write to nwb.
-    '''
-
-    for i in range(datasetview_obj.shape[0]):
-        curr_data = datasetview_obj[i]
-        yield curr_data
-    return
 
 
 class NwbSegmentationExtractor(SegmentationExtractor):
