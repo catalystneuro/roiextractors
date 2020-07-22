@@ -32,7 +32,8 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     def _load_npy(self, filename, mmap_mode=None):
         ret_val = [[None]]*self.no_planes_extract
         for i in range(self.no_planes_extract):
-            ret_val[i] = np.load(self.filepath + f'\\Plane{i}\\' + filename,
+            fpath = os.path.join(self.filepath, 'Plane{}'.format(i), filename)
+            ret_val[i] = np.load(fpath,
                                  mmap_mode=mmap_mode,
                                  allow_pickle=not mmap_mode and True)
         return ret_val

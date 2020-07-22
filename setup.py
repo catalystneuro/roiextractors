@@ -20,7 +20,7 @@ setup(
     package_data={},
     install_requires=[
         'pynwb',
-        'sima',
+        #'sima',
         'dill',
         'lazy_ops',
         'nwb-conversion-tools',
