@@ -144,7 +144,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             raise Exception('no ROI response series found')
         else:
             rrs_neurons = mod['Fluorescence'].get_roi_response_series(_roi_exist[0])
-            self.roi_response = DatasetView(rrs_neurons.data)
+            self.roi_response = rrs_neurons.data
             self._no_background_comps = 1
             self.roi_response_bk = np.nan * np.ones(
                 [self._no_background_comps, self.roi_response.shape[1]])
