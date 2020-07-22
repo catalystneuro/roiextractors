@@ -69,23 +69,6 @@ def get_dynamic_table_property(dynamic_table, *, row_ids=None, property_name):
     return [dynamic_table[property_name][all_row_ids.index(x)] for x in row_ids]
 
 
-def iter_datasetvieww(datasetview_obj):
-    '''
-    Generator to return a row of the array each time it is called.
-    This will be wrapped with a DataChunkIterator class.
-
-    Parameters
-    ----------
-    datasetview_obj: DatasetView
-        2-D array to iteratively write to nwb.
-    '''
-
-    for i in range(datasetview_obj.shape[0]):
-        curr_data = datasetview_obj[i]
-        yield curr_data
-    return
-
-
 class NwbSegmentationExtractor(SegmentationExtractor):
     '''
     Class used to extract data from the NWB data format. Also implements a
@@ -662,7 +645,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 if not neuron_roi_response_exist:
                     fl.create_roi_response_series(name=neuron_roi_response_series_name,
                                                   data=DataChunkIterator(
-                                                      data=iter_datasetvieww(segmentation_extractor_obj.roi_response)),
+                                                      data=segmentation_extractor_obj.roi_response),
                                                   # data=segmentation_extractor_obj.roi_response,
                                                   rois=neuron_rois, unit='lumens',
                                                   starting_time=starting_time, rate=imaging_rate)
@@ -679,7 +662,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 if not background_roi_response_exist:
                     fl.create_roi_response_series(name=background_roi_response_series_name,
                                                   data=DataChunkIterator(
-                                                      data=iter_datasetvieww(segmentation_extractor_obj.roi_response)),
+                                                      data=segmentation_extractor_obj.roi_response),
                                                   # data=segmentation_extractor_obj.roi_response,
                                                   rois=background_rois, unit='lumens',
                                                   starting_time=starting_time, rate=imaging_rate)
