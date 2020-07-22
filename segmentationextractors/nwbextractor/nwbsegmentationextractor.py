@@ -7,9 +7,6 @@ import re
 from ..segmentationextractor import SegmentationExtractor
 from lazy_ops import DatasetView
 from hdmf.data_utils import DataChunkIterator
-from nwb_conversion_tools import gui
-from nwb_conversion_tools import NWBConverter
-# TODO: put this within the save method
 # from suite2p.io.nwb import save_nwb
 try:
     from pynwb import NWBHDF5IO, TimeSeries, NWBFile
@@ -89,7 +86,7 @@ def iter_datasetvieww(datasetview_obj):
     return
 
 
-class NwbSegmentationExtractor(SegmentationExtractor, NWBConverter):
+class NwbSegmentationExtractor(SegmentationExtractor):
     '''
     Class used to extract data from the NWB data format. Also implements a
     static method to write any format specific object to NWB.
