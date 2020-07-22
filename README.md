@@ -3,9 +3,10 @@ Python-based module for extracting from, converting between, and handling record
 ![image](https://drive.google.com/uc?export=view&id=1bhRA3kyu3SA3k-xWz5psRxLsuP3BJEBg)
 
 ## Getting Started:
-#### Installation (<=python3.6) :
+#### Installation:
 `pip install segmentationextractors`
-#### Installation (>=python3.7) :
+
+##### Installation with SIMA and python>=3.7:
 Will need a manual installation for package dependency **SIMA** since it does not currently support python 3.7:
 1.   Download SIMA wheels distribution [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#sima).
 2.  `pip install <download-path-to-wheels.whl>`
