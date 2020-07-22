@@ -4,7 +4,7 @@ import os
 
 
 class Suite2pSegmentationExtractor(SegmentationExtractor):
-    def __init__(self, fileloc):
+    def __init__(self, fileloc, combined=False):
         """
         Creating SegmentationExtractor object out of suite 2p data type.
         Parameters
@@ -14,6 +14,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         db: dict
             db overwrites any ops (allows for experiment specific settings)
         """
+        self.combined = combined
         self.filepath = fileloc
         self.no_planes_extract=1
         self.stat = self._load_npy('stat.npy')
@@ -27,7 +28,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self.ops = [i.item() for i in self._load_npy('ops.npy')]
         self.op_inp = self.ops[0]
         self.no_channels = self.op_inp['nchannels']
-        self.no_planes = self.op_inp['nplanes']
+        self.no_planes = 1 if self.combined else self.op_inp['nplanes']
         self.rois_per_plane = [i.shape[0] for i in self.iscell]
         self.raw_images = None
         self.roi_response = None
@@ -35,7 +36,9 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     def _load_npy(self, filename, mmap_mode=None):
         ret_val = [[None]]*self.no_planes_extract
         for i in range(self.no_planes_extract):
-            ret_val[i] = np.load(self.filepath + f'\\Plane{i}\\' + filename,
+            fold_name = 'combined' if self.combined else 'Plane{}'
+            fpath = os.path.join(self.filepath, fold_name.format(i), filename)
+            ret_val[i] = np.load(fpath,
                                  mmap_mode=mmap_mode,
                                  allow_pickle=not mmap_mode and True)
         return ret_val
