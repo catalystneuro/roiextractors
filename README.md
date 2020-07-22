@@ -16,7 +16,8 @@ Will need a manual installation for package dependency **SIMA** since it does no
 1. [calciumImagingAnalysis](https://github.com/bahanonu/calciumImagingAnalysis) (CNMF-E, EXTRACT)
 2. [SIMA](http://www.losonczylab.org/sima/1.3.2/)
 3. [NWB](https://pynwb.readthedocs.io/en/stable/)
-4. Numpy (a data format for manual input of optical physiology data as various numpy datasets)
+4. [suite2p](https://github.com/MouseLand/suite2p)
+45. Numpy (a data format for manual input of optical physiology data as various numpy datasets)
 
 #### Functionality:
 Interconversion amongst the various data formats as well as conversion to the NWB format and back.  
