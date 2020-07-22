@@ -30,7 +30,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         self.filetype = self._file_type_extractor_read()
         self.raw_movie_file_location = self._raw_datafile_read()
         # Not found data:
-        self.channel_names = None
+        self.channel_names = ['OpticalChannel']
         self.no_of_channels = 1
         self._no_background_comps = 1
         self.snr_comp = np.nan * np.ones(self.roi_response.shape)
@@ -173,6 +173,9 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
             ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
             ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
         return np.array([self.raw_images[:, :, int(i)].T for i in ROI_idx_]).T
+
+    def get_images(self):
+        return None
 
     def get_pixel_masks(self, ROI_ids=None):
         if ROI_ids is None:

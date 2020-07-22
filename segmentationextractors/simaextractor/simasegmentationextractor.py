@@ -2,7 +2,6 @@ import numpy as np
 from ..segmentationextractor import SegmentationExtractor
 # from past import autotranslate
 # autotranslate(['sima'])
-import sima
 import re
 import os
 import dill
@@ -13,11 +12,12 @@ from shutil import copyfile
 class SimaSegmentationExtractor(SegmentationExtractor):
     '''
     This class inherits from the SegmentationExtractor class, having all
-    its funtionality specifically applied to the dataset output from
+    its functionality specifically applied to the dataset output from
     the \'SIMA\' ROI segmentation method.
     '''
 
     def __init__(self, filepath, sima_segmentation_label='auto_ROIs'):
+        import sima
         '''
         Parameters
         ----------
@@ -283,6 +283,9 @@ class SimaSegmentationExtractor(SegmentationExtractor):
             temp = \
                 np.append(temp, self.pixel_masks[self.pixel_masks[:, 3] == roiid, :], axis=0)
         return temp[1::, :]
+
+    def get_images(self):
+        return None
 
     def get_movie_framesize(self):
         return self.image_dims

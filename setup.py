@@ -20,8 +20,11 @@ setup(
     package_data={},
     install_requires=[
         'pynwb',
-        'sima',
-        'dill'
+        #'sima',
+        'dill',
+        'lazy_ops',
+        'nwb-conversion-tools',
+        'suite2p'
     ],
     classifiers=(
         "Programming Language :: Python :: 3",
