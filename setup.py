@@ -19,9 +19,9 @@ setup(
     packages=find_packages(),
     package_data={},
     install_requires=[
-        'pynwb',
-        'sima',
-        'dill'
+        'numpy',
+        'spikeextratrors'
+        # make other dependencies optional
     ],
     classifiers=(
         "Programming Language :: Python :: 3",

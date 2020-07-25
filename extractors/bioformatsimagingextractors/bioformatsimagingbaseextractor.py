@@ -1,0 +1,1 @@
+# TODO placeholder for base bioformats class

@@ -5,6 +5,7 @@ from dateutil.tz import tzlocal
 import numpy as np
 import re
 from ..segmentationextractor import SegmentationExtractor
+from ..imagingextractor import ImagingExtractor
 from lazy_ops import DatasetView
 try:
     from pynwb import NWBHDF5IO, TimeSeries, NWBFile
@@ -66,6 +67,106 @@ def get_dynamic_table_property(dynamic_table, *, row_ids=None, property_name):
     if row_ids is None:
         row_ids = all_row_ids
     return [dynamic_table[property_name][all_row_ids.index(x)] for x in row_ids]
+
+
+class NwbImagingExtractor(ImagingExtractor):
+    '''
+        Class used to extract data from the NWB data format. Also implements a
+        static method to write any format specific object to NWB.
+        '''
+
+    extractor_name = 'NwbImaging'
+    installed = HAVE_NWB # check at class level if installed or not
+    is_writable = True
+    mode = 'file'
+    installation_mesg = "To use the Nwb Extractor run:\n\n pip install pynwb\n\n"  # error message when not installed
+
+    def __init__(self, filepath, optical_channel_name=None,
+                 imaging_plane_name=None, image_series_name=None,
+                 processing_module_name=None,
+                 neuron_roi_response_series_name=None,
+                 background_roi_response_series_name=None):
+        '''
+        Parameters
+        ----------
+        filepath: str
+            The location of the folder containing dataset.nwb file.
+        optical_channel_name: str(optional)
+            optical channel to extract data from
+        imaging_plane_name: str(optional)
+            imaging plane to extract data from
+        image_series_name: str(optional)
+            imaging series to extract data from
+        processing_module_name: str(optional)
+            processing module to extract data from
+        neuron_roi_response_series_name: str(optional)
+            name of roi response series to extract data from
+        background_roi_response_series_name: str(optional)
+            name of background roi response series to extract data from
+        '''
+        assert HAVE_NWB, self.installation_mesg
+        ImagingExtractor.__init__(self)
+
+    #TODO placeholders
+    def get_frame(self, frame_idx):
+        assert frame_idx < self.get_num_frames()
+        return self._video[frame_idx]
+
+    def get_frames(self, frame_idxs):
+        assert np.all(frame_idxs < self.get_num_frames())
+        planes = np.zeros((len(frame_idxs), self._size_x, self._size_y))
+        for i, frame_idx in enumerate(frame_idxs):
+            plane = self._video[frame_idx]
+            planes[i] = plane
+        return planes
+
+    # TODO make decorator to check and correct inputs
+    def get_video(self, start_frame=None, end_frame=None):
+        if start_frame is None:
+            start_frame = 0
+        if end_frame is None:
+            end_frame = self.get_num_frames()
+        end_frame = min(end_frame, self.get_num_frames())
+
+        video = self._video[start_frame: end_frame]
+
+        return video
+
+    def get_image_size(self):
+        return [self._size_x, self._size_y]
+
+    def get_num_frames(self):
+        return self._num_frames
+
+    def get_sampling_frequency(self):
+        return self._sampling_frequency
+
+    def get_dtype(self):
+        return self._video.dtype
+
+    def get_channel_names(self):
+        '''List of  channels in the recoding.
+
+        Returns
+        -------
+        channel_names: list
+            List of strings of channel names
+        '''
+        self._channel_names
+
+    def get_num_channels(self):
+        '''Total number of active channels in the recording
+
+        Returns
+        -------
+        no_of_channels: int
+            integer count of number of channels
+        '''
+        self._num_channels
+
+    @staticmethod
+    def write_imaging(imaging, savepath):
+        pass
 
 
 class NwbSegmentationExtractor(SegmentationExtractor):
