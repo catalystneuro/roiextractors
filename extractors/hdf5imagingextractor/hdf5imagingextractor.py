@@ -1,6 +1,7 @@
 import numpy as np
 from pathlib import Path
 from ..imagingextractor import ImagingExtractor
+from ..extraction_tools import get_video_shape
 
 try:
     import h5py
@@ -22,50 +23,48 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         ImagingExtractor.__init__(self)
         self.filepath = Path(filepath)
         self._sampling_frequency = sampling_frequency
-        assert self.filepath.suffix in ['.tiff', '.tif']
+        assert self.filepath.suffix in ['.h5', '.hdf5']
         # TODO placeholder
-        self._video = np.load(self.filepath)
-        self._channel_names = channel_names
+
+        with h5py.File(filepath, "r") as f:
+            if 'mov' in f.keys():
+                self._video = f['mov']
+                self._sampling_frequency = self._video.attrs["fr"]
+                self._start_time = self._video.attrs["start_time"]
+                self.metadata = self._video.attrs["meta_data"]
+            else:
+                raise Exception(f"{filepath} does not contain the 'mov' dataset")
+
+        self._num_channels, self._num_frames, self._size_x, self._size_y = get_video_shape(self._video)
 
         if len(self._video.shape) == 3:
-            # 1 channel
-            self._num_channels = 1
-            self._num_frames, self._size_x, self._size_y = self._video.shape
-            if channel_names is not None:
-                if isinstance(channel_names, str):
-                    self._channel_names = [channel_names]
+            # check if this converts to np.ndarray
             self._video = self._video[np.newaxis, :]
-        else:
-            # more channels
-            # TODO deal with multiple channels properly
-            self._num_channels, self._num_frames, self._size_x, self._size_y = self._video.shape
+
         if self._channel_names is not None:
             assert len(self._channel_names) == self._num_channels, "'channel_names' length is different than number " \
                                                                    "of channels"
         else:
             self._channel_names = [f'channel_{ch}' for ch in range(self._num_channels)]
 
-    def get_frame(self, frame_idx):
+    def get_frame(self, frame_idx, channel=0):
         assert frame_idx < self.get_num_frames()
-        return self._video[frame_idx]
+        return self._video[channel, frame_idx]
 
-    def get_frames(self, frame_idxs):
+    def get_frames(self, frame_idxs, channel=0):
         assert np.all(frame_idxs < self.get_num_frames())
-        planes = np.zeros((len(frame_idxs), self._size_x, self._size_y))
-        for i, frame_idx in enumerate(frame_idxs):
-            plane = self._video[frame_idx]
-            planes[i] = plane
-        return planes
+        sorted_frame_idxs, sorting_inverse = np.sort(frame_idxs, return_inverse=True)
+        return self._video[channel, sorted_frame_idxs][:, sorting_inverse]
 
     # TODO make decorator to check and correct inputs
-    def get_video(self, start_frame=None, end_frame=None):
+    def get_video(self, start_frame=None, end_frame=None, channel=0):
         if start_frame is None:
             start_frame = 0
         if end_frame is None:
             end_frame = self.get_num_frames()
         end_frame = min(end_frame, self.get_num_frames())
 
-        video = self._video[start_frame: end_frame]
+        video = self._video[channel, start_frame: end_frame]
 
         return video
 
@@ -89,7 +88,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         channel_names: list
             List of strings of channel names
         '''
-        self._channel_names
+        return self._channel_names
 
     def get_num_channels(self):
         '''Total number of active channels in the recording
@@ -99,7 +98,8 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         no_of_channels: int
             integer count of number of channels
         '''
-        self._num_channels
+        return self._num_channels
 
+    @staticmethod
     def write_imaging(imaging, savepath):
         pass

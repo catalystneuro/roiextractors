@@ -27,3 +27,14 @@ def _pixel_mask_extractor(_raw_images_trans, _roi_idx):
              _pix_values.reshape([1, np.size(_locs[1])]),
              roiid * np.ones([1, np.size(_locs[1])]))).T, axis=0)
     return temp[1::, :]
+
+
+def get_video_shape(video):
+    if len(video.shape) == 3:
+        # 1 channel
+        num_channels = 1
+        num_frames, size_x, size_y = video.shape
+    else:
+        num_channels, num_frames, size_x, size_y = video.shape
+
+    return num_channels, num_frames, size_x, size_y

@@ -13,15 +13,15 @@ class ImagingExtractor(ABC, BaseExtractor):
         self._memmapped = False
 
     @abstractmethod
-    def get_frame(self, frame_idx) -> NumpyArray:
+    def get_frame(self, frame_idx: int, channel: int = 0) -> NumpyArray:
         pass
 
     @abstractmethod
-    def get_frames(self, frame_idxs) -> NumpyArray:
+    def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> NumpyArray:
         pass
 
     @abstractmethod
-    def get_video(self, start_frame=None, end_frame=None) -> NumpyArray:
+    def get_video(self, start_frame: int = None, end_frame: int = None, channel: int = 0) -> NumpyArray:
         pass
 
     @abstractmethod
@@ -34,10 +34,6 @@ class ImagingExtractor(ABC, BaseExtractor):
 
     @abstractmethod
     def get_sampling_frequency(self) -> float:
-        pass
-
-    @abstractmethod
-    def get_dtype(self) -> DtypeType:
         pass
 
     @abstractmethod
@@ -62,14 +58,12 @@ class ImagingExtractor(ABC, BaseExtractor):
         '''
         pass
 
-    def save_memmap(self, save_path):
-        raise NotImplementedError
+    def get_dtype(self) -> DtypeType:
+        return self.get_frame(0, 0).dtype
 
-    def load_memmap(self, load_path):
-        raise NotImplementedError
 
     @staticmethod
-    def write_imaging(imaging, savepath):
+    def write_imaging(imaging, save_path: PathType):
         '''
         Static method to write imaging.
 
@@ -78,7 +72,7 @@ class ImagingExtractor(ABC, BaseExtractor):
         imaging: ImagingExtractor object
             The EXTRACT segmentation object from which an EXTRACT native format
             file has to be generated.
-        savepath: str
+        save_path: str
             path to save the native format.
         '''
         raise NotImplementedError

@@ -108,7 +108,7 @@ class NwbImagingExtractor(ImagingExtractor):
         ImagingExtractor.__init__(self)
 
     #TODO placeholders
-    def get_frame(self, frame_idx):
+    def get_frame(self, frame_idx, channel=0):
         assert frame_idx < self.get_num_frames()
         return self._video[frame_idx]
 

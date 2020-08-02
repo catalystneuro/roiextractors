@@ -20,7 +20,8 @@ setup(
     package_data={},
     install_requires=[
         'numpy',
-        'spikeextratrors'
+        'spikeextratrors',
+        'tqdm'
         # make other dependencies optional
     ],
     classifiers=(
