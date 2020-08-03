@@ -1,7 +1,7 @@
 import numpy as np
 from pathlib import Path
-from ..imagingextractor import ImagingExtractor
-from ..extraction_tools import get_video_shape
+from roiextractors import ImagingExtractor
+from roiextractors.extraction_tools import get_video_shape
 
 try:
     import h5py
@@ -17,23 +17,23 @@ class Hdf5ImagingExtractor(ImagingExtractor):
     mode = 'file'
     installation_mesg = "To use the Hdf5 Extractor run:\n\n pip install h5py\n\n"  # error message when not installed
 
-    def __init__(self, filepath, sampling_frequency=None,
+    def __init__(self, file_path, sampling_frequency=None,
                  channel_names=None):
         assert HAVE_H5, self.installation_mesg
         ImagingExtractor.__init__(self)
-        self.filepath = Path(filepath)
+        self.filepath = Path(file_path)
         self._sampling_frequency = sampling_frequency
-        assert self.filepath.suffix in ['.h5', '.hdf5']
-        # TODO placeholder
+        assert self.filepath.suffix in ['.h5', '.hdf5'], ""
+        self._channel_names = channel_names
 
-        with h5py.File(filepath, "r") as f:
+        with h5py.File(file_path, "r") as f:
             if 'mov' in f.keys():
                 self._video = f['mov']
                 self._sampling_frequency = self._video.attrs["fr"]
                 self._start_time = self._video.attrs["start_time"]
                 self.metadata = self._video.attrs["meta_data"]
             else:
-                raise Exception(f"{filepath} does not contain the 'mov' dataset")
+                raise Exception(f"{file_path} does not contain the 'mov' dataset")
 
         self._num_channels, self._num_frames, self._size_x, self._size_y = get_video_shape(self._video)
 

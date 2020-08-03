@@ -4,9 +4,9 @@ from datetime import datetime
 from dateutil.tz import tzlocal
 import numpy as np
 import re
-from ..segmentationextractor import SegmentationExtractor
-from ..imagingextractor import ImagingExtractor
+from roiextractors import ImagingExtractor, SegmentationExtractor
 from lazy_ops import DatasetView
+
 try:
     from pynwb import NWBHDF5IO, TimeSeries, NWBFile
     from pynwb.base import Images

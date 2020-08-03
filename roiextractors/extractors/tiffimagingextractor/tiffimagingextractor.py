@@ -1,7 +1,7 @@
 import numpy as np
 from pathlib import Path
-from ..imagingextractor import ImagingExtractor
-from ..extraction_tools import ArrayType, PathType
+from roiextractors import ImagingExtractor
+from roiextractors.extraction_tools import ArrayType, PathType
 
 
 class TiffImagingExtractor(ImagingExtractor):

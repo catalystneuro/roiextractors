@@ -1,28 +1,28 @@
 from setuptools import setup, find_packages
 
 d = {}
-exec(open("segmentationextractors/version.py").read(), None, d)
+exec(open("roiextractors/version.py").read(), None, d)
 version = d['version']
-pkg_name = "segmentationextractors"
+pkg_name = "roiextractors"
 with open('README.md') as rd:
     long_description = rd.read()
 
 setup(
     name=pkg_name,
     version=version,
-    author="Saksham Sharda, Ben Dichter",
+    author="Saksham Sharda, Ben Dichter, Alessio Buccino",
     author_email="saksham20.sharda@gmail.com",
     description="Python module for extracting optical physiology ROIs and traces for various file types and formats",
-    url="https://github.com/ben-dichter-consulting/segmentationextractors",
+    url="https://github.com/catalystneuro/segmentationextractors",
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=find_packages(),
     package_data={},
     install_requires=[
         'numpy',
-        'spikeextratrors',
-        'tqdm'
-        # make other dependencies optional
+        'spikeextractors',
+        'tqdm',
+        'lazy_ops'
     ],
     classifiers=(
         "Programming Language :: Python :: 3",

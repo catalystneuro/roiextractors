@@ -61,7 +61,6 @@ class ImagingExtractor(ABC, BaseExtractor):
     def get_dtype(self) -> DtypeType:
         return self.get_frame(0, 0).dtype
 
-
     @staticmethod
     def write_imaging(imaging, save_path: PathType):
         '''

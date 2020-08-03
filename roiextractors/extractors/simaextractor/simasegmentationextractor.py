@@ -1,13 +1,18 @@
 import numpy as np
-from ..segmentationextractor import SegmentationExtractor
+from roiextractors import SegmentationExtractor
 # from past import autotranslate
 # autotranslate(['sima'])
-import sima
 import re
 import os
-import dill
 import pickle
 from shutil import copyfile
+
+try:
+    import sima
+    import dill
+    HAVE_SIMA = True
+except:
+    HAVE_SIMA = False
 
 
 class SimaSegmentationExtractor(SegmentationExtractor):
@@ -27,7 +32,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         sima_segmentation_label: str
             name of the ROIs in the dataset from which to extract all ROI info
         '''
-
+        assert HAVE_SIMA
         self.filepath = filepath
         self._convert_sima(filepath)
         self._dataset_file = self._file_extractor_read()

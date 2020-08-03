@@ -28,7 +28,7 @@ class MemmapImagingExtractor(ImagingExtractor):
             self._is_tmp = False
             self._tmp_file = save_path
 
-        self._save_memmap_video(save_path, verbose)
+        self._save_memmap_video(verbose)
         self._verbose = verbose
 
     def __del__(self):
@@ -43,19 +43,19 @@ class MemmapImagingExtractor(ImagingExtractor):
         self._video = np.memmap(save_path, shape=(self.imaging.get_num_channels(),
                                                   self.imaging.get_num_frames(),
                                                   self.imaging.get_image_size()[0],
-                                                  self.imaging.get_image_size()[0]),
+                                                  self.imaging.get_image_size()[1]),
                                 dtype=self.imaging.get_dtype(), mode='w+')
 
         if verbose:
             for ch in range(self.imaging.get_num_channels()):
                 print(f"Saving channel {ch}")
                 for i in tqdm(range(self.imaging.get_num_frames())):
-                    plane = self.imaging.get_frame(ch, i)
+                    plane = self.imaging.get_frame(i, channel=ch)
                     self._video[ch, i] = plane
         else:
             for ch in range(self.imaging.get_num_channels()):
                 for i in range(self.imaging.get_num_frames()):
-                    plane = self.imaging.get_frame(ch, i)
+                    plane = self.imaging.get_frame(i, channel=ch)
                     self._video[ch, i] = plane
 
     @property

@@ -1,19 +1,20 @@
 import numpy as np
 from pathlib import Path
-from ..segmentationextractor import SegmentationExtractor
-from ..imagingextractor import ImagingExtractor
-from ..extraction_tools import get_video_shape
+from ...segmentationextractor import SegmentationExtractor
+from ...imagingextractor import ImagingExtractor
+from ...extraction_tools import get_video_shape
 
 
+# TODO this class should also be able to instantiate an in-memory object (useful for testing)
 class NumpyImagingExtractor(ImagingExtractor):
-    def __init__(self, filepath, sampling_frequency=None,
+    def __init__(self, file_path, sampling_frequency=None,
                  channel_names=None):
 
         ImagingExtractor.__init__(self)
-        self.filepath = Path(filepath)
+        self.filepath = Path(file_path)
         self._sampling_frequency = sampling_frequency
         assert self.filepath.suffix == '.npy'
-        self._video = np.load(self.filepath)
+        self._video = np.load(self.filepath, mmap_mode='r')
         self._channel_names = channel_names
 
         self._num_channels, self._num_frames, self._size_x, self._size_y = get_video_shape(self._video)
@@ -57,9 +58,6 @@ class NumpyImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self):
         return self._sampling_frequency
 
-    def get_dtype(self):
-        return self._video.dtype
-
     def get_channel_names(self):
         '''List of  channels in the recoding.
 
@@ -81,8 +79,11 @@ class NumpyImagingExtractor(ImagingExtractor):
         return self._num_channels
 
     @staticmethod
-    def write_imaging(imaging, savepath):
-        pass
+    def write_imaging(imaging, save_path):
+        save_path = Path(save_path)
+        assert save_path.suffix == '.npy', "'save_path' should havve a .npy extension"
+
+        np.save(save_path, imaging.get_video())
 
 
 class NumpySegmentationExtractor(SegmentationExtractor):
@@ -133,6 +134,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         movie_dims: list(2-D)
             height x width of the movie
         '''
+        SegmentationExtractor.__init__(self)
         self.filepath = filepath
         self._dataset_file = None
         if masks is None:
