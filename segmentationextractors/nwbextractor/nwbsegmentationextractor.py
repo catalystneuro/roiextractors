@@ -1,6 +1,8 @@
 import os
 import uuid
 from datetime import datetime
+
+import pynwb
 from dateutil.tz import tzlocal
 import numpy as np
 import re
@@ -8,12 +10,11 @@ import yaml
 from segmentationextractors.segmentationextractor import SegmentationExtractor
 from lazy_ops import DatasetView
 from hdmf.data_utils import DataChunkIterator
-from segmentationextractors.nwbwriter import SegmentationExtractor2NWBConverter
 try:
     from pynwb import NWBHDF5IO, TimeSeries, NWBFile
     from pynwb.base import Images
     from pynwb.image import GrayscaleImage
-    from pynwb.ophys import ImageSegmentation, Fluorescence, OpticalChannel, TwoPhotonSeries
+    from pynwb.ophys import ImageSegmentation, Fluorescence, OpticalChannel, TwoPhotonSeries, DfOverF
     from pynwb.device import Device
 
     HAVE_NWB = True
@@ -332,6 +333,132 @@ class NwbSegmentationExtractor(SegmentationExtractor):
 
     @staticmethod
     def write_recording(segext_obj, savepath, metadata_dict=None, **kwargs):
-        conv_obj = SegmentationExtractor2NWBConverter(segext_obj, None, metadata_dict)
-        conv_obj.run_conversion()
-        conv_obj.save(savepath)
+        source_path = segext_obj.filepath
+        if isinstance(metadata_dict, str):
+            with open(metadata_dict, 'r') as f:
+                metadata = yaml.safe_load(f)
+
+        #NWB file:
+        nwbfile_args = dict(identifier=str(uuid.uuid4()), )
+        nwbfile_args.update(**metadata_dict['NWBFile'])
+        nwbfile = NWBFile(**nwbfile_args)
+
+        #Subject:
+        nwbfile.subject = pynwb.file.Subject(**metadata_dict['Subject'])
+
+        #Device:
+        if isinstance(metadata_dict['Ophys']['Device'], list):
+            for devices in metadata_dict['Ophys']['Device']:
+                nwbfile.create_device(**devices)
+        else:
+            nwbfile.create_device(**metadata_dict['Ophys']['Device'])
+
+        #Processing Module:
+        ophys_mod = nwbfile.create_processing_module('Ophys',
+                                                     'contains optical physiology processed data')
+
+        #ImageSegmentation:
+        image_segmentation = ImageSegmentation(metadata_dict['Ophys']['ImageSegmentation']['name'])
+        ophys_mod.add_data_interface(image_segmentation)
+
+        #OPtical Channel:
+        channel_names = segext_obj.get_channel_names()
+        input_args=[dict(name=i) for i in channel_names]
+        for j,i in enumerate(metadata_dict['Ophys']['ImagingPlane']['optical_channel']):
+            input_args[j].update(**i)
+        optical_channels=[OpticalChannel(input_args[j]) for j,i in enumerate(channel_names)]
+
+        #Imaging Plane:
+        input_kwargs = [dict(
+            name='ImagingPlane',
+            description='no description',
+            device=i,
+            excitation_lambda=np.nan,
+            optical_channel=optical_channels,
+            imaging_rate=1.0,
+            indicator='unknown',
+            location='unknown'
+        ) for i in nwbfile.devices.values()]
+        [input_kwargs[j].update(**i) for j,i in enumerate(metadata_dict['Ophys']['ImagingPlane'])]#update with metadata
+        imaging_planes = [nwbfile.create_imaging_plane(i) for i in input_kwargs]
+
+        #Plane Segmentation:
+        input_kwargs = [dict(
+            name='PlaneSegmentation',
+            description='output from segmenting my favorite imaging plane',
+            imaging_plane=i
+        ) for i in imaging_planes]
+        [input_kwargs[j].update(**i)
+         for j,i in enumerate(metadata_dict['Ophys']['ImageSegmentation']['plane_segmentations'])]  # update with metadata
+        ps = [image_segmentation.create_plane_segmentation(i) for i in input_kwargs]
+
+        # ROI add:
+        pixel_mask_exist = segext_obj.get_pixel_masks() is not None
+        for i, roiid in enumerate(segext_obj.roi_idx):
+            if pixel_mask_exist:
+                [ps_loop.add_roi(id=roiid,
+                           pixel_mask=segext_obj.get_pixel_masks(ROI_ids=[roiid])[:, 0:-1])
+                for ps_loop in ps]
+            else:
+                [ps_loop.add_roi(id=roiid,
+                                 image_mask=segext_obj.get_image_masks(ROI_ids=[roiid]))
+                for ps_loop in ps]
+
+        # adding columns to ROI table:
+        [ps_loop.add_column(name='RoiCentroid',
+                            description='x,y location of centroid of the roi in image_mask',
+                            data=np.array(segext_obj.get_roi_locations()).T)
+         for ps_loop in ps]
+        accepted = np.zeros(segext_obj.no_rois)
+        for j, i in enumerate(segext_obj.roi_idx):
+            if i in segext_obj.accepted_list:
+                accepted[j] = 1
+        [ps_loop.add_column(name='Accepted',
+                            description='1 if ROi was accepted or 0 if rejected as a cell during segmentation operation',
+                            data=accepted)
+         for ps_loop in ps]
+
+        #Fluorescence Traces:
+        input_kwargs = dict(
+            rois=ps[0].create_roi_table_region('NeuronROIs', region=list(range(segext_obj.no_rois))),
+            starting_time=0.0,
+            rate=segext_obj.get_sampling_frequency(),
+            unit='lumens'
+        )
+        container_type = [i for i in metadata_dict['Ophys'].keys() if i in ['DfOverF','Fluorescence']][0]
+        f_container = eval(container_type+'()')
+        ophys_mod.add_data_interface(f_container)
+        for i in metadata_dict['Ophys'][container_type]['roi_response_series']:
+            i.update(**input_kwargs,data=segext_obj.get_traces_info()[i['name']])
+            f_container.create_roi_response_series(**i)
+
+        #create Two Photon Series:
+        input_kwargs = [dict(
+            name='TwoPhotonSeries',
+            description='no description',
+            imaging_plane=i,
+            external_file=[segext_obj.get_movie_location()],
+            format='external',
+            rate=segext_obj.get_sampling_frequency(),
+            starting_time=0.0,
+            starting_frame=[0],
+            dimension=segext_obj.image_dims
+        ) for i in imaging_planes]
+        [input_kwargs[j].update(**i) for j,i in enumerate(metadata_dict['Ophys']['TwoPhotonSeries'])]
+        tps = [nwbfile.add_acquisition(TwoPhotonSeries(**i)) for i in input_kwargs]
+
+        #adding images:
+        images_dict = segext_obj.get_images()
+        if images_dict is not None:
+            for img_set_name, img_set in images_dict.items():
+                images = Images(img_set_name)
+                for img_name, img_no in img_set.items():
+                    images.add_image(GrayscaleImage(name=img_name, data=img_no))
+                ophys_mod.add(images)
+
+        # saving NWB file:
+        with NWBHDF5IO(savepath, 'w') as io:
+            io.write(nwbfile)
+
+        with NWBHDF5IO(savepath, 'r') as io:
+            io.read()
