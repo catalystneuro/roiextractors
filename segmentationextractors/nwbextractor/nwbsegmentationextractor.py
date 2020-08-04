@@ -332,7 +332,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         return ret_val
 
     @staticmethod
-    def write_recording(segext_obj, savepath, metadata_dict=None, **kwargs):
+    def write_segmentation(segext_obj, savepath, metadata_dict=None, **kwargs):
         source_path = segext_obj.filepath
         if isinstance(metadata_dict, str):
             with open(metadata_dict, 'r') as f:
@@ -429,7 +429,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         f_container = eval(container_type+'()')
         ophys_mod.add_data_interface(f_container)
         for i in metadata_dict['Ophys'][container_type]['roi_response_series']:
-            i.update(**input_kwargs,data=segext_obj.get_traces_info()[i['name']])
+            i.update(**input_kwargs,data=segext_obj.get_traces_info()[i['name']].T)
             f_container.create_roi_response_series(**i)
 
         #create Two Photon Series:
