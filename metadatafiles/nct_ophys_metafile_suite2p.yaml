@@ -50,7 +50,7 @@ Ophys:
       name: ImagingPlane
       grid_spacing: [2,2]
       grid_spacing_unit: microns
-      optical_channel:
+      optical_channels:
         - name: OpticalChannel
           emission_lambda: 500.0
   TwoPhotonSeries:
