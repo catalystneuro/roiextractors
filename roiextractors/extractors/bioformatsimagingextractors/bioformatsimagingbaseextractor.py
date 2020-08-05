@@ -1,5 +1,6 @@
 from pathlib import Path
 import numpy as np
+from abc import ABC, abstractmethod
 from roiextractors import ImagingExtractor
 
 try:
@@ -11,67 +12,45 @@ except:
     HAVE_BIOFORMATS = False
 
 
-class BioformatsImagingExtractor(ImagingExtractor):
+class BioformatsImagingExtractor(ImagingExtractor, ABC):
     def __init__(self, file_path):
         ImagingExtractor.__init__(self)
         self.file_path = Path(file_path)
         self._start_javabridge_vm()
         self._reader = bioformats.ImageReader(str(self.file_path))
+
+        # read metadata
         self._read_metadata()
+        self._validate_metadata()
 
     def __del__(self):
         self._reader.close()
         self._kill_javabridge_vm()
 
-    # TODO: check that other formats have the same structure
+    @abstractmethod
     def _read_metadata(self):
-        ## Read metadata from ONEXML
-        metadata = bioformats.get_omexml_metadata(str(self.file_path))
-        o = bioformats.OMEXML(metadata)
-        dom = o.dom
-        self._root = dom.getroot()
+        '''
+        This abstract method needs to be overridden to load the following fields from the metadata:
 
-        for ch in self._root:
-            tag = ch.tag[ch.tag.find('}') + 1:]
-            if 'Image' in tag:
-                attrib = ch.attrib
-                if 'Primary' in attrib['Name']:
-                    for ch1 in ch:
-                        tag1 = ch1.tag[ch1.tag.find('}') + 1:]
-                        attrib1 = ch1.attrib
-                        if 'Pixels' in tag1:
-                            pixels_info = attrib1
-            else:
-                if 'StructuredAnnotations' in ch.tag:
-                    for ch1 in ch:
-                        tag1 = ch1.tag[ch1.tag.find('}') + 1:]
-                        attrib1 = ch1.attrib
-                        for ch2 in ch1:
-                            tag2 = ch2.tag[ch2.tag.find('}') + 1:]
-                        # todo get sampling frequency
+        self._size_x
+        self._size_y
+        self._size_z
+        self._num_channels
+        self._num_frames
+        self._channel_names
+        self._sampling_frequency
+        self._dtype
 
-        self.metadata = {}
-        self.metadata['num_channels'] = int(pixels_info['SizeC'])
-        self.metadata['num_frames'] = int(pixels_info['SizeT'])
-        self.metadata['size_x'] = int(pixels_info['SizeX'])
-        self.metadata['size_y'] = int(pixels_info['SizeY'])
-        self.metadata['size_z'] = int(pixels_info['SizeZ'])
-        self.metadata['dtype'] = pixels_info['Type']
+        '''
+        pass
 
-        self._pixelinfo = pixels_info
+    def _validate_metadata(self):
+        assert self._size_x is not None
+        assert self._size_y is not None
+        assert self._num_channels is not None
+        assert self._num_frames is not None
+        assert self._sampling_frequency is not None
 
-        # TODO retrieve channel names
-        self.metadata['channel_names'] = [f'channel_{i}' for i in range(self.metadata['num_channels'])]
-
-        # TODO find better approach
-        get_next = False
-        for it in self._root.iter():
-            if it.text is not None:
-                if get_next:
-                    self._sampling_frequency = float(it.text)
-                    get_next = False
-                if 'frame' in it.text:
-                    get_next = True
 
     def _start_javabridge_vm(self):
         javabridge.start_vm(class_path=bioformats.JARS)
@@ -85,8 +64,9 @@ class BioformatsImagingExtractor(ImagingExtractor):
         return plane
 
     def get_frames(self, frame_idxs, channel=0):
-        assert np.all(np.array(frame_idxs) < self.get_num_frames())
-        planes = np.zeros((len(frame_idxs), self.metadata['size_x'], self.metadata['size_y']))
+        frame_idxs = np.array(frame_idxs)
+        assert np.all(frame_idxs < self.get_num_frames())
+        planes = np.zeros((len(frame_idxs), self._size_x, self._size_y))
         for i, frame_idx in enumerate(frame_idxs):
             plane = self._reader.read(t=frame_idx).T
             planes[i] = plane
@@ -99,23 +79,23 @@ class BioformatsImagingExtractor(ImagingExtractor):
             end_frame = self.get_num_frames()
         end_frame = min(end_frame, self.get_num_frames())
 
-        video = np.zeros((end_frame - start_frame, self.metadata['size_x'], self.metadata['size_y']))
+        video = np.zeros((end_frame - start_frame, self._size_x, self._size_y))
         for i, frame_idx in enumerate(np.arange(start_frame, end_frame)):
             video[i] = self._reader.read(t=frame_idx).T
 
         return video
 
     def get_image_size(self):
-        return np.array([self.metadata['size_x'], self.metadata['size_y']])
+        return np.array([self._size_x, self._size_y])
 
     def get_num_frames(self):
-        return self.metadata['num_frames']
+        return self._num_frames
 
     def get_sampling_frequency(self):
         return self._sampling_frequency
 
     def get_channel_names(self):
-        return self.metadata['channel_names']
+        return self._channel_names
 
     def get_num_channels(self):
-        return self.metadata['num_channels']
+        return self._num_channels

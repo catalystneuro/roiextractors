@@ -22,7 +22,8 @@ setup(
         'numpy',
         'spikeextractors',
         'tqdm',
-        'lazy_ops'
+        'lazy_ops',
+        'dill'
     ],
     classifiers=(
         "Programming Language :: Python :: 3",

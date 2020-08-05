@@ -34,6 +34,7 @@ class NumpyImagingExtractor(ImagingExtractor):
         return self._video[channel, frame_idx]
 
     def get_frames(self, frame_idxs, channel=0):
+        frame_idxs = np.array(frame_idxs)
         assert np.all(frame_idxs < self.get_num_frames())
         return self._video[channel, frame_idxs]
 

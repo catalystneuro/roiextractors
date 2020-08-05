@@ -1,1 +1,1 @@
-from .bioformatsimagingbaseextractor import BioformatsImagingExtractor
+from .bioformatsimagingextractors import FliImagingExtractor, StkImagingExtractor

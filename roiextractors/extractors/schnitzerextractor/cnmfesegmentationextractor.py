@@ -10,6 +10,11 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
     its funtionality specifically applied to the dataset output from
     the \'CNMF-E\' ROI segmentation method.
     '''
+    extractor_name = 'CnmfeSegmentation'
+    installed = True  # check at class level if installed or not
+    is_writable = False
+    mode = 'file'
+    installation_mesg = ""  # error message when not installed
 
     def __init__(self, filepath):
         '''

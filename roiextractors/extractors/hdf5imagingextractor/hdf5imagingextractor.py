@@ -47,11 +47,15 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         else:
             self._channel_names = [f'channel_{ch}' for ch in range(self._num_channels)]
 
+        self._kwargs = {'file_path': str(Path(file_path).absolute()),
+                        'sampling_frequency': sampling_frequency}
+
     def get_frame(self, frame_idx, channel=0):
         assert frame_idx < self.get_num_frames()
         return self._video[channel, frame_idx]
 
     def get_frames(self, frame_idxs, channel=0):
+        frame_idxs = np.array(frame_idxs)
         assert np.all(frame_idxs < self.get_num_frames())
         sorted_frame_idxs, sorting_inverse = np.sort(frame_idxs, return_inverse=True)
         return self._video[channel, sorted_frame_idxs][:, sorting_inverse]
@@ -77,27 +81,10 @@ class Hdf5ImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self):
         return self._sampling_frequency
 
-    def get_dtype(self):
-        return self._video.dtype
-
     def get_channel_names(self):
-        '''List of  channels in the recoding.
-
-        Returns
-        -------
-        channel_names: list
-            List of strings of channel names
-        '''
         return self._channel_names
 
     def get_num_channels(self):
-        '''Total number of active channels in the recording
-
-        Returns
-        -------
-        no_of_channels: int
-            integer count of number of channels
-        '''
         return self._num_channels
 
     @staticmethod
