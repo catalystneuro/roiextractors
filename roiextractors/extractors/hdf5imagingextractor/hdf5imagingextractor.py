@@ -17,18 +17,19 @@ class Hdf5ImagingExtractor(ImagingExtractor):
     mode = 'file'
     installation_mesg = "To use the Hdf5 Extractor run:\n\n pip install h5py\n\n"  # error message when not installed
 
-    def __init__(self, file_path, sampling_frequency=None,
+    def __init__(self, file_path, mov_field='mov', sampling_frequency=None,
                  channel_names=None):
         assert HAVE_H5, self.installation_mesg
         ImagingExtractor.__init__(self)
         self.filepath = Path(file_path)
         self._sampling_frequency = sampling_frequency
+        self._mov_field = mov_field
         assert self.filepath.suffix in ['.h5', '.hdf5'], ""
         self._channel_names = channel_names
 
         with h5py.File(file_path, "r") as f:
             if 'mov' in f.keys():
-                self._video = f['mov']
+                self._video = f[self._mov_field]
                 self._sampling_frequency = self._video.attrs["fr"]
                 self._start_time = self._video.attrs["start_time"]
                 self.metadata = self._video.attrs["meta_data"]
@@ -47,8 +48,8 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         else:
             self._channel_names = [f'channel_{ch}' for ch in range(self._num_channels)]
 
-        self._kwargs = {'file_path': str(Path(file_path).absolute()),
-                        'sampling_frequency': sampling_frequency}
+        self._kwargs = {'file_path': str(Path(file_path).absolute()), 'mov_field': mov_field,
+                        'sampling_frequency': sampling_frequency, 'channel_names': channel_names}
 
     def get_frame(self, frame_idx, channel=0):
         assert frame_idx < self.get_num_frames()
