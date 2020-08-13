@@ -3,9 +3,10 @@ Python-based module for extracting from, converting between, and handling record
 ![image](https://drive.google.com/uc?export=view&id=1bhRA3kyu3SA3k-xWz5psRxLsuP3BJEBg)
 
 ## Getting Started:
-#### Installation (<=python3.6) :
+#### Installation:
 `pip install segmentationextractors`
-#### Installation (>=python3.7) :
+
+##### Installation with SIMA and python>=3.7:
 Will need a manual installation for package dependency **SIMA** since it does not currently support python 3.7:
 1.   Download SIMA wheels distribution [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#sima).
 2.  `pip install <download-path-to-wheels.whl>`
@@ -16,7 +17,8 @@ Will need a manual installation for package dependency **SIMA** since it does no
 1. [calciumImagingAnalysis](https://github.com/bahanonu/calciumImagingAnalysis) (CNMF-E, EXTRACT)
 2. [SIMA](http://www.losonczylab.org/sima/1.3.2/)
 3. [NWB](https://pynwb.readthedocs.io/en/stable/)
-4. Numpy (a data format for manual input of optical physiology data as various numpy datasets)
+4. [suite2p](https://github.com/MouseLand/suite2p)
+45. Numpy (a data format for manual input of optical physiology data as various numpy datasets)
 
 #### Functionality:
 Interconversion amongst the various data formats as well as conversion to the NWB format and back.  
@@ -87,22 +89,18 @@ seg_obj_nwb = segmentationextractors.NwbSegmentationExtractor(
 ## Example Datasets:
   * Example datasets for each of the file formats can be downloaded  [here](https://drive.google.com/drive/folders/1CeDfr6yza_bh0vYD2E1HF_3_S8pg2yLW?usp=sharing).
 
-## Class description:
+## Class descriptions:
 
-*  **SegmentationExtractor:**
-  * An abstract class that contains all the meta-data and output data from the ROI segmentation operation when applied to the pre-processed data. It also contains methods to read from and write to various data formats ouput from  the processing pipelines like SIMA, CaImAn, Suite2p, CNNM-E.
+*  **SegmentationExtractor:** An abstract class that contains all the meta-data and output data from the ROI segmentation operation when applied to the pre-processed data. It also contains methods to read from and write to various data formats ouput from  the processing pipelines like SIMA, CaImAn, Suite2p, CNNM-E.
 
-*  **NumpySegmentationExtractor:**
-  * NumpySegmentationExtractor objects are built to contain all data coming from a file format for which there is currently no support. To construct this, all data must be entered manually as arguments.
+*  **NumpySegmentationExtractor:** Contains all data coming from a file format for which there is currently no support. To construct this, all data must be entered manually as arguments.
 
-*  **CnmfeSegmentationExtractor:**
-  * This class inherits from the SegmentationExtractor class, having all its funtionality specifically applied to the dataset output from the 'CNMF-E' ROI segmentation method.
+*  **CnmfeSegmentationExtractor:** This class inherits from the SegmentationExtractor class, having all its funtionality specifically applied to the dataset output from the 'CNMF-E' ROI segmentation method.
 
-*  **ExtractSegmentationExtractor:**
-  * This class inherits from the SegmentationExtractor class, having all its funtionality specifically applied to the dataset output from the 'EXTRACT' ROI segmentation method.
+*  **ExtractSegmentationExtractor:** This class inherits from the SegmentationExtractor class, having all its funtionality specifically applied to the dataset output from the 'EXTRACT' ROI segmentation method.
 
-*  **SimaSegmentationExtractor:**
-  * This class inherits from the SegmentationExtractor class, having all its funtionality specifically applied to the dataset output from the 'SIMA' ROI segmentation method.
+*  **SimaSegmentationExtractor:** This class inherits from the SegmentationExtractor class, having all its funtionality specifically applied to the dataset output from the 'SIMA' ROI segmentation method.
 
-*  **NwbSegmentationExtractor:**
-  * Class used to extract data from the NWB data format. Also implements a static method to write any format specific object to NWB.
+*  **NwbSegmentationExtractor:** Extracts data from the NWB data format. Also implements a static method to write any format specific object to NWB.
+
+* **Suite2PSegmentationExtractor:** Extracts data from suite2p format.

@@ -24,6 +24,10 @@ setup(
         'tqdm',
         'lazy_ops',
         'dill'
+        'pynwb',
+        # 'sima',
+        # 'nwb-conversion-tools',
+        # 'suite2p'
     ],
     classifiers=(
         "Programming Language :: Python :: 3",

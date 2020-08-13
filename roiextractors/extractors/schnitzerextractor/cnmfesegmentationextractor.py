@@ -35,8 +35,8 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         self.filetype = self._file_type_extractor_read()
         self.raw_movie_file_location = self._raw_datafile_read()
         # Not found data:
-        self.channel_names = None
-        self.no_of_channels = None
+        self.channel_names = ['OpticalChannel']
+        self.no_of_channels = 1
         self._no_background_comps = 1
         self._roi_locs = None
         self._samp_freq = None
@@ -206,6 +206,9 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             temp = \
                 np.append(temp, self.pixel_masks[self.pixel_masks[:, 3] == roiid, :], axis=0)
         return temp[1::, :]
+
+    def get_images(self):
+        return None
 
     def get_movie_framesize(self):
         return self.image_dims

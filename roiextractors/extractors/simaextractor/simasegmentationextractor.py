@@ -16,7 +16,7 @@ except:
 class SimaSegmentationExtractor(SegmentationExtractor):
     '''
     This class inherits from the SegmentationExtractor class, having all
-    its funtionality specifically applied to the dataset output from
+    its functionality specifically applied to the dataset output from
     the \'SIMA\' ROI segmentation method.
     '''
     extractor_name = 'SimaSegmentation'
@@ -26,6 +26,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     installation_mesg = "To use the SimaSegmentationExtractor install sima: \n\n pip install sima\n\n"  # error message when not installed
 
     def __init__(self, filepath, sima_segmentation_label='auto_ROIs'):
+        import sima
         '''
         Parameters
         ----------
@@ -36,6 +37,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
             name of the ROIs in the dataset from which to extract all ROI info
         '''
         assert HAVE_SIMA, self.installation_mesg
+        SegmentationExtractor.__init__(self)
         self.filepath = filepath
         self._convert_sima(filepath)
         self._dataset_file = self._file_extractor_read()
@@ -291,6 +293,9 @@ class SimaSegmentationExtractor(SegmentationExtractor):
             temp = \
                 np.append(temp, self.pixel_masks[self.pixel_masks[:, 3] == roiid, :], axis=0)
         return temp[1::, :]
+
+    def get_images(self):
+        return None
 
     def get_movie_framesize(self):
         return self.image_dims

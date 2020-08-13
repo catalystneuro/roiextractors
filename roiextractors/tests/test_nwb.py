@@ -20,29 +20,33 @@ class TestNwb(unittest.TestCase):
     def test_nwb_writer(self):
         self._setup()
         if os.path.exists(self.saveloc):
-            self.nwbobj = segmentationextractors.NwbSegmentationExtractor(self.saveloc)
-            self.nwbobj.io.close()
+            try:
+                self.nwbobj = segmentationextractors.NwbSegmentationExtractor(self.saveloc)
+                self.nwbobj.io.close()
+                os.remove(self.saveloc)
+            except:
+                os.remove(self.saveloc)
         try:
             self.simaobj = segmentationextractors.SimaSegmentationExtractor(self.sima_obj_loc)
         except OSError:
             raise Exception('Could not create sima segmentation object')
-        if os.path.exists(self.saveloc):
-            os.remove(self.saveloc)
-        segmentationextractors.NwbSegmentationExtractor.write_recording(
-            self.simaobj, self.saveloc,
-            propertydict=[{'name': 'testvals1',
-                           'description': 'testdesc',
-                           'data': np.arange(3),
-                           'id': self.simaobj.get_roi_ids()[0:3]},
-                          {'name': 'testvals2',
-                           'description': 'testdesc2',
-                           'data': 3 * np.arange(3),
-                           'id': self.simaobj.get_roi_ids()[3:6]}],
-            nwbfile_kwargs={'session_description': 'nwbfiledesc',
-                            'experimenter': 'experimenter name',
-                            'lab': 'test lab',
-                            'session_id': 'test sess id'},
-            emission_lambda=400.0, excitation_lambda=500.0)
+        segmentationextractors.NwbSegmentationExtractor.write_recording(self.simaobj, self.saveloc,
+                                                                        propertydict=[{'name': 'testvals1',
+                                                                                       'description': 'testdesc',
+                                                                                       'data': np.arange(3),
+                                                                                       'id': self.simaobj.get_roi_ids()[
+                                                                                             0:3]},
+                                                                                      {'name': 'testvals2',
+                                                                                       'description': 'testdesc2',
+                                                                                       'data': 3 * np.arange(3),
+                                                                                       'id': self.simaobj.get_roi_ids()[
+                                                                                             3:6]}],
+                                                                        excitation_lambda=500.0, emission_lambda=400.0,
+                                                                        nwbfile_kwargs={
+                                                                            'session_description': 'nwbfiledesc',
+                                                                            'experimenter': 'experimenter name',
+                                                                            'lab': 'test lab',
+                                                                            'session_id': 'test sess id'})
 
     def test_nwb_segmentation(self):
         self._setup()
