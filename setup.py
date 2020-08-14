@@ -10,21 +10,18 @@ with open('README.md') as rd:
 setup(
     name=pkg_name,
     version=version,
-    author="Saksham Sharda, Ben Dichter",
+    author="Saksham Sharda, Ben Dichter, Alessio Buccino",
     author_email="saksham20.sharda@gmail.com",
     description="Python module for extracting optical physiology ROIs and traces for various file types and formats",
-    url="https://github.com/ben-dichter-consulting/segmentationextractors",
+    url="https://github.com/catalystneuro/segmentationextractors",
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=find_packages(),
     package_data={},
     install_requires=[
         'pynwb',
-        #'sima',
         'dill',
         'lazy_ops',
-        'nwb-conversion-tools',
-        'suite2p'
     ],
     classifiers=(
         "Programming Language :: Python :: 3",
