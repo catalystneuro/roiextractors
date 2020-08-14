@@ -4,7 +4,7 @@ Python-based module for extracting from, converting between, and handling record
 
 ## Getting Started:
 #### Installation:
-`pip install roiextractors`
+`pip install get+https://github.com/catalystneuro/roiextractors.git`
 
 ## Usage:
 #### Currently supported file types:
