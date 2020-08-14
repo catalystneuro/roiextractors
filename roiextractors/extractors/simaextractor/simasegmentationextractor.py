@@ -14,11 +14,11 @@ except:
 
 
 class SimaSegmentationExtractor(SegmentationExtractor):
-    '''
+    """
     This class inherits from the SegmentationExtractor class, having all
     its functionality specifically applied to the dataset output from
     the \'SIMA\' ROI segmentation method.
-    '''
+    """
     extractor_name = 'SimaSegmentation'
     installed = HAVE_SIMA  # check at class level if installed or not
     is_writable = False
@@ -26,8 +26,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     installation_mesg = "To use the SimaSegmentationExtractor install sima: \n\n pip install sima\n\n"  # error message when not installed
 
     def __init__(self, filepath, sima_segmentation_label='auto_ROIs'):
-        import sima
-        '''
+        """
         Parameters
         ----------
         filepath: str
@@ -35,7 +34,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
             image file(s) (tiff, h5, .zip)
         sima_segmentation_label: str
             name of the ROIs in the dataset from which to extract all ROI info
-        '''
+        """
         assert HAVE_SIMA, self.installation_mesg
         SegmentationExtractor.__init__(self)
         self.filepath = filepath
@@ -68,7 +67,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
 
     @staticmethod
     def _convert_sima(old_pkl_loc):
-        '''
+        """
         This function is used to convert python 2 pickles to python 3 pickles.
         Forward compatibility of \'*.sima\' files containing .pkl dataset, rois,
         sequences, signals, time_averages.
@@ -80,7 +79,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         ----------
         old_pkl_loc: str
             Path of the pickle file to be converted
-        '''
+        """
         # Make a name for the new pickle
         old_pkl_loc = old_pkl_loc + '/'
         for dirpath, dirnames, filenames in os.walk(old_pkl_loc):
@@ -234,7 +233,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
             return 0.
 
     @staticmethod
-    def write_recording(segmentation_object, savepath):
+    def write_segmentation(segmentation_object, savepath):
         raise NotImplementedError
 
     # defining the abstract class enformed methods:
@@ -244,14 +243,14 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     def get_num_rois(self):
         return self.no_rois
 
-    def get_roi_locations(self, ROI_ids=None):
-        if ROI_ids is None:
+    def get_roi_locations(self, roi_ids=None):
+        if roi_ids is None:
             return self.roi_locs
         else:
-            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
-            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
-            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-            return self.roi_locs[:, ROI_idx_]
+            roi_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in roi_ids]
+            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
+            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
+            return self.roi_locs[:, roi_idx_]
 
     def get_num_frames(self):
         return self.num_of_frames
@@ -259,37 +258,37 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     def get_sampling_frequency(self):
         return self.samp_freq
 
-    def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None):
+    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None):
         if start_frame is None:
             start_frame = 0
         if end_frame is None:
             end_frame = self.get_num_frames() + 1
-        if ROI_ids is None:
-            ROI_idx_ = range(self.get_num_rois())
+        if roi_ids is None:
+            roi_idx_ = range(self.get_num_rois())
         else:
-            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
-            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
-            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-        return self.roi_response[ROI_idx_, start_frame:end_frame]
+            roi_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in roi_ids]
+            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
+            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
+        return self.roi_response[roi_idx_, start_frame:end_frame]
 
-    def get_image_masks(self, ROI_ids=None):
-        if ROI_ids is None:
-            ROI_idx_ = range(self.get_num_rois())
+    def get_image_masks(self, roi_ids=None):
+        if roi_ids is None:
+            roi_idx_ = range(self.get_num_rois())
         else:
-            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
-            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
-            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-        return self.raw_images[:, :, ROI_idx_]
+            roi_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in roi_ids]
+            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
+            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
+        return self.raw_images[:, :, roi_idx_]
 
-    def get_pixel_masks(self, ROI_ids=None):
-        if ROI_ids is None:
-            ROI_idx_ = self.roi_idx
+    def get_pixel_masks(self, roi_ids=None):
+        if roi_ids is None:
+            roi_idx_ = self.roi_idx
         else:
-            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
-            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
-            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
+            roi_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in roi_ids]
+            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
+            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
         temp = np.empty((1, 4))
-        for i, roiid in enumerate(ROI_idx_):
+        for i, roiid in enumerate(roi_idx_):
             temp = \
                 np.append(temp, self.pixel_masks[self.pixel_masks[:, 3] == roiid, :], axis=0)
         return temp[1::, :]

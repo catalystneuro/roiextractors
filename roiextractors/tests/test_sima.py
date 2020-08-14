@@ -1,3 +1,4 @@
+""" Commented out because SIMA is difficult to install in python 3.7
 from numpy.testing import assert_array_equal
 import numpy as np
 import os
@@ -5,7 +6,7 @@ import sys
 import unittest
 import sima
 sys.path.append(os.getcwd())
-import segmentationextractors
+import roiextractors
 
 
 class TestSima(unittest.TestCase):
@@ -16,7 +17,7 @@ class TestSima(unittest.TestCase):
     def _setup(self, filelocation):
         self.sima_dataset = sima.ImagingDataset.load(filelocation)
         try:
-            return segmentationextractors.SimaSegmentationExtractor(filelocation)
+            return roiextractors.SimaSegmentationExtractor(filelocation)
         except OSError:
             raise Exception('Could not create sima segmentation object')
 
@@ -33,10 +34,10 @@ class TestSima(unittest.TestCase):
         assert_array_equal(len(self.sima_dataset.ROIs['auto_ROIs']), self.simaobj.get_num_rois())
         assert_array_equal(self.sima_dataset.channel_names, self.simaobj.get_channel_names())
         assert_array_equal(self.sima_dataset.signals(channel='Green')['example_ROI']['raw'][0][1:4, :],
-                           self.simaobj.get_traces(ROI_ids=[-1, -2, -3]))
+                           self.simaobj.get_traces(roi_ids=[-1, -2, -3]))
         assert_array_equal(np.moveaxis(np.array([np.squeeze(self.sima_dataset.ROIs['auto_ROIs'][i])
                                                  for i in range(len(self.sima_dataset.ROIs['auto_ROIs']))])[1:4, :, :], 0, -1),
-                           self.simaobj.get_image_masks(ROI_ids=[-1, -2, -3]))
+                           self.simaobj.get_image_masks(roi_ids=[-1, -2, -3]))
 
     def test_sima_tiff(self):
         self.simaobj = self._setup(self.fileloc + r'\dataset_tiff.sima')
@@ -47,10 +48,10 @@ class TestSima(unittest.TestCase):
         assert_array_equal(len(self.sima_dataset.ROIs['auto_ROIs']), self.simaobj.get_num_rois())
         assert_array_equal(self.sima_dataset.channel_names, self.simaobj.get_channel_names())
         assert_array_equal(self.sima_dataset.signals(channel='Green')['example_ROI']['raw'][0][1:4, :],
-                           self.simaobj.get_traces(ROI_ids=[-1, -2, -3]))
+                           self.simaobj.get_traces(roi_ids=[-1, -2, -3]))
         assert_array_equal(np.moveaxis(np.array([np.squeeze(self.sima_dataset.ROIs['auto_ROIs'][i])
                                                  for i in range(len(self.sima_dataset.ROIs['auto_ROIs']))])[1:4, :, :], 0, -1),
-                           self.simaobj.get_image_masks(ROI_ids=[-1, -2, -3]))
+                           self.simaobj.get_image_masks(roi_ids=[-1, -2, -3]))
 
     def test_sima_np(self):
         self.simaobj = self._setup(self.fileloc + r'\dataset_np.sima')
@@ -61,11 +62,12 @@ class TestSima(unittest.TestCase):
         assert_array_equal(len(self.sima_dataset.ROIs['auto_ROIs']), self.simaobj.get_num_rois())
         assert_array_equal(self.sima_dataset.channel_names, self.simaobj.get_channel_names())
         assert_array_equal(self.sima_dataset.signals(channel='Green')['example_ROI']['raw'][0][1:4, :],
-                           self.simaobj.get_traces(ROI_ids=[-1, -2, -3]))
+                           self.simaobj.get_traces(roi_ids=[-1, -2, -3]))
         assert_array_equal(np.moveaxis(np.array([np.squeeze(self.sima_dataset.ROIs['auto_ROIs'][i])
                                                  for i in range(len(self.sima_dataset.ROIs['auto_ROIs']))])[1:4, :, :], 0, -1),
-                           self.simaobj.get_image_masks(ROI_ids=[-1, -2, -3]))
+                           self.simaobj.get_image_masks(roi_ids=[-1, -2, -3]))
 
 
 if __name__ == '__main__':
     unittest.main()
+"""

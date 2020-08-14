@@ -29,7 +29,7 @@ class BioformatsImagingExtractor(ImagingExtractor, ABC):
 
     @abstractmethod
     def _read_metadata(self):
-        '''
+        """
         This abstract method needs to be overridden to load the following fields from the metadata:
 
         self._size_x
@@ -41,7 +41,7 @@ class BioformatsImagingExtractor(ImagingExtractor, ABC):
         self._sampling_frequency
         self._dtype
 
-        '''
+        """
         pass
 
     def _validate_metadata(self):
@@ -50,7 +50,6 @@ class BioformatsImagingExtractor(ImagingExtractor, ABC):
         assert self._num_channels is not None
         assert self._num_frames is not None
         assert self._sampling_frequency is not None
-
 
     def _start_javabridge_vm(self):
         javabridge.start_vm(class_path=bioformats.JARS)

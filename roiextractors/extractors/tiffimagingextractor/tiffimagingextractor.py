@@ -78,23 +78,23 @@ class TiffImagingExtractor(ImagingExtractor):
         return self._sampling_frequency
 
     def get_channel_names(self):
-        '''List of  channels in the recoding.
+        """List of  channels in the recoding.
 
         Returns
         -------
         channel_names: list
             List of strings of channel names
-        '''
+        """
         return self._channel_names
 
     def get_num_channels(self):
-        '''Total number of active channels in the recording
+        """Total number of active channels in the recording
 
         Returns
         -------
         no_of_channels: int
             integer count of number of channels
-        '''
+        """
         return self._num_channels
 
     @staticmethod

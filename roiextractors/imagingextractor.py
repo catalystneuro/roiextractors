@@ -5,9 +5,9 @@ from .extraction_tools import ArrayType, PathType, NumpyArray, DtypeType
 
 
 class ImagingExtractor(ABC, BaseExtractor):
-    '''An abstract class that contains all the meta-data and input data from
+    """An abstract class that contains all the meta-data and input data from
        the imaging data.
-    '''
+    """
     def __init__(self):
         BaseExtractor.__init__(self)
         self._memmapped = False
@@ -38,24 +38,24 @@ class ImagingExtractor(ABC, BaseExtractor):
 
     @abstractmethod
     def get_channel_names(self) -> list:
-        '''List of  channels in the recoding.
+        """List of  channels in the recoding.
 
         Returns
         -------
         channel_names: list
             List of strings of channel names
-        '''
+        """
         pass
 
     @abstractmethod
     def get_num_channels(self) -> int:
-        '''Total number of active channels in the recording
+        """Total number of active channels in the recording
 
         Returns
         -------
         no_of_channels: int
             integer count of number of channels
-        '''
+        """
         pass
 
     def get_dtype(self) -> DtypeType:
@@ -63,7 +63,7 @@ class ImagingExtractor(ABC, BaseExtractor):
 
     @staticmethod
     def write_imaging(imaging, save_path: PathType):
-        '''
+        """
         Static method to write imaging.
 
         Parameters
@@ -73,7 +73,7 @@ class ImagingExtractor(ABC, BaseExtractor):
             file has to be generated.
         save_path: str
             path to save the native format.
-        '''
+        """
         raise NotImplementedError
 
 

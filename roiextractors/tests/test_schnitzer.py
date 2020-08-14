@@ -4,8 +4,9 @@ import numpy as np
 import os
 import sys
 import unittest
+
 sys.path.append(os.getcwd())
-import segmentationextractors
+import roiextractors
 
 
 class TestSchnitzer(unittest.TestCase):
@@ -28,7 +29,7 @@ class TestSchnitzer(unittest.TestCase):
     def test_extract(self):
         inp_str = self.fileloc + r'\2014_04_01_p203_m19_check01_extractAnalysis.mat'
         try:
-            seg_obj = segmentationextractors.ExtractSegmentationExtractor(inp_str)
+            seg_obj = roiextractors.ExtractSegmentationExtractor(inp_str)
         except OSError:
             raise Exception('Could not create extract segmentation object')
 
@@ -39,15 +40,15 @@ class TestSchnitzer(unittest.TestCase):
         assert_array_equal(raw_traces.shape[1], seg_obj.get_num_frames())
         assert_array_equal(raw_images_trans.shape[0:2], seg_obj.get_movie_framesize())
         assert_array_equal(raw_traces.shape[0], seg_obj.get_num_rois())
-        assert_array_equal(raw_traces[1:4, :], seg_obj.get_traces(ROI_ids=[1, 2, 3]))
+        assert_array_equal(raw_traces[1:4, :], seg_obj.get_traces(roi_ids=[1, 2, 3]))
         assert_array_equal(raw_images_trans[:, :, 1],
-                           seg_obj.get_image_masks(ROI_ids=[1, 2, 3])[:, :, 0])
+                           seg_obj.get_image_masks(roi_ids=[1, 2, 3])[:, :, 0])
         self._teardown(seg_obj)
 
     def test_cnmfe(self):
         inp_str = self.fileloc + r'\2014_04_01_p203_m19_check01_cnmfeAnalysis.mat'
         try:
-            seg_obj = segmentationextractors.CnmfeSegmentationExtractor(inp_str)
+            seg_obj = roiextractors.CnmfeSegmentationExtractor(inp_str)
         except OSError:
             raise Exception('Could not create cnmfe segmentation object')
 
@@ -58,9 +59,9 @@ class TestSchnitzer(unittest.TestCase):
         assert_array_equal(raw_traces.shape[1], seg_obj.get_num_frames())
         assert_array_equal(raw_images_trans.shape[0:2], seg_obj.get_movie_framesize())
         assert_array_equal(raw_traces.shape[0], seg_obj.get_num_rois())
-        assert_array_equal(raw_traces[1:4, :], seg_obj.get_traces(ROI_ids=[1, 2, 3]))
+        assert_array_equal(raw_traces[1:4, :], seg_obj.get_traces(roi_ids=[1, 2, 3]))
         assert_array_equal(raw_images_trans[:, :, 1],
-                           seg_obj.get_image_masks(ROI_ids=[1, 2, 3])[:, :, 0])
+                           seg_obj.get_image_masks(roi_ids=[1, 2, 3])[:, :, 0])
         self._teardown(seg_obj)
 
 

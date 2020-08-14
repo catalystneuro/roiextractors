@@ -5,7 +5,7 @@ from roiextractors.extraction_tools import get_video_shape
 
 try:
     import h5py
-    HAVE_H5 =True
+    HAVE_H5 = True
 except ImportError:
     HAVE_H5 = False
 

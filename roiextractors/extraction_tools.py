@@ -7,6 +7,7 @@ PathType = Union[str, Path]
 NumpyArray = Union[np.array, np.memmap]
 DtypeType = [str, np.dtype]
 
+
 def _pixel_mask_extractor(_raw_images_trans, _roi_idx):
     '''An alternative data format for storage of image masks.
 

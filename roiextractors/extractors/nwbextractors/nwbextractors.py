@@ -69,10 +69,10 @@ def get_dynamic_table_property(dynamic_table, *, row_ids=None, property_name):
 
 
 class NwbImagingExtractor(ImagingExtractor):
-    '''
-        Class used to extract data from the NWB data format. Also implements a
-        static method to write any format specific object to NWB.
-        '''
+    """
+    Class used to extract data from the NWB data format. Also implements a
+    static method to write any format specific object to NWB.
+    """
 
     extractor_name = 'NwbImaging'
     installed = HAVE_NWB # check at class level if installed or not
@@ -85,7 +85,7 @@ class NwbImagingExtractor(ImagingExtractor):
                  processing_module_name=None,
                  neuron_roi_response_series_name=None,
                  background_roi_response_series_name=None):
-        '''
+        """
         Parameters
         ----------
         filepath: str
@@ -102,7 +102,7 @@ class NwbImagingExtractor(ImagingExtractor):
             name of roi response series to extract data from
         background_roi_response_series_name: str(optional)
             name of background roi response series to extract data from
-        '''
+        """
         assert HAVE_NWB, self.installation_mesg
         ImagingExtractor.__init__(self)
 
@@ -179,7 +179,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                  processing_module_name=None,
                  neuron_roi_response_series_name=None,
                  background_roi_response_series_name=None):
-        '''
+        """
         Parameters
         ----------
         filepath: str
@@ -196,7 +196,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             name of roi response series to extract data from
         background_roi_response_series_name: str(optional)
             name of background roi response series to extract data from
-        '''
+        """
         check_nwb_install()
         if not os.path.exists(filepath):
             raise Exception('file does not exist')
@@ -328,7 +328,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     def samp_freq(self):
         return self._samp_freq
 
-    def get_traces(self, ROI_ids=None, start_frame=None, end_frame=None, name=None):
+    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name=None):
         if name is None:
             name = self._roi_names[0]
             print(f'returning traces for {name}')
@@ -336,12 +336,12 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             start_frame = 0
         if end_frame is None:
             end_frame = self.get_num_frames() + 1
-        if ROI_ids is None:
-            ROI_idx_ = range(self.get_num_rois())
+        if roi_ids is None:
+            roi_idx_ = range(self.get_num_rois())
         else:
-            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
-            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
-            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
+            roi_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in roi_ids]
+            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
+            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
         return np.array([self.roi_resp_dict[name].data[int(i), start_frame:end_frame] for i in range(self.no_rois)])
 
     def get_traces_info(self):
@@ -356,14 +356,14 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     def get_sampling_frequency(self):
         return self.samp_freq
 
-    def get_roi_locations(self, ROI_ids=None):
-        if ROI_ids is None:
+    def get_roi_locations(self, roi_ids=None):
+        if roi_ids is None:
             return self.roi_locs
         else:
-            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
-            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
-            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-            return self.roi_locs[:, ROI_idx_]
+            roi_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in roi_ids]
+            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
+            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
+            return self.roi_locs[:, roi_idx_]
 
     def get_roi_ids(self):
         return self.roi_idx
@@ -371,31 +371,31 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     def get_num_rois(self):
         return self.no_rois
 
-    def get_pixel_masks(self, ROI_ids=None):
+    def get_pixel_masks(self, roi_ids=None):
         if self.pixel_masks is None:
             return None
-        if ROI_ids is None:
-            ROI_idx_ = self.roi_idx
+        if roi_ids is None:
+            roi_idx_ = self.roi_idx
         else:
-            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
-            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
-            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
+            roi_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in roi_ids]
+            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
+            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
         temp = np.empty((1, 4))
-        for i, roiid in enumerate(ROI_idx_):
+        for i, roiid in enumerate(roi_idx_):
             temp = \
                 np.append(temp, self.pixel_masks[self.pixel_masks[:, 3] == roiid, :], axis=0)
         return temp[1::, :]
 
-    def get_image_masks(self, ROI_ids=None):
+    def get_image_masks(self, roi_ids=None):
         if self.image_masks is None:
             return None
-        if ROI_ids is None:
-            ROI_idx_ = range(self.get_num_rois())
+        if roi_ids is None:
+            roi_idx_ = range(self.get_num_rois())
         else:
-            ROI_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in ROI_ids]
-            ele = [i for i, j in enumerate(ROI_idx) if j.size == 0]
-            ROI_idx_ = [j[0] for i, j in enumerate(ROI_idx) if i not in ele]
-        return np.array([self.image_masks[:, :, int(i)].T for i in ROI_idx_]).T
+            roi_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in roi_ids]
+            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
+            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
+        return np.array([self.image_masks[:, :, int(i)].T for i in roi_idx_]).T
 
     def get_images(self):
         imag_dict = {i.name: np.array(i.data) for i in self.nwbfile.all_children() if i.name in self._greyscaleimages}
@@ -477,7 +477,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             indicator='unknown',
             location='unknown'
         ) for i in nwbfile.devices.values()]
-        [input_kwargs[j].update(**i) for j, i in enumerate(metadata_dict['ophys']['ImagingPlane'])]#update with metadata
+        [input_kwargs[j].update(**i) for j, i in enumerate(metadata_dict['ophys']['ImagingPlane'])]  # update with
+        # metadata
         imaging_planes = [nwbfile.create_imaging_plane(i) for i in input_kwargs]
 
         # PlaneSegmentation:
@@ -486,8 +487,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             description='output from segmenting my favorite imaging plane',
             imaging_plane=i
         ) for i in imaging_planes]
-        [input_kwargs[j].update(**i)
-         for j,i in enumerate(metadata_dict['ophys']['ImageSegmentation']['plane_segmentations'])]  # update with metadata
+        [input_kwargs[j].update(**i) for j, i in
+         enumerate(metadata_dict['ophys']['ImageSegmentation']['plane_segmentations'])]  # update with metadata
         ps = [image_segmentation.create_plane_segmentation(i) for i in input_kwargs]
 
         # ROI add:
@@ -496,12 +497,12 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             if pixel_mask_exist:
                 [ps_loop.add_roi(
                     id=roiid,
-                    pixel_mask=segext_obj.get_pixel_masks(ROI_ids=[roiid])[:, 0:-1])
+                    pixel_mask=segext_obj.get_pixel_masks(roi_ids=[roiid])[:, 0:-1])
                  for ps_loop in ps]
             else:
                 [ps_loop.add_roi(
                     id=roiid,
-                    image_mask=segext_obj.get_image_masks(ROI_ids=[roiid]))
+                    image_mask=segext_obj.get_image_masks(roi_ids=[roiid]))
                  for ps_loop in ps]
 
         # adding columns to ROI table:
@@ -560,5 +561,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         with NWBHDF5IO(savepath, 'w') as io:
             io.write(nwbfile)
 
+        # test read
         with NWBHDF5IO(savepath, 'r') as io:
             io.read()

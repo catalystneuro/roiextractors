@@ -13,7 +13,7 @@ setup(
     author="Saksham Sharda, Ben Dichter, Alessio Buccino",
     author_email="saksham20.sharda@gmail.com",
     description="Python module for extracting optical physiology ROIs and traces for various file types and formats",
-    url="https://github.com/catalystneuro/segmentationextractors",
+    url="https://github.com/catalystneuro/roiextractors",
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=find_packages(),
