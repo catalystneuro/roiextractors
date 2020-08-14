@@ -1,6 +1,5 @@
 import numpy as np
 from pathlib import Path
-from .segmentationextractor import SegmentationExtractor
 from .imagingextractor import ImagingExtractor
 from .extraction_tools import PathType
 import os

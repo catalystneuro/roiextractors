@@ -31,7 +31,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
     @property
     def no_rois(self):
         """
-        The number of Independent sources(neurons) indentified after the
+        The number of Independent sources(neurons) identified after the
         segmentation operation. The regions of interest for which fluorescence
         traces will be extracted downstream.
 
@@ -54,8 +54,6 @@ class SegmentationExtractor(ABC, BaseExtractor):
             occur in the image_masks (2nd dimention)
         """
         return self.get_roi_ids()
-
-
 
     @property
     def roi_locations(self):
@@ -243,13 +241,13 @@ class SegmentationExtractor(ABC, BaseExtractor):
         raise NotImplementedError
 
     @staticmethod
-    def write_segmentation(segmentation, savepath):
+    def write_segmentation(segmentation_extractor, savepath):
         """
         Static method to write recording back to the native format.
 
         Parameters
         ----------
-        segmentation_object: SegmentationExtracteor object
+        segmentation_extractor: SegmentationExtractor object
             The EXTRACT segmentation object from which an EXTRACT native format
             file has to be generated.
         savepath: str
