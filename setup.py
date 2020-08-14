@@ -19,11 +19,12 @@ setup(
     packages=find_packages(),
     package_data={},
     install_requires=[
-        'numpy',
         'spikeextractors',
         'tqdm',
         'lazy_ops',
-        'dill'
+        'dill',
+        'scipy',
+        'PyYAML'
     ],
     classifiers=(
         "Programming Language :: Python :: 3",
