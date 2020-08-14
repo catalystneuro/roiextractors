@@ -6,12 +6,6 @@ Python-based module for extracting from, converting between, and handling record
 #### Installation:
 `pip install segmentationextractors`
 
-##### Installation with SIMA and python>=3.7:
-Will need a manual installation for package dependency **SIMA** since it does not currently support python 3.7:
-1.   Download SIMA wheels distribution [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#sima).
-2.  `pip install <download-path-to-wheels.whl>`
-3.  `pip install segmentationextractors`
-
 ## Usage:
 #### Currently supported file types:
 1. [calciumImagingAnalysis](https://github.com/bahanonu/calciumImagingAnalysis) (CNMF-E, EXTRACT)
@@ -104,3 +98,12 @@ seg_obj_nwb = segmentationextractors.NwbSegmentationExtractor(
 *  **NwbSegmentationExtractor:** Extracts data from the NWB data format. Also implements a static method to write any format specific object to NWB.
 
 * **Suite2PSegmentationExtractor:** Extracts data from suite2p format.
+
+## Troubleshooting
+##### Installing SIMA with python>=3.7:
+Will need a manual installation for package dependency **SIMA** since it does not currently support python 3.7:
+1.   Download SIMA wheels distribution [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#sima).
+2.  `pip install <download-path-to-wheels.whl>`
+3.  `pip install segmentationextractors`
+
+
