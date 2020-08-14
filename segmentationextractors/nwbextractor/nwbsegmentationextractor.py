@@ -7,7 +7,7 @@ from dateutil.tz import tzlocal
 import numpy as np
 import re
 import yaml
-from segmentationextractors.segmentationextractor import SegmentationExtractor
+from ..segmentationextractor import SegmentationExtractor
 from lazy_ops import DatasetView
 from hdmf.data_utils import DataChunkIterator
 try:
