@@ -1,0 +1,58 @@
+---
+NWBFile:
+  session_start_time: 2020-02-02 00:00:00
+  keywords: [keyword1, keyword2]
+  experiment_description: My two-photon microscope
+  session_id: session id goes here
+  experimenter: [testname]
+  identifier: nwbfile id
+  institution: inistitution name
+  lab: lab name
+  session_description: ses desc
+  surgery: surgery description
+  pharmacology: pharma
+  protocol: protocol used
+  related_publications: [pub1, pub2]
+  notes: nwbfile notes
+  virus: virus info
+Subject:
+  subject_id: subjectID
+  description: subject descriptoin
+  genotype: genotype
+  sex: F
+  species: species
+  weight: weight number
+  date_of_birth: 2010-02-02 00:00:00
+Ophys:
+  Device:
+  - name: Microscope
+    description: ophys_device1_description
+  Fluorescence:
+    name: Fluorescence
+    roi_response_series:
+    - name: RoiResponseSeries
+      description: array of fluorescence traces
+    - name: Neuropil
+      description: array of neuropil fluorescence traces
+    - name: Deconvolved
+      description: array of deconvolved  traces
+  ImageSegmentation:
+    name: ABCD
+    plane_segmentations:
+    - name: MyplaneSegmentation
+      description: Segmented ROIs
+  ImagingPlane:
+    - description: standard
+      excitation_lambda: 600.0
+      imaging_rate: 1.0
+      indicator: GCaMP
+      location: V1
+      name: ImagingPlane
+      grid_spacing: [2,2]
+      grid_spacing_unit: microns
+      optical_channels:
+        - name: OpticalChannel
+          emission_lambda: 500.0
+  TwoPhotonSeries:
+    - name: TwoPhotonSeries
+      description: description
