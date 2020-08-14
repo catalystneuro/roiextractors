@@ -3,4 +3,4 @@ tqdm==4.48.2
 lazy_ops==0.2.0
 dill==0.3.2
 scipy==1.5.2
-yaml
+PyYAML==5.1.2
