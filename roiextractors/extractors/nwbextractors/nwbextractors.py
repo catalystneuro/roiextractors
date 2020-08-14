@@ -1,25 +1,23 @@
 import os
 import uuid
-from datetime import datetime
-
-import pynwb
-from dateutil.tz import tzlocal
 import numpy as np
-import re
 import yaml
-from ..segmentationextractor import SegmentationExtractor
+from roiextractors import ImagingExtractor, SegmentationExtractor
 from lazy_ops import DatasetView
-from hdmf.data_utils import DataChunkIterator
+
 try:
     from pynwb import NWBHDF5IO, TimeSeries, NWBFile
     from pynwb.base import Images
     from pynwb.image import GrayscaleImage
     from pynwb.ophys import ImageSegmentation, Fluorescence, OpticalChannel, TwoPhotonSeries, DfOverF
+    from pynwb.file import Subject
     from pynwb.device import Device
+    from hdmf.data_utils import DataChunkIterator
 
     HAVE_NWB = True
 except ModuleNotFoundError:
     HAVE_NWB = False
+
 
 def check_nwb_install():
     assert HAVE_NWB, "To use the Nwb extractors, install pynwb: \n\n pip install pynwb\n\n"
@@ -70,11 +68,111 @@ def get_dynamic_table_property(dynamic_table, *, row_ids=None, property_name):
     return [dynamic_table[property_name][all_row_ids.index(x)] for x in row_ids]
 
 
-class NwbSegmentationExtractor(SegmentationExtractor):
+class NwbImagingExtractor(ImagingExtractor):
     '''
+        Class used to extract data from the NWB data format. Also implements a
+        static method to write any format specific object to NWB.
+        '''
+
+    extractor_name = 'NwbImaging'
+    installed = HAVE_NWB # check at class level if installed or not
+    is_writable = True
+    mode = 'file'
+    installation_mesg = "To use the Nwb Extractor run:\n\n pip install pynwb\n\n"  # error message when not installed
+
+    def __init__(self, filepath, optical_channel_name=None,
+                 imaging_plane_name=None, image_series_name=None,
+                 processing_module_name=None,
+                 neuron_roi_response_series_name=None,
+                 background_roi_response_series_name=None):
+        '''
+        Parameters
+        ----------
+        filepath: str
+            The location of the folder containing dataset.nwb file.
+        optical_channel_name: str(optional)
+            optical channel to extract data from
+        imaging_plane_name: str(optional)
+            imaging plane to extract data from
+        image_series_name: str(optional)
+            imaging series to extract data from
+        processing_module_name: str(optional)
+            processing module to extract data from
+        neuron_roi_response_series_name: str(optional)
+            name of roi response series to extract data from
+        background_roi_response_series_name: str(optional)
+            name of background roi response series to extract data from
+        '''
+        assert HAVE_NWB, self.installation_mesg
+        ImagingExtractor.__init__(self)
+
+    #TODO placeholders
+    def get_frame(self, frame_idx, channel=0):
+        assert frame_idx < self.get_num_frames()
+        return self._video[frame_idx]
+
+    def get_frames(self, frame_idxs):
+        assert np.all(frame_idxs < self.get_num_frames())
+        planes = np.zeros((len(frame_idxs), self._size_x, self._size_y))
+        for i, frame_idx in enumerate(frame_idxs):
+            plane = self._video[frame_idx]
+            planes[i] = plane
+        return planes
+
+    # TODO make decorator to check and correct inputs
+    def get_video(self, start_frame=None, end_frame=None):
+        if start_frame is None:
+            start_frame = 0
+        if end_frame is None:
+            end_frame = self.get_num_frames()
+        end_frame = min(end_frame, self.get_num_frames())
+
+        video = self._video[start_frame: end_frame]
+
+        return video
+
+    def get_image_size(self):
+        return [self._size_x, self._size_y]
+
+    def get_num_frames(self):
+        return self._num_frames
+
+    def get_sampling_frequency(self):
+        return self._sampling_frequency
+
+    def get_dtype(self):
+        return self._video.dtype
+
+    def get_channel_names(self):
+        """List of  channels in the recoding.
+
+        Returns
+        -------
+        channel_names: list
+            List of strings of channel names
+        """
+        return self._channel_names
+
+    def get_num_channels(self):
+        """Total number of active channels in the recording
+
+        Returns
+        -------
+        no_of_channels: int
+            integer count of number of channels
+        """
+        return self._num_channels
+
+    @staticmethod
+    def write_imaging(imaging, savepath):
+        pass
+
+
+class NwbSegmentationExtractor(SegmentationExtractor):
+    """
     Class used to extract data from the NWB data format. Also implements a
     static method to write any format specific object to NWB.
-    '''
+    """
 
     def __init__(self, filepath, optical_channel_name=None,
                  imaging_plane_name=None, image_series_name=None,
@@ -108,7 +206,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         self.pixel_masks = None
         self._roi_locs = None
         self._accepted_list = None
-        # with NWBHDF5IO(filepath, mode='r+') as io:
         io = NWBHDF5IO(filepath, mode='r+')
         nwbfile = io.read()
         self.nwbfile = nwbfile
@@ -332,43 +429,44 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         return ret_val
 
     @staticmethod
-    def write_segmentation(segext_obj, savepath, metadata_dict=None, **kwargs):
-        source_path = segext_obj.filepath
+    def write_segmentation(segext_obj, savepath, metadata_dict, **kwargs):
         if isinstance(metadata_dict, str):
             with open(metadata_dict, 'r') as f:
-                metadata = yaml.safe_load(f)
+                metadata_dict = yaml.safe_load(f)
 
-        #NWB file:
+        # NWBfile:
         nwbfile_args = dict(identifier=str(uuid.uuid4()), )
-        nwbfile_args.update(**metadata_dict['NWBFile'])
+        if 'NWBFile' in metadata_dict:
+            nwbfile_args.update(**metadata_dict['NWBFile'])
         nwbfile = NWBFile(**nwbfile_args)
 
-        #Subject:
-        nwbfile.subject = pynwb.file.Subject(**metadata_dict['Subject'])
+        # Subject:
+        if 'Subject' in metadata_dict:
+            nwbfile.subject = Subject(**metadata_dict['Subject'])
 
-        #Device:
-        if isinstance(metadata_dict['Ophys']['Device'], list):
-            for devices in metadata_dict['Ophys']['Device']:
+        # Device:
+        if isinstance(metadata_dict['ophys']['Device'], list):
+            for devices in metadata_dict['ophys']['Device']:
                 nwbfile.create_device(**devices)
         else:
-            nwbfile.create_device(**metadata_dict['Ophys']['Device'])
+            nwbfile.create_device(**metadata_dict['ophys']['Device'])
 
-        #Processing Module:
-        ophys_mod = nwbfile.create_processing_module('Ophys',
+        # Processing Module:
+        ophys_mod = nwbfile.create_processing_module('ophys',
                                                      'contains optical physiology processed data')
 
-        #ImageSegmentation:
-        image_segmentation = ImageSegmentation(metadata_dict['Ophys']['ImageSegmentation']['name'])
+        # ImageSegmentation:
+        image_segmentation = ImageSegmentation(metadata_dict['ophys']['ImageSegmentation']['name'])
         ophys_mod.add_data_interface(image_segmentation)
 
-        #OPtical Channel:
+        # OpticalChannel:
         channel_names = segext_obj.get_channel_names()
-        input_args=[dict(name=i) for i in channel_names]
-        for j,i in enumerate(metadata_dict['Ophys']['ImagingPlane']['optical_channel']):
+        input_args = [dict(name=i) for i in channel_names]
+        for j, i in enumerate(metadata_dict['ophys']['ImagingPlane']['optical_channel']):
             input_args[j].update(**i)
-        optical_channels=[OpticalChannel(input_args[j]) for j,i in enumerate(channel_names)]
+        optical_channels = [OpticalChannel(input_args[j]) for j, i in enumerate(channel_names)]
 
-        #Imaging Plane:
+        # ImagingPlane:
         input_kwargs = [dict(
             name='ImagingPlane',
             description='no description',
@@ -379,30 +477,32 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             indicator='unknown',
             location='unknown'
         ) for i in nwbfile.devices.values()]
-        [input_kwargs[j].update(**i) for j,i in enumerate(metadata_dict['Ophys']['ImagingPlane'])]#update with metadata
+        [input_kwargs[j].update(**i) for j, i in enumerate(metadata_dict['ophys']['ImagingPlane'])]#update with metadata
         imaging_planes = [nwbfile.create_imaging_plane(i) for i in input_kwargs]
 
-        #Plane Segmentation:
+        # PlaneSegmentation:
         input_kwargs = [dict(
             name='PlaneSegmentation',
             description='output from segmenting my favorite imaging plane',
             imaging_plane=i
         ) for i in imaging_planes]
         [input_kwargs[j].update(**i)
-         for j,i in enumerate(metadata_dict['Ophys']['ImageSegmentation']['plane_segmentations'])]  # update with metadata
+         for j,i in enumerate(metadata_dict['ophys']['ImageSegmentation']['plane_segmentations'])]  # update with metadata
         ps = [image_segmentation.create_plane_segmentation(i) for i in input_kwargs]
 
         # ROI add:
         pixel_mask_exist = segext_obj.get_pixel_masks() is not None
         for i, roiid in enumerate(segext_obj.roi_idx):
             if pixel_mask_exist:
-                [ps_loop.add_roi(id=roiid,
-                           pixel_mask=segext_obj.get_pixel_masks(ROI_ids=[roiid])[:, 0:-1])
-                for ps_loop in ps]
+                [ps_loop.add_roi(
+                    id=roiid,
+                    pixel_mask=segext_obj.get_pixel_masks(ROI_ids=[roiid])[:, 0:-1])
+                 for ps_loop in ps]
             else:
-                [ps_loop.add_roi(id=roiid,
-                                 image_mask=segext_obj.get_image_masks(ROI_ids=[roiid]))
-                for ps_loop in ps]
+                [ps_loop.add_roi(
+                    id=roiid,
+                    image_mask=segext_obj.get_image_masks(ROI_ids=[roiid]))
+                 for ps_loop in ps]
 
         # adding columns to ROI table:
         [ps_loop.add_column(name='RoiCentroid',
@@ -418,21 +518,21 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                             data=accepted)
          for ps_loop in ps]
 
-        #Fluorescence Traces:
+        # Fluorescence Traces:
         input_kwargs = dict(
             rois=ps[0].create_roi_table_region('NeuronROIs', region=list(range(segext_obj.no_rois))),
             starting_time=0.0,
             rate=segext_obj.get_sampling_frequency(),
             unit='lumens'
         )
-        container_type = [i for i in metadata_dict['Ophys'].keys() if i in ['DfOverF','Fluorescence']][0]
+        container_type = [i for i in metadata_dict['ophys'].keys() if i in ['DfOverF','Fluorescence']][0]
         f_container = eval(container_type+'()')
         ophys_mod.add_data_interface(f_container)
-        for i in metadata_dict['Ophys'][container_type]['roi_response_series']:
+        for i in metadata_dict['ophys'][container_type]['roi_response_series']:
             i.update(**input_kwargs,data=segext_obj.get_traces_info()[i['name']].T)
             f_container.create_roi_response_series(**i)
 
-        #create Two Photon Series:
+        # create TwoPhotonSeries:
         input_kwargs = [dict(
             name='TwoPhotonSeries',
             description='no description',
@@ -444,10 +544,10 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             starting_frame=[0],
             dimension=segext_obj.image_dims
         ) for i in imaging_planes]
-        [input_kwargs[j].update(**i) for j,i in enumerate(metadata_dict['Ophys']['TwoPhotonSeries'])]
-        tps = [nwbfile.add_acquisition(TwoPhotonSeries(**i)) for i in input_kwargs]
+        [input_kwargs[j].update(**i) for j, i in enumerate(metadata_dict['ophys']['TwoPhotonSeries'])]
+        [nwbfile.add_acquisition(TwoPhotonSeries(**i)) for i in input_kwargs]
 
-        #adding images:
+        # adding images:
         images_dict = segext_obj.get_images()
         if images_dict is not None:
             for img_set_name, img_set in images_dict.items():

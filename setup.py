@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 
 d = {}
-exec(open("segmentationextractors/version.py").read(), None, d)
+exec(open("roiextractors/version.py").read(), None, d)
 version = d['version']
-pkg_name = "segmentationextractors"
+pkg_name = "roiextractors"
 with open('README.md') as rd:
     long_description = rd.read()
 
@@ -19,9 +19,11 @@ setup(
     packages=find_packages(),
     package_data={},
     install_requires=[
-        'pynwb',
-        'dill',
+        'numpy',
+        'spikeextractors',
+        'tqdm',
         'lazy_ops',
+        'dill'
     ],
     classifiers=(
         "Programming Language :: Python :: 3",

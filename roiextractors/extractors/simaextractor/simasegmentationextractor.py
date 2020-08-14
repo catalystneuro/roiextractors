@@ -1,12 +1,16 @@
 import numpy as np
-from ..segmentationextractor import SegmentationExtractor
-# from past import autotranslate
-# autotranslate(['sima'])
+from roiextractors import SegmentationExtractor
+import dill
 import re
 import os
-import dill
 import pickle
 from shutil import copyfile
+
+try:
+    import sima
+    HAVE_SIMA = True
+except:
+    HAVE_SIMA = False
 
 
 class SimaSegmentationExtractor(SegmentationExtractor):
@@ -15,6 +19,11 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     its functionality specifically applied to the dataset output from
     the \'SIMA\' ROI segmentation method.
     '''
+    extractor_name = 'SimaSegmentation'
+    installed = HAVE_SIMA  # check at class level if installed or not
+    is_writable = False
+    mode = 'file'
+    installation_mesg = "To use the SimaSegmentationExtractor install sima: \n\n pip install sima\n\n"  # error message when not installed
 
     def __init__(self, filepath, sima_segmentation_label='auto_ROIs'):
         import sima
@@ -27,7 +36,8 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         sima_segmentation_label: str
             name of the ROIs in the dataset from which to extract all ROI info
         '''
-
+        assert HAVE_SIMA, self.installation_mesg
+        SegmentationExtractor.__init__(self)
         self.filepath = filepath
         self._convert_sima(filepath)
         self._dataset_file = self._file_extractor_read()

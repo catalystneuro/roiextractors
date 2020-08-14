@@ -1,5 +1,90 @@
 import numpy as np
-from ..segmentationextractor import SegmentationExtractor
+from pathlib import Path
+from ...segmentationextractor import SegmentationExtractor
+from ...imagingextractor import ImagingExtractor
+from ...extraction_tools import get_video_shape
+
+
+# TODO this class should also be able to instantiate an in-memory object (useful for testing)
+class NumpyImagingExtractor(ImagingExtractor):
+    def __init__(self, file_path, sampling_frequency=None,
+                 channel_names=None):
+
+        ImagingExtractor.__init__(self)
+        self.filepath = Path(file_path)
+        self._sampling_frequency = sampling_frequency
+        assert self.filepath.suffix == '.npy'
+        self._video = np.load(self.filepath, mmap_mode='r')
+        self._channel_names = channel_names
+
+        self._num_channels, self._num_frames, self._size_x, self._size_y = get_video_shape(self._video)
+
+        if len(self._video.shape) == 3:
+            # check if this converts to np.ndarray
+            self._video = self._video[np.newaxis, :]
+
+        if self._channel_names is not None:
+            assert len(self._channel_names) == self._num_channels, "'channel_names' length is different than number " \
+                                                                   "of channels"
+        else:
+            self._channel_names = [f'channel_{ch}' for ch in range(self._num_channels)]
+
+    def get_frame(self, frame_idx, channel=0):
+        assert frame_idx < self.get_num_frames()
+        return self._video[channel, frame_idx]
+
+    def get_frames(self, frame_idxs, channel=0):
+        frame_idxs = np.array(frame_idxs)
+        assert np.all(frame_idxs < self.get_num_frames())
+        return self._video[channel, frame_idxs]
+
+    # TODO make decorator to check and correct inputs
+    def get_video(self, start_frame=None, end_frame=None, channel=0):
+        if start_frame is None:
+            start_frame = 0
+        if end_frame is None:
+            end_frame = self.get_num_frames()
+        end_frame = min(end_frame, self.get_num_frames())
+
+        video = self._video[channel, start_frame: end_frame]
+
+        return video
+
+    def get_image_size(self):
+        return [self._size_x, self._size_y]
+
+    def get_num_frames(self):
+        return self._num_frames
+
+    def get_sampling_frequency(self):
+        return self._sampling_frequency
+
+    def get_channel_names(self):
+        '''List of  channels in the recoding.
+
+        Returns
+        -------
+        channel_names: list
+            List of strings of channel names
+        '''
+        return self._channel_names
+
+    def get_num_channels(self):
+        '''Total number of active channels in the recording
+
+        Returns
+        -------
+        no_of_channels: int
+            integer count of number of channels
+        '''
+        return self._num_channels
+
+    @staticmethod
+    def write_imaging(imaging, save_path):
+        save_path = Path(save_path)
+        assert save_path.suffix == '.npy', "'save_path' should havve a .npy extension"
+
+        np.save(save_path, imaging.get_video())
 
 
 class NumpySegmentationExtractor(SegmentationExtractor):
@@ -50,6 +135,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         movie_dims: list(2-D)
             height x width of the movie
         '''
+        SegmentationExtractor.__init__(self)
         self.filepath = filepath
         self._dataset_file = None
         if masks is None:

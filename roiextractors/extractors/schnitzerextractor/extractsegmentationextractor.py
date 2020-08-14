@@ -1,6 +1,6 @@
 import numpy as np
 import h5py
-from ..segmentationextractor import SegmentationExtractor
+from roiextractors import SegmentationExtractor
 from lazy_ops import DatasetView
 
 
@@ -10,6 +10,11 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
     its funtionality specifically applied to the dataset output from
     the \'EXTRACT\' ROI segmentation method.
     '''
+    extractor_name = 'ExtractSegmentation'
+    installed = True  # check at class level if installed or not
+    is_writable = False
+    mode = 'file'
+    installation_mesg = ""  # error message when not installed
 
     def __init__(self, filepath):
         '''
