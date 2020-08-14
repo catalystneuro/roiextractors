@@ -1,10 +1,10 @@
-# SegmentationExtractors
+# ROI Extractors
 Python-based module for extracting from, converting between, and handling recorded and optical imaging data from several file formats. Inspired by [SpikeExtractors](https://github.com/SpikeInterface/spikeextractors).
 ![image](https://drive.google.com/uc?export=view&id=1bhRA3kyu3SA3k-xWz5psRxLsuP3BJEBg)
 
 ## Getting Started:
 #### Installation:
-`pip install roiextractors`
+`pip install get+https://github.com/catalystneuro/roiextractors.git`
 
 ## Usage:
 #### Currently supported file types:
