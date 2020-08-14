@@ -1,11 +1,11 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "metafile.schema.json",
+  "$id": "ophys_metafile.schema.json",
   "title": "Schema for the metafile",
   "description": "Schema for the metafile",
   "version": "0.1.0",
   "type": "object",
-  "required": ["NWBFile","Subject","Ophys"],
+  "required": ["NWBFile","Subject","ophys"],
   "additionalProperties": false,
   "properties": {
     "NWBFile": {
@@ -60,7 +60,7 @@
         "date_of_birth": {"type": "string", "format": "date-time", "description": "Date of birth of subject. Can be supplied instead of 'age'."}
       }
     },
-    "Ophys": {
+    "ophys": {
       "additionalProperties": false,
       "type": "object",
       "required": ["Device"],

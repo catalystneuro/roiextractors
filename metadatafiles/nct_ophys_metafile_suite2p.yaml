@@ -23,7 +23,7 @@ Subject:
   species: species
   weight: weight number
   date_of_birth: 2010-02-02 00:00:00
-Ophys:
+ophys:
   Device:
   - name: Microscope
     description: ophys_device1_description
