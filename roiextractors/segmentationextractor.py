@@ -40,7 +40,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         no_rois: int
             The number of rois
         """
-        return len(self.get_num_rois())
+        return self.get_num_rois()
 
     @property
     def roi_ids(self):
