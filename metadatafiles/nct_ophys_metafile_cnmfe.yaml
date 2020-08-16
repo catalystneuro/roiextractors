@@ -1,7 +1,7 @@
 ---
 NWBFile:
   session_start_time: 2020-02-02 00:00:00
-  keywords: [keyword1, keyword2]
+  keywords: [cnmfe]
   experiment_description: brief experiment description
   session_id: session id goes here
   experimenter: [testname]
@@ -23,18 +23,16 @@ Subject:
   species: species
   weight: weight number
   date_of_birth: 2010-02-02 00:00:00
-ophys:
+Ophys:
   Device:
   - name: ophys_Device1
     description: ophys_device1_description
   - name: ophys_Device2
     description: ophys_device2_description
-  DfOverF:
+  Fluorescence:
     name: df_over_f_name
     roi_response_series:
-    - name: extractedSignals
-      description: description of roi resp series
-    - name: extractedPeaks
+    - name: RoiResponseSeries
       description: description of roi resp series
   ImageSegmentation:
     name: ABCD
@@ -42,9 +40,18 @@ ophys:
     - name: MyplaneSegmentation
       description: Segmented ROIs
   ImagingPlane:
-    - description: ADDME
-      excitation_lambda: 488.0
+    - description: standard
+      excitation_lambda: 600.0
       imaging_rate: 1.0
-      indicator: NLS-GCaMP6s
-      location: whole central brain
-      name: ImagingPlane_1
+      indicator: GCaMP
+      location: V1
+      name: ImagingPlane
+      grid_spacing: [2,2]
+      grid_spacing_unit: microns
+      optical_channels:
+        - name: OpticalChannel
+          emission_lambda: 500.0
+          description: description
+  TwoPhotonSeries:
+    - name: TwoPhotonSeries
+      description: description
