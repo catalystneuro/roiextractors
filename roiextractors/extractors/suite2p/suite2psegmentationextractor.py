@@ -15,29 +15,25 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             db overwrites any ops (allows for experiment specific settings)
         """
         SegmentationExtractor.__init__(self)
+        self.combined = combined
+        self.plane_no = plane_no
         self.filepath = fileloc
-        self.no_planes_extract = 1
         self.stat = self._load_npy('stat.npy')
         self.F = self._load_npy('F.npy', mmap_mode='r')
         self.Fneu = self._load_npy('Fneu.npy', mmap_mode='r')
         self.spks = self._load_npy('spks.npy', mmap_mode='r')
         self.iscell = self._load_npy('iscell.npy', mmap_mode='r')
-        self.ops = [i.item() for i in self._load_npy('ops.npy')]
-        self.op_inp = self.ops[0]
-        self.no_channels = self.op_inp['nchannels']
-        self.no_planes = self.op_inp['nplanes']
-        self.rois_per_plane = [i.shape[0] for i in self.iscell]
-        self.raw_images = None
-        self.roi_response = None
+        self.ops = self._load_npy('ops.npy').item()
+        self._channel_names = [f'OpticalChannel{i}' for i in range(self.ops['nchannels'])]
+        self._roi_response_dict = {'Fluorescence': self.F,
+                               'Neuropil': self.Fneu,
+                               'Deconvolved': self.spks}
+        self._sampling_frequency = self.ops['fs'] * [2 if self.combined else 1][0]
+        self._raw_movie_file_location = self.ops['filelist']
 
     def _load_npy(self, filename, mmap_mode=None):
-        ret_val = [[None]] * self.no_planes_extract
-        for i in range(self.no_planes_extract):
-            fpath = os.path.join(self.filepath, 'Plane{}'.format(i), filename)
-            ret_val[i] = np.load(fpath,
-                                 mmap_mode=mmap_mode,
-                                 allow_pickle=not mmap_mode and True)
-        return ret_val
+        fpath = os.path.join(self.filepath, f'Plane{self.plane_no}', filename)
+        return np.load(fpath, mmap_mode=mmap_mode)
 
     @property
     def image_dims(self):
