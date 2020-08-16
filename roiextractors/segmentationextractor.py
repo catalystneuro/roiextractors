@@ -16,7 +16,10 @@ class SegmentationExtractor(ABC, BaseExtractor):
 
     def __init__(self):
         BaseExtractor.__init__(self)
-        self._sampling_frequency = None
+        self._sampling_frequency = np.float('NaN')
+        self._channel_names = ['OpticalChannel']
+        self._raw_movie_file_location = ''
+        self.no_planes = 1
 
     @property
     def image_size(self):
@@ -64,7 +67,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         Returns
         -------
         roi_locs: np.array
-            Array with the first column representing the x (width) and second representing
+            Array with the first row representing the x (width) and second representing
             the y (height) coordinates of the ROI.
         """
         return self.get_roi_locations()
@@ -205,6 +208,28 @@ class SegmentationExtractor(ABC, BaseExtractor):
         """
         pass
 
+    @abstractmethod
+    def get_traces(self) -> ArrayType:
+        """
+        Return RoiResponseSeries
+        Returns
+        -------
+        traces: array_like
+            2-D array (ROI x timepoints)
+        """
+        pass
+
+    def get_traces_dict(self):
+        """
+        Returns traces as a dictionary with key as the name of the ROiResponseSeries
+        Returns
+        -------
+        _roi_response_dict: dict
+            dictionary with key, values representing different types of RoiResponseSeries
+            Flourescence, Neuropil, Deconvolved, Background etc
+        """
+        return self._roi_response_dict
+
     def get_sampling_frequency(self):
         """This function returns the sampling frequency in units of Hz.
 
@@ -225,6 +250,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         """
         return len(self.get_roi_ids())
 
+    @abstractmethod
     def get_images(self):
         """
         Retrieve any relevant greyscale images from the pipeline
@@ -238,7 +264,35 @@ class SegmentationExtractor(ABC, BaseExtractor):
                 -<image_name2>: <image_data2>
                 -<image_name3>: <image_data3>
         """
-        raise NotImplementedError
+        pass
+
+    def get_channel_names(self):
+        """
+        Names of channels in the pipeline
+        Returns
+        -------
+        _channel_names: list
+            names of channels (str)
+        """
+        return self._channel_names
+
+    def get_num_channels(self):
+        """
+        Number of channels in the pipeline
+        Returns
+        -------
+        no_of_channels: int
+        """
+        return len(self._channel_names)
+
+    def get_movie_location(self):
+        """
+        Local disc location of the raw movie
+        Returns
+        -------
+        _raw_movie_file_location: str
+        """
+        return self._raw_movie_file_location
 
     @staticmethod
     def write_segmentation(segmentation_extractor, savepath):
