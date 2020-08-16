@@ -94,91 +94,59 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     all data must be entered manually as arguments.
     """
 
-    def __init__(self, filepath=None, masks=None, signal=None,
-                 background_signal=None, background_masks=None,
+    def __init__(self, filepath=None, image_masks=None,
+                 pixel_masks=None, signal=None,
                  rawfileloc=None, accepted_lst=None,
                  summary_image=None, roi_idx=None,
-                 roi_locs=None, samp_freq=None, nback=1,
-                 total_time=0, rejected_list=None, channel_names=None,
-                 no_of_channels=None, movie_dims=None):
+                 roi_locs=None, samp_freq=None,
+                 rejected_list=None, channel_names=None,
+                 movie_dims=None):
         """
         Parameters:
         ----------
         filepath: str
             The location of the folder containing the custom file format.
-        masks: np.ndarray (dimensions: image width x height x # of ROIs)
+        image_masks: np.ndarray (dimensions: image width x height x # of ROIs)
             Binary image for each of the regions of interest
+        pixel_masks: list
+            list of np.ndarray (dimensions: no_pixels X 2) pixel mask for every ROI
         signal: np.ndarray (dimensions: # of ROIs x # timesteps)
             Fluorescence response of each of the ROI in time
-        background_signal: np.ndarray (dimensions: # of BackgroundRegions x # timesteps)
-            Fluorescence response of each of the background ROIs in time
-        background_masks: np.ndarray (dimensions: image width x height x # of ROIs)
-            Binary image for the background ROIs
         summary_image: np.ndarray (dimensions: d1 x d2)
             Mean or the correlation image
         roi_idx: int list (length is # of ROIs)
             Unique ids of the ROIs if any
         roi_locs: np.ndarray (dimensions: # of ROIs x 2)
-            x and y location of centroid of ROI mask
+            x and y location representative of ROI mask
         samp_freq: float
             Frame rate of the movie
-        nback: int
-            Number of background components extracted
-        total_time: float
-            total time of the experiment data
         rejected_list: list
             list of ROI ids that are rejected manually or via automated rejection
         channel_names: list
             list of strings representing channel names
-        no_of_channels: int
-            number of channels
         movie_dims: list(2-D)
             height x width of the movie
         """
         SegmentationExtractor.__init__(self)
         self.filepath = filepath
-        self._dataset_file = None
-        if masks is None:
-            self.image_masks = np.empty([0, 0])
-            self.raw_images = np.empty([0, 0, 0])
-        elif len(masks.shape) > 2:
-            self.image_masks = masks.reshape([np.prod(masks.shape[0:2]), masks.shape[2]], order='F')
-            self.raw_images = masks
+        if image_masks is None:
+            self.image_masks = np.empty([0, 0, 0])
+        if pixel_masks is None:
+            self.pixel_masks = pixel_masks
+        if signal is None:#initialize with a empty value
+            self._roi_response = np.empty([0, 0])
         else:
-            self.image_masks = masks
-            if not movie_dims:
-                raise Exception('enter movie dimensions as height x width list')
-            self.raw_images = masks.reshape(movie_dims.append(masks.shape[2]), order='F')
-        if signal is None:
-            self.roi_response = np.empty([0, 0])
-        else:
-            self.roi_response = signal
-        self.cn = summary_image
-        self.total_time = total_time
-        self.filetype = self._file_type_extractor_read()
-        self.raw_movie_file_location = rawfileloc
-        self.image_masks_bk = background_masks
-
-        if background_signal is None:
-            self.roi_response_bk = np.nan * np.ones([nback, self.roi_response.shape[1]])
-        else:
-            self.roi_response_bk = background_signal
-
+            self._roi_response = signal
+        self._roi_response_dict = {'Fluorescence': self._roi_response}
+        self._movie_dims = movie_dims
+        self._summary_image = summary_image
+        self._raw_movie_file_location = rawfileloc
         self._roi_ids = roi_idx
         self._roi_locs = roi_locs
-        self._samp_freq = samp_freq
-        self.channel_names = channel_names
-        self.no_of_channels = no_of_channels
+        self._sampling_frequency = samp_freq
+        self._channel_names = channel_names
         self._rejected_list = rejected_list
         self._accepted_list = accepted_lst
-        self.idx_components = self.accepted_list
-        self.idx_components_bad = self.rejected_list
-
-    def _file_type_extractor_read(self):
-        if self.filepath is not None:
-            return self.filepath.split('.')[1]
-        else:
-            return None
 
     @property
     def image_dims(self):
