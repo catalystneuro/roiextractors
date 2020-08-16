@@ -3,6 +3,6 @@ from .extractors.bioformatsimagingextractors import FliImagingExtractor, StkImag
 from .extractors.hdf5imagingextractor import Hdf5ImagingExtractor
 from .extractors.tiffimagingextractor import TiffImagingExtractor
 from .extractors.nwbextractors import NwbImagingExtractor, NwbSegmentationExtractor
-
+from .extractors.suite2p import Suite2pSegmentationExtractor
 from .extractors.schnitzerextractor import CnmfeSegmentationExtractor, ExtractSegmentationExtractor
 from .extractors.simaextractor import SimaSegmentationExtractor
