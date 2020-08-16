@@ -1,8 +1,7 @@
 import numpy as np
 from pathlib import Path
-from ...segmentationextractor import SegmentationExtractor
-from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import get_video_shape
+from roiextractors import SegmentationExtractor, ImagingExtractor
+from roiextractors.extraction_tools import get_video_shape
 
 
 # TODO this class should also be able to instantiate an in-memory object (useful for testing)
@@ -150,38 +149,25 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     @property
     def image_dims(self):
-        return list(self.raw_images.shape[0:2])
+        return list(self.image_masks.shape[0:2])
 
-    @property
-    def no_rois(self):
-        return self.raw_images.shape[2]
-
-    @property
-    def roi_idx(self):
-        if self._roi_ids is None:
-            return list(range(self.no_rois))
-        else:
-            return self._roi_ids
-
-    @property
-    def accepted_list(self):
+    def get_accepted_list(self):
         if self._accepted_list is None:
             return list(range(self.no_rois))
         else:
             return self._accepted_list
 
-    @property
-    def rejected_list(self):
+    def get_rejected_list(self):
         if self._rejected_list is None:
-            return [a for a in range(self.no_rois) if a not in set(self.accepted_list)]
+            return [a for a in range(self.no_rois) if a not in set(self.get_accepted_list())]
         else:
             return self._rejected_list
 
     @property
-    def roi_locs(self):
+    def roi_locations(self):
         if self._roi_locs is None:
             no_ROIs = self.no_rois
-            raw_images = self.raw_images
+            raw_images = self.image_masks
             roi_location = np.ndarray([2, no_ROIs], dtype='int')
             for i in range(no_ROIs):
                 temp = np.where(raw_images[:, :, i] == np.amax(raw_images[:, :, i]))
@@ -190,47 +176,31 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         else:
             return self._roi_locs
 
-    @property
-    def num_of_frames(self):
-        return self.roi_response.shape[1]
-
-    @property
-    def samp_freq(self):
-        if self._samp_freq is None:
-            time = self.total_time
-            nframes = self.num_of_frames
-            try:
-                return nframes / time
-            except ZeroDivisionError:
-                return 0
-        else:
-            return self._samp_freq
-
     @staticmethod
     def write_segmentation(segmentation_object, savepath):
         raise NotImplementedError
 
     # defining the abstract class enformed methods:
     def get_roi_ids(self):
-        return list(range(self.no_rois))
+        if self._roi_ids is None:
+            return list(range(self.no_rois))
+        else:
+            return self._roi_ids
 
     def get_num_rois(self):
-        return self.no_rois
+        return self.image_masks.shape[2]
 
     def get_roi_locations(self, roi_ids=None):
         if roi_ids is None:
-            return self.roi_locs
+            return self.roi_locations
         else:
-            roi_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in roi_ids]
+            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-            return self.roi_locs[:, roi_idx_]
+            return self.roi_locations[:, roi_idx_]
 
     def get_num_frames(self):
-        return self.num_of_frames
-
-    def get_sampling_frequency(self):
-        return self.samp_freq
+        return self._roi_response.shape[1]
 
     def get_traces(self, roi_ids=None, start_frame=None, end_frame=None):
         if start_frame is None:
@@ -240,25 +210,25 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         if roi_ids is None:
             roi_idx_ = list(range(self.get_num_rois()))
         else:
-            roi_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in roi_ids]
+            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return self.roi_response[roi_idx_, start_frame:end_frame]
+        return self._roi_response[roi_idx_, start_frame:end_frame]
 
-    def get_image_masks(self, roi_ids=None):
+    def get_roi_image_masks(self, roi_ids=None):
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
         else:
-            roi_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in roi_ids]
+            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return self.raw_images[:, :, roi_idx_]
+        return self.image_masks[:, :, roi_idx_]
 
-    def get_pixel_masks(self, roi_ids=None):
+    def get_roi_pixel_masks(self, roi_ids=None):
         if roi_ids is None:
-            roi_idx_ = self.roi_idx
+            roi_idx_ = self.roi_ids
         else:
-            roi_idx = [np.where(i == self.roi_idx)[0] for i in roi_ids]
+            roi_idx = [np.where(i == self.roi_ids)[0] for i in roi_ids]
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
         temp = np.empty((1, 4))
@@ -270,11 +240,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     def get_movie_framesize(self):
         return self.image_dims
 
-    def get_movie_location(self):
-        return self.raw_movie_file_location
+    def get_image_size(self):
+        return self._movie_dims
 
-    def get_channel_names(self):
-        return self.channel_names
 
-    def get_num_channels(self):
-        return self.no_of_channels
