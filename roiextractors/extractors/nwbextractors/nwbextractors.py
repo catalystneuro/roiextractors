@@ -2,8 +2,11 @@ import os
 import uuid
 import numpy as np
 import yaml
-from roiextractors import ImagingExtractor, SegmentationExtractor
 from lazy_ops import DatasetView
+
+from ...imagingextractor import ImagingExtractor
+from ...segmentationextractor import SegmentationExtractor
+from ...extraction_tools import ArrayType, PathType, check_get_frames_args, check_get_videos_args, get_video_shape
 
 try:
     from pynwb import NWBHDF5IO, TimeSeries, NWBFile
@@ -106,29 +109,16 @@ class NwbImagingExtractor(ImagingExtractor):
         assert HAVE_NWB, self.installation_mesg
         ImagingExtractor.__init__(self)
 
+        #TODO load NWB file properly
+
     #TODO placeholders
-    def get_frame(self, frame_idx, channel=0):
-        assert frame_idx < self.get_num_frames()
-        return self._video[frame_idx]
+    @check_get_frames_args
+    def get_frames(self, frame_idxs, channel=0):
+        return self._video[channel, frame_idxs]
 
-    def get_frames(self, frame_idxs):
-        assert np.all(frame_idxs < self.get_num_frames())
-        planes = np.zeros((len(frame_idxs), self._size_x, self._size_y))
-        for i, frame_idx in enumerate(frame_idxs):
-            plane = self._video[frame_idx]
-            planes[i] = plane
-        return planes
-
-    # TODO make decorator to check and correct inputs
-    def get_video(self, start_frame=None, end_frame=None):
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self.get_num_frames()
-        end_frame = min(end_frame, self.get_num_frames())
-
-        video = self._video[start_frame: end_frame]
-
+    @check_get_videos_args
+    def get_video(self, start_frame=None, end_frame=None, channel=0):
+        video = self._video[channel, start_frame:end_frame]
         return video
 
     def get_image_size(self):
@@ -197,6 +187,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         background_roi_response_series_name: str(optional)
             name of background roi response series to extract data from
         """
+        SegmentationExtractor.__init__(self)
         check_nwb_install()
         if not os.path.exists(filepath):
             raise Exception('file does not exist')

@@ -13,10 +13,6 @@ class ImagingExtractor(ABC, BaseExtractor):
         self._memmapped = False
 
     @abstractmethod
-    def get_frame(self, frame_idx: int, channel: int = 0) -> NumpyArray:
-        pass
-
-    @abstractmethod
     def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> NumpyArray:
         pass
 

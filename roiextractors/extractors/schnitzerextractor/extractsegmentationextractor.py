@@ -1,6 +1,6 @@
 import numpy as np
 import h5py
-from roiextractors import SegmentationExtractor
+from ...segmentationextractor import SegmentationExtractor
 from lazy_ops import DatasetView
 
 
@@ -23,6 +23,9 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         filepath: str
             The location of the folder containing dataset.mat file.
         """
+        SegmentationExtractor.__init__(self)
+        #TODO Alessio: IMO too many public variables are too confusing. Keep if really needed by the user, make private
+        # if needed internally, remove if not needed
         self.filepath = filepath
         self._dataset_file, self._group0 = self._file_extractor_read()
         self.extimage_dims, self.raw_images = self._image_mask_extractor_read()
