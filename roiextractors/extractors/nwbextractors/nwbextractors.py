@@ -169,35 +169,23 @@ class NwbImagingExtractor(ImagingExtractor):
 
 
 class NwbSegmentationExtractor(SegmentationExtractor):
-    """
-    Class used to extract data from the NWB data format. Also implements a
-    static method to write any format specific object to NWB.
-    """
 
-    def __init__(self, filepath, optical_channel_name=None,
-                 imaging_plane_name=None, image_series_name=None,
-                 processing_module_name=None,
-                 neuron_roi_response_series_name=None,
-                 background_roi_response_series_name=None):
+    extractor_name = 'NwbSegmentationExtractor'
+    installed = True  # check at class level if installed or not
+    is_writable = False
+    mode = 'file'
+    installation_mesg = ""  # error message when not installed
+
+    def __init__(self, filepath):
         """
+        Creating NwbSegmentationExtractor object from nwb file
         Parameters
         ----------
         filepath: str
-            The location of the folder containing dataset.nwb file.
-        optical_channel_name: str(optional)
-            optical channel to extract data from
-        imaging_plane_name: str(optional)
-            imaging plane to extract data from
-        image_series_name: str(optional)
-            imaging series to extract data from
-        processing_module_name: str(optional)
-            processing module to extract data from
-        neuron_roi_response_series_name: str(optional)
-            name of roi response series to extract data from
-        background_roi_response_series_name: str(optional)
-            name of background roi response series to extract data from
+            .nwb file location
         """
         check_nwb_install()
+        SegmentationExtractor.__init__(self)
         if not os.path.exists(filepath):
             raise Exception('file does not exist')
 
@@ -243,40 +231,37 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         # Extract Image dimensions:
 
         # Extract roi_response:
-        self.roi_resp_dict = dict()
+        self._roi_response_dict = dict()
         self._roi_names = [_nwbchildren_name[val]
                       for val, i in enumerate(_nwbchildren_type) if i == 'RoiResponseSeries']
         if not self._roi_names:
             raise Exception('no ROI response series found')
         else:
             for roi_name in self._roi_names:
-                self.roi_resp_dict[roi_name] = mod['Fluorescence'].get_roi_response_series(roi_name)
-        self.roi_response = self.roi_resp_dict[self._roi_names[0]]
+                self._roi_response_dict[roi_name] = mod['Fluorescence'].get_roi_response_series(roi_name).data[:].T
+        self._roi_response = self._roi_response_dict[self._roi_names[0]]
 
         # Extract samp_freq:
-        self._samp_freq = self.roi_response.rate
+        self._sampling_frequency = mod['Fluorescence'].get_roi_response_series(self._roi_names[0]).rate
         # Extract no_rois/ids:
         self._roi_idx = np.array(ps.id.data)
 
         # Imaging plane:
         _optical_channel_exist = [i for i, e in enumerate(
             _nwbchildren_type) if e == 'OpticalChannel']
-        if not _optical_channel_exist:
-            self.channel_names = ['OpticalChannel']
-        else:
-            self.channel_names = []
+        if _optical_channel_exist:
+            self._channel_names = []
             for i in _optical_channel_exist:
-                self.channel_names.append(nwbfile.all_children()[i].name)
+                self._channel_names.append(nwbfile.all_children()[i].name)
         # Movie location:
         _image_series_exist = [i for i, e in enumerate(
             _nwbchildren_type) if e == 'TwoPhotonSeries']
         if not _image_series_exist:
-            self.raw_movie_file_location = None
-            self.extimage_dims = None
+            self._extimage_dims = None
         else:
-            self.raw_movie_file_location = \
+            self._raw_movie_file_location = \
                 nwbfile.all_children()[_image_series_exist[0]].external_file[:][0]
-            self.extimage_dims = \
+            self._extimage_dims = \
                 nwbfile.all_children()[_image_series_exist[0]].dimension
 
         # property name/data extraction:
@@ -289,44 +274,21 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         #Extracting stores images as GrayscaleImages:
         self._greyscaleimages = [_nwbchildren_name[f] for f, u in enumerate(_nwbchildren_type) if u == 'GrayscaleImage']
 
-    @property
-    def image_dims(self):
-        return list(self.extimage_dims)
-
-    @property
-    def no_rois(self):
-        return self.roi_idx.size
-
-    @property
-    def roi_idx(self):
-        return self._roi_idx
-
-    @property
-    def accepted_list(self):
+    def get_accepted_list(self):
         if self._accepted_list is None:
             return list(range(self.no_rois))
         else:
             return np.where(self._accepted_list==1)[0].tolist()
 
-    @property
-    def rejected_list(self):
-        return [a for a in self.roi_idx if a not in set(self.accepted_list)]
+    def get_rejected_list(self):
+        return [a for a in self.roi_ids if a not in set(self.get_accepted_list())]
 
     @property
-    def roi_locs(self):
+    def roi_locations(self):
         if self._roi_locs is None:
             return None
         else:
-            return self._roi_locs.data[:].T.tolist()
-
-    @property
-    def num_of_frames(self):
-        extracted_signals = self.roi_response.data
-        return extracted_signals.shape[1]
-
-    @property
-    def samp_freq(self):
-        return self._samp_freq
+            return self._roi_locs.data[:].T
 
     def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name=None):
         if name is None:
@@ -339,45 +301,36 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
         else:
-            roi_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in roi_ids]
+            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return np.array([self.roi_resp_dict[name].data[int(i), start_frame:end_frame] for i in range(self.no_rois)])
-
-    def get_traces_info(self):
-        roi_resp_dict = dict()
-        for i in self._roi_names:
-            roi_resp_dict[i] = self.get_traces(name=i)
-        return roi_resp_dict
+        return np.array([self._roi_response_dict[name][int(i), start_frame:end_frame] for i in roi_idx_])
 
     def get_num_frames(self):
-        return self.roi_response.data.shape[1]
-
-    def get_sampling_frequency(self):
-        return self.samp_freq
+        return self._roi_response.shape[1]
 
     def get_roi_locations(self, roi_ids=None):
         if roi_ids is None:
-            return self.roi_locs
+            return self.roi_locations
         else:
-            roi_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in roi_ids]
+            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-            return self.roi_locs[:, roi_idx_]
+            return self.roi_locations[:, roi_idx_]
 
     def get_roi_ids(self):
-        return self.roi_idx
+        return self._roi_idx
 
     def get_num_rois(self):
-        return self.no_rois
+        return self.roi_ids.size
 
-    def get_pixel_masks(self, roi_ids=None):
+    def get_roi_pixel_masks(self, roi_ids=None):
         if self.pixel_masks is None:
             return None
         if roi_ids is None:
-            roi_idx_ = self.roi_idx
+            roi_idx_ = self.roi_ids
         else:
-            roi_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in roi_ids]
+            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
         temp = np.empty((1, 4))
@@ -386,13 +339,13 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 np.append(temp, self.pixel_masks[self.pixel_masks[:, 3] == roiid, :], axis=0)
         return temp[1::, :]
 
-    def get_image_masks(self, roi_ids=None):
+    def get_roi_image_masks(self, roi_ids=None):
         if self.image_masks is None:
             return None
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
         else:
-            roi_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in roi_ids]
+            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
         return np.array([self.image_masks[:, :, int(i)].T for i in roi_idx_]).T
@@ -406,17 +359,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         else:
             return None
 
-    def get_movie_framesize(self):
-        return self.image_dims
-
-    def get_movie_location(self):
-        return self.raw_movie_file_location
-
-    def get_channel_names(self):
-        return self.channel_names
-
-    def get_num_channels(self):
-        return len(self.channel_names)
+    def get_image_size(self):
+        return self._extimage_dims
 
     def get_property_data(self, property_name):
         ret_val = []
