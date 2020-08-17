@@ -2,8 +2,10 @@ import os
 import uuid
 import numpy as np
 import yaml
-from roiextractors import ImagingExtractor, SegmentationExtractor
 from lazy_ops import DatasetView
+from roiextractors import ImagingExtractor, SegmentationExtractor
+from ...extraction_tools import ArrayType, PathType, check_get_frames_args, check_get_videos_args, get_video_shape
+
 
 try:
     from pynwb import NWBHDF5IO, TimeSeries, NWBFile
@@ -106,11 +108,7 @@ class NwbImagingExtractor(ImagingExtractor):
         assert HAVE_NWB, self.installation_mesg
         ImagingExtractor.__init__(self)
 
-    #TODO placeholders
-    def get_frame(self, frame_idx, channel=0):
-        assert frame_idx < self.get_num_frames()
-        return self._video[frame_idx]
-
+    @check_get_frames_args
     def get_frames(self, frame_idxs):
         assert np.all(frame_idxs < self.get_num_frames())
         planes = np.zeros((len(frame_idxs), self._size_x, self._size_y))
@@ -119,7 +117,7 @@ class NwbImagingExtractor(ImagingExtractor):
             planes[i] = plane
         return planes
 
-    # TODO make decorator to check and correct inputs
+    @check_get_videos_args
     def get_video(self, start_frame=None, end_frame=None):
         if start_frame is None:
             start_frame = 0

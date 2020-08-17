@@ -2,7 +2,7 @@ import numpy as np
 from pathlib import Path
 from ...segmentationextractor import SegmentationExtractor
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import get_video_shape
+from ...extraction_tools import ArrayType, PathType, check_get_frames_args, check_get_videos_args, get_video_shape
 
 
 # TODO this class should also be able to instantiate an in-memory object (useful for testing)
@@ -29,25 +29,13 @@ class NumpyImagingExtractor(ImagingExtractor):
         else:
             self._channel_names = [f'channel_{ch}' for ch in range(self._num_channels)]
 
-    def get_frame(self, frame_idx, channel=0):
-        assert frame_idx < self.get_num_frames()
-        return self._video[channel, frame_idx]
-
+    @check_get_frames_args
     def get_frames(self, frame_idxs, channel=0):
-        frame_idxs = np.array(frame_idxs)
-        assert np.all(frame_idxs < self.get_num_frames())
         return self._video[channel, frame_idxs]
 
-    # TODO make decorator to check and correct inputs
+    @check_get_videos_args
     def get_video(self, start_frame=None, end_frame=None, channel=0):
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self.get_num_frames()
-        end_frame = min(end_frame, self.get_num_frames())
-
         video = self._video[channel, start_frame: end_frame]
-
         return video
 
     def get_image_size(self):
