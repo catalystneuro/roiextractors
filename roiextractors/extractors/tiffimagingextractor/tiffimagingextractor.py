@@ -1,8 +1,7 @@
 import numpy as np
 from pathlib import Path
-from roiextractors import ImagingExtractor
-from roiextractors.extraction_tools import ArrayType, PathType
-from roiextractors.extraction_tools import get_video_shape
+from ...imagingextractor import ImagingExtractor
+from ...extraction_tools import ArrayType, PathType, get_video_shape
 
 try:
     import tiffile

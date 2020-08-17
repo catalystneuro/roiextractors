@@ -1,5 +1,5 @@
 import numpy as np
-from roiextractors import SegmentationExtractor
+from ...segmentationextractor import SegmentationExtractor
 import os
 
 
