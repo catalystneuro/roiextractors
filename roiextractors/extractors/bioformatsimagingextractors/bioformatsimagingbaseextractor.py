@@ -1,7 +1,7 @@
 from pathlib import Path
 import numpy as np
 from abc import ABC, abstractmethod
-from roiextractors import ImagingExtractor
+from ...imagingextractor import ImagingExtractor
 
 try:
     import javabridge

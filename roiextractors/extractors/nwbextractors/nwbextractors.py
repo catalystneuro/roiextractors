@@ -2,7 +2,8 @@ import os
 import uuid
 import numpy as np
 import yaml
-from roiextractors import ImagingExtractor, SegmentationExtractor
+from ...imagingextractor import ImagingExtractor
+from ...segmentationextractor import SegmentationExtractor
 from lazy_ops import DatasetView
 
 try:
