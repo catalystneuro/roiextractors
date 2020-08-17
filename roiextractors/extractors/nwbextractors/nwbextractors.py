@@ -3,6 +3,7 @@ import uuid
 import numpy as np
 import yaml
 from lazy_ops import DatasetView
+from pathlib import Path
 
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
@@ -83,43 +84,107 @@ class NwbImagingExtractor(ImagingExtractor):
     mode = 'file'
     installation_mesg = "To use the Nwb Extractor run:\n\n pip install pynwb\n\n"  # error message when not installed
 
-    def __init__(self, filepath, optical_channel_name=None,
-                 imaging_plane_name=None, image_series_name=None,
-                 processing_module_name=None,
-                 neuron_roi_response_series_name=None,
-                 background_roi_response_series_name=None):
+    def __init__(self, file_path, optical_series_name='TwoPhotonSeries'):
         """
         Parameters
         ----------
-        filepath: str
-            The location of the folder containing dataset.nwb file.
-        optical_channel_name: str(optional)
-            optical channel to extract data from
-        imaging_plane_name: str(optional)
-            imaging plane to extract data from
-        image_series_name: str(optional)
-            imaging series to extract data from
-        processing_module_name: str(optional)
-            processing module to extract data from
-        neuron_roi_response_series_name: str(optional)
-            name of roi response series to extract data from
-        background_roi_response_series_name: str(optional)
-            name of background roi response series to extract data from
+        file_path: str
+            The location of the folder containing dataset.nwb file
+        optical_series_name: str (optional)
+            optical series to extract data from
         """
         assert HAVE_NWB, self.installation_mesg
         ImagingExtractor.__init__(self)
+        self._path = file_path
 
-        #TODO load NWB file properly
+        with NWBHDF5IO(self._path, 'r') as io:
+            nwbfile = io.read()
+            if optical_series_name is not None:
+                self._optical_series_name = optical_series_name
+            else:
+                a_names = list(nwbfile.acquisition)
+                if len(a_names) > 1:
+                    raise ValueError('More than one acquisition found. You must specify electrical_series.')
+                if len(a_names) == 0:
+                    raise ValueError('No acquisitions found in the .nwb file.')
+                self._optical_series_name = a_names[0]
 
-    #TODO placeholders
+            opts = nwbfile.acquisition[self._optical_series_name]
+            assert isinstance(opts, TwoPhotonSeries), "The optical series must be of type pynwb.TwoPhotonSeries"
+
+            #TODO if external file --> return another proper extractor (e.g. TiffImagingExtractor)
+            assert opts.external_file is None, "Only 'raw' format is currently supported"
+
+            if hasattr(opts, 'timestamps') and opts.timestamps:
+                self._sampling_frequency = 1. / np.median(np.diff(opts.timestamps))
+                self._imaging_start_time = opts.timestamps[0]
+            else:
+                self._sampling_frequency = opts.rate
+                if hasattr(os, 'starting_time'):
+                    self._imaging_start_time = opts.starting_time
+                else:
+                    self._imaging_start_time = 0.
+
+            if len(opts.data.shape) == 3:
+                self._num_frames, self._size_x, self._size_y = opts.data.shape
+                self._num_channels = 1
+                self._channel_names = [opts['imaging_plane']['optical_channel']['name']]
+            else:
+                raise NotImplementedError("4D volumetric data are currently not supported")
+
+            # Fill epochs dictionary
+            self._epochs = {}
+            if nwbfile.epochs is not None:
+                df_epochs = nwbfile.epochs.to_dataframe()
+                self._epochs = {row['tags'][0]: {
+                    'start_frame': self.time_to_frame(row['start_time']),
+                    'end_frame': self.time_to_frame(row['stop_time'])}
+                    for _, row in df_epochs.iterrows()}
+
+            self._kwargs = {'file_path': str(Path(file_path).absolute()),
+                            'optical_series_name': optical_series_name}
+            self.make_nwb_metadata(nwbfile=nwbfile, opts=opts)
+
+    def make_nwb_metadata(self, nwbfile, opts):
+        # Metadata dictionary - useful for constructing a nwb file
+        self.nwb_metadata = dict()
+        self.nwb_metadata['NWBFile'] = {
+            'session_description': nwbfile.session_description,
+            'identifier': nwbfile.identifier,
+            'session_start_time': nwbfile.session_start_time,
+            'institution': nwbfile.institution,
+            'lab': nwbfile.lab
+        }
+        self.nwb_metadata['Ophys'] = dict()
+        # Update metadata with Device info
+        self.nwb_metadata['Ophys']['Device'] = []
+        for dev in nwbfile.devices:
+            self.nwb_metadata['Ophys']['Device'].append({'name': dev})
+
+        # Update metadata with ElectricalSeries info
+        self.nwb_metadata['Ophys']['TwoPhotonSeries'] = []
+        self.nwb_metadata['Ophys']['TwoPhotonSeries'].append({
+            'name': opts.name
+        })
+
     @check_get_frames_args
     def get_frames(self, frame_idxs, channel=0):
-        return self._video[channel, frame_idxs]
+        with NWBHDF5IO(self._path, 'r') as io:
+            nwbfile = io.read()
+            opts = nwbfile.acquisition[self._optical_series_name]
+            if frame_idxs.size > 1 and np.all(np.diff(frame_idxs) > 0):
+                return opts.data[frame_idxs]
+            else:
+                sorted_frame_idxs, sorting_inverse = np.sort(frame_idxs, return_inverse=True)
+                return opts.data[sorted_frame_idxs][:, sorting_inverse]
 
     @check_get_videos_args
     def get_video(self, start_frame=None, end_frame=None, channel=0):
-        video = self._video[channel, start_frame:end_frame]
-        return video
+        with NWBHDF5IO(self._path, 'r') as io:
+            nwbfile = io.read()
+            opts = nwbfile.acquisition[self._optical_series_name]
+            video = opts.data[start_frame:end_frame]
+            return video
 
     def get_image_size(self):
         return [self._size_x, self._size_y]
@@ -129,9 +194,6 @@ class NwbImagingExtractor(ImagingExtractor):
 
     def get_sampling_frequency(self):
         return self._sampling_frequency
-
-    def get_dtype(self):
-        return self._video.dtype
 
     def get_channel_names(self):
         """List of  channels in the recoding.
@@ -154,7 +216,73 @@ class NwbImagingExtractor(ImagingExtractor):
         return self._num_channels
 
     @staticmethod
-    def write_imaging(imaging, savepath):
+    def write_imaging(imaging: ImagingExtractor, save_path: PathType = None, nwbfile=None,
+                      metadata: dict = None):
+        '''
+        Parameters
+        ----------
+        imaging: ImagingExtractor
+        save_path: PathType
+            Required if an nwbfile is not passed. Must be the path to the nwbfile
+            being appended, otherwise one is created and written.
+        nwbfile: NWBFile
+            Required if a save_path is not specified. If passed, this function
+            will fill the relevant fields within the nwbfile. E.g., calling
+
+            roiextractors.NwbImagingExtractor.write_imaging(
+                my_imaging_extractor, my_nwbfile
+            )
+
+            will result in the appropriate changes to the my_nwbfile object.
+        metadata: dict
+            metadata info for constructing the nwb file (optional).
+        '''
+        assert HAVE_NWB, NwbImagingExtractor.installation_mesg
+
+        # if nwbfile is not None:
+        #     assert isinstance(nwbfile, NWBFile), "'nwbfile' should be of type pynwb.NWBFile"
+        #
+        # assert save_path is None or nwbfile is None, \
+        #     'Either pass a save_path location, or nwbfile object, but not both!'
+        #
+        # # Update any previous metadata with user passed dictionary
+        # if metadata is None:
+        #     metadata = dict()
+        # if hasattr(recording, 'nwb_metadata'):
+        #     metadata = update_dict(recording.nwb_metadata, metadata)
+        #
+        # if nwbfile is None:
+        #     if os.path.exists(save_path):
+        #         read_mode = 'r+'
+        #     else:
+        #         read_mode = 'w'
+        #
+        #     with NWBHDF5IO(save_path, mode=read_mode) as io:
+        #         if read_mode == 'r+':
+        #             nwbfile = io.read()
+        #         else:
+        #             # Default arguments will be over-written if contained in metadata
+        #             nwbfile_kwargs = dict(session_description='no description',
+        #                                   identifier=str(uuid.uuid4()),
+        #                                   session_start_time=datetime.now())
+        #             if 'NWBFile' in metadata:
+        #                 nwbfile_kwargs.update(metadata['NWBFile'])
+        #             nwbfile = NWBFile(**nwbfile_kwargs)
+        #
+        #             se.NwbRecordingExtractor.add_all_to_nwbfile(
+        #                 recording=recording,
+        #                 nwbfile=nwbfile,
+        #                 metadata=metadata
+        #             )
+        #
+        #         # Write to file
+        #         io.write(nwbfile)
+        # else:
+        #     se.NwbRecordingExtractor.add_all_to_nwbfile(
+        #         recording=recording,
+        #         nwbfile=nwbfile,
+        #         metadata=metadata
+        #     )
         pass
 
 

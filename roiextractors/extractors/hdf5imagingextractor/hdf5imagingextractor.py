@@ -68,7 +68,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
 
     @check_get_frames_args
     def get_frames(self, frame_idxs, channel=0):
-        if np.all(np.diff(frame_idxs) > 0):
+        if frame_idxs.size > 1 and np.all(np.diff(frame_idxs) > 0):
             return self._video[channel, frame_idxs]
         else:
             sorted_frame_idxs, sorting_inverse = np.sort(frame_idxs, return_inverse=True)

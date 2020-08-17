@@ -57,6 +57,38 @@ class ImagingExtractor(ABC, BaseExtractor):
     def get_dtype(self) -> DtypeType:
         return self.get_frame(0, 0).dtype
 
+    def frame_to_time(self, frame: int):
+        '''This function converts a user-inputted frame index to a time with units of seconds.
+
+        Parameters
+        ----------
+        frame: float
+            The frame to be converted to a time
+
+        Returns
+        -------
+        time: float
+            The corresponding time in seconds
+        '''
+        # Default implementation
+        return frame / self.get_sampling_frequency()
+
+    def time_to_frame(self, time):
+        '''This function converts a user-inputted time (in seconds) to a frame index.
+
+        Parameters
+        -------
+        time: float
+            The time (in seconds) to be converted to frame index
+
+        Returns
+        -------
+        frame: float
+            The corresponding frame index
+        '''
+        # Default implementation
+        return time * self.get_sampling_frequency()
+
     @staticmethod
     def write_imaging(imaging, save_path: PathType):
         """
