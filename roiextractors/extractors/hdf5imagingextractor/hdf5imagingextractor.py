@@ -17,7 +17,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
     mode = 'file'
     installation_mesg = "To use the Hdf5 Extractor run:\n\n pip install h5py\n\n"  # error message when not installed
 
-    def __init__(self, file_path, mov_field='mov', sampling_frequency=None,
+    def __init__(self, file_path, mov_field='mov', sampling_frequency=None, start_time=None, metadata=None,
                  channel_names=None):
         assert HAVE_H5, self.installation_mesg
         ImagingExtractor.__init__(self)
@@ -30,11 +30,26 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         with h5py.File(file_path, "r") as f:
             if 'mov' in f.keys():
                 self._video = f[self._mov_field]
-                self._sampling_frequency = self._video.attrs["fr"]
-                self._start_time = self._video.attrs["start_time"]
-                self.metadata = self._video.attrs["meta_data"]
             else:
                 raise Exception(f"{file_path} does not contain the 'mov' dataset")
+
+        if sampling_frequency is None:
+            assert 'fr' in f.keys(), "sampling frequency information is unavailable!"
+            self._sampling_frequency = self._video.attrs["fr"]
+        else:
+            self._sampling_frequency = sampling_frequency
+
+        if start_time is None:
+            if 'start_time' in f.keys():
+                self._start_time = self._video.attrs["start_time"]
+        else:
+            self._start_time = start_time
+
+        if metadata is None:
+            if 'metadata' in f.keys():
+                self.metadata = self._video.attrs["metadata"]
+        else:
+            self.metadata = metadata
 
         self._num_channels, self._num_frames, self._size_x, self._size_y = get_video_shape(self._video)
 
