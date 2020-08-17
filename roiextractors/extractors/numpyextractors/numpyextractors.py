@@ -264,7 +264,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     def get_sampling_frequency(self):
         return self.samp_freq
 
-    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None):
+    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name=None):
         if start_frame is None:
             start_frame = 0
         if end_frame is None:

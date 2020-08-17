@@ -209,7 +209,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         pass
 
     @abstractmethod
-    def get_traces(self) -> ArrayType:
+    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name=None) -> ArrayType:
         """
         Return RoiResponseSeries
         Returns
