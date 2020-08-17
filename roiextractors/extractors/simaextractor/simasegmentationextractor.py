@@ -40,30 +40,14 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         self.filepath = filepath
         self._convert_sima(filepath)
         self._dataset_file = self._file_extractor_read()
-        self.channel_names = [str(i) for i in self._dataset_file.channel_names]
-        self.no_of_channels = len(self.channel_names)
+        self._channel_names = [str(i) for i in self._dataset_file.channel_names]
+        self._no_of_channels = len(self._channel_names)
         self.sima_segmentation_label = sima_segmentation_label
-        self.image_masks, self.extimage_dims, self.raw_images =\
-            self._image_mask_extractor_read()
-        self.pixel_masks = self._pixel_mask_extractor_read()
-        self.roi_response = self._trace_extractor_read()
-        self.cn = self._summary_image_read()
-        self.total_time = self._tot_exptime_extractor_read()
-        self.filetype = self._file_type_extractor_read()
-        self.raw_movie_file_location = self._raw_datafile_read()
-        # Not found data:
-        self._no_background_comps = 1
-        self.snr_comp = np.nan * np.ones(self.roi_response.shape)
-        self.r_values = np.nan * np.ones(self.roi_response.shape)
-        self.cnn_preds = np.nan * np.ones(self.roi_response.shape)
-        self._rejected_list = []
-        self._accepted_list = None
-        self.idx_components = self.accepted_list
-        self.idx_components_bad = self.rejected_list
-        self.image_masks_bk = np.nan * \
-            np.ones(list(self.raw_images.shape[0:2]) + [self._no_background_comps])
-        self.roi_response_bk = np.nan * \
-            np.ones([self._no_background_comps, self.roi_response.shape[1]])
+        self.image_masks = self._image_mask_extractor_read()
+        self.pixel_masks = _pixel_mask_extractor(self.image_masks, self.roi_ids)
+        self._roi_response = self._trace_extractor_read()
+        self._roi_response_dict = {'Fluorescence': self._roi_response}
+
 
     @staticmethod
     def _convert_sima(old_pkl_loc):
@@ -125,18 +109,8 @@ class SimaSegmentationExtractor(SegmentationExtractor):
             self.sima_segmentation_label = list(_sima_rois.keys())[0]
         else:
             raise Exception('no ROIs found in the sima file')
-
         image_masks_ = [np.squeeze(np.array(roi_dat)).T for roi_dat in _sima_rois_data]
-        _raw_images_trans = np.array(image_masks_).T
-        return _raw_images_trans.reshape(
-            [np.prod(_raw_images_trans.shape[0:2]),
-             _raw_images_trans.shape[2]],
-            order='F'),\
-            _raw_images_trans.shape[0:2],\
-            _raw_images_trans
-
-    def _pixel_mask_extractor_read(self):
-        return super()._pixel_mask_extractor(self.raw_images, self.roi_idx)
+        return np.array(image_masks_).T
 
     def _trace_extractor_read(self):
         for channel_now in self.channel_names:

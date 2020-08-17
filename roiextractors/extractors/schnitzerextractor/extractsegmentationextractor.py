@@ -26,30 +26,13 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         SegmentationExtractor.__init__(self)
         self.filepath = filepath
         self._dataset_file, self._group0 = self._file_extractor_read()
-        self.extimage_dims, self.raw_images = self._image_mask_extractor_read()
-        self.image_masks = self.raw_images
-        self.roi_response = self._trace_extractor_read()
-        self._roi_ids = None
-        self.pixel_masks = self._pixel_mask_extractor_read()
-        self.cn = self._summary_image_read()
-        self.total_time = self._tot_exptime_extractor_read()
-        self.filetype = self._file_type_extractor_read()
-        self.raw_movie_file_location = self._raw_datafile_read()
-        # Not found data:
-        self.channel_names = ['OpticalChannel']
-        self.no_of_channels = 1
-        self._no_background_comps = 1
-        self.snr_comp = np.nan * np.ones(self.roi_response.shape)
-        self.r_values = np.nan * np.ones(self.roi_response.shape)
-        self.cnn_preds = np.nan * np.ones(self.roi_response.shape)
-        self._rejected_list = []
-        self._accepted_list = None
-        self.idx_components = self.accepted_list
-        self.idx_components_bad = self.rejected_list
-        self.image_masks_bk = np.nan * \
-            np.ones(list(self.raw_images.shape[0:2]) + [self._no_background_comps])
-        self.roi_response_bk = np.nan * \
-            np.ones([self._no_background_comps, self.roi_response.shape[1]])
+        self.image_masks = self._image_mask_extractor_read()
+        self._roi_response = self._trace_extractor_read()
+        self._roi_response_dict = {'Fluorescence': self._roi_response}
+        self.pixel_masks = _pixel_mask_extractor(self.image_masks, self.get_roi_ids())
+        self._total_time = self._tot_exptime_extractor_read()
+        self._raw_movie_file_location = self._raw_datafile_read()
+        self._sampling_frequency = self._roi_response.shape[1]/self._total_time
         # file close:
         # self._file_close()
 
