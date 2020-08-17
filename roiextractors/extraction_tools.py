@@ -27,20 +27,22 @@ def _pixel_mask_extractor(image_mask_, _roi_ids):
 def _image_mask_extractor(pixel_mask, _roi_ids, image_shape):
     """
     Converts a pixel mask to image mask
+    
     Parameters
     ----------
     pixel_mask: list
         list of pixel masks (no pixels X 3)
     _roi_ids: list
     image_shape: list
+    
     Returns
     -------
     image_mask: np.ndarray
     """
-    image_mask = np.zeros(image_shape+[len(pixel_mask)])
+    image_mask = np.zeros(image_shape + [len(pixel_mask)])
     for rois in range(image_mask.shape[2]):
-        for x,y,wt in pixel_mask[rois]:
-            image_mask[int(x),int(y),rois] = wt
+        for x, y, wt in pixel_mask[rois]:
+            image_mask[int(x), int(y),rois] = wt
     return image_mask
 
 def get_video_shape(video):
