@@ -1,11 +1,8 @@
 import numpy as np
 from pathlib import Path
 from ...imagingextractor import ImagingExtractor
-<<<<<<< HEAD
 from ...extraction_tools import ArrayType, PathType, check_get_frames_args, check_get_videos_args, get_video_shape
-=======
-from ...extraction_tools import get_video_shape
->>>>>>> origin/master
+
 
 try:
     import h5py
@@ -21,12 +18,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
     mode = 'file'
     installation_mesg = "To use the Hdf5 Extractor run:\n\n pip install h5py\n\n"  # error message when not installed
 
-<<<<<<< HEAD
-    def __init__(self, file_path, mov_field='mov', sampling_frequency=None,
-                 start_time=None, metadata=None,
-=======
     def __init__(self, file_path, mov_field='mov', sampling_frequency=None, start_time=None, metadata=None,
->>>>>>> origin/master
                  channel_names=None):
         assert HAVE_H5, self.installation_mesg
         ImagingExtractor.__init__(self)
