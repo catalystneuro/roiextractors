@@ -11,6 +11,7 @@ except:
 
 
 class FliImagingExtractor(BioformatsImagingExtractor):
+    """Lambert Instruments FLI file format"""
     extractor_name = 'FliImaging'
     installed = HAVE_BIOFORMATS  # check at class level if installed or not
     is_writable = False

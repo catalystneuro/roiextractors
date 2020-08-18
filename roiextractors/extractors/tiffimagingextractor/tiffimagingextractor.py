@@ -3,6 +3,7 @@ from pathlib import Path
 from ...imagingextractor import ImagingExtractor
 from ...extraction_tools import ArrayType, PathType, check_get_frames_args, check_get_videos_args, get_video_shape
 
+
 try:
     import tiffile
     HAVE_TIFF = True

@@ -12,27 +12,42 @@ DtypeType = [str, np.dtype]
 MAX_FRAMES = 10000
 
 
-def _pixel_mask_extractor(_raw_images_trans, _roi_idx):
+def _pixel_mask_extractor(image_mask_, _roi_ids):
     '''An alternative data format for storage of image masks.
-
     Returns
     -------
     pixel_mask: numpy array
         Total pixels X 4 size. Col 1 and 2 are x and y location of the mask
         pixel, Col 3 is the weight of that pixel, Col 4 is the ROI index.
     '''
-    temp = np.empty((1, 4))
-    for i, roiid in enumerate(_roi_idx):
-        _np_raw_images_trans = np.array(_raw_images_trans[:, :, i])
-        _locs = np.where(_np_raw_images_trans > 0)
-        _pix_values = _np_raw_images_trans[_np_raw_images_trans > 0]
-        temp = np.append(temp, np.concatenate(
-            (_locs[0].reshape([1, np.size(_locs[0])]),
-             _locs[1].reshape([1, np.size(_locs[1])]),
-             _pix_values.reshape([1, np.size(_locs[1])]),
-             roiid * np.ones([1, np.size(_locs[1])]))).T, axis=0)
-    return temp[1::, :]
+    pixel_mask_list = []
+    for i, roiid in enumerate(_roi_ids):
+        image_mask = np.array(image_mask_[:, :, i])
+        _locs = np.where(image_mask > 0)
+        _pix_values = image_mask[image_mask > 0]
+        pixel_mask_list.append(np.vstack((_locs[0], _locs[1],_pix_values)).T)
+    return pixel_mask_list
 
+def _image_mask_extractor(pixel_mask, _roi_ids, image_shape):
+    """
+    Converts a pixel mask to image mask
+    
+    Parameters
+    ----------
+    pixel_mask: list
+        list of pixel masks (no pixels X 3)
+    _roi_ids: list
+    image_shape: list
+    
+    Returns
+    -------
+    image_mask: np.ndarray
+    """
+    image_mask = np.zeros(image_shape + [len(pixel_mask)])
+    for rois in range(image_mask.shape[2]):
+        for x, y, wt in pixel_mask[rois]:
+            image_mask[int(x), int(y),rois] = wt
+    return image_mask
 
 def get_video_shape(video):
     if len(video.shape) == 3:
