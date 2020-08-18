@@ -186,9 +186,9 @@ class NwbImagingExtractor(ImagingExtractor):
             if frame_idxs.size > 1 and np.all(np.diff(frame_idxs) > 0):
                 return opts.data[frame_idxs]
             else:
-                sorted_frame_idxs = np.sort(frame_idxs)
-                argsorted_frame_idxs = np.argsort(frame_idxs)
-                return opts.data[sorted_frame_idxs][argsorted_frame_idxs]
+                sorted_idxs = np.sort(frame_idxs)
+                argsorted_idxs = np.argsort(frame_idxs)
+                return opts.data[sorted_idxs][argsorted_idxs]
 
     @check_get_videos_args
     def get_video(self, start_frame=None, end_frame=None, channel=0):
