@@ -9,8 +9,6 @@ PathType = Union[str, Path]
 NumpyArray = Union[np.array, np.memmap]
 DtypeType = [str, np.dtype]
 
-MAX_FRAMES = 10000
-
 
 def _pixel_mask_extractor(image_mask_, _roi_ids):
     '''An alternative data format for storage of image masks.
@@ -125,17 +123,12 @@ def check_get_videos_args(func):
             start_frame = 0
         if end_frame is not None:
             if end_frame > imaging.get_num_frames():
-                print("'end_frame' set to", imaging.get_num_frames())
-                end_frame = imaging.get_num_frames()
+                raise Exception(f"'end_frame' exceeds number of frames {imaging.get_num_frames()}!")
             elif end_frame < 0:
                 end_frame = imaging.get_num_frames() + end_frame
         else:
             end_frame = imaging.get_num_frames()
         assert end_frame - start_frame > 0, "'start_frame' must be less than 'end_frame'!"
-
-        if end_frame - start_frame > MAX_FRAMES:
-            print(f"Warning: retrieving more than {MAX_FRAMES} frames. This might cause memory errors for "
-                  f"some extractors")
 
         start_frame, end_frame = cast_start_end_frame(start_frame, end_frame)
         kwargs['start_frame'] = start_frame
