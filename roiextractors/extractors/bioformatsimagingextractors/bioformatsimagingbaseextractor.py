@@ -1,7 +1,8 @@
 from pathlib import Path
 import numpy as np
 from abc import ABC, abstractmethod
-from roiextractors import ImagingExtractor
+
+from ...imagingextractor import ImagingExtractor
 from ...extraction_tools import ArrayType, PathType, check_get_frames_args, check_get_videos_args, get_video_shape
 
 try:

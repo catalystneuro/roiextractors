@@ -1,7 +1,7 @@
 ---
 NWBFile:
   session_start_time: 2020-02-02 00:00:00
-  keywords: [keyword1, keyword2]
+  keywords: [SIMA]
   experiment_description: My two-photon microscope
   session_id: session id goes here
   experimenter: [testname]
@@ -32,10 +32,6 @@ Ophys:
     roi_response_series:
     - name: RoiResponseSeries
       description: array of fluorescence traces
-    - name: Neuropil
-      description: array of neuropil fluorescence traces
-    - name: Deconvolved
-      description: array of deconvolved  traces
   ImageSegmentation:
     name: ABCD
     plane_segmentations:
