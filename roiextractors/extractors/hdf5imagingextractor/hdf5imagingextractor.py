@@ -1,5 +1,6 @@
 import numpy as np
 from pathlib import Path
+import lazy_ops
 from ...imagingextractor import ImagingExtractor
 from ...extraction_tools import ArrayType, PathType, check_get_frames_args, check_get_videos_args, get_video_shape
 
@@ -69,10 +70,11 @@ class Hdf5ImagingExtractor(ImagingExtractor):
     @check_get_frames_args
     def get_frames(self, frame_idxs, channel=0):
         if frame_idxs.size > 1 and np.all(np.diff(frame_idxs) > 0):
-            return self._video[channel, frame_idxs]
+            return lazy_ops.DatasetView(self._video).lazy_slice[channel, frame_idxs]
         else:
-            sorted_frame_idxs, sorting_inverse = np.sort(frame_idxs, return_inverse=True)
-            return self._video[channel, sorted_frame_idxs][:, sorting_inverse]
+            sorted_idxs = np.sort(frame_idxs)
+            argsorted_idxs = np.argsort(frame_idxs)
+            return lazy_ops.DatasetView(self._video).lazy_slice[channel, sorted_idxs].lazy_slice[:, argsorted_idxs]
 
     @check_get_videos_args
     def get_video(self, start_frame=None, end_frame=None, channel=0):
