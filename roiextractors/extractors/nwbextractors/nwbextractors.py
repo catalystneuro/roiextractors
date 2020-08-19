@@ -218,13 +218,14 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         # self.image_masks = np.moveaxis(np.array(ps['image_mask'].data), [0, 1, 2], [2, 0, 1])
         if 'image_mask' in ps.colnames:
             self.image_masks = DatasetView(ps['image_mask'].data).lazy_transpose([1, 2, 0])
-        if 'pixel_mask' in ps.colnames:
-            # Extract pixel_mask/background:
-            px_list = [ps['pixel_mask'][e] for e in range(ps['pixel_mask'].data.shape[0])]
-            temp = np.empty((1, 4))
-            for v, b in enumerate(px_list):
-                temp = np.append(temp, np.append(b, v * np.ones([b.shape[0], 1]), axis=1), axis=0)
-            self.pixel_masks = temp[1::, :]
+            self.pixel_masks = _pixel_mask_extractor(self.image_masks,range(self.image_masks.shape[2]))
+        # if 'pixel_mask' in ps.colnames:
+        #     # Extract pixel_mask/background:
+        #     px_list = [ps['pixel_mask'][e] for e in range(ps['pixel_mask'].data.shape[0])]
+        #     temp = np.empty((1, 4))
+        #     for v, b in enumerate(px_list):
+        #         temp = np.append(temp, np.append(b, v * np.ones([b.shape[0], 1]), axis=1), axis=0)
+        #     self.pixel_masks = temp[1::, :]
         if 'RoiCentroid' in ps.colnames:
             self._roi_locs = ps['RoiCentroid']
         if 'Accepted' in ps.colnames:
@@ -334,11 +335,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        temp = np.empty((1, 4))
-        for i, roiid in enumerate(roi_idx_):
-            temp = \
-                np.append(temp, self.pixel_masks[self.pixel_masks[:, 3] == roiid, :], axis=0)
-        return temp[1::, :]
+        return [self.pixel_masks[i] for i in roi_idx_]
 
     def get_roi_image_masks(self, roi_ids=None):
         if self.image_masks is None:

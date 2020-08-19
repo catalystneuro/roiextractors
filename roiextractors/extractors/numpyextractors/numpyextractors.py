@@ -93,8 +93,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     all data must be entered manually as arguments.
     """
 
-    def __init__(self, filepath=None, image_masks=None,
-                 pixel_masks=None, signal=None,
+    def __init__(self, filepath=None, image_masks=None, signal=None,
                  rawfileloc=None, accepted_lst=None,
                  summary_image=None, roi_idx=None,
                  roi_locs=None, samp_freq=None,
@@ -130,8 +129,10 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         self.filepath = filepath
         if image_masks is None:
             self.image_masks = np.empty([0, 0, 0])
-        if pixel_masks is None:
-            self.pixel_masks = pixel_masks
+            self.pixel_masks = None
+        else:
+            self.image_masks = image_masks
+            self.pixel_masks = _pixel_mask_extractor(image_masks, range(image_masks.shape[2]))
         if signal is None:#initialize with a empty value
             self._roi_response = np.empty([0, 0])
         else:
