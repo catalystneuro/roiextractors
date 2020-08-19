@@ -4,6 +4,7 @@ import numpy as np
 import yaml
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
+from ...extraction_tools import _pixel_mask_extractor
 from lazy_ops import DatasetView
 
 try:
