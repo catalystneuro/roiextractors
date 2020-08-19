@@ -17,6 +17,11 @@ class SegmentationExtractor(ABC, BaseExtractor):
     def __init__(self):
         BaseExtractor.__init__(self)
         self._sampling_frequency = None
+        self._roi_response_fluorescence = None
+        self._roi_response_neuropil = None
+        self._roi_response_deconvolved = None
+        self._images_correlation = None
+        self._images_mean = None
 
     @property
     def image_size(self):

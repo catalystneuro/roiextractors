@@ -27,11 +27,10 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self.filepath = filepath
         self._dataset_file = self._file_extractor_read()
         self._roi_response = self._trace_extractor_read('F_dff')
-        self._masks, self._mask_roi_ids, self._mask_ids = self._image_mask_sparse_read()
-        self._roi_response_dict = {'Fluorescence': self._roi_response,
-                                   'Neuropil':self._trace_extractor_read('C'),
-                                   'Deconvolved':self._trace_extractor_read('S')}
-
+        self._roi_response_fluorescence = self._roi_response,
+        self._roi_response_neuropil = self._trace_extractor_read('C'),
+        self._roi_response_deconvolved = self._trace_extractor_read('S')
+        self._images_mean = self._summary_image_read()
         self._raw_movie_file_location = self._dataset_file['params']['data']['fnames'][0].decode('utf-8')
         self._sampling_frequency = self._dataset_file['params']['data']['fr'].value
         # file close:
@@ -117,7 +116,11 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return np.array([self._roi_response_dict[name][int(i), start_frame:end_frame] for i in roi_idx_])
+        traces = [getattr(self, i) for i in self.__dict__.keys() if name.lower() in i]
+        if traces:
+            return np.array([traces[0][int(i), start_frame:end_frame] for i in roi_idx_])
+        else:
+            return None
 
     def get_roi_image_masks(self, roi_ids=None):
         if roi_ids is None:
@@ -144,8 +147,10 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self.pixel_masks = _pixel_mask_extractor(self.get_roi_image_masks(roi_idx_), range(len(roi_idx_)))
         return self.pixel_masks
 
-    def get_images(self):
-        return {'Images': {'meanImg': self._summary_image_read()}}
+    def get_images(self, name='mean'):
+        images = [getattr(self, i) for i in self.__dict__.keys() if name.lower() in i]
+        if images:
+            return images[0]
 
     def get_image_size(self):
         return self._dataset_file['params']['data']['dims'].value
