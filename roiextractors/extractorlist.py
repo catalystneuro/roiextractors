@@ -6,3 +6,4 @@ from .extractors.nwbextractors import NwbImagingExtractor, NwbSegmentationExtrac
 from .extractors.suite2p import Suite2pSegmentationExtractor
 from .extractors.schnitzerextractor import CnmfeSegmentationExtractor, ExtractSegmentationExtractor
 from .extractors.simaextractor import SimaSegmentationExtractor
+from .extractors.caiman import CaimanSegmentationExtractor
