@@ -33,6 +33,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self._images_mean = self._summary_image_read()
         self._raw_movie_file_location = self._dataset_file['params']['data']['fnames'][0].decode('utf-8')
         self._sampling_frequency = self._dataset_file['params']['data']['fr'].value
+        self.image_masks = None
 
     def __del__(self):
         self._dataset_file.close()
@@ -69,10 +70,11 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
     @property
     def roi_locations(self):
+        _masks, _mask_roi_ids, _mask_ids = self._image_mask_sparse_read()
         roi_location = np.ndarray([2, self.no_rois], dtype='int')
         for i in range(self.no_rois):
-            max_mask_roi_id = self._mask_roi_ids[self._mask_ids[i]+np.argmax(
-                self._masks[self._mask_ids[i]:self._mask_ids[i+1]]
+            max_mask_roi_id = _mask_roi_ids[_mask_ids[i]+np.argmax(
+                _masks[_mask_ids[i]:_mask_ids[i+1]]
             )]
             roi_location[:, i] = [((max_mask_roi_id+1)%(self.image_size[0]+1))-1,#assuming order='F'
                                   ((max_mask_roi_id+1)//(self.image_size[0]+1))]
@@ -121,6 +123,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             return None
 
     def get_roi_image_masks(self, roi_ids=None):
+        _masks, _mask_roi_ids, _mask_ids = self._image_mask_sparse_read()
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
         else:
@@ -129,8 +132,8 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
         image_mask = np.zeros([np.prod(self.image_size),len(roi_idx_)])
         for j,i in enumerate(roi_idx_):
-            roi_ids_loop = self._mask_roi_ids[self._mask_ids[i]:self._mask_ids[i+1]]
-            image_mask_loop = self._masks[self._mask_ids[i]:self._mask_ids[i+1]]
+            roi_ids_loop = _mask_roi_ids[_mask_ids[i]:_mask_ids[i+1]]
+            image_mask_loop = _masks[_mask_ids[i]:_mask_ids[i+1]]
             image_mask[[roi_ids_loop],j] = image_mask_loop
         return image_mask.reshape(list(self.image_size)+[len(roi_idx_)],order='F')
 
