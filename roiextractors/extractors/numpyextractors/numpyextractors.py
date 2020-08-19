@@ -1,8 +1,9 @@
 import numpy as np
 from pathlib import Path
-from roiextractors import SegmentationExtractor, ImagingExtractor
-from roiextractors.extraction_tools import get_video_shape
-
+from ...segmentationextractor import SegmentationExtractor
+from ...imagingextractor import ImagingExtractor
+from ...extraction_tools import get_video_shape
+from ...extraction_tools import _pixel_mask_extractor
 
 # TODO this class should also be able to instantiate an in-memory object (useful for testing)
 class NumpyImagingExtractor(ImagingExtractor):
