@@ -106,10 +106,6 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         return self._roi_response.shape[1]
 
     def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name='Fluorescence'):
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self.get_num_frames() + 1
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
         else:
