@@ -27,8 +27,8 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self.filepath = filepath
         self._dataset_file = self._file_extractor_read()
         self._roi_response = self._trace_extractor_read('F_dff')
-        self._roi_response_fluorescence = self._roi_response,
-        self._roi_response_neuropil = self._trace_extractor_read('C'),
+        self._roi_response_fluorescence = self._roi_response
+        self._roi_response_neuropil = self._trace_extractor_read('C')
         self._roi_response_deconvolved = self._trace_extractor_read('S')
         self._images_mean = self._summary_image_read()
         self._raw_movie_file_location = self._dataset_file['params']['data']['fnames'][0].decode('utf-8')
@@ -84,7 +84,38 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
     @staticmethod
     def write_segmentation(segmentation_object, savepath):
-        raise NotImplementedError
+        from scipy.sparse import csc_matrix
+        if savepath.split('.')[-1]!='hdf5':
+            raise ValueError('filetype to save must be *.hdf5')
+        with h5py.File(savepath,'w') as f:
+            #create base groups:
+            estimates = f.create_group('estimates')
+            params = f.create_group('params')
+            #adding to estimates:
+            if segmentation_object._roi_response_neuropil:
+                estimates.create_dataset('C',data=segmentation_object._roi_response_neuropil)
+            estimates.create_dataset('F_dff', data=segmentation_object._roi_response_fluorescence)
+            if segmentation_object._roi_response_deconvolved:
+                estimates.create_dataset('S', data=segmentation_object._roi_response_deconvolved)
+            if segmentation_object._images_mean:
+                estimates.create_dataset('Cn', data=segmentation_object._images_mean)
+            estimates.create_dataset('idx_components', data=np.array(segmentation_object.get_accepted_list()))
+            estimates.create_dataset('idx_components_bad', data=np.array(segmentation_object.get_rejected_list()))
+
+            #adding image_masks:
+            image_mask_data = np.reshape(segmentation_object.get_roi_image_masks(),[-1,segmentation_object.get_num_rois()],order='F')
+            image_mask_csc = csc_matrix(image_mask_data)
+            estimates.create_dataset('A/data',data=image_mask_csc.data)
+            estimates.create_dataset('A/indptr', data=image_mask_csc.indptr)
+            estimates.create_dataset('A/indices', data=image_mask_csc.indices)
+            estimates.create_dataset('A/shape', data=image_mask_csc.shape)
+
+            #adding params:
+            if segmentation_object._sampling_frequency:
+                params.create_dataset('data/fr',data=segmentation_object._sampling_frequency)
+            params.create_dataset('data/fnames', data=segmentation_object._raw_movie_file_location)
+            params.create_dataset('data/dims', data=segmentation_object.get_image_size())
+            f.create_dataset('dims',data=segmentation_object.get_image_size())
 
     # defining the abstract class enformed methods:
     def get_roi_ids(self):
