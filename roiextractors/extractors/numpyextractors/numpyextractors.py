@@ -1,20 +1,38 @@
 import numpy as np
 from pathlib import Path
-from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
-from ...extraction_tools import ArrayType, PathType, check_get_frames_args, check_get_videos_args, get_video_shape
+from ...imagingextractor import ImagingExtractor
+from ...extraction_tools import get_video_shape, check_get_videos_args, check_get_frames_args
 
 
-# TODO this class should also be able to instantiate an in-memory object (useful for testing)
 class NumpyImagingExtractor(ImagingExtractor):
-    def __init__(self, file_path, sampling_frequency=None,
-                 channel_names=None):
+    extractor_name = 'NumpyImagingExtractor'
+    is_writable = True
 
+    def __init__(self, timeseries, sampling_frequency, channel_names=None):
         ImagingExtractor.__init__(self)
-        self.filepath = Path(file_path)
+
+        if isinstance(timeseries, (str, Path)):
+            timeseries = Path(timeseries)
+            if timeseries.is_file():
+                assert timeseries.suffix == '.npy', "'timeseries' file is not a numpy file (.npy)"
+                self.is_dumpable = True
+                self._video = np.load(timeseries, mmap_mode='r')
+                self._kwargs = {'timeseries': str(Path(timeseries).absolute()),
+                                'sampling_frequency': sampling_frequency}
+            else:
+                raise ValueError("'timeeseries' is does not exist")
+        elif isinstance(timeseries, np.ndarray):
+            self.is_dumpable = False
+            self._video = timeseries
+            self._kwargs = {'timeseries': timeseries,
+                            'sampling_frequency': sampling_frequency}
+        else:
+            raise TypeError("'timeseries' can be a str or a numpy array")
+
+        self._sampling_frequency = float(sampling_frequency)
+
         self._sampling_frequency = sampling_frequency
-        assert self.filepath.suffix == '.npy'
-        self._video = np.load(self.filepath, mmap_mode='r')
         self._channel_names = channel_names
 
         self._num_channels, self._num_frames, self._size_x, self._size_y = get_video_shape(self._video)
@@ -35,7 +53,7 @@ class NumpyImagingExtractor(ImagingExtractor):
 
     @check_get_videos_args
     def get_video(self, start_frame=None, end_frame=None, channel=0):
-        video = self._video[channel, start_frame: end_frame]
+        video = self._video[channel, start_frame:end_frame]
         return video
 
     def get_image_size(self):

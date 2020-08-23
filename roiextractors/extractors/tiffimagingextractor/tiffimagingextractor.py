@@ -1,7 +1,7 @@
 import numpy as np
 from pathlib import Path
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import ArrayType, PathType, get_video_shape
+from ...extraction_tools import ArrayType, PathType, get_video_shape, check_get_videos_args, check_get_frames_args
 
 try:
     import tiffile

@@ -6,4 +6,8 @@ from spikeextractors import load_extractor_from_dict, load_extractor_from_json, 
 
 from .extractorlist import *
 
+from .extraction_tools import show_video
+
+from . import example_datasets
+
 from .version import version as __version__
