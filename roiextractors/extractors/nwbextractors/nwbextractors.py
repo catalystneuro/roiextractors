@@ -5,7 +5,7 @@ import yaml
 from lazy_ops import DatasetView
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
-from ...extraction_tools import ArrayType, PathType, check_get_frames_args, check_get_videos_args, get_video_shape
+from ...extraction_tools import check_get_frames_args, _pixel_mask_extractor
 
 
 try:
@@ -117,18 +117,6 @@ class NwbImagingExtractor(ImagingExtractor):
             plane = self._video[frame_idx]
             planes[i] = plane
         return planes
-
-    @check_get_videos_args
-    def get_video(self, start_frame=None, end_frame=None):
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self.get_num_frames()
-        end_frame = min(end_frame, self.get_num_frames())
-
-        video = self._video[start_frame: end_frame]
-
-        return video
 
     def get_image_size(self):
         return [self._size_x, self._size_y]
