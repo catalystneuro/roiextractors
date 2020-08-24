@@ -2,7 +2,9 @@ import numpy as np
 import h5py
 from ...segmentationextractor import SegmentationExtractor
 from lazy_ops import DatasetView
-from ...extraction_tools import _pixel_mask_extractor
+from roiextractors.extraction_tools import _pixel_mask_extractor
+import os
+import shutil
 
 class ExtractSegmentationExtractor(SegmentationExtractor):
     """
@@ -80,8 +82,33 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         return roi_location
 
     @staticmethod
-    def write_segmentation(segmentation_object, savepath):
-        raise NotImplementedError
+    def write_segmentation(segmentation_object, savepath, **kwargs):
+        plane_no = kwargs.get('plane_no', 0)
+        filename = os.path.basename(savepath)
+        savepath_folder = os.path.join(os.path.dirname(savepath), f'Plane_{plane_no}')
+        savepath = os.path.join(savepath_folder, filename)
+        if not os.path.exists(savepath_folder):
+            os.makedirs(savepath_folder)
+        else:
+            if os.path.exists(savepath):
+                os.remove(savepath)
+        if savepath.split('.')[-1] != 'mat':
+            raise ValueError('filetype to save must be *.mat')
+        with h5py.File(savepath, 'a') as f:
+            # create base groups:
+            _ = f.create_group('#refs#')
+            main = f.create_group('extractAnalysisOutput')
+            #create datasets:
+            main.create_dataset('filters',data=segmentation_object.get_roi_image_masks().T)
+            main.create_dataset('traces', data=segmentation_object.get_traces())
+            info = main.create_group('info')
+            if segmentation_object.get_images() is not None:
+                info.create_dataset('summary_image', data=segmentation_object.get_images())
+            main.create_dataset('file', data=[ord(i) for i in segmentation_object.get_movie_location()])
+            time = main.create_group('time')
+            if segmentation_object.get_sampling_frequency() is not None:
+                time.create_dataset('totalTime', (1,1), data=segmentation_object.get_roi_image_masks().shape[1]/
+                                                        segmentation_object.get_sampling_frequency())
 
     # defining the abstract class enformed methods:
     def get_roi_ids(self):
