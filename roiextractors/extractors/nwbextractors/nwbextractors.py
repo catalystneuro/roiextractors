@@ -5,7 +5,7 @@ import yaml
 from lazy_ops import DatasetView
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
-from ...extraction_tools import check_get_frames_args
+from ...extraction_tools import check_get_frames_args, _pixel_mask_extractor
 
 
 try:

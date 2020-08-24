@@ -2,12 +2,21 @@
 Python-based module for extracting from, converting between, and handling recorded and optical imaging data from several file formats. Inspired by [SpikeExtractors](https://github.com/SpikeInterface/spikeextractors).
 ![image](https://drive.google.com/uc?export=view&id=1bhRA3kyu3SA3k-xWz5psRxLsuP3BJEBg)
 
+Developed by [CatalystNeuro](http://catalystneuro.com/). Funded by Stanford University as part of the Ripple U19 project.
+
 ## Getting Started:
 #### Installation:
 `pip install get+https://github.com/catalystneuro/roiextractors.git`
 
 ## Usage:
-#### Currently supported file types:
+### Supported file types:
+#### Imaging
+1. HDF5
+2. TIFF
+3. STK
+4. FLI
+
+#### Segmentation
 1. [calciumImagingAnalysis](https://github.com/bahanonu/calciumImagingAnalysis) (CNMF-E, EXTRACT)
 2. [SIMA](http://www.losonczylab.org/sima/1.3.2/)
 3. [NWB](https://pynwb.readthedocs.io/en/stable/)
