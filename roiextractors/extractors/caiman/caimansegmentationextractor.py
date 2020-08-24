@@ -3,6 +3,7 @@ import h5py
 from lazy_ops import DatasetView
 from ...segmentationextractor import SegmentationExtractor
 from ...extraction_tools import _pixel_mask_extractor
+import os
 
 class CaimanSegmentationExtractor(SegmentationExtractor):
     """
@@ -83,8 +84,12 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         return roi_location
 
     @staticmethod
-    def write_segmentation(segmentation_object, savepath):
+    def write_segmentation(segmentation_object, savepath, **kwargs):
         from scipy.sparse import csc_matrix
+        plane_no = kwargs.get('plane_no', 0)
+        filename = os.path.basename(savepath)
+        savepath_folder = os.path.join(os.path.dirname(savepath), f'Plane_{plane_no}')
+        savepath = os.path.join(savepath_folder, filename)
         if savepath.split('.')[-1]!='hdf5':
             raise ValueError('filetype to save must be *.hdf5')
         with h5py.File(savepath,'w') as f:
