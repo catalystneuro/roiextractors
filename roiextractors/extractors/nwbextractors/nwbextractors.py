@@ -2,10 +2,11 @@ import os
 import uuid
 import numpy as np
 import yaml
+from lazy_ops import DatasetView
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
-from ...extraction_tools import _pixel_mask_extractor
-from lazy_ops import DatasetView
+from ...extraction_tools import check_get_frames_args, _pixel_mask_extractor
+
 
 try:
     from pynwb import NWBHDF5IO, TimeSeries, NWBFile
@@ -108,11 +109,7 @@ class NwbImagingExtractor(ImagingExtractor):
         assert HAVE_NWB, self.installation_mesg
         ImagingExtractor.__init__(self)
 
-    #TODO placeholders
-    def get_frame(self, frame_idx, channel=0):
-        assert frame_idx < self.get_num_frames()
-        return self._video[frame_idx]
-
+    @check_get_frames_args
     def get_frames(self, frame_idxs):
         assert np.all(frame_idxs < self.get_num_frames())
         planes = np.zeros((len(frame_idxs), self._size_x, self._size_y))
@@ -120,18 +117,6 @@ class NwbImagingExtractor(ImagingExtractor):
             plane = self._video[frame_idx]
             planes[i] = plane
         return planes
-
-    # TODO make decorator to check and correct inputs
-    def get_video(self, start_frame=None, end_frame=None):
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self.get_num_frames()
-        end_frame = min(end_frame, self.get_num_frames())
-
-        video = self._video[start_frame: end_frame]
-
-        return video
 
     def get_image_size(self):
         return [self._size_x, self._size_y]
