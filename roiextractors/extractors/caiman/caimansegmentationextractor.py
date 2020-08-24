@@ -141,19 +141,6 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
     def get_num_frames(self):
         return self._roi_response.shape[1]
 
-    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name='Fluorescence'):
-        if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        traces = [getattr(self, i) for i in self.__dict__.keys() if name.lower() in i]
-        if traces:
-            return np.array([traces[0][int(i), start_frame:end_frame] for i in roi_idx_])
-        else:
-            return None
-
     def get_roi_image_masks(self, roi_ids=None):
         _masks, _mask_roi_ids, _mask_ids = self._image_mask_sparse_read()
         if roi_ids is None:
@@ -179,11 +166,6 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
         self.pixel_masks = _pixel_mask_extractor(self.get_roi_image_masks(roi_idx_), range(len(roi_idx_)))
         return self.pixel_masks
-
-    def get_images(self, name='mean'):
-        images = [getattr(self, i) for i in self.__dict__.keys() if name.lower() in i]
-        if images:
-            return images[0]
 
     def get_image_size(self):
         return self._dataset_file['params']['data']['dims'][()]
