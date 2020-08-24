@@ -193,11 +193,10 @@ class NwbSegmentationExtractor(SegmentationExtractor):
 
         self.filepath = filepath
         self.image_masks = None
-        self.pixel_masks = None
         self._roi_locs = None
         self._accepted_list = None
-        io = NWBHDF5IO(filepath, mode='r+')
-        nwbfile = io.read()
+        self._io = NWBHDF5IO(filepath, mode='r+')
+        nwbfile = self._io.read()
         self.nwbfile = nwbfile
         _nwbchildren_type = [type(i).__name__ for i in nwbfile.all_children()]
         _nwbchildren_name = [i.name for i in nwbfile.all_children()]
@@ -219,13 +218,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         # self.image_masks = np.moveaxis(np.array(ps['image_mask'].data), [0, 1, 2], [2, 0, 1])
         if 'image_mask' in ps.colnames:
             self.image_masks = DatasetView(ps['image_mask'].data).lazy_transpose([1, 2, 0])
-        if 'pixel_mask' in ps.colnames:
-            # Extract pixel_mask/background:
-            px_list = [ps['pixel_mask'][e] for e in range(ps['pixel_mask'].data.shape[0])]
-            temp = np.empty((1, 4))
-            for v, b in enumerate(px_list):
-                temp = np.append(temp, np.append(b, v * np.ones([b.shape[0], 1]), axis=1), axis=0)
-            self.pixel_masks = temp[1::, :]
         if 'RoiCentroid' in ps.colnames:
             self._roi_locs = ps['RoiCentroid']
         if 'Accepted' in ps.colnames:
@@ -233,18 +225,24 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         # Extract Image dimensions:
 
         # Extract roi_response:
-        self._roi_response_dict = dict()
-        self._roi_names = [_nwbchildren_name[val]
+        _roi_response_dict = dict()
+        _roi_names = [_nwbchildren_name[val]
                       for val, i in enumerate(_nwbchildren_type) if i == 'RoiResponseSeries']
-        if not self._roi_names:
+        if not _roi_names:
             raise Exception('no ROI response series found')
         else:
-            for roi_name in self._roi_names:
-                self._roi_response_dict[roi_name] = mod['Fluorescence'].get_roi_response_series(roi_name).data[:].T
-        self._roi_response = self._roi_response_dict[self._roi_names[0]]
+            for roi_name in _roi_names:
+                _roi_response_dict[roi_name] = mod['Fluorescence'].get_roi_response_series(roi_name).data[:].T
+        self._roi_response = _roi_response_dict[_roi_names[0]]
+        for trace_names in ['roiresponseseries','neuropil','deconvolved']:
+            trace_name_find = [j for j,i in enumerate(_roi_names) if trace_names in i.lower()]
+            if trace_name_find:
+                trace_names = 'fluorescence' if trace_names == 'roiresponseseries' else trace_names
+                setattr(self,f'_roi_response_{trace_names}',
+                        mod['Fluorescence'].get_roi_response_series(_roi_names[trace_name_find[0]]).data[:].T)
 
         # Extract samp_freq:
-        self._sampling_frequency = mod['Fluorescence'].get_roi_response_series(self._roi_names[0]).rate
+        self._sampling_frequency = mod['Fluorescence'].get_roi_response_series(_roi_names[0]).rate
         # Extract no_rois/ids:
         self._roi_idx = np.array(ps.id.data)
 
@@ -274,7 +272,12 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             self.property_vals.append(np.array(ps[i].data))
 
         #Extracting stores images as GrayscaleImages:
-        self._greyscaleimages = [_nwbchildren_name[f] for f, u in enumerate(_nwbchildren_type) if u == 'GrayscaleImage']
+        _greyscaleimages = [i for i in nwbfile.all_children() if type(i).__name__ == 'GrayscaleImage']
+        self._images_correlation = [i.data[()] for i in _greyscaleimages if 'corr' in i.name.lower()][0]
+        self._images_mean = [i.data[()] for i in _greyscaleimages if 'mean' in i.name.lower()][0]
+
+    def __del__(self):
+        self._io.close()
 
     def get_accepted_list(self):
         if self._accepted_list is None:

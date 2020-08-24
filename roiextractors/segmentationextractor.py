@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from spikeextractors.baseextractor import BaseExtractor
 import numpy as np
 from .extraction_tools import ArrayType
-
+from .extraction_tools import _pixel_mask_extractor
 
 class SegmentationExtractor(ABC, BaseExtractor):
     """
@@ -16,7 +16,15 @@ class SegmentationExtractor(ABC, BaseExtractor):
 
     def __init__(self):
         BaseExtractor.__init__(self)
-        self._sampling_frequency = None
+        self._sampling_frequency = np.float('NaN')
+        self._channel_names = ['OpticalChannel']
+        self._raw_movie_file_location = ''
+        self.no_planes = 1
+        self._roi_response_fluorescence = None
+        self._roi_response_neuropil = None
+        self._roi_response_deconvolved = None
+        self._images_correlation = None
+        self._images_mean = None
 
     @property
     def image_size(self):
@@ -64,8 +72,8 @@ class SegmentationExtractor(ABC, BaseExtractor):
         Returns
         -------
         roi_locs: np.array
-            Array with the first column representing the x (width) and second representing
-            the y (height) coordinates of the ROI.
+            Array with the first row representing the y (height) and second representing
+            the x (width) coordinates of the ROI.
         """
         return self.get_roi_locations()
 

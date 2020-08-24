@@ -47,8 +47,8 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         self.image_masks = self._image_mask_extractor_read()
         self.pixel_masks = _pixel_mask_extractor(self.image_masks, self.roi_ids)
         self._roi_response = self._trace_extractor_read()
-        self._roi_response_dict = {'Fluorescence': self._roi_response}
-
+        self._roi_response_fluorescence = self._roi_response
+        self._images_mean = self._summary_image_read()
 
     @staticmethod
     def _convert_sima(old_pkl_loc):

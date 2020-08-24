@@ -29,17 +29,18 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self.plane_no = plane_no
         self.filepath = fileloc
         self.stat = self._load_npy('stat.npy')
-        self.F = self._load_npy('F.npy', mmap_mode='r')
-        self.Fneu = self._load_npy('Fneu.npy', mmap_mode='r')
-        self.spks = self._load_npy('spks.npy', mmap_mode='r')
+        self._roi_response = self._load_npy('F.npy', mmap_mode='r')
+        self._roi_response_fluorescence = self._roi_response
+        self._roi_response_neuropil = self._load_npy('Fneu.npy', mmap_mode='r')
+        self._roi_response_deconvolved = self._load_npy('spks.npy', mmap_mode='r')
         self.iscell = self._load_npy('iscell.npy', mmap_mode='r')
         self.ops = self._load_npy('ops.npy').item()
         self._channel_names = [f'OpticalChannel{i}' for i in range(self.ops['nchannels'])]
-        self._roi_response_dict = {'Fluorescence': self.F,
-                               'Neuropil': self.Fneu,
-                               'Deconvolved': self.spks}
         self._sampling_frequency = self.ops['fs'] * [2 if self.combined else 1][0]
-        self._raw_movie_file_location = self.ops['filelist']
+        self._raw_movie_file_location = self.ops['filelist'][0]
+        self.image_masks = self.get_roi_image_masks()
+        self._images_correlation = self._summary_image_read('Vcorr')
+        self._images_mean = self._summary_image_read('meanImg')
 
     def _load_npy(self, filename, mmap_mode=None):
         fpath = os.path.join(self.filepath, f'Plane{self.plane_no}', filename)
@@ -50,6 +51,17 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
     def get_rejected_list(self):
         return np.where(self.iscell[:,0]==0)[0]
+
+    def _summary_image_read(self, bstr='meanImg'):
+        img = None
+        if bstr in self.ops:
+            if bstr == 'Vcorr' or bstr == 'max_proj':
+                img = np.zeros((self.ops['Ly'], self.ops['Lx']), np.float32)
+                img[self.ops['yrange'][0]:self.ops['yrange'][-1],
+                self.ops['xrange'][0]:self.ops['xrange'][-1]] = self.ops[bstr]
+            else:
+                img = self.ops[bstr]
+        return img
 
     @property
     def roi_locations(self):
@@ -105,7 +117,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return _image_mask_extractor(self.get_roi_pixel_masks(), roi_idx_, self.get_image_size())
+        return _image_mask_extractor(self.get_roi_pixel_masks(roi_ids=roi_idx_), range(len(roi_idx_)), self.get_image_size())
 
     def get_roi_pixel_masks(self, roi_ids=None):
         pixel_mask = []

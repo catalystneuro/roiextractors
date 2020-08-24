@@ -28,15 +28,12 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         self._dataset_file, self._group0 = self._file_extractor_read()
         self.image_masks = self._image_mask_extractor_read()
         self._roi_response = self._trace_extractor_read()
-        self._roi_response_dict = {'Fluorescence': self._roi_response}
-        self.pixel_masks = _pixel_mask_extractor(self.image_masks, self.roi_ids)
-        self._total_time = self._tot_exptime_extractor_read()
+        self._roi_response_fluorescence = self._roi_response
         self._raw_movie_file_location = self._raw_datafile_read()
-        self._sampling_frequency = self._roi_response.shape[1]/self._total_time
-        # file close:
-        # self._file_close()
+        self._sampling_frequency = self._roi_response.shape[1]/self._tot_exptime_extractor_read()
+        self._images_correlation = self._summary_image_read()
 
-    def _file_close(self):
+    def __del__(self):
         self._dataset_file.close()
 
     def _file_extractor_read(self):
