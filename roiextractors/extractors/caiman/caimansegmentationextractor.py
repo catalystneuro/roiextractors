@@ -97,12 +97,12 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             estimates = f.create_group('estimates')
             params = f.create_group('params')
             #adding to estimates:
-            if segmentation_object._roi_response_neuropil:
+            if segmentation_object._roi_response_neuropil is not None:
                 estimates.create_dataset('C',data=segmentation_object._roi_response_neuropil)
             estimates.create_dataset('F_dff', data=segmentation_object._roi_response_fluorescence)
-            if segmentation_object._roi_response_deconvolved:
+            if segmentation_object._roi_response_deconvolved is not None:
                 estimates.create_dataset('S', data=segmentation_object._roi_response_deconvolved)
-            if segmentation_object._images_mean:
+            if segmentation_object._images_mean is not None:
                 estimates.create_dataset('Cn', data=segmentation_object._images_mean)
             estimates.create_dataset('idx_components', data=np.array(segmentation_object.get_accepted_list()))
             estimates.create_dataset('idx_components_bad', data=np.array(segmentation_object.get_rejected_list()))
@@ -116,8 +116,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             estimates.create_dataset('A/shape', data=image_mask_csc.shape)
 
             #adding params:
-            if segmentation_object._sampling_frequency:
-                params.create_dataset('data/fr',data=segmentation_object._sampling_frequency)
+            params.create_dataset('data/fr',data=segmentation_object._sampling_frequency)
             params.create_dataset('data/fnames', data=segmentation_object._raw_movie_file_location)
             params.create_dataset('data/dims', data=segmentation_object.get_image_size())
             f.create_dataset('dims',data=segmentation_object.get_image_size())
