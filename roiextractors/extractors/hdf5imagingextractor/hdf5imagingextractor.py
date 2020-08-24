@@ -1,8 +1,8 @@
 import numpy as np
 from pathlib import Path
+import lazy_ops
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import ArrayType, PathType, check_get_frames_args, check_get_videos_args, get_video_shape
-
+from ...extraction_tools import check_get_frames_args, get_video_shape
 
 try:
     import h5py
@@ -23,6 +23,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         assert HAVE_H5, self.installation_mesg
         ImagingExtractor.__init__(self)
         self.filepath = Path(file_path)
+        self._sampling_frequency = sampling_frequency
         self._mov_field = mov_field
         assert self.filepath.suffix in ['.h5', '.hdf5'], ""
         self._channel_names = channel_names
@@ -69,16 +70,11 @@ class Hdf5ImagingExtractor(ImagingExtractor):
     @check_get_frames_args
     def get_frames(self, frame_idxs, channel=0):
         if frame_idxs.size > 1 and np.all(np.diff(frame_idxs) > 0):
-            return self._video[channel, frame_idxs]
+            return lazy_ops.DatasetView(self._video).lazy_slice[channel, frame_idxs]
         else:
-            sorted_frame_idxs = np.sort(frame_idxs)
-            argsorted_frame_idxs = np.argsort(frame_idxs)
-            return self._video[channel, sorted_frame_idxs][:, argsorted_frame_idxs]
-
-    @check_get_videos_args
-    def get_video(self, start_frame=None, end_frame=None, channel=0):
-        video = self._video[channel, start_frame:end_frame]
-        return video
+            sorted_idxs = np.sort(frame_idxs)
+            argsorted_idxs = np.argsort(frame_idxs)
+            return lazy_ops.DatasetView(self._video).lazy_slice[channel, sorted_idxs].lazy_slice[:, argsorted_idxs]
 
     def get_image_size(self):
         return [self._size_x, self._size_y]

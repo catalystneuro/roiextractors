@@ -5,7 +5,7 @@ import re
 import os
 import pickle
 from shutil import copyfile
-from roiextractors.extraction_tools import _pixel_mask_extractor
+from ...extraction_tools import _pixel_mask_extractor
 
 try:
     import sima

@@ -1,9 +1,8 @@
 import numpy as np
 from pathlib import Path
-from ...segmentationextractor import SegmentationExtractor
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import ArrayType, PathType, check_get_frames_args, check_get_videos_args, get_video_shape
-
+from ...segmentationextractor import SegmentationExtractor
+from ...extraction_tools import check_get_frames_args, get_video_shape, _pixel_mask_extractor
 
 
 # TODO this class should also be able to instantiate an in-memory object (useful for testing)
@@ -33,11 +32,6 @@ class NumpyImagingExtractor(ImagingExtractor):
     @check_get_frames_args
     def get_frames(self, frame_idxs, channel=0):
         return self._video[channel, frame_idxs]
-
-    @check_get_videos_args
-    def get_video(self, start_frame=None, end_frame=None, channel=0):
-        video = self._video[channel, start_frame:end_frame]
-        return video
 
     def get_image_size(self):
         return [self._size_x, self._size_y]
@@ -232,5 +226,3 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     def get_image_size(self):
         return self._movie_dims
-
-

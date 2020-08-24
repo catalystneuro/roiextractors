@@ -7,9 +7,11 @@ from collections import abc
 from lazy_ops import DatasetView
 from pathlib import Path
 
+from lazy_ops import DatasetView
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
-from ...extraction_tools import ArrayType, PathType, check_get_frames_args, check_get_videos_args, get_video_shape
+from ...extraction_tools import PathType, check_get_frames_args, check_get_videos_args, _pixel_mask_extractor
+
 
 try:
     from pynwb import NWBHDF5IO, TimeSeries, NWBFile
@@ -178,6 +180,7 @@ class NwbImagingExtractor(ImagingExtractor):
             'name': opts.name
         })
 
+    #TODO use lazy_ops
     @check_get_frames_args
     def get_frames(self, frame_idxs, channel=0):
         with NWBHDF5IO(self._path, 'r') as io:
