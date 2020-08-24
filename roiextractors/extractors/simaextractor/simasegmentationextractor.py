@@ -180,19 +180,6 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     def get_num_frames(self):
         return self._roi_response.shape[1]
 
-    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None):
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self.get_num_frames() + 1
-        if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return self._roi_response[roi_idx_, start_frame:end_frame]
-
     def get_roi_image_masks(self, roi_ids=None):
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
@@ -202,24 +189,8 @@ class SimaSegmentationExtractor(SegmentationExtractor):
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
         return self.image_masks[:, :, roi_idx_]
 
-    def get_roi_pixel_masks(self, roi_ids=None):
-        if roi_ids is None:
-            roi_idx_ = self.roi_ids
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        temp = np.empty((1, 4))
-        for i, roiid in enumerate(roi_idx_):
-            temp = \
-                np.append(temp, self.pixel_masks[self.pixel_masks[:, 3] == roiid, :], axis=0)
-        return temp[1::, :]
-
-    def get_images(self):
-        out = {'Images': dict()}
-        for j,i in enumerate(self._channel_names):
-            out['Images'].update({f'meanImg_{i}': self._summary_image_read()[:,:,j]})
-        return out
+    def get_images(self, name='mean'):
+        return super(SimaSegmentationExtractor, self).get_images(name=name)
 
     def get_image_size(self):
         return self.image_masks.shape[0:2]

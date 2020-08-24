@@ -183,7 +183,6 @@ class SegmentationExtractor(ABC, BaseExtractor):
         """
         pass
 
-    @abstractmethod
     def get_roi_pixel_masks(self, roi_ids=None) -> np.array:
         """
         Returns the weights applied to each of the pixels of the mask.
@@ -196,10 +195,12 @@ class SegmentationExtractor(ABC, BaseExtractor):
 
         Returns
         -------
-        pixel_masks: numpy.ndarray
-            3-D array with weight for each pixel of the rroi: image_height X image_width X length(roi_ids)
+        pixel_masks: [list, NoneType]
+            list of length number of rois, each element is a 2-D array os shape (no-pixels, 2)
         """
-        pass
+        if roi_ids is None:
+            return None
+        return _pixel_mask_extractor(self.get_roi_image_masks(roi_ids=roi_ids), range(len(roi_ids)))
 
     @abstractmethod
     def get_image_size(self) -> ArrayType:
@@ -212,6 +213,70 @@ class SegmentationExtractor(ABC, BaseExtractor):
             2-D array: image y x image x
         """
         pass
+
+    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name='Fluorescence'):
+        """
+        Return RoiResponseSeries
+        Returns
+        -------
+        traces: array_like
+            2-D array (ROI x timepoints)
+        """
+        if roi_ids is None:
+            roi_idx_ = range(self.get_num_rois())
+        else:
+            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
+            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
+            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
+        traces = [getattr(self, i) for i in self.__dict__.keys() if name.lower() in i]
+        if traces:
+            if traces[0] is not None:
+                return np.array([traces[0][int(i), start_frame:end_frame] for i in roi_idx_])
+            else:
+                return None
+        else:
+            return None
+
+    def get_traces_dict(self):
+        """
+        Returns traces as a dictionary with key as the name of the ROiResponseSeries
+        Returns
+        -------
+        _roi_response_dict: dict
+            dictionary with key, values representing different types of RoiResponseSeries
+            Flourescence, Neuropil, Deconvolved, Background etc
+        """
+        return dict(Fluorescence=self._roi_response_fluorescence,
+                    Neuropil=self._roi_response_neuropil,
+                    Deconvolved=self._roi_response_deconvolved)
+
+    def get_images_dict(self):
+        """
+        Returns traces as a dictionary with key as the name of the ROiResponseSeries
+        Returns
+        -------
+        _roi_response_dict: dict
+            dictionary with key, values representing different types of Images used in segmentation:
+            Mean, Correlation image
+        """
+        return dict(Correlation=self._images_correlation,
+                    Mean=self._images_mean)
+
+    def get_images(self, name='correlation'):
+        """
+        Return specific images: mean or correlation
+        Parameters
+        ----------
+        name:str
+            name of the type of image to retrieve
+        Returns
+        -------
+        images: np.ndarray
+        """
+        images = [getattr(self, i) for i in self.__dict__.keys() if name.lower() in i]
+        if images:
+            return images[0]
+
 
     def get_sampling_frequency(self):
         """This function returns the sampling frequency in units of Hz.

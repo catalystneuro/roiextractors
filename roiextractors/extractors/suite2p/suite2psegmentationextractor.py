@@ -90,26 +90,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     def get_num_frames(self):
         return self.ops['nframes']
 
-    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name='Fluorescence'):
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self.get_num_frames() + 1
-        if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        if name == 'Fluorescence':
-            return self.F[[roi_idx_], start_frame:end_frame]
-        if name == 'Neuropil':
-            return self.Fneu[[roi_idx_], start_frame:end_frame]
-        if name == 'Deconvolved':
-            return self.spks[[roi_idx_], start_frame:end_frame]
-        else:
-            return None
-
     def get_roi_image_masks(self, roi_ids=None):
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
@@ -132,20 +112,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
         return [pixel_mask[i] for i in roi_idx_]
-
-    def get_images(self):
-        bg_strs = ['meanImg', 'Vcorr', 'max_proj', 'meanImg_chan2']
-        out_dict = {'Images': {}}
-        for bstr in bg_strs:
-            if bstr in self.ops:
-                if bstr == 'Vcorr' or bstr == 'max_proj':
-                    img = np.zeros((self.ops['Ly'], self.ops['Lx']), np.float32)
-                    img[self.ops['yrange'][0]:self.ops['yrange'][-1],
-                    self.ops['xrange'][0]:self.ops['xrange'][-1]] = self.ops[bstr]
-                else:
-                    img = self.ops[bstr]
-                out_dict['Images'].update({bstr: img})
-        return out_dict
 
     def get_image_size(self):
         return [self.ops['Lx'], self.ops['Ly']]
