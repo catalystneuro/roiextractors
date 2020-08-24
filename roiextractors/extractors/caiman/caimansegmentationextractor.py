@@ -50,13 +50,14 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         return masks, roi_ids, ids
 
     def _trace_extractor_read(self, field):
-        extracted_signals = self._dataset_file['estimates'][field] # lazy read dataset)
-        return extracted_signals
+        if self._dataset_file['estimates'].get(field):
+            return self._dataset_file['estimates'][field] # lazy read dataset)
+        else:
+            return None
 
     def _summary_image_read(self):
         if self._dataset_file['estimates'].get('Cn'):
-            summary_images_ = self._dataset_file['estimates']['Cn']
-            return np.array(summary_images_).T
+            return np.array(self._dataset_file['estimates']['Cn']).T
         else:
             return None
 
@@ -67,7 +68,10 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         return accepted
 
     def get_rejected_list(self):
-        return [a for a in range(self.no_rois) if a not in set(self.get_accepted_list())]
+        rejected = self._dataset_file['estimates']['idx_components_bad']
+        if len(rejected.shape) == 0:
+            rejected = [a for a in range(self.no_rois) if a not in set(self.get_accepted_list())]
+        return rejected
 
     @property
     def roi_locations(self):
@@ -117,7 +121,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
             #adding params:
             params.create_dataset('data/fr',data=segmentation_object._sampling_frequency)
-            params.create_dataset('data/fnames', data=segmentation_object._raw_movie_file_location)
+            params.create_dataset('data/fnames', data=[bytes(segmentation_object._raw_movie_file_location,'utf-8')])
             params.create_dataset('data/dims', data=segmentation_object.get_image_size())
             f.create_dataset('dims',data=segmentation_object.get_image_size())
 
