@@ -26,6 +26,7 @@ def _pixel_mask_extractor(image_mask_, _roi_ids):
         pixel_mask_list.append(np.vstack((_locs[0], _locs[1],_pix_values)).T)
     return pixel_mask_list
 
+
 def _image_mask_extractor(pixel_mask, _roi_ids, image_shape):
     """
     Converts a pixel mask to image mask
@@ -47,6 +48,7 @@ def _image_mask_extractor(pixel_mask, _roi_ids, image_shape):
             image_mask[int(x), int(y),rois] = wt
     return image_mask
 
+
 def get_video_shape(video):
     if len(video.shape) == 3:
         # 1 channel
@@ -60,27 +62,15 @@ def get_video_shape(video):
 
 def check_get_frames_args(func):
     @wraps(func)
-    def corrected_args(*args, **kwargs):
-        # parse args and kwargs
-        assert len(args) >= 2, "'get_frames' requires 'frame_idxs' as first argument"
-        if len(args) == 2:
-            imaging = args[0]
-            frame_idxs = args[1]
-            channel = kwargs.get('channel', 0)
-        elif len(args) == 3:
-            imaging = args[0]
-            frame_idxs = args[1]
-            channel = args[2]
-        else:
-            raise Exception("Too many arguments!")
-
+    def corrected_args(imaging, frame_idxs, channel=0):
         channel = int(channel)
         if isinstance(frame_idxs, (int, np.integer)):
             frame_idxs = [frame_idxs]
-        frame_idxs = np.array(frame_idxs)
+
+        if not isinstance(frame_idxs, slice):
+            frame_idxs = np.array(frame_idxs)
         assert np.all(frame_idxs < imaging.get_num_frames()), "'frame_idxs' exceed number of frames"
-        kwargs['channel'] = channel
-        get_frames_correct_arg = func(args[0], frame_idxs, channel)
+        get_frames_correct_arg = func(imaging, frame_idxs, channel)
 
         if len(frame_idxs) == 1:
             return get_frames_correct_arg[0]
@@ -91,33 +81,11 @@ def check_get_frames_args(func):
 
 def check_get_videos_args(func):
     @wraps(func)
-    def corrected_args(*args, **kwargs):
-        # parse args and kwargs
-        if len(args) == 1:
-            imaging = args[0]
-            start_frame = kwargs.get('start_frame', None)
-            end_frame = kwargs.get('end_frame', None)
-            channel = kwargs.get('channel', 0)
-        elif len(args) == 2:
-            imaging = args[0]
-            start_frame = args[1]
-            end_frame = kwargs.get('end_frame', None)
-            channel = kwargs.get('channel', 0)
-        elif len(args) == 3:
-            imaging = args[0]
-            start_frame = args[1]
-            end_frame = args[2]
-            channel = kwargs.get('channel', 0)
-        elif len(args) == 4:
-            recording = args[0]
-            start_frame = args[1]
-            end_frame = args[2]
-            channel = args[3]
-        else:
-            raise Exception("Too many arguments!")
-
+    def corrected_args(imaging, start_frame=None, end_frame=None, channel=0):
         if start_frame is not None:
-            if start_frame < 0:
+            if start_frame > imaging.get_num_frames():
+                raise Exception(f"'start_frame' exceeds number of frames {imaging.get_num_frames()}!")
+            elif start_frame < 0:
                 start_frame = imaging.get_num_frames() + start_frame
         else:
             start_frame = 0
@@ -131,12 +99,8 @@ def check_get_videos_args(func):
         assert end_frame - start_frame > 0, "'start_frame' must be less than 'end_frame'!"
 
         start_frame, end_frame = cast_start_end_frame(start_frame, end_frame)
-        kwargs['start_frame'] = start_frame
-        kwargs['end_frame'] = end_frame
-        kwargs['channel'] = channel
-
-        # pass recording as arg and rest as kwargs
-        get_videos_correct_arg = func(args[0], **kwargs)
+        channel = int(channel)
+        get_videos_correct_arg = func(imaging, start_frame=start_frame, end_frame=end_frame, channel=channel)
 
         return get_videos_correct_arg
     return corrected_args

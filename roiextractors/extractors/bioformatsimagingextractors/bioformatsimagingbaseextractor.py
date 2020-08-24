@@ -3,7 +3,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import ArrayType, PathType, check_get_frames_args, check_get_videos_args, get_video_shape
+from ...extraction_tools import check_get_frames_args
 
 try:
     import javabridge
@@ -66,14 +66,6 @@ class BioformatsImagingExtractor(ImagingExtractor, ABC):
             plane = self._reader.read(t=frame_idx).T
             planes[i] = plane
         return planes
-
-    # TODO make this memmap if too large
-    @check_get_videos_args
-    def get_video(self, start_frame=None, end_frame=None, channel=0):
-        video = np.zeros((end_frame - start_frame, self._size_x, self._size_y))
-        for i, frame_idx in enumerate(np.arange(start_frame, end_frame)):
-            video[i] = self._reader.read(t=frame_idx).T
-        return video
 
     def get_image_size(self):
         return np.array([self._size_x, self._size_y])

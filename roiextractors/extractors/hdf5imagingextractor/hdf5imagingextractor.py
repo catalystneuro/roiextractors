@@ -2,7 +2,7 @@ import numpy as np
 from pathlib import Path
 import lazy_ops
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import ArrayType, PathType, check_get_frames_args, check_get_videos_args, get_video_shape
+from ...extraction_tools import check_get_frames_args, get_video_shape
 
 try:
     import h5py
@@ -75,11 +75,6 @@ class Hdf5ImagingExtractor(ImagingExtractor):
             sorted_idxs = np.sort(frame_idxs)
             argsorted_idxs = np.argsort(frame_idxs)
             return lazy_ops.DatasetView(self._video).lazy_slice[channel, sorted_idxs].lazy_slice[:, argsorted_idxs]
-
-    @check_get_videos_args
-    def get_video(self, start_frame=None, end_frame=None, channel=0):
-        video = self._video[channel, start_frame: end_frame]
-        return video
 
     def get_image_size(self):
         return [self._size_x, self._size_y]
