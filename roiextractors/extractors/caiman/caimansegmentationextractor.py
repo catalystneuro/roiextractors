@@ -4,6 +4,7 @@ from lazy_ops import DatasetView
 from ...segmentationextractor import SegmentationExtractor
 from ...extraction_tools import _pixel_mask_extractor
 import os
+from scipy.sparse import csc_matrix
 
 class CaimanSegmentationExtractor(SegmentationExtractor):
     """
@@ -34,7 +35,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self._images_correlation = self._summary_image_read()
         self._raw_movie_file_location = self._dataset_file['params']['data']['fnames'][0].decode('utf-8')
         self._sampling_frequency = self._dataset_file['params']['data']['fr'][()]
-        self.image_masks = None
+        self.image_masks = self._image_mask_sparse_read()[-1]
 
     def __del__(self):
         self._dataset_file.close()
@@ -47,7 +48,9 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         roi_ids = self._dataset_file['estimates']['A']['indices']
         masks = self._dataset_file['estimates']['A']['data']
         ids = self._dataset_file['estimates']['A']['indptr']
-        return masks, roi_ids, ids
+        _image_mask = np.reshape(csc_matrix((masks, roi_ids, ids), shape=(np.prod(self.get_image_size()),self.no_rois)).toarray(),
+            [self.get_image_size()[0],self.get_image_size()[1],-1],order='F')
+        return masks, roi_ids, ids, _image_mask
 
     def _trace_extractor_read(self, field):
         if self._dataset_file['estimates'].get(field):
@@ -75,7 +78,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
     @property
     def roi_locations(self):
-        _masks, _mask_roi_ids, _mask_ids = self._image_mask_sparse_read()
+        _masks, _mask_roi_ids, _mask_ids, _ = self._image_mask_sparse_read()
         roi_location = np.ndarray([2, self.no_rois], dtype='int')
         for i in range(self.no_rois):
             max_mask_roi_id = _mask_roi_ids[_mask_ids[i]+np.argmax(
@@ -89,7 +92,6 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
     @staticmethod
     def write_segmentation(segmentation_object, savepath, **kwargs):
-        from scipy.sparse import csc_matrix
         plane_no = kwargs.get('plane_no', 0)
         filename = os.path.basename(savepath)
         savepath_folder = os.path.join(os.path.dirname(savepath), f'Plane_{plane_no}')
@@ -145,30 +147,13 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         return self._roi_response.shape[1]
 
     def get_roi_image_masks(self, roi_ids=None):
-        _masks, _mask_roi_ids, _mask_ids = self._image_mask_sparse_read()
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
         else:
             roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        image_mask = np.zeros([np.prod(self.image_size),len(roi_idx_)])
-        for j,i in enumerate(roi_idx_):
-            roi_ids_loop = _mask_roi_ids[_mask_ids[i]:_mask_ids[i+1]]
-            image_mask_loop = _masks[_mask_ids[i]:_mask_ids[i+1]]
-            image_mask[[roi_ids_loop],j] = image_mask_loop
-        return image_mask.reshape(list(self.image_size)+[len(roi_idx_)],order='F')
-
-    def get_roi_pixel_masks(self, roi_ids=None):
-
-        if roi_ids is None:
-            roi_idx_ = self.roi_ids
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        self.pixel_masks = _pixel_mask_extractor(self.get_roi_image_masks(roi_idx_), range(len(roi_idx_)))
-        return self.pixel_masks
+        return self.image_masks[:, :, roi_idx_]
 
     def get_image_size(self):
         return self._dataset_file['params']['data']['dims'][()]
