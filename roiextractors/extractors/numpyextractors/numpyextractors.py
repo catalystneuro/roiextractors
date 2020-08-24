@@ -2,8 +2,7 @@ import numpy as np
 from pathlib import Path
 from ...segmentationextractor import SegmentationExtractor
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import get_video_shape, check_get_videos_args, check_get_frames_args
-
+from ...extraction_tools import get_video_shape, _pixel_mask_extractor
 
 class NumpyImagingExtractor(ImagingExtractor):
     extractor_name = 'NumpyImagingExtractor'
@@ -249,5 +248,3 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     def get_image_size(self):
         return self._movie_dims
-
-
