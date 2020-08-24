@@ -2,7 +2,10 @@ import numpy as np
 import h5py
 from ...segmentationextractor import SegmentationExtractor
 from lazy_ops import DatasetView
-from ...extraction_tools import _pixel_mask_extractor
+from roiextractors.extraction_tools import _pixel_mask_extractor
+import os
+import shutil
+from scipy.sparse import csc_matrix
 
 class CnmfeSegmentationExtractor(SegmentationExtractor):
     """
@@ -78,8 +81,37 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         return roi_location
 
     @staticmethod
-    def write_segmentation(segmentation_object, savepath):
-        raise NotImplementedError
+    def write_segmentation(segmentation_object, savepath, **kwargs):
+        plane_no=kwargs.get('plane_no',0)
+        filename = os.path.basename(savepath)
+        savepath_folder = os.path.join(os.path.dirname(savepath),f'Plane_{plane_no}')
+        savepath = os.path.join(savepath_folder,filename)
+        if not os.path.exists(savepath_folder):
+            os.makedirs(savepath_folder)
+        else:
+            if os.path.exists(savepath):
+                os.remove(savepath)
+        if savepath.split('.')[-1] != 'mat':
+            raise ValueError('filetype to save must be *.mat')
+        with h5py.File(savepath, 'a') as f:
+            # create base groups:
+            _ = f.create_group('#refs#')
+            main = f.create_group('cnmfeAnalysisOutput')
+            # create datasets:
+            main.create_dataset('extractedImages', data=segmentation_object.get_roi_image_masks().T)
+            main.create_dataset('extractedSignals', data=segmentation_object.get_traces().T)
+            if segmentation_object.get_traces(name='deconvolved') is not None:
+                image_mask_csc = csc_matrix(segmentation_object.get_traces(name='deconvolved'))
+                main.create_dataset('extractedPeaks/data', data=image_mask_csc.data)
+                main.create_dataset('extractedPeaks/ir', data=image_mask_csc.indices)
+                main.create_dataset('extractedPeaks/jc', data=image_mask_csc.indptr)
+            if segmentation_object.get_images() is not None:
+                main.create_dataset('Cn', data=segmentation_object.get_images())
+            main.create_dataset('movieList', data=[ord(i) for i in segmentation_object.get_movie_location()])
+            inputoptions = main.create_group('inputOptions')
+            if segmentation_object.get_sampling_frequency() is not None:
+                inputoptions.create_dataset('Fs', data=segmentation_object.get_sampling_frequency())
+
 
     # defining the abstract class enformed methods:
     def get_roi_ids(self):
