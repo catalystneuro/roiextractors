@@ -29,10 +29,11 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self.plane_no = plane_no
         self.filepath = fileloc
         self.stat = self._load_npy('stat.npy')
-        self.F = self._load_npy('F.npy', mmap_mode='r')
-        self.Fneu = self._load_npy('Fneu.npy', mmap_mode='r')
-        self.spks = self._load_npy('spks.npy', mmap_mode='r')
-        self.iscell = self._load_npy('iscell.npy', mmap_mode='r')
+        self._roi_response = self._load_npy('F.npy')
+        self._roi_response_fluorescence = self._roi_response
+        self._roi_response_neuropil = self._load_npy('Fneu.npy')
+        self._roi_response_deconvolved = self._load_npy('spks.npy')
+        self.iscell = self._load_npy('iscell.npy')
         self.ops = self._load_npy('ops.npy').item()
         self._channel_names = [f'OpticalChannel{i}' for i in range(self.ops['nchannels'])]
         self._roi_response_dict = {'Fluorescence': self.F,
@@ -41,9 +42,9 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self._sampling_frequency = self.ops['fs'] * [2 if self.combined else 1][0]
         self._raw_movie_file_location = self.ops['filelist']
 
-    def _load_npy(self, filename, mmap_mode=None):
+    def _load_npy(self, filename):
         fpath = os.path.join(self.filepath, f'Plane{self.plane_no}', filename)
-        return np.load(fpath, mmap_mode=mmap_mode)
+        return np.load(fpath)
 
     def get_accepted_list(self):
         return np.where(self.iscell[:,0]==1)[0]
