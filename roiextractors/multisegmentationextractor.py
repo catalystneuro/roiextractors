@@ -4,6 +4,7 @@ from .segmentationextractor import SegmentationExtractor
 from . import *
 from .extractorlist import *
 
+
 def concatenate_output(func):
     def _get_from_roi_map(self, roi_ids=None, **kwargs):
         out = []
@@ -15,14 +16,14 @@ def concatenate_output(func):
         roi_id_segmentation = np.array([self._roi_map[roi_id]['roi_id'] for roi_id in roi_ids])
         for i in np.unique(seg_id):
             seg_roi_ids = roi_id_segmentation[seg_id == i]
-            out.append(getattr(self._segmentations[i],func.__name__)(roi_ids=seg_roi_ids, **kwargs))
+            out.append(getattr(self._segmentations[i], func.__name__)(roi_ids=seg_roi_ids, **kwargs))
         return func(self)(out)
     return _get_from_roi_map
 
 
 class MultiSegmentationExtractor(SegmentationExtractor):
     """
-    This class is used to concatenate multiplane recordings from the same device and session
+    This class is used to concatenate multi-plane recordings from the same device and session
     of experiment.
     """
     extractor_name = 'MultiSegmentationExtractor'
@@ -41,12 +42,12 @@ class MultiSegmentationExtractor(SegmentationExtractor):
             list of strings of names for the plane. Defaults to 'Plane0', 'Plane1' ...
         """
         SegmentationExtractor.__init__(self)
-        if not isinstance(segmentatation_extractors_list,list):
+        if not isinstance(segmentatation_extractors_list, list):
             raise Exception('Enter a list of segmentation extractor objects as argument')
         self._no_planes = len(segmentatation_extractors_list)
         if plane_names:
             plane_names = list(plane_names)
-            if len(plane_names)>=self._no_planes:
+            if len(plane_names) >= self._no_planes:
                 plane_names = plane_names[:self._no_planes]
             else:
                 plane_names.extend([f'Plane{i}' for i in range(self._no_planes - len(plane_names))])
