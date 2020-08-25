@@ -4,7 +4,7 @@ from ...imagingextractor import ImagingExtractor
 from ...extraction_tools import PathType, get_video_shape, check_get_frames_args
 
 try:
-    import tiffile
+    import tifffile
     HAVE_TIFF = True
 except:
     HAVE_TIFF = False
@@ -15,7 +15,7 @@ class TiffImagingExtractor(ImagingExtractor):
     installed = HAVE_TIFF  # check at class level if installed or not
     is_writable = True
     mode = 'file'
-    installation_mesg = "To use the TiffImagingExtractor install tifffile: \n\n pip install tiffile\n\n"  # error message when not installed
+    installation_mesg = "To use the TiffImagingExtractor install tifffile: \n\n pip install tifffile\n\n"  # error message when not installed
 
     def __init__(self, file_path: PathType, sampling_frequency,
                  channel_names=None):
@@ -26,11 +26,11 @@ class TiffImagingExtractor(ImagingExtractor):
         self._channel_names = channel_names
         assert self.file_path.suffix in ['.tiff', '.tif', '.TIF', '.TIFF']
 
-        with tiffile.TiffFile(self.file_path) as tif:
+        with tifffile.TiffFile(self.file_path) as tif:
             self._num_channels = len(tif.series)
 
         # deal with multiple channels
-        self._video = tiffile.memmap(self.file_path)
+        self._video = tifffile.memmap(self.file_path)
         self._num_channels, self._num_frames, self._size_x, self._size_y = get_video_shape(self._video)
 
         if len(self._video.shape) == 3:

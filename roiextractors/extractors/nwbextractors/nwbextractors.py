@@ -7,7 +7,6 @@ from collections import abc
 from lazy_ops import DatasetView
 from pathlib import Path
 
-from lazy_ops import DatasetView
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
 from ...extraction_tools import PathType, check_get_frames_args, check_get_videos_args, _pixel_mask_extractor
