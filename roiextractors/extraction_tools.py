@@ -105,7 +105,7 @@ def check_get_videos_args(func):
         return get_videos_correct_arg
     return corrected_args
 
-
+# TODO will be moved eventually, but for now it's very handy :)
 def show_video(imaging, ax=None):
     import matplotlib.pyplot as plt
     import matplotlib.animation as animation
