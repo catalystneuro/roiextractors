@@ -62,8 +62,6 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         if self._dataset_file[self._group0[0]].get('Cn'):
             summary_images_ = self._dataset_file[self._group0[0]]['Cn']
             return np.array(summary_images_).T
-        else:
-            return None
 
     def _raw_datafile_read(self):
         charlist = [chr(i) for i in self._dataset_file[self._group0[0]]['movieList'][:]]
