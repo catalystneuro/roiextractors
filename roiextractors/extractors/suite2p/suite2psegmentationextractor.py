@@ -1,7 +1,7 @@
 import numpy as np
 from ...segmentationextractor import SegmentationExtractor
 import os
-from roiextractors.extraction_tools import _image_mask_extractor
+from ...extraction_tools import _image_mask_extractor
 import shutil
 
 class Suite2pSegmentationExtractor(SegmentationExtractor):
