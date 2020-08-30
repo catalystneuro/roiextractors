@@ -7,7 +7,9 @@ from spikeextractors.extraction_tools import cast_start_end_frame
 ArrayType = Union[list, np.array]
 PathType = Union[str, Path]
 NumpyArray = Union[np.array, np.memmap]
-DtypeType = [str, np.dtype]
+DtypeType = Union[str, np.dtype]
+IntType = Union[int, np.integer]
+FloatType = Union[float, np.float]
 
 
 def _pixel_mask_extractor(image_mask_, _roi_ids):

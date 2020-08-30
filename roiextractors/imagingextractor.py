@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from spikeextractors.baseextractor import BaseExtractor
-from .extraction_tools import ArrayType, PathType, NumpyArray, DtypeType, check_get_videos_args
+from .extraction_tools import ArrayType, PathType, NumpyArray, DtypeType, IntType, FloatType, check_get_videos_args
 
 
 class ImagingExtractor(ABC, BaseExtractor):
@@ -58,7 +58,7 @@ class ImagingExtractor(ABC, BaseExtractor):
     def get_video(self, start_frame: int = None, end_frame: int = None, channel: int = 0) -> NumpyArray:
         return self.get_frames(range(start_frame, end_frame), channel)
 
-    def frame_to_time(self, frame: int):
+    def frame_to_time(self, frame: IntType):
         '''This function converts a user-inputted frame index to a time with units of seconds.
 
         Parameters
@@ -74,7 +74,7 @@ class ImagingExtractor(ABC, BaseExtractor):
         # Default implementation
         return frame / self.get_sampling_frequency()
 
-    def time_to_frame(self, time):
+    def time_to_frame(self, time: FloatType):
         '''This function converts a user-inputted time (in seconds) to a frame index.
 
         Parameters

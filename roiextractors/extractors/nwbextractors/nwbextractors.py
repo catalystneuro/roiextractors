@@ -9,7 +9,8 @@ from pathlib import Path
 
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
-from ...extraction_tools import PathType, check_get_frames_args, check_get_videos_args, _pixel_mask_extractor
+from ...extraction_tools import PathType, FloatType, IntType, \
+    check_get_frames_args, check_get_videos_args, _pixel_mask_extractor
 
 
 try:
@@ -109,53 +110,61 @@ class NwbImagingExtractor(ImagingExtractor):
         ImagingExtractor.__init__(self)
         self._path = file_path
 
-        with NWBHDF5IO(self._path, 'r') as io:
-            nwbfile = io.read()
-            if optical_series_name is not None:
-                self._optical_series_name = optical_series_name
-            else:
-                a_names = list(nwbfile.acquisition)
-                if len(a_names) > 1:
-                    raise ValueError('More than one acquisition found. You must specify electrical_series.')
-                if len(a_names) == 0:
-                    raise ValueError('No acquisitions found in the .nwb file.')
-                self._optical_series_name = a_names[0]
+        self.io = NWBHDF5IO(self._path, 'r')
+        self.nwbfile = self.io.read()
+        if optical_series_name is not None:
+            self._optical_series_name = optical_series_name
+        else:
+            a_names = list(self.nwbfile.acquisition)
+            if len(a_names) > 1:
+                raise ValueError('More than one acquisition found. You must specify two_photon_series.')
+            if len(a_names) == 0:
+                raise ValueError('No acquisitions found in the .nwb file.')
+            self._optical_series_name = a_names[0]
 
-            opts = nwbfile.acquisition[self._optical_series_name]
-            assert isinstance(opts, TwoPhotonSeries), "The optical series must be of type pynwb.TwoPhotonSeries"
+        opts = self.nwbfile.acquisition[self._optical_series_name]
+        assert isinstance(opts, TwoPhotonSeries), "The optical series must be of type pynwb.TwoPhotonSeries"
 
-            #TODO if external file --> return another proper extractor (e.g. TiffImagingExtractor)
-            assert opts.external_file is None, "Only 'raw' format is currently supported"
+        #TODO if external file --> return another proper extractor (e.g. TiffImagingExtractor)
+        assert opts.external_file is None, "Only 'raw' format is currently supported"
 
-            if hasattr(opts, 'timestamps') and opts.timestamps:
-                self._sampling_frequency = 1. / np.median(np.diff(opts.timestamps))
-                self._imaging_start_time = opts.timestamps[0]
-            else:
-                self._sampling_frequency = opts.rate
-                if hasattr(os, 'starting_time'):
-                    self._imaging_start_time = opts.starting_time
-                else:
-                    self._imaging_start_time = 0.
+        if hasattr(opts, 'timestamps') and opts.timestamps:
+            self._sampling_frequency = 1. / np.median(np.diff(opts.timestamps))
+            self._imaging_start_time = opts.timestamps[0]
+        else:
+            self._sampling_frequency = opts.rate
+            self._imaging_start_time = opts.get(os, 'starting_time', 0.)
 
-            if len(opts.data.shape) == 3:
-                self._num_frames, self._size_x, self._size_y = opts.data.shape
-                self._num_channels = 1
-                self._channel_names = opts.imaging_plane.optical_channel[0].name
-            else:
-                raise NotImplementedError("4D volumetric data are currently not supported")
 
-            # Fill epochs dictionary
-            self._epochs = {}
-            if nwbfile.epochs is not None:
-                df_epochs = nwbfile.epochs.to_dataframe()
-                self._epochs = {row['tags'][0]: {
-                    'start_frame': self.time_to_frame(row['start_time']),
-                    'end_frame': self.time_to_frame(row['stop_time'])}
-                    for _, row in df_epochs.iterrows()}
+        if len(opts.data.shape) == 3:
+            self._num_frames, self._size_x, self._size_y = opts.data.shape
+            self._num_channels = 1
+            self._channel_names = opts.imaging_plane.optical_channel[0].name
+        else:
+            raise NotImplementedError("4D volumetric data are currently not supported")
 
-            self._kwargs = {'file_path': str(Path(file_path).absolute()),
-                            'optical_series_name': optical_series_name}
-            self.make_nwb_metadata(nwbfile=nwbfile, opts=opts)
+        # Fill epochs dictionary
+        self._epochs = {}
+        if self.nwbfile.epochs is not None:
+            df_epochs = self.nwbfile.epochs.to_dataframe()
+            # TODO implement add_epoch() method in base class
+            self._epochs = {row['tags'][0]: {
+                'start_frame': self.time_to_frame(row['start_time']),
+                'end_frame': self.time_to_frame(row['stop_time'])}
+                for _, row in df_epochs.iterrows()}
+
+        self._kwargs = {'file_path': str(Path(file_path).absolute()),
+                        'optical_series_name': optical_series_name}
+        self.make_nwb_metadata(nwbfile=self.nwbfile, opts=opts)
+
+    def __del__(self):
+        self.io.close()
+
+    def time_to_frame(self, time: FloatType):
+        return int((time - self._imaging_start_time) * self.get_sampling_frequency())
+
+    def frame_to_time(self, frame: IntType):
+        return float(frame / self.get_sampling_frequency() + self._imaging_start_time)
 
     def make_nwb_metadata(self, nwbfile, opts):
         # Metadata dictionary - useful for constructing a nwb file
@@ -182,23 +191,19 @@ class NwbImagingExtractor(ImagingExtractor):
     #TODO use lazy_ops
     @check_get_frames_args
     def get_frames(self, frame_idxs, channel=0):
-        with NWBHDF5IO(self._path, 'r') as io:
-            nwbfile = io.read()
-            opts = nwbfile.acquisition[self._optical_series_name]
-            if frame_idxs.size > 1 and np.all(np.diff(frame_idxs) > 0):
-                return opts.data[frame_idxs]
-            else:
-                sorted_idxs = np.sort(frame_idxs)
-                argsorted_idxs = np.argsort(frame_idxs)
-                return opts.data[sorted_idxs][argsorted_idxs]
+        opts = self.nwbfile.acquisition[self._optical_series_name]
+        if frame_idxs.size > 1 and np.all(np.diff(frame_idxs) > 0):
+            return opts.data[frame_idxs]
+        else:
+            sorted_idxs = np.sort(frame_idxs)
+            argsorted_idxs = np.argsort(frame_idxs)
+            return opts.data[sorted_idxs][argsorted_idxs]
 
     @check_get_videos_args
     def get_video(self, start_frame=None, end_frame=None, channel=0):
-        with NWBHDF5IO(self._path, 'r') as io:
-            nwbfile = io.read()
-            opts = nwbfile.acquisition[self._optical_series_name]
-            video = opts.data[start_frame:end_frame]
-            return video
+        opts = self.nwbfile.acquisition[self._optical_series_name]
+        video = opts.data[start_frame:end_frame]
+        return video
 
     def get_image_size(self):
         return [self._size_x, self._size_y]
@@ -428,7 +433,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     mode = 'file'
     installation_mesg = ""  # error message when not installed
 
-    def __init__(self, filepath):
+    def __init__(self, file_path):
         """
         Creating NwbSegmentationExtractor object from nwb file
         Parameters
@@ -438,17 +443,16 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         """
         SegmentationExtractor.__init__(self)
         check_nwb_install()
-        SegmentationExtractor.__init__(self)
-        if not os.path.exists(filepath):
+        if not os.path.exists(file_path):
             raise Exception('file does not exist')
 
-        self.filepath = filepath
+        self._filepath = file_path
         self.image_masks = None
         self.pixel_masks = None
         self._roi_locs = None
         self._accepted_list = None
-        io = NWBHDF5IO(filepath, mode='r+')
-        nwbfile = io.read()
+        self.io = NWBHDF5IO(file_path, mode='r+')
+        nwbfile = self.io.read()
         self.nwbfile = nwbfile
         _nwbchildren_type = [type(i).__name__ for i in nwbfile.all_children()]
         _nwbchildren_name = [i.name for i in nwbfile.all_children()]
@@ -526,6 +530,9 @@ class NwbSegmentationExtractor(SegmentationExtractor):
 
         #Extracting stores images as GrayscaleImages:
         self._greyscaleimages = [_nwbchildren_name[f] for f, u in enumerate(_nwbchildren_type) if u == 'GrayscaleImage']
+
+    def __del__(self):
+        self.io.close()
 
     def get_accepted_list(self):
         if self._accepted_list is None:
