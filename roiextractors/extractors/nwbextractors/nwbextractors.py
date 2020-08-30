@@ -441,7 +441,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         filepath: str
             .nwb file location
         """
-        SegmentationExtractor.__init__(self)
         check_nwb_install()
         if not os.path.exists(file_path):
             raise Exception('file does not exist')
