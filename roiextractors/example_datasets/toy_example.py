@@ -141,7 +141,7 @@ def toy_example(duration=10, num_rois=10, size_x=100, size_y=100, roi_size=4, mi
     for rois_i, roi in enumerate(roi_pixels):
         for r in roi:
             image_masks[rois_i, r[0], r[1]] += im[r[0], r[1]]
-    seg = NumpySegmentationExtractor(image_masks=image_masks, signal=traces)
+    seg = NumpySegmentationExtractor(image_masks=image_masks, signal=traces, sampling_frequency=sampling_frequency)
 
     return imag, seg
 

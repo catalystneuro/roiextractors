@@ -96,8 +96,8 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     """
 
     def __init__(self, image_masks, signal, accepted_lst=None,
-                 summary_image=None, roi_idx=None,
-                 roi_locs=None, samp_freq=None,
+                 summary_image=None, roi_ids=None,
+                 roi_locations=None, sampling_frequency=None,
                  rejected_list=None, channel_names=None,
                  movie_dims=None):
         """
@@ -149,9 +149,12 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         self._roi_response_dict = {'Fluorescence': self._roi_response}
         self._movie_dims = movie_dims if movie_dims is not None else image_masks.shape
         self._summary_image = summary_image
-        self._roi_ids = roi_idx
-        self._roi_locs = roi_locs
-        self._sampling_frequency = samp_freq
+        if roi_ids is None:
+            self._roi_ids = list(np.arange(len(image_masks)))
+        else:
+            self._roi_ids = roi_ids
+        self._roi_locs = roi_locations
+        self._sampling_frequency = sampling_frequency
         self._channel_names = channel_names
         self._rejected_list = rejected_list
         self._accepted_list = accepted_lst
@@ -191,13 +194,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     # defining the abstract class enformed methods:
     def get_roi_ids(self):
-        if self._roi_ids is None:
-            return list(range(self.no_rois))
-        else:
-            return self._roi_ids
-
-    def get_num_rois(self):
-        return self.image_masks.shape[2]
+        return self._roi_ids
 
     def get_roi_locations(self, roi_ids=None):
         if roi_ids is None:
@@ -232,6 +229,9 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
         return self.image_masks[:, :, roi_idx_]
+
+    def get_roi_pixel_masks(self, roi_ids=None):
+        pass
 
     def get_images(self):
         return {'Images': {'meanImg': self._summary_image}}
