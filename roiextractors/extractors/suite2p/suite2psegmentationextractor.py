@@ -40,6 +40,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
                                'Deconvolved': self.spks}
         self._sampling_frequency = self.ops['fs'] * [2 if self.combined else 1][0]
         self._raw_movie_file_location = self.ops['filelist']
+        self.image_masks = self.get_roi_image_masks()
 
     def _load_npy(self, filename, mmap_mode=None):
         fpath = os.path.join(self.filepath, f'Plane{self.plane_no}', filename)
@@ -105,7 +106,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return _image_mask_extractor(self.get_roi_pixel_masks(), roi_idx_, self.get_image_size())
+        return _image_mask_extractor(self.get_roi_pixel_masks(roi_ids=roi_idx_), range(len(roi_idx_)), self.get_image_size())
 
     def get_roi_pixel_masks(self, roi_ids=None):
         pixel_mask = []

@@ -29,7 +29,6 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         self.image_masks = self._image_mask_extractor_read()
         self._roi_response = self._trace_extractor_read()
         self._roi_response_dict = {'Fluorescence': self._roi_response}
-        self.pixel_masks = _pixel_mask_extractor(self.image_masks, self.roi_ids)
         self._total_time = self._tot_exptime_extractor_read()
         self._raw_movie_file_location = self._raw_datafile_read()
         self._sampling_frequency = self._roi_response.shape[1]/self._total_time
@@ -121,19 +120,6 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
         return np.array([self.image_masks[:, :, int(i)].T for i in roi_idx_]).T
-
-    def get_roi_pixel_masks(self, roi_ids=None):
-        if roi_ids is None:
-            roi_idx_ = self.roi_ids
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        temp = np.empty((1, 4))
-        for i, roiid in enumerate(roi_idx_):
-            temp = \
-                np.append(temp, self.pixel_masks[self.pixel_masks[:, 3] == roiid, :], axis=0)
-        return temp[1::, :]
 
     def get_images(self):
         return {'Images': {'meanImg': self._summary_image_read()}}

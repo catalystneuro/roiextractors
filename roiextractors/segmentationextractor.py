@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from spikeextractors.baseextractor import BaseExtractor
 import numpy as np
 from .extraction_tools import ArrayType
-
+from .extraction_tools import _pixel_mask_extractor
 
 class SegmentationExtractor(ABC, BaseExtractor):
     """
@@ -64,8 +64,8 @@ class SegmentationExtractor(ABC, BaseExtractor):
         Returns
         -------
         roi_locs: np.array
-            Array with the first column representing the x (width) and second representing
-            the y (height) coordinates of the ROI.
+            Array with the first row representing the y (height) and second representing
+            the x (width) coordinates of the ROI.
         """
         return self.get_roi_locations()
 
@@ -175,7 +175,6 @@ class SegmentationExtractor(ABC, BaseExtractor):
         """
         pass
 
-    @abstractmethod
     def get_roi_pixel_masks(self, roi_ids=None) -> np.array:
         """
         Returns the weights applied to each of the pixels of the mask.
@@ -188,10 +187,10 @@ class SegmentationExtractor(ABC, BaseExtractor):
 
         Returns
         -------
-        pixel_masks: numpy.ndarray
-            3-D array with weight for each pixel of the rroi: image_height X image_width X length(roi_ids)
+        pixel_masks: list
+            list of length number of rois, each element is a 2-D array os shape (no-pixels, 2)
         """
-        pass
+        return _pixel_mask_extractor(self.get_roi_image_masks(roi_ids=roi_ids), range(len(roi_ids)))
 
     @abstractmethod
     def get_image_size(self) -> ArrayType:
