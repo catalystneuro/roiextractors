@@ -40,8 +40,8 @@ def _image_mask_extractor(pixel_mask, _roi_ids, image_shape):
     image_mask: np.ndarray
     """
     image_mask = np.zeros(list(image_shape)+[len(_roi_ids)])
-    for no, rois in enumerate(_roi_ids):
-        for x, y, wt in pixel_mask[rois]:
+    for no, roi in enumerate(_roi_ids):
+        for x, y, wt in pixel_mask[roi]:
             image_mask[int(x), int(y), no] = wt
     return image_mask
 
