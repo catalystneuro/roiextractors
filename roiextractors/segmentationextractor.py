@@ -3,6 +3,9 @@ from spikeextractors.baseextractor import BaseExtractor
 import numpy as np
 from .extraction_tools import ArrayType
 from .extraction_tools import _pixel_mask_extractor
+from copy import deepcopy
+import warnings
+
 
 class SegmentationExtractor(ABC, BaseExtractor):
     """
@@ -126,7 +129,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         num_of_frames: int
             Number of frames in the recording (duration of recording).
         """
-        pass
+        return self._roi_response.shape[1]
 
     @abstractmethod
     def get_roi_locations(self, roi_ids=None) -> np.array:
@@ -144,7 +147,13 @@ class SegmentationExtractor(ABC, BaseExtractor):
         roi_locs: numpy.ndarray
             2-D array: 2 X no_ROIs. The pixel ids (x,y) where the centroid of the ROI is.
         """
-        pass
+        if roi_ids is None:
+            return self.roi_locations
+        else:
+            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
+            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
+            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
+            return self.roi_locations[:, roi_idx_]
 
     @abstractmethod
     def get_roi_ids(self) -> list:
@@ -173,7 +182,13 @@ class SegmentationExtractor(ABC, BaseExtractor):
         image_masks: numpy.ndarray
             3-D array(val 0 or 1): image_height X image_width X length(roi_ids)
         """
-        pass
+        if roi_ids is None:
+            roi_idx_ = range(self.get_num_rois())
+        else:
+            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
+            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
+            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
+        return self.image_masks[:, :, roi_idx_]
 
     def get_roi_pixel_masks(self, roi_ids=None) -> np.array:
         """
@@ -187,9 +202,11 @@ class SegmentationExtractor(ABC, BaseExtractor):
 
         Returns
         -------
-        pixel_masks: list
+        pixel_masks: [list, NoneType]
             list of length number of rois, each element is a 2-D array os shape (no-pixels, 2)
         """
+        if roi_ids is None:
+            return None
         return _pixel_mask_extractor(self.get_roi_image_masks(roi_ids=roi_ids), range(len(roi_ids)))
 
     @abstractmethod
@@ -203,6 +220,27 @@ class SegmentationExtractor(ABC, BaseExtractor):
             2-D array: image y x image x
         """
         pass
+
+    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name='Fluorescence'):
+        """
+        Return RoiResponseSeries
+        Returns
+        -------
+        traces: array_like
+            2-D array (ROI x timepoints)
+        """
+        if roi_ids is None:
+            roi_idx_ = range(self.get_num_rois())
+        else:
+            roi_idx = [np.where(np.array(i) == self.get_roi_ids())[0] for i in roi_ids]
+            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
+            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
+        traces = self._roi_response_dict.get(name)
+        if len(traces.shape) == 0:
+            print(f'traces for {name} not found, enter one of {list(self._roi_response_dict.keys())}')
+            return None
+        else:
+            return np.array([traces[int(i), start_frame:end_frame] for i in roi_idx_])
 
     def get_sampling_frequency(self):
         """This function returns the sampling frequency in units of Hz.
@@ -222,7 +260,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         no_rois: int
             integer number of ROIs extracted.
         """
-        return len(self.get_roi_ids())
+        return self._roi_response.shape[0]
 
     def get_images(self):
         """
