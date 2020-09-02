@@ -161,43 +161,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         else:
             return self._roi_ids
 
-    def get_num_rois(self):
-        return self.image_masks.shape[2]
-
-    def get_roi_locations(self, roi_ids=None):
-        if roi_ids is None:
-            return self.roi_locations
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-            return self.roi_locations[:, roi_idx_]
-
-    def get_num_frames(self):
-        return self._roi_response.shape[1]
-
-    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None):
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self.get_num_frames() + 1
-        if roi_ids is None:
-            roi_idx_ = list(range(self.get_num_rois()))
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return self._roi_response[roi_idx_, start_frame:end_frame]
-
-    def get_roi_image_masks(self, roi_ids=None):
-        if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return self.image_masks[:, :, roi_idx_]
-
     def get_images(self):
         return {'Images': {'meanImg': self._summary_image}}
 

@@ -270,50 +270,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         else:
             return self._roi_locs.data[:].T
 
-    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name=None):
-        if name is None:
-            name = self._roi_names[0]
-            print(f'returning traces for {name}')
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self.get_num_frames() + 1
-        if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return np.array([self._roi_response_dict[name][int(i), start_frame:end_frame] for i in roi_idx_])
-
-    def get_num_frames(self):
-        return self._roi_response.shape[1]
-
-    def get_roi_locations(self, roi_ids=None):
-        if roi_ids is None:
-            return self.roi_locations
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-            return self.roi_locations[:, roi_idx_]
-
     def get_roi_ids(self):
         return self._roi_idx
-
-    def get_num_rois(self):
-        return self.roi_ids.size
-
-    def get_roi_image_masks(self, roi_ids=None):
-        if self.image_masks is None:
-            return None
-        if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return np.array([self.image_masks[:, :, int(i)].T for i in roi_idx_]).T
 
     def get_images(self):
         imag_dict = {i.name: np.array(i.data) for i in self.nwbfile.all_children() if i.name in self._greyscaleimages}
@@ -326,16 +284,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
 
     def get_image_size(self):
         return self._extimage_dims
-
-    def get_property_data(self, property_name):
-        ret_val = []
-        for j, i in enumerate(property_name):
-            if i in self._property_name_exist:
-                ret_val.append(self.property_vals[j])
-            else:
-                raise Exception('enter valid property name. Names found: {}'.format(
-                    self._property_name_exist))
-        return ret_val
 
     @staticmethod
     def write_segmentation(segext_obj, savepath, metadata_dict, **kwargs):
