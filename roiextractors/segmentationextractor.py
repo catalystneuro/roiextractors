@@ -223,6 +223,8 @@ class SegmentationExtractor(ABC, BaseExtractor):
         traces: array_like
             2-D array (ROI x timepoints)
         """
+        if name not in self._roi_response_dict:
+            raise ValueError(f'traces for {name} not found, enter one of {list(self._roi_response_dict.keys())}')
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
         else:
@@ -230,11 +232,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
         traces = self._roi_response_dict.get(name)
-        if traces is None:
-            print(f'traces for {name} not found, enter one of {list(self._roi_response_dict.keys())}')
-            return None
-        else:
-            return np.array([traces[int(i), start_frame:end_frame] for i in roi_idx_])
+        return np.array([traces[int(i), start_frame:end_frame] for i in roi_idx_])
 
     def get_sampling_frequency(self):
         """This function returns the sampling frequency in units of Hz.
