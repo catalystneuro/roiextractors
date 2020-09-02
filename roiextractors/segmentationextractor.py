@@ -4,7 +4,6 @@ import numpy as np
 from .extraction_tools import ArrayType
 from .extraction_tools import _pixel_mask_extractor
 from copy import deepcopy
-import warnings
 
 
 class SegmentationExtractor(ABC, BaseExtractor):
@@ -199,7 +198,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         return deepcopy(dict(mean=self._image_mean,
                              correlation=self._image_correlation))
 
-    def get_images(self, name='correlation'):
+    def get_image(self, name='correlation'):
         """
         Return specific images: mean or correlation
         Parameters
