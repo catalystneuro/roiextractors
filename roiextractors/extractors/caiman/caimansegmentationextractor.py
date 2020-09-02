@@ -18,21 +18,20 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
     mode = 'file'
     installation_mesg = ""  # error message when not installed
 
-    def __init__(self, filepath):
+    def __init__(self, file_path):
         """
         Parameters
         ----------
-        filepath: str
+        file_path: str
             The location of the folder containing caiman *.hdmf output file.
         """
         SegmentationExtractor.__init__(self)
-        self.filepath = filepath
+        self.file_path = file_path
         self._dataset_file = self._file_extractor_read()
-        self._roi_response = self._trace_extractor_read('F_dff')
-        self._roi_response_fluorescence = self._roi_response
+        self._roi_response_dff = self._trace_extractor_read('F_dff')
         self._roi_response_neuropil = self._trace_extractor_read('C')
         self._roi_response_deconvolved = self._trace_extractor_read('S')
-        self._images_correlation = self._summary_image_read()
+        self._image_correlation = self._summary_image_read()
         self._raw_movie_file_location = self._dataset_file['params']['data']['fnames'][0].decode('utf-8')
         self._sampling_frequency = self._dataset_file['params']['data']['fr'][()]
         self.image_masks = self._image_mask_sparse_read()[-1]
@@ -41,14 +40,14 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self._dataset_file.close()
 
     def _file_extractor_read(self):
-        f = h5py.File(self.filepath, 'r')
+        f = h5py.File(self.file_path, 'r')
         return f
 
     def _image_mask_sparse_read(self):
         roi_ids = self._dataset_file['estimates']['A']['indices']
         masks = self._dataset_file['estimates']['A']['data']
         ids = self._dataset_file['estimates']['A']['indptr']
-        _image_mask = np.reshape(csc_matrix((masks, roi_ids, ids), shape=(np.prod(self.get_image_size()),self.no_rois)).toarray(),
+        _image_mask = np.reshape(csc_matrix((masks, roi_ids, ids), shape=(np.prod(self.get_image_size()),self.get_num_rois())).toarray(),
             [self.get_image_size()[0],self.get_image_size()[1],-1],order='F')
         return masks, roi_ids, ids, _image_mask
 
@@ -67,20 +66,20 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
     def get_accepted_list(self):
         accepted = self._dataset_file['estimates']['idx_components']
         if len(accepted.shape)==0:
-            accepted = list(range(self.no_rois))
+            accepted = list(range(self.get_num_rois()))
         return accepted
 
     def get_rejected_list(self):
         rejected = self._dataset_file['estimates']['idx_components_bad']
         if len(rejected.shape) == 0:
-            rejected = [a for a in range(self.no_rois) if a not in set(self.get_accepted_list())]
+            rejected = [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
         return rejected
 
     @property
     def roi_locations(self):
         _masks, _mask_roi_ids, _mask_ids, _ = self._image_mask_sparse_read()
-        roi_location = np.ndarray([2, self.no_rois], dtype='int')
-        for i in range(self.no_rois):
+        roi_location = np.ndarray([2, self.get_num_rois()], dtype='int')
+        for i in range(self.get_num_rois()):
             max_mask_roi_id = _mask_roi_ids[_mask_ids[i]+np.argmax(
                 _masks[_mask_ids[i]:_mask_ids[i+1]]
             )]
@@ -129,7 +128,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
     # defining the abstract class enformed methods:
     def get_roi_ids(self):
-        return list(range(self.no_rois))
+        return list(range(self.get_num_rois()))
 
     def get_image_size(self):
         return self._dataset_file['params']['data']['dims'][()]
