@@ -118,7 +118,6 @@ class SegmentationExtractor(ABC, BaseExtractor):
         """
         pass
 
-    @abstractmethod
     def get_num_frames(self) -> int:
         """This function returns the number of frames in the recording.
 
@@ -129,7 +128,6 @@ class SegmentationExtractor(ABC, BaseExtractor):
         """
         return self._roi_response.shape[1]
 
-    @abstractmethod
     def get_roi_locations(self, roi_ids=None) -> np.array:
         """
         Returns the locations of the Regions of Interest
@@ -164,8 +162,6 @@ class SegmentationExtractor(ABC, BaseExtractor):
         """
         pass
 
-
-    @abstractmethod
     def get_roi_image_masks(self, roi_ids=None) -> np.array:
         """Returns the image masks extracted from segmentation algorithm.
 
@@ -234,7 +230,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
         traces = self._roi_response_dict.get(name)
-        if len(traces.shape) == 0:
+        if traces is None:
             print(f'traces for {name} not found, enter one of {list(self._roi_response_dict.keys())}')
             return None
         else:
