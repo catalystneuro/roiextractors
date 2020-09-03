@@ -11,10 +11,10 @@ class NumpyImagingExtractor(ImagingExtractor):
                  channel_names=None):
 
         ImagingExtractor.__init__(self)
-        self.filepath = Path(file_path)
+        self.file_path = Path(file_path)
         self._sampling_frequency = sampling_frequency
-        assert self.filepath.suffix == '.npy'
-        self._video = np.load(self.filepath, mmap_mode='r')
+        assert self.file_path.suffix == '.npy'
+        self._video = np.load(self.file_path, mmap_mode='r')
         self._channel_names = channel_names
 
         self._num_channels, self._num_frames, self._size_x, self._size_y = get_video_shape(self._video)
@@ -79,21 +79,23 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     def __init__(self, image_masks, signal,
                  rawfileloc=None, accepted_lst=None,
-                 summary_image=None, roi_idx=None,
-                 roi_locs=None, samp_freq=None,
+                 mean_image=None, correlation_image=None,
+                 roi_idx=None, roi_locs=None, samp_freq=None,
                  rejected_list=None, channel_names=None,
                  movie_dims=None):
         """
         Parameters:
         ----------
-        filepath: str
+        file_path: str
             The location of the folder containing the custom file format.
         image_masks: np.ndarray
             Binary image for each of the regions of interest
         signal: np.ndarray
             Fluorescence response of each of the ROI in time
-        summary_image: np.ndarray
-            Mean or the correlation image
+        mean_image: np.ndarray
+            Mean image
+        correlation_image: np.ndarray
+            correlation image
         roi_idx: int list
             Unique ids of the ROIs if any
         roi_locs: np.ndarray
@@ -109,10 +111,10 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         """
         SegmentationExtractor.__init__(self)
         self.image_masks = image_masks
-        self._roi_response = signal
-        self._roi_response_dict = {'Fluorescence': self._roi_response}
+        self._roi_response_raw = signal
         self._movie_dims = movie_dims if movie_dims is not None else image_masks.shape
-        self._summary_image = summary_image
+        self._image_mean = mean_image
+        self._image_correlation = correlation_image
         self._raw_movie_file_location = rawfileloc
         self._roi_ids = roi_idx
         self._roi_locs = roi_locs
@@ -127,23 +129,23 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     def get_accepted_list(self):
         if self._accepted_list is None:
-            return list(range(self.no_rois))
+            return list(range(self.get_num_rois()))
         else:
             return self._accepted_list
 
     def get_rejected_list(self):
         if self._rejected_list is None:
-            return [a for a in range(self.no_rois) if a not in set(self.get_accepted_list())]
+            return [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
         else:
             return self._rejected_list
 
     @property
     def roi_locations(self):
         if self._roi_locs is None:
-            no_ROIs = self.no_rois
+            num_ROIs = self.get_num_rois()
             raw_images = self.image_masks
-            roi_location = np.ndarray([2, no_ROIs], dtype='int')
-            for i in range(no_ROIs):
+            roi_location = np.ndarray([2, num_ROIs], dtype='int')
+            for i in range(num_ROIs):
                 temp = np.where(raw_images[:, :, i] == np.amax(raw_images[:, :, i]))
                 roi_location[:, i] = np.array([np.median(temp[0]), np.median(temp[1])]).T
             return roi_location
@@ -157,12 +159,9 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     # defining the abstract class enformed methods:
     def get_roi_ids(self):
         if self._roi_ids is None:
-            return list(range(self.no_rois))
+            return list(range(self.get_num_rois()))
         else:
             return self._roi_ids
-
-    def get_images(self):
-        return {'Images': {'meanImg': self._summary_image}}
 
     def get_image_size(self):
         return self._movie_dims

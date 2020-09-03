@@ -83,7 +83,7 @@ class NwbImagingExtractor(ImagingExtractor):
     mode = 'file'
     installation_mesg = "To use the Nwb Extractor run:\n\n pip install pynwb\n\n"  # error message when not installed
 
-    def __init__(self, filepath, optical_channel_name=None,
+    def __init__(self, file_path, optical_channel_name=None,
                  imaging_plane_name=None, image_series_name=None,
                  processing_module_name=None,
                  neuron_roi_response_series_name=None,
@@ -91,7 +91,7 @@ class NwbImagingExtractor(ImagingExtractor):
         """
         Parameters
         ----------
-        filepath: str
+        file_path: str
             The location of the folder containing dataset.nwb file.
         optical_channel_name: str(optional)
             optical channel to extract data from
@@ -163,26 +163,25 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     mode = 'file'
     installation_mesg = ""  # error message when not installed
 
-    def __init__(self, filepath):
+    def __init__(self, file_path):
         """
         Creating NwbSegmentationExtractor object from nwb file
         Parameters
         ----------
-        filepath: str
+        file_path: str
             .nwb file location
         """
         check_nwb_install()
         SegmentationExtractor.__init__(self)
-        if not os.path.exists(filepath):
+        if not os.path.exists(file_path):
             raise Exception('file does not exist')
 
-        self.filepath = filepath
+        self.file_path = file_path
         self.image_masks = None
-        self.pixel_masks = None
         self._roi_locs = None
         self._accepted_list = None
-        io = NWBHDF5IO(filepath, mode='r+')
-        nwbfile = io.read()
+        self._io = NWBHDF5IO(file_path, mode='r+')
+        nwbfile = self._io.read()
         self.nwbfile = nwbfile
         _nwbchildren_type = [type(i).__name__ for i in nwbfile.all_children()]
         _nwbchildren_name = [i.name for i in nwbfile.all_children()]
@@ -211,19 +210,21 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         # Extract Image dimensions:
 
         # Extract roi_response:
-        self._roi_response_dict = dict()
-        self._roi_names = [_nwbchildren_name[val]
+        roi_names = [_nwbchildren_name[val]
                       for val, i in enumerate(_nwbchildren_type) if i == 'RoiResponseSeries']
-        if not self._roi_names:
+        if not roi_names:
             raise Exception('no ROI response series found')
         else:
-            for roi_name in self._roi_names:
-                self._roi_response_dict[roi_name] = mod['Fluorescence'].get_roi_response_series(roi_name).data[:].T
-        self._roi_response = self._roi_response_dict[self._roi_names[0]]
+            for trace_name in ['roiresponseseries', 'dff', 'neuropil', 'deconvolved']:
+                trace_name_nwb = [j for j,i in enumerate(roi_names) if trace_name in i.lower()]
+                if trace_name_nwb:
+                    trace_name_segext = 'raw' if trace_name == 'roiresponseseries' else trace_name
+                    setattr(self,f'_roi_response_{trace_name_segext}',
+                            mod['Fluorescence'].get_roi_response_series(roi_names[trace_name_nwb[0]]).data[:].T)
 
         # Extract samp_freq:
-        self._sampling_frequency = mod['Fluorescence'].get_roi_response_series(self._roi_names[0]).rate
-        # Extract no_rois/ids:
+        self._sampling_frequency = mod['Fluorescence'].get_roi_response_series(roi_names[0]).rate
+        # Extract get_num_rois()/ids:
         self._roi_idx = np.array(ps.id.data)
 
         # Imaging plane:
@@ -252,16 +253,21 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             self.property_vals.append(np.array(ps[i].data))
 
         #Extracting stores images as GrayscaleImages:
-        self._greyscaleimages = [_nwbchildren_name[f] for f, u in enumerate(_nwbchildren_type) if u == 'GrayscaleImage']
+        _greyscaleimages = [i for i in nwbfile.all_children() if type(i).__name__ == 'GrayscaleImage']
+        self._image_correlation = [i.data[()] for i in _greyscaleimages if 'corr' in i.name.lower()][0]
+        self._image_mean = [i.data[()] for i in _greyscaleimages if 'mean' in i.name.lower()][0]
+
+    def __del__(self):
+        self._io.close()
 
     def get_accepted_list(self):
         if self._accepted_list is None:
-            return list(range(self.no_rois))
+            return list(range(self.get_num_rois()))
         else:
             return np.where(self._accepted_list==1)[0].tolist()
 
     def get_rejected_list(self):
-        return [a for a in self.roi_ids if a not in set(self.get_accepted_list())]
+        return [a for a in self.get_roi_ids() if a not in set(self.get_accepted_list())]
 
     @property
     def roi_locations(self):
@@ -272,15 +278,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
 
     def get_roi_ids(self):
         return self._roi_idx
-
-    def get_images(self):
-        imag_dict = {i.name: np.array(i.data) for i in self.nwbfile.all_children() if i.name in self._greyscaleimages}
-        _ = {i.name: i for i in self.nwbfile.all_children() if i.name in self._greyscaleimages}
-        if imag_dict:
-            parent_name = _[self._greyscaleimages[0]].parent.name
-            return {parent_name: imag_dict}
-        else:
-            return None
 
     def get_image_size(self):
         return self._extimage_dims
