@@ -82,8 +82,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         return roi_location
 
     @staticmethod
-    def write_segmentation(segmentation_object, savepath, **kwargs):
-        plane_no=kwargs.get('plane_no',0)
+    def write_segmentation(segmentation_object, savepath, plane_no=0):
         filename = os.path.basename(savepath)
         savepath_folder = os.path.join(os.path.dirname(savepath),f'Plane_{plane_no}')
         savepath = os.path.join(savepath_folder,filename)

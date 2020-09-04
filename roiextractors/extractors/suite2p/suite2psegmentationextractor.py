@@ -57,8 +57,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return np.array([j['med'] for j in self.stat]).T
 
     @staticmethod
-    def write_segmentation(segmentation_extractor, savepath, **kwargs):
-        plane_no = kwargs.get('plane_no',0)
+    def write_segmentation(segmentation_extractor, savepath, plane_no=0):
         file_replace = kwargs.get('file_replace',True)
         if not file_replace:
             return None

@@ -241,7 +241,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         raise NotImplementedError
 
     @staticmethod
-    def write_segmentation(segmentation_extractor, savepath):
+    def write_segmentation(segmentation_extractor, save_path, plane_num=0, metadata=None, file_overwrite=False, **kwargs):
         """
         Static method to write recording back to the native format.
 
