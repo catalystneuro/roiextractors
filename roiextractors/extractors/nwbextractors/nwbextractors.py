@@ -9,6 +9,7 @@ from pathlib import Path
 from warnings import warn
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
+from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...extraction_tools import PathType, check_get_frames_args, check_get_videos_args, _pixel_mask_extractor
 from copy import deepcopy
 
@@ -637,7 +638,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             nwbfile_exist = False
             file_mode = 'w'
         # parse metadata correctly:
-        if segext_obj.extractor_name == 'MultiSegmentationExtractor':
+        if isinstance(segext_obj, MultiSegmentationExtractor):
             segext_objs = segext_obj.segmentations
             if metadata is not None and not isinstance(metadata, list):
                 raise ValueError('for MultiSegmentationExtractor enter metadata as a list of SegmentationExtractor metadata')
