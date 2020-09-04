@@ -137,10 +137,10 @@ def toy_example(duration=10, num_rois=10, size_x=100, size_y=100, roi_size=4, mi
     imag = NumpyImagingExtractor(timeseries=video, sampling_frequency=30)
 
     # create image masks
-    image_masks = np.zeros((num_rois, size_x, size_y))
+    image_masks = np.zeros((size_x, size_y, num_rois))
     for rois_i, roi in enumerate(roi_pixels):
         for r in roi:
-            image_masks[rois_i, r[0], r[1]] += im[r[0], r[1]]
+            image_masks[r[0], r[1], rois_i] += im[r[0], r[1]]
     seg = NumpySegmentationExtractor(image_masks=image_masks, signal=traces, sampling_frequency=sampling_frequency)
 
     return imag, seg
