@@ -718,16 +718,19 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 image_masks = segext_obj.get_roi_image_masks()
                 roi_ids = segext_obj.get_roi_ids()
                 accepted_ids = [1 if k in segext_obj.get_accepted_list() else 0 for k in roi_ids]
+                rejected_ids = [1 if k in segext_obj.get_rejected_list() else 0 for k in roi_ids]
                 roi_locations = np.array(segext_obj.get_roi_locations()).T
                 if not ps_exist:
                     ps.add_column(name='RoiCentroid',
                                   description='x,y location of centroid of the roi in image_mask')
                     ps.add_column(name='Accepted',
                                   description='1 if ROi was accepted or 0 if rejected as a cell during segmentation operation')
+                    ps.add_column(name='Rejected',
+                                  description='1 if ROi was rejected or 0 if accepted as a cell during segmentation operation')
                 for num, row in enumerate(roi_ids): #Expects the existing ps to be a prior nwbsegext saved nwb file with existing columns
                     ps.add_row(id=row, image_mask=image_masks[:, :, num],
                                RoiCentroid=roi_locations[num,:],
-                               Accepted=accepted_ids[num])
+                               Accepted=accepted_ids[num], Rejected=rejected_ids[num])
 
                 # Fluorescence Traces:
                 if 'Flourescence' not in ophys.data_interfaces:
