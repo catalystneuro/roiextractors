@@ -205,7 +205,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 if container is not None and trace_name in container.roi_response_series:
                     any_roi_response_series_found = True
                     setattr(self, f'_roi_response_{trace_name_segext}',
-                            container.roi_response_series[trace_name].data[()].T)
+                            DatasetView(container.roi_response_series[trace_name].data).lazy_transpose())
                     if self._sampling_frequency is None:
                         self._sampling_frequency = container.roi_response_series[trace_name].rate
             if not any_roi_response_series_found:
