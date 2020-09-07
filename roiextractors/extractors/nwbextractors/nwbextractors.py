@@ -190,19 +190,26 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             raise Exception('could not find ophys processing module in nwbfile')
         else:
             # Extract roi_response:
+            fluorescence = None
+            dfof = None
+            any_roi_response_series_found = False
             if 'Fluorescence' in ophys.data_interfaces:
                 fluorescence = ophys.data_interfaces['Fluorescence']
-            else:
-                raise Exception('could not find Fluorescence module in nwbfile')
+            if 'DfOverF' in ophys.data_interfaces:
+                dfof = ophys.data_interfaces['DfOverF']
+            if fluorescence is None and dfof is None:
+                raise Exception('could not find Fluorescence/DfOverF module in nwbfile')
             for trace_name in ['RoiResponseSeries', 'Dff', 'Neuropil', 'Deconvolved']:
-                if trace_name in fluorescence.roi_response_series:
-                    trace_name_segext = 'raw' if trace_name == 'RoiResponseSeries' else trace_name.lower()
+                trace_name_segext = 'raw' if trace_name == 'RoiResponseSeries' else trace_name.lower()
+                container = dfof if trace_name=='Dff' else fluorescence
+                if container is not None and trace_name in container.roi_response_series:
+                    any_roi_response_series_found = True
                     setattr(self, f'_roi_response_{trace_name_segext}',
-                            fluorescence.roi_response_series[trace_name].data[()].T)
+                            container.roi_response_series[trace_name].data[()].T)
                     if self._sampling_frequency is None:
-                        self._sampling_frequency = fluorescence.roi_response_series[trace_name].rate
-                elif trace_name=='RoiResponseSeries': # self._roi_response_raw is required
-                    raise Exception('could not find any RoiResponseSeries in nwbfile')
+                        self._sampling_frequency = container.roi_response_series[trace_name].rate
+            if not any_roi_response_series_found:
+                raise Exception('could not find any of \'RoiResponseSeries\'/\'Dff\'/\'Neuropil\'/\'Deconvolved\' named RoiResponseSeries in nwbfile')
 
             # Extract image_mask/background:
             if 'ImageSegmentation' in ophys.data_interfaces:
