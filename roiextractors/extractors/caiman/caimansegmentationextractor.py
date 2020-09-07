@@ -53,14 +53,10 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
     def _trace_extractor_read(self, field):
         if self._dataset_file['estimates'].get(field):
             return self._dataset_file['estimates'][field] # lazy read dataset)
-        else:
-            return None
 
     def _summary_image_read(self):
         if self._dataset_file['estimates'].get('Cn'):
             return np.array(self._dataset_file['estimates']['Cn']).T
-        else:
-            return None
 
     def get_accepted_list(self):
         accepted = self._dataset_file['estimates']['idx_components']
@@ -70,9 +66,8 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
     def get_rejected_list(self):
         rejected = self._dataset_file['estimates']['idx_components_bad']
-        if len(rejected.shape) == 0:
-            return None
-        return rejected
+        if len(rejected.shape) > 0:
+            return rejected
 
     @property
     def roi_locations(self):
