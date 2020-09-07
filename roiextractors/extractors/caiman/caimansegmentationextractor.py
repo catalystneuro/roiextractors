@@ -33,7 +33,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self._roi_response_deconvolved = self._trace_extractor_read('S')
         self._image_correlation = self._summary_image_read()
         self._sampling_frequency = self._dataset_file['params']['data']['fr'][()]
-        self.image_masks = self._image_mask_sparse_read()[-1]
+        self.image_masks = self._image_mask_sparse_read()
 
     def __del__(self):
         self._dataset_file.close()
@@ -46,9 +46,9 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         roi_ids = self._dataset_file['estimates']['A']['indices']
         masks = self._dataset_file['estimates']['A']['data']
         ids = self._dataset_file['estimates']['A']['indptr']
-        _image_mask = np.reshape(csc_matrix((masks, roi_ids, ids), shape=(np.prod(self.get_image_size()),self.get_num_rois())).toarray(),
+        image_masks = np.reshape(csc_matrix((masks, roi_ids, ids), shape=(np.prod(self.get_image_size()),self.get_num_rois())).toarray(),
             [self.get_image_size()[0],self.get_image_size()[1],-1],order='F')
-        return masks, roi_ids, ids, _image_mask
+        return image_masks
 
     def _trace_extractor_read(self, field):
         if self._dataset_file['estimates'].get(field):
@@ -71,17 +71,12 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
     @property
     def roi_locations(self):
-        _masks, _mask_roi_ids, _mask_ids, _ = self._image_mask_sparse_read()
-        roi_location = np.ndarray([2, self.get_num_rois()], dtype='int')
-        for i in range(self.get_num_rois()):
-            max_mask_roi_id = _mask_roi_ids[_mask_ids[i]+np.argmax(
-                _masks[_mask_ids[i]:_mask_ids[i+1]]
-            )]
-            roi_location[:, i] = [((max_mask_roi_id+1)%(self.image_size[0]+1))-1,#assuming order='F'
-                                  ((max_mask_roi_id+1)//(self.image_size[0]+1))]
-            if roi_location[0,i]<0:
-                roi_location[0,i]=0
-        return roi_location
+        num_ROIs = self.get_num_rois()
+        roi_locations = np.ndarray([2, num_ROIs], dtype='int')
+        for i in range(num_ROIs):
+            temp = np.where(self.image_masks[:, :, i] == np.amax(self.image_masks[:, :, i]))
+            roi_locations[:, i] = np.array([np.median(temp[0]), np.median(temp[1])]).T
+        return roi_locations
 
     @staticmethod
     def write_segmentation(segmentation_object, savepath, **kwargs):
