@@ -187,7 +187,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
 
         ophys = self.nwbfile.processing.get('ophys')
         if ophys is None:
-            warn('could not find ophys processing module in nwbfile')
+            raise Exception('could not find ophys processing module in nwbfile')
         else:
             # Extract roi_response:
             if 'Fluorescence' in ophys.data_interfaces:
