@@ -270,7 +270,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         return self._roi_idx
 
     def get_image_size(self):
-        return self.image_masks.shape[0:2]
+        return self.image_masks.shape[:2]
 
     @staticmethod
     def write_segmentation(segext_obj, savepath, metadata_dict, **kwargs):
