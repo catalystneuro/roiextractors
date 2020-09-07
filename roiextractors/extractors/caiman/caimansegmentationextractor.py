@@ -71,7 +71,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
     def get_rejected_list(self):
         rejected = self._dataset_file['estimates']['idx_components_bad']
         if len(rejected.shape) == 0:
-            rejected = [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
+            return None
         return rejected
 
     @property
