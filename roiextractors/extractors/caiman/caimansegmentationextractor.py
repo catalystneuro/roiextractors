@@ -46,8 +46,8 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         roi_ids = self._dataset_file['estimates']['A']['indices']
         masks = self._dataset_file['estimates']['A']['data']
         ids = self._dataset_file['estimates']['A']['indptr']
-        image_masks = np.reshape(csc_matrix((masks, roi_ids, ids), shape=(np.prod(self.get_image_size()),self.get_num_rois())).toarray(),
-            [self.get_image_size()[0],self.get_image_size()[1],-1],order='F')
+        image_mask_in = csc_matrix((masks, roi_ids, ids), shape=(np.prod(self.get_image_size()), self.no_rois)).toarray()
+        image_masks = np.reshape(image_mask_in, (*self.get_image_size(), -1), order='F')
         return image_masks
 
     def _trace_extractor_read(self, field):
