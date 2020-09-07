@@ -257,10 +257,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             return np.where(self._accepted_list==1)[0].tolist()
 
     def get_rejected_list(self):
-        if self._rejected_list is None:
-            return [a for a in self.get_roi_ids() if a not in set(self.get_accepted_list())]
-        else:
-            return self._rejected_list
+        return self._rejected_list
 
     @property
     def roi_locations(self):
