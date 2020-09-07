@@ -183,7 +183,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         self._rejected_list = None
         self._io = NWBHDF5IO(file_path, mode='r')
         self.nwbfile = self._io.read()
-        self._raw_movie_file_location = None
 
         ophys = self.nwbfile.processing.get('ophys')
         if ophys is None:
@@ -242,10 +241,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         if 'ImagingPlane' in self.nwbfile.imaging_planes:
             imaging_plane = self.nwbfile.imaging_planes['ImagingPlane']
             self._channel_names = [i.name for i in imaging_plane.optical_channel]
-
-        # Movie location:
-        if 'TwoPhotonSeries' in self.nwbfile.acquisition:
-            self._raw_movie_file_location = self.nwbfile.acquisition['TwoPhotonSeries'].external_file[()][0]
 
     def __del__(self):
         self._io.close()
