@@ -14,7 +14,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
     """
     extractor_name = 'CaimanSegmentation'
     installed = True  # check at class level if installed or not
-    is_writable = False
+    is_writable = True
     mode = 'file'
     installation_mesg = ""  # error message when not installed
 
