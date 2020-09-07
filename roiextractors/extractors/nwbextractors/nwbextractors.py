@@ -181,7 +181,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         self._roi_locs = None
         self._accepted_list = None
         self._rejected_list = None
-        self._io = NWBHDF5IO(file_path, mode='r+')
+        self._io = NWBHDF5IO(file_path, mode='r')
         self.nwbfile = self._io.read()
         self._raw_movie_file_location = None
 
