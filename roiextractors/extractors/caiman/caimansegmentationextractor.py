@@ -32,7 +32,6 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self._roi_response_neuropil = self._trace_extractor_read('C')
         self._roi_response_deconvolved = self._trace_extractor_read('S')
         self._image_correlation = self._summary_image_read()
-        self._raw_movie_file_location = self._dataset_file['params']['data']['fnames'][0].decode('utf-8')
         self._sampling_frequency = self._dataset_file['params']['data']['fr'][()]
         self.image_masks = self._image_mask_sparse_read()[-1]
 
@@ -122,7 +121,6 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
             #adding params:
             params.create_dataset('data/fr',data=segmentation_object._sampling_frequency)
-            params.create_dataset('data/fnames', data=[bytes(segmentation_object._raw_movie_file_location,'utf-8')])
             params.create_dataset('data/dims', data=segmentation_object.get_image_size())
             f.create_dataset('dims',data=segmentation_object.get_image_size())
 
