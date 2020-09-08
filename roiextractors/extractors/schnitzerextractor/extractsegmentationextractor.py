@@ -4,7 +4,7 @@ from ...segmentationextractor import SegmentationExtractor
 from lazy_ops import DatasetView
 from ...extraction_tools import _pixel_mask_extractor
 import os
-import shutil
+
 
 class ExtractSegmentationExtractor(SegmentationExtractor):
     """

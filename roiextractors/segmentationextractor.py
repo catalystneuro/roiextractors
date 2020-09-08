@@ -265,7 +265,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         return self._num_planes
 
     @staticmethod
-    def write_segmentation(segmentation_extractor, save_path, plane_num=0, metadata=None, file_overwrite=False, **kwargs):
+    def write_segmentation(segmentation_extractor, save_path, plane_num=0, metadata=None, file_overwrite=False):
         """
         Static method to write recording back to the native format.
 
