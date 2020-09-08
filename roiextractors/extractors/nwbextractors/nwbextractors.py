@@ -281,9 +281,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
 
     @property
     def roi_locations(self):
-        if self._roi_locs is None:
-            return None
-        else:
+        if self._roi_locs is not None:
             return self._roi_locs.data[:].T
 
     def get_roi_ids(self):
