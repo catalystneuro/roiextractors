@@ -79,14 +79,18 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         return roi_locations
 
     @staticmethod
-    def write_segmentation(segmentation_object, savepath, **kwargs):
-        plane_no = kwargs.get('plane_no', 0)
-        filename = os.path.basename(savepath)
-        savepath_folder = os.path.join(os.path.dirname(savepath), f'Plane_{plane_no}')
-        savepath = os.path.join(savepath_folder, filename)
-        if savepath.split('.')[-1]!='hdf5':
+    def write_segmentation(segmentation_object, save_path, plane_num=0):
+        if save_path.split('.')[-1]!='hdf5':
             raise ValueError('filetype to save must be *.hdf5')
-        with h5py.File(savepath,'w') as f:
+        filename = os.path.basename(save_path)
+        save_path_folder = os.path.join(os.path.dirname(save_path), f'Plane_{plane_num}')
+        save_path = os.path.join(save_path_folder, filename)
+        if not os.path.exists(save_path_folder):
+            os.makedirs(save_path_folder)
+        else:
+            if os.path.exists(save_path):
+                os.remove(save_path)
+        with h5py.File(save_path,'a') as f:
             #create base groups:
             estimates = f.create_group('estimates')
             params = f.create_group('params')

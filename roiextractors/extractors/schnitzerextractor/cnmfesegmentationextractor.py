@@ -76,18 +76,18 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         return roi_location
 
     @staticmethod
-    def write_segmentation(segmentation_object, savepath, plane_no=0):
-        filename = os.path.basename(savepath)
-        savepath_folder = os.path.join(os.path.dirname(savepath),f'Plane_{plane_no}')
-        savepath = os.path.join(savepath_folder,filename)
-        if not os.path.exists(savepath_folder):
-            os.makedirs(savepath_folder)
-        else:
-            if os.path.exists(savepath):
-                os.remove(savepath)
-        if savepath.split('.')[-1] != 'mat':
+    def write_segmentation(segmentation_object, save_path, plane_num=0):
+        if save_path.split('.')[-1] != 'mat':
             raise ValueError('filetype to save must be *.mat')
-        with h5py.File(savepath, 'a') as f:
+        filename = os.path.basename(save_path)
+        save_path_folder = os.path.join(os.path.dirname(save_path),f'Plane_{plane_num}')
+        save_path = os.path.join(save_path_folder,filename)
+        if not os.path.exists(save_path_folder):
+            os.makedirs(save_path_folder)
+        else:
+            if os.path.exists(save_path):
+                os.remove(save_path)
+        with h5py.File(save_path, 'a') as f:
             # create base groups:
             _ = f.create_group('#refs#')
             main = f.create_group('cnmfeAnalysisOutput')

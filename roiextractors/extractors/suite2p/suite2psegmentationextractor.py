@@ -67,20 +67,19 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return np.array([j['med'] for j in self.stat]).T
 
     @staticmethod
-    def write_segmentation(segmentation_extractor, savepath, plane_no=0):
-        file_replace = kwargs.get('file_replace',True)
-        if not file_replace:
-            return None
-        savepath = os.path.join(savepath,f'Plane{plane_no}')
-        if not os.path.exists(savepath):
-            os.makedirs(savepath)
+    def write_segmentation(segmentation_extractor, save_path, plane_num=0):
+        if not os.path.isdir(save_path):
+            raise ValueError('provide a folder as save_path')
+        save_path = os.path.join(save_path, f'Plane{plane_num}')
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
         else:
-            shutil.rmtree(savepath)
-            os.makedirs(savepath)
+            shutil.rmtree(save_path)
+            os.makedirs(save_path)
         # saving traces:
-        np.save(os.path.join(savepath,'F.npy'), segmentation_extractor._roi_response_fluorescence)
-        np.save(os.path.join(savepath, 'Fneu.npy'), segmentation_extractor._roi_response_neuropil)
-        np.save(os.path.join(savepath, 'spks.npy'), segmentation_extractor._roi_response_deconvolved)
+        np.save(os.path.join(save_path,'F.npy'), segmentation_extractor._roi_response_fluorescence)
+        np.save(os.path.join(save_path, 'Fneu.npy'), segmentation_extractor._roi_response_neuropil)
+        np.save(os.path.join(save_path, 'spks.npy'), segmentation_extractor._roi_response_deconvolved)
         # save stat
         stat = np.zeros(segmentation_extractor.no_rois,'O')
         roi_locs = segmentation_extractor.roi_locations.T
@@ -90,11 +89,11 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
                         'ypix': pixel_masks[no][:,0],
                         'xpix': pixel_masks[no][:,1],
                         'lam': pixel_masks[no][:,2]}
-        np.save(os.path.join(savepath, 'stat.npy'), stat)
+        np.save(os.path.join(save_path, 'stat.npy'), stat)
         # saving iscell
         iscell = np.ones([segmentation_extractor.no_rois,2])
         iscell[segmentation_extractor.get_rejected_list(),0]=0
-        np.save(os.path.join(savepath, 'iscell.npy'), iscell)
+        np.save(os.path.join(save_path, 'iscell.npy'), iscell)
         # saving ops
         ops=dict()
         ops.update({'nframes':segmentation_extractor.get_num_frames()})
@@ -107,7 +106,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         ops.update({'nchannels':1})
         ops.update({'meanImg': segmentation_extractor.get_images('mean')})
         ops.update({'Vcorr': segmentation_extractor.get_images('correlation')})
-        np.save(os.path.join(savepath, 'ops.npy'), ops)
+        np.save(os.path.join(save_path, 'ops.npy'), ops)
 
     # defining the abstract class enforced methods:
     def get_roi_ids(self):
