@@ -2,9 +2,11 @@ import os
 import uuid
 import numpy as np
 import yaml
+from lazy_ops import DatasetView
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
-from lazy_ops import DatasetView
+from ...extraction_tools import check_get_frames_args, _pixel_mask_extractor
+
 
 try:
     from pynwb import NWBHDF5IO, TimeSeries, NWBFile
@@ -107,11 +109,7 @@ class NwbImagingExtractor(ImagingExtractor):
         assert HAVE_NWB, self.installation_mesg
         ImagingExtractor.__init__(self)
 
-    #TODO placeholders
-    def get_frame(self, frame_idx, channel=0):
-        assert frame_idx < self.get_num_frames()
-        return self._video[frame_idx]
-
+    @check_get_frames_args
     def get_frames(self, frame_idxs):
         assert np.all(frame_idxs < self.get_num_frames())
         planes = np.zeros((len(frame_idxs), self._size_x, self._size_y))
@@ -119,18 +117,6 @@ class NwbImagingExtractor(ImagingExtractor):
             plane = self._video[frame_idx]
             planes[i] = plane
         return planes
-
-    # TODO make decorator to check and correct inputs
-    def get_video(self, start_frame=None, end_frame=None):
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self.get_num_frames()
-        end_frame = min(end_frame, self.get_num_frames())
-
-        video = self._video[start_frame: end_frame]
-
-        return video
 
     def get_image_size(self):
         return [self._size_x, self._size_y]
@@ -218,13 +204,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         # self.image_masks = np.moveaxis(np.array(ps['image_mask'].data), [0, 1, 2], [2, 0, 1])
         if 'image_mask' in ps.colnames:
             self.image_masks = DatasetView(ps['image_mask'].data).lazy_transpose([1, 2, 0])
-        if 'pixel_mask' in ps.colnames:
-            # Extract pixel_mask/background:
-            px_list = [ps['pixel_mask'][e] for e in range(ps['pixel_mask'].data.shape[0])]
-            temp = np.empty((1, 4))
-            for v, b in enumerate(px_list):
-                temp = np.append(temp, np.append(b, v * np.ones([b.shape[0], 1]), axis=1), axis=0)
-            self.pixel_masks = temp[1::, :]
         if 'RoiCentroid' in ps.colnames:
             self._roi_locs = ps['RoiCentroid']
         if 'Accepted' in ps.colnames:
@@ -291,65 +270,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         else:
             return self._roi_locs.data[:].T
 
-    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name=None):
-        if name is None:
-            name = self._roi_names[0]
-            print(f'returning traces for {name}')
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self.get_num_frames() + 1
-        if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return np.array([self._roi_response_dict[name][int(i), start_frame:end_frame] for i in roi_idx_])
-
-    def get_num_frames(self):
-        return self._roi_response.shape[1]
-
-    def get_roi_locations(self, roi_ids=None):
-        if roi_ids is None:
-            return self.roi_locations
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-            return self.roi_locations[:, roi_idx_]
-
     def get_roi_ids(self):
         return self._roi_idx
-
-    def get_num_rois(self):
-        return self.roi_ids.size
-
-    def get_roi_pixel_masks(self, roi_ids=None):
-        if self.pixel_masks is None:
-            return None
-        if roi_ids is None:
-            roi_idx_ = self.roi_ids
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        temp = np.empty((1, 4))
-        for i, roiid in enumerate(roi_idx_):
-            temp = \
-                np.append(temp, self.pixel_masks[self.pixel_masks[:, 3] == roiid, :], axis=0)
-        return temp[1::, :]
-
-    def get_roi_image_masks(self, roi_ids=None):
-        if self.image_masks is None:
-            return None
-        if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return np.array([self.image_masks[:, :, int(i)].T for i in roi_idx_]).T
 
     def get_images(self):
         imag_dict = {i.name: np.array(i.data) for i in self.nwbfile.all_children() if i.name in self._greyscaleimages}
@@ -362,16 +284,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
 
     def get_image_size(self):
         return self._extimage_dims
-
-    def get_property_data(self, property_name):
-        ret_val = []
-        for j, i in enumerate(property_name):
-            if i in self._property_name_exist:
-                ret_val.append(self.property_vals[j])
-            else:
-                raise Exception('enter valid property name. Names found: {}'.format(
-                    self._property_name_exist))
-        return ret_val
 
     @staticmethod
     def write_segmentation(segext_obj, savepath, metadata_dict, **kwargs):

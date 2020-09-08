@@ -5,7 +5,7 @@ import re
 import os
 import pickle
 from shutil import copyfile
-from roiextractors.extraction_tools import _pixel_mask_extractor
+from ...extraction_tools import _pixel_mask_extractor
 
 try:
     import sima
@@ -45,7 +45,6 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         self._no_of_channels = len(self._channel_names)
         self.sima_segmentation_label = sima_segmentation_label
         self.image_masks = self._image_mask_extractor_read()
-        self.pixel_masks = _pixel_mask_extractor(self.image_masks, self.roi_ids)
         self._roi_response = self._trace_extractor_read()
         self._roi_response_dict = {'Fluorescence': self._roi_response}
 
@@ -164,56 +163,6 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     # defining the abstract class enformed methods:
     def get_roi_ids(self):
         return list(range(self.no_rois))
-
-    def get_num_rois(self):
-        return self.image_masks.shape[2]
-
-    def get_roi_locations(self, roi_ids=None):
-        if roi_ids is None:
-            return self.roi_locations
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-            return self.roi_locations[:, roi_idx_]
-
-    def get_num_frames(self):
-        return self._roi_response.shape[1]
-
-    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None):
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self.get_num_frames() + 1
-        if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return self._roi_response[roi_idx_, start_frame:end_frame]
-
-    def get_roi_image_masks(self, roi_ids=None):
-        if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return self.image_masks[:, :, roi_idx_]
-
-    def get_roi_pixel_masks(self, roi_ids=None):
-        if roi_ids is None:
-            roi_idx_ = self.roi_ids
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        temp = np.empty((1, 4))
-        for i, roiid in enumerate(roi_idx_):
-            temp = \
-                np.append(temp, self.pixel_masks[self.pixel_masks[:, 3] == roiid, :], axis=0)
-        return temp[1::, :]
 
     def get_images(self):
         out = {'Images': dict()}
