@@ -3,6 +3,7 @@ from spikeextractors.baseextractor import BaseExtractor
 import numpy as np
 from .extraction_tools import ArrayType
 from .extraction_tools import _pixel_mask_extractor
+from copy import deepcopy
 
 
 class SegmentationExtractor(ABC, BaseExtractor):
@@ -18,84 +19,14 @@ class SegmentationExtractor(ABC, BaseExtractor):
     def __init__(self):
         BaseExtractor.__init__(self)
         self._sampling_frequency = None
-        self._roi_response_fluorescence = None
+        self._channel_names = ['OpticalChannel']
+        self._num_planes = 1
+        self._roi_response_raw = None
+        self._roi_response_dff = None
         self._roi_response_neuropil = None
         self._roi_response_deconvolved = None
-        self._images_correlation = None
-        self._images_mean = None
-
-    @property
-    def image_size(self):
-        """
-        Returns
-        -------
-        image_dims: list
-            The width X height of the image.
-        """
-        return self.get_image_size()
-
-    @property
-    def no_rois(self):
-        """
-        The number of Independent sources(neurons) identified after the
-        segmentation operation. The regions of interest for which fluorescence
-        traces will be extracted downstream.
-
-        Returns
-        -------
-        no_rois: int
-            The number of rois
-        """
-        return self.get_num_rois()
-
-    @property
-    def roi_ids(self):
-        """
-        Integer label given to each region of interest (neuron).
-
-        Returns
-        -------
-        roi_idx: list
-            list of integers of the ROIs. Listed in the order in which the ROIs
-            occur in the image_masks (2nd dimention)
-        """
-        return self.get_roi_ids()
-
-    @property
-    def roi_locations(self):
-        """
-        The x and y pixel location of the ROIs. The location where the pixel
-        value is maximum in the image mask.
-
-        Returns
-        -------
-        roi_locs: np.array
-            Array with the first row representing the y (height) and second representing
-            the x (width) coordinates of the ROI.
-        """
-        return self.get_roi_locations()
-
-    @property
-    def num_frames(self):
-        """
-        Total number of images in the image sequence across time.
-
-        Returns
-        -------
-        num_of_frames: int
-            Same as the -1 dimention of the dF/F trace(roi_response).
-        """
-        return self.get_num_frames()
-
-    @property
-    def sampling_frequency(self):
-        """
-        Returns
-        -------
-        samp_freq: int
-            Sampling frequency of the dF/F trace.
-        """
-        return self._sampling_frequency
+        self._image_correlation = None
+        self._image_mean = None
 
     @abstractmethod
     def get_accepted_list(self) -> list:
@@ -131,7 +62,9 @@ class SegmentationExtractor(ABC, BaseExtractor):
         num_of_frames: int
             Number of frames in the recording (duration of recording).
         """
-        return self._roi_response.shape[1]
+        for trace in self.get_traces_dict().values():
+            if len(trace.shape)>0:
+                return trace.shape[1]
 
     def get_roi_locations(self, roi_ids=None) -> np.array:
         """
@@ -151,7 +84,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         if roi_ids is None:
             return self.roi_locations
         else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
+            roi_idx = [np.where(np.array(i) == self.get_roi_ids())[0] for i in roi_ids]
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
             return self.roi_locations[:, roi_idx_]
@@ -184,10 +117,10 @@ class SegmentationExtractor(ABC, BaseExtractor):
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
         else:
-            roi_idx = [np.where(np.array(i) == self.roi_ids)[0] for i in roi_ids]
+            roi_idx = [np.where(np.array(i) == self.get_roi_ids())[0] for i in roi_ids]
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return self.image_masks[:, :, roi_idx_]
+        return np.array(self.image_masks)[:, :, roi_idx_]
 
     def get_roi_pixel_masks(self, roi_ids=None) -> np.array:
         """
@@ -220,7 +153,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         """
         pass
 
-    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name='Fluorescence'):
+    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name='raw'):
         """
         Return RoiResponseSeries
         Returns
@@ -228,16 +161,57 @@ class SegmentationExtractor(ABC, BaseExtractor):
         traces: array_like
             2-D array (ROI x timepoints)
         """
-        if name not in self._roi_response_dict:
-            raise ValueError(f'traces for {name} not found, enter one of {list(self._roi_response_dict.keys())}')
+        if name not in self.get_traces_dict():
+            raise ValueError(f'traces for {name} not found, enter one of {list(self.get_traces_dict().keys())}')
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
         else:
             roi_idx = [np.where(np.array(i) == self.get_roi_ids())[0] for i in roi_ids]
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        traces = self._roi_response_dict.get(name)
+        traces = self.get_traces_dict().get(name)
         return np.array([traces[int(i), start_frame:end_frame] for i in roi_idx_])
+
+    def get_traces_dict(self):
+        """
+        Returns traces as a dictionary with key as the name of the ROiResponseSeries
+        Returns
+        -------
+        _roi_response_dict: dict
+            dictionary with key, values representing different types of RoiResponseSeries
+            Flourescence, Neuropil, Deconvolved, Background etc
+        """
+        return deepcopy(dict(raw=np.array(self._roi_response_raw),
+                             dff=np.array(self._roi_response_dff),
+                             neuropil=np.array(self._roi_response_neuropil),
+                             deconvolved=np.array(self._roi_response_deconvolved)))
+
+    def get_images_dict(self):
+        """
+        Returns traces as a dictionary with key as the name of the ROiResponseSeries
+        Returns
+        -------
+        _roi_response_dict: dict
+            dictionary with key, values representing different types of Images used in segmentation:
+            Mean, Correlation image
+        """
+        return deepcopy(dict(mean=self._image_mean,
+                             correlation=self._image_correlation))
+
+    def get_image(self, name='correlation'):
+        """
+        Return specific images: mean or correlation
+        Parameters
+        ----------
+        name:str
+            name of the type of image to retrieve
+        Returns
+        -------
+        images: np.ndarray
+        """
+        if name not in self.get_images_dict():
+            raise ValueError(f'could not find {name} image, enter one of {list(self.get_images_dict().keys())}')
+        return self.get_images_dict().get(name)
 
     def get_sampling_frequency(self):
         """This function returns the sampling frequency in units of Hz.
@@ -257,22 +231,38 @@ class SegmentationExtractor(ABC, BaseExtractor):
         no_rois: int
             integer number of ROIs extracted.
         """
-        return self._roi_response.shape[0]
+        for trace in self.get_traces_dict().values():
+            if len(trace.shape)>0:
+                return trace.shape[0]
 
-    def get_images(self):
+    def get_channel_names(self):
         """
-        Retrieve any relevant greyscale images from the pipeline
-
+        Names of channels in the pipeline
         Returns
         -------
-        image_dict: dict
-            Keys as a list of dictionaries. Structure of the dictionary:
-            <image_group_name>:
-                -<image_name1>: <image_data1>
-                -<image_name2>: <image_data2>
-                -<image_name3>: <image_data3>
+        _channel_names: list
+            names of channels (str)
         """
-        raise NotImplementedError
+        return self._channel_names
+
+    def get_num_channels(self):
+        """
+        Number of channels in the pipeline
+        Returns
+        -------
+        num_of_channels: int
+        """
+        return len(self._channel_names)
+
+    def get_num_planes(self):
+        """
+        Returns the default number of planes of imaging for the segmentation extractor.
+        Detaults to 1 for all but the MultiSegmentationExtractor
+        Returns
+        -------
+        self._num_planes: int
+        """
+        return self._num_planes
 
     @staticmethod
     def write_segmentation(segmentation_extractor, savepath):
