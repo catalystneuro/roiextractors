@@ -35,10 +35,11 @@ def dict_recursive_update(metadata_base, metadata_input):
                 return_dict[base_key] = dict_recursive_update(base_val, metadata_input[base_key])
             elif isinstance(base_val,list):
                 if isinstance(metadata_input[base_key], list):
-                    list_len = min(len(base_val),len(metadata_input[base_key]))
-                    for base_val_num in range(list_len):
-                        return_dict[base_key][base_val_num] = \
-                            nwb_metadata_recursive_update(return_dict[base_key][base_val_num], metadata_input[base_key][base_val_num])
+                    for base_val_num,(a,b) in enumerate(zip(base_val, metadata_input[base_key])):
+                        if isinstance(a, dict) and isinstance(b, dict):
+                            return_dict[base_key][base_val_num] = dict_recursive_update(a, b)
+                        elif isinstance(a, (int, float, str)) and isinstance(b, (int, float, str)):
+                            return_dict[base_key][base_val_num] = b
                 else:
                     continue
             else:
