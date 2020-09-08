@@ -97,7 +97,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             if segmentation_object._roi_response_deconvolved is not None:
                 estimates.create_dataset('S', data=segmentation_object._roi_response_deconvolved)
             if segmentation_object._images_mean is not None:
-                estimates.create_dataset('Cn', data=segmentation_object._images_mean)
+                estimates.create_dataset('Cn', data=segmentation_object._images_correlation)
             estimates.create_dataset('idx_components', data=np.array(segmentation_object.get_accepted_list()))
             estimates.create_dataset('idx_components_bad', data=np.array(segmentation_object.get_rejected_list()))
 
