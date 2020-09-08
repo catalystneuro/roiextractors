@@ -27,12 +27,12 @@ except ModuleNotFoundError:
     HAVE_NWB = False
 
 
-def nwb_metadata_recursive_update(metadata_base, metadata_input):
+def dict_recursive_update(metadata_base, metadata_input):
     return_dict = deepcopy(metadata_base)
     for base_key, base_val in return_dict.items():
         if metadata_input.get(base_key):
             if isinstance(base_val,dict):
-                return_dict[base_key] = nwb_metadata_recursive_update(base_val, metadata_input[base_key])
+                return_dict[base_key] = dict_recursive_update(base_val, metadata_input[base_key])
             elif isinstance(base_val,list):
                 if isinstance(metadata_input[base_key], list):
                     list_len = min(len(base_val),len(metadata_input[base_key]))
@@ -369,7 +369,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         # updating base metadata with new:
         for num, data in enumerate(metadata_base_list):
             metadata_input = metadata[num] if metadata else {}
-            metadata_base_list[num] = nwb_metadata_recursive_update(metadata_base_list[num], metadata_input)
+            metadata_base_list[num] = dict_recursive_update(metadata_base_list[num], metadata_input)
         #loop for every plane:
         with NWBHDF5IO(save_path, file_mode) as io:
             metadata_base_common = metadata_base_list[0]
