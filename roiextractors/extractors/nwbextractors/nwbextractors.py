@@ -310,10 +310,10 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                                                                             'name': 'PlaneSegmentation'}]},
                               'ImagingPlane':[{'name': 'ImagingPlane',
                                                'description': 'imaging plane description',
-                                               'excitation_lambda': 600.0,
-                                               'indicator': 'GCaMP',
+                                               'excitation_lambda': np.nan,
+                                               'indicator': 'unknown',
                                                'optical_channels': [{'name': 'OpticalChannel',
-                                                                     'emission_lambda': 500.0,
+                                                                     'emission_lambda': np.nan,
                                                                      'description': 'description of optical channel'}]}],
                               'TwoPhotonSeries': [{'name': 'TwoPhotonSeries'}]}}
         # Optical Channel name:
