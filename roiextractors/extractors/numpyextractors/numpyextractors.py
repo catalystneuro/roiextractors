@@ -1,8 +1,8 @@
 import numpy as np
 from pathlib import Path
-from ...segmentationextractor import SegmentationExtractor
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import get_video_shape
+from ...segmentationextractor import SegmentationExtractor
+from ...extraction_tools import check_get_frames_args, get_video_shape, _pixel_mask_extractor
 
 
 # TODO this class should also be able to instantiate an in-memory object (useful for testing)
@@ -11,10 +11,10 @@ class NumpyImagingExtractor(ImagingExtractor):
                  channel_names=None):
 
         ImagingExtractor.__init__(self)
-        self.filepath = Path(file_path)
+        self.file_path = Path(file_path)
         self._sampling_frequency = sampling_frequency
-        assert self.filepath.suffix == '.npy'
-        self._video = np.load(self.filepath, mmap_mode='r')
+        assert self.file_path.suffix == '.npy'
+        self._video = np.load(self.file_path, mmap_mode='r')
         self._channel_names = channel_names
 
         self._num_channels, self._num_frames, self._size_x, self._size_y = get_video_shape(self._video)
@@ -29,26 +29,9 @@ class NumpyImagingExtractor(ImagingExtractor):
         else:
             self._channel_names = [f'channel_{ch}' for ch in range(self._num_channels)]
 
-    def get_frame(self, frame_idx, channel=0):
-        assert frame_idx < self.get_num_frames()
-        return self._video[channel, frame_idx]
-
+    @check_get_frames_args
     def get_frames(self, frame_idxs, channel=0):
-        frame_idxs = np.array(frame_idxs)
-        assert np.all(frame_idxs < self.get_num_frames())
         return self._video[channel, frame_idxs]
-
-    # TODO make decorator to check and correct inputs
-    def get_video(self, start_frame=None, end_frame=None, channel=0):
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self.get_num_frames()
-        end_frame = min(end_frame, self.get_num_frames())
-
-        video = self._video[channel, start_frame: end_frame]
-
-        return video
 
     def get_image_size(self):
         return [self._size_x, self._size_y]
@@ -94,149 +77,80 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     all data must be entered manually as arguments.
     """
 
-    def __init__(self, filepath=None, masks=None, signal=None,
-                 background_signal=None, background_masks=None,
+    def __init__(self, image_masks, signal,
                  rawfileloc=None, accepted_lst=None,
-                 summary_image=None, roi_idx=None,
-                 roi_locs=None, samp_freq=None, nback=1,
-                 total_time=0, rejected_list=None, channel_names=None,
-                 no_of_channels=None, movie_dims=None):
+                 mean_image=None, correlation_image=None,
+                 roi_idx=None, roi_locs=None, samp_freq=None,
+                 rejected_list=None, channel_names=None,
+                 movie_dims=None):
         """
         Parameters:
         ----------
-        filepath: str
+        file_path: str
             The location of the folder containing the custom file format.
-        masks: np.ndarray (dimensions: image width x height x # of ROIs)
+        image_masks: np.ndarray
             Binary image for each of the regions of interest
-        signal: np.ndarray (dimensions: # of ROIs x # timesteps)
+        signal: np.ndarray
             Fluorescence response of each of the ROI in time
-        background_signal: np.ndarray (dimensions: # of BackgroundRegions x # timesteps)
-            Fluorescence response of each of the background ROIs in time
-        background_masks: np.ndarray (dimensions: image width x height x # of ROIs)
-            Binary image for the background ROIs
-        summary_image: np.ndarray (dimensions: d1 x d2)
-            Mean or the correlation image
-        roi_idx: int list (length is # of ROIs)
+        mean_image: np.ndarray
+            Mean image
+        correlation_image: np.ndarray
+            correlation image
+        roi_idx: int list
             Unique ids of the ROIs if any
-        roi_locs: np.ndarray (dimensions: # of ROIs x 2)
-            x and y location of centroid of ROI mask
+        roi_locs: np.ndarray
+            x and y location representative of ROI mask
         samp_freq: float
             Frame rate of the movie
-        nback: int
-            Number of background components extracted
-        total_time: float
-            total time of the experiment data
         rejected_list: list
             list of ROI ids that are rejected manually or via automated rejection
         channel_names: list
             list of strings representing channel names
-        no_of_channels: int
-            number of channels
-        movie_dims: list(2-D)
+        movie_dims: list
             height x width of the movie
         """
         SegmentationExtractor.__init__(self)
-        self.filepath = filepath
-        self._dataset_file = None
-        if masks is None:
-            self.image_masks = np.empty([0, 0])
-            self.raw_images = np.empty([0, 0, 0])
-        elif len(masks.shape) > 2:
-            self.image_masks = masks.reshape([np.prod(masks.shape[0:2]), masks.shape[2]], order='F')
-            self.raw_images = masks
-        else:
-            self.image_masks = masks
-            if not movie_dims:
-                raise Exception('enter movie dimensions as height x width list')
-            self.raw_images = masks.reshape(movie_dims.append(masks.shape[2]), order='F')
-        if signal is None:
-            self.roi_response = np.empty([0, 0])
-        else:
-            self.roi_response = signal
-        self.cn = summary_image
-        self.total_time = total_time
-        self.filetype = self._file_type_extractor_read()
-        self.raw_movie_file_location = rawfileloc
-        self.image_masks_bk = background_masks
-
-        if background_signal is None:
-            self.roi_response_bk = np.nan * np.ones([nback, self.roi_response.shape[1]])
-        else:
-            self.roi_response_bk = background_signal
-
+        self.image_masks = image_masks
+        self._roi_response_raw = signal
+        self._movie_dims = movie_dims if movie_dims is not None else image_masks.shape
+        self._image_mean = mean_image
+        self._image_correlation = correlation_image
+        self._raw_movie_file_location = rawfileloc
         self._roi_ids = roi_idx
         self._roi_locs = roi_locs
-        self._samp_freq = samp_freq
-        self.channel_names = channel_names
-        self.no_of_channels = no_of_channels
+        self._sampling_frequency = samp_freq
+        self._channel_names = channel_names
         self._rejected_list = rejected_list
         self._accepted_list = accepted_lst
-        self.idx_components = self.accepted_list
-        self.idx_components_bad = self.rejected_list
-
-    def _file_type_extractor_read(self):
-        if self.filepath is not None:
-            return self.filepath.split('.')[1]
-        else:
-            return None
 
     @property
     def image_dims(self):
-        return list(self.raw_images.shape[0:2])
+        return list(self.image_masks.shape[0:2])
 
-    @property
-    def no_rois(self):
-        return self.raw_images.shape[2]
-
-    @property
-    def roi_idx(self):
-        if self._roi_ids is None:
-            return list(range(self.no_rois))
-        else:
-            return self._roi_ids
-
-    @property
-    def accepted_list(self):
+    def get_accepted_list(self):
         if self._accepted_list is None:
-            return list(range(self.no_rois))
+            return list(range(self.get_num_rois()))
         else:
             return self._accepted_list
 
-    @property
-    def rejected_list(self):
+    def get_rejected_list(self):
         if self._rejected_list is None:
-            return [a for a in range(self.no_rois) if a not in set(self.accepted_list)]
+            return [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
         else:
             return self._rejected_list
 
     @property
-    def roi_locs(self):
+    def roi_locations(self):
         if self._roi_locs is None:
-            no_ROIs = self.no_rois
-            raw_images = self.raw_images
-            roi_location = np.ndarray([2, no_ROIs], dtype='int')
-            for i in range(no_ROIs):
+            num_ROIs = self.get_num_rois()
+            raw_images = self.image_masks
+            roi_location = np.ndarray([2, num_ROIs], dtype='int')
+            for i in range(num_ROIs):
                 temp = np.where(raw_images[:, :, i] == np.amax(raw_images[:, :, i]))
                 roi_location[:, i] = np.array([np.median(temp[0]), np.median(temp[1])]).T
             return roi_location
         else:
             return self._roi_locs
-
-    @property
-    def num_of_frames(self):
-        return self.roi_response.shape[1]
-
-    @property
-    def samp_freq(self):
-        if self._samp_freq is None:
-            time = self.total_time
-            nframes = self.num_of_frames
-            try:
-                return nframes / time
-            except ZeroDivisionError:
-                return 0
-        else:
-            return self._samp_freq
 
     @staticmethod
     def write_segmentation(segmentation_object, savepath):
@@ -244,69 +158,10 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     # defining the abstract class enformed methods:
     def get_roi_ids(self):
-        return list(range(self.no_rois))
-
-    def get_num_rois(self):
-        return self.no_rois
-
-    def get_roi_locations(self, roi_ids=None):
-        if roi_ids is None:
-            return self.roi_locs
+        if self._roi_ids is None:
+            return list(range(self.get_num_rois()))
         else:
-            roi_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-            return self.roi_locs[:, roi_idx_]
+            return self._roi_ids
 
-    def get_num_frames(self):
-        return self.num_of_frames
-
-    def get_sampling_frequency(self):
-        return self.samp_freq
-
-    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None):
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self.get_num_frames() + 1
-        if roi_ids is None:
-            roi_idx_ = list(range(self.get_num_rois()))
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return self.roi_response[roi_idx_, start_frame:end_frame]
-
-    def get_image_masks(self, roi_ids=None):
-        if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
-        else:
-            roi_idx = [np.where(np.array(i) == self.roi_idx)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return self.raw_images[:, :, roi_idx_]
-
-    def get_pixel_masks(self, roi_ids=None):
-        if roi_ids is None:
-            roi_idx_ = self.roi_idx
-        else:
-            roi_idx = [np.where(i == self.roi_idx)[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        temp = np.empty((1, 4))
-        for i, roiid in enumerate(roi_idx_):
-            temp = \
-                np.append(temp, self.pixel_masks[self.pixel_masks[:, 3] == roiid, :], axis=0)
-        return temp[1::, :]
-
-    def get_movie_framesize(self):
-        return self.image_dims
-
-    def get_movie_location(self):
-        return self.raw_movie_file_location
-
-    def get_channel_names(self):
-        return self.channel_names
-
-    def get_num_channels(self):
-        return self.no_of_channels
+    def get_image_size(self):
+        return self._movie_dims

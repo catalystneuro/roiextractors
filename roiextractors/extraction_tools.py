@@ -23,7 +23,7 @@ def _pixel_mask_extractor(image_mask_, _roi_ids):
         image_mask = np.array(image_mask_[:, :, i])
         _locs = np.where(image_mask > 0)
         _pix_values = image_mask[image_mask > 0]
-        pixel_mask_list.append(np.vstack((_locs[0], _locs[1], _pix_values)).T)
+        pixel_mask_list.append(np.vstack((_locs[0], _locs[1],_pix_values)).T)
     return pixel_mask_list
 
 

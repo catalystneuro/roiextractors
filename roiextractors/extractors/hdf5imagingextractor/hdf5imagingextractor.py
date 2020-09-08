@@ -1,7 +1,8 @@
 import numpy as np
 from pathlib import Path
-from roiextractors import ImagingExtractor
-from roiextractors.extraction_tools import get_video_shape
+import lazy_ops
+from ...imagingextractor import ImagingExtractor
+from ...extraction_tools import check_get_frames_args, get_video_shape
 
 try:
     import h5py
@@ -17,7 +18,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
     mode = 'file'
     installation_mesg = "To use the Hdf5 Extractor run:\n\n pip install h5py\n\n"  # error message when not installed
 
-    def __init__(self, file_path, mov_field='mov', sampling_frequency=None,
+    def __init__(self, file_path, mov_field='mov', sampling_frequency=None, start_time=None, metadata=None,
                  channel_names=None):
         assert HAVE_H5, self.installation_mesg
         ImagingExtractor.__init__(self)
@@ -30,11 +31,26 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         with h5py.File(file_path, "r") as f:
             if 'mov' in f.keys():
                 self._video = f[self._mov_field]
-                self._sampling_frequency = self._video.attrs["fr"]
-                self._start_time = self._video.attrs["start_time"]
-                self.metadata = self._video.attrs["meta_data"]
             else:
                 raise Exception(f"{file_path} does not contain the 'mov' dataset")
+
+        if sampling_frequency is None:
+            assert 'fr' in f.keys(), "sampling frequency information is unavailable!"
+            self._sampling_frequency = self._video.attrs["fr"]
+        else:
+            self._sampling_frequency = sampling_frequency
+
+        if start_time is None:
+            if 'start_time' in f.keys():
+                self._start_time = self._video.attrs["start_time"]
+        else:
+            self._start_time = start_time
+
+        if metadata is None:
+            if 'metadata' in f.keys():
+                self.metadata = self._video.attrs["metadata"]
+        else:
+            self.metadata = metadata
 
         self._num_channels, self._num_frames, self._size_x, self._size_y = get_video_shape(self._video)
 
@@ -51,27 +67,14 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         self._kwargs = {'file_path': str(Path(file_path).absolute()), 'mov_field': mov_field,
                         'sampling_frequency': sampling_frequency, 'channel_names': channel_names}
 
-    def get_frame(self, frame_idx, channel=0):
-        assert frame_idx < self.get_num_frames()
-        return self._video[channel, frame_idx]
-
+    @check_get_frames_args
     def get_frames(self, frame_idxs, channel=0):
-        frame_idxs = np.array(frame_idxs)
-        assert np.all(frame_idxs < self.get_num_frames())
-        sorted_frame_idxs, sorting_inverse = np.sort(frame_idxs, return_inverse=True)
-        return self._video[channel, sorted_frame_idxs][:, sorting_inverse]
-
-    # TODO make decorator to check and correct inputs
-    def get_video(self, start_frame=None, end_frame=None, channel=0):
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self.get_num_frames()
-        end_frame = min(end_frame, self.get_num_frames())
-
-        video = self._video[channel, start_frame: end_frame]
-
-        return video
+        if frame_idxs.size > 1 and np.all(np.diff(frame_idxs) > 0):
+            return lazy_ops.DatasetView(self._video).lazy_slice[channel, frame_idxs]
+        else:
+            sorted_idxs = np.sort(frame_idxs)
+            argsorted_idxs = np.argsort(frame_idxs)
+            return lazy_ops.DatasetView(self._video).lazy_slice[channel, sorted_idxs].lazy_slice[:, argsorted_idxs]
 
     def get_image_size(self):
         return [self._size_x, self._size_y]
