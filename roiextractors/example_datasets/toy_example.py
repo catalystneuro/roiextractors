@@ -141,6 +141,7 @@ def toy_example(duration=10, num_rois=10, size_x=100, size_y=100, roi_size=4, mi
     for rois_i, roi in enumerate(roi_pixels):
         for r in roi:
             image_masks[r[0], r[1], rois_i] += im[r[0], r[1]]
+    # TODO: generate and add deconvolved, dff, neuropil traces to NumpySegmenExt
     seg = NumpySegmentationExtractor(image_masks=image_masks, signal=traces, sampling_frequency=sampling_frequency)
 
     return imag, seg
