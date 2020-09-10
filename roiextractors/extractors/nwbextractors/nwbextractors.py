@@ -154,7 +154,6 @@ class NwbImagingExtractor(ImagingExtractor):
 
         self._kwargs = {'file_path': str(Path(file_path).absolute()),
                         'optical_series_name': optical_series_name}
-        self.make_nwb_metadata(nwbfile=self.nwbfile, opts=opts)
 
     def __del__(self):
         self.io.close()
