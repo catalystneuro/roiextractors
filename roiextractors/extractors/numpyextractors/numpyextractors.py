@@ -153,7 +153,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             return self._roi_locs
 
     @staticmethod
-    def write_segmentation(segmentation_object, savepath):
+    def write_segmentation(segmentation_object, save_path):
         raise NotImplementedError
 
     # defining the abstract class enformed methods:
