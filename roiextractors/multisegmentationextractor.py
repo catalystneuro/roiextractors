@@ -142,25 +142,3 @@ class MultiSegmentationExtractor(SegmentationExtractor):
             rejected_list_all.extend(
                 [j for j in self._all_roi_ids if self._roi_map[j]['roi_id'] in ids_loop])
         return rejected_list_all
-
-    @staticmethod
-    def write_segmentation(multisegmentation_extractor, savepath, **kwargs):
-        """
-        Write plane wise segmentation
-        Parameters
-        ----------
-        multisegmentation_extractor: MultiSegmentationExtractor
-        savepath: str
-        kwargs: dict
-            example 'to_type': Suite2pSegmentationExtractor
-        """
-        if kwargs.get('to_type'):
-            try:
-                to_type = kwargs['to_type']
-            except:
-                raise Exception('enter a valid SegmentationExtractor type')
-        else:
-            to_type = eval(multisegmentation_extractor.segmentations[0].extractor_name)
-        _no_planes = multisegmentation_extractor.no_planes
-        for i in range(_no_planes):
-            to_type.write_segmentation(multisegmentation_extractor.segmentations[i], savepath, plane_no=i, **kwargs)
