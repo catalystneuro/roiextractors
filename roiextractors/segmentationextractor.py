@@ -265,7 +265,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         return self._num_planes
 
     @staticmethod
-    def write_segmentation(segmentation_extractor, save_path):
+    def write_segmentation(segmentation_extractor, save_path, overwrite=False):
         """
         Static method to write recording back to the native format.
 
@@ -276,5 +276,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
             file has to be generated.
         save_path: str
             path to save the native format.
+        overwrite: bool
+            If True, the file is overwritten if existing (default False)
         """
         raise NotImplementedError

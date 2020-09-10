@@ -78,9 +78,14 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         return roi_location
 
     @staticmethod
-    def write_segmentation(segmentation_object, save_path, plane_num=0):
+    def write_segmentation(segmentation_object, save_path, overwrite=False):
         save_path = Path(save_path)
         assert save_path.suffix == '.mat', "'save_path' must be a *.mat file"
+        if save_path.is_file():
+            if not overwrite:
+                raise FileExistsError("The specified path exists! Use overwrite=True to overwrite it.")
+            else:
+                save_path.unlink()
 
         folder_path = save_path.parent
         file_name = save_path.name

@@ -1,6 +1,7 @@
 import numpy as np
 import os
 from pathlib import Path
+import shutil
 
 from ...segmentationextractor import SegmentationExtractor
 from ...multisegmentationextractor import MultiSegmentationExtractor
@@ -69,9 +70,14 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return np.array([j['med'] for j in self.stat]).T
 
     @staticmethod
-    def write_segmentation(segmentation_object, save_path):
+    def write_segmentation(segmentation_object, save_path, overwrite=False):
         save_path = Path(save_path)
-        assert save_path.is_dir(), "'save_path' must be a folder"
+        assert not save_path.is_file(), "'save_path' must be a folder"
+        if save_path.is_dir():
+            if len(list(save_path.glob('*'))) > 0:
+                raise FileExistsError("The specified folder is not empty! Use overwrite=True to overwrite it.")
+            else:
+                shutil.rmtree(str(save_path))
 
         if isinstance(segmentation_object, MultiSegmentationExtractor):
             segext_objs = segmentation_object.segmentations

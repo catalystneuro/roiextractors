@@ -10,6 +10,22 @@ NumpyArray = Union[np.array, np.memmap]
 DtypeType = [str, np.dtype]
 
 
+def dict_recursive_update(base, input_):
+    for key, val in input_.items():
+        if key in base and isinstance(val, dict) and isinstance(base[key], dict):
+            dict_recursive_update(base[key], val)
+        elif key in base and isinstance(val, list) and isinstance(base[key], list):
+            for i, input_list_item in enumerate(val):
+                if len(base[key]) < i:
+                    if isinstance(base[key][i], dict) and isinstance(input_list_item, dict):
+                        dict_recursive_update(base[key][i], input_list_item)
+                    else:
+                        base[key][i] = input_list_item
+                else:
+                    base[key].append(input_list_item)
+        else:
+            base[key] = val
+
 def _pixel_mask_extractor(image_mask_, _roi_ids):
     '''An alternative data format for storage of image masks.
     Returns
