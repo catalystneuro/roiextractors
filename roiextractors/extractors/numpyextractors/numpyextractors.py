@@ -95,9 +95,9 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     all data must be entered manually as arguments.
     """
 
-    def __init__(self, image_masks, signal,
+    def __init__(self, image_masks, raw=None,
                  dff=None, deconvolved=None, neuropil=None,
-                 rawfileloc=None, accepted_lst=None,
+                 accepted_lst=None,
                  mean_image=None, correlation_image=None,
                  roi_ids=None, roi_locations=None, sampling_frequency=None,
                  rejected_list=None, channel_names=None,
@@ -109,7 +109,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             The location of the folder containing the custom file format.
         image_masks: np.ndarray
             Binary image for each of the regions of interest
-        signal: np.ndarray
+        raw: np.ndarray
             Fluorescence response of each of the ROI in time
         dff: np.ndarray
             DfOverF response of each of the ROI in time
@@ -137,44 +137,56 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         SegmentationExtractor.__init__(self)
         if isinstance(image_masks, (str, Path)):
             image_masks = Path(image_masks)
-            signal = Path(signal)
-            dff = Path(signal) if dff is not None else Path('none.npy')
-            neuropil = Path(signal) if neuropil is not None else Path('none.npy')
-            deconvolved = Path(signal) if deconvolved is not None else Path('none.npy')
             if image_masks.is_file():
                 assert image_masks.suffix == '.npy', "'image_masks' file is not a numpy file (.npy)"
-                assert signal.suffix == '.npy', "'signal' file is not a numpy file (.npy)"
-                assert dff.suffix == '.npy', "'dff' file is not a numpy file (.npy)"
-                assert deconvolved.suffix == '.npy', "'deconvolved' file is not a numpy file (.npy)"
-                assert neuropil.suffix == '.npy', "'neuropil' file is not a numpy file (.npy)"
 
                 self.is_dumpable = True
                 self.image_masks = np.load(image_masks, mmap_mode='r')
-                self._roi_response_raw = np.load(signal, mmap_mode='r')
-                self._roi_response_dff = np.load(dff, mmap_mode='r') if dff is not None else None
-                self._roi_response_neuropil = np.load(neuropil, mmap_mode='r') if neuropil is not None else None
-                self._roi_response_deconvolved = np.load(deconvolved, mmap_mode='r') if deconvolved is not None else None
-                self._kwargs = {'image_masks': str(Path(image_masks).absolute()),
-                                'signal': str(Path(signal).absolute()),
-                                'dff': str(Path(dff).absolute()),
-                                'neuropil': str(Path(neuropil).absolute()),
-                                'deconvolved': str(Path(deconvolved).absolute())}
+
+                if raw is not None:
+                    raw = Path(raw)
+                    assert raw.suffix == '.npy', "'raw' file is not a numpy file (.npy)"
+                    self._roi_response_raw = np.load(raw, mmap_mode='r')
+                if dff is not None:
+                    dff = Path(dff)
+                    assert dff.suffix == '.npy', "'dff' file is not a numpy file (.npy)"
+                    self._roi_response_dff = np.load(dff, mmap_mode='r')
+                    self._roi_response_neuropil = np.load(neuropil, mmap_mode='r')
+                if deconvolved is not None:
+                    deconvolved = Path(deconvolved)
+                    assert deconvolved.suffix == '.npy', "'deconvolved' file is not a numpy file (.npy)"
+                    self._roi_response_deconvolved = np.load(deconvolved, mmap_mode='r')
+                if neuropil is not None:
+                    neuropil = Path(neuropil)
+                    assert neuropil.suffix == '.npy', "'neuropil' file is not a numpy file (.npy)"
+                    self._roi_response_neuropil = np.load(neuropil, mmap_mode='r')
+
+                self._kwargs = {'image_masks': str(Path(image_masks).absolute())}
+                if raw is not None:
+                    self._kwargs.update({'raw': str(Path(raw).absolute())})
+                if raw is not None:
+                    self._kwargs.update({'dff': str(Path(dff).absolute())})
+                if raw is not None:
+                    self._kwargs.update({'neuropil': str(Path(neuropil).absolute())})
+                if raw is not None:
+                    self._kwargs.update({'deconvolved': str(Path(deconvolved).absolute())})
+
             else:
                 raise ValueError("'timeeseries' is does not exist")
         elif isinstance(image_masks, np.ndarray):
             NoneType = type(None)
-            assert isinstance(signal, np.ndarray)
+            assert isinstance(raw, np.ndarray)
             assert isinstance(dff, (np.ndarray,NoneType))
             assert isinstance(neuropil, (np.ndarray,NoneType))
             assert isinstance(deconvolved, (np.ndarray,NoneType))
             self.is_dumpable = False
             self.image_masks = image_masks
-            self._roi_response_raw = signal
+            self._roi_response_raw = raw
             self._roi_response_dff = dff
             self._roi_response_neuropil = neuropil
             self._roi_response_deconvolved = deconvolved
             self._kwargs = {'image_masks': image_masks,
-                            'signal': signal,
+                            'signal': raw,
                             'dff': dff,
                             'neuropil': neuropil,
                             'deconvolved': deconvolved}
@@ -183,7 +195,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         self._movie_dims = movie_dims if movie_dims is not None else image_masks.shape
         self._image_mean = mean_image
         self._image_correlation = correlation_image
-        self._raw_movie_file_location = rawfileloc
         if roi_ids is None:
             self._roi_ids = list(np.arange(len(image_masks)))
         else:

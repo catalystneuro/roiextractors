@@ -112,18 +112,21 @@ def toy_example(duration=10, num_rois=10, size_x=100, size_y=100, roi_size=4, mi
     resp = np.exp(-tresp / resp_tau)
 
     # convolve response with ROIs
-    traces = np.zeros((len(sort.get_unit_ids()), rec.get_num_frames()))
+    raw = np.zeros((len(sort.get_unit_ids()), rec.get_num_frames()))
+    deconvolved = np.zeros((len(sort.get_unit_ids()), rec.get_num_frames()))
+    neuropil = noise_std * np.random.randn((len(sort.get_unit_ids()), rec.get_num_frames()))
     frames = rec.get_num_frames()
     for u_i, unit in enumerate(sort.get_unit_ids()):
         for s in sort.get_unit_spike_train(unit):
             if s + len(resp) < frames:
-                traces[u_i, s:s + len(resp)] += resp
+                raw[u_i, s:s + len(resp)] += resp
             else:
-                traces[u_i, s:] = resp[:frames - s]
+                raw[u_i, s:] = resp[:frames - s]
+            deconvolved[u_i, s] = 1
 
     # generate video
     video = np.zeros((frames, size_x, size_y))
-    for (rp, t) in zip(roi_pixels, traces):
+    for (rp, t) in zip(roi_pixels, raw):
         for r in rp:
             video[:, r[0], r[1]] += t * im[r[0], r[1]]
 
@@ -141,8 +144,9 @@ def toy_example(duration=10, num_rois=10, size_x=100, size_y=100, roi_size=4, mi
     for rois_i, roi in enumerate(roi_pixels):
         for r in roi:
             image_masks[r[0], r[1], rois_i] += im[r[0], r[1]]
-    # TODO: generate and add deconvolved, dff, neuropil traces to NumpySegmenExt
-    seg = NumpySegmentationExtractor(image_masks=image_masks, signal=traces, sampling_frequency=sampling_frequency)
+
+    seg = NumpySegmentationExtractor(image_masks=image_masks, raw=raw, deconvolved=deconvolved,
+                                     neuropil=neuropil, sampling_frequency=sampling_frequency)
 
     return imag, seg
 
