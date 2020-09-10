@@ -26,25 +26,21 @@ try:
 except ModuleNotFoundError:
     HAVE_NWB = False
 
-
-def dict_recursive_update(metadata_base, metadata_input):
-    return_dict = deepcopy(metadata_base)
-    for base_key, base_val in return_dict.items():
-        if metadata_input.get(base_key):
-            if isinstance(base_val,dict):
-                return_dict[base_key] = dict_recursive_update(base_val, metadata_input[base_key])
-            elif isinstance(base_val,list):
-                if isinstance(metadata_input[base_key], list):
-                    for base_val_num,(a,b) in enumerate(zip(base_val, metadata_input[base_key])):
-                        if isinstance(a, dict) and isinstance(b, dict):
-                            return_dict[base_key][base_val_num] = dict_recursive_update(a, b)
-                        elif isinstance(a, (int, float, str)) and isinstance(b, (int, float, str)):
-                            return_dict[base_key][base_val_num] = b
+def dict_recursive_update(base, input_):
+    for key, val in input_.items():
+        if key in base and isinstance(val, dict) and isinstance(base[key], dict):
+            dict_recursive_update(base[key], val)
+        elif key in base and isinstance(val, list) and isinstance(base[key], list):
+            for i, input_list_item in enumerate(val):
+                if len(base[key]) < i:
+                    if isinstance(base[key][i], dict) and isinstance(input_list_item, dict):
+                        dict_recursive_update(base[key][i], input_list_item)
+                    else:
+                        base[key][i] = input_list_item
                 else:
-                    continue
-            else:
-                return_dict[base_key] = metadata_input[base_key]
-    return return_dict
+                    base[key].append(input_list_item)
+        else:
+            base[key] = val
 
 
 def check_nwb_install():
