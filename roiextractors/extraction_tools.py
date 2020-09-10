@@ -120,3 +120,24 @@ def check_get_videos_args(func):
 
         return get_videos_correct_arg
     return corrected_args
+
+# TODO will be moved eventually, but for now it's very handy :)
+def show_video(imaging, ax=None):
+    import matplotlib.pyplot as plt
+    import matplotlib.animation as animation
+
+    def animate_func(i, imaging, im, ax):
+        ax.set_title(f"{i}")
+        im.set_array(imaging.get_frames(i))
+        return [im]
+
+    if ax is None:
+        fig = plt.figure(figsize=(5, 5))
+        ax = fig.add_subplot(111)
+
+    im0 = imaging.get_frames(0)
+    im = ax.imshow(im0, interpolation='none', aspect='auto', vmin=0, vmax=1)
+    interval = 1 / imaging.get_sampling_frequency() * 1000
+    anim = animation.FuncAnimation(fig, animate_func, frames=imaging.get_num_frames(), fargs=(imaging, im, ax),
+                                   interval=interval, blit=False)
+    return anim
