@@ -3,8 +3,9 @@ import h5py
 from ...segmentationextractor import SegmentationExtractor
 from lazy_ops import DatasetView
 from ...extraction_tools import _pixel_mask_extractor
-import os
 from scipy.sparse import csc_matrix
+from pathlib import Path
+
 
 class CnmfeSegmentationExtractor(SegmentationExtractor):
     """
@@ -77,16 +78,22 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
 
     @staticmethod
     def write_segmentation(segmentation_object, save_path, plane_num=0):
-        if save_path.split('.')[-1] != 'mat':
+        save_path = Path(save_path)
+        if save_path.suffix != 'mat':
             raise ValueError('filetype to save must be *.mat')
-        filename = os.path.basename(save_path)
-        save_path_folder = os.path.join(os.path.dirname(save_path),f'Plane_{plane_num}')
-        save_path = os.path.join(save_path_folder,filename)
-        if not os.path.exists(save_path_folder):
-            os.makedirs(save_path_folder)
+        filename = save_path.parent
+        if segmentation_object.__class__.__name__=='MultiSegmentationExtractor':
+            segext_objs = segmentation_object.segmentations
+            if segext_objs.__class__.__name__!='CnmfeSegmentationExtractor':
+                raise ValueError('provide a MultisegmentationExtractor of multiple CnmfeSegmentationExtractor objects')
+            for plane_num, segext_obj in enumerate(segext_objs):
+                save_path_new = save_path.parent.joinpath(f'Plane_{plane_num}').joinpath(filename)
+                CnmfeSegmentationExtractor.write_segmentation(segext_obj, save_path_new)
+        if not save_path.parent.exists():
+            save_path.parent.mkdir()
         else:
-            if os.path.exists(save_path):
-                os.remove(save_path)
+            if save_path.exists():
+                save_path.unlink()
         with h5py.File(save_path, 'a') as f:
             # create base groups:
             _ = f.create_group('#refs#')

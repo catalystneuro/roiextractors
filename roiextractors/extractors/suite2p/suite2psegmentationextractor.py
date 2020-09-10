@@ -2,7 +2,9 @@ import numpy as np
 from ...segmentationextractor import SegmentationExtractor
 import os
 from ...extraction_tools import _image_mask_extractor
+from pathlib import Path
 import shutil
+
 
 class Suite2pSegmentationExtractor(SegmentationExtractor):
 
@@ -67,46 +69,53 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return np.array([j['med'] for j in self.stat]).T
 
     @staticmethod
-    def write_segmentation(segmentation_extractor, save_path, plane_num=0):
-        if not os.path.isdir(save_path):
+    def write_segmentation(segmentation_object, save_path):
+        save_path = Path(save_path)
+        if not save_path.is_dir():
             raise ValueError('provide a folder as save_path')
-        save_path = os.path.join(save_path, f'Plane{plane_num}')
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
+        if segmentation_object.__class__.__name__=='MultiSegmentationExtractor':
+            segext_objs = segmentation_object.segmentations
+            if segext_objs.__class__.__name__!='Suite2pSegmentationExtractor':
+                raise ValueError('provide a MultisegmentationExtractor of multiple Suite2pSegmentationExtractor objects')
+            for plane_num, segext_obj in enumerate(segext_objs):
+                save_path_new = save_path.joinpath(f'Plane_{plane_num}')
+                Suite2pSegmentationExtractor.write_segmentation(segext_obj, save_path_new)
+        if not save_path.exists():
+            save_path.mkdir()
         else:
             shutil.rmtree(save_path)
-            os.makedirs(save_path)
+            save_path.mkdir()
         # saving traces:
-        np.save(os.path.join(save_path,'F.npy'), segmentation_extractor._roi_response_fluorescence)
-        np.save(os.path.join(save_path, 'Fneu.npy'), segmentation_extractor._roi_response_neuropil)
-        np.save(os.path.join(save_path, 'spks.npy'), segmentation_extractor._roi_response_deconvolved)
+        np.save(save_path.joinpath('F.npy'), segmentation_object._roi_response_fluorescence)
+        np.save(save_path.joinpath('Fneu.npy'), segmentation_object._roi_response_neuropil)
+        np.save(save_path.joinpath('spks.npy'), segmentation_object._roi_response_deconvolved)
         # save stat
-        stat = np.zeros(segmentation_extractor.no_rois,'O')
-        roi_locs = segmentation_extractor.roi_locations.T
-        pixel_masks = segmentation_extractor.get_roi_pixel_masks(roi_ids=range(segmentation_extractor.no_rois))
+        stat = np.zeros(segmentation_object.no_rois,'O')
+        roi_locs = segmentation_object.roi_locations.T
+        pixel_masks = segmentation_object.get_roi_pixel_masks(roi_ids=range(segmentation_object.no_rois))
         for no,i in enumerate(stat):
             stat[no] = {'med':roi_locs[no,:].tolist(),
                         'ypix': pixel_masks[no][:,0],
                         'xpix': pixel_masks[no][:,1],
                         'lam': pixel_masks[no][:,2]}
-        np.save(os.path.join(save_path, 'stat.npy'), stat)
+        np.save(save_path.joinpath('stat.npy'), stat)
         # saving iscell
-        iscell = np.ones([segmentation_extractor.no_rois,2])
-        iscell[segmentation_extractor.get_rejected_list(),0]=0
-        np.save(os.path.join(save_path, 'iscell.npy'), iscell)
+        iscell = np.ones([segmentation_object.no_rois,2])
+        iscell[segmentation_object.get_rejected_list(),0]=0
+        np.save(save_path.joinpath('iscell.npy'), iscell)
         # saving ops
         ops=dict()
-        ops.update({'nframes':segmentation_extractor.get_num_frames()})
-        ops.update({'Lx': segmentation_extractor.get_image_size()[1]})
-        ops.update({'Ly': segmentation_extractor.get_image_size()[0]})
-        ops.update({'xrange': [0, segmentation_extractor.get_image_size()[1]]})
-        ops.update({'yrange': [0, segmentation_extractor.get_image_size()[0]]})
-        ops.update({'fs': segmentation_extractor.get_sampling_frequency()})
-        ops.update({'filelist': [segmentation_extractor.get_movie_location()]})
+        ops.update({'nframes':segmentation_object.get_num_frames()})
+        ops.update({'Lx': segmentation_object.get_image_size()[1]})
+        ops.update({'Ly': segmentation_object.get_image_size()[0]})
+        ops.update({'xrange': [0, segmentation_object.get_image_size()[1]]})
+        ops.update({'yrange': [0, segmentation_object.get_image_size()[0]]})
+        ops.update({'fs': segmentation_object.get_sampling_frequency()})
+        ops.update({'filelist': [segmentation_object.get_movie_location()]})
         ops.update({'nchannels':1})
-        ops.update({'meanImg': segmentation_extractor.get_images('mean')})
-        ops.update({'Vcorr': segmentation_extractor.get_images('correlation')})
-        np.save(os.path.join(save_path, 'ops.npy'), ops)
+        ops.update({'meanImg': segmentation_object.get_images('mean')})
+        ops.update({'Vcorr': segmentation_object.get_images('correlation')})
+        np.save(save_path.joinpath('ops.npy'), ops)
 
     # defining the abstract class enforced methods:
     def get_roi_ids(self):
