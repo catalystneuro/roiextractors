@@ -74,7 +74,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         save_path = Path(save_path)
         assert not save_path.is_file(), "'save_path' must be a folder"
         if save_path.is_dir():
-            if len(list(save_path.glob('*'))) > 0:
+            if len(list(save_path.glob('*'))) > 0 and not overwrite:
                 raise FileExistsError("The specified folder is not empty! Use overwrite=True to overwrite it.")
             else:
                 shutil.rmtree(str(save_path))
