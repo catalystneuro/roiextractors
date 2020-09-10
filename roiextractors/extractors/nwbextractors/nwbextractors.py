@@ -322,7 +322,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             else:
                 metadata['ophys']['ImagingPlane'][0]['optical_channels'].append(dict(
                     name=ch_name,
-                    emission_lambda=500.0,
+                    emission_lambda=np.nan,
                     description=f'{ch_name} description'
                 ))
 
