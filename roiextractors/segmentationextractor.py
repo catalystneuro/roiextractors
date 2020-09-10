@@ -63,7 +63,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
             Number of frames in the recording (duration of recording).
         """
         for trace in self.get_traces_dict().values():
-            if len(trace.shape)>0:
+            if len(trace.shape) > 0:
                 return trace.shape[1]
 
     def get_roi_locations(self, roi_ids=None) -> np.array:
@@ -232,7 +232,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
             integer number of ROIs extracted.
         """
         for trace in self.get_traces_dict().values():
-            if len(trace.shape)>0:
+            if len(trace.shape) > 0:
                 return trace.shape[0]
 
     def get_channel_names(self):
@@ -265,7 +265,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         return self._num_planes
 
     @staticmethod
-    def write_segmentation(segmentation_extractor, save_path, metadata=None, file_overwrite=False):
+    def write_segmentation(segmentation_extractor, save_path):
         """
         Static method to write recording back to the native format.
 
@@ -274,7 +274,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         segmentation_extractor: [SegmentationExtractor, MultiSegmentationExtractor]
             The EXTRACT segmentation object from which an EXTRACT native format
             file has to be generated.
-        savepath: str
+        save_path: str
             path to save the native format.
         """
         raise NotImplementedError

@@ -1,9 +1,10 @@
 import numpy as np
 import h5py
-from ...segmentationextractor import SegmentationExtractor
 from lazy_ops import DatasetView
-from ...extraction_tools import _pixel_mask_extractor
 from pathlib import Path
+
+from ...segmentationextractor import SegmentationExtractor
+from ...multisegmentationextractor import MultiSegmentationExtractor
 
 
 class ExtractSegmentationExtractor(SegmentationExtractor):
@@ -31,7 +32,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         self.image_masks = self._image_mask_extractor_read()
         self._roi_response_raw = self._trace_extractor_read()
         self._raw_movie_file_location = self._raw_datafile_read()
-        self._sampling_frequency = self._roi_response_raw.shape[1]/self._tot_exptime_extractor_read()
+        self._sampling_frequency = self._roi_response_raw.shape[1] / self._tot_exptime_extractor_read()
         self._image_correlation = self._summary_image_read()
 
     def __del__(self):
@@ -80,40 +81,36 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
     @staticmethod
     def write_segmentation(segmentation_object, save_path):
         save_path = Path(save_path)
-        if save_path.suffix != 'mat':
-            raise ValueError('filetype to save must be *.mat')
-        filename = save_path.parent
-        if segmentation_object.__class__.__name__=='MultiSegmentationExtractor':
+        assert save_path.suffix == '.mat', "'save_path' must be a *.mat file"
+
+        folder_path = save_path.parent
+        file_name = save_path.name
+        if isinstance(segmentation_object, MultiSegmentationExtractor):
             segext_objs = segmentation_object.segmentations
-            if segext_objs.__class__.__name__!='ExtractSegmentationExtractor':
-                raise ValueError('provide a MultisegmentationExtractor of multiple ExtractSegmentationExtractor objects')
             for plane_num, segext_obj in enumerate(segext_objs):
-                save_path_new = save_path.parent.joinpath(f'Plane_{plane_num}').joinpath(filename)
-                ExtractSegmentationExtractor.write_segmentation(segext_obj, save_path_new)
-        if not save_path.parent.exists():
-            save_path.parent.mkdir()
-        else:
-            if save_path.exists():
-                save_path.unlink()
+                save_path_plane = folder_path / f'Plane_{plane_num}' / file_name
+                ExtractSegmentationExtractor.write_segmentation(segext_obj, save_path_plane)
+        if not folder_path.is_dir():
+            folder_path.mkdir(parents=True)
+
         with h5py.File(save_path, 'a') as f:
             # create base groups:
             _ = f.create_group('#refs#')
             main = f.create_group('extractAnalysisOutput')
-            #create datasets:
-            main.create_dataset('filters',data=segmentation_object.get_roi_image_masks().T)
+            # create datasets:
+            main.create_dataset('filters', data=segmentation_object.get_roi_image_masks().T)
             main.create_dataset('traces', data=segmentation_object.get_traces())
             info = main.create_group('info')
             if segmentation_object.get_images() is not None:
                 info.create_dataset('summary_image', data=segmentation_object.get_images())
-            main.create_dataset('file', data=[ord(i) for i in segmentation_object.get_movie_location()])
             time = main.create_group('time')
             if segmentation_object.get_sampling_frequency() is not None:
-                time.create_dataset('totalTime', (1,1), data=segmentation_object.get_roi_image_masks().shape[1]/
-                                                        segmentation_object.get_sampling_frequency())
+                time.create_dataset('totalTime', (1, 1), data=segmentation_object.get_roi_image_masks().shape[1] /
+                                                              segmentation_object.get_sampling_frequency())
 
     # defining the abstract class enformed methods:
     def get_roi_ids(self):
         return list(range(self.get_num_rois()))
-    
+
     def get_image_size(self):
         return self.image_masks.shape[0:2]

@@ -268,7 +268,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         return self.image_masks.shape[:2]
 
     @staticmethod
-    def write_segmentation(segext_obj, savepath, metadata_dict, **kwargs):
+    def write_segmentation(segext_obj, save_path, metadata_dict, **kwargs):
         if isinstance(metadata_dict, str):
             with open(metadata_dict, 'r') as f:
                 metadata_dict = yaml.safe_load(f)
@@ -377,7 +377,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             name='TwoPhotonSeries',
             description='no description',
             imaging_plane=i,
-            external_file=[segext_obj.get_movie_location()],
             format='external',
             rate=segext_obj.get_sampling_frequency(),
             starting_time=0.0,

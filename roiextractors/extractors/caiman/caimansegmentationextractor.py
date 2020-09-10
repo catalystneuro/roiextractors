@@ -1,11 +1,12 @@
 import numpy as np
 import h5py
 from lazy_ops import DatasetView
-from ...segmentationextractor import SegmentationExtractor
-from ...extraction_tools import _pixel_mask_extractor
 from scipy.sparse import csc_matrix
-from ...multisegmentationextractor import MultiSegmentationExtractor
 from pathlib import Path
+
+from ...segmentationextractor import SegmentationExtractor
+from ...multisegmentationextractor import MultiSegmentationExtractor
+
 
 class CaimanSegmentationExtractor(SegmentationExtractor):
     """
@@ -47,13 +48,14 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         roi_ids = self._dataset_file['estimates']['A']['indices']
         masks = self._dataset_file['estimates']['A']['data']
         ids = self._dataset_file['estimates']['A']['indptr']
-        image_mask_in = csc_matrix((masks, roi_ids, ids), shape=(np.prod(self.get_image_size()), self.no_rois)).toarray()
+        image_mask_in = csc_matrix((masks, roi_ids, ids),
+                                   shape=(np.prod(self.get_image_size()), self.no_rois)).toarray()
         image_masks = np.reshape(image_mask_in, (*self.get_image_size(), -1), order='F')
         return image_masks
 
     def _trace_extractor_read(self, field):
         if self._dataset_file['estimates'].get(field):
-            return self._dataset_file['estimates'][field] # lazy read dataset)
+            return self._dataset_file['estimates'][field]  # lazy read dataset)
 
     def _summary_image_read(self):
         if self._dataset_file['estimates'].get('Cn'):
@@ -61,7 +63,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
     def get_accepted_list(self):
         accepted = self._dataset_file['estimates']['idx_components']
-        if len(accepted.shape)==0:
+        if len(accepted.shape) == 0:
             accepted = list(range(self.get_num_rois()))
         return accepted
 
@@ -82,48 +84,47 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
     @staticmethod
     def write_segmentation(segmentation_object, save_path):
         save_path = Path(save_path)
-        if save_path.suffix!='hdf5':
-            raise ValueError('filetype to save must be *.hdf5')
-        filename = save_path.parent
-        if segmentation_object.__class__.__name__=='MultiSegmentationExtractor':
+        assert save_path.suffix in ['.hdf5', '.h5'], "'save_path' must be a *.hdf5 or *.h5 file"
+
+        folder_path = save_path.parent
+        file_name = save_path.name
+        if isinstance(segmentation_object, MultiSegmentationExtractor):
             segext_objs = segmentation_object.segmentations
-            if segext_objs.__class__.__name__!='CaimanSegmentationExtractor':
-                raise ValueError('provide a MultisegmentationExtractor of multiple CaimanSegmentationExtractor objects')
             for plane_num, segext_obj in enumerate(segext_objs):
-                save_path_new = save_path.parent.joinpath(f'Plane_{plane_num}').joinpath(filename)
-                CaimanSegmentationExtractor.write_segmentation(segext_obj, save_path_new)
-        if not save_path.parent.exists():
-            save_path.parent.mkdir()
-        else:
-            if save_path.exists():
-                save_path.unlink()
-        with h5py.File(save_path,'a') as f:
-            #create base groups:
+                save_path_plane = folder_path / f'Plane_{plane_num}' / file_name
+                CaimanSegmentationExtractor.write_segmentation(segext_obj, save_path_plane)
+        if not folder_path.is_dir():
+            folder_path.mkdir(parents=True)
+
+        with h5py.File(save_path, 'a') as f:
+            # create base groups:
             estimates = f.create_group('estimates')
             params = f.create_group('params')
-            #adding to estimates:
-            if segmentation_object._roi_response_neuropil is not None:
-                estimates.create_dataset('C',data=segmentation_object._roi_response_neuropil)
-            estimates.create_dataset('F_dff', data=segmentation_object._roi_response_fluorescence)
-            if segmentation_object._roi_response_deconvolved is not None:
-                estimates.create_dataset('S', data=segmentation_object._roi_response_deconvolved)
-            if segmentation_object._image_correlation is not None:
-                estimates.create_dataset('Cn', data=segmentation_object._images_correlation)
+            # adding to estimates:
+            if segmentation_object.get_traces(name='neuropil') is not None:
+                estimates.create_dataset('C', data=segmentation_object.get_traces(name='neuropil'))
+            if segmentation_object.get_traces(name='dff') is not None:
+                estimates.create_dataset('F_dff', data=segmentation_object.get_traces(name='dff'))
+            if segmentation_object.get_traces(name='deconvolved') is not None:
+                estimates.create_dataset('S', data=segmentation_object.get_traces(name='deconvolved'))
+            if segmentation_object.get_images_dict('correlation') is not None:
+                estimates.create_dataset('Cn', data=segmentation_object.get_images_dict('correlation'))
             estimates.create_dataset('idx_components', data=np.array(segmentation_object.get_accepted_list()))
             estimates.create_dataset('idx_components_bad', data=np.array(segmentation_object.get_rejected_list()))
 
-            #adding image_masks:
-            image_mask_data = np.reshape(segmentation_object.get_roi_image_masks(),[-1,segmentation_object.get_num_rois()],order='F')
+            # adding image_masks:
+            image_mask_data = np.reshape(segmentation_object.get_roi_image_masks(),
+                                         [-1, segmentation_object.get_num_rois()], order='F')
             image_mask_csc = csc_matrix(image_mask_data)
-            estimates.create_dataset('A/data',data=image_mask_csc.data)
+            estimates.create_dataset('A/data', data=image_mask_csc.data)
             estimates.create_dataset('A/indptr', data=image_mask_csc.indptr)
             estimates.create_dataset('A/indices', data=image_mask_csc.indices)
             estimates.create_dataset('A/shape', data=image_mask_csc.shape)
 
-            #adding params:
-            params.create_dataset('data/fr',data=segmentation_object._sampling_frequency)
+            # adding params:
+            params.create_dataset('data/fr', data=segmentation_object.get_sampling_frequency())
             params.create_dataset('data/dims', data=segmentation_object.get_image_size())
-            f.create_dataset('dims',data=segmentation_object.get_image_size())
+            f.create_dataset('dims', data=segmentation_object.get_image_size())
 
     # defining the abstract class enformed methods:
     def get_roi_ids(self):
