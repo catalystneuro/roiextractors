@@ -300,7 +300,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         """
         metadata = {'NWBFile': {'session_start_time': datetime.now(),
                                 'identifier': str(uuid.uuid4()),
-                                'session_description': 'ses desc'},
+                                'session_description': 'no description'},
                     'ophys': {'Device': [{'name': 'Microscope'}],
                               'Fluorescence': {'roi_response_series':[{'name': 'RoiResponseSeries',
                                                                        'description': 'array of raw fluorescence traces'}]},
