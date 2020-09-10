@@ -307,13 +307,13 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                               'ImageSegmentation': {'plane_segmentations': [{'description': 'Segmented ROIs',
                                                                             'name': 'PlaneSegmentation'}]},
                               'ImagingPlane':[{'name': 'ImagingPlane',
-                                               'description': 'imaging plane description',
+                                               'description': 'no description',
                                                'excitation_lambda': np.nan,
                                                'indicator': 'unknown',
                                                'location': 'unknown',
                                                'optical_channels': [{'name': 'OpticalChannel',
                                                                      'emission_lambda': np.nan,
-                                                                     'description': 'description of optical channel'}]}],
+                                                                     'description': 'no description'}]}],
                               'TwoPhotonSeries': [{'name': 'TwoPhotonSeries'}]}}
         # Optical Channel name:
         for i in range(sgmextractor.get_num_channels()):
@@ -420,7 +420,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
 
                 # PlaneSegmentation:
                 input_kwargs = dict(
-                    description='output from segmenting my favorite imaging plane',
+                    description='output from segmenting imaging plane',
                     imaging_plane=imaging_plane
                 )
                 if metadata['ophys']['ImageSegmentation']['plane_segmentations'][0]['name'] not in image_segmentation.plane_segmentations:
