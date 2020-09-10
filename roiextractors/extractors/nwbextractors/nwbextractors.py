@@ -310,6 +310,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                                                'description': 'imaging plane description',
                                                'excitation_lambda': np.nan,
                                                'indicator': 'unknown',
+                                               'location': 'unknown',
                                                'optical_channels': [{'name': 'OpticalChannel',
                                                                      'emission_lambda': np.nan,
                                                                      'description': 'description of optical channel'}]}],
@@ -339,6 +340,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                     description=f'description of {trace_name} traces',
                     rate=rate
                 ))
+        # adding imaging_rate:
+        metadata['ophys']['ImagingPlane'][0].update(imaging_rate=rate)
         # TwoPhotonSeries update:
         metadata['ophys']['TwoPhotonSeries'][0].update(
             dimension=sgmextractor.get_image_size())
@@ -406,12 +409,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 if image_plane_name not in nwbfile.imaging_planes.keys():
                     input_kwargs = dict(
                         name=image_plane_name,
-                        description='no description',
                         device=nwbfile.get_device(metadata_base_common['ophys']['Device'][0]['name']),
-                        excitation_lambda=np.nan,
-                        imaging_rate=1.0,
-                        indicator='unknown',
-                        location='unknown'
                     )
                     _ = metadata['ophys']['ImagingPlane'][0].pop('optical_channels')
                     metadata['ophys']['ImagingPlane'][0].update(optical_channel=optical_channels)
