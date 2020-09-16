@@ -255,7 +255,7 @@ class NwbImagingExtractor(ImagingExtractor):
         if 'Ophys' not in metadata:
             metadata['Ophys'] = {}
 
-        if 'Ophys' not in metadata or 'TwoPthotonSeries' not in metadata['Ophys']:
+        if 'TwoPthotonSeries' not in metadata['Ophys']:
             metadata['Ophys']['TwoPhotonSeries'] = [{'name': 'TwoPhotonSeries',
                                                      'description': 'optical_series_description'}]
         # Tests if ElectricalSeries already exists in acquisition
@@ -269,7 +269,7 @@ class NwbImagingExtractor(ImagingExtractor):
             if 'OpticalChannel' not in metadata['Ophys']:
                 metadata['Ophys']['OpticalChannel'] = [{'name': 'OpticalChannel',
                                                         'description': 'no description',
-                                                        'emission_lambda': 500.}]
+                                                        'emission_lambda': np.nan}]
 
             optical_channel = OpticalChannel(**metadata['Ophys']['OpticalChannel'][0])
             # sampling rate
@@ -278,11 +278,9 @@ class NwbImagingExtractor(ImagingExtractor):
             if 'ImagingPlane' not in metadata['Ophys']:
                 metadata['Ophys']['ImagingPlane'] = [{'name': 'ImagingPlane',
                                                       'description': 'no description',
-                                                      'excitation_lambda': 600.,
-                                                      'indicator': 'Indicator',
-                                                      'location': 'Location',
-                                                      'grid_spacing': [.01, .01],
-                                                      'grid_spacing_unit': 'meters'}]
+                                                      'excitation_lambda': np.nan,
+                                                      'indicator': 'unknown',
+                                                      'location': 'unknown'}]
             imaging_meta = {'optical_channel': optical_channel,
                             'imaging_rate': rate,
                             'device': device}
@@ -308,7 +306,7 @@ class NwbImagingExtractor(ImagingExtractor):
                 rate=rate,
                 unit='normalized amplitude',
                 comments='Generated from RoiInterface::NwbImagingExtractor',
-                description='acquisition_description'
+                description='no description'
             )
 
             nwbfile.add_acquisition(ophys_ts)
