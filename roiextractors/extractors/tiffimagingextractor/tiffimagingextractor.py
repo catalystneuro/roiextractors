@@ -24,7 +24,7 @@ class TiffImagingExtractor(ImagingExtractor):
         self.file_path = Path(file_path)
         self._sampling_frequency = sampling_frequency
         self._channel_names = channel_names
-        assert self.file_path.suffix in ['.tiff', '.tif']
+        assert self.file_path.suffix in ['.tiff', '.tif', '.TIFF', '.TIF']
 
         with tifffile.TiffFile(self.file_path) as tif:
             self._num_channels = len(tif.series)
@@ -80,5 +80,15 @@ class TiffImagingExtractor(ImagingExtractor):
         return self._num_channels
 
     @staticmethod
-    def write_imaging(imaging, savepath):
-        pass
+    def write_imaging(imaging, save_path, overwrite: bool=False):
+        save_path = Path(save_path)
+        assert save_path.suffix in ['.tiff', '.tif', '.TIFF', '.TIF'], "'save_path' file is not an .tiff file"
+
+        if save_path.is_file():
+            if not overwrite:
+                raise FileExistsError("The specified path exists! Use overwrite=True to overwrite it.")
+            else:
+                save_path.unlink()
+
+        # TODO chunk this
+        tifffile.imsave(save_path, imaging.get_video())
