@@ -114,7 +114,7 @@ def toy_example(duration=10, num_rois=10, size_x=100, size_y=100, roi_size=4, mi
     # convolve response with ROIs
     raw = np.zeros((len(sort.get_unit_ids()), rec.get_num_frames()))
     deconvolved = np.zeros((len(sort.get_unit_ids()), rec.get_num_frames()))
-    neuropil = noise_std * np.random.randn((len(sort.get_unit_ids()), rec.get_num_frames()))
+    neuropil = noise_std * np.random.randn(len(sort.get_unit_ids()), rec.get_num_frames())
     frames = rec.get_num_frames()
     for u_i, unit in enumerate(sort.get_unit_ids()):
         for s in sort.get_unit_spike_train(unit):
