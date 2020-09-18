@@ -81,9 +81,15 @@ class NumpyImagingExtractor(ImagingExtractor):
         return self._num_channels
 
     @staticmethod
-    def write_imaging(imaging, save_path):
+    def write_imaging(imaging, save_path, overwrite: bool = False):
         save_path = Path(save_path)
         assert save_path.suffix == '.npy', "'save_path' should havve a .npy extension"
+
+        if save_path.is_file():
+            if not overwrite:
+                raise FileExistsError("The specified path exists! Use overwrite=True to overwrite it.")
+            else:
+                save_path.unlink()
 
         np.save(save_path, imaging.get_video())
 
