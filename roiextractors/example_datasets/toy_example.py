@@ -118,11 +118,12 @@ def toy_example(duration=10, num_rois=10, size_x=100, size_y=100, roi_size=4, mi
     frames = rec.get_num_frames()
     for u_i, unit in enumerate(sort.get_unit_ids()):
         for s in sort.get_unit_spike_train(unit):
-            if s + len(resp) < frames:
-                raw[u_i, s:s + len(resp)] += resp
-            else:
-                raw[u_i, s:] = resp[:frames - s]
-            deconvolved[u_i, s] = 1
+            if s < rec.get_num_frames():
+                if s + len(resp) < frames:
+                    raw[u_i, s:s + len(resp)] += resp
+                else:
+                    raw[u_i, s:] = resp[:frames - s]
+                deconvolved[u_i, s] = 1
 
     # generate video
     video = np.zeros((frames, size_x, size_y))

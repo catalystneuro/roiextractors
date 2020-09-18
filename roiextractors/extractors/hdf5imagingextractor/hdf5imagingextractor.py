@@ -71,14 +71,15 @@ class Hdf5ImagingExtractor(ImagingExtractor):
 
     @check_get_frames_args
     def get_frames(self, frame_idxs, channel=0):
-        if frame_idxs.size > 1 and np.all(np.diff(frame_idxs) > 0):
-            # return lazy_ops.DatasetView(self._video).lazy_slice[channel, frame_idxs]
-            return self._video[channel, frame_idxs]
+        if frame_idxs.size > 1 and np.all(np.diff(frame_idxs) > 0) or frame_idxs.size == 1:
+            return lazy_ops.DatasetView(self._video).lazy_slice[channel, frame_idxs]
+            # return self._video[channel, frame_idxs]
         else:
+            # unsorted multiple frame idxs
             sorted_idxs = np.sort(frame_idxs)
             argsorted_idxs = np.argsort(frame_idxs)
-            return self._video[channel, sorted_idxs][:, argsorted_idxs]
-            # return lazy_ops.DatasetView(self._video).lazy_slice[channel, sorted_idxs].lazy_slice[:, argsorted_idxs]
+            # return self._video[channel, sorted_idxs][:, argsorted_idxs]
+            return lazy_ops.DatasetView(self._video).lazy_slice[channel, sorted_idxs].lazy_slice[:, argsorted_idxs]
 
     def get_image_size(self):
         return [self._size_x, self._size_y]

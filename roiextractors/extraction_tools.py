@@ -86,7 +86,6 @@ def get_video_shape(video):
 def check_get_frames_args(func):
     @wraps(func)
     def corrected_args(imaging, frame_idxs, channel=0):
-        print(type(frame_idxs))
         channel = int(channel)
         if isinstance(frame_idxs, (int, np.integer)):
             frame_idxs = [frame_idxs]
@@ -182,7 +181,6 @@ def write_to_h5_dataset_format(imaging, dataset_path, save_path=None, file_handl
     # set chunk size
     if chunk_size is not None:
         chunk_size = int(chunk_size)
-
     elif chunk_mb is not None:
         n_bytes = np.dtype(imaging.get_dtype()).itemsize
         max_size = int(chunk_mb * 1e6)  # set Mb per chunk
@@ -194,7 +192,7 @@ def write_to_h5_dataset_format(imaging, dataset_path, save_path=None, file_handl
             video = imaging.get_video(channel=ch)
             if dtype is not None:
                 video = video.astype(dtype_file)
-            dset[ch, :] = np.squeeze(video)
+            dset[ch, ...] = np.squeeze(video)
         else:
             chunk_start = 0
             # chunk size is not None
@@ -211,7 +209,7 @@ def write_to_h5_dataset_format(imaging, dataset_path, save_path=None, file_handl
                 chunk_frames = np.squeeze(video).shape[0]
                 if dtype is not None:
                     video = video.astype(dtype_file)
-                dset[ch, chunk_start:chunk_start + chunk_frames, :] = video
+                dset[ch, chunk_start:chunk_start + chunk_frames, ...] = np.squeeze(video)
                 chunk_start += chunk_frames
 
     if save_path is not None:
