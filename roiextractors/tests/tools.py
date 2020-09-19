@@ -2,7 +2,8 @@ import numpy as np
 from collections.abc import Iterable
 
 NoneType = type(None)
-
+floattype = (float, np.floating)
+inttype = (int, np.integer)
 
 def assert_iterable_shape(iterable, shape):
     ar = iterable if isinstance(iterable, np.ndarray) else np.array(iterable)
@@ -19,15 +20,15 @@ def assert_iterable_shape_max(iterable, shape_max):
 
 
 def assert_iterable_element_dtypes(iterable, dtypes):
-    for iter in iterable:
-        if isinstance(iter, Iterable):
+    if isinstance(iterable, Iterable) and not isinstance(iterable, str):
+        for iter in iterable:
             assert_iterable_element_dtypes(iter, dtypes)
-        else:
-            assert any([isinstance(iter, dtype) for dtype in dtypes]), f'array is none of the types {dtypes}'
+    else:
+        assert isinstance(iterable, dtypes), f'array is none of the types {dtypes}'
 
 
 def assert_iterable_complete(iterable, dtypes=None, element_dtypes=None, shape=None, shape_max=None):
-    assert any([isinstance(iterable, dtype) for dtype in dtypes]), f'iterable is none of the types {dtypes}'
+    assert isinstance(iterable, dtypes), f'iterable is none of the types {dtypes}'
     if not isinstance(iterable, NoneType):
         if shape is not None:
             assert_iterable_shape(iterable, shape=shape)
