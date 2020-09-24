@@ -94,21 +94,18 @@ class TiffImagingExtractor(ImagingExtractor):
         if chunk_size is None:
             tifffile.imsave(save_path, imaging.get_video())
         else:
-            raise NotImplementedError("Writing tiff file in chunks is currently not implemented")
-            # num_frames = imaging.get_num_frames()
-            # chunk_start = 0
-            # # chunk size is not None
-            # n_chunk = num_frames // chunk_size
-            # if num_frames % chunk_size > 0:
-            #     n_chunk += 1
-            # if verbose:
-            #     chunks = tqdm(range(n_chunk), ascii=True, desc="Writing to .tiff file")
-            # else:
-            #     chunks = range(n_chunk)
-            # for i in chunks:
-            #     video = imaging.get_video(start_frame=i * chunk_size,
-            #                               end_frame=min((i + 1) * chunk_size, num_frames))
-            #     chunk_frames = np.squeeze(video)
-            #     tifffile.imsave(save_path, chunk_frames, append=True)
-            #     chunk_start += chunk_frames
-
+            num_frames = imaging.get_num_frames()
+            # chunk size is not None
+            n_chunk = num_frames // chunk_size
+            if num_frames % chunk_size > 0:
+                n_chunk += 1
+            if verbose:
+                chunks = tqdm(range(n_chunk), ascii=True, desc="Writing to .tiff file")
+            else:
+                chunks = range(n_chunk)
+            with tifffile.TiffWriter(save_path) as tif:
+                for i in chunks:
+                    video = imaging.get_video(start_frame=i * chunk_size,
+                                              end_frame=min((i + 1) * chunk_size, num_frames))
+                    chunk_frames = np.squeeze(video)
+                    tif.save(chunk_frames, contiguous=True, metadata=None)
