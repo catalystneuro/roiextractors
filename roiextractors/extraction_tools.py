@@ -2,7 +2,14 @@ import numpy as np
 from typing import Union
 from pathlib import Path
 from functools import wraps
+from tqdm import tqdm
 from spikeextractors.extraction_tools import cast_start_end_frame
+
+try:
+    import h5py
+    HAVE_H5 = True
+except ImportError:
+    HAVE_H5 = False
 
 ArrayType = Union[list, np.array]
 PathType = Union[str, Path]
@@ -82,10 +89,9 @@ def check_get_frames_args(func):
         channel = int(channel)
         if isinstance(frame_idxs, (int, np.integer)):
             frame_idxs = [frame_idxs]
-
         if not isinstance(frame_idxs, slice):
             frame_idxs = np.array(frame_idxs)
-        assert np.all(frame_idxs < imaging.get_num_frames()), "'frame_idxs' exceed number of frames"
+            assert np.all(frame_idxs < imaging.get_num_frames()), "'frame_idxs' exceed number of frames"
         get_frames_correct_arg = func(imaging, frame_idxs, channel)
 
         if len(frame_idxs) == 1:
@@ -120,6 +126,96 @@ def check_get_videos_args(func):
 
         return get_videos_correct_arg
     return corrected_args
+
+
+def write_to_h5_dataset_format(imaging, dataset_path, save_path=None, file_handle=None,
+                               dtype=None, chunk_size=None, chunk_mb=1000, verbose=False):
+    '''Saves the video of an imaging extractor in an h5 dataset.
+
+    Parameters
+    ----------
+    imaging: ImagingExtractor
+        The imaging extractor object to be saved in the .h5 filr
+    dataset_path: str
+        Path to dataset in h5 file (e.g. '/dataset')
+    save_path: str
+        The path to the file.
+    file_handle: file handle
+        The file handle to dump data. This can be used to append data to an header. In case file_handle is given,
+        the file is NOT closed after writing the binary data.
+    dtype: dtype
+        Type of the saved data. Default float32.
+    chunk_size: None or int
+        Number of chunks to save the file in. This avoid to much memory consumption for big files.
+        If None and 'chunk_mb' is given, the file is saved in chunks of 'chunk_mb' Mb (default 500Mb)
+    chunk_mb: None or int
+        Chunk size in Mb (default 1000Mb)
+    verbose: bool
+        If True, output is verbose (when chunks are used)
+    '''
+    assert HAVE_H5, "To write to h5 you need to install h5py: pip install h5py"
+    assert save_path is not None or file_handle is not None, "Provide 'save_path' or 'file handle'"
+
+    if save_path is not None:
+        save_path = Path(save_path)
+        if save_path.suffix == '':
+            # when suffix is already raw/bin/dat do not change it.
+            save_path = save_path.parent / (save_path.name + '.h5')
+
+    num_channels = imaging.get_num_channels()
+    num_frames = imaging.get_num_frames()
+    size_x, size_y = imaging.get_image_size()
+
+    if file_handle is not None:
+        assert isinstance(file_handle, h5py.File)
+    else:
+        file_handle = h5py.File(save_path, 'w')
+
+    if dtype is None:
+        dtype_file = imaging.get_dtype()
+    else:
+        dtype_file = dtype
+
+    dset = file_handle.create_dataset(dataset_path, shape=(num_channels, num_frames, size_x, size_y), dtype=dtype_file)
+
+    # set chunk size
+    if chunk_size is not None:
+        chunk_size = int(chunk_size)
+    elif chunk_mb is not None:
+        n_bytes = np.dtype(imaging.get_dtype()).itemsize
+        max_size = int(chunk_mb * 1e6)  # set Mb per chunk
+        chunk_size = max_size // (size_x * size_y * n_bytes)
+
+    # writ one channel at a time
+    for ch in range(num_channels):
+        if chunk_size is None:
+            video = imaging.get_video(channel=ch)
+            if dtype is not None:
+                video = video.astype(dtype_file)
+            dset[ch, ...] = np.squeeze(video)
+        else:
+            chunk_start = 0
+            # chunk size is not None
+            n_chunk = num_frames // chunk_size
+            if num_frames % chunk_size > 0:
+                n_chunk += 1
+            if verbose:
+                chunks = tqdm(range(n_chunk), ascii=True, desc="Writing to .h5 file")
+            else:
+                chunks = range(n_chunk)
+            for i in chunks:
+                video = imaging.get_video(start_frame=i * chunk_size,
+                                          end_frame=min((i + 1) * chunk_size, num_frames), channel=ch)
+                chunk_frames = np.squeeze(video).shape[0]
+                if dtype is not None:
+                    video = video.astype(dtype_file)
+                dset[ch, chunk_start:chunk_start + chunk_frames, ...] = np.squeeze(video)
+                chunk_start += chunk_frames
+
+    if save_path is not None:
+        file_handle.close()
+    return save_path
+
 
 # TODO will be moved eventually, but for now it's very handy :)
 def show_video(imaging, ax=None):

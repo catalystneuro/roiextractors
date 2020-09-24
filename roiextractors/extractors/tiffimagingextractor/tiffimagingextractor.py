@@ -1,5 +1,6 @@
 import numpy as np
 from pathlib import Path
+from tqdm import tqdm
 from ...imagingextractor import ImagingExtractor
 from ...extraction_tools import PathType, get_video_shape, check_get_frames_args
 
@@ -24,7 +25,7 @@ class TiffImagingExtractor(ImagingExtractor):
         self.file_path = Path(file_path)
         self._sampling_frequency = sampling_frequency
         self._channel_names = channel_names
-        assert self.file_path.suffix in ['.tiff', '.tif']
+        assert self.file_path.suffix in ['.tiff', '.tif', '.TIFF', '.TIF']
 
         with tifffile.TiffFile(self.file_path) as tif:
             self._num_channels = len(tif.series)
@@ -80,5 +81,34 @@ class TiffImagingExtractor(ImagingExtractor):
         return self._num_channels
 
     @staticmethod
-    def write_imaging(imaging, savepath):
-        pass
+    def write_imaging(imaging, save_path, overwrite: bool = False, chunk_size=None, verbose=True):
+        save_path = Path(save_path)
+        assert save_path.suffix in ['.tiff', '.tif', '.TIFF', '.TIF'], "'save_path' file is not an .tiff file"
+
+        if save_path.is_file():
+            if not overwrite:
+                raise FileExistsError("The specified path exists! Use overwrite=True to overwrite it.")
+            else:
+                save_path.unlink()
+
+        if chunk_size is None:
+            tifffile.imsave(save_path, imaging.get_video())
+        else:
+            raise NotImplementedError("Writing tiff file in chunks is currently not implemented")
+            # num_frames = imaging.get_num_frames()
+            # chunk_start = 0
+            # # chunk size is not None
+            # n_chunk = num_frames // chunk_size
+            # if num_frames % chunk_size > 0:
+            #     n_chunk += 1
+            # if verbose:
+            #     chunks = tqdm(range(n_chunk), ascii=True, desc="Writing to .tiff file")
+            # else:
+            #     chunks = range(n_chunk)
+            # for i in chunks:
+            #     video = imaging.get_video(start_frame=i * chunk_size,
+            #                               end_frame=min((i + 1) * chunk_size, num_frames))
+            #     chunk_frames = np.squeeze(video)
+            #     tifffile.imsave(save_path, chunk_frames, append=True)
+            #     chunk_start += chunk_frames
+
