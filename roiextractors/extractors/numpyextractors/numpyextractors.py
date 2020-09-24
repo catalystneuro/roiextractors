@@ -83,7 +83,7 @@ class NumpyImagingExtractor(ImagingExtractor):
     @staticmethod
     def write_imaging(imaging, save_path, overwrite: bool = False):
         save_path = Path(save_path)
-        assert save_path.suffix == '.npy', "'save_path' should havve a .npy extension"
+        assert save_path.suffix == '.npy', "'save_path' should have a .npy extension"
 
         if save_path.is_file():
             if not overwrite:
