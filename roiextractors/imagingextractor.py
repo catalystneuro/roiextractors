@@ -91,7 +91,7 @@ class ImagingExtractor(ABC, BaseExtractor):
         return time * self.get_sampling_frequency()
 
     @staticmethod
-    def write_imaging(imaging, save_path: PathType):
+    def write_imaging(imaging, save_path: PathType, overwrite: bool = False):
         """
         Static method to write imaging.
 
@@ -102,6 +102,8 @@ class ImagingExtractor(ABC, BaseExtractor):
             file has to be generated.
         save_path: str
             path to save the native format.
+        overwrite: bool
+            If True and save_path is existing, it is overwritten
         """
         raise NotImplementedError
 

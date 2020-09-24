@@ -21,6 +21,7 @@ try:
     from pynwb.file import Subject
     from pynwb.device import Device
     from hdmf.data_utils import DataChunkIterator
+    from hdmf.backends.hdf5.h5_utils import H5DataIO
 
     HAVE_NWB = True
 except ModuleNotFoundError:
@@ -247,7 +248,7 @@ class NwbImagingExtractor(ImagingExtractor):
         return nwbfile
 
     @staticmethod
-    def add_two_photon_series(imaging, nwbfile, metadata):
+    def add_two_photon_series(imaging, nwbfile, metadata, num_chunks=10):
         """
         Auxiliary static method for nwbextractor.
         Adds two photon series from imaging object as TwoPhotonSeries to nwbfile object.
@@ -288,20 +289,25 @@ class NwbImagingExtractor(ImagingExtractor):
 
             imaging_plane = nwbfile.create_imaging_plane(**metadata['Ophys']['ImagingPlane'][0])
 
-            # def data_generator(imaging, channels_ids):
-            #     #  generates data chunks for iterator
-            #     for id in channels_ids:
-            #         data = recording.get_traces(channel_ids=[id]).flatten()
-            #         yield data
-            #
-            # data = data_generator(imaging=imaging, channels_ids=curr_ids)
-            # ophys_data = DataChunkIterator(data=data, iter_axis=1)
+            def data_generator(imaging, num_chunks):
+                num_frames = imaging.get_num_frames()
+                # chunk size is not None
+                chunk_size = num_frames // num_chunks
+                if num_frames % chunk_size > 0:
+                    num_chunks += 1
+                for i in range(num_chunks):
+                    video = imaging.get_video(start_frame=i * chunk_size,
+                                              end_frame=min((i + 1) * chunk_size, num_frames))
+                    data = np.squeeze(video)
+                    yield data
+
+            data = H5DataIO(DataChunkIterator(data_generator(imaging, num_chunks)), compression=True)
             acquisition_name = opts['name']
 
             # using internal data. this data will be stored inside the NWB file
             ophys_ts = TwoPhotonSeries(
                 name=acquisition_name,
-                data=imaging.get_video(),
+                data=data,
                 imaging_plane=imaging_plane,
                 rate=rate,
                 unit='normalized amplitude',
@@ -343,11 +349,12 @@ class NwbImagingExtractor(ImagingExtractor):
 
     @staticmethod
     def write_imaging(imaging: ImagingExtractor, save_path: PathType = None, nwbfile=None,
-                      metadata: dict = None):
+                      metadata: dict = None, overwrite: bool = False, num_chunks: int = 10):
         '''
         Parameters
         ----------
         imaging: ImagingExtractor
+            The imaging extractor object to be written to nwb
         save_path: PathType
             Required if an nwbfile is not passed. Must be the path to the nwbfile
             being appended, otherwise one is created and written.
@@ -362,14 +369,18 @@ class NwbImagingExtractor(ImagingExtractor):
             will result in the appropriate changes to the my_nwbfile object.
         metadata: dict
             metadata info for constructing the nwb file (optional).
+        overwrite: bool
+            If True and save_path is existing, it is overwritten
+        num_chunks: int
+            Number of chunks for writing data to file
         '''
         assert HAVE_NWB, NwbImagingExtractor.installation_mesg
 
-        if nwbfile is not None:
-            assert isinstance(nwbfile, NWBFile), "'nwbfile' should be of type pynwb.NWBFile"
-
         assert save_path is None or nwbfile is None, \
             'Either pass a save_path location, or nwbfile object, but not both!'
+
+        if nwbfile is not None:
+            assert isinstance(nwbfile, NWBFile), "'nwbfile' should be of type pynwb.NWBFile"
 
         # Update any previous metadata with user passed dictionary
         if metadata is None:
@@ -378,12 +389,19 @@ class NwbImagingExtractor(ImagingExtractor):
             metadata = update_dict(imaging.nwb_metadata, metadata)
 
         if nwbfile is None:
-            if os.path.exists(save_path):
-                read_mode = 'r+'
+            save_path = Path(save_path)
+            assert save_path.suffix == '.nwb', "'save_path' file is not an .nwb file"
+
+            if save_path.is_file():
+                if not overwrite:
+                    read_mode = 'r+'
+                else:
+                    save_path.unlink()
+                    read_mode = 'w'
             else:
                 read_mode = 'w'
 
-            with NWBHDF5IO(save_path, mode=read_mode) as io:
+            with NWBHDF5IO(str(save_path), mode=read_mode) as io:
                 if read_mode == 'r+':
                     nwbfile = io.read()
                 else:
@@ -401,7 +419,8 @@ class NwbImagingExtractor(ImagingExtractor):
 
                     NwbImagingExtractor.add_two_photon_series(imaging=imaging,
                                                               nwbfile=nwbfile,
-                                                              metadata=metadata)
+                                                              metadata=metadata,
+                                                              num_chunks=num_chunks)
 
                     NwbImagingExtractor.add_epochs(imaging=imaging,
                                                    nwbfile=nwbfile)
