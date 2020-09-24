@@ -14,7 +14,9 @@ except ImportError:
 ArrayType = Union[list, np.array]
 PathType = Union[str, Path]
 NumpyArray = Union[np.array, np.memmap]
-DtypeType = [str, np.dtype]
+DtypeType = Union[str, np.dtype]
+IntType = Union[int, np.integer]
+FloatType = Union[float, np.float]
 
 
 def dict_recursive_update(base, input_):
