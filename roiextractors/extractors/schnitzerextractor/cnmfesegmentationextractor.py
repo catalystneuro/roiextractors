@@ -1,11 +1,12 @@
-import numpy as np
-import h5py
-from lazy_ops import DatasetView
-from scipy.sparse import csc_matrix
 from pathlib import Path
 
-from ...segmentationextractor import SegmentationExtractor
+import h5py
+import numpy as np
+from lazy_ops import DatasetView
+from scipy.sparse import csc_matrix
+
 from ...multisegmentationextractor import MultiSegmentationExtractor
+from ...segmentationextractor import SegmentationExtractor
 
 
 class CnmfeSegmentationExtractor(SegmentationExtractor):

@@ -1,12 +1,14 @@
-import numpy as np
-from typing import Union
-from pathlib import Path
 from functools import wraps
-from tqdm import tqdm
+from pathlib import Path
+from typing import Union
+
+import numpy as np
 from spikeextractors.extraction_tools import cast_start_end_frame
+from tqdm import tqdm
 
 try:
     import h5py
+
     HAVE_H5 = True
 except ImportError:
     HAVE_H5 = False
@@ -35,20 +37,21 @@ def dict_recursive_update(base, input_):
         else:
             base[key] = val
 
+
 def _pixel_mask_extractor(image_mask_, _roi_ids):
-    '''An alternative data format for storage of image masks.
+    """An alternative data format for storage of image masks.
     Returns
     -------
     pixel_mask: numpy array
         Total pixels X 4 size. Col 1 and 2 are x and y location of the mask
         pixel, Col 3 is the weight of that pixel, Col 4 is the ROI index.
-    '''
+    """
     pixel_mask_list = []
     for i, roiid in enumerate(_roi_ids):
         image_mask = np.array(image_mask_[:, :, i])
         _locs = np.where(image_mask > 0)
         _pix_values = image_mask[image_mask > 0]
-        pixel_mask_list.append(np.vstack((_locs[0], _locs[1],_pix_values)).T)
+        pixel_mask_list.append(np.vstack((_locs[0], _locs[1], _pix_values)).T)
     return pixel_mask_list
 
 
@@ -67,7 +70,7 @@ def _image_mask_extractor(pixel_mask, _roi_ids, image_shape):
     -------
     image_mask: np.ndarray
     """
-    image_mask = np.zeros(list(image_shape)+[len(_roi_ids)])
+    image_mask = np.zeros(list(image_shape) + [len(_roi_ids)])
     for no, rois in enumerate(_roi_ids):
         for x, y, wt in pixel_mask[rois]:
             image_mask[int(x), int(y), no] = wt
@@ -100,6 +103,7 @@ def check_get_frames_args(func):
             return get_frames_correct_arg[0]
         else:
             return get_frames_correct_arg
+
     return corrected_args
 
 
@@ -127,12 +131,13 @@ def check_get_videos_args(func):
         get_videos_correct_arg = func(imaging, start_frame=start_frame, end_frame=end_frame, channel=channel)
 
         return get_videos_correct_arg
+
     return corrected_args
 
 
 def write_to_h5_dataset_format(imaging, dataset_path, save_path=None, file_handle=None,
                                dtype=None, chunk_size=None, chunk_mb=1000, verbose=False):
-    '''Saves the video of an imaging extractor in an h5 dataset.
+    """Saves the video of an imaging extractor in an h5 dataset.
 
     Parameters
     ----------
@@ -154,7 +159,7 @@ def write_to_h5_dataset_format(imaging, dataset_path, save_path=None, file_handl
         Chunk size in Mb (default 1000Mb)
     verbose: bool
         If True, output is verbose (when chunks are used)
-    '''
+    """
     assert HAVE_H5, "To write to h5 you need to install h5py: pip install h5py"
     assert save_path is not None or file_handle is not None, "Provide 'save_path' or 'file handle'"
 

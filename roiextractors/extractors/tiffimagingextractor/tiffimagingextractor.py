@@ -1,11 +1,14 @@
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 from tqdm import tqdm
-from ...imagingextractor import ImagingExtractor
+
 from ...extraction_tools import PathType, get_video_shape, check_get_frames_args
+from ...imagingextractor import ImagingExtractor
 
 try:
     import tifffile
+
     HAVE_TIFF = True
 except:
     HAVE_TIFF = False

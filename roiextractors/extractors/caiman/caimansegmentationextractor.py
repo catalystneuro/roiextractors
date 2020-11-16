@@ -1,11 +1,12 @@
-import numpy as np
-import h5py
-from lazy_ops import DatasetView
-from scipy.sparse import csc_matrix
 from pathlib import Path
 
-from ...segmentationextractor import SegmentationExtractor
+import h5py
+import numpy as np
+from lazy_ops import DatasetView
+from scipy.sparse import csc_matrix
+
 from ...multisegmentationextractor import MultiSegmentationExtractor
+from ...segmentationextractor import SegmentationExtractor
 
 
 class CaimanSegmentationExtractor(SegmentationExtractor):
@@ -41,8 +42,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self._dataset_file.close()
 
     def _file_extractor_read(self):
-        f = h5py.File(self.file_path, 'r')
-        return f
+        return h5py.File(self.file_path, 'r')
 
     def _image_mask_sparse_read(self):
         roi_ids = self._dataset_file['estimates']['A']['indices']

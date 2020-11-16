@@ -1,11 +1,14 @@
-import numpy as np
 from pathlib import Path
+
 import lazy_ops
-from ...imagingextractor import ImagingExtractor
+import numpy as np
+
 from ...extraction_tools import check_get_frames_args, get_video_shape, write_to_h5_dataset_format
+from ...imagingextractor import ImagingExtractor
 
 try:
     import h5py
+
     HAVE_H5 = True
 except ImportError:
     HAVE_H5 = False
@@ -28,7 +31,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         assert self.filepath.suffix in ['.h5', '.hdf5'], "'file_path' file is not an .hdf5 or .h5 file"
         self._channel_names = channel_names
 
-        self._file =  h5py.File(file_path, "r")
+        self._file = h5py.File(file_path, "r")
         if 'mov' in self._file.keys():
             self._video = self._file[self._mov_field]
             if sampling_frequency is None:

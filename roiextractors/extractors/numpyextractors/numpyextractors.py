@@ -1,8 +1,10 @@
-import numpy as np
 from pathlib import Path
+
+import numpy as np
+
+from ...extraction_tools import check_get_frames_args, get_video_shape, _pixel_mask_extractor
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
-from ...extraction_tools import check_get_frames_args, get_video_shape, _pixel_mask_extractor
 
 
 class NumpyImagingExtractor(ImagingExtractor):
@@ -182,9 +184,9 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         elif isinstance(image_masks, np.ndarray):
             NoneType = type(None)
             assert isinstance(raw, np.ndarray)
-            assert isinstance(dff, (np.ndarray,NoneType))
-            assert isinstance(neuropil, (np.ndarray,NoneType))
-            assert isinstance(deconvolved, (np.ndarray,NoneType))
+            assert isinstance(dff, (np.ndarray, NoneType))
+            assert isinstance(neuropil, (np.ndarray, NoneType))
+            assert isinstance(deconvolved, (np.ndarray, NoneType))
             self.is_dumpable = False
             self.image_masks = image_masks
             self._roi_response_raw = raw

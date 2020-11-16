@@ -1,8 +1,7 @@
 import numpy as np
 from lazy_ops import DatasetView
+
 from .segmentationextractor import SegmentationExtractor
-from . import *
-from .extractorlist import *
 
 
 def concatenate_output(func):
@@ -18,6 +17,7 @@ def concatenate_output(func):
             seg_roi_ids = roi_id_segmentation[seg_id == i]
             out.append(getattr(self._segmentations[i], func.__name__)(roi_ids=seg_roi_ids, **kwargs))
         return func(self)(out)
+
     return _get_from_roi_map
 
 
