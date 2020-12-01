@@ -61,7 +61,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         return np.array(summary_image).T
 
     def _raw_datafile_read(self):
-        charlist = [chr(i) for i in self._dataset_file[self._group0[0]]['movieList'][:]]
+        charlist = [chr(i) for i in np.squeeze(self._dataset_file[self._group0[0]]['movieList'][:])]
         return ''.join(charlist)
 
     def get_accepted_list(self):
