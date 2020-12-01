@@ -6,7 +6,7 @@ import shutil
 from ...segmentationextractor import SegmentationExtractor
 from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...extraction_tools import _image_mask_extractor
-
+from ...extraction_tools import PathType, IntType
 
 class Suite2pSegmentationExtractor(SegmentationExtractor):
     extractor_name = 'Suite2pSegmentationExtractor'
@@ -15,7 +15,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     mode = 'file'
     installation_mesg = ""  # error message when not installed
 
-    def __init__(self, fileloc, combined=False, plane_no=0):
+    def __init__(self, file_path: PathType, combined: bool = False, plane_no: IntType = 0):
         """
         Creating SegmentationExtractor object out of suite 2p data type.
         Parameters
@@ -30,7 +30,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         SegmentationExtractor.__init__(self)
         self.combined = combined
         self.plane_no = plane_no
-        self.file_path = fileloc
+        self.file_path = file_path
         self.stat = self._load_npy('stat.npy')
         self._roi_response_raw = self._load_npy('F.npy', mmap_mode='r')
         self._roi_response_neuropil = self._load_npy('Fneu.npy', mmap_mode='r')

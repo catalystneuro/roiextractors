@@ -5,7 +5,7 @@ from pathlib import Path
 
 from ...segmentationextractor import SegmentationExtractor
 from ...multisegmentationextractor import MultiSegmentationExtractor
-
+from ...extraction_tools import PathType
 
 class ExtractSegmentationExtractor(SegmentationExtractor):
     """
@@ -19,7 +19,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
     mode = 'file'
     installation_mesg = ""  # error message when not installed
 
-    def __init__(self, file_path):
+    def __init__(self, file_path: PathType):
         """
         Parameters
         ----------

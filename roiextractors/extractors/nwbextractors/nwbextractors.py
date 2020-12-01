@@ -12,6 +12,7 @@ from ...segmentationextractor import SegmentationExtractor
 from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...extraction_tools import PathType, FloatType, IntType, \
     check_get_frames_args, check_get_videos_args, _pixel_mask_extractor, dict_recursive_update
+from ...extraction_tools import PathType
 
 try:
     from pynwb import NWBHDF5IO, TimeSeries, NWBFile
@@ -98,7 +99,7 @@ class NwbImagingExtractor(ImagingExtractor):
     mode = 'file'
     installation_mesg = "To use the Nwb Extractor run:\n\n pip install pynwb\n\n"  # error message when not installed
 
-    def __init__(self, file_path, optical_series_name='TwoPhotonSeries'):
+    def __init__(self, file_path: PathType, optical_series_name: str='TwoPhotonSeries'):
         """
         Parameters
         ----------
@@ -447,7 +448,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     mode = 'file'
     installation_mesg = ""  # error message when not installed
 
-    def __init__(self, file_path):
+    def __init__(self, file_path: PathType):
         """
         Creating NwbSegmentationExtractor object from nwb file
         Parameters

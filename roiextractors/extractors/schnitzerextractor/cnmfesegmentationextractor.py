@@ -6,6 +6,7 @@ from pathlib import Path
 
 from ...segmentationextractor import SegmentationExtractor
 from ...multisegmentationextractor import MultiSegmentationExtractor
+from ...extraction_tools import PathType
 
 
 class CnmfeSegmentationExtractor(SegmentationExtractor):
@@ -20,7 +21,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
     mode = 'file'
     installation_mesg = ""  # error message when not installed
 
-    def __init__(self, file_path):
+    def __init__(self, file_path: PathType):
         """
         Parameters
         ----------
@@ -33,7 +34,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         self.image_masks = self._image_mask_extractor_read()
         self._roi_response_raw = self._trace_extractor_read()
         self._raw_movie_file_location = self._raw_datafile_read()
-        self._sampling_frequency = self._roi_response_raw.shape[1] / self._tot_exptime_extractor_read()
+        self._sampling_frequency = self._roi_response_raw.shape[1]/self._tot_exptime_extractor_read()
         self._image_correlation = self._summary_image_read()
 
     def __del__(self):
@@ -92,7 +93,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         if isinstance(segmentation_object, MultiSegmentationExtractor):
             segext_objs = segmentation_object.segmentations
             for plane_num, segext_obj in enumerate(segext_objs):
-                save_path_plane = folder_path / f'Plane_{plane_num}' / file_name
+                save_path_plane = folder_path/f'Plane_{plane_num}'/file_name
                 CnmfeSegmentationExtractor.write_segmentation(segext_obj, save_path_plane)
         if not folder_path.is_dir():
             folder_path.mkdir(parents=True)
