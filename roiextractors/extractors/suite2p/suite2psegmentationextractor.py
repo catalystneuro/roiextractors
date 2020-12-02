@@ -21,7 +21,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         Creating SegmentationExtractor object out of suite 2p data type.
         Parameters
         ----------
-        fileloc: str
+        file_path: str
             ~/suite2p folder location on disk
         combined: bool
             if the plane is a combined plane as in the Suite2p pipeline
@@ -133,7 +133,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             roi_idx = [np.where(np.array(i) == self.get_roi_ids())[0] for i in roi_ids]
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return _image_mask_extractor(self.get_roi_pixel_masks(roi_ids=roi_idx_), range(len(roi_idx_)),
+        return _image_mask_extractor(self.get_roi_pixel_masks(roi_ids=roi_idx_), list(range(len(roi_idx_))),
                                      self.get_image_size())
 
     def get_roi_pixel_masks(self, roi_ids=None):

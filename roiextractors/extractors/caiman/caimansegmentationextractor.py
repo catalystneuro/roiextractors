@@ -50,7 +50,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         masks = self._dataset_file['estimates']['A']['data']
         ids = self._dataset_file['estimates']['A']['indptr']
         image_mask_in = csc_matrix((masks, roi_ids, ids),
-                                   shape=(np.prod(self.get_image_size()), self.no_rois)).toarray()
+                                   shape=(np.prod(self.get_image_size()), self.get_num_rois())).toarray()
         image_masks = np.reshape(image_mask_in, (*self.get_image_size(), -1), order='F')
         return image_masks
 
@@ -72,15 +72,6 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         rejected = self._dataset_file['estimates']['idx_components_bad']
         if len(rejected.shape) > 0:
             return rejected
-
-    @property
-    def roi_locations(self):
-        num_ROIs = self.get_num_rois()
-        roi_locations = np.ndarray([2, num_ROIs], dtype='int')
-        for i in range(num_ROIs):
-            temp = np.where(self.image_masks[:, :, i] == np.amax(self.image_masks[:, :, i]))
-            roi_locations[:, i] = np.array([np.median(temp[0]), np.median(temp[1])]).T
-        return roi_locations
 
     @staticmethod
     def write_segmentation(segmentation_object, save_path, overwrite=False):
@@ -113,8 +104,8 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
                 estimates.create_dataset('F_dff', data=segmentation_object.get_traces(name='dff'))
             if segmentation_object.get_traces(name='deconvolved') is not None:
                 estimates.create_dataset('S', data=segmentation_object.get_traces(name='deconvolved'))
-            if segmentation_object.get_images_dict('correlation') is not None:
-                estimates.create_dataset('Cn', data=segmentation_object.get_images_dict('correlation'))
+            if segmentation_object.get_image('correlation') is not None:
+                estimates.create_dataset('Cn', data=segmentation_object.get_image('correlation'))
             estimates.create_dataset('idx_components', data=np.array(segmentation_object.get_accepted_list()))
             estimates.create_dataset('idx_components_bad', data=np.array(segmentation_object.get_rejected_list()))
 

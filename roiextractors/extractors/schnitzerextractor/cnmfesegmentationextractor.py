@@ -69,15 +69,8 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         return list(range(self.get_num_rois()))
 
     def get_rejected_list(self):
-        return [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
-
-    @property
-    def roi_locations(self):
-        roi_location = np.ndarray([2, self.get_num_rois()], dtype='int')
-        for i in range(self.get_num_rois()):
-            temp = np.where(self.image_masks[:, :, i] == np.amax(self.image_masks[:, :, i]))
-            roi_location[:, i] = np.array([np.median(temp[0]), np.median(temp[1])]).T
-        return roi_location
+        ac_set = set(self.get_accepted_list())
+        return [a for a in range(self.get_num_rois()) if a not in ac_set]
 
     @staticmethod
     def write_segmentation(segmentation_object, save_path, overwrite=False):
