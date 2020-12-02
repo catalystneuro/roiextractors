@@ -167,7 +167,7 @@ def write_to_h5_dataset_format(imaging, dataset_path, save_path=None, file_handl
         save_path = Path(save_path)
         if save_path.suffix == '':
             # when suffix is already raw/bin/dat do not change it.
-            save_path = save_path.parent / (save_path.name + '.h5')
+            save_path = save_path.parent/(save_path.name + '.h5')
 
     num_channels = imaging.get_num_channels()
     num_frames = imaging.get_num_frames()
@@ -190,8 +190,8 @@ def write_to_h5_dataset_format(imaging, dataset_path, save_path=None, file_handl
         chunk_size = int(chunk_size)
     elif chunk_mb is not None:
         n_bytes = np.dtype(imaging.get_dtype()).itemsize
-        max_size = int(chunk_mb * 1e6)  # set Mb per chunk
-        chunk_size = max_size // (size_x * size_y * n_bytes)
+        max_size = int(chunk_mb*1e6)  # set Mb per chunk
+        chunk_size = max_size//(size_x*size_y*n_bytes)
 
     # writ one channel at a time
     for ch in range(num_channels):
@@ -203,16 +203,16 @@ def write_to_h5_dataset_format(imaging, dataset_path, save_path=None, file_handl
         else:
             chunk_start = 0
             # chunk size is not None
-            n_chunk = num_frames // chunk_size
-            if num_frames % chunk_size > 0:
+            n_chunk = num_frames//chunk_size
+            if num_frames%chunk_size > 0:
                 n_chunk += 1
             if verbose:
                 chunks = tqdm(range(n_chunk), ascii=True, desc="Writing to .h5 file")
             else:
                 chunks = range(n_chunk)
             for i in chunks:
-                video = imaging.get_video(start_frame=i * chunk_size,
-                                          end_frame=min((i + 1) * chunk_size, num_frames), channel=ch)
+                video = imaging.get_video(start_frame=i*chunk_size,
+                                          end_frame=min((i + 1)*chunk_size, num_frames), channel=ch)
                 chunk_frames = np.squeeze(video).shape[0]
                 if dtype is not None:
                     video = video.astype(dtype_file)
@@ -240,7 +240,7 @@ def show_video(imaging, ax=None):
 
     im0 = imaging.get_frames(0)
     im = ax.imshow(im0, interpolation='none', aspect='auto', vmin=0, vmax=1)
-    interval = 1 / imaging.get_sampling_frequency() * 1000
+    interval = 1/imaging.get_sampling_frequency()*1000
     anim = animation.FuncAnimation(fig, animate_func, frames=imaging.get_num_frames(), fargs=(imaging, im, ax),
                                    interval=interval, blit=False)
     return anim

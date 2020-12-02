@@ -7,6 +7,7 @@ from scipy.sparse import csc_matrix
 
 from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
+from ...extraction_tools import PathType
 
 
 class CaimanSegmentationExtractor(SegmentationExtractor):
@@ -21,7 +22,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
     mode = 'file'
     installation_mesg = ""  # error message when not installed
 
-    def __init__(self, file_path):
+    def __init__(self, file_path: PathType):
         """
         Parameters
         ----------

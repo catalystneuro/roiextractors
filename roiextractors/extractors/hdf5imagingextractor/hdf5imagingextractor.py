@@ -1,8 +1,8 @@
 from pathlib import Path
 
-import lazy_ops
 import numpy as np
 
+from ...extraction_tools import PathType, FloatType, ArrayType
 from ...extraction_tools import check_get_frames_args, get_video_shape, write_to_h5_dataset_format
 from ...imagingextractor import ImagingExtractor
 
@@ -21,8 +21,9 @@ class Hdf5ImagingExtractor(ImagingExtractor):
     mode = 'file'
     installation_mesg = "To use the Hdf5 Extractor run:\n\n pip install h5py\n\n"  # error message when not installed
 
-    def __init__(self, file_path, mov_field='mov', sampling_frequency=None, start_time=None, metadata=None,
-                 channel_names=None):
+    def __init__(self, file_path: PathType, mov_field='mov', sampling_frequency: FloatType = None,
+                 start_time: FloatType = None, metadata: dict = None,
+                 channel_names: ArrayType = None):
         assert HAVE_H5, self.installation_mesg
         ImagingExtractor.__init__(self)
         self.filepath = Path(file_path)

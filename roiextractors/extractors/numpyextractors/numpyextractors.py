@@ -5,13 +5,15 @@ import numpy as np
 from ...extraction_tools import check_get_frames_args, get_video_shape, _pixel_mask_extractor
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
+from ...extraction_tools import check_get_frames_args, get_video_shape, _pixel_mask_extractor
+from ...extraction_tools import PathType, FloatType, ArrayType
 
 
 class NumpyImagingExtractor(ImagingExtractor):
     extractor_name = 'NumpyImagingExtractor'
     is_writable = True
 
-    def __init__(self, timeseries, sampling_frequency, channel_names=None):
+    def __init__(self, timeseries: PathType, sampling_frequency: FloatType, channel_names: ArrayType = None):
         ImagingExtractor.__init__(self)
 
         if isinstance(timeseries, (str, Path)):

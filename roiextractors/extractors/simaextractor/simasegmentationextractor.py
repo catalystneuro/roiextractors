@@ -6,12 +6,11 @@ from shutil import copyfile
 import dill
 import numpy as np
 
-from ...extraction_tools import _pixel_mask_extractor
+from ...extraction_tools import _pixel_mask_extractor, PathType
 from ...segmentationextractor import SegmentationExtractor
 
 try:
     import sima
-
     HAVE_SIMA = True
 except:
     HAVE_SIMA = False
@@ -29,7 +28,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     mode = 'file'
     installation_mesg = "To use the SimaSegmentationExtractor install sima: \n\n pip install sima\n\n"  # error message when not installed
 
-    def __init__(self, file_path, sima_segmentation_label='auto_ROIs'):
+    def __init__(self, file_path: PathType, sima_segmentation_label: str = 'auto_ROIs'):
         """
         Parameters
         ----------
