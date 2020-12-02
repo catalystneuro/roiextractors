@@ -1,18 +1,20 @@
 import os
 import uuid
-import numpy as np
-from warnings import warn
-from pathlib import Path
-from lazy_ops import DatasetView
-from datetime import datetime
 from collections import abc
+from datetime import datetime
+from pathlib import Path
+from warnings import warn
 
-from ...imagingextractor import ImagingExtractor
-from ...segmentationextractor import SegmentationExtractor
-from ...multisegmentationextractor import MultiSegmentationExtractor
+import numpy as np
+from lazy_ops import DatasetView
+
 from ...extraction_tools import PathType, FloatType, IntType, \
     check_get_frames_args, check_get_videos_args, _pixel_mask_extractor, dict_recursive_update
 from ...extraction_tools import PathType
+from ...imagingextractor import ImagingExtractor
+from ...multisegmentationextractor import MultiSegmentationExtractor
+from ...segmentationextractor import SegmentationExtractor
+
 
 try:
     from pynwb import NWBHDF5IO, TimeSeries, NWBFile

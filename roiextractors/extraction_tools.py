@@ -1,9 +1,10 @@
-import numpy as np
-from typing import Union
-from pathlib import Path
 from functools import wraps
-from tqdm import tqdm
+from pathlib import Path
+from typing import Union
+
+import numpy as np
 from spikeextractors.extraction_tools import cast_start_end_frame
+from tqdm import tqdm
 
 try:
     import h5py
@@ -38,13 +39,13 @@ def dict_recursive_update(base, input_):
 
 
 def _pixel_mask_extractor(image_mask_, _roi_ids):
-    '''An alternative data format for storage of image masks.
+    """An alternative data format for storage of image masks.
     Returns
     -------
     pixel_mask: numpy array
         Total pixels X 4 size. Col 1 and 2 are x and y location of the mask
         pixel, Col 3 is the weight of that pixel, Col 4 is the ROI index.
-    '''
+    """
     pixel_mask_list = []
     for i, roiid in enumerate(_roi_ids):
         image_mask = np.array(image_mask_[:, :, i])
@@ -136,7 +137,7 @@ def check_get_videos_args(func):
 
 def write_to_h5_dataset_format(imaging, dataset_path, save_path=None, file_handle=None,
                                dtype=None, chunk_size=None, chunk_mb=1000, verbose=False):
-    '''Saves the video of an imaging extractor in an h5 dataset.
+    """Saves the video of an imaging extractor in an h5 dataset.
 
     Parameters
     ----------
@@ -158,7 +159,7 @@ def write_to_h5_dataset_format(imaging, dataset_path, save_path=None, file_handl
         Chunk size in Mb (default 1000Mb)
     verbose: bool
         If True, output is verbose (when chunks are used)
-    '''
+    """
     assert HAVE_H5, "To write to h5 you need to install h5py: pip install h5py"
     assert save_path is not None or file_handle is not None, "Provide 'save_path' or 'file handle'"
 

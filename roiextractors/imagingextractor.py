@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
+
 import numpy as np
 from spikeextractors.baseextractor import BaseExtractor
+
 from .extraction_tools import ArrayType, PathType, NumpyArray, DtypeType, IntType, FloatType, check_get_videos_args
 
 
@@ -8,6 +10,7 @@ class ImagingExtractor(ABC, BaseExtractor):
     """An abstract class that contains all the meta-data and input data from
        the imaging data.
     """
+
     def __init__(self):
         BaseExtractor.__init__(self)
         self._memmapped = False
@@ -15,7 +18,6 @@ class ImagingExtractor(ABC, BaseExtractor):
     @abstractmethod
     def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> NumpyArray:
         pass
-
 
     @abstractmethod
     def get_image_size(self) -> ArrayType:
@@ -106,5 +108,3 @@ class ImagingExtractor(ABC, BaseExtractor):
             If True and save_path is existing, it is overwritten
         """
         raise NotImplementedError
-
-

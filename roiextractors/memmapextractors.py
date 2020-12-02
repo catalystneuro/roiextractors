@@ -1,11 +1,13 @@
-import numpy as np
-from pathlib import Path
-from .imagingextractor import ImagingExtractor
-from .extraction_tools import PathType, check_get_frames_args
 import os
-import tempfile
 import shutil
+import tempfile
+from pathlib import Path
+
+import numpy as np
 from tqdm import tqdm
+
+from .extraction_tools import PathType, check_get_frames_args
+from .imagingextractor import ImagingExtractor
 
 
 class MemmapImagingExtractor(ImagingExtractor):
@@ -74,7 +76,6 @@ class MemmapImagingExtractor(ImagingExtractor):
                                                   self.imaging.get_image_size()[0],
                                                   self.imaging.get_image_size()[0]),
                                 dtype=self.imaging.get_dtype(), mode='r')
-
 
     @check_get_frames_args
     def get_frames(self, frame_idxs, channel=0):

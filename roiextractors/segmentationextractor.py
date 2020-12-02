@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
-from spikeextractors.baseextractor import BaseExtractor
+from copy import deepcopy
+
 import numpy as np
+from spikeextractors.baseextractor import BaseExtractor
+
 from .extraction_tools import ArrayType
 from .extraction_tools import _pixel_mask_extractor
-from copy import deepcopy
 
 
 class SegmentationExtractor(ABC, BaseExtractor):

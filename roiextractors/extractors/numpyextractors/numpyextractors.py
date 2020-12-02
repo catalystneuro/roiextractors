@@ -1,5 +1,8 @@
-import numpy as np
 from pathlib import Path
+
+import numpy as np
+
+from ...extraction_tools import check_get_frames_args, get_video_shape, _pixel_mask_extractor
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
 from ...extraction_tools import check_get_frames_args, get_video_shape, _pixel_mask_extractor

@@ -1,5 +1,6 @@
 import numpy as np
 import spikeextractors as se
+
 from ..extractors.numpyextractors import NumpyImagingExtractor, NumpySegmentationExtractor
 
 
@@ -67,7 +68,7 @@ def toy_example(duration=10, num_rois=10, size_x=100, size_y=100, roi_size=4, mi
     ----------
     duration: float
         Duration in s
-    num_units: int
+    num_rois: int
         Number of ROIs
     size_x: int
         Size of x dimension (pixels)
@@ -150,7 +151,3 @@ def toy_example(duration=10, num_rois=10, size_x=100, size_y=100, roi_size=4, mi
                                      neuropil=neuropil, sampling_frequency=sampling_frequency)
 
     return imag, seg
-
-
-
-

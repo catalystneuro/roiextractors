@@ -1,16 +1,16 @@
-import numpy as np
-from ...segmentationextractor import SegmentationExtractor
-import dill
-import re
 import os
 import pickle
+import re
 from shutil import copyfile
-from ...extraction_tools import _pixel_mask_extractor
-from ...extraction_tools import PathType
+
+import dill
+import numpy as np
+
+from ...extraction_tools import _pixel_mask_extractor, PathType
+from ...segmentationextractor import SegmentationExtractor
 
 try:
     import sima
-
     HAVE_SIMA = True
 except:
     HAVE_SIMA = False
