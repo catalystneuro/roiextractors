@@ -147,16 +147,6 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     def get_rejected_list(self):
         return [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
 
-    @property
-    def roi_locations(self):
-        num_ROIs = self.get_num_rois()
-        raw_images = self.image_masks
-        roi_location = np.ndarray([2, num_ROIs], dtype='int')
-        for i in range(num_ROIs):
-            temp = np.where(raw_images[:, :, i] == np.amax(raw_images[:, :, i]))
-            roi_location[:, i] = np.array([np.median(temp[0]), np.median(temp[1])]).T
-        return roi_location
-
     @staticmethod
     def write_segmentation(segmentation_object, savepath):
         raise NotImplementedError

@@ -353,7 +353,7 @@ class NwbImagingExtractor(ImagingExtractor):
     @staticmethod
     def write_imaging(imaging: ImagingExtractor, save_path: PathType = None, nwbfile=None,
                       metadata: dict = None, overwrite: bool = False, num_chunks: int = 10):
-        '''
+        """
         Parameters
         ----------
         imaging: ImagingExtractor
@@ -376,7 +376,7 @@ class NwbImagingExtractor(ImagingExtractor):
             If True and save_path is existing, it is overwritten
         num_chunks: int
             Number of chunks for writing data to file
-        '''
+        """
         assert HAVE_NWB, NwbImagingExtractor.installation_mesg
 
         assert save_path is None or nwbfile is None, \
@@ -645,7 +645,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             metadata_input = metadata[num] if metadata else {}
             metadata_base_list[num] = dict_recursive_update(metadata_base_list[num], metadata_input)
         # loop for every plane:
-        with NWBHDF5IO(save_path, file_mode) as io:
+        with NWBHDF5IO(str(save_path), file_mode) as io:
             metadata_base_common = metadata_base_list[0]
             if nwbfile_exist:
                 nwbfile = io.read()
@@ -708,8 +708,10 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 # ROI add:
                 image_masks = segext_obj.get_roi_image_masks()
                 roi_ids = segext_obj.get_roi_ids()
-                accepted_ids = [1 if k in segext_obj.get_accepted_list() else 0 for k in roi_ids]
-                rejected_ids = [1 if k in segext_obj.get_rejected_list() else 0 for k in roi_ids]
+                accepted_list = segext_obj.get_accepted_list()
+                rejected_list = segext_obj.get_rejected_list()
+                accepted_ids = [1 if k in accepted_list else 0 for k in roi_ids]
+                rejected_ids = [1 if k in rejected_list else 0 for k in roi_ids]
                 roi_locations = np.array(segext_obj.get_roi_locations()).T
                 if not ps_exist:
                     ps.add_column(name='RoiCentroid',

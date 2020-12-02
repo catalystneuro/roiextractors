@@ -36,6 +36,7 @@ def dict_recursive_update(base, input_):
                     base[key].append(input_list_item)
         else:
             base[key] = val
+    return base
 
 
 def _pixel_mask_extractor(image_mask_, _roi_ids):
