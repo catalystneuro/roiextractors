@@ -729,7 +729,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                                   description='1 if ROi was rejected or 0 if accepted as a cell during segmentation operation')
                 for num, row in enumerate(
                         roi_ids):  # Expects the existing ps to be a prior nwbsegext saved nwb file with existing columns
-                    ps.add_row(id=row, image_mask=image_masks[:, :, num],
+                    ps.add_roi(id=row, image_mask=image_masks[:, :, num],
                                RoiCentroid=roi_locations[num, :],
                                Accepted=accepted_ids[num], Rejected=rejected_ids[num])
 
@@ -753,7 +753,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                         if trace_name not in fluorescence.roi_response_series:
                             fluorescence.create_roi_response_series(**input_kwargs)
 
-                # create Two Photon Series:
+                #create Two Photon Series:
                 if 'TwoPhotonSeries' not in nwbfile.acquisition:
                     warn('could not find TwoPhotonSeries, using ImagingExtractor to create an nwbfile')
 
