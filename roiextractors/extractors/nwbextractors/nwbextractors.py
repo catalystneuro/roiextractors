@@ -90,7 +90,7 @@ def update_dict(d, u):
 
 
 def get_default_nwb_metadata():
-    metadata = {'NWBFile': {'session_start_time': datetime.now(),
+    metadata = {'NWBFile': {'session_start_time': datetime(1970,1,1),
                             'identifier': str(uuid.uuid4()),
                             'session_description': 'no description'},
                 'Ophys': {'Device': [{'name': 'Microscope'}],
