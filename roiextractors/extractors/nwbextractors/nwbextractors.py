@@ -8,9 +8,8 @@ from warnings import warn
 import numpy as np
 from lazy_ops import DatasetView
 
-from ...extraction_tools import PathType, FloatType, IntType, \
-    check_get_frames_args, check_get_videos_args, _pixel_mask_extractor, \
-    dict_recursive_update
+from ...extraction_tools import FloatType, IntType, \
+    check_get_frames_args, check_get_videos_args, dict_recursive_update
 from ...extraction_tools import PathType
 from ...imagingextractor import ImagingExtractor
 from ...multisegmentationextractor import MultiSegmentationExtractor
@@ -52,7 +51,7 @@ def set_dynamic_table_property(dynamic_table, ids, row_ids, property_name, value
             for (row_id, value) in zip(row_ids, values):
                 dynamic_table[property_name].data[ids.index(row_id)] = value
         else:
-            col_data = [default_value]*len(ids)  # init with default val
+            col_data = [default_value] * len(ids)  # init with default val
             for (row_id, value) in zip(row_ids, values):
                 col_data[ids.index(row_id)] = value
             dynamic_table.add_column(
@@ -156,7 +155,7 @@ class NwbImagingExtractor(ImagingExtractor):
         assert opts.external_file is None, "Only 'raw' format is currently supported"
 
         if hasattr(opts, 'timestamps') and opts.timestamps:
-            self._sampling_frequency = 1./np.median(np.diff(opts.timestamps))
+            self._sampling_frequency = 1. / np.median(np.diff(opts.timestamps))
             self._imaging_start_time = opts.timestamps[0]
         else:
             self._sampling_frequency = opts.rate
@@ -186,32 +185,32 @@ class NwbImagingExtractor(ImagingExtractor):
         self.io.close()
 
     def time_to_frame(self, time: FloatType):
-        return int((time - self._imaging_start_time)*self.get_sampling_frequency())
+        return int((time - self._imaging_start_time) * self.get_sampling_frequency())
 
     def frame_to_time(self, frame: IntType):
-        return float(frame/self.get_sampling_frequency() + self._imaging_start_time)
+        return float(frame / self.get_sampling_frequency() + self._imaging_start_time)
 
     def make_nwb_metadata(self, nwbfile, opts):
         # Metadata dictionary - useful for constructing a nwb file
-        self.nwb_metadata = dict()
-        self.nwb_metadata['NWBFile'] = {
-            'session_description': nwbfile.session_description,
-            'identifier': nwbfile.identifier,
-            'session_start_time': nwbfile.session_start_time,
-            'institution': nwbfile.institution,
-            'lab': nwbfile.lab
-        }
-        self.nwb_metadata['Ophys'] = dict()
-        # Update metadata with Device info
-        self.nwb_metadata['Ophys']['Device'] = []
-        for dev in nwbfile.devices:
-            self.nwb_metadata['Ophys']['Device'].append({'name': dev})
-
-        # Update metadata with ElectricalSeries info
-        self.nwb_metadata['Ophys']['TwoPhotonSeries'] = []
-        self.nwb_metadata['Ophys']['TwoPhotonSeries'].append({
-            'name': opts.name
-        })
+        self.nwb_metadata = dict(
+            NWBFile=dict(
+                session_description=nwbfile.session_description,
+                identifier=nwbfile.identifier,
+                session_start_time=nwbfile.session_start_time,
+                institution=nwbfile.institution,
+                lab=nwbfile.lab
+            ),
+            Ophys=dict(
+                Device=[
+                    dict(name=dev) for dev in nwbfile.devices
+                ],
+                TwoPhotonSeries=[
+                    dict(
+                        name=opts.name
+                    )
+                ]
+            )
+        )
 
     # TODO use lazy_ops
     @check_get_frames_args
@@ -694,6 +693,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                     )
                     metadata['Ophys']['ImagingPlane'][0]['optical_channel'] = optical_channels
                     input_kwargs.update(**metadata['Ophys']['ImagingPlane'][0])
+                    if 'imaging_rate' in input_kwargs:
+                        input_kwargs['imaging_rate'] = float(input_kwargs['imaging_rate'])
                     imaging_plane = nwbfile.create_imaging_plane(**input_kwargs)
                 else:
                     imaging_plane = nwbfile.imaging_planes[image_plane_name]
@@ -753,7 +754,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                         if trace_name not in fluorescence.roi_response_series:
                             fluorescence.create_roi_response_series(**input_kwargs)
 
-                #create Two Photon Series:
+                # create Two Photon Series:
                 if 'TwoPhotonSeries' not in nwbfile.acquisition:
                     warn('could not find TwoPhotonSeries, using ImagingExtractor to create an nwbfile')
 

@@ -1,11 +1,11 @@
 import os
-import sys
 import unittest
 
 import h5py
 import numpy as np
-import roiextractors
 from numpy.testing import assert_array_equal
+
+import roiextractors
 
 
 class TestSchnitzer(unittest.TestCase):
