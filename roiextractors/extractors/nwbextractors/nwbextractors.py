@@ -732,11 +732,10 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                                   description='1 if ROi was accepted or 0 if rejected as a cell during segmentation operation')
                     ps.add_column(name='Rejected',
                                   description='1 if ROi was rejected or 0 if accepted as a cell during segmentation operation')
-                for num, row in enumerate(
-                        roi_ids):  # Expects the existing ps to be a prior nwbsegext saved nwb file with existing columns
-                    ps.add_roi(id=row, image_mask=image_masks[:, :, num],
-                               RoiCentroid=roi_locations[num, :],
-                               Accepted=accepted_ids[num], Rejected=rejected_ids[num])
+                    for num, row in enumerate(roi_ids):
+                        ps.add_roi(id=row, image_mask=image_masks[:, :, num],
+                                   RoiCentroid=roi_locations[num, :],
+                                   Accepted=accepted_ids[num], Rejected=rejected_ids[num])
 
                 # Fluorescence Traces:
                 if 'Flourescence' not in ophys.data_interfaces:
