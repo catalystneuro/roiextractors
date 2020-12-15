@@ -8,9 +8,8 @@ from warnings import warn
 import numpy as np
 from lazy_ops import DatasetView
 
-from ...extraction_tools import PathType, FloatType, IntType, \
-    check_get_frames_args, check_get_videos_args, _pixel_mask_extractor, \
-    dict_recursive_update
+from ...extraction_tools import FloatType, IntType, \
+    check_get_frames_args, check_get_videos_args, dict_recursive_update
 from ...extraction_tools import PathType
 from ...imagingextractor import ImagingExtractor
 from ...multisegmentationextractor import MultiSegmentationExtractor
@@ -52,7 +51,7 @@ def set_dynamic_table_property(dynamic_table, ids, row_ids, property_name, value
             for (row_id, value) in zip(row_ids, values):
                 dynamic_table[property_name].data[ids.index(row_id)] = value
         else:
-            col_data = [default_value]*len(ids)  # init with default val
+            col_data = [default_value] * len(ids)  # init with default val
             for (row_id, value) in zip(row_ids, values):
                 col_data[ids.index(row_id)] = value
             dynamic_table.add_column(
@@ -156,7 +155,7 @@ class NwbImagingExtractor(ImagingExtractor):
         assert opts.external_file is None, "Only 'raw' format is currently supported"
 
         if hasattr(opts, 'timestamps') and opts.timestamps:
-            self._sampling_frequency = 1./np.median(np.diff(opts.timestamps))
+            self._sampling_frequency = 1. / np.median(np.diff(opts.timestamps))
             self._imaging_start_time = opts.timestamps[0]
         else:
             self._sampling_frequency = opts.rate
@@ -186,32 +185,32 @@ class NwbImagingExtractor(ImagingExtractor):
         self.io.close()
 
     def time_to_frame(self, time: FloatType):
-        return int((time - self._imaging_start_time)*self.get_sampling_frequency())
+        return int((time - self._imaging_start_time) * self.get_sampling_frequency())
 
     def frame_to_time(self, frame: IntType):
-        return float(frame/self.get_sampling_frequency() + self._imaging_start_time)
+        return float(frame / self.get_sampling_frequency() + self._imaging_start_time)
 
     def make_nwb_metadata(self, nwbfile, opts):
         # Metadata dictionary - useful for constructing a nwb file
-        self.nwb_metadata = dict()
-        self.nwb_metadata['NWBFile'] = {
-            'session_description': nwbfile.session_description,
-            'identifier': nwbfile.identifier,
-            'session_start_time': nwbfile.session_start_time,
-            'institution': nwbfile.institution,
-            'lab': nwbfile.lab
-        }
-        self.nwb_metadata['Ophys'] = dict()
-        # Update metadata with Device info
-        self.nwb_metadata['Ophys']['Device'] = []
-        for dev in nwbfile.devices:
-            self.nwb_metadata['Ophys']['Device'].append({'name': dev})
-
-        # Update metadata with ElectricalSeries info
-        self.nwb_metadata['Ophys']['TwoPhotonSeries'] = []
-        self.nwb_metadata['Ophys']['TwoPhotonSeries'].append({
-            'name': opts.name
-        })
+        self.nwb_metadata = dict(
+            NWBFile=dict(
+                session_description=nwbfile.session_description,
+                identifier=nwbfile.identifier,
+                session_start_time=nwbfile.session_start_time,
+                institution=nwbfile.institution,
+                lab=nwbfile.lab
+            ),
+            Ophys=dict(
+                Device=[
+                    dict(name=dev) for dev in nwbfile.devices
+                ],
+                TwoPhotonSeries=[
+                    dict(
+                        name=opts.name
+                    )
+                ]
+            )
+        )
 
     # TODO use lazy_ops
     @check_get_frames_args
@@ -618,7 +617,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         return metadata
 
     @staticmethod
-    def write_segmentation(segext_obj, save_path, plane_num=0, metadata=None, overwrite=False):
+    def write_segmentation(segext_obj, save_path, plane_num=0, metadata=None, overwrite=True):
         save_path = Path(save_path)
         assert save_path.suffix == '.nwb'
         if save_path.is_file() and not overwrite:
@@ -680,6 +679,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 if image_segmentation_name not in ophys.data_interfaces:
                     image_segmentation = ImageSegmentation(name=image_segmentation_name)
                     ophys.add_data_interface(image_segmentation)
+                else:
+                    image_segmentation = ophys.data_interfaces.get(image_segmentation_name)
 
                 # OpticalChannel:
                 optical_channels = [OpticalChannel(**i) for i in
@@ -694,6 +695,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                     )
                     metadata['Ophys']['ImagingPlane'][0]['optical_channel'] = optical_channels
                     input_kwargs.update(**metadata['Ophys']['ImagingPlane'][0])
+                    if 'imaging_rate' in input_kwargs:
+                        input_kwargs['imaging_rate'] = float(input_kwargs['imaging_rate'])
                     imaging_plane = nwbfile.create_imaging_plane(**input_kwargs)
                 else:
                     imaging_plane = nwbfile.imaging_planes[image_plane_name]
@@ -703,20 +706,22 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                     description='output from segmenting imaging plane',
                     imaging_plane=imaging_plane
                 )
-                if metadata['Ophys']['ImageSegmentation']['plane_segmentations'][0][
-                    'name'] not in image_segmentation.plane_segmentations:
-                    input_kwargs.update(**metadata['Ophys']['ImageSegmentation']['plane_segmentations'][0])
+                ps_metadata = metadata['Ophys']['ImageSegmentation']['plane_segmentations'][0]
+                if ps_metadata['name'] not in image_segmentation.plane_segmentations:
+                    input_kwargs.update(**ps_metadata)
                     ps = image_segmentation.create_plane_segmentation(**input_kwargs)
                     ps_exist = False
                 else:
-                    ps = image_segmentation.get_plane_segmentation(i['name'])
+                    ps = image_segmentation.get_plane_segmentation(ps_metadata['name'])
                     ps_exist = True
 
                 # ROI add:
                 image_masks = segext_obj.get_roi_image_masks()
                 roi_ids = segext_obj.get_roi_ids()
                 accepted_list = segext_obj.get_accepted_list()
+                accepted_list = [] if accepted_list is None else accepted_list
                 rejected_list = segext_obj.get_rejected_list()
+                rejected_list = [] if rejected_list is None else rejected_list
                 accepted_ids = [1 if k in accepted_list else 0 for k in roi_ids]
                 rejected_ids = [1 if k in rejected_list else 0 for k in roi_ids]
                 roi_locations = np.array(segext_obj.get_roi_locations()).T
@@ -727,11 +732,10 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                                   description='1 if ROi was accepted or 0 if rejected as a cell during segmentation operation')
                     ps.add_column(name='Rejected',
                                   description='1 if ROi was rejected or 0 if accepted as a cell during segmentation operation')
-                for num, row in enumerate(
-                        roi_ids):  # Expects the existing ps to be a prior nwbsegext saved nwb file with existing columns
-                    ps.add_roi(id=row, image_mask=image_masks[:, :, num],
-                               RoiCentroid=roi_locations[num, :],
-                               Accepted=accepted_ids[num], Rejected=rejected_ids[num])
+                    for num, row in enumerate(roi_ids):
+                        ps.add_roi(id=row, image_mask=image_masks[:, :, num],
+                                   RoiCentroid=roi_locations[num, :],
+                                   Accepted=accepted_ids[num], Rejected=rejected_ids[num])
 
                 # Fluorescence Traces:
                 if 'Flourescence' not in ophys.data_interfaces:
@@ -747,25 +751,27 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 for i, j in roi_response_dict.items():
                     data = getattr(segext_obj, f'_roi_response_{i}')
                     if data is not None:
+                        data = np.asarray(data)
                         trace_name = 'RoiResponseSeries' if i == 'raw' else i.capitalize()
                         trace_name = trace_name if plane_no_loop == 0 else trace_name + f'_Plane{plane_no_loop}'
-                        input_kwargs = dict(name=trace_name, data=data.T, rois=roi_table_region, rate=rate)
+                        input_kwargs = dict(name=trace_name, data=data.T, rois=roi_table_region, rate=rate, unit='n.a.')
                         if trace_name not in fluorescence.roi_response_series:
                             fluorescence.create_roi_response_series(**input_kwargs)
 
-                #create Two Photon Series:
+                # create Two Photon Series:
                 if 'TwoPhotonSeries' not in nwbfile.acquisition:
                     warn('could not find TwoPhotonSeries, using ImagingExtractor to create an nwbfile')
 
                 # adding images:
                 images_dict = segext_obj.get_images_dict()
-                images_name = 'SegmentationImages' if plane_no_loop == 0 else f'SegmentationImages_Plane{plane_no_loop}'
-                if images_name not in ophys.data_interfaces:
-                    images = Images(images_name)
-                    for img_name, img_no in images_dict.items():
-                        if img_no is not None:
-                            images.add_image(GrayscaleImage(name=img_name, data=img_no))
-                    ophys.add(images)
+                if any([image is not None for image in images_dict.values()]):
+                    images_name = 'SegmentationImages' if plane_no_loop == 0 else f'SegmentationImages_Plane{plane_no_loop}'
+                    if images_name not in ophys.data_interfaces:
+                        images = Images(images_name)
+                        for img_name, img_no in images_dict.items():
+                            if img_no is not None:
+                                images.add_image(GrayscaleImage(name=img_name, data=img_no))
+                        ophys.add(images)
 
             # saving NWB file:
             io.write(nwbfile)
