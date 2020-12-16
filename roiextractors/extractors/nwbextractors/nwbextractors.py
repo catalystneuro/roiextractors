@@ -678,7 +678,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 image_segmentation_name = 'ImageSegmentation' if plane_no_loop == 0 else f'ImageSegmentation_Plane{plane_no_loop}'
                 if image_segmentation_name not in ophys.data_interfaces:
                     image_segmentation = ImageSegmentation(name=image_segmentation_name)
-                    ophys.add_data_interface(image_segmentation)
+                    ophys.add(image_segmentation)
                 else:
                     image_segmentation = ophys.data_interfaces.get(image_segmentation_name)
 
@@ -740,7 +740,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 # Fluorescence Traces:
                 if 'Flourescence' not in ophys.data_interfaces:
                     fluorescence = Fluorescence()
-                    ophys.add_data_interface(fluorescence)
+                    ophys.add(fluorescence)
                 else:
                     fluorescence = ophys.data_interfaces['Fluorescence']
                 roi_response_dict = segext_obj.get_traces_dict()
