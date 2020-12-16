@@ -180,7 +180,8 @@ class SegmentationExtractor(ABC, BaseExtractor):
             ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
         traces = self.get_traces_dict().get(name)
-        return np.array([traces[int(i), start_frame:end_frame] for i in roi_idx_])
+        if len(traces.shape)!=0:
+            return np.array([traces[int(i), start_frame:end_frame] for i in roi_idx_])
 
     def get_traces_dict(self):
         """
@@ -231,7 +232,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         samp_freq: float
             Sampling frequency of the recordings in Hz.
         """
-        return self._sampling_frequency.astype(np.float)
+        return np.float(self._sampling_frequency)
 
     def get_num_rois(self):
         """Returns total number of Regions of Interest in the acquired images.
