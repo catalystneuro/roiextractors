@@ -261,10 +261,7 @@ class NwbImagingExtractor(ImagingExtractor):
     @staticmethod
     def add_devices(imaging, nwbfile, metadata):
         # Devices
-        if 'Ophys' not in metadata:
-            metadata['Ophys'] = dict()
-        if 'Device' not in metadata['Ophys']:
-            metadata['Ophys']['Device'] = [{'name': 'Device'}]
+        metadata = dict_recursive_update(get_default_nwb_metadata(), metadata)
         # Tests if devices exist in nwbfile, if not create them from metadata
         for dev in metadata['Ophys']['Device']:
             if dev['name'] not in nwbfile.devices:
@@ -278,47 +275,25 @@ class NwbImagingExtractor(ImagingExtractor):
         Auxiliary static method for nwbextractor.
         Adds two photon series from imaging object as TwoPhotonSeries to nwbfile object.
         """
-        if 'Ophys' not in metadata:
-            metadata['Ophys'] = {}
-
-        if 'TwoPthotonSeries' not in metadata['Ophys']:
-            metadata['Ophys']['TwoPhotonSeries'] = [{'name': 'TwoPhotonSeries',
-                                                     'description': 'optical_series_description'}]
+        metadata = dict_recursive_update(get_default_nwb_metadata(), metadata)
+        metadata = update_dict(metadata, NwbImagingExtractor.get_nwb_metadata(imaging))
         # Tests if ElectricalSeries already exists in acquisition
         nwb_es_names = [ac for ac in nwbfile.acquisition]
         opts = metadata['Ophys']['TwoPhotonSeries'][0]
         if opts['name'] not in nwb_es_names:
             # retrieve device
             device = nwbfile.devices[list(nwbfile.devices.keys())[0]]
-
-            # create optical channel
-            if 'OpticalChannel' not in metadata['Ophys']:
-                metadata['Ophys']['OpticalChannel'] = [{'name': 'OpticalChannel',
-                                                        'description': 'no description',
-                                                        'emission_lambda': np.nan}]
-
-            optical_channel = OpticalChannel(**metadata['Ophys']['OpticalChannel'][0])
-            # sampling rate
-            rate = float(imaging.get_sampling_frequency())
-
-            if 'ImagingPlane' not in metadata['Ophys']:
-                metadata['Ophys']['ImagingPlane'] = [{'name': 'ImagingPlane',
-                                                      'description': 'no description',
-                                                      'excitation_lambda': np.nan,
-                                                      'indicator': 'unknown',
-                                                      'location': 'unknown'}]
-            imaging_meta = {'optical_channel': optical_channel,
-                            'imaging_rate': rate,
-                            'device': device}
-            metadata['Ophys']['ImagingPlane'][0] = update_dict(metadata['Ophys']['ImagingPlane'][0], imaging_meta)
+            metadata['Ophys']['ImagingPlane'][0]['optical_channel'] = \
+                [OpticalChannel(**i) for i in metadata['Ophys']['ImagingPlane'][0]['optical_channel']]
+            metadata['Ophys']['ImagingPlane'][0] = update_dict(metadata['Ophys']['ImagingPlane'][0], {'device': device})
 
             imaging_plane = nwbfile.create_imaging_plane(**metadata['Ophys']['ImagingPlane'][0])
 
             def data_generator(imaging, num_chunks):
                 num_frames = imaging.get_num_frames()
                 # chunk size is not None
-                chunk_size = num_frames // num_chunks
-                if num_frames % chunk_size > 0:
+                chunk_size = num_frames//num_chunks
+                if num_frames%chunk_size > 0:
                     num_chunks += 1
                 for i in range(num_chunks):
                     video = imaging.get_video(start_frame=i * chunk_size,
@@ -330,15 +305,13 @@ class NwbImagingExtractor(ImagingExtractor):
             acquisition_name = opts['name']
 
             # using internal data. this data will be stored inside the NWB file
-            ophys_ts = TwoPhotonSeries(
-                name=acquisition_name,
-                data=data,
-                imaging_plane=imaging_plane,
-                rate=rate,
-                unit='normalized amplitude',
-                comments='Generated from RoiInterface::NwbImagingExtractor',
-                description='no description'
-            )
+            two_p_series_kwargs = update_dict(
+                metadata['Ophys']['TwoPhotonSeries'][0],
+                dict(
+                    data=data,
+                    imaging_plane=imaging_plane)
+                )
+            ophys_ts = TwoPhotonSeries(**two_p_series_kwargs)
 
             nwbfile.add_acquisition(ophys_ts)
 
@@ -371,6 +344,39 @@ class NwbImagingExtractor(ImagingExtractor):
                     )
 
         return nwbfile
+
+    @staticmethod
+    def get_nwb_metadata(imgextractor: ImagingExtractor):
+        """
+        Converts metadata from the segmentation into nwb specific metadata
+        Parameters
+        ----------
+        imgextractor: ImagingExtractor
+        """
+        metadata = get_default_nwb_metadata()
+        # Optical Channel name:
+        for i in range(imgextractor.get_num_channels()):
+            ch_name = imgextractor.get_channel_names()[i]
+            if i == 0:
+                metadata['Ophys']['ImagingPlane'][0]['optical_channel'][i]['name'] = ch_name
+            else:
+                metadata['Ophys']['ImagingPlane'][0]['optical_channel'].append(dict(
+                    name=ch_name,
+                    emission_lambda=np.nan,
+                    description=f'{ch_name} description'
+                ))
+
+        # set imaging plane rate:
+        rate = np.float('NaN') if imgextractor.get_sampling_frequency() is None else imgextractor.get_sampling_frequency()
+        # adding imaging_rate:
+        metadata['Ophys']['ImagingPlane'][0].update(imaging_rate=rate)
+        # TwoPhotonSeries update:
+        metadata['Ophys']['TwoPhotonSeries'][0].update(
+            dimension=imgextractor.get_image_size())
+        # remove what Segmentation extractor will input:
+        _ = metadata['Ophys'].pop('ImageSegmentation')
+        _ = metadata['Ophys'].pop('Fluorescence')
+        return metadata
 
     @staticmethod
     def write_imaging(imaging: ImagingExtractor, save_path: PathType = None, nwbfile=None,
@@ -412,7 +418,8 @@ class NwbImagingExtractor(ImagingExtractor):
             metadata = dict()
         if hasattr(imaging, 'nwb_metadata'):
             metadata = update_dict(imaging.nwb_metadata, metadata)
-
+        # update with default arguments:
+        metadata = dict_recursive_update(NwbImagingExtractor.get_nwb_metadata(imaging), metadata)
         if nwbfile is None:
             save_path = Path(save_path)
             assert save_path.suffix == '.nwb', "'save_path' file is not an .nwb file"
@@ -430,13 +437,7 @@ class NwbImagingExtractor(ImagingExtractor):
                 if read_mode == 'r+':
                     nwbfile = io.read()
                 else:
-                    # Default arguments will be over-written if contained in metadata
-                    nwbfile_kwargs = dict(session_description='no description',
-                                          identifier=str(uuid.uuid4()),
-                                          session_start_time=datetime.now())
-                    if 'NWBFile' in metadata:
-                        nwbfile_kwargs.update(metadata['NWBFile'])
-                    nwbfile = NWBFile(**nwbfile_kwargs)
+                    nwbfile = NWBFile(**metadata['NWBFile'])
 
                     NwbImagingExtractor.add_devices(imaging=imaging,
                                                     nwbfile=nwbfile,
