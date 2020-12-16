@@ -364,8 +364,7 @@ class NwbImagingExtractor(ImagingExtractor):
                 ))
 
         # set imaging plane rate:
-        rate = np.float(
-            'NaN') if imgextractor.get_sampling_frequency() is None else imgextractor.get_sampling_frequency()
+        rate = np.float('NaN') if imgextractor.get_sampling_frequency() is None else imgextractor.get_sampling_frequency()
         # adding imaging_rate:
         metadata['Ophys']['ImagingPlane'][0].update(imaging_rate=rate)
         # TwoPhotonSeries update:
