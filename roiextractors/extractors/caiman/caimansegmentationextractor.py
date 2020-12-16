@@ -74,7 +74,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             return rejected
 
     @staticmethod
-    def write_segmentation(segmentation_object, save_path, overwrite=False):
+    def write_segmentation(segmentation_object, save_path, overwrite=True):
         save_path = Path(save_path)
         assert save_path.suffix in ['.hdf5', '.h5'], "'save_path' must be a *.hdf5 or *.h5 file"
         if save_path.is_file():

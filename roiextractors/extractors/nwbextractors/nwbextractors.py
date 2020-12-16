@@ -478,12 +478,13 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         Creating NwbSegmentationExtractor object from nwb file
         Parameters
         ----------
-        file_path: str
+        file_path: PathType
             .nwb file location
         """
         check_nwb_install()
         SegmentationExtractor.__init__(self)
-        if not os.path.exists(file_path):
+        file_path = Path(file_path)
+        if not file_path.is_file():
             raise Exception('file does not exist')
 
         self.file_path = file_path
@@ -491,7 +492,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         self._roi_locs = None
         self._accepted_list = None
         self._rejected_list = None
-        self._io = NWBHDF5IO(file_path, mode='r')
+        self._io = NWBHDF5IO(str(file_path), mode='r')
         self.nwbfile = self._io.read()
 
         ophys = self.nwbfile.processing.get('ophys')
@@ -618,7 +619,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         return metadata
 
     @staticmethod
-    def write_segmentation(segext_obj, save_path, plane_num=0, metadata=None, overwrite=True):
+    def write_segmentation(segext_obj: SegmentationExtractor, save_path, plane_num=0, metadata=None, overwrite=True):
         save_path = Path(save_path)
         assert save_path.suffix == '.nwb'
         if save_path.is_file() and not overwrite:
