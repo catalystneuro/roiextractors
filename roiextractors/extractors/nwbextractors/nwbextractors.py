@@ -305,10 +305,13 @@ class NwbImagingExtractor(ImagingExtractor):
             data = H5DataIO(DataChunkIterator(data_generator(imaging, num_chunks)), compression=True)
 
             # using internal data. this data will be stored inside the NWB file
-            metadata['Ophys']['TwoPhotonSeries'][0] = update_dict(metadata['Ophys']['TwoPhotonSeries'][0],
-                                                                  dict(data=data,
-                                                                       imaging_plane=imaging_plane))
-            ophys_ts = TwoPhotonSeries(**metadata['Ophys']['TwoPhotonSeries'][0])
+            two_p_series_kwargs = update_dict(
+                metadata['Ophys']['TwoPhotonSeries'][0],
+                dict(
+                    data=data,
+                    imaging_plane=imaging_plane)
+                )
+            ophys_ts = TwoPhotonSeries(**two_p_series_kwargs)
 
             nwbfile.add_acquisition(ophys_ts)
 
