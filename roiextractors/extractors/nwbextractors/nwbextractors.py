@@ -8,9 +8,9 @@ from warnings import warn
 import numpy as np
 from lazy_ops import DatasetView
 
-from ...extraction_tools import FloatType, IntType, \
-    check_get_frames_args, check_get_videos_args, dict_recursive_update
-from ...extraction_tools import PathType
+from ...extraction_tools import PathType, FloatType, IntType, \
+    check_get_frames_args, check_get_videos_args, _pixel_mask_extractor, \
+    dict_recursive_update
 from ...imagingextractor import ImagingExtractor
 from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
