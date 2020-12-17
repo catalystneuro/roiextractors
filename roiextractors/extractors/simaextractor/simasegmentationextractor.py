@@ -6,7 +6,7 @@ from shutil import copyfile
 import dill
 import numpy as np
 
-from ...extraction_tools import _pixel_mask_extractor, PathType
+from ...extraction_tools import PathType
 from ...segmentationextractor import SegmentationExtractor
 
 try:

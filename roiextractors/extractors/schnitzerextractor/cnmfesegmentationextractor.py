@@ -5,8 +5,8 @@ import numpy as np
 from lazy_ops import DatasetView
 from scipy.sparse import csc_matrix
 
-from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...extraction_tools import PathType
+from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
 
 
@@ -62,8 +62,9 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         return np.array(summary_image).T
 
     def _raw_datafile_read(self):
-        charlist = [chr(i) for i in np.squeeze(self._dataset_file[self._group0[0]]['movieList'][:])]
-        return ''.join(charlist)
+        if self._dataset_file[self._group0[0]].get('movieList'):
+            charlist = [chr(i) for i in np.squeeze(self._dataset_file[self._group0[0]]['movieList'][:])]
+            return ''.join(charlist)
 
     def get_accepted_list(self):
         return list(range(self.get_num_rois()))
@@ -73,7 +74,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         return [a for a in range(self.get_num_rois()) if a not in ac_set]
 
     @staticmethod
-    def write_segmentation(segmentation_object, save_path, overwrite=False):
+    def write_segmentation(segmentation_object:SegmentationExtractor, save_path, overwrite=True):
         save_path = Path(save_path)
         assert save_path.suffix == '.mat', "'save_path' must be a *.mat file"
         if save_path.is_file():
@@ -99,13 +100,19 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             # create datasets:
             main.create_dataset('extractedImages', data=segmentation_object.get_roi_image_masks().T)
             main.create_dataset('extractedSignals', data=segmentation_object.get_traces().T)
+            time = main.create_group('time')
+            if segmentation_object.get_sampling_frequency() is not None:
+                time.create_dataset('totalTime', (1, 1), data=segmentation_object.get_roi_image_masks().shape[1]/
+                                                              segmentation_object.get_sampling_frequency())
+            if getattr(segmentation_object,'_raw_movie_file_location', None):
+                main.create_dataset('movieList', data=[ord(alph) for alph in str(segmentation_object._raw_movie_file_location)])
             if segmentation_object.get_traces(name='deconvolved') is not None:
                 image_mask_csc = csc_matrix(segmentation_object.get_traces(name='deconvolved'))
                 main.create_dataset('extractedPeaks/data', data=image_mask_csc.data)
                 main.create_dataset('extractedPeaks/ir', data=image_mask_csc.indices)
                 main.create_dataset('extractedPeaks/jc', data=image_mask_csc.indptr)
-            if segmentation_object.get_images() is not None:
-                main.create_dataset('Cn', data=segmentation_object.get_images())
+            if segmentation_object.get_image() is not None:
+                main.create_dataset('Cn', data=segmentation_object.get_image())
             inputoptions = main.create_group('inputOptions')
             if segmentation_object.get_sampling_frequency() is not None:
                 inputoptions.create_dataset('Fs', data=segmentation_object.get_sampling_frequency())

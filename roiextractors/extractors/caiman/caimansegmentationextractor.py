@@ -2,12 +2,11 @@ from pathlib import Path
 
 import h5py
 import numpy as np
-from lazy_ops import DatasetView
 from scipy.sparse import csc_matrix
 
+from ...extraction_tools import PathType
 from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
-from ...extraction_tools import PathType
 
 
 class CaimanSegmentationExtractor(SegmentationExtractor):
@@ -74,7 +73,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             return rejected
 
     @staticmethod
-    def write_segmentation(segmentation_object, save_path, overwrite=False):
+    def write_segmentation(segmentation_object, save_path, overwrite=True):
         save_path = Path(save_path)
         assert save_path.suffix in ['.hdf5', '.h5'], "'save_path' must be a *.hdf5 or *.h5 file"
         if save_path.is_file():
@@ -106,8 +105,10 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
                 estimates.create_dataset('S', data=segmentation_object.get_traces(name='deconvolved'))
             if segmentation_object.get_image('correlation') is not None:
                 estimates.create_dataset('Cn', data=segmentation_object.get_image('correlation'))
-            estimates.create_dataset('idx_components', data=np.array(segmentation_object.get_accepted_list()))
-            estimates.create_dataset('idx_components_bad', data=np.array(segmentation_object.get_rejected_list()))
+            estimates.create_dataset('idx_components', data=np.array([] if segmentation_object.get_accepted_list() is None
+                                                                         else segmentation_object.get_accepted_list()))
+            estimates.create_dataset('idx_components_bad', data=np.array([] if segmentation_object.get_rejected_list() is None
+                                                                         else segmentation_object.get_rejected_list()))
 
             # adding image_masks:
             image_mask_data = np.reshape(segmentation_object.get_roi_image_masks(),

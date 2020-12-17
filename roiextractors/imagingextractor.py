@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 
-import numpy as np
 from spikeextractors.baseextractor import BaseExtractor
 
 from .extraction_tools import ArrayType, PathType, NumpyArray, DtypeType, IntType, FloatType, check_get_videos_args

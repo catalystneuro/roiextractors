@@ -4,10 +4,11 @@ from pathlib import Path
 
 import numpy as np
 
-from ...extraction_tools import _image_mask_extractor
 from ...extraction_tools import PathType, IntType
+from ...extraction_tools import _image_mask_extractor
 from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
+
 
 class Suite2pSegmentationExtractor(SegmentationExtractor):
     extractor_name = 'Suite2pSegmentationExtractor'
@@ -46,14 +47,14 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self._image_mean = self._summary_image_read('meanImg')
 
     def _load_npy(self, filename, mmap_mode=None):
-        fpath = os.path.join(self.file_path, f'Plane{self.plane_no}', filename)
-        return np.load(fpath, mmap_mode=mmap_mode)
+        fpath = os.path.join(self.file_path, f'plane{self.plane_no}', filename)
+        return np.load(fpath, mmap_mode=mmap_mode, allow_pickle=mmap_mode is None)
 
     def get_accepted_list(self):
-        return np.where(self.iscell[:, 0] == 1)[0]
+        return list(np.where(self.iscell[:, 0] == 1)[0])
 
     def get_rejected_list(self):
-        return np.where(self.iscell[:, 0] == 0)[0]
+        return list(np.where(self.iscell[:, 0] == 0)[0])
 
     def _summary_image_read(self, bstr='meanImg'):
         img = None
@@ -68,10 +69,10 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
     @property
     def roi_locations(self):
-        return np.array([j['med'] for j in self.stat]).T
+        return np.array([j['med'] for j in self.stat]).T.astype(int)
 
     @staticmethod
-    def write_segmentation(segmentation_object, save_path, overwrite=False):
+    def write_segmentation(segmentation_object: SegmentationExtractor, save_path, overwrite=True):
         save_path = Path(save_path)
         assert not save_path.is_file(), "'save_path' must be a folder"
         if save_path.is_dir():
@@ -79,14 +80,15 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
                 raise FileExistsError("The specified folder is not empty! Use overwrite=True to overwrite it.")
             else:
                 shutil.rmtree(str(save_path))
-
         if isinstance(segmentation_object, MultiSegmentationExtractor):
             segext_objs = segmentation_object.segmentations
             for plane_num, segext_obj in enumerate(segext_objs):
-                save_path_plane = save_path / f'Plane_{plane_num}'
+                save_path_plane = save_path / f'plane{plane_num}'
                 Suite2pSegmentationExtractor.write_segmentation(segext_obj, save_path_plane)
         if not save_path.is_dir():
             save_path.mkdir(parents=True)
+        if 'plane' not in save_path.stem:
+            save_path = save_path/'plane0'
 
         # saving traces:
         if segmentation_object.get_traces(name='raw') is not None:
@@ -96,9 +98,9 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         if segmentation_object.get_traces(name='deconvolved') is not None:
             np.save(save_path / 'spks.npy', segmentation_object.get_traces(name='deconvolved'))
         # save stat
-        stat = np.zeros(segmentation_object.no_rois, 'O')
+        stat = np.zeros(segmentation_object.get_num_rois(), 'O')
         roi_locs = segmentation_object.roi_locations.T
-        pixel_masks = segmentation_object.get_roi_pixel_masks(roi_ids=range(segmentation_object.no_rois))
+        pixel_masks = segmentation_object.get_roi_pixel_masks(roi_ids=range(segmentation_object.get_num_rois()))
         for no, i in enumerate(stat):
             stat[no] = {'med': roi_locs[no, :].tolist(),
                         'ypix': pixel_masks[no][:, 0],
@@ -106,7 +108,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
                         'lam': pixel_masks[no][:, 2]}
         np.save(save_path / 'stat.npy', stat)
         # saving iscell
-        iscell = np.ones([segmentation_object.no_rois, 2])
+        iscell = np.ones([segmentation_object.get_num_rois(), 2])
         iscell[segmentation_object.get_rejected_list(), 0] = 0
         np.save(save_path / 'iscell.npy', iscell)
         # saving ops
@@ -117,9 +119,12 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
                    yrange=[0, segmentation_object.get_image_size()[0]],
                    fs=segmentation_object.get_sampling_frequency(),
                    nchannels=1,
-                   meanImg=segmentation_object.get_images('mean'),
-                   Vcorr=segmentation_object.get_images('correlation'))
-
+                   meanImg=segmentation_object.get_image('mean'),
+                   Vcorr=segmentation_object.get_image('correlation'))
+        if getattr(segmentation_object, '_raw_movie_file_location', None):
+            ops.update(dict(filelist=[segmentation_object._raw_movie_file_location]))
+        else:
+            ops.update(dict(filelist=[None]))
         np.save(save_path / 'ops.npy', ops)
 
     # defining the abstract class enforced methods:
