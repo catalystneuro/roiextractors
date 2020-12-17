@@ -4,7 +4,8 @@ from datalad.api import install
 from pathlib import Path
 from roiextractors import NwbSegmentationExtractor, \
     CaimanSegmentationExtractor, ExtractSegmentationExtractor, \
-    Suite2pSegmentationExtractor, CnmfeSegmentationExtractor
+    Suite2pSegmentationExtractor, CnmfeSegmentationExtractor, \
+    check_segmentations_equal
 
 
 class TestNwbConversions(unittest.TestCase):
@@ -17,10 +18,10 @@ class TestNwbConversions(unittest.TestCase):
         resp = self.dataset.get('segmentation_datasets/caiman/caiman_analysis.hdf5')
         path = resp[0]['path']
         seg_ex = CaimanSegmentationExtractor(path)
-
         NwbSegmentationExtractor.write_segmentation(seg_ex, self.savedir/'caiman_test.nwb')
-        #roundtrip:
         nwb_seg_ex = NwbSegmentationExtractor(self.savedir/'caiman_test.nwb')
+        check_segmentations_equal(seg_ex, nwb_seg_ex)
+        # roundtrip:
         CaimanSegmentationExtractor.write_segmentation(nwb_seg_ex, self.savedir/'caiman_test.hdf5')
         seg_ex_rt = CaimanSegmentationExtractor(self.savedir/'caiman_test.hdf5')
 
@@ -28,10 +29,10 @@ class TestNwbConversions(unittest.TestCase):
         resp = self.dataset.get('segmentation_datasets/cnmfe/2014_04_01_p203_m19_check01_cnmfeAnalysis.mat')
         path = resp[0]['path']
         seg_ex = CnmfeSegmentationExtractor(path)
-
         NwbSegmentationExtractor.write_segmentation(seg_ex, self.savedir/'cnmfe_test.nwb')
-        # roundtrip:
         nwb_seg_ex = NwbSegmentationExtractor(self.savedir/'cnmfe_test.nwb')
+        check_segmentations_equal(seg_ex, nwb_seg_ex)
+        # roundtrip:
         CnmfeSegmentationExtractor.write_segmentation(nwb_seg_ex, self.savedir/'cnmfe_test.mat')
         seg_ex_rt = CnmfeSegmentationExtractor(self.savedir/'cnmfe_test.mat')
 
@@ -39,10 +40,10 @@ class TestNwbConversions(unittest.TestCase):
         resp = self.dataset.get('segmentation_datasets/extract/2014_04_01_p203_m19_check01_extractAnalysis.mat')
         path = resp[0]['path']
         seg_ex = ExtractSegmentationExtractor(path)
-
         NwbSegmentationExtractor.write_segmentation(seg_ex, self.savedir/'extract_test.nwb')
-        # roundtrip:
         nwb_seg_ex = NwbSegmentationExtractor(self.savedir/'extract_test.nwb')
+        check_segmentations_equal(seg_ex, nwb_seg_ex)
+        # roundtrip:
         ExtractSegmentationExtractor.write_segmentation(nwb_seg_ex, self.savedir/'extract_test.mat')
         seg_ex_rt = ExtractSegmentationExtractor(self.savedir/'extract_test.mat')
 
@@ -50,12 +51,13 @@ class TestNwbConversions(unittest.TestCase):
         resp = self.dataset.get('segmentation_datasets/suite2p')
         path = resp[0]['path']
         seg_ex = Suite2pSegmentationExtractor(path)
-
         NwbSegmentationExtractor.write_segmentation(seg_ex, self.savedir/'suite2p_test.nwb')
-        # roundtrip:
         nwb_seg_ex = NwbSegmentationExtractor(self.savedir/'suite2p_test.nwb')
+        check_segmentations_equal(seg_ex, nwb_seg_ex)
+        # roundtrip:
         Suite2pSegmentationExtractor.write_segmentation(nwb_seg_ex, self.savedir/'suite2p_test/plane0')
         seg_ex_rt = Suite2pSegmentationExtractor(self.savedir/'suite2p_test')
+
 
 if __name__ == '__main__':
     unittest.main()
