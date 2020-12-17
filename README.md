@@ -6,7 +6,7 @@ Developed by [CatalystNeuro](http://catalystneuro.com/). Funded by Stanford Univ
 
 ## Getting Started:
 #### Installation:
-`pip install get+https://github.com/catalystneuro/roiextractors.git`
+`pip install git+https://github.com/catalystneuro/roiextractors.git`
 
 ## Usage:
 ### Supported file types:
