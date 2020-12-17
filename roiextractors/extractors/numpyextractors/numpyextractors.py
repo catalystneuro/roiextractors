@@ -104,6 +104,11 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     a file format for which there is currently no support. To construct this,
     all data must be entered manually as arguments.
     """
+    extractor_name = 'NumpySegmentationExtractor'
+    installed = True  # check at class level if installed or not
+    is_writable = True
+    mode = 'file'
+    installation_mesg = ""  # error message when not installed
 
     def __init__(self, image_masks, raw=None,
                  dff=None, deconvolved=None, neuropil=None,

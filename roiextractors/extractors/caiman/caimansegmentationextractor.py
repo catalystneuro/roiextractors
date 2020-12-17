@@ -106,8 +106,10 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
                 estimates.create_dataset('S', data=segmentation_object.get_traces(name='deconvolved'))
             if segmentation_object.get_image('correlation') is not None:
                 estimates.create_dataset('Cn', data=segmentation_object.get_image('correlation'))
-            estimates.create_dataset('idx_components', data=np.array(segmentation_object.get_accepted_list()))
-            estimates.create_dataset('idx_components_bad', data=np.array(segmentation_object.get_rejected_list()))
+            estimates.create_dataset('idx_components', data=np.array([] if segmentation_object.get_accepted_list() is None
+                                                                         else segmentation_object.get_accepted_list()))
+            estimates.create_dataset('idx_components_bad', data=np.array([] if segmentation_object.get_rejected_list() is None
+                                                                         else segmentation_object.get_rejected_list()))
 
             # adding image_masks:
             image_mask_data = np.reshape(segmentation_object.get_roi_image_masks(),
