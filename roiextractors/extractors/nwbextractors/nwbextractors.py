@@ -564,7 +564,10 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             return np.where(self._accepted_list == 1)[0].tolist()
 
     def get_rejected_list(self):
-        return self._rejected_list
+        if self._rejected_list is not None:
+            rej_list = np.where(self._rejected_list == 1)[0].tolist()
+            if len(rej_list) > 0:
+                return rej_list
 
     @property
     def roi_locations(self):
@@ -572,7 +575,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             return self._roi_locs.data[:].T
 
     def get_roi_ids(self):
-        return self._roi_idx
+        return list(self._roi_idx)
 
     def get_image_size(self):
         return self.image_masks.shape[:2]

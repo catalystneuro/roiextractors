@@ -50,10 +50,10 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return np.load(fpath, mmap_mode=mmap_mode, allow_pickle=mmap_mode is None)
 
     def get_accepted_list(self):
-        return np.where(self.iscell[:, 0] == 1)[0]
+        return list(np.where(self.iscell[:, 0] == 1)[0])
 
     def get_rejected_list(self):
-        return np.where(self.iscell[:, 0] == 0)[0]
+        return list(np.where(self.iscell[:, 0] == 0)[0])
 
     def _summary_image_read(self, bstr='meanImg'):
         img = None
@@ -68,7 +68,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
     @property
     def roi_locations(self):
-        return np.array([j['med'] for j in self.stat]).T
+        return np.array([j['med'] for j in self.stat]).T.astype(int)
 
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path, overwrite=True):
