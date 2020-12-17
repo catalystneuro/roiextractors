@@ -16,7 +16,7 @@ from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
 
 try:
-    from pynwb import NWBHDF5IO, TimeSeries, NWBFile
+    from pynwb import NWBHDF5IO, TimeSeries, NWBFile, NWBHDF5IO
     from pynwb.base import Images
     from pynwb.image import GrayscaleImage
     from pynwb.ophys import ImageSegmentation, Fluorescence, OpticalChannel, TwoPhotonSeries, DfOverF
