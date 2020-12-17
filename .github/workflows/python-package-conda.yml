@@ -21,7 +21,8 @@ jobs:
     - name: Install dependencies
       run: |
         #conda env update --file environment.yml --name base
-        conda install pip datalad
+        conda install -c conda-forge datalad
+        conda install pip
         pip install -r requirements-dev.txt
         pip install -r requirements.txt
     - name: Lint with flake8
