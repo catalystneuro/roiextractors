@@ -1,11 +1,13 @@
-import unittest
 import tempfile
-from datalad.api import install
+import unittest
 from pathlib import Path
+
+from datalad.api import install
+from parameterized import parameterized
 from roiextractors import NwbSegmentationExtractor, \
     CaimanSegmentationExtractor, ExtractSegmentationExtractor, \
-    Suite2pSegmentationExtractor, CnmfeSegmentationExtractor, \
-    check_segmentations_equal
+    Suite2pSegmentationExtractor, CnmfeSegmentationExtractor
+from roiextractors.testing import check_segmentations_equal
 
 
 class TestNwbConversions(unittest.TestCase):
@@ -14,49 +16,46 @@ class TestNwbConversions(unittest.TestCase):
         self.dataset = install('https://gin.g-node.org/CatalystNeuro/ophys_testing_data')
         self.savedir = Path(tempfile.mkdtemp())
 
-    def test_convert_caiman(self):
-        resp = self.dataset.get('segmentation_datasets/caiman/caiman_analysis.hdf5')
+    @parameterized.expand([
+        (
+                CaimanSegmentationExtractor,
+                'segmentation_datasets/caiman/caiman_analysis.hdf5',
+                'caiman_test.nwb',
+                'caiman_test.hdf5'
+        ), (
+                CnmfeSegmentationExtractor,
+                'segmentation_datasets/cnmfe/2014_04_01_p203_m19_check01_cnmfeAnalysis.mat',
+                'cnmfe_test.nwb',
+                'cnmfe_test.mat'
+        ), (
+                ExtractSegmentationExtractor,
+                'segmentation_datasets/extract/2014_04_01_p203_m19_check01_extractAnalysis.mat',
+                'extract_test.nwb',
+                'extract_test.mat'
+        ), (
+                Suite2pSegmentationExtractor,
+                'segmentation_datasets/suite2p',
+                'suite2p_test.nwb',
+                'suite2p_test/plane0',
+                'suite2p_test'
+        )
+    ])
+    def test_convert_seg_interface_to_nwb(self, seg_ex_class, dataset_path, save_fname, rt_write_fname,
+                                          rt_read_fname=None):
+        if rt_read_fname is None:
+            rt_read_fname = rt_write_fname
+        save_path = self.savedir / save_fname
+        rt__write_path = self.savedir / rt_write_fname
+        rt_read_path = self.savedir / rt_read_fname
+        resp = self.dataset.get(dataset_path)
         path = resp[0]['path']
-        seg_ex = CaimanSegmentationExtractor(path)
-        NwbSegmentationExtractor.write_segmentation(seg_ex, self.savedir/'caiman_test.nwb')
-        nwb_seg_ex = NwbSegmentationExtractor(self.savedir/'caiman_test.nwb')
+        seg_ex = seg_ex_class(path)
+        NwbSegmentationExtractor.write_segmentation(seg_ex, save_path)
+        nwb_seg_ex = NwbSegmentationExtractor(save_path)
         check_segmentations_equal(seg_ex, nwb_seg_ex)
         # roundtrip:
-        CaimanSegmentationExtractor.write_segmentation(nwb_seg_ex, self.savedir/'caiman_test.hdf5')
-        seg_ex_rt = CaimanSegmentationExtractor(self.savedir/'caiman_test.hdf5')
-
-    def test_convert_cnmfe(self):
-        resp = self.dataset.get('segmentation_datasets/cnmfe/2014_04_01_p203_m19_check01_cnmfeAnalysis.mat')
-        path = resp[0]['path']
-        seg_ex = CnmfeSegmentationExtractor(path)
-        NwbSegmentationExtractor.write_segmentation(seg_ex, self.savedir/'cnmfe_test.nwb')
-        nwb_seg_ex = NwbSegmentationExtractor(self.savedir/'cnmfe_test.nwb')
-        check_segmentations_equal(seg_ex, nwb_seg_ex)
-        # roundtrip:
-        CnmfeSegmentationExtractor.write_segmentation(nwb_seg_ex, self.savedir/'cnmfe_test.mat')
-        seg_ex_rt = CnmfeSegmentationExtractor(self.savedir/'cnmfe_test.mat')
-
-    def test_convert_extract(self):
-        resp = self.dataset.get('segmentation_datasets/extract/2014_04_01_p203_m19_check01_extractAnalysis.mat')
-        path = resp[0]['path']
-        seg_ex = ExtractSegmentationExtractor(path)
-        NwbSegmentationExtractor.write_segmentation(seg_ex, self.savedir/'extract_test.nwb')
-        nwb_seg_ex = NwbSegmentationExtractor(self.savedir/'extract_test.nwb')
-        check_segmentations_equal(seg_ex, nwb_seg_ex)
-        # roundtrip:
-        ExtractSegmentationExtractor.write_segmentation(nwb_seg_ex, self.savedir/'extract_test.mat')
-        seg_ex_rt = ExtractSegmentationExtractor(self.savedir/'extract_test.mat')
-
-    def test_convert_suite2p(self):
-        resp = self.dataset.get('segmentation_datasets/suite2p')
-        path = resp[0]['path']
-        seg_ex = Suite2pSegmentationExtractor(path)
-        NwbSegmentationExtractor.write_segmentation(seg_ex, self.savedir/'suite2p_test.nwb')
-        nwb_seg_ex = NwbSegmentationExtractor(self.savedir/'suite2p_test.nwb')
-        check_segmentations_equal(seg_ex, nwb_seg_ex)
-        # roundtrip:
-        Suite2pSegmentationExtractor.write_segmentation(nwb_seg_ex, self.savedir/'suite2p_test/plane0')
-        seg_ex_rt = Suite2pSegmentationExtractor(self.savedir/'suite2p_test')
+        seg_ex_class.write_segmentation(nwb_seg_ex, rt__write_path)
+        seg_ex_rt = seg_ex_class(rt_read_path)
 
 
 if __name__ == '__main__':

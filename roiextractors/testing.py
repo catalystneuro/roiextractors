@@ -2,6 +2,7 @@ from collections.abc import Iterable
 
 import numpy as np
 from numpy.testing import assert_array_equal
+
 from .segmentationextractor import SegmentationExtractor
 
 NoneType = type(None)
