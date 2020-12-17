@@ -4,10 +4,11 @@ from pathlib import Path
 
 import numpy as np
 
-from ...extraction_tools import _image_mask_extractor
 from ...extraction_tools import PathType, IntType
+from ...extraction_tools import _image_mask_extractor
 from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
+
 
 class Suite2pSegmentationExtractor(SegmentationExtractor):
     extractor_name = 'Suite2pSegmentationExtractor'

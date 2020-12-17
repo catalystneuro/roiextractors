@@ -6,28 +6,23 @@ from pathlib import Path
 from warnings import warn
 
 import numpy as np
+from hdmf.backends.hdf5.h5_utils import H5DataIO
+from hdmf.data_utils import DataChunkIterator
 from lazy_ops import DatasetView
+from pynwb import NWBFile, NWBHDF5IO
+from pynwb.base import Images
+from pynwb.file import Subject
+from pynwb.image import GrayscaleImage
+from pynwb.ophys import ImageSegmentation, Fluorescence, OpticalChannel, TwoPhotonSeries
 
-from ...extraction_tools import FloatType, IntType, \
-    check_get_frames_args, check_get_videos_args, dict_recursive_update
-from ...extraction_tools import PathType
+from ...extraction_tools import PathType, FloatType, IntType, \
+    check_get_frames_args, check_get_videos_args, \
+    dict_recursive_update
 from ...imagingextractor import ImagingExtractor
 from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
 
-try:
-    from pynwb import NWBHDF5IO, TimeSeries, NWBFile
-    from pynwb.base import Images
-    from pynwb.image import GrayscaleImage
-    from pynwb.ophys import ImageSegmentation, Fluorescence, OpticalChannel, TwoPhotonSeries, DfOverF
-    from pynwb.file import Subject
-    from pynwb.device import Device
-    from hdmf.data_utils import DataChunkIterator
-    from hdmf.backends.hdf5.h5_utils import H5DataIO
-
-    HAVE_NWB = True
-except ModuleNotFoundError:
-    HAVE_NWB = False
+HAVE_NWB = True
 
 
 def check_nwb_install():
@@ -683,7 +678,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 image_segmentation_name = 'ImageSegmentation' if plane_no_loop == 0 else f'ImageSegmentation_Plane{plane_no_loop}'
                 if image_segmentation_name not in ophys.data_interfaces:
                     image_segmentation = ImageSegmentation(name=image_segmentation_name)
-                    ophys.add_data_interface(image_segmentation)
+                    ophys.add(image_segmentation)
                 else:
                     image_segmentation = ophys.data_interfaces.get(image_segmentation_name)
 
@@ -745,7 +740,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 # Fluorescence Traces:
                 if 'Flourescence' not in ophys.data_interfaces:
                     fluorescence = Fluorescence()
-                    ophys.add_data_interface(fluorescence)
+                    ophys.add(fluorescence)
                 else:
                     fluorescence = ophys.data_interfaces['Fluorescence']
                 roi_response_dict = segext_obj.get_traces_dict()

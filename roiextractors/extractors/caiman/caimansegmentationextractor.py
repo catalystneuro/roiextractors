@@ -2,12 +2,11 @@ from pathlib import Path
 
 import h5py
 import numpy as np
-from lazy_ops import DatasetView
 from scipy.sparse import csc_matrix
 
+from ...extraction_tools import PathType
 from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
-from ...extraction_tools import PathType
 
 
 class CaimanSegmentationExtractor(SegmentationExtractor):
