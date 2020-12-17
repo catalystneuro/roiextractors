@@ -22,8 +22,8 @@ jobs:
       run: |
         #conda env update --file environment.yml --name base
         conda install -c conda-forge datalad
+        conda install -c conda-forge ruamel.yaml
         conda install pip
-        pip3 install ruamel.yaml
         pip install -r requirements-dev.txt
         pip install -r requirements.txt
         pip install -e .
