@@ -1,5 +1,4 @@
 import numpy as np
-from lazy_ops import DatasetView
 
 from .segmentationextractor import SegmentationExtractor
 
