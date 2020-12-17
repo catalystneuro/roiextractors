@@ -5,3 +5,4 @@ from .imagingextractor import ImagingExtractor
 from .memmapextractors import MemmapImagingExtractor
 from .segmentationextractor import SegmentationExtractor
 from .version import version as __version__
+from .utils import check_segmentation_return_types, check_segmentations_equal
