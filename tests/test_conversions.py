@@ -53,7 +53,7 @@ class TestNwbConversions(unittest.TestCase):
         NwbSegmentationExtractor.write_segmentation(seg_ex, save_path)
         nwb_seg_ex = NwbSegmentationExtractor(save_path)
         check_segmentations_equal(seg_ex, nwb_seg_ex)
-        # roundtrip:
+        # round trip:
         seg_ex_class.write_segmentation(nwb_seg_ex, rt__write_path)
         seg_ex_rt = seg_ex_class(rt_read_path)
 
