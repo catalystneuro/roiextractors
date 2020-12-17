@@ -4,9 +4,10 @@ import h5py
 import numpy as np
 from lazy_ops import DatasetView
 
-from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...extraction_tools import PathType
+from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
+
 
 class ExtractSegmentationExtractor(SegmentationExtractor):
     """
@@ -108,7 +109,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
                 time.create_dataset('totalTime', (1, 1), data=segmentation_object.get_roi_image_masks().shape[1] /
                                                               segmentation_object.get_sampling_frequency())
 
-    # defining the abstract class enformed methods:
+    # defining the abstract class informed methods:
     def get_roi_ids(self):
         return list(range(self.get_num_rois()))
 

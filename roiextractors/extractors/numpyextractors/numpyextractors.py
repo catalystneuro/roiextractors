@@ -2,11 +2,10 @@ from pathlib import Path
 
 import numpy as np
 
-from ...extraction_tools import check_get_frames_args, get_video_shape, _pixel_mask_extractor
+from ...extraction_tools import PathType, FloatType, ArrayType
+from ...extraction_tools import check_get_frames_args, get_video_shape
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
-from ...extraction_tools import check_get_frames_args, get_video_shape, _pixel_mask_extractor
-from ...extraction_tools import PathType, FloatType, ArrayType
 
 
 class NumpyImagingExtractor(ImagingExtractor):
@@ -253,7 +252,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     def write_segmentation(segmentation_object, save_path):
         raise NotImplementedError
 
-    # defining the abstract class enformed methods:
+    # defining the abstract class informed methods:
     def get_roi_ids(self):
         if self._roi_ids is None:
             return list(range(self.get_num_rois()))
