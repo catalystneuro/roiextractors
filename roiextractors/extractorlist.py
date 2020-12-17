@@ -7,3 +7,27 @@ from .extractors.schnitzerextractor import CnmfeSegmentationExtractor, ExtractSe
 from .extractors.simaextractor import SimaSegmentationExtractor
 from .multisegmentationextractor import MultiSegmentationExtractor
 from .extractors.caiman import CaimanSegmentationExtractor
+
+segmentation_extractor_full_list = [
+    NumpySegmentationExtractor,
+    NwbSegmentationExtractor,
+    Suite2pSegmentationExtractor,
+    CnmfeSegmentationExtractor,
+    ExtractSegmentationExtractor,
+    SimaSegmentationExtractor,
+    MultiSegmentationExtractor,
+    CaimanSegmentationExtractor
+]
+
+imaging_extractor_full_list = [
+    NumpyImagingExtractor,
+    Hdf5ImagingExtractor,
+    TiffImagingExtractor,
+    NwbImagingExtractor,
+]
+
+segmentation_extractor_dict = {segmentation_class.extractor_name: segmentation_class for segmentation_class in
+                            segmentation_extractor_full_list}
+
+imaging_extractor_dict = {imaging_class.extractor_name: imaging_class for imaging_class in
+                            imaging_extractor_full_list}
