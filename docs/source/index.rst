@@ -16,15 +16,6 @@ Welcome to RoiExtractors's documentation!
 
    ./*
 
-Check out :jira:`199` for information on the :toy:`jump-rope`.
-There is a fix in our :unit-test:`assert-jump-rope-length`.
-
-.. sidebar:: Learn more
-   :subtitle: THis is subtitle
-
-   Check out more information on `this <https://docs.typo3.org/m/typo3/docs-how-to-document/master/en-us/WritingReST/CheatSheet.html>`__
-
-
 Indices and tables
 ==================
 
