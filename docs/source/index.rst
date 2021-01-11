@@ -9,12 +9,13 @@ Welcome to RoiExtractors's documentation!
 =========================================
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Contents:
-   :glob:
    :numbered:
 
-   ./*
+   gettingstarted
+   usage
+   licence
 
 Indices and tables
 ==================
