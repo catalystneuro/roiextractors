@@ -2,23 +2,6 @@
 Step wise usage
 ===============
 
-Supported file types
-=====================
-Imaging
--------
-1. HDF5
-2. TIFF
-3. STK
-4. FLI
-
-Segmentation
-------------
-1. `calciumImagingAnalysis <https://github.com/bahanonu/calciumImagingAnalysis/>`_ (CNMF-E, EXTRACT)
-2. `SIMA <http://www.losonczylab.org/sima/1.3.2//>`_
-3. `NWB <https://pynwb.readthedocs.io/en/stable//>`_
-4. `suite2p <https://github.com/MouseLand/suite2p/>`_
-5. Numpy (a data format for manual input of optical physiology data as various numpy datasets)
-
 Functionality
 ==============
 Interconversion amongst the various data formats as well as conversion to the NWB format and back.
@@ -43,6 +26,7 @@ SegmentationExtractor object creation
 --------------------------------------
 
 .. code-block:: python
+    :linenos:
 
     import roiextractors
     import numpy as np
@@ -69,6 +53,7 @@ Data format conversion: SegmentationExtractor to NWB
 -----------------------------------------------------
 
 .. code-block:: python
+    :linenos:
 
     roiextractors.NwbSegmentationExtractor.write_segmentation(seg_obj, saveloc,
                     propertydict=[{'name': 'ROI feature 1,
@@ -84,8 +69,3 @@ Data format conversion: SegmentationExtractor to NWB
                                     'lab': 'test lab',
                                     'session_id': 'test sess id'},
                     emission_lambda=400.0, excitation_lambda=500.0)
-
-Example Datasets
------------------
-
-- Example datasets for each fo the file formats can be downloaded `here <https://drive.google.com/drive/folders/1CeDfr6yza_bh0vYD2E1HF_3_S8pg2yLW?usp=sharing/>`_
