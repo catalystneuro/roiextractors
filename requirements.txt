@@ -7,3 +7,4 @@ PyYAML
 h5py==2.9.0
 pynwb
 nbsphinx
+jupyter-sphinx
