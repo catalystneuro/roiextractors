@@ -7,8 +7,6 @@ Download a TIF file and a extract pipeline output .mat file from `here. <https:/
 Create an Imaging Extractor Object:
 -----------------------------------
 
-.. jupyter-kernel:: venv
-
 .. jupyter-execute::
 
     from notebook.services.config import ConfigManager
