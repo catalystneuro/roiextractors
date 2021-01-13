@@ -9,4 +9,7 @@ pynwb
 nbsphinx
 jupyter-sphinx
 numpydoc
+matplotlib
+numpy
+notebook
 git+https://github.com/catalystneuro/roiextractors
