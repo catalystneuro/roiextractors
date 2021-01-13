@@ -12,4 +12,5 @@ numpydoc
 matplotlib
 numpy
 notebook
+tifffile
 git+https://github.com/catalystneuro/roiextractors
