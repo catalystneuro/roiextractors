@@ -13,6 +13,13 @@ try:
 except ImportError:
     HAVE_H5 = False
 
+try:
+    import scippy.io as spio
+
+    HAVE_Scipy = True
+except ImportError:
+    HAVE_Scipy = False
+
 ArrayType = Union[list, np.array]
 PathType = Union[str, Path]
 NumpyArray = Union[np.array, np.memmap]
@@ -245,3 +252,95 @@ def show_video(imaging, ax=None):
     anim = animation.FuncAnimation(fig, animate_func, frames=imaging.get_num_frames(), fargs=(imaging, im, ax),
                                    interval=interval, blit=False)
     return anim
+
+def check_keys(dict):
+    """
+    checks if entries in dictionary are mat-objects. If yes
+    todict is called to change them to nested dictionaries
+    """
+    assert HAVE_Scipy, "To write to h5 you need to install h5py: pip install scipy"
+    for key in dict:
+        if isinstance(dict[key], spio.matlab.mio5_params.mat_struct):
+            dict[key] = todict(dict[key])
+    return dict
+
+def todict(matobj):
+    """
+    A recursive function which constructs from matobjects nested dictionaries
+    """
+    dict = {}
+    for strg in matobj._fieldnames:
+        elem = matobj.__dict__[strg]
+        if isinstance(elem, spio.matlab.mio5_params.mat_struct):
+            dict[strg] = todict(elem)
+        else:
+            dict[strg] = elem
+    return dict
+
+class _Sequence_memmap():
+    """
+    Reading raw data as memory map. Used in sbx datasets.
+    Based off of the implementation:
+    https://github.com/losonczylab/sima/blob/0b16818d9ba47fe4aae6d4aad1a9735d16da00dc/sima/sequence.py
+    """
+
+    def __init__(self, path, shape, dim_order, dtype='float32', order='C'):
+        self._path = abspath(path)
+        self._shape = shape
+        self._dtype = dtype
+        self._order = order
+        self._dataset = np.memmap(path, dtype=dtype, mode='r',
+                                  shape=tuple(shape), order=order)
+        if len(dim_order) != len(shape):
+            raise ValueError(
+                'dim_order must have same length as the number of ' +
+                'dimensions in the memmap dataset.')
+        self._T_DIM = dim_order.find('t')
+        self._Z_DIM = dim_order.find('z')
+        self._Y_DIM = dim_order.find('y')
+        self._X_DIM = dim_order.find('x')
+        self._C_DIM = dim_order.find('c')
+        self._dim_order = dim_order
+
+    def __del__(self):
+        del self._dataset
+
+    def __len__(self):
+        return self._shape[self._T_DIM]
+
+    def _get_frame(self, t):
+        """Get the frame at time t, but not clipped."""
+        slices = tuple(slice(None) for _ in range(self._T_DIM)) + (t,)
+        frame = self._dataset[slices]
+
+        swapper = [None for _ in range(frame.ndim)]
+        for i, v in [(self._Z_DIM, 0), (self._Y_DIM, 1),
+                     (self._X_DIM, 2), (self._C_DIM, 3)]:
+            if i >= 0:
+                j = i if self._T_DIM > i else i - 1
+                swapper[j] = v
+            else:
+                swapper.append(v)
+                frame = np.expand_dims(frame, -1)
+        assert not any(s is None for s in swapper)
+        for i in range(frame.ndim):
+            idx = swapper.index(i)
+            if idx != i:
+                swapper[i], swapper[idx] = swapper[idx], swapper[i]
+                frame = frame.swapaxes(i, idx)
+        assert swapper == [0, 1, 2, 3]
+        assert frame.ndim == 4
+        return frame.astype(float)
+
+    def _todict(self, savedir=None):
+        d = {'__class__': self.__class__,
+             'dim_order': self._dim_order,
+             'dtype': self._dtype,
+             'shape': self._shape,
+             'order': self._order}
+        if savedir is None:
+            d.update({'path': abspath(self._path)})
+        else:
+            d.update({'_abspath': abspath(self._path),
+                      '_relpath': relpath(self._path, savedir)})
+        return d
