@@ -7,6 +7,7 @@ import os
 
 try:
     import scipy.io as spio
+
     HAVE_Scipy = True
 except ImportError:
     HAVE_Scipy = False
@@ -28,9 +29,9 @@ class SbxImagingExtractor(ImagingExtractor):
         self._data = self._sbx_read()
         self._sampling_frequency = self._info['frame_rate']
         # channel names:
-        self._channel_names = self._info.get('channel_names',None)
+        self._channel_names = self._info.get('channel_names', None)
         if self._channel_names is None:
-            self._channel_names = [f'channel_{ch}' for ch in range(self._info['nchan'])]
+            self._channel_names = [f'channel_{ch}' for ch in range(self._info['nChan'])]
 
         self._kwargs = {'folder_path': str(Path(folder_path).absolute()),
                         'sampling_frequency': self._sampling_frequency, 'channel_names': self._channel_names}
@@ -81,11 +82,11 @@ class SbxImagingExtractor(ImagingExtractor):
         else:
             info['fold_lines'] = 0
             info['fov_repeats'] = 1
-        # info['max_idx'] = int(
-        #     os.path.getsize(self.file_name[:-4] + '.sbx')/info['recordsPerBuffer']/info['sz'][1]*factor/4 - 1)*int(
-        #     info['fov_repeats'])
 
-        info['frame_rate'] = info['resfreq']/info['config']['lines']*(2 - info['scanmode'])*info['fov_repeats']
+        info['frame_rate'] = np.int(info['resfreq']/info['config']['lines']*(2 - info['scanmode'])*info['fov_repeats'])
+        # SIMA:
+        info['nsamples'] = info['sz'][1]*info['recordsPerBuffer']* \
+                           info['nChan']*2
         # SIMA:
         if ('volscan' in info and info['volscan'] > 0) or \
                 ('volscan' not in info and len(info.get('otwave', []))):
@@ -96,12 +97,11 @@ class SbxImagingExtractor(ImagingExtractor):
         if info.get('scanbox_version', -1) >= 2:
             info['max_idx'] = os.path.getsize(self.sbx_file_path)//info['nsamples'] - 1
         else:
-            if info['nchannels'] == 1:
+            if info['nChan'] == 1:
                 factor = 2
-            elif info['nchannels'] == 2:
+            elif info['nChan'] == 2:
                 factor = 1
-            info['max_idx'] = os.path.getsize(self.sbx_file_path) \
-                              //info['bytesPerBuffer']*factor - 1
+            info['max_idx'] = os.path.getsize(self.sbx_file_path)//info['bytesPerBuffer']*factor - 1
         # SIMA: Fix for old scanbox versions
         if 'sz' not in info:
             info['sz'] = np.array([512, 796])
@@ -110,19 +110,24 @@ class SbxImagingExtractor(ImagingExtractor):
     def _sbx_read(self):
         nrows = self._info['recordsPerBuffer']
         ncols = self._info['sz'][1]
-        nchannels = self._info['nchannels']
+        nchannels = self._info['nChan']
         nplanes = self._info['nplanes']
         nframes = (self._info['max_idx'] + 1)//nplanes
         shape = (nchannels, ncols, nrows, nplanes, nframes)
         np_data = np.memmap(self.sbx_file_path, dtype='uint16', mode='r', shape=shape, order='F')
-        return np.iinfo('uint16').max - np_data
-    
+        # return np.iinfo('uint16').max - np_data
+        return np_data
+
     def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> np.array:
-        return self._data[channel,:,:,0,frame_idxs].squeeze()
+        frames_list = []
+        for frame_no in frame_idxs:
+            frames_list.append(self._data[channel, :, :, 0, frame_no].T)
+        frame_out = np.stack(frames_list, axis=2)
+        return np.iinfo('uint16').max-frame_out
 
     def get_image_size(self) -> ArrayType:
         return self._info['sz']
-    
+
     def get_num_frames(self) -> int:
         return (self._info['max_idx'] + 1)//self._info['nplanes']
 
@@ -133,7 +138,19 @@ class SbxImagingExtractor(ImagingExtractor):
         return self._channel_names
 
     def get_num_channels(self) -> int:
-        return self._info['nchan']
+        return self._info['nChan']
 
+    @staticmethod
     def write_imaging(imaging, save_path: PathType, overwrite: bool = False):
         raise NotImplementedError
+
+
+if __name__ == '__main__':
+    sbx = SbxImagingExtractor(
+        r'C:\Users\Saksham\Documents\NWB\roiextractors\testdatasets\GiocomoData\10_02_2019\TwoTOwer_foraging')
+    frames = sbx.get_frames(frame_idxs=[1, 2])
+    print(sbx.get_image_size())
+    print(sbx.get_num_frames())
+    print(sbx.get_sampling_frequency())
+    print(sbx.get_channel_names())
+    print(sbx.get_num_channels())
