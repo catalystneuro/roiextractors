@@ -74,7 +74,7 @@ class SbxImagingExtractor(ImagingExtractor):
         if info['scanmode'] == 0:
             info['recordsPerBuffer'] *= 2
 
-        if 'fold_lines' in info.keys():
+        if 'fold_lines' in info:
             if info['fold_lines'] > 0:
                 info['fov_repeats'] = int(info['config']['lines']/info['fold_lines'])
             else:
