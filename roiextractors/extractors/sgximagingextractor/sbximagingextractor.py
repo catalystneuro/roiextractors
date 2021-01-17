@@ -144,13 +144,3 @@ class SbxImagingExtractor(ImagingExtractor):
     def write_imaging(imaging, save_path: PathType, overwrite: bool = False):
         raise NotImplementedError
 
-
-if __name__ == '__main__':
-    sbx = SbxImagingExtractor(
-        r'C:\Users\Saksham\Documents\NWB\roiextractors\testdatasets\GiocomoData\10_02_2019\TwoTOwer_foraging')
-    frames = sbx.get_frames(frame_idxs=[1, 2])
-    print(sbx.get_image_size())
-    print(sbx.get_num_frames())
-    print(sbx.get_sampling_frequency())
-    print(sbx.get_channel_names())
-    print(sbx.get_num_channels())
