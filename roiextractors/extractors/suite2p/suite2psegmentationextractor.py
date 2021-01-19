@@ -41,8 +41,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self.ops = self._load_npy('ops.npy').item()
         self._channel_names = [f'OpticalChannel{i}' for i in range(self.ops['nchannels'])]
         self._sampling_frequency = self.ops['fs'] * [2 if self.combined else 1][0]
-        self._raw_movie_file_location = self.ops['filelist'][0]
-        self.image_masks = self.get_roi_image_masks()
+        self._raw_movie_file_location = self.ops.get('filelist',[None])[0]
         self._image_correlation = self._summary_image_read('Vcorr')
         self._image_mean = self._summary_image_read('meanImg')
 
