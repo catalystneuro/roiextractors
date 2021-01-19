@@ -99,10 +99,6 @@ class SbxImagingExtractor(ImagingExtractor):
         if info.get('scanbox_version', -1) >= 2:
             info['max_idx'] = os.path.getsize(self.sbx_file_path)//info['nsamples'] - 1
         else:
-            if info['nChan'] == 1:
-                factor = 2
-            elif info['nChan'] == 2:
-                factor = 1
             info['max_idx'] = os.path.getsize(self.sbx_file_path)//info['bytesPerBuffer']*factor - 1
         # SIMA: Fix for old scanbox versions
         if 'sz' not in info:
