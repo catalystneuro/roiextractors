@@ -54,7 +54,9 @@ class SbxImagingExtractor(ImagingExtractor):
         as it cures the problem of not properly recovering python dictionaries
         from mat files. It calls the function check keys to cure all entries
         which are still mat-objects.
-        Mimics implementation @ https://github.com/GiocomoLab/TwoPUtils/blob/main/scanner_tools/sbx_utils.py
+        Based off of implementations @ :
+        https://github.com/GiocomoLab/TwoPUtils/blob/main/scanner_tools/sbx_utils.py
+        https://github.com/losonczylab/sima/blob/0b16818d9ba47fe4aae6d4aad1a9735d16da00dc/sima/imaging_parameters.py
         """
         data = spio.loadmat(self.mat_file_path, struct_as_record=False, squeeze_me=True)
         info = check_keys(data)['info']
