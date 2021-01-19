@@ -20,11 +20,11 @@ class SbxImagingExtractor(ImagingExtractor):
     mode = 'folder'
     installation_mesg = "To use the Sgx Extractor run:\n\n pip install scipy\n\n"  # error message when not installed
 
-    def __init__(self, folder_path: PathType):
+    def __init__(self, file_path: PathType):
         assert HAVE_Scipy, self.installation_mesg
         super().__init__()
         self._memmapped = True
-        self.mat_file_path, self.sbx_file_path = self._check_folder_path(folder_path)
+        self.mat_file_path, self.sbx_file_path = self._check_file_path(file_path)
         self._info = self._loadmat()
         self._data = self._sbx_read()
         self._sampling_frequency = self._info['frame_rate']
@@ -33,20 +33,24 @@ class SbxImagingExtractor(ImagingExtractor):
         if self._channel_names is None:
             self._channel_names = [f'channel_{ch}' for ch in range(self._info['nChan'])]
 
-        self._kwargs = {'folder_path': str(Path(folder_path).absolute()),
+        self._kwargs = {'file_path': str(Path(file_path).absolute()),
                         'sampling_frequency': self._sampling_frequency, 'channel_names': self._channel_names}
 
     @staticmethod
-    def _check_folder_path(folder_path):
-        folder_path = Path(folder_path)
-        assertion_msg = 'for folder_path arg, provide a folder containing one .sbx and its corresponding .mat file'
-        assert folder_path.is_dir(), assertion_msg
-        files = [file for file in folder_path.iterdir()]
-        assert len(files) == 2, assertion_msg
-        assert len(set([file.stem for file in files])) == 1, assertion_msg
-        assert set([file.suffix for file in files]) == {'.mat', '.sbx'}, assertion_msg
-        files.sort(key=lambda x: x.suffix)
-        return files
+    def _check_file_path(file_path):
+        file_path = Path(file_path)
+        assertion_msg = 'for file_path arg, provide a path to one .sbx /  .mat file'
+        file_type = file_path.suffix
+        assert file_type in ['.mat','.sbx'], assertion_msg
+        if file_type == '.mat':
+            mat_file_path = file_path
+            sbx_file_path = file_path.with_suffix('.sbx')
+            assert sbx_file_path.is_file(), assertion_msg
+        else:
+            sbx_file_path = file_path
+            mat_file_path = file_path.with_suffix('.sbx')
+            assert mat_file_path.is_file(), assertion_msg
+        return mat_file_path, sbx_file_path
 
     def _loadmat(self):
         """
@@ -113,7 +117,6 @@ class SbxImagingExtractor(ImagingExtractor):
         nframes = (self._info['max_idx'] + 1)//nplanes
         shape = (nchannels, ncols, nrows, nplanes, nframes)
         np_data = np.memmap(self.sbx_file_path, dtype='uint16', mode='r', shape=shape, order='F')
-        # return np.iinfo('uint16').max - np_data
         return np_data
 
     def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> np.array:
