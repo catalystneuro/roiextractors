@@ -4,6 +4,7 @@ from pathlib import Path
 
 from datalad.api import install
 from parameterized import parameterized
+
 from roiextractors import NwbSegmentationExtractor, \
     CaimanSegmentationExtractor, ExtractSegmentationExtractor, \
     Suite2pSegmentationExtractor, CnmfeSegmentationExtractor
@@ -44,9 +45,9 @@ class TestNwbConversions(unittest.TestCase):
                                           rt_read_fname=None):
         if rt_read_fname is None:
             rt_read_fname = rt_write_fname
-        save_path = self.savedir / save_fname
-        rt__write_path = self.savedir / rt_write_fname
-        rt_read_path = self.savedir / rt_read_fname
+        save_path = self.savedir/save_fname
+        rt__write_path = self.savedir/rt_write_fname
+        rt_read_path = self.savedir/rt_read_fname
         resp = self.dataset.get(dataset_path)
         path = resp[0]['path']
         seg_ex = seg_ex_class(path)
