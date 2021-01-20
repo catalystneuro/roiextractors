@@ -483,7 +483,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             raise Exception('file does not exist')
 
         self.file_path = file_path
-        self.image_masks = None
+        self._image_masks = None
         self._roi_locs = None
         self._accepted_list = None
         self._rejected_list = None
@@ -523,7 +523,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 if 'PlaneSegmentation' in image_seg.plane_segmentations:  # this requirement in nwbfile is enforced
                     ps = image_seg.plane_segmentations['PlaneSegmentation']
                     if 'image_mask' in ps.colnames:
-                        self.image_masks = DatasetView(ps['image_mask'].data).lazy_transpose([1, 2, 0])
+                        self._image_masks = DatasetView(ps['image_mask'].data).lazy_transpose([1, 2, 0])
                     else:
                         raise Exception('could not find any image_masks in nwbfile')
                     if 'RoiCentroid' in ps.colnames:
@@ -573,7 +573,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         return list(self._roi_idx)
 
     def get_image_size(self):
-        return self.image_masks.shape[:2]
+        return self._image_masks.shape[:2]
 
     @staticmethod
     def get_nwb_metadata(sgmextractor):

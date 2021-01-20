@@ -133,7 +133,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         else:
             all_ids = self.get_roi_ids()
             roi_idx_ = [all_ids.index(i) for i in roi_ids]
-        return np.stack([self.image_masks[:, :, k] for k in roi_idx_], 2)
+        return np.stack([self._image_masks[:, :, k] for k in roi_idx_], 2)
 
     def get_roi_pixel_masks(self, roi_ids=None) -> np.array:
         """

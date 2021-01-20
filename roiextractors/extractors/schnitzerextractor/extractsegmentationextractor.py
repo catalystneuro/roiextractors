@@ -31,7 +31,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         SegmentationExtractor.__init__(self)
         self.file_path = file_path
         self._dataset_file, self._group0 = self._file_extractor_read()
-        self.image_masks = self._image_mask_extractor_read()
+        self._image_masks = self._image_mask_extractor_read()
         self._roi_response_raw = self._trace_extractor_read()
         self._raw_movie_file_location = self._raw_datafile_read()
         self._sampling_frequency = self._roi_response_raw.shape[1] / self._tot_exptime_extractor_read()
@@ -114,4 +114,4 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         return list(range(self.get_num_rois()))
 
     def get_image_size(self):
-        return self.image_masks.shape[0:2]
+        return self._image_masks.shape[0:2]
