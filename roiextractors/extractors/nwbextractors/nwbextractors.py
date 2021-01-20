@@ -604,7 +604,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 if trace_data is not None:
                     metadata['Ophys']['Fluorescence']['roi_response_series'][0].update(rate=rate)
                 continue
-            if len(trace_data.shape) != 0:
+            if trace_data is not None and len(trace_data.shape) != 0:
                 metadata['Ophys']['Fluorescence']['roi_response_series'].append(dict(
                     name=trace_name.capitalize(),
                     description=f'description of {trace_name} traces',
