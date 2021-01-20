@@ -13,8 +13,7 @@ from pathlib import Path
 class TestNwbConversions(unittest.TestCase):
 
     def setUp(self):
-        # self.dataset = install('https://gin.g-node.org/CatalystNeuro/ophys_testing_data')
-        self.parentdir = Path.cwd()/'ophys_testing_data'
+        self.dataset = install('https://gin.g-node.org/CatalystNeuro/ophys_testing_data')
         self.savedir = Path(tempfile.mkdtemp())
 
     @parameterized.expand([
@@ -48,9 +47,9 @@ class TestNwbConversions(unittest.TestCase):
         save_path = self.savedir / save_fname
         rt__write_path = self.savedir / rt_write_fname
         rt_read_path = self.savedir / rt_read_fname
-        # resp = self.dataset.get(dataset_path)
-        # path = resp[0]['path']
-        seg_ex = seg_ex_class(self.parentdir/dataset_path)
+        resp = self.dataset.get(dataset_path)
+        path = resp[0]['path']
+        seg_ex = seg_ex_class(path)
         NwbSegmentationExtractor.write_segmentation(seg_ex, save_path)
         nwb_seg_ex = NwbSegmentationExtractor(save_path)
         check_segmentations_equal(seg_ex, nwb_seg_ex)
