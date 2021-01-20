@@ -143,8 +143,8 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     def get_roi_pixel_masks(self, roi_ids=None):
         pixel_mask = []
         for i in range(self.get_num_rois()):
-            pixel_mask.append(np.vstack([self.stat[i]['ypix'],
-                                         self.stat[i]['xpix'],
+            pixel_mask.append(np.vstack([self.stat[i]['xpix'],
+                                         self.stat[i]['ypix'],
                                          self.stat[i]['lam']]).T)
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
