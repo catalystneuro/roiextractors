@@ -155,7 +155,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                 assert image_masks.suffix == '.npy', "'image_masks' file is not a numpy file (.npy)"
 
                 self.is_dumpable = True
-                self.image_masks = np.load(image_masks, mmap_mode='r')
+                self._image_masks = np.load(image_masks, mmap_mode='r')
 
                 if raw is not None:
                     raw = Path(raw)
@@ -194,7 +194,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             assert isinstance(neuropil, (np.ndarray, NoneType))
             assert isinstance(deconvolved, (np.ndarray, NoneType))
             self.is_dumpable = False
-            self.image_masks = image_masks
+            self._image_masks = image_masks
             self._roi_response_raw = raw
             self._roi_response_dff = dff
             self._roi_response_neuropil = neuropil
@@ -221,7 +221,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     @property
     def image_dims(self):
-        return list(self.image_masks.shape[0:2])
+        return list(self._image_masks.shape[0:2])
 
     def get_accepted_list(self):
         if self._accepted_list is None:
@@ -239,7 +239,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     def roi_locations(self):
         if self._roi_locs is None:
             num_ROIs = self.get_num_rois()
-            raw_images = self.image_masks
+            raw_images = self._image_masks
             roi_location = np.ndarray([2, num_ROIs], dtype='int')
             for i in range(num_ROIs):
                 temp = np.where(raw_images[:, :, i] == np.amax(raw_images[:, :, i]))

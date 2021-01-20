@@ -46,7 +46,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         self._channel_names = [str(i) for i in self._dataset_file.channel_names]
         self._num_of_channels = len(self._channel_names)
         self.sima_segmentation_label = sima_segmentation_label
-        self.image_masks = self._image_mask_extractor_read()
+        self._image_masks = self._image_mask_extractor_read()
         self._roi_response_raw = self._trace_extractor_read()
         self._image_mean = self._summary_image_read()
 
@@ -156,4 +156,4 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         return list(range(self.get_num_rois()))
 
     def get_image_size(self):
-        return self.image_masks.shape[0:2]
+        return self._image_masks.shape[0:2]

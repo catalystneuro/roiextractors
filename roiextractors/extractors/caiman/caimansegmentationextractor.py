@@ -36,7 +36,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self._roi_response_deconvolved = self._trace_extractor_read('S')
         self._image_correlation = self._summary_image_read()
         self._sampling_frequency = self._dataset_file['params']['data']['fr'][()]
-        self.image_masks = self._image_mask_sparse_read()
+        self._image_masks = self._image_mask_sparse_read()
 
     def __del__(self):
         self._dataset_file.close()
