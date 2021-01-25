@@ -9,7 +9,7 @@ import numpy as np
 from hdmf.backends.hdf5.h5_utils import H5DataIO
 from hdmf.data_utils import DataChunkIterator
 from hdmf.common.table import VectorData
-from lazy_ops import DatasetView, lazy_transpose
+from lazy_ops import DatasetView
 from pynwb import NWBFile, NWBHDF5IO
 from pynwb.base import Images
 from pynwb.file import Subject
@@ -727,22 +727,11 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 rejected_ids = [1 if k in rejected_list else 0 for k in roi_ids]
                 roi_locations = np.array(segext_obj.get_roi_locations()).T
 
-                def image_mask_iterator():
-                    chunk_size = num_rois//num_chunks
-                    start_roi_ids = list(range(chunk_size, num_rois, chunk_size))
-                    if num_rois % chunk_size > 0:
-                        start_roi_ids.append(num_rois)
-                    start_id = 0
-                    for end_id in start_roi_ids:
-                        img_msks = segext_obj.get_roi_image_masks(roi_ids=roi_ids[start_id:end_id]).transpose(2,0,1)
-                        start_id = end_id
-                        yield img_msks
-
                 if not ps_exist:
                     input_kwargs.update(
                         **ps_metadata,
                         columns=[
-                            VectorData(data=H5DataIO(DataChunkIterator(image_mask_iterator()),
+                            VectorData(data=H5DataIO(segext_obj.get_roi_image_masks().transpose(2,0,1),
                                                      compression=True, compression_opts=9),
                                        name='image_mask',
                                        description='image masks'),
