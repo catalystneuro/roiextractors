@@ -712,8 +712,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 )
                 ps_metadata = metadata['Ophys']['ImageSegmentation']['plane_segmentations'][0]
                 if ps_metadata['name'] not in image_segmentation.plane_segmentations:
-                    input_kwargs.update(**ps_metadata)
-                    ps = image_segmentation.create_plane_segmentation(**input_kwargs)
                     ps_exist = False
                 else:
                     ps = image_segmentation.get_plane_segmentation(ps_metadata['name'])
