@@ -103,7 +103,8 @@ def get_default_nwb_metadata():
                                                                  'description': 'no description'}]}],
                           'TwoPhotonSeries': [{'name': 'TwoPhotonSeries',
                                                'description': 'no description',
-                                               'comments': 'Generalized from RoiInterface'}]}}
+                                               'comments': 'Generalized from RoiInterface',
+                                               'unit': 'n.a.'}]}}
     return metadata
 
 
@@ -368,7 +369,8 @@ class NwbImagingExtractor(ImagingExtractor):
         metadata['Ophys']['ImagingPlane'][0].update(imaging_rate=rate)
         # TwoPhotonSeries update:
         metadata['Ophys']['TwoPhotonSeries'][0].update(
-            dimension=imgextractor.get_image_size())
+            dimension=imgextractor.get_image_size(),
+            rate=imgextractor.get_sampling_frequency())
         # remove what Segmentation extractor will input:
         _ = metadata['Ophys'].pop('ImageSegmentation')
         _ = metadata['Ophys'].pop('Fluorescence')
