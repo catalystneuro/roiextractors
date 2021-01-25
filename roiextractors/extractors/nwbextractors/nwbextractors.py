@@ -8,7 +8,8 @@ from warnings import warn
 import numpy as np
 from hdmf.backends.hdf5.h5_utils import H5DataIO
 from hdmf.data_utils import DataChunkIterator
-from lazy_ops import DatasetView
+from hdmf.common.table import VectorData
+from lazy_ops import DatasetView, lazy_transpose
 from pynwb import NWBFile, NWBHDF5IO
 from pynwb.base import Images
 from pynwb.file import Subject
@@ -715,9 +716,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                     ps = image_segmentation.get_plane_segmentation(ps_metadata['name'])
                     ps_exist = True
 
-                # ROI add:
-                image_masks = segext_obj.get_roi_image_masks()
                 roi_ids = segext_obj.get_roi_ids()
+                num_rois = segext_obj.get_num_rois()
                 accepted_list = segext_obj.get_accepted_list()
                 accepted_list = [] if accepted_list is None else accepted_list
                 rejected_list = segext_obj.get_rejected_list()
@@ -725,17 +725,39 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 accepted_ids = [1 if k in accepted_list else 0 for k in roi_ids]
                 rejected_ids = [1 if k in rejected_list else 0 for k in roi_ids]
                 roi_locations = np.array(segext_obj.get_roi_locations()).T
+
+                def image_mask_iterator():
+                    chunk_size = num_rois//num_chunks
+                    start_roi_ids = list(range(chunk_size, num_rois, chunk_size))
+                    if num_rois % chunk_size > 0:
+                        start_roi_ids.append(num_rois)
+                    start_id = 0
+                    for end_id in start_roi_ids:
+                        img_msks = segext_obj.get_roi_image_masks(roi_ids=roi_ids[start_id:end_id]).transpose(2,0,1)
+                        start_id = end_id
+                        yield img_msks
+
                 if not ps_exist:
-                    ps.add_column(name='RoiCentroid',
-                                  description='x,y location of centroid of the roi in image_mask')
-                    ps.add_column(name='Accepted',
-                                  description='1 if ROi was accepted or 0 if rejected as a cell during segmentation operation')
-                    ps.add_column(name='Rejected',
-                                  description='1 if ROi was rejected or 0 if accepted as a cell during segmentation operation')
-                    for num, row in enumerate(roi_ids):
-                        ps.add_roi(id=row, image_mask=image_masks[:, :, num],
-                                   RoiCentroid=roi_locations[num, :],
-                                   Accepted=accepted_ids[num], Rejected=rejected_ids[num])
+                    input_kwargs.update(
+                        **ps_metadata,
+                        columns=[
+                            VectorData(data=H5DataIO(DataChunkIterator(image_mask_iterator()),
+                                                     compression=True, compression_opts=9),
+                                       name='image_mask',
+                                       description='image masks'),
+                            VectorData(data=roi_locations,
+                                       name='RoiCentroid',
+                                       description='x,y location of centroid of the roi in image_mask'),
+                            VectorData(data=accepted_ids,
+                                       name='Accepted',
+                                       description='1 if ROi was accepted or 0 if rejected as a cell during segmentation operation'),
+                            VectorData(data=rejected_ids,
+                                       name='Rejected',
+                                       description='1 if ROi was rejected or 0 if accepted as a cell during segmentation operation')
+                        ],
+                        id=roi_ids)
+
+                    ps = image_segmentation.create_plane_segmentation(**input_kwargs)
 
                 # Fluorescence Traces:
                 if 'Flourescence' not in ophys.data_interfaces:

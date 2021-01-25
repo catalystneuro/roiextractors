@@ -27,7 +27,7 @@ class SbxImagingExtractor(ImagingExtractor):
         self.mat_file_path, self.sbx_file_path = self._check_file_path(file_path)
         self._info = self._loadmat()
         self._data = self._sbx_read()
-        self._sampling_frequency = self._info['frame_rate']
+        self._sampling_frequency = float(self._info['frame_rate'])
         # channel names:
         self._channel_names = self._info.get('channel_names', None)
         if self._channel_names is None:
@@ -48,7 +48,7 @@ class SbxImagingExtractor(ImagingExtractor):
             assert sbx_file_path.is_file(), assertion_msg
         else:
             sbx_file_path = file_path
-            mat_file_path = file_path.with_suffix('.sbx')
+            mat_file_path = file_path.with_suffix('.mat')
             assert mat_file_path.is_file(), assertion_msg
         return mat_file_path, sbx_file_path
 
