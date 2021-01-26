@@ -14,7 +14,7 @@ from roiextractors.testing import check_segmentations_equal
 class TestNwbConversions(unittest.TestCase):
 
     def setUp(self):
-        self.dataset = install('https://gin.g-node.org/CatalystNeuro/ophys_testing_data')
+        self.dataset = install('git@gin.g-node.org:/CatalystNeuro/ophys_testing_data.git')
         self.savedir = Path(tempfile.mkdtemp())
 
     @parameterized.expand([
