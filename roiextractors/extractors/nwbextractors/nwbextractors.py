@@ -133,7 +133,7 @@ class NwbImagingExtractor(ImagingExtractor):
         ImagingExtractor.__init__(self)
         self._path = file_path
 
-        self.io = NWBHDF5IO(self._path, 'r')
+        self.io = NWBHDF5IO(str(self._path), 'r')
         self.nwbfile = self.io.read()
         if optical_series_name is not None:
             self._optical_series_name = optical_series_name
@@ -156,12 +156,12 @@ class NwbImagingExtractor(ImagingExtractor):
             self._imaging_start_time = opts.timestamps[0]
         else:
             self._sampling_frequency = opts.rate
-            self._imaging_start_time = opts.get(os, 'starting_time', 0.)
+            self._imaging_start_time = opts.fields.get('starting_time', 0.)
 
         if len(opts.data.shape) == 3:
             self._num_frames, self._size_x, self._size_y = opts.data.shape
-            self._num_channels = 1
-            self._channel_names = opts.imaging_plane.optical_channel[0].name
+            self._channel_names = [i.name for i in opts.imaging_plane.optical_channel]
+            self._num_channels = len(self._channel_names)
         else:
             raise NotImplementedError("4D volumetric data are currently not supported")
 
@@ -298,7 +298,7 @@ class NwbImagingExtractor(ImagingExtractor):
                     data = np.squeeze(video)
                     yield data
 
-            data = H5DataIO(DataChunkIterator(data_generator(imaging, num_chunks)), compression=True)
+            data = H5DataIO(imaging.get_video(), compression=True)
             acquisition_name = opts['name']
 
             # using internal data. this data will be stored inside the NWB file
