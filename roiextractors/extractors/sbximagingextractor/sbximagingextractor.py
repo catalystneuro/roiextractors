@@ -20,14 +20,14 @@ class SbxImagingExtractor(ImagingExtractor):
     mode = 'folder'
     installation_mesg = "To use the Sgx Extractor run:\n\n pip install scipy\n\n"  # error message when not installed
 
-    def __init__(self, file_path: PathType):
+    def __init__(self, file_path: PathType, sampling_frequency: float = None):
         assert HAVE_Scipy, self.installation_mesg
         super().__init__()
         self._memmapped = True
         self.mat_file_path, self.sbx_file_path = self._check_file_path(file_path)
         self._info = self._loadmat()
         self._data = self._sbx_read()
-        self._sampling_frequency = float(self._info['frame_rate'])
+        self._sampling_frequency = sampling_frequency or float(self._info['frame_rate'])
         # channel names:
         self._channel_names = self._info.get('channel_names', None)
         if self._channel_names is None:
@@ -122,8 +122,8 @@ class SbxImagingExtractor(ImagingExtractor):
     def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> np.array:
         frames_list = []
         for frame_no in frame_idxs:
-            frames_list.append(self._data[channel, :, :, 0, frame_no].T)
-        frame_out = np.stack(frames_list, axis=2)
+            frames_list.append(self._data[channel, :, :, 0, frame_no])
+        frame_out = np.stack(frames_list, axis=2).T.squeeze()
         return np.iinfo('uint16').max-frame_out
 
     def get_image_size(self) -> ArrayType:
