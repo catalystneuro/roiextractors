@@ -22,6 +22,16 @@ class TestNwbConversions(unittest.TestCase):
             self.dataset = install('https://gin.g-node.org/CatalystNeuro/ophys_testing_data')
         self.savedir = Path(tempfile.mkdtemp())
 
+    def get_data(self, rt_write_fname, rt_read_fname, save_fname, dataset_path):
+        if rt_read_fname is None:
+            rt_read_fname = rt_write_fname
+        save_path = self.savedir/save_fname
+        rt_write_path = self.savedir/rt_write_fname
+        rt_read_path = self.savedir/rt_read_fname
+        resp = self.dataset.get(dataset_path)
+
+        return rt_write_path, rt_read_path, save_path
+
     @parameterized.expand([
         (
                 CaimanSegmentationExtractor,
@@ -48,19 +58,38 @@ class TestNwbConversions(unittest.TestCase):
                 'suite2p_test.nwb',
                 'suite2p_test/plane0',
                 'suite2p_test'
-        ),(
+        )
+    ])
+    def test_convert_seg_interface_to_nwb(self, roi_ex_class, dataset_path,
+                                          dataset_path_arg, save_fname, rt_write_fname, rt_read_fname=None):
+
+        rt_write_path, rt_read_path, save_path = self.get_data(rt_write_fname, rt_read_fname, save_fname, dataset_path)
+
+        path = Path.cwd()/'ophys_testing_data'/dataset_path_arg
+        roi_ex = roi_ex_class(path)
+        NwbSegmentationExtractor.write_segmentation(roi_ex, save_path)
+        nwb_seg_ex = NwbSegmentationExtractor(save_path)
+        check_segmentations_equal(roi_ex, nwb_seg_ex)
+        try:
+            roi_ex_class.write_segmentation(nwb_seg_ex, rt_write_path)
+        except NotImplementedError:
+            return
+        seg_ex_rt = roi_ex_class(rt_read_path)
+
+    @parameterized.expand([
+        (
                 TiffImagingExtractor,
                 'imaging_datasets/Tif/demoMovie.tif',
                 'imaging_datasets/Tif/demoMovie.tif',
                 'tiff_imaging_test.nwb',
                 'tiff_imaging_test.tif',
-        ),(
+        ), (
                 Hdf5ImagingExtractor,
                 'imaging_datasets/hdf5/demoMovie.hdf5',
                 'imaging_datasets/hdf5/demoMovie.hdf5',
                 'hdf5_imaging_test.nwb',
                 'hdf5_imaging_test.hdf5',
-        ),(
+        ), (
                 SbxImagingExtractor,
                 'imaging_datasets/Scanbox',
                 'imaging_datasets/Scanbox/sample.mat',
@@ -68,37 +97,23 @@ class TestNwbConversions(unittest.TestCase):
                 'sbx_imaging_test.sbx',
         )
     ])
-    def test_convert_seg_interface_to_nwb(self, roi_ex_class, dataset_path,
+    def test_convert_img_interface_to_nwb(self, roi_ex_class, dataset_path,
                                           dataset_path_arg, save_fname, rt_write_fname, rt_read_fname=None):
-        if rt_read_fname is None:
-            rt_read_fname = rt_write_fname
-        save_path = self.savedir/save_fname
-        rt_write_path = self.savedir/rt_write_fname
-        rt_read_path = self.savedir/rt_read_fname
-        resp = self.dataset.get(dataset_path)
-        path = Path.cwd()/'ophys_testing_data'/dataset_path_arg
-        sampling_freq = 20.0
-        if 'Segmentation' in roi_ex_class.__name__:
-            roi_ex = roi_ex_class(path)
-            NwbSegmentationExtractor.write_segmentation(roi_ex, save_path)
-            nwb_seg_ex = NwbSegmentationExtractor(save_path)
-            check_segmentations_equal(roi_ex, nwb_seg_ex)
-            try:
-                roi_ex_class.write_segmentation(nwb_seg_ex, rt_write_path)
-            except NotImplementedError:
-                return
-            seg_ex_rt = roi_ex_class(rt_read_path)
-        else:
-            roi_ex = roi_ex_class(file_path=path, sampling_frequency=sampling_freq)
-            NwbImagingExtractor.write_imaging(roi_ex, save_path)
-            nwb_img_ex = NwbImagingExtractor(save_path)
-            check_imaging_equal(roi_ex, nwb_img_ex)
-            try:
-                roi_ex_class.write_imaging(nwb_img_ex, rt_write_path)
-            except NotImplementedError:
-                return
-            img_ex_rt = roi_ex_class(file_path=rt_read_path, sampling_frequency=sampling_freq)
 
+        rt_write_path, rt_read_path, save_path = self.get_data(rt_write_fname, rt_read_fname, save_fname, dataset_path)
+
+        sampling_freq = 20.0
+
+        path = Path.cwd() / 'ophys_testing_data' / dataset_path_arg
+        roi_ex = roi_ex_class(file_path=path, sampling_frequency=sampling_freq)
+        NwbImagingExtractor.write_imaging(roi_ex, save_path)
+        nwb_img_ex = NwbImagingExtractor(save_path)
+        check_imaging_equal(roi_ex, nwb_img_ex)
+        try:
+            roi_ex_class.write_imaging(nwb_img_ex, rt_write_path)
+        except NotImplementedError:
+            return
+        img_ex_rt = roi_ex_class(file_path=rt_read_path, sampling_frequency=sampling_freq)
 
 
 if __name__ == '__main__':
