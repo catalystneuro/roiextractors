@@ -64,7 +64,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
                 self.ops['xrange'][0]:self.ops['xrange'][-1]] = self.ops[bstr]
             else:
                 img = self.ops[bstr]
-        return img
+        return img.T
 
     @property
     def roi_locations(self):
@@ -102,8 +102,8 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         pixel_masks = segmentation_object.get_roi_pixel_masks(roi_ids=range(segmentation_object.get_num_rois()))
         for no, i in enumerate(stat):
             stat[no] = {'med': roi_locs[no, :].tolist(),
-                        'ypix': pixel_masks[no][:, 0],
-                        'xpix': pixel_masks[no][:, 1],
+                        'xpix': pixel_masks[no][:, 0],
+                        'ypix': pixel_masks[no][:, 1],
                         'lam': pixel_masks[no][:, 2]}
         np.save(save_path / 'stat.npy', stat)
         # saving iscell

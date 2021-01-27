@@ -174,7 +174,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
             all_ids = self.get_roi_ids()
             roi_idx_ = [all_ids.index(i) for i in roi_ids]
         traces = self.get_traces_dict().get(name)
-        if traces is not None and len(traces.shape)!=0:
+        if traces is not None and len(traces.shape) != 0:
             return np.array([traces[int(i), start_frame:end_frame] for i in roi_idx_])
 
     def get_traces_dict(self):
@@ -187,9 +187,9 @@ class SegmentationExtractor(ABC, BaseExtractor):
             Flourescence, Neuropil, Deconvolved, Background etc
         """
         return dict(raw=self._roi_response_raw,
-                     dff=self._roi_response_dff,
-                     neuropil=self._roi_response_neuropil,
-                     deconvolved=self._roi_response_deconvolved)
+                    dff=self._roi_response_dff,
+                    neuropil=self._roi_response_neuropil,
+                    deconvolved=self._roi_response_deconvolved)
 
     def get_images_dict(self):
         """

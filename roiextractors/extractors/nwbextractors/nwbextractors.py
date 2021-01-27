@@ -8,6 +8,7 @@ from warnings import warn
 import numpy as np
 from hdmf.backends.hdf5.h5_utils import H5DataIO
 from hdmf.data_utils import DataChunkIterator
+from hdmf.common.table import VectorData
 from lazy_ops import DatasetView
 from pynwb import NWBFile, NWBHDF5IO
 from pynwb.base import Images
@@ -102,7 +103,8 @@ def get_default_nwb_metadata():
                                                                  'description': 'no description'}]}],
                           'TwoPhotonSeries': [{'name': 'TwoPhotonSeries',
                                                'description': 'no description',
-                                               'comments': 'Generalized from RoiInterface'}]}}
+                                               'comments': 'Generalized from RoiInterface',
+                                               'unit': 'n.a.'}]}}
     return metadata
 
 
@@ -131,7 +133,7 @@ class NwbImagingExtractor(ImagingExtractor):
         ImagingExtractor.__init__(self)
         self._path = file_path
 
-        self.io = NWBHDF5IO(self._path, 'r')
+        self.io = NWBHDF5IO(str(self._path), 'r')
         self.nwbfile = self.io.read()
         if optical_series_name is not None:
             self._optical_series_name = optical_series_name
@@ -154,12 +156,12 @@ class NwbImagingExtractor(ImagingExtractor):
             self._imaging_start_time = opts.timestamps[0]
         else:
             self._sampling_frequency = opts.rate
-            self._imaging_start_time = opts.get(os, 'starting_time', 0.)
+            self._imaging_start_time = opts.fields.get('starting_time', 0.)
 
         if len(opts.data.shape) == 3:
             self._num_frames, self._size_x, self._size_y = opts.data.shape
-            self._num_channels = 1
-            self._channel_names = opts.imaging_plane.optical_channel[0].name
+            self._channel_names = [i.name for i in opts.imaging_plane.optical_channel]
+            self._num_channels = len(self._channel_names)
         else:
             raise NotImplementedError("4D volumetric data are currently not supported")
 
@@ -296,7 +298,7 @@ class NwbImagingExtractor(ImagingExtractor):
                     data = np.squeeze(video)
                     yield data
 
-            data = H5DataIO(DataChunkIterator(data_generator(imaging, num_chunks)), compression=True)
+            data = H5DataIO(imaging.get_video(), compression=True)
             acquisition_name = opts['name']
 
             # using internal data. this data will be stored inside the NWB file
@@ -367,7 +369,8 @@ class NwbImagingExtractor(ImagingExtractor):
         metadata['Ophys']['ImagingPlane'][0].update(imaging_rate=rate)
         # TwoPhotonSeries update:
         metadata['Ophys']['TwoPhotonSeries'][0].update(
-            dimension=imgextractor.get_image_size())
+            dimension=imgextractor.get_image_size(),
+            rate=imgextractor.get_sampling_frequency())
         # remove what Segmentation extractor will input:
         _ = metadata['Ophys'].pop('ImageSegmentation')
         _ = metadata['Ophys'].pop('Fluorescence')
@@ -617,7 +620,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         return metadata
 
     @staticmethod
-    def write_segmentation(segext_obj: SegmentationExtractor, save_path, plane_num=0, metadata=None, overwrite=True):
+    def write_segmentation(segext_obj: SegmentationExtractor, save_path, plane_num=0, metadata=None, overwrite=True,
+                           num_chunks=100):
         save_path = Path(save_path)
         assert save_path.suffix == '.nwb'
         if save_path.is_file() and not overwrite:
@@ -708,16 +712,13 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 )
                 ps_metadata = metadata['Ophys']['ImageSegmentation']['plane_segmentations'][0]
                 if ps_metadata['name'] not in image_segmentation.plane_segmentations:
-                    input_kwargs.update(**ps_metadata)
-                    ps = image_segmentation.create_plane_segmentation(**input_kwargs)
                     ps_exist = False
                 else:
                     ps = image_segmentation.get_plane_segmentation(ps_metadata['name'])
                     ps_exist = True
 
-                # ROI add:
-                image_masks = segext_obj.get_roi_image_masks()
                 roi_ids = segext_obj.get_roi_ids()
+                num_rois = segext_obj.get_num_rois()
                 accepted_list = segext_obj.get_accepted_list()
                 accepted_list = [] if accepted_list is None else accepted_list
                 rejected_list = segext_obj.get_rejected_list()
@@ -725,17 +726,28 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 accepted_ids = [1 if k in accepted_list else 0 for k in roi_ids]
                 rejected_ids = [1 if k in rejected_list else 0 for k in roi_ids]
                 roi_locations = np.array(segext_obj.get_roi_locations()).T
+
                 if not ps_exist:
-                    ps.add_column(name='RoiCentroid',
-                                  description='x,y location of centroid of the roi in image_mask')
-                    ps.add_column(name='Accepted',
-                                  description='1 if ROi was accepted or 0 if rejected as a cell during segmentation operation')
-                    ps.add_column(name='Rejected',
-                                  description='1 if ROi was rejected or 0 if accepted as a cell during segmentation operation')
-                    for num, row in enumerate(roi_ids):
-                        ps.add_roi(id=row, image_mask=image_masks[:, :, num],
-                                   RoiCentroid=roi_locations[num, :],
-                                   Accepted=accepted_ids[num], Rejected=rejected_ids[num])
+                    input_kwargs.update(
+                        **ps_metadata,
+                        columns=[
+                            VectorData(data=H5DataIO(segext_obj.get_roi_image_masks().transpose(2,0,1),
+                                                     compression=True, compression_opts=9),
+                                       name='image_mask',
+                                       description='image masks'),
+                            VectorData(data=roi_locations,
+                                       name='RoiCentroid',
+                                       description='x,y location of centroid of the roi in image_mask'),
+                            VectorData(data=accepted_ids,
+                                       name='Accepted',
+                                       description='1 if ROi was accepted or 0 if rejected as a cell during segmentation operation'),
+                            VectorData(data=rejected_ids,
+                                       name='Rejected',
+                                       description='1 if ROi was rejected or 0 if accepted as a cell during segmentation operation')
+                        ],
+                        id=roi_ids)
+
+                    ps = image_segmentation.create_plane_segmentation(**input_kwargs)
 
                 # Fluorescence Traces:
                 if 'Flourescence' not in ophys.data_interfaces:
