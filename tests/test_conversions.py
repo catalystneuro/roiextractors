@@ -19,7 +19,7 @@ class TestNwbConversions(unittest.TestCase):
         if pt.exists():
             self.dataset = Dataset(pt)
         else:
-            self.dataset = install('git@gin.g-node.org:/CatalystNeuro/ophys_testing_data.git')
+            self.dataset = install('https://gin.g-node.org/CatalystNeuro/ophys_testing_data.git')
         self.savedir = Path(tempfile.mkdtemp())
 
     @parameterized.expand([
