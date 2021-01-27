@@ -28,7 +28,7 @@ With this package, a user can:
    compatible
    usage
    usecase
-   api
+   contribute
    licence
    contact
 
