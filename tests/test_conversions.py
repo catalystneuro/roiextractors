@@ -26,50 +26,57 @@ class TestNwbConversions(unittest.TestCase):
         (
                 CaimanSegmentationExtractor,
                 'segmentation_datasets/caiman/caiman_analysis.hdf5',
+                'segmentation_datasets/caiman/caiman_analysis.hdf5',
                 'caiman_test.nwb',
                 'caiman_test.hdf5'
         ), (
                 CnmfeSegmentationExtractor,
+                'segmentation_datasets/cnmfe/2014_04_01_p203_m19_check01_cnmfeAnalysis.mat',
                 'segmentation_datasets/cnmfe/2014_04_01_p203_m19_check01_cnmfeAnalysis.mat',
                 'cnmfe_test.nwb',
                 'cnmfe_test.mat'
         ), (
                 ExtractSegmentationExtractor,
                 'segmentation_datasets/extract/2014_04_01_p203_m19_check01_extractAnalysis.mat',
+                'segmentation_datasets/extract/2014_04_01_p203_m19_check01_extractAnalysis.mat',
                 'extract_test.nwb',
                 'extract_test.mat'
         ), (
                 Suite2pSegmentationExtractor,
                 'segmentation_datasets/suite2p',
+                'segmentation_datasets/suite2p/plane0',
                 'suite2p_test.nwb',
                 'suite2p_test/plane0',
                 'suite2p_test'
         ),(
                 TiffImagingExtractor,
                 'imaging_datasets/Tif/demoMovie.tif',
+                'imaging_datasets/Tif/demoMovie.tif',
                 'tiff_imaging_test.nwb',
                 'tiff_imaging_test.tif',
         ),(
                 Hdf5ImagingExtractor,
                 'imaging_datasets/hdf5/demoMovie.hdf5',
+                'imaging_datasets/hdf5/demoMovie.hdf5',
                 'hdf5_imaging_test.nwb',
                 'hdf5_imaging_test.hdf5',
         ),(
                 SbxImagingExtractor,
-                'imaging_datasets/Scanbox/TwoTower_foraging_003_006_small.sbx',
+                'imaging_datasets/Scanbox',
+                'imaging_datasets/Scanbox/sample.mat',
                 'sbx_imaging_test.nwb',
                 'sbx_imaging_test.sbx',
         )
     ])
-    def test_convert_seg_interface_to_nwb(self, roi_ex_class, dataset_path, save_fname, rt_write_fname,
-                                          rt_read_fname=None):
+    def test_convert_seg_interface_to_nwb(self, roi_ex_class, dataset_path,
+                                          dataset_path_arg, save_fname, rt_write_fname, rt_read_fname=None):
         if rt_read_fname is None:
             rt_read_fname = rt_write_fname
         save_path = self.savedir/save_fname
         rt_write_path = self.savedir/rt_write_fname
         rt_read_path = self.savedir/rt_read_fname
         resp = self.dataset.get(dataset_path)
-        path = resp[0]['path']
+        path = Path(dataset_path_arg)
         sampling_freq = 20.0
         if 'Segmentation' in roi_ex_class.__name__:
             roi_ex = roi_ex_class(path)
