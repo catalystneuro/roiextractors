@@ -43,8 +43,8 @@ class TestNwbConversions(unittest.TestCase):
                 'extract_test.mat'
         ), (
                 Suite2pSegmentationExtractor,
-                'segmentation_datasets/suite2p',
                 'segmentation_datasets/suite2p/plane0',
+                'segmentation_datasets/suite2p',
                 'suite2p_test.nwb',
                 'suite2p_test/plane0',
                 'suite2p_test'
@@ -76,7 +76,7 @@ class TestNwbConversions(unittest.TestCase):
         rt_write_path = self.savedir/rt_write_fname
         rt_read_path = self.savedir/rt_read_fname
         resp = self.dataset.get(dataset_path)
-        path = Path(dataset_path_arg)
+        path = Path.cwd()/'ophys_testing_data'/dataset_path_arg
         sampling_freq = 20.0
         if 'Segmentation' in roi_ex_class.__name__:
             roi_ex = roi_ex_class(path)
