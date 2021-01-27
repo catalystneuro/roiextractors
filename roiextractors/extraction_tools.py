@@ -5,6 +5,7 @@ from typing import Union
 import numpy as np
 from spikeextractors.extraction_tools import cast_start_end_frame
 from tqdm import tqdm
+from os.path import abspath, relpath
 
 try:
     import h5py
@@ -12,6 +13,13 @@ try:
     HAVE_H5 = True
 except ImportError:
     HAVE_H5 = False
+
+try:
+    import scipy.io as spio
+
+    HAVE_Scipy = True
+except ImportError:
+    HAVE_Scipy = False
 
 ArrayType = Union[list, np.array]
 PathType = Union[str, Path]
@@ -245,3 +253,31 @@ def show_video(imaging, ax=None):
     anim = animation.FuncAnimation(fig, animate_func, frames=imaging.get_num_frames(), fargs=(imaging, im, ax),
                                    interval=interval, blit=False)
     return anim
+
+
+def check_keys(dict):
+    """
+    checks if entries in dictionary are mat-objects. If yes
+    todict is called to change them to nested dictionaries
+    """
+    assert HAVE_Scipy, "To write to h5 you need to install scipy: pip install scipy"
+    for key in dict:
+        if isinstance(dict[key], spio.matlab.mio5_params.mat_struct):
+            dict[key] = todict(dict[key])
+    return dict
+
+
+def todict(matobj):
+    """
+    A recursive function which constructs from matobjects nested dictionaries
+    """
+    dict = {}
+    for strg in matobj._fieldnames:
+        elem = matobj.__dict__[strg]
+        if isinstance(elem, spio.matlab.mio5_params.mat_struct):
+            dict[strg] = todict(elem)
+        else:
+            dict[strg] = elem
+    return dict
+
+

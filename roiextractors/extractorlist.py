@@ -6,6 +6,7 @@ from .extractors.schnitzerextractor import CnmfeSegmentationExtractor, ExtractSe
 from .extractors.simaextractor import SimaSegmentationExtractor
 from .extractors.suite2p import Suite2pSegmentationExtractor
 from .extractors.tiffimagingextractor import TiffImagingExtractor
+from .extractors.sbximagingextractor import SbxImagingExtractor
 from .multisegmentationextractor import MultiSegmentationExtractor
 
 segmentation_extractor_full_list = [
@@ -24,6 +25,7 @@ imaging_extractor_full_list = [
     Hdf5ImagingExtractor,
     TiffImagingExtractor,
     NwbImagingExtractor,
+    SbxImagingExtractor
 ]
 
 segmentation_extractor_dict = {segmentation_class.extractor_name: segmentation_class for segmentation_class in

@@ -41,8 +41,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self.ops = self._load_npy('ops.npy').item()
         self._channel_names = [f'OpticalChannel{i}' for i in range(self.ops['nchannels'])]
         self._sampling_frequency = self.ops['fs'] * [2 if self.combined else 1][0]
-        self._raw_movie_file_location = self.ops['filelist'][0]
-        self.image_masks = self.get_roi_image_masks()
+        self._raw_movie_file_location = self.ops.get('filelist',[None])[0]
         self._image_correlation = self._summary_image_read('Vcorr')
         self._image_mean = self._summary_image_read('meanImg')
 
@@ -65,7 +64,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
                 self.ops['xrange'][0]:self.ops['xrange'][-1]] = self.ops[bstr]
             else:
                 img = self.ops[bstr]
-        return img
+        return img.T
 
     @property
     def roi_locations(self):
@@ -103,8 +102,8 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         pixel_masks = segmentation_object.get_roi_pixel_masks(roi_ids=range(segmentation_object.get_num_rois()))
         for no, i in enumerate(stat):
             stat[no] = {'med': roi_locs[no, :].tolist(),
-                        'ypix': pixel_masks[no][:, 0],
-                        'xpix': pixel_masks[no][:, 1],
+                        'xpix': pixel_masks[no][:, 0],
+                        'ypix': pixel_masks[no][:, 1],
                         'lam': pixel_masks[no][:, 2]}
         np.save(save_path / 'stat.npy', stat)
         # saving iscell
@@ -144,8 +143,8 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     def get_roi_pixel_masks(self, roi_ids=None):
         pixel_mask = []
         for i in range(self.get_num_rois()):
-            pixel_mask.append(np.vstack([self.stat[i]['ypix'],
-                                         self.stat[i]['xpix'],
+            pixel_mask.append(np.vstack([self.stat[i]['xpix'],
+                                         self.stat[i]['ypix'],
                                          self.stat[i]['lam']]).T)
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())

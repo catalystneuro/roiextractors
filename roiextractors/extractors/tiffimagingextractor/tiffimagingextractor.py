@@ -34,7 +34,7 @@ class TiffImagingExtractor(ImagingExtractor):
             self._num_channels = len(tif.series)
 
         # deal with multiple channels
-        self._video = tifffile.memmap(self.file_path)
+        self._video = tifffile.memmap(self.file_path, mode='r')
         self._num_channels, self._num_frames, self._size_x, self._size_y = get_video_shape(self._video)
 
         if len(self._video.shape) == 3:
