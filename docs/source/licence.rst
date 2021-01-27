@@ -6,7 +6,7 @@ Licence
 
 .. _licencetag:
 
-Copyright (c) 2020, Ben Dichter Consulting
+Copyright (c) 2020, CatalystNeuro
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
