@@ -1,3 +1,4 @@
 datalad
 parameterized
 pynwb
+tifffile
