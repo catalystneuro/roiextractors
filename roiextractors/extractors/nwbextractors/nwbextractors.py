@@ -267,7 +267,7 @@ class NwbImagingExtractor(ImagingExtractor):
         return nwbfile
 
     @staticmethod
-    def add_two_photon_series(imaging, nwbfile, metadata, num_chunks=10):
+    def add_two_photon_series(imaging, nwbfile, metadata, buffer_size=10):
         """
         Auxiliary static method for nwbextractor.
         Adds two photon series from imaging object as TwoPhotonSeries to nwbfile object.
@@ -286,19 +286,11 @@ class NwbImagingExtractor(ImagingExtractor):
 
             imaging_plane = nwbfile.create_imaging_plane(**metadata['Ophys']['ImagingPlane'][0])
 
-            def data_generator(imaging, num_chunks):
-                num_frames = imaging.get_num_frames()
-                # chunk size is not None
-                chunk_size = num_frames//num_chunks
-                if num_frames%chunk_size > 0:
-                    num_chunks += 1
-                for i in range(num_chunks):
-                    video = imaging.get_video(start_frame=i * chunk_size,
-                                              end_frame=min((i + 1) * chunk_size, num_frames))
-                    data = np.squeeze(video)
-                    yield data
+            def data_generator(imaging):
+                for i in range(imaging.get_num_frames()):
+                    yield imaging.get_frames(frame_idxs=[i])
 
-            data = H5DataIO(imaging.get_video(), compression=True)
+            data = H5DataIO(DataChunkIterator(data_generator(imaging), buffer_size=buffer_size), compression=True)
             acquisition_name = opts['name']
 
             # using internal data. this data will be stored inside the NWB file
@@ -378,7 +370,7 @@ class NwbImagingExtractor(ImagingExtractor):
 
     @staticmethod
     def write_imaging(imaging: ImagingExtractor, save_path: PathType = None, nwbfile=None,
-                      metadata: dict = None, overwrite: bool = False, num_chunks: int = 10):
+                      metadata: dict = None, overwrite: bool = False, buffer_size: int = 10):
         """
         Parameters
         ----------
@@ -444,7 +436,7 @@ class NwbImagingExtractor(ImagingExtractor):
                     NwbImagingExtractor.add_two_photon_series(imaging=imaging,
                                                               nwbfile=nwbfile,
                                                               metadata=metadata,
-                                                              num_chunks=num_chunks)
+                                                              buffer_size=buffer_size)
 
                     NwbImagingExtractor.add_epochs(imaging=imaging,
                                                    nwbfile=nwbfile)
@@ -526,7 +518,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 if 'PlaneSegmentation' in image_seg.plane_segmentations:  # this requirement in nwbfile is enforced
                     ps = image_seg.plane_segmentations['PlaneSegmentation']
                     if 'image_mask' in ps.colnames:
-                        self._image_masks = DatasetView(ps['image_mask'].data).lazy_transpose([1, 2, 0])
+                        self._image_masks = DatasetView(ps['image_mask'].data).lazy_transpose([2, 1, 0])
                     else:
                         raise Exception('could not find any image_masks in nwbfile')
                     if 'RoiCentroid' in ps.colnames:
@@ -620,8 +612,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         return metadata
 
     @staticmethod
-    def write_segmentation(segext_obj: SegmentationExtractor, save_path, plane_num=0, metadata=None, overwrite=True,
-                           num_chunks=100):
+    def write_segmentation(segext_obj: SegmentationExtractor, save_path, plane_num=0, metadata: dict = None,
+                           overwrite: bool = True, buffer_size: int = 10):
         save_path = Path(save_path)
         assert save_path.suffix == '.nwb'
         if save_path.is_file() and not overwrite:
@@ -727,11 +719,16 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 rejected_ids = [1 if k in rejected_list else 0 for k in roi_ids]
                 roi_locations = np.array(segext_obj.get_roi_locations()).T
 
+                def image_mask_iterator():
+                    for id in segext_obj.get_roi_ids():
+                        img_msks = segext_obj.get_roi_image_masks(roi_ids=[id]).T.squeeze()
+                        yield img_msks
+
                 if not ps_exist:
                     input_kwargs.update(
                         **ps_metadata,
                         columns=[
-                            VectorData(data=H5DataIO(segext_obj.get_roi_image_masks().transpose(2,0,1),
+                            VectorData(data=H5DataIO(DataChunkIterator(image_mask_iterator(), buffer_size=buffer_size),
                                                      compression=True, compression_opts=9),
                                        name='image_mask',
                                        description='image masks'),
