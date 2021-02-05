@@ -2,3 +2,4 @@ datalad
 parameterized
 pynwb
 tifffile
+git+https://github.com/hdmf-dev/hdmf@dev
