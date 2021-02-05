@@ -518,7 +518,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 if 'PlaneSegmentation' in image_seg.plane_segmentations:  # this requirement in nwbfile is enforced
                     ps = image_seg.plane_segmentations['PlaneSegmentation']
                     if 'image_mask' in ps.colnames:
-                        self._image_masks = DatasetView(ps['image_mask'].data).lazy_transpose([1, 2, 0])
+                        self._image_masks = DatasetView(ps['image_mask'].data).lazy_transpose([2, 1, 0])
                     else:
                         raise Exception('could not find any image_masks in nwbfile')
                     if 'RoiCentroid' in ps.colnames:
