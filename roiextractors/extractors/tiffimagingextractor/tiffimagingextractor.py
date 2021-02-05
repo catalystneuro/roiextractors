@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 
-from ...extraction_tools import PathType, get_video_shape, check_get_frames_args
+from ...extraction_tools import PathType, get_video_shape, check_get_frames_args, FloatType, ArrayType
 from ...imagingextractor import ImagingExtractor
 
 try:
@@ -21,8 +21,8 @@ class TiffImagingExtractor(ImagingExtractor):
     mode = 'file'
     installation_mesg = "To use the TiffImagingExtractor install tifffile: \n\n pip install tifffile\n\n"  # error message when not installed
 
-    def __init__(self, file_path: PathType, sampling_frequency,
-                 channel_names=None):
+    def __init__(self, file_path: PathType, sampling_frequency: FloatType,
+                 channel_names: ArrayType = None):
         assert HAVE_TIFF, self.installation_mesg
         ImagingExtractor.__init__(self)
         self.file_path = Path(file_path)
