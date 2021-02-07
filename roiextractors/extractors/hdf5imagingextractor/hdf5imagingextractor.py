@@ -21,7 +21,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
     mode = 'file'
     installation_mesg = "To use the Hdf5 Extractor run:\n\n pip install h5py\n\n"  # error message when not installed
 
-    def __init__(self, file_path: PathType, mov_field='mov', sampling_frequency: FloatType = None,
+    def __init__(self, file_path: PathType, mov_field: str = 'mov', sampling_frequency: FloatType = None,
                  start_time: FloatType = None, metadata: dict = None,
                  channel_names: ArrayType = None):
         assert HAVE_H5, self.installation_mesg
