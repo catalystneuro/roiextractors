@@ -48,7 +48,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         return f, _group0
 
     def _image_mask_extractor_read(self):
-        return DatasetView(self._dataset_file[self._group0[0]]['extractedImages']).T
+        return DatasetView(self._dataset_file[self._group0[0]]['extractedImages']).lazy_transpose([1,2,0])
 
     def _trace_extractor_read(self):
         extracted_signals = DatasetView(self._dataset_file[self._group0[0]]['extractedSignals'])
@@ -59,7 +59,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
 
     def _summary_image_read(self):
         summary_image = self._dataset_file[self._group0[0]]['Cn']
-        return np.array(summary_image).T
+        return np.array(summary_image)
 
     def _raw_datafile_read(self):
         if self._dataset_file[self._group0[0]].get('movieList'):
