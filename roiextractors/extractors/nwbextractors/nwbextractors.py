@@ -209,25 +209,24 @@ class NwbImagingExtractor(ImagingExtractor):
             )
         )
 
-    # TODO use lazy_ops
     @check_get_frames_args
     def get_frames(self, frame_idxs, channel=0):
         opts = self.nwbfile.acquisition[self._optical_series_name]
         if frame_idxs.size > 1 and np.all(np.diff(frame_idxs) > 0):
-            return opts.data[frame_idxs]
+            return opts.data[frame_idxs].transpose([0, 2, 1])
         else:
             sorted_idxs = np.sort(frame_idxs)
             argsorted_idxs = np.argsort(frame_idxs)
-            return opts.data[sorted_idxs][argsorted_idxs]
+            return opts.data[sorted_idxs][argsorted_idxs].transpose([0, 2, 1])
 
     @check_get_videos_args
     def get_video(self, start_frame=None, end_frame=None, channel=0):
         opts = self.nwbfile.acquisition[self._optical_series_name]
-        video = opts.data[start_frame:end_frame]
+        video = opts.data[start_frame:end_frame].transpose([0, 2, 1])
         return video
 
     def get_image_size(self):
-        return [self._size_x, self._size_y]
+        return [self._size_y, self._size_x]
 
     def get_num_frames(self):
         return self._num_frames
@@ -288,7 +287,7 @@ class NwbImagingExtractor(ImagingExtractor):
 
             def data_generator(imaging):
                 for i in range(imaging.get_num_frames()):
-                    yield imaging.get_frames(frame_idxs=[i])
+                    yield imaging.get_frames(frame_idxs=[i]).T
 
             data = H5DataIO(DataChunkIterator(data_generator(imaging), buffer_size=buffer_size), compression=True)
             acquisition_name = opts['name']
@@ -535,9 +534,9 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             if 'SegmentationImages' in ophys.data_interfaces:
                 images_container = ophys.data_interfaces['SegmentationImages']
                 if 'correlation' in images_container.images:
-                    self._image_correlation = images_container.images['correlation'].data[()]
+                    self._image_correlation = images_container.images['correlation'].data[()].T
                 if 'mean' in images_container.images:
-                    self._image_mean = images_container.images['mean'].data[()]
+                    self._image_mean = images_container.images['mean'].data[()].T
 
         # Imaging plane:
         if 'ImagingPlane' in self.nwbfile.imaging_planes:
@@ -788,7 +787,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                     images = Images(images_name)
                     for img_name, img_no in images_dict.items():
                         if img_no is not None:
-                            images.add_image(GrayscaleImage(name=img_name, data=img_no))
+                            images.add_image(GrayscaleImage(name=img_name, data=img_no.T))
                     ophys.add(images)
 
             # saving NWB file:
