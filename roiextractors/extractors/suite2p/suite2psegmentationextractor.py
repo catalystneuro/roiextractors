@@ -64,7 +64,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
                 self.ops['xrange'][0]:self.ops['xrange'][-1]] = self.ops[bstr]
             else:
                 img = self.ops[bstr]
-        return img.T
+        return img
 
     @property
     def roi_locations(self):
@@ -155,4 +155,4 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return [pixel_mask[i] for i in roi_idx_]
 
     def get_image_size(self):
-        return [self.ops['Lx'], self.ops['Ly']]
+        return [self.ops['Ly'], self.ops['Lx']]

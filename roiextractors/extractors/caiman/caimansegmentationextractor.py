@@ -59,7 +59,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
     def _summary_image_read(self):
         if self._dataset_file['estimates'].get('Cn'):
-            return np.array(self._dataset_file['estimates']['Cn']).T
+            return np.array(self._dataset_file['estimates']['Cn'])
 
     def get_accepted_list(self):
         accepted = self._dataset_file['estimates']['idx_components']
