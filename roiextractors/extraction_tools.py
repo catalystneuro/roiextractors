@@ -81,7 +81,7 @@ def _image_mask_extractor(pixel_mask, _roi_ids, image_shape):
     """
     image_mask = np.zeros(list(image_shape) + [len(_roi_ids)])
     for no, rois in enumerate(_roi_ids):
-        for x, y, wt in pixel_mask[rois]:
+        for y, x, wt in pixel_mask[rois]:
             image_mask[int(y), int(x), no] = wt
     return image_mask
 

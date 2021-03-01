@@ -60,7 +60,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         if bstr in self.ops:
             if bstr == 'Vcorr' or bstr == 'max_proj':
                 img = np.zeros((self.ops['Ly'], self.ops['Lx']), np.float32)
-                img[self.ops['yrange'][0]:self.ops['yrange'][-1],
+                img[(self.ops['Ly']-self.ops['yrange'][-1]):(self.ops['Ly']-self.ops['yrange'][0]),
                 self.ops['xrange'][0]:self.ops['xrange'][-1]] = self.ops[bstr]
             else:
                 img = self.ops[bstr]
@@ -102,8 +102,8 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         pixel_masks = segmentation_object.get_roi_pixel_masks(roi_ids=range(segmentation_object.get_num_rois()))
         for no, i in enumerate(stat):
             stat[no] = {'med': roi_locs[no, :].tolist(),
-                        'xpix': pixel_masks[no][:, 0],
-                        'ypix': pixel_masks[no][:, 1],
+                        'ypix': segmentation_object.get_image_size()[0]-1-pixel_masks[no][:, 0],
+                        'xpix': pixel_masks[no][:, 1],
                         'lam': pixel_masks[no][:, 2]}
         np.save(save_path / 'stat.npy', stat)
         # saving iscell
@@ -143,8 +143,8 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     def get_roi_pixel_masks(self, roi_ids=None):
         pixel_mask = []
         for i in range(self.get_num_rois()):
-            pixel_mask.append(np.vstack([self.stat[i]['xpix'],
-                                         self.stat[i]['ypix'],
+            pixel_mask.append(np.vstack([self.ops['Ly']-1-self.stat[i]['ypix'],
+                                         self.stat[i]['xpix'],
                                          self.stat[i]['lam']]).T)
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
