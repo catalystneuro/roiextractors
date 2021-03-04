@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from copy import deepcopy
 
 import numpy as np
 from spikeextractors.baseextractor import BaseExtractor
@@ -17,8 +16,11 @@ class SegmentationExtractor(ABC, BaseExtractor):
     All the methods with @abstract decorator have to be defined by the
     format specific classes that inherit from this.
     """
+    installed = True
+    installation_mesg = ""
 
     def __init__(self):
+        assert self.installed, self.installation_mesg
         BaseExtractor.__init__(self)
         self._sampling_frequency = None
         self._channel_names = ['OpticalChannel']

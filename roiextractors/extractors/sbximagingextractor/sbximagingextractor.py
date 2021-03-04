@@ -1,9 +1,11 @@
-from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import check_keys
-from ...extraction_tools import PathType, FloatType, ArrayType
-import numpy as np
-from pathlib import Path
 import os
+from pathlib import Path
+
+import numpy as np
+
+from ...extraction_tools import PathType, ArrayType
+from ...extraction_tools import check_keys
+from ...imagingextractor import ImagingExtractor
 
 try:
     import scipy.io as spio
@@ -18,10 +20,9 @@ class SbxImagingExtractor(ImagingExtractor):
     installed = HAVE_Scipy  # check at class level if installed or not
     is_writable = True
     mode = 'folder'
-    installation_mesg = "To use the Sgx Extractor run:\n\n pip install scipy\n\n"  # error message when not installed
+    installation_mesg = "To use the Sbx Extractor run:\n\n pip install scipy\n\n"  # error message when not installed
 
     def __init__(self, file_path: PathType, sampling_frequency: float = None):
-        assert HAVE_Scipy, self.installation_mesg
         super().__init__()
         self._memmapped = True
         self.mat_file_path, self.sbx_file_path = self._check_file_path(file_path)
@@ -41,7 +42,7 @@ class SbxImagingExtractor(ImagingExtractor):
         file_path = Path(file_path)
         assertion_msg = 'for file_path arg, provide a path to one .sbx /  .mat file'
         file_type = file_path.suffix
-        assert file_type in ['.mat','.sbx'], assertion_msg
+        assert file_type in ['.mat', '.sbx'], assertion_msg
         if file_type == '.mat':
             mat_file_path = file_path
             sbx_file_path = file_path.with_suffix('.sbx')
@@ -124,7 +125,7 @@ class SbxImagingExtractor(ImagingExtractor):
         for frame_no in frame_idxs:
             frames_list.append(self._data[channel, :, :, 0, frame_no])
         frame_out = np.stack(frames_list, axis=2).T.squeeze()
-        return np.iinfo('uint16').max-frame_out
+        return np.iinfo('uint16').max - frame_out
 
     def get_image_size(self) -> ArrayType:
         return self._info['sz']
@@ -144,4 +145,3 @@ class SbxImagingExtractor(ImagingExtractor):
     @staticmethod
     def write_imaging(imaging, save_path: PathType, overwrite: bool = False):
         raise NotImplementedError
-

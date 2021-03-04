@@ -1,6 +1,12 @@
 from pathlib import Path
 
-import h5py
+try:
+    import h5py
+
+    HAVE_H5PY = True
+except ImportError:
+    HAVE_H5PY = False
+
 import numpy as np
 from lazy_ops import DatasetView
 
@@ -16,10 +22,10 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
     the \'EXTRACT\' ROI segmentation method.
     """
     extractor_name = 'ExtractSegmentation'
-    installed = True  # check at class level if installed or not
+    installed = HAVE_H5PY  # check at class level if installed or not
     is_writable = False
     mode = 'file'
-    installation_mesg = ""  # error message when not installed
+    installation_mesg = "To use extract install h5py: \n\n pip install h5py \n\n"  # error message when not installed
 
     def __init__(self, file_path: PathType):
         """
@@ -34,7 +40,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         self._image_masks = self._image_mask_extractor_read()
         self._roi_response_raw = self._trace_extractor_read()
         self._raw_movie_file_location = self._raw_datafile_read()
-        self._sampling_frequency = self._roi_response_raw.shape[1] / self._tot_exptime_extractor_read()
+        self._sampling_frequency = self._roi_response_raw.shape[1]/self._tot_exptime_extractor_read()
         self._image_correlation = self._summary_image_read()
 
     def __del__(self):
@@ -47,7 +53,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         return f, _group0
 
     def _image_mask_extractor_read(self):
-        return DatasetView(self._dataset_file[self._group0[0]]['filters']).lazy_transpose([1,2,0])
+        return DatasetView(self._dataset_file[self._group0[0]]['filters']).lazy_transpose([1, 2, 0])
 
     def _trace_extractor_read(self):
         extracted_signals = DatasetView(self._dataset_file[self._group0[0]]['traces'])
@@ -87,7 +93,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         if isinstance(segmentation_object, MultiSegmentationExtractor):
             segext_objs = segmentation_object.segmentations
             for plane_num, segext_obj in enumerate(segext_objs):
-                save_path_plane = folder_path / f'Plane_{plane_num}' / file_name
+                save_path_plane = folder_path/f'Plane_{plane_num}'/file_name
                 ExtractSegmentationExtractor.write_segmentation(segext_obj, save_path_plane)
         if not folder_path.is_dir():
             folder_path.mkdir(parents=True)
@@ -99,14 +105,15 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
             # create datasets:
             main.create_dataset('filters', data=segmentation_object.get_roi_image_masks().T)
             main.create_dataset('traces', data=segmentation_object.get_traces())
-            if getattr(segmentation_object,'_raw_movie_file_location', None):
-                main.create_dataset('file', data=[ord(alph) for alph in str(segmentation_object._raw_movie_file_location)])
+            if getattr(segmentation_object, '_raw_movie_file_location', None):
+                main.create_dataset('file',
+                                    data=[ord(alph) for alph in str(segmentation_object._raw_movie_file_location)])
             info = main.create_group('info')
             if segmentation_object.get_image() is not None:
                 info.create_dataset('summary_image', data=segmentation_object.get_image())
             time = main.create_group('time')
             if segmentation_object.get_sampling_frequency() is not None:
-                time.create_dataset('totalTime', (1, 1), data=segmentation_object.get_roi_image_masks().shape[1] /
+                time.create_dataset('totalTime', (1, 1), data=segmentation_object.get_roi_image_masks().shape[1]/
                                                               segmentation_object.get_sampling_frequency())
 
     # defining the abstract class informed methods:

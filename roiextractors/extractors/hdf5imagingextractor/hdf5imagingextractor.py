@@ -24,7 +24,6 @@ class Hdf5ImagingExtractor(ImagingExtractor):
     def __init__(self, file_path: PathType, mov_field: str = 'mov', sampling_frequency: FloatType = None,
                  start_time: FloatType = None, metadata: dict = None,
                  channel_names: ArrayType = None):
-        assert HAVE_H5, self.installation_mesg
         ImagingExtractor.__init__(self)
         self.filepath = Path(file_path)
         self._sampling_frequency = sampling_frequency
