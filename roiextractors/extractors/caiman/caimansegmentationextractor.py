@@ -1,8 +1,20 @@
 from pathlib import Path
 
-import h5py
+try:
+    import h5py
+
+    HAVE_H5PY = True
+except ImportError:
+    HAVE_H5PY = False
+
+try:
+    from scipy.sparse import csc_matrix
+
+    HAVE_SCIPY = True
+except ImportError:
+    HAVE_SCIPY = False
+
 import numpy as np
-from scipy.sparse import csc_matrix
 
 from ...extraction_tools import PathType
 from ...multisegmentationextractor import MultiSegmentationExtractor
@@ -16,10 +28,10 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
     the \'CNMF-E\' ROI segmentation method.
     """
     extractor_name = 'CaimanSegmentation'
-    installed = True  # check at class level if installed or not
+    installed = HAVE_H5PY and HAVE_SCIPY  # check at class level if installed or not
     is_writable = True
     mode = 'file'
-    installation_mesg = ""  # error message when not installed
+    installation_mesg = "To use the CaimanSegmentationExtractor install h5py and scipy: \n\n pip install scipy/h5py\n\n"  # error message when not installed
 
     def __init__(self, file_path: PathType):
         """
@@ -87,7 +99,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         if isinstance(segmentation_object, MultiSegmentationExtractor):
             segext_objs = segmentation_object.segmentations
             for plane_num, segext_obj in enumerate(segext_objs):
-                save_path_plane = folder_path / f'Plane_{plane_num}' / file_name
+                save_path_plane = folder_path/f'Plane_{plane_num}'/file_name
                 CaimanSegmentationExtractor.write_segmentation(segext_obj, save_path_plane)
         if not folder_path.is_dir():
             folder_path.mkdir(parents=True)
@@ -105,10 +117,12 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
                 estimates.create_dataset('S', data=segmentation_object.get_traces(name='deconvolved'))
             if segmentation_object.get_image('correlation') is not None:
                 estimates.create_dataset('Cn', data=segmentation_object.get_image('correlation'))
-            estimates.create_dataset('idx_components', data=np.array([] if segmentation_object.get_accepted_list() is None
-                                                                         else segmentation_object.get_accepted_list()))
-            estimates.create_dataset('idx_components_bad', data=np.array([] if segmentation_object.get_rejected_list() is None
-                                                                         else segmentation_object.get_rejected_list()))
+            estimates.create_dataset('idx_components',
+                                     data=np.array([] if segmentation_object.get_accepted_list() is None
+                                                   else segmentation_object.get_accepted_list()))
+            estimates.create_dataset('idx_components_bad',
+                                     data=np.array([] if segmentation_object.get_rejected_list() is None
+                                                   else segmentation_object.get_rejected_list()))
 
             # adding image_masks:
             image_mask_data = np.reshape(segmentation_object.get_roi_image_masks(),

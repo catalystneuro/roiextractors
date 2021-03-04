@@ -21,7 +21,6 @@ class SbxImagingExtractor(ImagingExtractor):
     installation_mesg = "To use the Sgx Extractor run:\n\n pip install scipy\n\n"  # error message when not installed
 
     def __init__(self, file_path: PathType, sampling_frequency: float = None):
-        assert HAVE_Scipy, self.installation_mesg
         super().__init__()
         self._memmapped = True
         self.mat_file_path, self.sbx_file_path = self._check_file_path(file_path)

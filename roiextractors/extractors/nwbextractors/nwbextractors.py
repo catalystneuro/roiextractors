@@ -6,15 +6,21 @@ from pathlib import Path
 from warnings import warn
 
 import numpy as np
-from hdmf.backends.hdf5.h5_utils import H5DataIO
-from hdmf.data_utils import DataChunkIterator
-from hdmf.common.table import VectorData
 from lazy_ops import DatasetView
-from pynwb import NWBFile, NWBHDF5IO
-from pynwb.base import Images
-from pynwb.file import Subject
-from pynwb.image import GrayscaleImage
-from pynwb.ophys import ImageSegmentation, Fluorescence, OpticalChannel, TwoPhotonSeries
+
+try:
+    from hdmf.backends.hdf5.h5_utils import H5DataIO
+    from hdmf.data_utils import DataChunkIterator
+    from hdmf.common.table import VectorData
+    from pynwb import NWBFile, NWBHDF5IO
+    from pynwb.base import Images
+    from pynwb.file import Subject
+    from pynwb.image import GrayscaleImage
+    from pynwb.ophys import ImageSegmentation, Fluorescence, OpticalChannel, TwoPhotonSeries
+
+    HAVE_NWB = True
+except ImportError:
+    HAVE_NWB = False
 
 from ...extraction_tools import PathType, FloatType, IntType, \
     check_get_frames_args, check_get_videos_args, \
@@ -22,8 +28,6 @@ from ...extraction_tools import PathType, FloatType, IntType, \
 from ...imagingextractor import ImagingExtractor
 from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
-
-HAVE_NWB = True
 
 
 def check_nwb_install():
@@ -47,7 +51,7 @@ def set_dynamic_table_property(dynamic_table, ids, row_ids, property_name, value
             for (row_id, value) in zip(row_ids, values):
                 dynamic_table[property_name].data[ids.index(row_id)] = value
         else:
-            col_data = [default_value] * len(ids)  # init with default val
+            col_data = [default_value]*len(ids)  # init with default val
             for (row_id, value) in zip(row_ids, values):
                 col_data[ids.index(row_id)] = value
             dynamic_table.add_column(
@@ -129,7 +133,6 @@ class NwbImagingExtractor(ImagingExtractor):
         optical_series_name: str (optional)
             optical series to extract data from
         """
-        assert HAVE_NWB, self.installation_mesg
         ImagingExtractor.__init__(self)
         self._path = file_path
 
@@ -152,7 +155,7 @@ class NwbImagingExtractor(ImagingExtractor):
         assert opts.external_file is None, "Only 'raw' format is currently supported"
 
         if hasattr(opts, 'timestamps') and opts.timestamps:
-            self._sampling_frequency = 1. / np.median(np.diff(opts.timestamps))
+            self._sampling_frequency = 1./np.median(np.diff(opts.timestamps))
             self._imaging_start_time = opts.timestamps[0]
         else:
             self._sampling_frequency = opts.rate
@@ -182,10 +185,10 @@ class NwbImagingExtractor(ImagingExtractor):
         self.io.close()
 
     def time_to_frame(self, time: FloatType):
-        return int((time - self._imaging_start_time) * self.get_sampling_frequency())
+        return int((time - self._imaging_start_time)*self.get_sampling_frequency())
 
     def frame_to_time(self, frame: IntType):
-        return float(frame / self.get_sampling_frequency() + self._imaging_start_time)
+        return float(frame/self.get_sampling_frequency() + self._imaging_start_time)
 
     def make_nwb_metadata(self, nwbfile, opts):
         # Metadata dictionary - useful for constructing a nwb file
@@ -298,7 +301,7 @@ class NwbImagingExtractor(ImagingExtractor):
                 dict(
                     data=data,
                     imaging_plane=imaging_plane)
-                )
+            )
             ophys_ts = TwoPhotonSeries(**two_p_series_kwargs)
 
             nwbfile.add_acquisition(ophys_ts)
@@ -355,7 +358,8 @@ class NwbImagingExtractor(ImagingExtractor):
                 ))
 
         # set imaging plane rate:
-        rate = np.float('NaN') if imgextractor.get_sampling_frequency() is None else imgextractor.get_sampling_frequency()
+        rate = np.float(
+            'NaN') if imgextractor.get_sampling_frequency() is None else imgextractor.get_sampling_frequency()
         # adding imaging_rate:
         metadata['Ophys']['ImagingPlane'][0].update(imaging_rate=rate)
         # TwoPhotonSeries update:
@@ -613,7 +617,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     @staticmethod
     def write_segmentation(segext_obj: SegmentationExtractor, save_path: PathType = None,
                            plane_num=0, metadata: dict = None, overwrite: bool = True,
-                           buffer_size: int = 10, nwbfile: NWBFile = None):
+                           buffer_size: int = 10, nwbfile=None):
         assert save_path is None or nwbfile is None, \
             'Either pass a save_path location, or nwbfile object, but not both!'
 

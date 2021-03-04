@@ -1,9 +1,21 @@
 from pathlib import Path
 
-import h5py
+try:
+    import h5py
+
+    HAVE_H5PY = True
+except ImportError:
+    HAVE_H5PY = False
+
 import numpy as np
 from lazy_ops import DatasetView
-from scipy.sparse import csc_matrix
+
+try:
+    from scipy.sparse import csc_matrix
+
+    HAVE_SCIPY = True
+except ImportError:
+    HAVE_SCIPY = False
 
 from ...extraction_tools import PathType
 from ...multisegmentationextractor import MultiSegmentationExtractor
@@ -17,10 +29,10 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
     the \'CNMF-E\' ROI segmentation method.
     """
     extractor_name = 'CnmfeSegmentation'
-    installed = True  # check at class level if installed or not
+    installed = HAVE_H5PY  # check at class level if installed or not
     is_writable = False
     mode = 'file'
-    installation_mesg = ""  # error message when not installed
+    installation_mesg = "To use Cnmfe install h5py: \n\n pip install h5py \n\n"  # error message when not installed
 
     def __init__(self, file_path: PathType):
         """
@@ -48,7 +60,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         return f, _group0
 
     def _image_mask_extractor_read(self):
-        return DatasetView(self._dataset_file[self._group0[0]]['extractedImages']).lazy_transpose([1,2,0])
+        return DatasetView(self._dataset_file[self._group0[0]]['extractedImages']).lazy_transpose([1, 2, 0])
 
     def _trace_extractor_read(self):
         extracted_signals = DatasetView(self._dataset_file[self._group0[0]]['extractedSignals'])
@@ -74,7 +86,8 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         return [a for a in range(self.get_num_rois()) if a not in ac_set]
 
     @staticmethod
-    def write_segmentation(segmentation_object:SegmentationExtractor, save_path, overwrite=True):
+    def write_segmentation(segmentation_object: SegmentationExtractor, save_path, overwrite=True):
+        assert HAVE_SCIPY and HAVE_H5PY, "To use Cnmfe install scipy/h5py: \n\n pip install scipy/h5py \n\n"
         save_path = Path(save_path)
         assert save_path.suffix == '.mat', "'save_path' must be a *.mat file"
         if save_path.is_file():
@@ -104,8 +117,9 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             if segmentation_object.get_sampling_frequency() is not None:
                 time.create_dataset('totalTime', (1, 1), data=segmentation_object.get_roi_image_masks().shape[1]/
                                                               segmentation_object.get_sampling_frequency())
-            if getattr(segmentation_object,'_raw_movie_file_location', None):
-                main.create_dataset('movieList', data=[ord(alph) for alph in str(segmentation_object._raw_movie_file_location)])
+            if getattr(segmentation_object, '_raw_movie_file_location', None):
+                main.create_dataset('movieList',
+                                    data=[ord(alph) for alph in str(segmentation_object._raw_movie_file_location)])
             if segmentation_object.get_traces(name='deconvolved') is not None:
                 image_mask_csc = csc_matrix(segmentation_object.get_traces(name='deconvolved'))
                 main.create_dataset('extractedPeaks/data', data=image_mask_csc.data)

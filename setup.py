@@ -22,9 +22,6 @@ setup(
         'spikeextractors',
         'tqdm',
         'lazy_ops',
-        'dill',
-        'scipy',
-        'PyYAML'
     ],
     classifiers=(
         "Programming Language :: Python :: 3",

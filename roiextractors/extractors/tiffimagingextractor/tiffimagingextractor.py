@@ -10,7 +10,7 @@ try:
     import tifffile
 
     HAVE_TIFF = True
-except:
+except ImportError:
     HAVE_TIFF = False
 
 

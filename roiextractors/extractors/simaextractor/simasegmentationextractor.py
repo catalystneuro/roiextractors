@@ -3,7 +3,6 @@ import pickle
 import re
 from shutil import copyfile
 
-import dill
 import numpy as np
 
 from ...extraction_tools import PathType
@@ -11,8 +10,10 @@ from ...segmentationextractor import SegmentationExtractor
 
 try:
     import sima
+    import dill
+
     HAVE_SIMA = True
-except:
+except ImportError:
     HAVE_SIMA = False
 
 
@@ -26,7 +27,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     installed = HAVE_SIMA  # check at class level if installed or not
     is_writable = False
     mode = 'file'
-    installation_mesg = "To use the SimaSegmentationExtractor install sima: \n\n pip install sima\n\n"  # error message when not installed
+    installation_mesg = "To use the SimaSegmentationExtractor install sima and dill: \n\n pip install sima/dill\n\n"  # error message when not installed
 
     def __init__(self, file_path: PathType, sima_segmentation_label: str = 'auto_ROIs'):
         """
