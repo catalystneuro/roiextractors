@@ -150,7 +150,7 @@ def toy_example(
         for s in sort.get_unit_spike_train(unit):
             if s < rec.get_num_frames():
                 if s + len(resp) < frames:
-                    raw[u_i, s : s + len(resp)] += resp
+                    raw[u_i, s: s + len(resp)] += resp
                 else:
                     raw[u_i, s:] = resp[: frames - s]
                 deconvolved[u_i, s] = 1
