@@ -5,7 +5,6 @@ from typing import Union
 import numpy as np
 from spikeextractors.extraction_tools import cast_start_end_frame
 from tqdm import tqdm
-from os.path import abspath, relpath
 
 try:
     import h5py
@@ -252,7 +251,7 @@ def write_to_h5_dataset_format(
                 chunk_frames = np.squeeze(video).shape[0]
                 if dtype is not None:
                     video = video.astype(dtype_file)
-                dset[ch, chunk_start : chunk_start + chunk_frames, ...] = np.squeeze(
+                dset[ch, chunk_start: chunk_start + chunk_frames, ...] = np.squeeze(
                     video
                 )
                 chunk_start += chunk_frames

@@ -32,7 +32,8 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
     installed = HAVE_H5PY and HAVE_SCIPY  # check at class level if installed or not
     is_writable = True
     mode = "file"
-    installation_mesg = "To use the CaimanSegmentationExtractor install h5py and scipy: \n\n pip install scipy/h5py\n\n"  # error message when not installed
+    # error message when not installed
+    installation_mesg = "To use the CaimanSegmentationExtractor install h5py and scipy: \n\n pip install scipy/h5py\n\n"
 
     def __init__(self, file_path: PathType):
         """

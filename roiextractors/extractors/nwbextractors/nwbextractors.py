@@ -348,7 +348,6 @@ class NwbImagingExtractor(ImagingExtractor):
                 DataChunkIterator(data_generator(imaging), buffer_size=buffer_size),
                 compression=True,
             )
-            acquisition_name = opts["name"]
 
             # using internal data. this data will be stored inside the NWB file
             two_p_series_kwargs = update_dict(
@@ -601,7 +600,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                         ].rate
             if not any_roi_response_series_found:
                 raise Exception(
-                    "could not find any of 'RoiResponseSeries'/'Dff'/'Neuropil'/'Deconvolved' named RoiResponseSeries in nwbfile"
+                    "could not find any of 'RoiResponseSeries'/'Dff'/'Neuropil'/'Deconvolved'"
+                    "named RoiResponseSeries in nwbfile"
                 )
 
             # Extract image_mask/background:
@@ -862,7 +862,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 ps_exist = True
 
             roi_ids = segext_obj.get_roi_ids()
-            num_rois = segext_obj.get_num_rois()
             accepted_list = segext_obj.get_accepted_list()
             accepted_list = [] if accepted_list is None else accepted_list
             rejected_list = segext_obj.get_rejected_list()

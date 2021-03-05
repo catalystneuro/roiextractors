@@ -25,7 +25,7 @@ class TiffImagingExtractor(ImagingExtractor):
     installed = HAVE_TIFF  # check at class level if installed or not
     is_writable = True
     mode = "file"
-    installation_mesg = "To use the TiffImagingExtractor install tifffile: \n\n pip install tifffile\n\n"  # error message when not installed
+    installation_mesg = "To use the TiffImagingExtractor install tifffile: \n\n pip install tifffile\n\n"
 
     def __init__(
         self,

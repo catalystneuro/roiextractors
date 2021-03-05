@@ -65,10 +65,10 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             if bstr == "Vcorr" or bstr == "max_proj":
                 img = np.zeros((self.ops["Ly"], self.ops["Lx"]), np.float32)
                 img[
-                    (self.ops["Ly"] - self.ops["yrange"][-1]) : (
+                    (self.ops["Ly"] - self.ops["yrange"][-1]): (
                         self.ops["Ly"] - self.ops["yrange"][0]
                     ),
-                    self.ops["xrange"][0] : self.ops["xrange"][-1],
+                    self.ops["xrange"][0]: self.ops["xrange"][-1],
                 ] = self.ops[bstr]
             else:
                 img = self.ops[bstr]

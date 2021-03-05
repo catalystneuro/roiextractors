@@ -1,1 +1,1 @@
-from .suite2psegmentationextractor import *
+from .suite2psegmentationextractor import Suite2pSegmentationExtractor
