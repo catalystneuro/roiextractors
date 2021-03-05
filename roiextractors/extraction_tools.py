@@ -5,7 +5,6 @@ from typing import Union
 import numpy as np
 from spikeextractors.extraction_tools import cast_start_end_frame
 from tqdm import tqdm
-from os.path import abspath, relpath
 
 try:
     import h5py
@@ -36,7 +35,9 @@ def dict_recursive_update(base, input_):
         elif key in base and isinstance(val, list) and isinstance(base[key], list):
             for i, input_list_item in enumerate(val):
                 if len(base[key]) < i:
-                    if isinstance(base[key][i], dict) and isinstance(input_list_item, dict):
+                    if isinstance(base[key][i], dict) and isinstance(
+                        input_list_item, dict
+                    ):
                         dict_recursive_update(base[key][i], input_list_item)
                     else:
                         base[key][i] = input_list_item
@@ -67,14 +68,14 @@ def _pixel_mask_extractor(image_mask_, _roi_ids):
 def _image_mask_extractor(pixel_mask, _roi_ids, image_shape):
     """
     Converts a pixel mask to image mask
-    
+
     Parameters
     ----------
     pixel_mask: list
         list of pixel masks (no pixels X 3)
     _roi_ids: list
     image_shape: array_like
-    
+
     Returns
     -------
     image_mask: np.ndarray
@@ -105,7 +106,9 @@ def check_get_frames_args(func):
             frame_idxs = [frame_idxs]
         if not isinstance(frame_idxs, slice):
             frame_idxs = np.array(frame_idxs)
-            assert np.all(frame_idxs < imaging.get_num_frames()), "'frame_idxs' exceed number of frames"
+            assert np.all(
+                frame_idxs < imaging.get_num_frames()
+            ), "'frame_idxs' exceed number of frames"
         get_frames_correct_arg = func(imaging, frame_idxs, channel)
 
         if len(frame_idxs) == 1:
@@ -121,31 +124,47 @@ def check_get_videos_args(func):
     def corrected_args(imaging, start_frame=None, end_frame=None, channel=0):
         if start_frame is not None:
             if start_frame > imaging.get_num_frames():
-                raise Exception(f"'start_frame' exceeds number of frames {imaging.get_num_frames()}!")
+                raise Exception(
+                    f"'start_frame' exceeds number of frames {imaging.get_num_frames()}!"
+                )
             elif start_frame < 0:
                 start_frame = imaging.get_num_frames() + start_frame
         else:
             start_frame = 0
         if end_frame is not None:
             if end_frame > imaging.get_num_frames():
-                raise Exception(f"'end_frame' exceeds number of frames {imaging.get_num_frames()}!")
+                raise Exception(
+                    f"'end_frame' exceeds number of frames {imaging.get_num_frames()}!"
+                )
             elif end_frame < 0:
                 end_frame = imaging.get_num_frames() + end_frame
         else:
             end_frame = imaging.get_num_frames()
-        assert end_frame - start_frame > 0, "'start_frame' must be less than 'end_frame'!"
+        assert (
+            end_frame - start_frame > 0
+        ), "'start_frame' must be less than 'end_frame'!"
 
         start_frame, end_frame = cast_start_end_frame(start_frame, end_frame)
         channel = int(channel)
-        get_videos_correct_arg = func(imaging, start_frame=start_frame, end_frame=end_frame, channel=channel)
+        get_videos_correct_arg = func(
+            imaging, start_frame=start_frame, end_frame=end_frame, channel=channel
+        )
 
         return get_videos_correct_arg
 
     return corrected_args
 
 
-def write_to_h5_dataset_format(imaging, dataset_path, save_path=None, file_handle=None,
-                               dtype=None, chunk_size=None, chunk_mb=1000, verbose=False):
+def write_to_h5_dataset_format(
+    imaging,
+    dataset_path,
+    save_path=None,
+    file_handle=None,
+    dtype=None,
+    chunk_size=None,
+    chunk_mb=1000,
+    verbose=False,
+):
     """Saves the video of an imaging extractor in an h5 dataset.
 
     Parameters
@@ -170,13 +189,15 @@ def write_to_h5_dataset_format(imaging, dataset_path, save_path=None, file_handl
         If True, output is verbose (when chunks are used)
     """
     assert HAVE_H5, "To write to h5 you need to install h5py: pip install h5py"
-    assert save_path is not None or file_handle is not None, "Provide 'save_path' or 'file handle'"
+    assert (
+        save_path is not None or file_handle is not None
+    ), "Provide 'save_path' or 'file handle'"
 
     if save_path is not None:
         save_path = Path(save_path)
-        if save_path.suffix == '':
+        if save_path.suffix == "":
             # when suffix is already raw/bin/dat do not change it.
-            save_path = save_path.parent/(save_path.name + '.h5')
+            save_path = save_path.parent / (save_path.name + ".h5")
 
     num_channels = imaging.get_num_channels()
     num_frames = imaging.get_num_frames()
@@ -185,22 +206,24 @@ def write_to_h5_dataset_format(imaging, dataset_path, save_path=None, file_handl
     if file_handle is not None:
         assert isinstance(file_handle, h5py.File)
     else:
-        file_handle = h5py.File(save_path, 'w')
+        file_handle = h5py.File(save_path, "w")
 
     if dtype is None:
         dtype_file = imaging.get_dtype()
     else:
         dtype_file = dtype
 
-    dset = file_handle.create_dataset(dataset_path, shape=(num_channels, num_frames, size_x, size_y), dtype=dtype_file)
+    dset = file_handle.create_dataset(
+        dataset_path, shape=(num_channels, num_frames, size_x, size_y), dtype=dtype_file
+    )
 
     # set chunk size
     if chunk_size is not None:
         chunk_size = int(chunk_size)
     elif chunk_mb is not None:
         n_bytes = np.dtype(imaging.get_dtype()).itemsize
-        max_size = int(chunk_mb*1e6)  # set Mb per chunk
-        chunk_size = max_size//(size_x*size_y*n_bytes)
+        max_size = int(chunk_mb * 1e6)  # set Mb per chunk
+        chunk_size = max_size // (size_x * size_y * n_bytes)
 
     # writ one channel at a time
     for ch in range(num_channels):
@@ -212,20 +235,25 @@ def write_to_h5_dataset_format(imaging, dataset_path, save_path=None, file_handl
         else:
             chunk_start = 0
             # chunk size is not None
-            n_chunk = num_frames//chunk_size
-            if num_frames%chunk_size > 0:
+            n_chunk = num_frames // chunk_size
+            if num_frames % chunk_size > 0:
                 n_chunk += 1
             if verbose:
                 chunks = tqdm(range(n_chunk), ascii=True, desc="Writing to .h5 file")
             else:
                 chunks = range(n_chunk)
             for i in chunks:
-                video = imaging.get_video(start_frame=i*chunk_size,
-                                          end_frame=min((i + 1)*chunk_size, num_frames), channel=ch)
+                video = imaging.get_video(
+                    start_frame=i * chunk_size,
+                    end_frame=min((i + 1) * chunk_size, num_frames),
+                    channel=ch,
+                )
                 chunk_frames = np.squeeze(video).shape[0]
                 if dtype is not None:
                     video = video.astype(dtype_file)
-                dset[ch, chunk_start:chunk_start + chunk_frames, ...] = np.squeeze(video)
+                dset[ch, chunk_start: chunk_start + chunk_frames, ...] = np.squeeze(
+                    video
+                )
                 chunk_start += chunk_frames
 
     if save_path is not None:
@@ -248,10 +276,16 @@ def show_video(imaging, ax=None):
         ax = fig.add_subplot(111)
 
     im0 = imaging.get_frames(0)
-    im = ax.imshow(im0, interpolation='none', aspect='auto', vmin=0, vmax=1)
-    interval = 1/imaging.get_sampling_frequency()*1000
-    anim = animation.FuncAnimation(fig, animate_func, frames=imaging.get_num_frames(), fargs=(imaging, im, ax),
-                                   interval=interval, blit=False)
+    im = ax.imshow(im0, interpolation="none", aspect="auto", vmin=0, vmax=1)
+    interval = 1 / imaging.get_sampling_frequency() * 1000
+    anim = animation.FuncAnimation(
+        fig,
+        animate_func,
+        frames=imaging.get_num_frames(),
+        fargs=(imaging, im, ax),
+        interval=interval,
+        blit=False,
+    )
     return anim
 
 
@@ -279,5 +313,3 @@ def todict(matobj):
         else:
             dict[strg] = elem
     return dict
-
-

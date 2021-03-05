@@ -1,1 +1,1 @@
-from .caimansegmentationextractor import *
+from .caimansegmentationextractor import CaimanSegmentationExtractor

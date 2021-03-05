@@ -1,14 +1,19 @@
 import numpy as np
 import spikeextractors as se
 
-from ..extractors.numpyextractors import NumpyImagingExtractor, NumpySegmentationExtractor
+from ..extractors.numpyextractors import (
+    NumpyImagingExtractor,
+    NumpySegmentationExtractor,
+)
 
 
 def _gaussian(x, mu, sigma):
-    return 1 / np.sqrt(2 * np.pi * sigma) * np.exp(- (x - mu) ** 2 / sigma)
+    return 1 / np.sqrt(2 * np.pi * sigma) * np.exp(-((x - mu) ** 2) / sigma)
 
 
-def _generate_rois(num_units=10, size_x=100, size_y=100, roi_size=4, min_dist=5, mode='uniform'):
+def _generate_rois(
+    num_units=10, size_x=100, size_y=100, roi_size=4, min_dist=5, mode="uniform"
+):
     image = np.zeros((size_x, size_y))
     max_iter = 1000
 
@@ -48,10 +53,12 @@ def _generate_rois(num_units=10, size_x=100, size_y=100, roi_size=4, min_dist=5,
 
                 if np.linalg.norm(p - mean) < roi_size:
                     pixels.append(p)
-                    if mode == 'uniform':
+                    if mode == "uniform":
                         image[i, j] = 1
-                    elif mode == 'gaussian':
-                        image[i, j] = _gaussian(i, mean[0], roi_size) + _gaussian(j, mean[1], roi_size)
+                    elif mode == "gaussian":
+                        image[i, j] = _gaussian(i, mean[0], roi_size) + _gaussian(
+                            j, mean[1], roi_size
+                        )
                     else:
                         raise Exception("'mode' can be 'uniform' or 'gaussian'")
         roi_pixels.append(np.array(pixels))
@@ -59,8 +66,18 @@ def _generate_rois(num_units=10, size_x=100, size_y=100, roi_size=4, min_dist=5,
     return roi_pixels, image, means
 
 
-def toy_example(duration=10, num_rois=10, size_x=100, size_y=100, roi_size=4, min_dist=5, mode='uniform',
-                sampling_frequency=30, decay_time=0.5, noise_std=0.05):
+def toy_example(
+    duration=10,
+    num_rois=10,
+    size_x=100,
+    size_y=100,
+    roi_size=4,
+    min_dist=5,
+    mode="uniform",
+    sampling_frequency=30,
+    decay_time=0.5,
+    noise_std=0.05,
+):
     """
     Create a toy example of an ImagingExtractor and a SegmentationExtractor.
 
@@ -99,12 +116,22 @@ def toy_example(duration=10, num_rois=10, size_x=100, size_y=100, roi_size=4, mi
     """
     # generate ROIs
     num_rois = int(num_rois)
-    roi_pixels, im, means = _generate_rois(num_units=num_rois, size_x=size_x, size_y=size_y,
-                                           roi_size=roi_size, min_dist=min_dist, mode=mode)
+    roi_pixels, im, means = _generate_rois(
+        num_units=num_rois,
+        size_x=size_x,
+        size_y=size_y,
+        roi_size=roi_size,
+        min_dist=min_dist,
+        mode=mode,
+    )
 
     # generate spike trains
-    rec, sort = se.example_datasets.toy_example(duration=duration, K=num_rois, num_channels=1,
-                                                sampling_frequency=sampling_frequency)
+    rec, sort = se.example_datasets.toy_example(
+        duration=duration,
+        K=num_rois,
+        num_channels=1,
+        sampling_frequency=sampling_frequency,
+    )
 
     # create decaying response
     resp_samples = int(decay_time * rec.get_sampling_frequency())
@@ -115,15 +142,17 @@ def toy_example(duration=10, num_rois=10, size_x=100, size_y=100, roi_size=4, mi
     # convolve response with ROIs
     raw = np.zeros((len(sort.get_unit_ids()), rec.get_num_frames()))
     deconvolved = np.zeros((len(sort.get_unit_ids()), rec.get_num_frames()))
-    neuropil = noise_std * np.random.randn(len(sort.get_unit_ids()), rec.get_num_frames())
+    neuropil = noise_std * np.random.randn(
+        len(sort.get_unit_ids()), rec.get_num_frames()
+    )
     frames = rec.get_num_frames()
     for u_i, unit in enumerate(sort.get_unit_ids()):
         for s in sort.get_unit_spike_train(unit):
             if s < rec.get_num_frames():
                 if s + len(resp) < frames:
-                    raw[u_i, s:s + len(resp)] += resp
+                    raw[u_i, s: s + len(resp)] += resp
                 else:
-                    raw[u_i, s:] = resp[:frames - s]
+                    raw[u_i, s:] = resp[: frames - s]
                 deconvolved[u_i, s] = 1
 
     # generate video
@@ -147,7 +176,12 @@ def toy_example(duration=10, num_rois=10, size_x=100, size_y=100, roi_size=4, mi
         for r in roi:
             image_masks[r[0], r[1], rois_i] += im[r[0], r[1]]
 
-    seg = NumpySegmentationExtractor(image_masks=image_masks, raw=raw, deconvolved=deconvolved,
-                                     neuropil=neuropil, sampling_frequency=sampling_frequency)
+    seg = NumpySegmentationExtractor(
+        image_masks=image_masks,
+        raw=raw,
+        deconvolved=deconvolved,
+        neuropil=neuropil,
+        sampling_frequency=sampling_frequency,
+    )
 
     return imag, seg

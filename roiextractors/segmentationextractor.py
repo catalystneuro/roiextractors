@@ -16,6 +16,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
     All the methods with @abstract decorator have to be defined by the
     format specific classes that inherit from this.
     """
+
     installed = True
     installation_mesg = ""
 
@@ -23,7 +24,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         assert self.installed, self.installation_mesg
         BaseExtractor.__init__(self)
         self._sampling_frequency = None
-        self._channel_names = ['OpticalChannel']
+        self._channel_names = ["OpticalChannel"]
         self._num_planes = 1
         self._roi_response_raw = None
         self._roi_response_dff = None
@@ -90,7 +91,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         else:
             all_ids = self.get_roi_ids()
             roi_idx_ = [all_ids.index(i) for i in roi_ids]
-        roi_location = np.zeros([2, len(roi_idx_)], dtype='int')
+        roi_location = np.zeros([2, len(roi_idx_)], dtype="int")
         for c, i in enumerate(roi_idx_):
             image_mask = self.get_roi_image_masks(roi_ids=[i])
             temp = np.where(image_mask == np.amax(image_mask))
@@ -146,7 +147,9 @@ class SegmentationExtractor(ABC, BaseExtractor):
         """
         if roi_ids is None:
             return None
-        return _pixel_mask_extractor(self.get_roi_image_masks(roi_ids=roi_ids), range(len(roi_ids)))
+        return _pixel_mask_extractor(
+            self.get_roi_image_masks(roi_ids=roi_ids), range(len(roi_ids))
+        )
 
     @abstractmethod
     def get_image_size(self) -> ArrayType:
@@ -160,7 +163,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         """
         pass
 
-    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name='raw'):
+    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="raw"):
         """
         Return RoiResponseSeries
         Returns
@@ -169,7 +172,9 @@ class SegmentationExtractor(ABC, BaseExtractor):
             2-D array (ROI x timepoints)
         """
         if name not in self.get_traces_dict():
-            raise ValueError(f'traces for {name} not found, enter one of {list(self.get_traces_dict().keys())}')
+            raise ValueError(
+                f"traces for {name} not found, enter one of {list(self.get_traces_dict().keys())}"
+            )
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
         else:
@@ -188,10 +193,12 @@ class SegmentationExtractor(ABC, BaseExtractor):
             dictionary with key, values representing different types of RoiResponseSeries
             Flourescence, Neuropil, Deconvolved, Background etc
         """
-        return dict(raw=self._roi_response_raw,
-                    dff=self._roi_response_dff,
-                    neuropil=self._roi_response_neuropil,
-                    deconvolved=self._roi_response_deconvolved)
+        return dict(
+            raw=self._roi_response_raw,
+            dff=self._roi_response_dff,
+            neuropil=self._roi_response_neuropil,
+            deconvolved=self._roi_response_deconvolved,
+        )
 
     def get_images_dict(self):
         """
@@ -202,10 +209,9 @@ class SegmentationExtractor(ABC, BaseExtractor):
             dictionary with key, values representing different types of Images used in segmentation:
             Mean, Correlation image
         """
-        return dict(mean=self._image_mean,
-                    correlation=self._image_correlation)
+        return dict(mean=self._image_mean, correlation=self._image_correlation)
 
-    def get_image(self, name='correlation'):
+    def get_image(self, name="correlation"):
         """
         Return specific images: mean or correlation
         Parameters
@@ -217,7 +223,9 @@ class SegmentationExtractor(ABC, BaseExtractor):
         images: np.ndarray
         """
         if name not in self.get_images_dict():
-            raise ValueError(f'could not find {name} image, enter one of {list(self.get_images_dict().keys())}')
+            raise ValueError(
+                f"could not find {name} image, enter one of {list(self.get_images_dict().keys())}"
+            )
         return self.get_images_dict().get(name)
 
     def get_sampling_frequency(self):
