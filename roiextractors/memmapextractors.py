@@ -11,19 +11,25 @@ from .imagingextractor import ImagingExtractor
 
 
 class MemmapImagingExtractor(ImagingExtractor):
-    def __init__(self, imaging_extractor: ImagingExtractor, save_path: PathType = None,
-                 verbose: bool = False):
+    def __init__(
+        self,
+        imaging_extractor: ImagingExtractor,
+        save_path: PathType = None,
+        verbose: bool = False,
+    ):
         ImagingExtractor.__init__(self)
         self.imaging = imaging_extractor
         tmp_folder = self.get_tmp_folder()
 
         if save_path is None:
             self._is_tmp = True
-            self._tmp_file = tempfile.NamedTemporaryFile(suffix=".dat", dir=tmp_folder).name
+            self._tmp_file = tempfile.NamedTemporaryFile(
+                suffix=".dat", dir=tmp_folder
+            ).name
         else:
             save_path = Path(save_path)
-            if save_path.suffix != '.dat' and save_path.suffix != '.bin':
-                save_path = save_path.with_suffix('.dat')
+            if save_path.suffix != ".dat" and save_path.suffix != ".bin":
+                save_path = save_path.with_suffix(".dat")
             if not save_path.parent.is_dir():
                 os.makedirs(save_path.parent)
             self._is_tmp = False
@@ -41,11 +47,17 @@ class MemmapImagingExtractor(ImagingExtractor):
 
     def _save_memmap_video(self, verbose=False):
         save_path = Path(self._tmp_file)
-        self._video = np.memmap(save_path, shape=(self.imaging.get_num_channels(),
-                                                  self.imaging.get_num_frames(),
-                                                  self.imaging.get_image_size()[0],
-                                                  self.imaging.get_image_size()[1]),
-                                dtype=self.imaging.get_dtype(), mode='w+')
+        self._video = np.memmap(
+            save_path,
+            shape=(
+                self.imaging.get_num_channels(),
+                self.imaging.get_num_frames(),
+                self.imaging.get_image_size()[0],
+                self.imaging.get_image_size()[1],
+            ),
+            dtype=self.imaging.get_dtype(),
+            mode="w+",
+        )
 
         if verbose:
             for ch in range(self.imaging.get_num_channels()):
@@ -65,17 +77,23 @@ class MemmapImagingExtractor(ImagingExtractor):
 
     def move_to(self, save_path):
         save_path = Path(save_path)
-        if save_path.suffix != '.dat' and save_path.suffix != '.bin':
-            save_path = save_path.with_suffix('.dat')
+        if save_path.suffix != ".dat" and save_path.suffix != ".bin":
+            save_path = save_path.with_suffix(".dat")
         if not save_path.parent.is_dir():
             os.makedirs(save_path.parent)
         shutil.move(self._tmp_file, str(save_path))
         self._tmp_file = str(save_path)
-        self._video = np.memmap(save_path, shape=(self.imaging.get_num_channels(),
-                                                  self.imaging.get_num_frames(),
-                                                  self.imaging.get_image_size()[0],
-                                                  self.imaging.get_image_size()[0]),
-                                dtype=self.imaging.get_dtype(), mode='r')
+        self._video = np.memmap(
+            save_path,
+            shape=(
+                self.imaging.get_num_channels(),
+                self.imaging.get_num_frames(),
+                self.imaging.get_image_size()[0],
+                self.imaging.get_image_size()[0],
+            ),
+            dtype=self.imaging.get_dtype(),
+            mode="r",
+        )
 
     @check_get_frames_args
     def get_frames(self, frame_idxs, channel=0):

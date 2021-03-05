@@ -23,13 +23,14 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     its functionality specifically applied to the dataset output from
     the \'SIMA\' ROI segmentation method.
     """
-    extractor_name = 'SimaSegmentation'
+
+    extractor_name = "SimaSegmentation"
     installed = HAVE_SIMA  # check at class level if installed or not
     is_writable = False
-    mode = 'file'
+    mode = "file"
     installation_mesg = "To use the SimaSegmentationExtractor install sima and dill: \n\n pip install sima/dill\n\n"  # error message when not installed
 
-    def __init__(self, file_path: PathType, sima_segmentation_label: str = 'auto_ROIs'):
+    def __init__(self, file_path: PathType, sima_segmentation_label: str = "auto_ROIs"):
         """
         Parameters
         ----------
@@ -67,20 +68,22 @@ class SimaSegmentationExtractor(SegmentationExtractor):
             Path of the pickle file to be converted
         """
         # Make a name for the new pickle
-        old_pkl_loc = old_pkl_loc + '/'
+        old_pkl_loc = old_pkl_loc + "/"
         for dirpath, dirnames, filenames in os.walk(old_pkl_loc):
-            _exit = [True for file in filenames if '_p2.pkl' in file]
+            _exit = [True for file in filenames if "_p2.pkl" in file]
             if True in _exit:
-                print('pickle already in Py3 format')
+                print("pickle already in Py3 format")
                 continue
             for file in filenames:
-                if '.pkl' in file:
+                if ".pkl" in file:
                     old_pkl = os.path.join(dirpath, file)
                     print(old_pkl)
                     # Make a name for the new pickle
-                    new_pkl_name = os.path.splitext(os.path.basename(old_pkl))[0] + "_p2.pkl"
+                    new_pkl_name = (
+                        os.path.splitext(os.path.basename(old_pkl))[0] + "_p2.pkl"
+                    )
                     base_directory = os.path.split(old_pkl)[0]
-                    new_pkl = base_directory + '/' + new_pkl_name
+                    new_pkl = base_directory + "/" + new_pkl_name
                     # Convert Python 2 "ObjectType" to Python 3 object
                     dill._dill._reverse_typemap["ObjectType"] = object
 
@@ -104,13 +107,16 @@ class SimaSegmentationExtractor(SegmentationExtractor):
             if self.sima_segmentation_label in list(_sima_rois.keys()):
                 _sima_rois_data = _sima_rois[self.sima_segmentation_label]
             else:
-                raise Exception('Enter a valid name of ROIs from: {}'.format(
-                    ','.join(list(_sima_rois.keys()))))
+                raise Exception(
+                    "Enter a valid name of ROIs from: {}".format(
+                        ",".join(list(_sima_rois.keys()))
+                    )
+                )
         elif len(_sima_rois) == 1:
             _sima_rois_data = list(_sima_rois.values())[0]
             self.sima_segmentation_label = list(_sima_rois.keys())[0]
         else:
-            raise Exception('no ROIs found in the sima file')
+            raise Exception("no ROIs found in the sima file")
         image_masks_ = [np.squeeze(np.array(roi_dat)).T for roi_dat in _sima_rois_data]
         return np.array(image_masks_).T
 
@@ -120,22 +126,26 @@ class SimaSegmentationExtractor(SegmentationExtractor):
                 if labels:
                     _active_channel = channel_now
                     break
-            print('extracting signal from channel {} from {} no of channels'.
-                  format(_active_channel, self._num_of_channels))
+            print(
+                "extracting signal from channel {} from {} no of channels".format(
+                    _active_channel, self._num_of_channels
+                )
+            )
         # label for the extraction method in SIMA:
         for labels in self._dataset_file.signals(channel=_active_channel):
             _count = 0
-            if not re.findall(r'[\d]{4}-[\d]{2}-[\d]{2}-', labels):
+            if not re.findall(r"[\d]{4}-[\d]{2}-[\d]{2}-", labels):
                 _count = _count + 1
                 _label = labels
                 break
         if _count > 1:
-            print('multiple labels found for extract method using {}'.format(_label))
+            print("multiple labels found for extract method using {}".format(_label))
         elif _count == 0:
-            print('no label found for extract method using {}'.format(labels))
+            print("no label found for extract method using {}".format(labels))
             _label = labels
-        extracted_signals = np.array(self._dataset_file.signals(
-            channel=_active_channel)[_label]['raw'][0])
+        extracted_signals = np.array(
+            self._dataset_file.signals(channel=_active_channel)[_label]["raw"][0]
+        )
         return extracted_signals
 
     def _summary_image_read(self):
@@ -146,7 +156,11 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         return list(range(self.get_num_rois()))
 
     def get_rejected_list(self):
-        return [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
+        return [
+            a
+            for a in range(self.get_num_rois())
+            if a not in set(self.get_accepted_list())
+        ]
 
     @staticmethod
     def write_segmentation(segmentation_object, savepath):

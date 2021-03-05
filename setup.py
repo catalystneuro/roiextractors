@@ -2,9 +2,9 @@ from setuptools import setup, find_packages
 
 d = {}
 exec(open("roiextractors/version.py").read(), None, d)
-version = d['version']
+version = d["version"]
 pkg_name = "roiextractors"
-with open('README.md') as rd:
+with open("README.md") as rd:
     long_description = rd.read()
 
 setup(
@@ -19,14 +19,14 @@ setup(
     packages=find_packages(),
     package_data={},
     install_requires=[
-        'spikeextractors',
-        'tqdm',
-        'lazy_ops',
+        "spikeextractors",
+        "tqdm",
+        "lazy_ops",
     ],
     classifiers=(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
-        "Intended Audience :: Science/Research"
-    )
+        "Intended Audience :: Science/Research",
+    ),
 )
