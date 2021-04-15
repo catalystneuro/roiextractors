@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-
+from pathlib import Path
 import numpy as np
 from spikeextractors.baseextractor import BaseExtractor
 
@@ -19,8 +19,11 @@ class SegmentationExtractor(ABC, BaseExtractor):
 
     installed = True
     installation_mesg = ""
+    file_ext = ""
 
-    def __init__(self):
+    def __init__(self, file_path):
+        self.file_path = Path(file_path)
+        assert self.file_path.suffix == self.file_ext, f"file type should be of type: {self.file_ext}"
         assert self.installed, self.installation_mesg
         BaseExtractor.__init__(self)
         self._sampling_frequency = None

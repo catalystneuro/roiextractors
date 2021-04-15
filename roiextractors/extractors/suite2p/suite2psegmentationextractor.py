@@ -16,6 +16,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     is_writable = False
     mode = "file"
     installation_mesg = ""  # error message when not installed
+    file_ext = ""
 
     def __init__(
         self, file_path: PathType, combined: bool = False, plane_no: IntType = 0
@@ -31,10 +32,9 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         plane_no: int
             the plane for which to extract segmentation for.
         """
-        SegmentationExtractor.__init__(self)
+        SegmentationExtractor.__init__(self, file_path)
         self.combined = combined
         self.plane_no = plane_no
-        self.file_path = file_path
         self.stat = self._load_npy("stat.npy")
         self._roi_response_raw = self._load_npy("F.npy", mmap_mode="r")
         self._roi_response_neuropil = self._load_npy("Fneu.npy", mmap_mode="r")

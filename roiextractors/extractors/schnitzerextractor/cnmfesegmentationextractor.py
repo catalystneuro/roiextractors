@@ -34,6 +34,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
     is_writable = False
     mode = "file"
     installation_mesg = "To use Cnmfe install h5py: \n\n pip install h5py \n\n"  # error message when not installed
+    file_ext = ".mat"
 
     def __init__(self, file_path: PathType):
         """
@@ -42,8 +43,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         file_path: str
             The location of the folder containing dataset.mat file.
         """
-        SegmentationExtractor.__init__(self)
-        self.file_path = file_path
+        SegmentationExtractor.__init__(self, file_path)
         self._dataset_file, self._group0 = self._file_extractor_read()
         self._image_masks = self._image_mask_extractor_read()
         self._roi_response_raw = self._trace_extractor_read()

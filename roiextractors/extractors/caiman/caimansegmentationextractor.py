@@ -34,6 +34,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
     mode = "file"
     # error message when not installed
     installation_mesg = "To use the CaimanSegmentationExtractor install h5py and scipy: \n\n pip install scipy/h5py\n\n"
+    file_ext = ".hdf5"
 
     def __init__(self, file_path: PathType):
         """
@@ -42,8 +43,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         file_path: str
             The location of the folder containing caiman *.hdmf output file.
         """
-        SegmentationExtractor.__init__(self)
-        self.file_path = file_path
+        SegmentationExtractor.__init__(self, file_path)
         self._dataset_file = self._file_extractor_read()
         self._roi_response_dff = self._trace_extractor_read("F_dff")
         self._roi_response_neuropil = self._trace_extractor_read("C")

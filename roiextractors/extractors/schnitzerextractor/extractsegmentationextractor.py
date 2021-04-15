@@ -27,6 +27,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
     is_writable = False
     mode = "file"
     installation_mesg = "To use extract install h5py: \n\n pip install h5py \n\n"  # error message when not installed
+    file_ext = ".mat"
 
     def __init__(self, file_path: PathType):
         """

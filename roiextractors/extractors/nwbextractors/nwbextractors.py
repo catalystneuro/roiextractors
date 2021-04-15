@@ -540,6 +540,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     is_writable = False
     mode = "file"
     installation_mesg = ""  # error message when not installed
+    file_ext = ".nwb"
 
     def __init__(self, file_path: PathType):
         """
@@ -550,9 +551,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             .nwb file location
         """
         check_nwb_install()
-        SegmentationExtractor.__init__(self)
-        file_path = Path(file_path)
-        if not file_path.is_file():
+        SegmentationExtractor.__init__(self, file_path)
+        if not self.file_path.is_file():
             raise Exception("file does not exist")
 
         self.file_path = file_path

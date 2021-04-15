@@ -30,6 +30,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     mode = "file"
     # error message when not installed
     installation_mesg = "To use the SimaSegmentationExtractor install sima and dill: \n\n pip install sima/dill\n\n"
+    file_ext = ".sima"
 
     def __init__(self, file_path: PathType, sima_segmentation_label: str = "auto_ROIs"):
         """
@@ -42,8 +43,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
             name of the ROIs in the dataset from which to extract all ROI info
         """
         assert HAVE_SIMA, self.installation_mesg
-        SegmentationExtractor.__init__(self)
-        self.file_path = file_path
+        SegmentationExtractor.__init__(self, file_path)
         self._convert_sima(file_path)
         self._dataset_file = self._file_extractor_read()
         self._channel_names = [str(i) for i in self._dataset_file.channel_names]
