@@ -151,7 +151,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         return self._image_masks.shape[0:2]
 
 
-class ExtractPublicSegmentationExtractor(SegmentationExtractor):
+class ExtractPublicSegmentationExtractor(ExtractSegmentationExtractor):
     """
     This class inherits from the SegmentationExtractor class, having all
     its funtionality specifically applied to the dataset output from
@@ -171,30 +171,16 @@ class ExtractPublicSegmentationExtractor(SegmentationExtractor):
         file_path: str
             The location of the folder containing dataset.mat file.
         """
-        SegmentationExtractor.__init__(self)
-        self.file_path = file_path
-        self._dataset_file = self._file_extractor_read()
-        self._image_masks = self._image_mask_extractor_read()
-        extraced_traces = self._trace_extractor_read()
-        if self._dataset_file['config']['preprocess']: #TODO: check for 'skip_dff' fields also
-            self._roi_response_raw = extraced_traces
-        else:
-            self._roi_response_dff = extraced_traces
-        self._sampling_frequency = (
-            extraced_traces.shape[1] / self._tot_exptime_extractor_read()
-        )
-        self._image_correlation = self._summary_image_read()
-
-    def __del__(self):
-        self._dataset_file.close()
-
-    def _file_extractor_read(self):
-        return h5py.File(self.file_path, "r")
+        ExtractSegmentationExtractor.__init__(self, file_path)
+        if self._dataset_file['config']['preprocess']:
+            self._roi_response_dff = self._roi_response_raw
+            self._roi_response_raw = None
+        self._sampling_frequency = None
 
     def _image_mask_extractor_read(self):
         return DatasetView(
             self._dataset_file["spatial_weights"]
-        )
+        ).lazy_transpose()
 
     def _trace_extractor_read(self):
         return DatasetView(
@@ -202,18 +188,7 @@ class ExtractPublicSegmentationExtractor(SegmentationExtractor):
         ).lazy_transpose()
 
     def _tot_exptime_extractor_read(self):
-        return self._dataset_file["info"]["time"]["totalTime"][0][0]#TODO
-
-    def _summary_image_read(self):
-        summary_image = self._dataset_file["info"]["summary_image"]#TODO
-        return np.array(summary_image)
-
-    def get_accepted_list(self):
-        return list(range(self.get_num_rois()))
-
-    def get_rejected_list(self):
-        ac_set = set(self.get_accepted_list())
-        return [a for a in range(self.get_num_rois()) if a not in ac_set]
+        return np.nan
 
     @staticmethod
     def write_segmentation(
@@ -221,8 +196,5 @@ class ExtractPublicSegmentationExtractor(SegmentationExtractor):
     ):
         raise NotImplementedError
 
-    def get_roi_ids(self):
-        return list(range(self.get_num_rois()))
-
-    def get_image_size(self):
-        return self._image_masks.shape[0:2]
+    def _raw_datafile_read(self):
+        pass
