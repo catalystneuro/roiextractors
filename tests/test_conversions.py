@@ -9,6 +9,7 @@ from roiextractors import (
     NwbSegmentationExtractor,
     CaimanSegmentationExtractor,
     ExtractSegmentationExtractor,
+    ExtractPublicSegmentationExtractor,
     Suite2pSegmentationExtractor,
     CnmfeSegmentationExtractor,
     TiffImagingExtractor,
@@ -62,6 +63,13 @@ class TestNwbConversions(unittest.TestCase):
                 "segmentation_datasets/extract/2014_04_01_p203_m19_check01_extractAnalysis.mat",
                 "extract_test.nwb",
                 "extract_test.mat",
+            ),
+            (
+                ExtractPublicSegmentationExtractor,
+                "segmentation_datasets/extract/extractPublic_output.mat",
+                "segmentation_datasets/extract/extractPublic_output.mat",
+                "extractpublic_test.nwb",
+                "extractpublic_test.mat",
             ),
             (
                 Suite2pSegmentationExtractor,

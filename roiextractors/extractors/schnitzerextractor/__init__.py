@@ -1,2 +1,2 @@
 from .cnmfesegmentationextractor import CnmfeSegmentationExtractor
-from .extractsegmentationextractor import ExtractSegmentationExtractor
+from .extractsegmentationextractor import ExtractSegmentationExtractor, ExtractPublicSegmentationExtractor

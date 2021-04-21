@@ -8,6 +8,7 @@ from .extractors.nwbextractors import NwbImagingExtractor, NwbSegmentationExtrac
 from .extractors.schnitzerextractor import (
     CnmfeSegmentationExtractor,
     ExtractSegmentationExtractor,
+    ExtractPublicSegmentationExtractor
 )
 from .extractors.simaextractor import SimaSegmentationExtractor
 from .extractors.suite2p import Suite2pSegmentationExtractor
@@ -21,6 +22,7 @@ segmentation_extractor_full_list = [
     Suite2pSegmentationExtractor,
     CnmfeSegmentationExtractor,
     ExtractSegmentationExtractor,
+    ExtractPublicSegmentationExtractor,
     SimaSegmentationExtractor,
     MultiSegmentationExtractor,
     CaimanSegmentationExtractor,
