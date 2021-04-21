@@ -172,20 +172,18 @@ class ExtractPublicSegmentationExtractor(ExtractSegmentationExtractor):
             The location of the folder containing dataset.mat file.
         """
         ExtractSegmentationExtractor.__init__(self, file_path)
-        if self._dataset_file['config']['preprocess']:
+        if self._dataset_file[self._group0[0]]['config']['preprocess'][0,0]==1:
             self._roi_response_dff = self._roi_response_raw
             self._roi_response_raw = None
         self._sampling_frequency = None
 
     def _image_mask_extractor_read(self):
         return DatasetView(
-            self._dataset_file["spatial_weights"]
+            self._dataset_file[self._group0[0]]["spatial_weights"]
         ).lazy_transpose()
 
     def _trace_extractor_read(self):
-        return DatasetView(
-            self._dataset_file["temporal_weights"]
-        ).lazy_transpose()
+        return self._dataset_file[self._group0[0]]["temporal_weights"]
 
     def _tot_exptime_extractor_read(self):
         return np.nan
@@ -194,7 +192,48 @@ class ExtractPublicSegmentationExtractor(ExtractSegmentationExtractor):
     def write_segmentation(
             segmentation_object: SegmentationExtractor, save_path, overwrite=True
     ):
-        raise NotImplementedError
+        save_path = Path(save_path)
+        assert save_path.suffix == ".mat", "'save_path' must be a *.mat file"
+        if save_path.is_file():
+            if not overwrite:
+                raise FileExistsError(
+                    "The specified path exists! Use overwrite=True to overwrite it."
+                )
+            else:
+                save_path.unlink()
+
+        folder_path = save_path.parent
+        file_name = save_path.name
+        if isinstance(segmentation_object, MultiSegmentationExtractor):
+            segext_objs = segmentation_object.segmentations
+            for plane_num, segext_obj in enumerate(segext_objs):
+                save_path_plane = folder_path/f"Plane_{plane_num}"/file_name
+                ExtractSegmentationExtractor.write_segmentation(
+                    segext_obj, save_path_plane
+                )
+        if not folder_path.is_dir():
+            folder_path.mkdir(parents=True)
+
+        with h5py.File(save_path, "a") as f:
+            # create base groups:
+            _ = f.create_group("#refs#")
+            main = f.create_group("output")
+            # create datasets:
+            main.create_dataset(
+                "spatial_weights", data=segmentation_object.get_roi_image_masks().T
+            )
+            if segmentation_object._roi_response_raw is not None:
+                main.create_dataset("temporal_weights", data=segmentation_object.get_traces())
+                main.create_group("config").create_dataset("preprocess", data=0)
+            elif segmentation_object._roi_response_dff is not None:
+                main.create_dataset("temporal_weights", data=segmentation_object.get_traces(name='dff'))
+                main.create_group("config").create_dataset("preprocess", data=1)
+
+            info = main.create_group("info")
+            if segmentation_object.get_image() is not None:
+                info.create_dataset(
+                    "summary_image", data=segmentation_object.get_image()
+                )
 
     def _raw_datafile_read(self):
         pass
