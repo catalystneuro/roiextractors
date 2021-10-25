@@ -15,6 +15,7 @@ Developed by [CatalystNeuro](http://catalystneuro.com/). Funded by Stanford Univ
 2. TIFF
 3. STK
 4. FLI
+5. SBX
 
 #### Segmentation
 1. [calciumImagingAnalysis](https://github.com/bahanonu/calciumImagingAnalysis) (CNMF-E, EXTRACT)
