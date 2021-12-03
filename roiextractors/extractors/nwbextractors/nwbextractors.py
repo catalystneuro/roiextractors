@@ -427,7 +427,7 @@ class NwbImagingExtractor(ImagingExtractor):
         metadata["Ophys"]["ImagingPlane"][0].update(imaging_rate=rate)
         # TwoPhotonSeries update:
         metadata["Ophys"]["TwoPhotonSeries"][0].update(
-            dimension=imgextractor.get_image_size(),
+            dimension=list(imgextractor.get_image_size()),
             rate=imgextractor.get_sampling_frequency(),
         )
         # remove what Segmentation extractor will input:
