@@ -313,6 +313,11 @@ class NwbImagingExtractor(ImagingExtractor):
         for dev in metadata["Ophys"]["Device"]:
             if dev["name"] not in nwbfile.devices:
                 nwbfile.create_device(name=dev["name"])
+                for key, value in dev.items():
+                    try:
+                        setattr(nwbfile.devices[dev['name']],key,value)
+                    except:
+                        pass
 
         return nwbfile
 
