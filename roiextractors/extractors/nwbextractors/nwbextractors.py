@@ -33,12 +33,13 @@ from ...extraction_tools import (
     IntType,
     check_get_frames_args,
     check_get_videos_args,
-    dict_recursive_update,
+    dict_deep_update,
 )
 from ...imagingextractor import ImagingExtractor
 from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
 
+#from nwb_conversion_tools.utils.json_schema import dict_deep_update #debug
 
 def check_nwb_install():
     assert (
@@ -306,7 +307,8 @@ class NwbImagingExtractor(ImagingExtractor):
     @staticmethod
     def add_devices(imaging, nwbfile, metadata):
         # Devices
-        metadata = dict_recursive_update(get_default_nwb_metadata(), metadata)
+        #list_dict_deep_update
+        metadata = dict_deep_update(get_default_nwb_metadata(), metadata)
         # Tests if devices exist in nwbfile, if not create them from metadata
         for dev in metadata["Ophys"]["Device"]:
             if dev["name"] not in nwbfile.devices:
@@ -320,7 +322,7 @@ class NwbImagingExtractor(ImagingExtractor):
         Auxiliary static method for nwbextractor.
         Adds two photon series from imaging object as TwoPhotonSeries to nwbfile object.
         """
-        metadata = dict_recursive_update(get_default_nwb_metadata(), metadata)
+        metadata = dict_deep_update(get_default_nwb_metadata(), metadata)
         metadata = update_dict(metadata, NwbImagingExtractor.get_nwb_metadata(imaging))
         # Tests if ElectricalSeries already exists in acquisition
         nwb_es_names = [ac for ac in nwbfile.acquisition]
@@ -485,7 +487,7 @@ class NwbImagingExtractor(ImagingExtractor):
         if hasattr(imaging, "nwb_metadata"):
             metadata = update_dict(imaging.nwb_metadata, metadata)
         # update with default arguments:
-        metadata = dict_recursive_update(
+        metadata = dict_deep_update(
             NwbImagingExtractor.get_nwb_metadata(imaging), metadata
         )
         if nwbfile is None:
@@ -758,7 +760,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         # updating base metadata with new:
         for num, data in enumerate(metadata_base_list):
             metadata_input = metadata[num] if metadata else {}
-            metadata_base_list[num] = dict_recursive_update(
+            metadata_base_list[num] = dict_deep_update(
                 metadata_base_list[num], metadata_input
             )
         metadata_base_common = metadata_base_list[0]
