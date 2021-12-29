@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Saksham 
+    given-names: Sharda
+  - family-names: Alessio Paolo 
+    given-names: Buccino
+    orcid: https://orcid.org/0000-0003-3661-527X
+  - family-names: Ben 
+    given-names: Dichter
+    orcid: https://orcid.org/0000-0001-5725-6910
+title: "RoiExtractors"
+version: 0.3.1
+date-released: 2021-03-06
+url: "https://github.com/catalystneuro/roiextractors.git"
