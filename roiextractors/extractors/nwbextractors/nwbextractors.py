@@ -4,6 +4,7 @@ from collections import abc
 from datetime import datetime
 from pathlib import Path
 from warnings import warn
+from typing import Union
 
 import numpy as np
 from lazy_ops import DatasetView
@@ -28,6 +29,7 @@ except ImportError:
     HAVE_NWB = False
 
 from ...extraction_tools import (
+    NumpyArray,
     PathType,
     FloatType,
     IntType,
@@ -201,19 +203,21 @@ class NwbImagingExtractor(ImagingExtractor):
         # TODO if external file --> return another proper extractor (e.g. TiffImagingExtractor)
         assert opts.external_file is None, "Only 'raw' format is currently supported"
 
-        if hasattr(opts, "timestamps") and opts.timestamps:
-            self._sampling_frequency = 1.0 / np.median(np.diff(opts.timestamps))
-            self._imaging_start_time = opts.timestamps[0]
-        else:
-            self._sampling_frequency = opts.rate
-            self._imaging_start_time = opts.fields.get("starting_time", 0.0)
-
         if len(opts.data.shape) == 3:
             self._num_frames, self._size_x, self._size_y = opts.data.shape
             self._channel_names = [i.name for i in opts.imaging_plane.optical_channel]
             self._num_channels = len(self._channel_names)
         else:
             raise NotImplementedError("4D volumetric data are currently not supported")
+        
+        if hasattr(opts, "timestamps") and opts.timestamps:
+            self._sampling_frequency = 1.0 / \
+                np.median(np.diff(opts.timestamps))
+            self._imaging_start_time = opts.timestamps[0]
+            self.set_times(np.array(opts.timestamps))
+        else:
+            self._sampling_frequency = opts.rate
+            self._imaging_start_time = opts.fields.get("starting_time", 0.0)
 
         # Fill epochs dictionary
         self._epochs = {}
@@ -236,11 +240,18 @@ class NwbImagingExtractor(ImagingExtractor):
     def __del__(self):
         self.io.close()
 
-    def time_to_frame(self, time: FloatType):
-        return int((time - self._imaging_start_time) * self.get_sampling_frequency())
-
-    def frame_to_time(self, frame: IntType):
-        return float(frame / self.get_sampling_frequency() + self._imaging_start_time)
+    def time_to_frame(self, times: Union[FloatType, NumpyArray]):
+        if self._times is None:
+            return int((times - self._imaging_start_time) * self.get_sampling_frequency())
+        else:
+            return super().time_to_frame(times)
+            
+    def frame_to_time(self, frames: Union[IntType, NumpyArray]):
+        if self._times is None:
+            return float(frames / self.get_sampling_frequency() + self._imaging_start_time)
+        else:
+            return super().frame_to_time(frames)
+        
 
     def make_nwb_metadata(self, nwbfile, opts):
         # Metadata dictionary - useful for constructing a nwb file
@@ -315,14 +326,14 @@ class NwbImagingExtractor(ImagingExtractor):
         return nwbfile
 
     @staticmethod
-    def add_two_photon_series(imaging, nwbfile, metadata, buffer_size=10):
+    def add_two_photon_series(imaging, nwbfile, metadata, buffer_size=10, use_times=False):
         """
         Auxiliary static method for nwbextractor.
         Adds two photon series from imaging object as TwoPhotonSeries to nwbfile object.
         """
         metadata = dict_recursive_update(get_default_nwb_metadata(), metadata)
         metadata = update_dict(metadata, NwbImagingExtractor.get_nwb_metadata(imaging))
-        # Tests if ElectricalSeries already exists in acquisition
+        # Tests if TwoPhotonSeries already exists in acquisition
         nwb_es_names = [ac for ac in nwbfile.acquisition]
         opts = metadata["Ophys"]["TwoPhotonSeries"][0]
         if opts["name"] not in nwb_es_names:
@@ -354,6 +365,23 @@ class NwbImagingExtractor(ImagingExtractor):
                 metadata["Ophys"]["TwoPhotonSeries"][0],
                 dict(data=data, imaging_plane=imaging_plane),
             )
+            
+            if not use_times:
+                two_p_series_kwargs.update(
+                    starting_time=imaging.frame_to_time(0),
+                    rate=float(imaging.get_sampling_frequency())
+                )
+            else:
+                two_p_series_kwargs.update(
+                    timestamps=H5DataIO(
+                        imaging.frame_to_time(
+                            np.arange(imaging.get_num_frames())),
+                        compression="gzip"
+                    )
+                )
+                if "rate" in two_p_series_kwargs:
+                    del two_p_series_kwargs["rate"]
+            
             ophys_ts = TwoPhotonSeries(**two_p_series_kwargs)
 
             nwbfile.add_acquisition(ophys_ts)
@@ -421,14 +449,14 @@ class NwbImagingExtractor(ImagingExtractor):
         rate = (
             np.float("NaN")
             if imgextractor.get_sampling_frequency() is None
-            else imgextractor.get_sampling_frequency()
+            else float(imgextractor.get_sampling_frequency())
         )
         # adding imaging_rate:
         metadata["Ophys"]["ImagingPlane"][0].update(imaging_rate=rate)
         # TwoPhotonSeries update:
         metadata["Ophys"]["TwoPhotonSeries"][0].update(
             dimension=imgextractor.get_image_size(),
-            rate=imgextractor.get_sampling_frequency(),
+            rate=rate,
         )
         # remove what Segmentation extractor will input:
         _ = metadata["Ophys"].pop("ImageSegmentation")
@@ -443,6 +471,7 @@ class NwbImagingExtractor(ImagingExtractor):
         metadata: dict = None,
         overwrite: bool = False,
         buffer_size: int = 10,
+        use_times: bool = False
     ):
         """
         Parameters
@@ -465,8 +494,11 @@ class NwbImagingExtractor(ImagingExtractor):
             metadata info for constructing the nwb file (optional).
         overwrite: bool
             If True and save_path is existing, it is overwritten
-        num_chunks: int
+        buffer_size: int
             Number of chunks for writing data to file
+        use_times: bool (optional, defaults to False)
+            If True, the times are saved to the nwb file using imaging.frame_to_time(). If False (defualut),
+            the sampling rate is used.
         """
         assert HAVE_NWB, NwbImagingExtractor.installation_mesg
 
@@ -516,6 +548,7 @@ class NwbImagingExtractor(ImagingExtractor):
                         nwbfile=nwbfile,
                         metadata=metadata,
                         buffer_size=buffer_size,
+                        use_times=use_times
                     )
 
                     NwbImagingExtractor.add_epochs(imaging=imaging, nwbfile=nwbfile)
@@ -528,7 +561,7 @@ class NwbImagingExtractor(ImagingExtractor):
             )
 
             NwbImagingExtractor.add_two_photon_series(
-                imaging=imaging, nwbfile=nwbfile, metadata=metadata
+                imaging=imaging, nwbfile=nwbfile, metadata=metadata, buffer_size=buffer_size, use_times=use_times
             )
 
             NwbImagingExtractor.add_epochs(imaging=imaging, nwbfile=nwbfile)
