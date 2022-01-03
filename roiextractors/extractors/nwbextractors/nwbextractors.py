@@ -497,7 +497,7 @@ class NwbImagingExtractor(ImagingExtractor):
         buffer_size: int
             Number of chunks for writing data to file
         use_times: bool (optional, defaults to False)
-            If True, the times are saved to the nwb file using imaging.frame_to_time(). If False (defualut),
+            If True, the times are saved to the nwb file using imaging.frame_to_time(). If False (defualt),
             the sampling rate is used.
         """
         assert HAVE_NWB, NwbImagingExtractor.installation_mesg
