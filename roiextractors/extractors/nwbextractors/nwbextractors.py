@@ -318,10 +318,15 @@ class NwbImagingExtractor(ImagingExtractor):
     def add_devices(imaging, nwbfile, metadata):
         # Devices
         metadata = dict_recursive_update(get_default_nwb_metadata(), metadata)
+        
         # Tests if devices exist in nwbfile, if not create them from metadata
         for dev in metadata["Ophys"]["Device"]:
             if dev["name"] not in nwbfile.devices:
-                nwbfile.create_device(name=dev["name"])
+                if "description" in dev:
+                    descr = dev["description"]
+                else:
+                    descr = None
+                nwbfile.create_device(name=dev["name"], description=descr)
 
         return nwbfile
 
