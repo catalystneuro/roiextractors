@@ -241,17 +241,17 @@ class NwbImagingExtractor(ImagingExtractor):
 
     def time_to_frame(self, times: Union[FloatType, NumpyArray]):
         if self._times is None:
-            return int(
+            return (
                 (times - self._imaging_start_time) * self.get_sampling_frequency()
-            )
+            ).astype("int64")
         else:
             return super().time_to_frame(times)
 
     def frame_to_time(self, frames: Union[IntType, NumpyArray]):
         if self._times is None:
-            return float(
+            return (
                 frames / self.get_sampling_frequency() + self._imaging_start_time
-            )
+            ).astype("float")
         else:
             return super().frame_to_time(frames)
 
