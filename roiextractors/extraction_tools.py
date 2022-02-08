@@ -363,7 +363,7 @@ def write_to_h5_dataset_format(
                 chunk_frames = np.squeeze(video).shape[0]
                 if dtype is not None:
                     video = video.astype(dtype_file)
-                dset[ch, chunk_start: chunk_start + chunk_frames, ...] = np.squeeze(
+                dset[ch, chunk_start : chunk_start + chunk_frames, ...] = np.squeeze(
                     video
                 )
                 chunk_start += chunk_frames
