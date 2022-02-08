@@ -73,7 +73,9 @@ class ImagingExtractor(ABC, BaseExtractor):
     ) -> NumpyArray:
         return self.get_frames(range(start_frame, end_frame), channel)
 
-    def frame_to_time(self, frames: Union[FloatType, NumpyArray]) -> Union[FloatType, NumpyArray]:
+    def frame_to_time(
+        self, frames: Union[FloatType, NumpyArray]
+    ) -> Union[FloatType, NumpyArray]:
         """This function converts user-inputted frame indexes to times with units of seconds.
 
         Parameters
@@ -92,7 +94,9 @@ class ImagingExtractor(ABC, BaseExtractor):
         else:
             return self._times[frames]
 
-    def time_to_frame(self, times: Union[FloatType, NumpyArray]) -> Union[FloatType, NumpyArray]:
+    def time_to_frame(
+        self, times: Union[FloatType, NumpyArray]
+    ) -> Union[FloatType, NumpyArray]:
         """This function converts a user-inputted times (in seconds) to a frame indexes.
 
         Parameters
@@ -107,11 +111,11 @@ class ImagingExtractor(ABC, BaseExtractor):
         """
         # Default implementation
         if self._times is None:
-            return np.round(times * self.get_sampling_frequency()).astype('int64')
+            return np.round(times * self.get_sampling_frequency()).astype("int64")
         else:
-            return np.searchsorted(self._times, times).astype('int64')
-    
-    def set_times(self, times : NumpyArray):
+            return np.searchsorted(self._times, times).astype("int64")
+
+    def set_times(self, times: NumpyArray):
         """This function sets the recording times (in seconds) for each frame
 
         Parameters
@@ -119,11 +123,12 @@ class ImagingExtractor(ABC, BaseExtractor):
         times: array-like
             The times in seconds for each frame
         """
-        assert len(times) == self.get_num_frames(), "'times' should have the same length of the " \
-                                                    "number of frames"
-        self._times = times.astype('float64')
+        assert (
+            len(times) == self.get_num_frames()
+        ), "'times' should have the same length of the number of frames"
+        self._times = times.astype("float64")
 
-    def copy_times(self, extractor : BaseExtractor):
+    def copy_times(self, extractor: BaseExtractor):
         """This function copies times from another extractor.
 
         Parameters
