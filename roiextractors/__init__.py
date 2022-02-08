@@ -1,4 +1,4 @@
-from . import example_datasets
+from .example_datasets import toy_example
 from .extraction_tools import show_video
 from .extractorlist import *
 from .imagingextractor import ImagingExtractor
