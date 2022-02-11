@@ -153,20 +153,20 @@ class TestNwbConversions(unittest.TestCase):
         img_ex_rt = roi_ex_class(
             file_path=rt_read_path, sampling_frequency=sampling_freq
         )
-        
+
     def test_use_times(self):
         imag, _ = toy_example(duration=10, num_rois=2)
-        
+
         timestamps = imag.frame_to_time(np.arange(imag.get_num_frames())) + 0.5
         imag.set_times(timestamps)
-        
+
         save_path = "timestamps.nwb"
-        
-        NwbImagingExtractor.write_imaging(imag, save_path=save_path,
-                                          use_times=True, overwrite=True)
+
+        NwbImagingExtractor.write_imaging(
+            imag, save_path=save_path, use_times=True, overwrite=True
+        )
         nwbimag = NwbImagingExtractor(save_path)
         check_imaging_equal(imag, nwbimag)
-        
 
 
 if __name__ == "__main__":

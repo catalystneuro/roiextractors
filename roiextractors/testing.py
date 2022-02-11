@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from .segmentationextractor import SegmentationExtractor
 from .imagingextractor import ImagingExtractor
@@ -159,8 +159,10 @@ def check_imaging_equal(img1: ImagingExtractor, img2: ImagingExtractor):
     assert_array_equal(img1.get_channel_names(), img2.get_channel_names())
     assert_array_equal(img1.get_image_size(), img2.get_image_size())
     assert_array_equal(img1.get_frames(frame_idxs=[0]), img2.get_frames(frame_idxs=[0]))
-    assert_array_equal(img1.frame_to_time(np.arange(img1.get_num_frames())), 
-                       img2.frame_to_time(np.arange(img2.get_num_frames())))
+    assert_array_almost_equal(
+        img1.frame_to_time(np.arange(img1.get_num_frames())),
+        img2.frame_to_time(np.arange(img2.get_num_frames())),
+    )
 
 
 def check_imaging_return_types(img_ex: ImagingExtractor):
