@@ -74,7 +74,7 @@ def toy_example(
     roi_size=4,
     min_dist=5,
     mode="uniform",
-    sampling_frequency=30,
+    sampling_frequency=30.0,
     decay_time=0.5,
     noise_std=0.05,
 ):
@@ -181,7 +181,7 @@ def toy_example(
         raw=raw,
         deconvolved=deconvolved,
         neuropil=neuropil,
-        sampling_frequency=sampling_frequency,
+        sampling_frequency=float(sampling_frequency),
     )
 
     return imag, seg

@@ -10,7 +10,9 @@ from ...segmentationextractor import SegmentationExtractor
 
 class NumpyImagingExtractor(ImagingExtractor):
     extractor_name = "NumpyImagingExtractor"
+    installed = True
     is_writable = True
+    installation_mesg = ""  # error message when not installed
 
     def __init__(
         self,
