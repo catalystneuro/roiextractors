@@ -21,7 +21,7 @@ from roiextractors.example_datasets import toy_example
 from roiextractors.testing import check_segmentations_equal, check_imaging_equal
 
 
-class TestNwbConversions(unittest.TestCase):
+class TestRead(unittest.TestCase):
     def setUp(self):
         pt = Path.cwd() / "ophys_testing_data"
         if pt.exists():
@@ -75,7 +75,7 @@ class TestNwbConversions(unittest.TestCase):
             ),
         ]
     )
-    def test_convert_seg_interface_to_nwb(
+    def test_read_seg_interface(
         self,
         roi_ex_class,
         dataset_path,
@@ -122,7 +122,7 @@ class TestNwbConversions(unittest.TestCase):
             ),
         ]
     )
-    def test_convert_img_interface_to_nwb(
+    def test_read_img_interface(
         self,
         roi_ex_class,
         dataset_path,
