@@ -91,9 +91,6 @@ class TestNwbConversions(unittest.TestCase):
 
         path = Path.cwd() / "ophys_testing_data" / dataset_path_arg
         roi_ex = roi_ex_class(path)
-        NwbSegmentationExtractor.write_segmentation(roi_ex, save_path)
-        nwb_seg_ex = NwbSegmentationExtractor(save_path)
-        check_segmentations_equal(roi_ex, nwb_seg_ex)
         try:
             roi_ex_class.write_segmentation(nwb_seg_ex, rt_write_path)
         except NotImplementedError:
@@ -143,9 +140,6 @@ class TestNwbConversions(unittest.TestCase):
 
         path = Path.cwd() / "ophys_testing_data" / dataset_path_arg
         roi_ex = roi_ex_class(file_path=path, sampling_frequency=sampling_freq)
-        NwbImagingExtractor.write_imaging(roi_ex, save_path)
-        nwb_img_ex = NwbImagingExtractor(save_path)
-        check_imaging_equal(roi_ex, nwb_img_ex)
         try:
             roi_ex_class.write_imaging(nwb_img_ex, rt_write_path)
         except NotImplementedError:
@@ -161,12 +155,6 @@ class TestNwbConversions(unittest.TestCase):
         imag.set_times(timestamps)
 
         save_path = "timestamps.nwb"
-
-        NwbImagingExtractor.write_imaging(
-            imag, save_path=save_path, use_times=True, overwrite=True
-        )
-        nwbimag = NwbImagingExtractor(save_path)
-        check_imaging_equal(imag, nwbimag)
 
 
 if __name__ == "__main__":
