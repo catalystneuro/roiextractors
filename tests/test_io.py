@@ -17,7 +17,7 @@ from roiextractors import (
 from roiextractors.testing import check_segmentations_equal, check_imaging_equal
 
 
-class TestNwbConversions(unittest.TestCase):
+class TestRead(unittest.TestCase):
     def setUp(self):
         pt = Path.cwd() / "ophys_testing_data"
         if pt.exists():
