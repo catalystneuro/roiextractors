@@ -92,7 +92,7 @@ class TestNwbConversions(unittest.TestCase):
         path = Path.cwd() / "ophys_testing_data" / dataset_path_arg
         roi_ex = roi_ex_class(path)
         try:
-            roi_ex_class.write_segmentation(nwb_seg_ex, rt_write_path)
+            roi_ex_class.write_segmentation(roi_ex, rt_write_path)
         except NotImplementedError:
             return
         seg_ex_rt = roi_ex_class(rt_read_path)
@@ -141,7 +141,7 @@ class TestNwbConversions(unittest.TestCase):
         path = Path.cwd() / "ophys_testing_data" / dataset_path_arg
         roi_ex = roi_ex_class(file_path=path, sampling_frequency=sampling_freq)
         try:
-            roi_ex_class.write_imaging(nwb_img_ex, rt_write_path)
+            roi_ex_class.write_imaging(roi_ex, rt_write_path)
         except NotImplementedError:
             return
         img_ex_rt = roi_ex_class(
