@@ -29,7 +29,7 @@ def temporary_deprecation_message():
         "ROIExtractors no longer supports direct write to NWB. This method will be removed in a future release.\n\n"
         "Please install nwb-conversion-tools and import the corresponding write method from there.\n\nFor example,\n\n"
         "from roiextractors import NwbSegmentationExtractor\nNwbSegmentationExtractor.write_segmentation(...)\n\n"
-        "would become\n\nfrom nwb_conversion_tools import write_segmentation\nwrite_segmentation(...)"
+        "would become\n\nfrom nwb_conversion_tools import roiextractors\nroiextractors.write_segmentation(...)"
     )
 
 
