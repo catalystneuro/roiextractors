@@ -23,7 +23,7 @@ PathType = Union[str, Path]
 NumpyArray = Union[np.array, np.memmap]
 DtypeType = Union[str, np.dtype]
 IntType = Union[int, np.integer]
-FloatType = Union[float, np.float]
+FloatType = float
 
 
 def _pixel_mask_extractor(image_mask_, _roi_ids):

@@ -93,7 +93,7 @@ class SbxImagingExtractor(ImagingExtractor):
             info["fold_lines"] = 0
             info["fov_repeats"] = 1
 
-        info["frame_rate"] = np.int(
+        info["frame_rate"] = int(
             info["resfreq"]
             / info["config"]["lines"]
             * (2 - info["scanmode"])
