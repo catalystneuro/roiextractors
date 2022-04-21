@@ -44,7 +44,12 @@ class TiffImagingExtractor(ImagingExtractor):
             self._num_channels = len(tif.series)
 
         # deal with multiple channels
-        self._video = tifffile.memmap(self.file_path, mode="r")
+        try:
+            self._video = tifffile.memmap(self.file_path, mode="r")
+        except ValueError:
+            with tifffile.TiffFile(self.file_path) as tif:
+                self._video = tif.asarray()
+
         (
             self._num_channels,
             self._num_frames,
