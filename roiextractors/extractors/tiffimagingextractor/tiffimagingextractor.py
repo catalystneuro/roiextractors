@@ -1,4 +1,5 @@
 from pathlib import Path
+import warnings
 
 import numpy as np
 from tqdm import tqdm
@@ -47,6 +48,7 @@ class TiffImagingExtractor(ImagingExtractor):
         try:
             self._video = tifffile.memmap(self.file_path, mode="r")
         except ValueError:
+            warnings.warn("memmap of TIFF file could not be established. Reading entire matrix into memory.")
             with tifffile.TiffFile(self.file_path) as tif:
                 self._video = tif.asarray()
 
