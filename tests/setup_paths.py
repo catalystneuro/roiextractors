@@ -6,13 +6,7 @@ from pathlib import Path
 import pytest
 
 
-# Load the configuration for the data tests
-file_path = (
-    Path(__file__).parent.parent.parent
-    / "tests"
-    / "test_on_data"
-    / "gin_test_config.json"
-)
+file_path = Path(__file__).parent.parent.parent / "tests" / "gin_test_config.json"
 
 with open(file=file_path) as f:
     test_config_dict = json.loads(f)
