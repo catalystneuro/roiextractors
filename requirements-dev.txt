@@ -1,3 +1,0 @@
-datalad
-parameterized
-tifffile
