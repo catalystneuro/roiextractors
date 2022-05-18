@@ -20,7 +20,7 @@ with open(os.path.join(path, "requirements-full.txt")) as f:
 testing_dependencies = copy(full_dependencies)
 with open(os.path.join(path, "requirements-testing.txt")) as f:
     testing_dependencies.extend(f.readlines())
-extras_require = dict(full=full_dependencies, test=testing_dependencies)
+extras_require = dict(full=full_dependencies, testing=testing_dependencies)
 
 # Create a local copy for the gin test configuration file based on the master file `base_gin_test_config.json`
 gin_config_file_base = Path("./base_gin_test_config.json")
