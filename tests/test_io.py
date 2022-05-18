@@ -25,26 +25,20 @@ def custom_name_func(testcase_func, param_num, param):
     )
 
 
-class TestRead(unittest.TestCase):
+class TestExtractors(unittest.TestCase):
     savedir = OUTPUT_PATH
 
     imaging_extractor_list = [
         param(
             extractor_class=TiffImagingExtractor,
             extractor_kwargs=dict(
-                file_path=str(
-                    OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "demoMovie.tif"
-                ),
+                file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "demoMovie.tif"),
                 sampling_frequency=15.0,  # typically provied by user
             ),
         ),
         param(
             extractor_class=Hdf5ImagingExtractor,
-            extractor_kwargs=dict(
-                file_path=str(
-                    OPHYS_DATA_PATH / "imaging_datasets" / "hdf5" / "demoMovie.hdf5"
-                )
-            ),
+            extractor_kwargs=dict(file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "hdf5" / "demoMovie.hdf5")),
         ),
     ]
     for suffix in [".mat", ".sbx"]:
@@ -52,12 +46,7 @@ class TestRead(unittest.TestCase):
             param(
                 extractor_class=SbxImagingExtractor,
                 extractor_kwargs=dict(
-                    file_path=str(
-                        OPHYS_DATA_PATH
-                        / "imaging_datasets"
-                        / "Scanbox"
-                        / f"sample{suffix}"
-                    )
+                    file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "Scanbox" / f"sample{suffix}")
                 ),
             ),
         )
@@ -116,61 +105,9 @@ class TestRead(unittest.TestCase):
         except NotImplementedError:
             return
 
-<<<<<<< HEAD
     @parameterized.expand(segmentation_extractor_list, name_func=custom_name_func)
     def test_segmentation_extractors(self, extractor_class, extractor_kwargs):
         extractor = extractor_class(**extractor_kwargs)
-=======
-    @parameterized.expand(
-        [
-            (
-                CaimanSegmentationExtractor,
-                "segmentation_datasets/caiman/caiman_analysis.hdf5",
-                "segmentation_datasets/caiman/caiman_analysis.hdf5",
-                "caiman_test.nwb",
-                "caiman_test.hdf5",
-            ),
-            (
-                CnmfeSegmentationExtractor,
-                "segmentation_datasets/cnmfe/2014_04_01_p203_m19_check01_cnmfeAnalysis.mat",
-                "segmentation_datasets/cnmfe/2014_04_01_p203_m19_check01_cnmfeAnalysis.mat",
-                "cnmfe_test.nwb",
-                "cnmfe_test.mat",
-            ),
-            (
-                ExtractSegmentationExtractor,
-                "segmentation_datasets/extract/2014_04_01_p203_m19_check01_extractAnalysis.mat",
-                "segmentation_datasets/extract/2014_04_01_p203_m19_check01_extractAnalysis.mat",
-                "extract_test.nwb",
-                "extract_test.mat",
-            ),
-            (
-                Suite2pSegmentationExtractor,
-                "segmentation_datasets/suite2p/plane0",
-                "segmentation_datasets/suite2p",
-                "suite2p_test.nwb",
-                "suite2p_test/plane0",
-                "suite2p_test",
-            ),
-        ]
-    )
-    def test_seg_interfaces(
-        self,
-        roi_ex_class,
-        dataset_path,
-        dataset_path_arg,
-        save_fname,
-        rt_write_fname,
-        rt_read_fname=None,
-    ):
-
-        rt_write_path, rt_read_path, save_path = self.get_data(
-            rt_write_fname, rt_read_fname, save_fname, dataset_path
-        )
-
-        path = Path.cwd() / "ophys_testing_data" / dataset_path_arg
-        roi_ex = roi_ex_class(path)
->>>>>>> 372606cdea6c52a0436e9dcbcf0c71101202f564
         try:
             suffix = Path(extractor_kwargs["file_path"]).suffix
             output_path = self.savedir / f"{extractor_class.__name__}{suffix}"
