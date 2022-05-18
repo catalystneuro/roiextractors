@@ -48,9 +48,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         if "mov" in self._file.keys():
             self._video = self._file[self._mov_field]
             if sampling_frequency is None:
-                assert (
-                    "fr" in self._video.attrs
-                ), "sampling frequency information is unavailable!"
+                assert "fr" in self._video.attrs, "sampling frequency information is unavailable!"
                 self._sampling_frequency = self._video.attrs["fr"]
             else:
                 self._sampling_frequency = sampling_frequency
@@ -99,11 +97,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
 
     @check_get_frames_args
     def get_frames(self, frame_idxs, channel=0):
-        if (
-            frame_idxs.size > 1
-            and np.all(np.diff(frame_idxs) > 0)
-            or frame_idxs.size == 1
-        ):
+        if frame_idxs.size > 1 and np.all(np.diff(frame_idxs) > 0) or frame_idxs.size == 1:
             return self._video[channel, frame_idxs]
             # return lazy_ops.DatasetView(self._video).lazy_slice[channel, frame_idxs]
         else:
@@ -144,15 +138,11 @@ class Hdf5ImagingExtractor(ImagingExtractor):
 
         if save_path.is_file():
             if not overwrite:
-                raise FileExistsError(
-                    "The specified path exists! Use overwrite=True to overwrite it."
-                )
+                raise FileExistsError("The specified path exists! Use overwrite=True to overwrite it.")
             else:
                 save_path.unlink()
 
         with h5py.File(save_path, "w") as f:
-            write_to_h5_dataset_format(
-                imaging=imaging, dataset_path=mov_field, file_handle=f, **kwargs
-            )
+            write_to_h5_dataset_format(imaging=imaging, dataset_path=mov_field, file_handle=f, **kwargs)
             dset = f[mov_field]
             dset.attrs["fr"] = imaging.get_sampling_frequency()

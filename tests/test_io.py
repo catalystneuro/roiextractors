@@ -23,9 +23,7 @@ class TestRead(unittest.TestCase):
         if pt.exists():
             self.dataset = Dataset(pt)
         else:
-            self.dataset = install(
-                "https://gin.g-node.org/CatalystNeuro/ophys_testing_data"
-            )
+            self.dataset = install("https://gin.g-node.org/CatalystNeuro/ophys_testing_data")
         self.savedir = Path(tempfile.mkdtemp())
 
     def get_data(self, rt_write_fname, rt_read_fname, save_fname, dataset_path):
@@ -81,9 +79,7 @@ class TestRead(unittest.TestCase):
         rt_read_fname=None,
     ):
 
-        rt_write_path, rt_read_path, save_path = self.get_data(
-            rt_write_fname, rt_read_fname, save_fname, dataset_path
-        )
+        rt_write_path, rt_read_path, save_path = self.get_data(rt_write_fname, rt_read_fname, save_fname, dataset_path)
 
         path = Path.cwd() / "ophys_testing_data" / dataset_path_arg
         roi_ex = roi_ex_class(path)
@@ -129,9 +125,7 @@ class TestRead(unittest.TestCase):
         rt_read_fname=None,
     ):
 
-        rt_write_path, rt_read_path, save_path = self.get_data(
-            rt_write_fname, rt_read_fname, save_fname, dataset_path
-        )
+        rt_write_path, rt_read_path, save_path = self.get_data(rt_write_fname, rt_read_fname, save_fname, dataset_path)
 
         sampling_freq = 20.0
 
@@ -139,9 +133,7 @@ class TestRead(unittest.TestCase):
         roi_ex = roi_ex_class(file_path=path, sampling_frequency=sampling_freq)
         try:
             roi_ex_class.write_imaging(roi_ex, rt_write_path)
-            img_ex_rt = roi_ex_class(
-                file_path=rt_read_path, sampling_frequency=sampling_freq
-            )
+            img_ex_rt = roi_ex_class(file_path=rt_read_path, sampling_frequency=sampling_freq)
             # check_imaging_equal(img1=roi_ex, img2=img_ex_rt)  # failing
         except NotImplementedError:
             return

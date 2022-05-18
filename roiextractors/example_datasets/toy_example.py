@@ -11,9 +11,7 @@ def _gaussian(x, mu, sigma):
     return 1 / np.sqrt(2 * np.pi * sigma) * np.exp(-((x - mu) ** 2) / sigma)
 
 
-def _generate_rois(
-    num_units=10, size_x=100, size_y=100, roi_size=4, min_dist=5, mode="uniform"
-):
+def _generate_rois(num_units=10, size_x=100, size_y=100, roi_size=4, min_dist=5, mode="uniform"):
     image = np.zeros((size_x, size_y))
     max_iter = 1000
 
@@ -56,9 +54,7 @@ def _generate_rois(
                     if mode == "uniform":
                         image[i, j] = 1
                     elif mode == "gaussian":
-                        image[i, j] = _gaussian(i, mean[0], roi_size) + _gaussian(
-                            j, mean[1], roi_size
-                        )
+                        image[i, j] = _gaussian(i, mean[0], roi_size) + _gaussian(j, mean[1], roi_size)
                     else:
                         raise Exception("'mode' can be 'uniform' or 'gaussian'")
         roi_pixels.append(np.array(pixels))
@@ -142,9 +138,7 @@ def toy_example(
     # convolve response with ROIs
     raw = np.zeros((len(sort.get_unit_ids()), rec.get_num_frames()))
     deconvolved = np.zeros((len(sort.get_unit_ids()), rec.get_num_frames()))
-    neuropil = noise_std * np.random.randn(
-        len(sort.get_unit_ids()), rec.get_num_frames()
-    )
+    neuropil = noise_std * np.random.randn(len(sort.get_unit_ids()), rec.get_num_frames())
     frames = rec.get_num_frames()
     for u_i, unit in enumerate(sort.get_unit_ids()):
         for s in sort.get_unit_spike_train(unit):

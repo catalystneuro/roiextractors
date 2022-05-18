@@ -25,9 +25,7 @@ class NumpyImagingExtractor(ImagingExtractor):
         if isinstance(timeseries, (str, Path)):
             timeseries = Path(timeseries)
             if timeseries.is_file():
-                assert (
-                    timeseries.suffix == ".npy"
-                ), "'timeseries' file is not a numpy file (.npy)"
+                assert timeseries.suffix == ".npy", "'timeseries' file is not a numpy file (.npy)"
                 self.is_dumpable = True
                 self._video = np.load(timeseries, mmap_mode="r")
                 self._kwargs = {
@@ -109,9 +107,7 @@ class NumpyImagingExtractor(ImagingExtractor):
 
         if save_path.is_file():
             if not overwrite:
-                raise FileExistsError(
-                    "The specified path exists! Use overwrite=True to overwrite it."
-                )
+                raise FileExistsError("The specified path exists! Use overwrite=True to overwrite it.")
             else:
                 save_path.unlink()
 
@@ -182,9 +178,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         if isinstance(image_masks, (str, Path)):
             image_masks = Path(image_masks)
             if image_masks.is_file():
-                assert (
-                    image_masks.suffix == ".npy"
-                ), "'image_masks' file is not a numpy file (.npy)"
+                assert image_masks.suffix == ".npy", "'image_masks' file is not a numpy file (.npy)"
 
                 self.is_dumpable = True
                 self._image_masks = np.load(image_masks, mmap_mode="r")
@@ -200,15 +194,11 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                     self._roi_response_neuropil = np.load(neuropil, mmap_mode="r")
                 if deconvolved is not None:
                     deconvolved = Path(deconvolved)
-                    assert (
-                        deconvolved.suffix == ".npy"
-                    ), "'deconvolved' file is not a numpy file (.npy)"
+                    assert deconvolved.suffix == ".npy", "'deconvolved' file is not a numpy file (.npy)"
                     self._roi_response_deconvolved = np.load(deconvolved, mmap_mode="r")
                 if neuropil is not None:
                     neuropil = Path(neuropil)
-                    assert (
-                        neuropil.suffix == ".npy"
-                    ), "'neuropil' file is not a numpy file (.npy)"
+                    assert neuropil.suffix == ".npy", "'neuropil' file is not a numpy file (.npy)"
                     self._roi_response_neuropil = np.load(neuropil, mmap_mode="r")
 
                 self._kwargs = {"image_masks": str(Path(image_masks).absolute())}
@@ -219,9 +209,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                 if raw is not None:
                     self._kwargs.update({"neuropil": str(Path(neuropil).absolute())})
                 if raw is not None:
-                    self._kwargs.update(
-                        {"deconvolved": str(Path(deconvolved).absolute())}
-                    )
+                    self._kwargs.update({"deconvolved": str(Path(deconvolved).absolute())})
 
             else:
                 raise ValueError("'timeeseries' is does not exist")
@@ -255,9 +243,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                 )
             self._roi_response_deconvolved = deconvolved
             if self._roi_response_deconvolved is not None:
-                assert self._image_masks.shape[2] == len(
-                    self._roi_response_deconvolved
-                ), (
+                assert self._image_masks.shape[2] == len(self._roi_response_deconvolved), (
                     "Inconsistency between image masks and raw traces. "
                     "Image masks must be (px, py, num_rois), "
                     "traces must be (num_rois, num_frames)"
@@ -277,9 +263,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         if roi_ids is None:
             self._roi_ids = list(np.arange(image_masks.shape[2]))
         else:
-            assert all(
-                [isinstance(roi_id, (int, np.integer)) for roi_id in roi_ids]
-            ), "'roi_ids' must be int!"
+            assert all([isinstance(roi_id, (int, np.integer)) for roi_id in roi_ids]), "'roi_ids' must be int!"
             self._roi_ids = roi_ids
         self._roi_locs = roi_locations
         self._sampling_frequency = sampling_frequency
@@ -299,11 +283,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     def get_rejected_list(self):
         if self._rejected_list is None:
-            return [
-                a
-                for a in range(self.get_num_rois())
-                if a not in set(self.get_accepted_list())
-            ]
+            return [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
         else:
             return self._rejected_list
 
@@ -315,9 +295,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             roi_location = np.ndarray([2, num_ROIs], dtype="int")
             for i in range(num_ROIs):
                 temp = np.where(raw_images[:, :, i] == np.amax(raw_images[:, :, i]))
-                roi_location[:, i] = np.array(
-                    [np.median(temp[0]), np.median(temp[1])]
-                ).T
+                roi_location[:, i] = np.array([np.median(temp[0]), np.median(temp[1])]).T
             return roi_location
         else:
             return self._roi_locs
