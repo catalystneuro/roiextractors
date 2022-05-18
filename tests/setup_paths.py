@@ -1,7 +1,7 @@
 import os
 import json
-import tempfile
 from pathlib import Path
+from tempfile import mkdtemp
 
 import pytest
 
@@ -28,4 +28,4 @@ if test_config_dict["SAVE_OUTPUTS"]:
     OUTPUT_PATH = LOCAL_PATH / "example_nwb_output"
     OUTPUT_PATH.mkdir(exist_ok=True)
 else:
-    OUTPUT_PATH = Path(tempfile.mkdtemp())
+    OUTPUT_PATH = Path(mkdtemp())

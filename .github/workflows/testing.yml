@@ -1,5 +1,8 @@
 name: Full Tests
-on: pull_request
+on:
+  schedule:
+    - cron: "0 0 * * *"  # daily
+  pull_request:
 
 jobs:
   run:
