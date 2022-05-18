@@ -33,13 +33,19 @@ class TestRead(unittest.TestCase):
         param(
             extractor_class=TiffImagingExtractor,
             extractor_kwargs=dict(
-                file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "demoMovie.tif"),
+                file_path=str(
+                    OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "demoMovie.tif"
+                ),
                 sampling_frequency=15.0,  # typically provied by user
             ),
         ),
         param(
             extractor_class=Hdf5ImagingExtractor,
-            extractor_kwargs=dict(file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "hdf5" / "demoMovie.hdf5")),
+            extractor_kwargs=dict(
+                file_path=str(
+                    OPHYS_DATA_PATH / "imaging_datasets" / "hdf5" / "demoMovie.hdf5"
+                )
+            ),
         ),
     ]
     for suffix in [".mat", ".sbx"]:
@@ -47,7 +53,12 @@ class TestRead(unittest.TestCase):
             param(
                 extractor_class=SbxImagingExtractor,
                 extractor_kwargs=dict(
-                    file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "Scanbox" / f"sample{suffix}")
+                    file_path=str(
+                        OPHYS_DATA_PATH
+                        / "imaging_datasets"
+                        / "Scanbox"
+                        / f"sample{suffix}"
+                    )
                 ),
             ),
         )
@@ -111,7 +122,9 @@ class TestRead(unittest.TestCase):
         rt_read_fname=None,
     ):
 
-        rt_write_path, rt_read_path, save_path = self.get_data(rt_write_fname, rt_read_fname, save_fname, dataset_path)
+        rt_write_path, rt_read_path, save_path = self.get_data(
+            rt_write_fname, rt_read_fname, save_fname, dataset_path
+        )
 
         path = Path.cwd() / "ophys_testing_data" / dataset_path_arg
         roi_ex = roi_ex_class(path)
