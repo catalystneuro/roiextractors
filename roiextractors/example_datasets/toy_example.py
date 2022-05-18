@@ -74,7 +74,7 @@ def toy_example(
     roi_size=4,
     min_dist=5,
     mode="uniform",
-    sampling_frequency=30,
+    sampling_frequency=30.0,
     decay_time=0.5,
     noise_std=0.05,
 ):
@@ -150,7 +150,7 @@ def toy_example(
         for s in sort.get_unit_spike_train(unit):
             if s < rec.get_num_frames():
                 if s + len(resp) < frames:
-                    raw[u_i, s: s + len(resp)] += resp
+                    raw[u_i, s : s + len(resp)] += resp
                 else:
                     raw[u_i, s:] = resp[: frames - s]
                 deconvolved[u_i, s] = 1
@@ -181,7 +181,7 @@ def toy_example(
         raw=raw,
         deconvolved=deconvolved,
         neuropil=neuropil,
-        sampling_frequency=sampling_frequency,
+        sampling_frequency=float(sampling_frequency),
     )
 
     return imag, seg

@@ -10,7 +10,9 @@ from ...segmentationextractor import SegmentationExtractor
 
 class NumpyImagingExtractor(ImagingExtractor):
     extractor_name = "NumpyImagingExtractor"
+    installed = True
     is_writable = True
+    installation_mesg = ""  # error message when not installed
 
     def __init__(
         self,
@@ -149,8 +151,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         """
         Parameters:
         ----------
-        file_path: str
-            The location of the folder containing the custom file format.
         image_masks: np.ndarray
             Binary image for each of the regions of interest
         raw: np.ndarray
@@ -169,7 +169,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             Unique ids of the ROIs if any
         roi_locations: np.ndarray
             x and y location representative of ROI mask
-        samp_freq: float
+        sampling_frequency: float
             Frame rate of the movie
         rejected_list: list
             list of ROI ids that are rejected manually or via automated rejection
@@ -234,9 +234,34 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             self.is_dumpable = False
             self._image_masks = image_masks
             self._roi_response_raw = raw
+            assert self._image_masks.shape[2] == len(self._roi_response_raw), (
+                "Inconsistency between image masks and raw traces. "
+                "Image masks must be (px, py, num_rois), "
+                "traces must be (num_rois, num_frames)"
+            )
             self._roi_response_dff = dff
+            if self._roi_response_dff is not None:
+                assert self._image_masks.shape[2] == len(self._roi_response_dff), (
+                    "Inconsistency between image masks and raw traces. "
+                    "Image masks must be (px, py, num_rois), "
+                    "traces must be (num_rois, num_frames)"
+                )
             self._roi_response_neuropil = neuropil
+            if self._roi_response_neuropil is not None:
+                assert self._image_masks.shape[2] == len(self._roi_response_neuropil), (
+                    "Inconsistency between image masks and raw traces. "
+                    "Image masks must be (px, py, num_rois), "
+                    "traces must be (num_rois, num_frames)"
+                )
             self._roi_response_deconvolved = deconvolved
+            if self._roi_response_deconvolved is not None:
+                assert self._image_masks.shape[2] == len(
+                    self._roi_response_deconvolved
+                ), (
+                    "Inconsistency between image masks and raw traces. "
+                    "Image masks must be (px, py, num_rois), "
+                    "traces must be (num_rois, num_frames)"
+                )
             self._kwargs = {
                 "image_masks": image_masks,
                 "signal": raw,
@@ -250,8 +275,11 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         self._image_mean = mean_image
         self._image_correlation = correlation_image
         if roi_ids is None:
-            self._roi_ids = list(np.arange(len(image_masks)))
+            self._roi_ids = list(np.arange(image_masks.shape[2]))
         else:
+            assert all(
+                [isinstance(roi_id, (int, np.integer)) for roi_id in roi_ids]
+            ), "'roi_ids' must be int!"
             self._roi_ids = roi_ids
         self._roi_locs = roi_locations
         self._sampling_frequency = sampling_frequency

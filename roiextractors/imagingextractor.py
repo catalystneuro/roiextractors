@@ -1,4 +1,7 @@
 from abc import ABC, abstractmethod
+from typing import Union
+import numpy as np
+from copy import deepcopy
 
 from spikeextractors.baseextractor import BaseExtractor
 
@@ -70,37 +73,71 @@ class ImagingExtractor(ABC, BaseExtractor):
     ) -> NumpyArray:
         return self.get_frames(range(start_frame, end_frame), channel)
 
-    def frame_to_time(self, frame: IntType):
-        """This function converts a user-inputted frame index to a time with units of seconds.
+    def frame_to_time(
+        self, frames: Union[FloatType, NumpyArray]
+    ) -> Union[FloatType, NumpyArray]:
+        """This function converts user-inputted frame indexes to times with units of seconds.
 
         Parameters
         ----------
-        frame: float
-            The frame to be converted to a time
+        frames: int or array-like
+            The frame or frames to be converted to times
 
         Returns
         -------
-        time: float
-            The corresponding time in seconds
+        times: float or array-like
+            The corresponding times in seconds
         """
         # Default implementation
-        return frame / self.get_sampling_frequency()
+        if self._times is None:
+            return np.round(frames / self.get_sampling_frequency(), 6)
+        else:
+            return self._times[frames]
 
-    def time_to_frame(self, time: FloatType):
-        """This function converts a user-inputted time (in seconds) to a frame index.
+    def time_to_frame(
+        self, times: Union[FloatType, NumpyArray]
+    ) -> Union[FloatType, NumpyArray]:
+        """This function converts a user-inputted times (in seconds) to a frame indexes.
 
         Parameters
         -------
-        time: float
-            The time (in seconds) to be converted to frame index
+        times: float or array-like
+            The times (in seconds) to be converted to frame indexes
 
         Returns
         -------
-        frame: float
-            The corresponding frame index
+        frames: float or array-like
+            The corresponding frame indexes
         """
         # Default implementation
-        return time * self.get_sampling_frequency()
+        if self._times is None:
+            return np.round(times * self.get_sampling_frequency()).astype("int64")
+        else:
+            return np.searchsorted(self._times, times).astype("int64")
+
+    def set_times(self, times: NumpyArray):
+        """This function sets the recording times (in seconds) for each frame
+
+        Parameters
+        ----------
+        times: array-like
+            The times in seconds for each frame
+        """
+        assert (
+            len(times) == self.get_num_frames()
+        ), "'times' should have the same length of the number of frames"
+        self._times = times.astype("float64")
+
+    def copy_times(self, extractor: BaseExtractor):
+        """This function copies times from another extractor.
+
+        Parameters
+        ----------
+        extractor: BaseExtractor
+            The extractor from which the epochs will be copied
+        """
+        if extractor._times is not None:
+            self.set_times(deepcopy(extractor._times))
 
     @staticmethod
     def write_imaging(imaging, save_path: PathType, overwrite: bool = False):

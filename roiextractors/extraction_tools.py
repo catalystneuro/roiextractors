@@ -12,40 +12,18 @@ try:
     HAVE_H5 = True
 except ImportError:
     HAVE_H5 = False
-
 try:
     import scipy.io as spio
 
     HAVE_Scipy = True
 except ImportError:
     HAVE_Scipy = False
-
 ArrayType = Union[list, np.array]
 PathType = Union[str, Path]
 NumpyArray = Union[np.array, np.memmap]
 DtypeType = Union[str, np.dtype]
 IntType = Union[int, np.integer]
-FloatType = Union[float, np.float]
-
-
-def dict_recursive_update(base, input_):
-    for key, val in input_.items():
-        if key in base and isinstance(val, dict) and isinstance(base[key], dict):
-            dict_recursive_update(base[key], val)
-        elif key in base and isinstance(val, list) and isinstance(base[key], list):
-            for i, input_list_item in enumerate(val):
-                if len(base[key]) < i:
-                    if isinstance(base[key][i], dict) and isinstance(
-                        input_list_item, dict
-                    ):
-                        dict_recursive_update(base[key][i], input_list_item)
-                    else:
-                        base[key][i] = input_list_item
-                else:
-                    base[key].append(input_list_item)
-        else:
-            base[key] = val
-    return base
+FloatType = float
 
 
 def _pixel_mask_extractor(image_mask_, _roi_ids):
@@ -94,7 +72,6 @@ def get_video_shape(video):
         num_frames, size_x, size_y = video.shape
     else:
         num_channels, num_frames, size_x, size_y = video.shape
-
     return num_channels, num_frames, size_x, size_y
 
 
@@ -198,7 +175,6 @@ def write_to_h5_dataset_format(
         if save_path.suffix == "":
             # when suffix is already raw/bin/dat do not change it.
             save_path = save_path.parent / (save_path.name + ".h5")
-
     num_channels = imaging.get_num_channels()
     num_frames = imaging.get_num_frames()
     size_x, size_y = imaging.get_image_size()
@@ -207,12 +183,10 @@ def write_to_h5_dataset_format(
         assert isinstance(file_handle, h5py.File)
     else:
         file_handle = h5py.File(save_path, "w")
-
     if dtype is None:
         dtype_file = imaging.get_dtype()
     else:
         dtype_file = dtype
-
     dset = file_handle.create_dataset(
         dataset_path, shape=(num_channels, num_frames, size_x, size_y), dtype=dtype_file
     )
@@ -224,7 +198,6 @@ def write_to_h5_dataset_format(
         n_bytes = np.dtype(imaging.get_dtype()).itemsize
         max_size = int(chunk_mb * 1e6)  # set Mb per chunk
         chunk_size = max_size // (size_x * size_y * n_bytes)
-
     # writ one channel at a time
     for ch in range(num_channels):
         if chunk_size is None:
@@ -251,11 +224,10 @@ def write_to_h5_dataset_format(
                 chunk_frames = np.squeeze(video).shape[0]
                 if dtype is not None:
                     video = video.astype(dtype_file)
-                dset[ch, chunk_start: chunk_start + chunk_frames, ...] = np.squeeze(
+                dset[ch, chunk_start : chunk_start + chunk_frames, ...] = np.squeeze(
                     video
                 )
                 chunk_start += chunk_frames
-
     if save_path is not None:
         file_handle.close()
     return save_path
@@ -274,7 +246,6 @@ def show_video(imaging, ax=None):
     if ax is None:
         fig = plt.figure(figsize=(5, 5))
         ax = fig.add_subplot(111)
-
     im0 = imaging.get_frames(0)
     im = ax.imshow(im0, interpolation="none", aspect="auto", vmin=0, vmax=1)
     interval = 1 / imaging.get_sampling_frequency() * 1000
