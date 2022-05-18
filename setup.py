@@ -37,8 +37,10 @@ setup(
     url="https://github.com/catalystneuro/roiextractors",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    packages=find_packages(),
-    package_data={},
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
+    include_package_data=True,  # Includes files described in MANIFEST.in in the installation.
+    python_requires=">=3.7",
     install_requires=install_requires,
     extras_require=extras_require,
     classifiers=(
