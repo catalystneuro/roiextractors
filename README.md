@@ -2,7 +2,7 @@
 Python-based module for extracting from, converting between, and handling recorded and optical imaging data from several file formats. Inspired by [SpikeExtractors](https://github.com/SpikeInterface/spikeextractors).
 ![image](https://drive.google.com/uc?export=view&id=1bhRA3kyu3SA3k-xWz5psRxLsuP3BJEBg)
 
-Developed by [CatalystNeuro](http://catalystneuro.com/). Funded by Stanford University as part of the Ripple U19 project.
+Developed by [CatalystNeuro](http://catalystneuro.com/).
 
 ## Getting Started:
 #### Installation:
@@ -117,5 +117,9 @@ Will need a manual installation for package dependency **SIMA** since it does no
 1.   Download SIMA wheels distribution [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#sima).
 2.  `pip install <download-path-to-wheels.whl>`
 3.  `pip install roiextractors`
+
+### Funded by
+* Stanford University as part of the Ripple U19 project (U19NS104590).
+* LBNL as part of the NWB U24 (U24NS120057).
 
 
