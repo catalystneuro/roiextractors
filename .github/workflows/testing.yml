@@ -40,7 +40,7 @@ jobs:
       - name: Install roiextractors with minimal requirements
         run: pip install .
       - name: Install full requirements (-e needed for codecov report)
-        run: pip install -r requirements-dev.txt  # TODO, setup extra_requires for [full]
+        run: pip install -e .[full]
 
       - name: Get ophys_testing_data current head hash
         id: ophys
