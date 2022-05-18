@@ -1,19 +1,18 @@
-import os
 from pathlib import Path
 from setuptools import setup, find_packages
 from copy import copy
 from shutil import copy as copy_file
 
 
-path = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(path, "README.md")) as f:
+parent = Path(__file__).parent
+with open(parent / "README.md") as f:
     long_description = f.read()
-with open(os.path.join(path, "requirements-minimal.txt")) as f:
+with open(parent / "requirements-minimal.txt") as f:
     install_requires = f.readlines()
-with open(os.path.join(path, "requirements-full.txt")) as f:
+with open(parent / "requirements-full.txt") as f:
     full_dependencies = f.readlines()
 testing_dependencies = copy(full_dependencies)
-with open(os.path.join(path, "requirements-testing.txt")) as f:
+with open(parent / "requirements-testing.txt") as f:
     testing_dependencies.extend(f.readlines())
 extras_require = dict(full=full_dependencies, testing=testing_dependencies)
 
