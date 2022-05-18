@@ -141,3 +141,7 @@ fabric.properties
 
 #Mac
 .DS_Store
+
+# Repo specific items
+tests/gin_test_config.json
+.pre-commit-config.yaml

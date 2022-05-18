@@ -1,0 +1,3 @@
+pytest
+pytest-cov
+parameterized==0.8.1
