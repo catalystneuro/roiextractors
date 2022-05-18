@@ -21,7 +21,7 @@ from .setup_paths import OPHYS_DATA_PATH, OUTPUT_PATH
 def custom_name_func(testcase_func, param_num, param):
     return (
         f"{testcase_func.__name__}_{param_num}_"
-        f"{parameterized.to_safe_name(param.kwargs['data_interface'].__name__)}"
+        f"{parameterized.to_safe_name(param.kwargs['extractor_class'].__name__)}"
     )
 
 
@@ -32,19 +32,13 @@ class TestExtractors(unittest.TestCase):
         param(
             extractor_class=TiffImagingExtractor,
             extractor_kwargs=dict(
-                file_path=str(
-                    OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "demoMovie.tif"
-                ),
+                file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "demoMovie.tif"),
                 sampling_frequency=15.0,  # typically provied by user
             ),
         ),
         param(
             extractor_class=Hdf5ImagingExtractor,
-            extractor_kwargs=dict(
-                file_path=str(
-                    OPHYS_DATA_PATH / "imaging_datasets" / "hdf5" / "demoMovie.hdf5"
-                )
-            ),
+            extractor_kwargs=dict(file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "hdf5" / "demoMovie.hdf5")),
         ),
     ]
     for suffix in [".mat", ".sbx"]:
@@ -52,12 +46,7 @@ class TestExtractors(unittest.TestCase):
             param(
                 extractor_class=SbxImagingExtractor,
                 extractor_kwargs=dict(
-                    file_path=str(
-                        OPHYS_DATA_PATH
-                        / "imaging_datasets"
-                        / "Scanbox"
-                        / f"sample{suffix}"
-                    )
+                    file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "Scanbox" / f"sample{suffix}")
                 ),
             ),
         )
@@ -66,12 +55,7 @@ class TestExtractors(unittest.TestCase):
         param(
             extractor_class=CaimanSegmentationExtractor,
             extractor_kwargs=dict(
-                file_path=str(
-                    OPHYS_DATA_PATH
-                    / "segmentation_datasets"
-                    / "caiman"
-                    / "caiman_analysis.hdf5"
-                )
+                file_path=str(OPHYS_DATA_PATH / "segmentation_datasets" / "caiman" / "caiman_analysis.hdf5")
             ),
         ),
         param(

@@ -6,10 +6,10 @@ from pathlib import Path
 import pytest
 
 
-file_path = Path(__file__).parent.parent.parent / "tests" / "gin_test_config.json"
+file_path = "./gin_test_config.json"
 
 with open(file=file_path) as f:
-    test_config_dict = json.loads(f)
+    test_config_dict = json.load(f)
 
 if os.getenv("CI"):
     LOCAL_PATH = Path(".")  # Must be set to "." for CI
