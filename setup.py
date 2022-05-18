@@ -4,11 +4,6 @@ from setuptools import setup, find_packages
 from copy import copy
 from shutil import copy as copy_file
 
-d = {}
-exec(open("roiextractors/version.py").read(), None, d)
-version = d["version"]
-pkg_name = "roiextractors"
-
 
 path = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(path, "README.md")) as f:
@@ -29,8 +24,8 @@ if not gin_config_file_local.exists():
     copy_file(src=gin_config_file_base, dst=gin_config_file_local)
 
 setup(
-    name=pkg_name,
-    version=version,
+    name="roiextractors",
+    version="0.4.1",
     author="Saksham Sharda, Cody Baker, Ben Dichter, Alessio Buccino",
     author_email="ben.dichter@gmail.com",
     description="Python module for extracting optical physiology ROIs and traces for various file types and formats",
