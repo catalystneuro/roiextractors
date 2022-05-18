@@ -32,19 +32,13 @@ class TestExtractors(unittest.TestCase):
         param(
             extractor_class=TiffImagingExtractor,
             extractor_kwargs=dict(
-                file_path=str(
-                    OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "demoMovie.tif"
-                ),
+                file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "demoMovie.tif"),
                 sampling_frequency=15.0,  # typically provied by user
             ),
         ),
         param(
             extractor_class=Hdf5ImagingExtractor,
-            extractor_kwargs=dict(
-                file_path=str(
-                    OPHYS_DATA_PATH / "imaging_datasets" / "hdf5" / "demoMovie.hdf5"
-                )
-            ),
+            extractor_kwargs=dict(file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "hdf5" / "demoMovie.hdf5")),
         ),
     ]
     for suffix in [".mat", ".sbx"]:
@@ -52,12 +46,7 @@ class TestExtractors(unittest.TestCase):
             param(
                 extractor_class=SbxImagingExtractor,
                 extractor_kwargs=dict(
-                    file_path=str(
-                        OPHYS_DATA_PATH
-                        / "imaging_datasets"
-                        / "Scanbox"
-                        / f"sample{suffix}"
-                    )
+                    file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "Scanbox" / f"sample{suffix}")
                 ),
             ),
         )
@@ -66,12 +55,7 @@ class TestExtractors(unittest.TestCase):
         param(
             extractor_class=CaimanSegmentationExtractor,
             extractor_kwargs=dict(
-                file_path=str(
-                    OPHYS_DATA_PATH
-                    / "segmentation_datasets"
-                    / "caiman"
-                    / "caiman_analysis.hdf5"
-                )
+                file_path=str(OPHYS_DATA_PATH / "segmentation_datasets" / "caiman" / "caiman_analysis.hdf5")
             ),
         ),
         param(
@@ -127,7 +111,7 @@ class TestExtractors(unittest.TestCase):
         try:
             suffix = Path(extractor_kwargs["file_path"]).suffix
             output_path = self.savedir / f"{extractor_class.__name__}{suffix}"
-            extractor_class.write_imaging(extractor, output_path)
+            extractor_class.write_segmentation(extractor, output_path)
 
             roundtrip_kwargs = copy(extractor_kwargs)
             roundtrip_kwargs.update(file_path=output_path)
