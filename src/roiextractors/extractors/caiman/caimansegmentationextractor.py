@@ -97,9 +97,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         ], "'save_path' must be a *.hdf5 or *.h5 file"
         if save_path.is_file():
             if not overwrite:
-                raise FileExistsError(
-                    "The specified path exists! Use overwrite=True to overwrite it."
-                )
+                raise FileExistsError("The specified path exists! Use overwrite=True to overwrite it.")
             else:
                 save_path.unlink()
 
@@ -109,9 +107,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             segext_objs = segmentation_object.segmentations
             for plane_num, segext_obj in enumerate(segext_objs):
                 save_path_plane = folder_path / f"Plane_{plane_num}" / file_name
-                CaimanSegmentationExtractor.write_segmentation(
-                    segext_obj, save_path_plane
-                )
+                CaimanSegmentationExtractor.write_segmentation(segext_obj, save_path_plane)
         if not folder_path.is_dir():
             folder_path.mkdir(parents=True)
 
@@ -121,35 +117,23 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             params = f.create_group("params")
             # adding to estimates:
             if segmentation_object.get_traces(name="neuropil") is not None:
-                estimates.create_dataset(
-                    "C", data=segmentation_object.get_traces(name="neuropil")
-                )
+                estimates.create_dataset("C", data=segmentation_object.get_traces(name="neuropil"))
             if segmentation_object.get_traces(name="dff") is not None:
-                estimates.create_dataset(
-                    "F_dff", data=segmentation_object.get_traces(name="dff")
-                )
+                estimates.create_dataset("F_dff", data=segmentation_object.get_traces(name="dff"))
             if segmentation_object.get_traces(name="deconvolved") is not None:
-                estimates.create_dataset(
-                    "S", data=segmentation_object.get_traces(name="deconvolved")
-                )
+                estimates.create_dataset("S", data=segmentation_object.get_traces(name="deconvolved"))
             if segmentation_object.get_image("correlation") is not None:
-                estimates.create_dataset(
-                    "Cn", data=segmentation_object.get_image("correlation")
-                )
+                estimates.create_dataset("Cn", data=segmentation_object.get_image("correlation"))
             estimates.create_dataset(
                 "idx_components",
                 data=np.array(
-                    []
-                    if segmentation_object.get_accepted_list() is None
-                    else segmentation_object.get_accepted_list()
+                    [] if segmentation_object.get_accepted_list() is None else segmentation_object.get_accepted_list()
                 ),
             )
             estimates.create_dataset(
                 "idx_components_bad",
                 data=np.array(
-                    []
-                    if segmentation_object.get_rejected_list() is None
-                    else segmentation_object.get_rejected_list()
+                    [] if segmentation_object.get_rejected_list() is None else segmentation_object.get_rejected_list()
                 ),
             )
 
@@ -166,12 +150,8 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             estimates.create_dataset("A/shape", data=image_mask_csc.shape)
 
             # adding params:
-            params.create_dataset(
-                "data/fr", data=segmentation_object.get_sampling_frequency()
-            )
-            params.create_dataset(
-                "data/dims", data=segmentation_object.get_image_size()
-            )
+            params.create_dataset("data/fr", data=segmentation_object.get_sampling_frequency())
+            params.create_dataset("data/dims", data=segmentation_object.get_image_size())
             f.create_dataset("dims", data=segmentation_object.get_image_size())
 
     # defining the abstract class enformed methods:

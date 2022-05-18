@@ -48,9 +48,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         self._image_masks = self._image_mask_extractor_read()
         self._roi_response_raw = self._trace_extractor_read()
         self._raw_movie_file_location = self._raw_datafile_read()
-        self._sampling_frequency = (
-            self._roi_response_raw.shape[1] / self._tot_exptime_extractor_read()
-        )
+        self._sampling_frequency = self._roi_response_raw.shape[1] / self._tot_exptime_extractor_read()
         self._image_correlation = self._summary_image_read()
 
     def __del__(self):
@@ -63,14 +61,10 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         return f, _group0
 
     def _image_mask_extractor_read(self):
-        return DatasetView(
-            self._dataset_file[self._group0[0]]["extractedImages"]
-        ).lazy_transpose([1, 2, 0])
+        return DatasetView(self._dataset_file[self._group0[0]]["extractedImages"]).lazy_transpose([1, 2, 0])
 
     def _trace_extractor_read(self):
-        extracted_signals = DatasetView(
-            self._dataset_file[self._group0[0]]["extractedSignals"]
-        )
+        extracted_signals = DatasetView(self._dataset_file[self._group0[0]]["extractedSignals"])
         return extracted_signals.T
 
     def _tot_exptime_extractor_read(self):
@@ -82,10 +76,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
 
     def _raw_datafile_read(self):
         if self._dataset_file[self._group0[0]].get("movieList"):
-            charlist = [
-                chr(i)
-                for i in np.squeeze(self._dataset_file[self._group0[0]]["movieList"][:])
-            ]
+            charlist = [chr(i) for i in np.squeeze(self._dataset_file[self._group0[0]]["movieList"][:])]
             return "".join(charlist)
 
     def get_accepted_list(self):
@@ -96,19 +87,13 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         return [a for a in range(self.get_num_rois()) if a not in ac_set]
 
     @staticmethod
-    def write_segmentation(
-        segmentation_object: SegmentationExtractor, save_path, overwrite=True
-    ):
-        assert (
-            HAVE_SCIPY and HAVE_H5PY
-        ), "To use Cnmfe install scipy/h5py: \n\n pip install scipy/h5py \n\n"
+    def write_segmentation(segmentation_object: SegmentationExtractor, save_path, overwrite=True):
+        assert HAVE_SCIPY and HAVE_H5PY, "To use Cnmfe install scipy/h5py: \n\n pip install scipy/h5py \n\n"
         save_path = Path(save_path)
         assert save_path.suffix == ".mat", "'save_path' must be a *.mat file"
         if save_path.is_file():
             if not overwrite:
-                raise FileExistsError(
-                    "The specified path exists! Use overwrite=True to overwrite it."
-                )
+                raise FileExistsError("The specified path exists! Use overwrite=True to overwrite it.")
             else:
                 save_path.unlink()
 
@@ -118,9 +103,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             segext_objs = segmentation_object.segmentations
             for plane_num, segext_obj in enumerate(segext_objs):
                 save_path_plane = folder_path / f"Plane_{plane_num}" / file_name
-                CnmfeSegmentationExtractor.write_segmentation(
-                    segext_obj, save_path_plane
-                )
+                CnmfeSegmentationExtractor.write_segmentation(segext_obj, save_path_plane)
         if not folder_path.is_dir():
             folder_path.mkdir(parents=True)
 
@@ -129,12 +112,8 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             _ = f.create_group("#refs#")
             main = f.create_group("cnmfeAnalysisOutput")
             # create datasets:
-            main.create_dataset(
-                "extractedImages", data=segmentation_object.get_roi_image_masks().T
-            )
-            main.create_dataset(
-                "extractedSignals", data=segmentation_object.get_traces().T
-            )
+            main.create_dataset("extractedImages", data=segmentation_object.get_roi_image_masks().T)
+            main.create_dataset("extractedSignals", data=segmentation_object.get_traces().T)
             time = main.create_group("time")
             if segmentation_object.get_sampling_frequency() is not None:
                 time.create_dataset(
@@ -146,15 +125,10 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             if getattr(segmentation_object, "_raw_movie_file_location", None):
                 main.create_dataset(
                     "movieList",
-                    data=[
-                        ord(alph)
-                        for alph in str(segmentation_object._raw_movie_file_location)
-                    ],
+                    data=[ord(alph) for alph in str(segmentation_object._raw_movie_file_location)],
                 )
             if segmentation_object.get_traces(name="deconvolved") is not None:
-                image_mask_csc = csc_matrix(
-                    segmentation_object.get_traces(name="deconvolved")
-                )
+                image_mask_csc = csc_matrix(segmentation_object.get_traces(name="deconvolved"))
                 main.create_dataset("extractedPeaks/data", data=image_mask_csc.data)
                 main.create_dataset("extractedPeaks/ir", data=image_mask_csc.indices)
                 main.create_dataset("extractedPeaks/jc", data=image_mask_csc.indptr)
@@ -162,9 +136,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
                 main.create_dataset("Cn", data=segmentation_object.get_image())
             inputoptions = main.create_group("inputOptions")
             if segmentation_object.get_sampling_frequency() is not None:
-                inputoptions.create_dataset(
-                    "Fs", data=segmentation_object.get_sampling_frequency()
-                )
+                inputoptions.create_dataset("Fs", data=segmentation_object.get_sampling_frequency())
 
     # defining the abstract class enformed methods:
     def get_roi_ids(self):

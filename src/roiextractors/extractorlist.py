@@ -35,11 +35,7 @@ imaging_extractor_full_list = [
 ]
 
 segmentation_extractor_dict = {
-    segmentation_class.extractor_name: segmentation_class
-    for segmentation_class in segmentation_extractor_full_list
+    segmentation_class.extractor_name: segmentation_class for segmentation_class in segmentation_extractor_full_list
 }
 
-imaging_extractor_dict = {
-    imaging_class.extractor_name: imaging_class
-    for imaging_class in imaging_extractor_full_list
-}
+imaging_extractor_dict = {imaging_class.extractor_name: imaging_class for imaging_class in imaging_extractor_full_list}

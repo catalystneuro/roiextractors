@@ -48,9 +48,7 @@ class TiffImagingExtractor(ImagingExtractor):
         try:
             self._video = tifffile.memmap(self.file_path, mode="r")
         except ValueError:
-            warnings.warn(
-                "memmap of TIFF file could not be established. Reading entire matrix into memory."
-            )
+            warnings.warn("memmap of TIFF file could not be established. Reading entire matrix into memory.")
             with tifffile.TiffFile(self.file_path) as tif:
                 self._video = tif.asarray()
 
@@ -112,9 +110,7 @@ class TiffImagingExtractor(ImagingExtractor):
         return self._num_channels
 
     @staticmethod
-    def write_imaging(
-        imaging, save_path, overwrite: bool = False, chunk_size=None, verbose=True
-    ):
+    def write_imaging(imaging, save_path, overwrite: bool = False, chunk_size=None, verbose=True):
         save_path = Path(save_path)
         assert save_path.suffix in [
             ".tiff",
@@ -125,9 +121,7 @@ class TiffImagingExtractor(ImagingExtractor):
 
         if save_path.is_file():
             if not overwrite:
-                raise FileExistsError(
-                    "The specified path exists! Use overwrite=True to overwrite it."
-                )
+                raise FileExistsError("The specified path exists! Use overwrite=True to overwrite it.")
             else:
                 save_path.unlink()
 

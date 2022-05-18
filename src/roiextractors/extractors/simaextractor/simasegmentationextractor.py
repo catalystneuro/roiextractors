@@ -80,9 +80,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
                     old_pkl = os.path.join(dirpath, file)
                     print(old_pkl)
                     # Make a name for the new pickle
-                    new_pkl_name = (
-                        os.path.splitext(os.path.basename(old_pkl))[0] + "_p2.pkl"
-                    )
+                    new_pkl_name = os.path.splitext(os.path.basename(old_pkl))[0] + "_p2.pkl"
                     base_directory = os.path.split(old_pkl)[0]
                     new_pkl = base_directory + "/" + new_pkl_name
                     # Convert Python 2 "ObjectType" to Python 3 object
@@ -108,11 +106,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
             if self.sima_segmentation_label in list(_sima_rois.keys()):
                 _sima_rois_data = _sima_rois[self.sima_segmentation_label]
             else:
-                raise Exception(
-                    "Enter a valid name of ROIs from: {}".format(
-                        ",".join(list(_sima_rois.keys()))
-                    )
-                )
+                raise Exception("Enter a valid name of ROIs from: {}".format(",".join(list(_sima_rois.keys()))))
         elif len(_sima_rois) == 1:
             _sima_rois_data = list(_sima_rois.values())[0]
             self.sima_segmentation_label = list(_sima_rois.keys())[0]
@@ -144,9 +138,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         elif _count == 0:
             print("no label found for extract method using {}".format(labels))
             _label = labels
-        extracted_signals = np.array(
-            self._dataset_file.signals(channel=_active_channel)[_label]["raw"][0]
-        )
+        extracted_signals = np.array(self._dataset_file.signals(channel=_active_channel)[_label]["raw"][0])
         return extracted_signals
 
     def _summary_image_read(self):
@@ -157,11 +149,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         return list(range(self.get_num_rois()))
 
     def get_rejected_list(self):
-        return [
-            a
-            for a in range(self.get_num_rois())
-            if a not in set(self.get_accepted_list())
-        ]
+        return [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
 
     @staticmethod
     def write_segmentation(segmentation_object, savepath):

@@ -33,12 +33,8 @@ def _assert_iterable_element_dtypes(iterable, dtypes):
         assert isinstance(iterable, dtypes), f"array is none of the types {dtypes}"
 
 
-def _assert_iterable_complete(
-    iterable, dtypes=None, element_dtypes=None, shape=None, shape_max=None
-):
-    assert isinstance(
-        iterable, dtypes
-    ), f"iterable {type(iterable)} is none of the types {dtypes}"
+def _assert_iterable_complete(iterable, dtypes=None, element_dtypes=None, shape=None, shape_max=None):
+    assert isinstance(iterable, dtypes), f"iterable {type(iterable)} is none of the types {dtypes}"
     if not isinstance(iterable, NoneType):
         if shape is not None:
             _assert_iterable_shape(iterable, shape=shape)
@@ -62,9 +58,9 @@ def check_segmentations_equal(seg1: SegmentationExtractor, seg2: SegmentationExt
         seg1.get_roi_image_masks(roi_ids=seg1.get_roi_ids()[:1]),
         seg2.get_roi_image_masks(roi_ids=seg2.get_roi_ids()[:1]),
     )
-    assert set(
-        seg1.get_roi_pixel_masks(roi_ids=seg1.get_roi_ids()[:1])[0].flatten()
-    ) == set(seg2.get_roi_pixel_masks(roi_ids=seg1.get_roi_ids()[:1])[0].flatten())
+    assert set(seg1.get_roi_pixel_masks(roi_ids=seg1.get_roi_ids()[:1])[0].flatten()) == set(
+        seg2.get_roi_pixel_masks(roi_ids=seg1.get_roi_ids()[:1])[0].flatten()
+    )
     assert_array_equal(seg1.get_image(), seg2.get_image())
     assert_array_equal(seg1.get_accepted_list(), seg2.get_accepted_list())
     assert_array_equal(seg1.get_rejected_list(), seg2.get_rejected_list())
@@ -89,9 +85,7 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
         element_dtypes=str,
         shape_max=(seg.get_num_channels(),),
     )
-    _assert_iterable_complete(
-        seg.get_image_size(), dtypes=Iterable, element_dtypes=inttype, shape=(2,)
-    )
+    _assert_iterable_complete(seg.get_image_size(), dtypes=Iterable, element_dtypes=inttype, shape=(2,))
     _assert_iterable_complete(
         seg.get_roi_image_masks(roi_ids=seg.get_roi_ids()[:1]),
         dtypes=(np.ndarray,),
@@ -143,9 +137,7 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
     )
     assert isinstance(seg.get_traces_dict(), dict)
     assert isinstance(seg.get_images_dict(), dict)
-    assert {"raw", "dff", "neuropil", "deconvolved"} == set(
-        seg.get_traces_dict().keys()
-    )
+    assert {"raw", "dff", "neuropil", "deconvolved"} == set(seg.get_traces_dict().keys())
     assert {"mean", "correlation"} == set(seg.get_images_dict().keys())
 
 
@@ -180,9 +172,7 @@ def check_imaging_return_types(img_ex: ImagingExtractor):
         element_dtypes=str,
         shape_max=(img_ex.get_num_channels(),),
     )
-    _assert_iterable_complete(
-        img_ex.get_image_size(), dtypes=Iterable, element_dtypes=inttype, shape=(2,)
-    )
+    _assert_iterable_complete(img_ex.get_image_size(), dtypes=Iterable, element_dtypes=inttype, shape=(2,))
     _assert_iterable_complete(
         img_ex.get_frames(frame_idxs=[0, 1]),
         dtypes=(np.ndarray,),

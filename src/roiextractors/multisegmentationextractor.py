@@ -10,19 +10,11 @@ def concatenate_output(func):
             roi_ids = np.array(self._all_roi_ids)
         else:
             roi_ids = np.array(roi_ids)
-        seg_id = np.array(
-            [self._roi_map[roi_id]["segmentation_id"] for roi_id in roi_ids]
-        )
-        roi_id_segmentation = np.array(
-            [self._roi_map[roi_id]["roi_id"] for roi_id in roi_ids]
-        )
+        seg_id = np.array([self._roi_map[roi_id]["segmentation_id"] for roi_id in roi_ids])
+        roi_id_segmentation = np.array([self._roi_map[roi_id]["roi_id"] for roi_id in roi_ids])
         for i in np.unique(seg_id):
             seg_roi_ids = roi_id_segmentation[seg_id == i]
-            out.append(
-                getattr(self._segmentations[i], func.__name__)(
-                    roi_ids=seg_roi_ids, **kwargs
-                )
-            )
+            out.append(getattr(self._segmentations[i], func.__name__)(roi_ids=seg_roi_ids, **kwargs))
         return func(self)(out)
 
     return _get_from_roi_map
@@ -51,18 +43,14 @@ class MultiSegmentationExtractor(SegmentationExtractor):
         """
         SegmentationExtractor.__init__(self)
         if not isinstance(segmentatation_extractors_list, list):
-            raise Exception(
-                "Enter a list of segmentation extractor objects as argument"
-            )
+            raise Exception("Enter a list of segmentation extractor objects as argument")
         self._no_planes = len(segmentatation_extractors_list)
         if plane_names:
             plane_names = list(plane_names)
             if len(plane_names) >= self._no_planes:
                 plane_names = plane_names[: self._no_planes]
             else:
-                plane_names.extend(
-                    [f"Plane{i}" for i in range(self._no_planes - len(plane_names))]
-                )
+                plane_names.extend([f"Plane{i}" for i in range(self._no_planes - len(plane_names))])
         else:
             plane_names = [f"Plane{i}" for i in range(self._no_planes)]
         self._segmentations = segmentatation_extractors_list
@@ -80,10 +68,7 @@ class MultiSegmentationExtractor(SegmentationExtractor):
         self._sampling_frequency = self._segmentations[0].get_sampling_frequency()
         self._raw_movie_file_location = self._segmentations[0]._raw_movie_file_location
         self._channel_names = []
-        _ = [
-            self._channel_names.extend(self._segmentations[i].get_channel_names())
-            for i in range(self._no_planes)
-        ]
+        _ = [self._channel_names.extend(self._segmentations[i].get_channel_names()) for i in range(self._no_planes)]
 
     @property
     def no_planes(self):
@@ -94,9 +79,7 @@ class MultiSegmentationExtractor(SegmentationExtractor):
         return self._segmentations
 
     def get_num_channels(self):
-        return np.sum(
-            [self._segmentations[i].get_num_channels() for i in range(self._no_planes)]
-        )
+        return np.sum([self._segmentations[i].get_num_channels() for i in range(self._no_planes)])
 
     def get_num_rois(self):
         return len(self._all_roi_ids)
@@ -123,9 +106,7 @@ class MultiSegmentationExtractor(SegmentationExtractor):
         return self._segmentations[0].get_image_size()
 
     @concatenate_output
-    def get_traces(
-        self, roi_ids=None, start_frame=None, end_frame=None, name="Fluorescence"
-    ):
+    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="Fluorescence"):
         return lambda x: np.concatenate(x, axis=0)
 
     @concatenate_output
@@ -144,24 +125,18 @@ class MultiSegmentationExtractor(SegmentationExtractor):
         return lambda x: np.concatenate(x, axis=1)
 
     def get_num_frames(self):
-        return np.sum(
-            [self._segmentations[i].get_num_frames() for i in range(self._no_planes)]
-        )
+        return np.sum([self._segmentations[i].get_num_frames() for i in range(self._no_planes)])
 
     def get_accepted_list(self):
         accepted_list_all = []
         for i in range(self._no_planes):
             ids_loop = self._segmentations[i].get_accepted_list()
-            accepted_list_all.extend(
-                [j for j in self._all_roi_ids if self._roi_map[j]["roi_id"] in ids_loop]
-            )
+            accepted_list_all.extend([j for j in self._all_roi_ids if self._roi_map[j]["roi_id"] in ids_loop])
         return accepted_list_all
 
     def get_rejected_list(self):
         rejected_list_all = []
         for i in range(self._no_planes):
             ids_loop = self._segmentations[i].get_rejected_list()
-            rejected_list_all.extend(
-                [j for j in self._all_roi_ids if self._roi_map[j]["roi_id"] in ids_loop]
-            )
+            rejected_list_all.extend([j for j in self._all_roi_ids if self._roi_map[j]["roi_id"] in ids_loop])
         return rejected_list_all

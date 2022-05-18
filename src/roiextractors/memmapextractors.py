@@ -23,9 +23,7 @@ class MemmapImagingExtractor(ImagingExtractor):
 
         if save_path is None:
             self._is_tmp = True
-            self._tmp_file = tempfile.NamedTemporaryFile(
-                suffix=".dat", dir=tmp_folder
-            ).name
+            self._tmp_file = tempfile.NamedTemporaryFile(suffix=".dat", dir=tmp_folder).name
         else:
             save_path = Path(save_path)
             if save_path.suffix != ".dat" and save_path.suffix != ".bin":
