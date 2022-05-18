@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
 from setuptools import setup, find_packages
-from shutil import copy
+from copy import copy
+from shutil import copy as copy_file
 
 d = {}
 exec(open("roiextractors/version.py").read(), None, d)
@@ -16,15 +17,16 @@ with open(os.path.join(path, "requirements-minimal.txt")) as f:
     install_requires = f.readlines()
 with open(os.path.join(path, "requirements-full.txt")) as f:
     full_dependencies = f.readlines()
+testing_dependencies = copy(full_dependencies)
 with open(os.path.join(path, "requirements-testing.txt")) as f:
-    testing_dependencies = f.readlines()
+    testing_dependencies.extend(f.readlines())
 extras_require = dict(full=full_dependencies, test=testing_dependencies)
 
 # Create a local copy for the gin test configuration file based on the master file `base_gin_test_config.json`
 gin_config_file_base = Path("./base_gin_test_config.json")
 gin_config_file_local = Path("./tests/gin_test_config.json")
 if not gin_config_file_local.exists():
-    copy(src=gin_config_file_base, dst=gin_config_file_local)
+    copy_file(src=gin_config_file_base, dst=gin_config_file_local)
 
 setup(
     name=pkg_name,
