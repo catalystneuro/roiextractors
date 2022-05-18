@@ -147,9 +147,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         """
         if roi_ids is None:
             return None
-        return _pixel_mask_extractor(
-            self.get_roi_image_masks(roi_ids=roi_ids), range(len(roi_ids))
-        )
+        return _pixel_mask_extractor(self.get_roi_image_masks(roi_ids=roi_ids), range(len(roi_ids)))
 
     @abstractmethod
     def get_image_size(self) -> ArrayType:
@@ -172,9 +170,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
             2-D array (ROI x timepoints)
         """
         if name not in self.get_traces_dict():
-            raise ValueError(
-                f"traces for {name} not found, enter one of {list(self.get_traces_dict().keys())}"
-            )
+            raise ValueError(f"traces for {name} not found, enter one of {list(self.get_traces_dict().keys())}")
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
         else:
@@ -223,9 +219,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         images: np.ndarray
         """
         if name not in self.get_images_dict():
-            raise ValueError(
-                f"could not find {name} image, enter one of {list(self.get_images_dict().keys())}"
-            )
+            raise ValueError(f"could not find {name} image, enter one of {list(self.get_images_dict().keys())}")
         return self.get_images_dict().get(name)
 
     def get_sampling_frequency(self):

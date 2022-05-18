@@ -68,14 +68,10 @@ class ImagingExtractor(ABC, BaseExtractor):
         return self.get_frames(0, 0).dtype
 
     @check_get_videos_args
-    def get_video(
-        self, start_frame: int = None, end_frame: int = None, channel: int = 0
-    ) -> NumpyArray:
+    def get_video(self, start_frame: int = None, end_frame: int = None, channel: int = 0) -> NumpyArray:
         return self.get_frames(range(start_frame, end_frame), channel)
 
-    def frame_to_time(
-        self, frames: Union[FloatType, NumpyArray]
-    ) -> Union[FloatType, NumpyArray]:
+    def frame_to_time(self, frames: Union[FloatType, NumpyArray]) -> Union[FloatType, NumpyArray]:
         """This function converts user-inputted frame indexes to times with units of seconds.
 
         Parameters
@@ -94,9 +90,7 @@ class ImagingExtractor(ABC, BaseExtractor):
         else:
             return self._times[frames]
 
-    def time_to_frame(
-        self, times: Union[FloatType, NumpyArray]
-    ) -> Union[FloatType, NumpyArray]:
+    def time_to_frame(self, times: Union[FloatType, NumpyArray]) -> Union[FloatType, NumpyArray]:
         """This function converts a user-inputted times (in seconds) to a frame indexes.
 
         Parameters
@@ -123,9 +117,7 @@ class ImagingExtractor(ABC, BaseExtractor):
         times: array-like
             The times in seconds for each frame
         """
-        assert (
-            len(times) == self.get_num_frames()
-        ), "'times' should have the same length of the number of frames"
+        assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames"
         self._times = times.astype("float64")
 
     def copy_times(self, extractor: BaseExtractor):

@@ -41,9 +41,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         self._image_masks = self._image_mask_extractor_read()
         self._roi_response_raw = self._trace_extractor_read()
         self._raw_movie_file_location = self._raw_datafile_read()
-        self._sampling_frequency = (
-            self._roi_response_raw.shape[1] / self._tot_exptime_extractor_read()
-        )
+        self._sampling_frequency = self._roi_response_raw.shape[1] / self._tot_exptime_extractor_read()
         self._image_correlation = self._summary_image_read()
 
     def __del__(self):
@@ -56,9 +54,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         return f, _group0
 
     def _image_mask_extractor_read(self):
-        return DatasetView(
-            self._dataset_file[self._group0[0]]["filters"]
-        ).lazy_transpose([1, 2, 0])
+        return DatasetView(self._dataset_file[self._group0[0]]["filters"]).lazy_transpose([1, 2, 0])
 
     def _trace_extractor_read(self):
         extracted_signals = DatasetView(self._dataset_file[self._group0[0]]["traces"])
@@ -73,10 +69,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
 
     def _raw_datafile_read(self):
         if self._dataset_file[self._group0[0]].get("file"):
-            charlist = [
-                chr(i)
-                for i in np.squeeze(self._dataset_file[self._group0[0]]["file"][:])
-            ]
+            charlist = [chr(i) for i in np.squeeze(self._dataset_file[self._group0[0]]["file"][:])]
             return "".join(charlist)
 
     def get_accepted_list(self):
@@ -87,16 +80,12 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         return [a for a in range(self.get_num_rois()) if a not in ac_set]
 
     @staticmethod
-    def write_segmentation(
-        segmentation_object: SegmentationExtractor, save_path, overwrite=True
-    ):
+    def write_segmentation(segmentation_object: SegmentationExtractor, save_path, overwrite=True):
         save_path = Path(save_path)
         assert save_path.suffix == ".mat", "'save_path' must be a *.mat file"
         if save_path.is_file():
             if not overwrite:
-                raise FileExistsError(
-                    "The specified path exists! Use overwrite=True to overwrite it."
-                )
+                raise FileExistsError("The specified path exists! Use overwrite=True to overwrite it.")
             else:
                 save_path.unlink()
 
@@ -106,9 +95,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
             segext_objs = segmentation_object.segmentations
             for plane_num, segext_obj in enumerate(segext_objs):
                 save_path_plane = folder_path / f"Plane_{plane_num}" / file_name
-                ExtractSegmentationExtractor.write_segmentation(
-                    segext_obj, save_path_plane
-                )
+                ExtractSegmentationExtractor.write_segmentation(segext_obj, save_path_plane)
         if not folder_path.is_dir():
             folder_path.mkdir(parents=True)
 
@@ -117,23 +104,16 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
             _ = f.create_group("#refs#")
             main = f.create_group("extractAnalysisOutput")
             # create datasets:
-            main.create_dataset(
-                "filters", data=segmentation_object.get_roi_image_masks().T
-            )
+            main.create_dataset("filters", data=segmentation_object.get_roi_image_masks().T)
             main.create_dataset("traces", data=segmentation_object.get_traces())
             if getattr(segmentation_object, "_raw_movie_file_location", None):
                 main.create_dataset(
                     "file",
-                    data=[
-                        ord(alph)
-                        for alph in str(segmentation_object._raw_movie_file_location)
-                    ],
+                    data=[ord(alph) for alph in str(segmentation_object._raw_movie_file_location)],
                 )
             info = main.create_group("info")
             if segmentation_object.get_image() is not None:
-                info.create_dataset(
-                    "summary_image", data=segmentation_object.get_image()
-                )
+                info.create_dataset("summary_image", data=segmentation_object.get_image())
             time = main.create_group("time")
             if segmentation_object.get_sampling_frequency() is not None:
                 time.create_dataset(

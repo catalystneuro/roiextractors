@@ -34,9 +34,7 @@ def temporary_deprecation_message():
 
 
 def check_nwb_install():
-    assert (
-        HAVE_NWB
-    ), "To use the Nwb extractors, install pynwb: \n\n pip install pynwb\n\n"
+    assert HAVE_NWB, "To use the Nwb extractors, install pynwb: \n\n pip install pynwb\n\n"
 
 
 class NwbImagingExtractor(ImagingExtractor):
@@ -51,9 +49,7 @@ class NwbImagingExtractor(ImagingExtractor):
     mode = "file"
     installation_mesg = "To use the Nwb Extractor run:\n\n pip install pynwb\n\n"  # error message when not installed
 
-    def __init__(
-        self, file_path: PathType, optical_series_name: str = "TwoPhotonSeries"
-    ):
+    def __init__(self, file_path: PathType, optical_series_name: str = "TwoPhotonSeries"):
         """
         Parameters
         ----------
@@ -72,16 +68,12 @@ class NwbImagingExtractor(ImagingExtractor):
         else:
             a_names = list(self.nwbfile.acquisition)
             if len(a_names) > 1:
-                raise ValueError(
-                    "More than one acquisition found. You must specify two_photon_series."
-                )
+                raise ValueError("More than one acquisition found. You must specify two_photon_series.")
             if len(a_names) == 0:
                 raise ValueError("No acquisitions found in the .nwb file.")
             self._optical_series_name = a_names[0]
         opts = self.nwbfile.acquisition[self._optical_series_name]
-        assert isinstance(
-            opts, TwoPhotonSeries
-        ), "The optical series must be of type pynwb.TwoPhotonSeries"
+        assert isinstance(opts, TwoPhotonSeries), "The optical series must be of type pynwb.TwoPhotonSeries"
 
         # TODO if external file --> return another proper extractor (e.g. TiffImagingExtractor)
         assert opts.external_file is None, "Only 'raw' format is currently supported"
@@ -121,17 +113,13 @@ class NwbImagingExtractor(ImagingExtractor):
 
     def time_to_frame(self, times: Union[FloatType, NumpyArray]):
         if self._times is None:
-            return (
-                (times - self._imaging_start_time) * self.get_sampling_frequency()
-            ).astype("int64")
+            return ((times - self._imaging_start_time) * self.get_sampling_frequency()).astype("int64")
         else:
             return super().time_to_frame(times)
 
     def frame_to_time(self, frames: Union[IntType, NumpyArray]):
         if self._times is None:
-            return (
-                frames / self.get_sampling_frequency() + self._imaging_start_time
-            ).astype("float")
+            return (frames / self.get_sampling_frequency() + self._imaging_start_time).astype("float")
         else:
             return super().frame_to_time(frames)
 
@@ -201,9 +189,7 @@ class NwbImagingExtractor(ImagingExtractor):
         temporary_deprecation_message()
 
     @staticmethod
-    def add_two_photon_series(
-        imaging, nwbfile, metadata, buffer_size=10, use_times=False
-    ):
+    def add_two_photon_series(imaging, nwbfile, metadata, buffer_size=10, use_times=False):
         temporary_deprecation_message()
 
     @staticmethod
@@ -270,26 +256,17 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             if fluorescence is None and dfof is None:
                 raise Exception("could not find Fluorescence/DfOverF module in nwbfile")
             for trace_name in ["RoiResponseSeries", "Dff", "Neuropil", "Deconvolved"]:
-                trace_name_segext = (
-                    "raw" if trace_name == "RoiResponseSeries" else trace_name.lower()
-                )
+                trace_name_segext = "raw" if trace_name == "RoiResponseSeries" else trace_name.lower()
                 container = dfof if trace_name == "Dff" else fluorescence
-                if (
-                    container is not None
-                    and trace_name in container.roi_response_series
-                ):
+                if container is not None and trace_name in container.roi_response_series:
                     any_roi_response_series_found = True
                     setattr(
                         self,
                         f"_roi_response_{trace_name_segext}",
-                        DatasetView(
-                            container.roi_response_series[trace_name].data
-                        ).lazy_transpose(),
+                        DatasetView(container.roi_response_series[trace_name].data).lazy_transpose(),
                     )
                     if self._sampling_frequency is None:
-                        self._sampling_frequency = container.roi_response_series[
-                            trace_name
-                        ].rate
+                        self._sampling_frequency = container.roi_response_series[trace_name].rate
             if not any_roi_response_series_found:
                 raise Exception(
                     "could not find any of 'RoiResponseSeries'/'Dff'/'Neuropil'/'Deconvolved'"
@@ -298,14 +275,10 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             # Extract image_mask/background:
             if "ImageSegmentation" in ophys.data_interfaces:
                 image_seg = ophys.data_interfaces["ImageSegmentation"]
-                if (
-                    "PlaneSegmentation" in image_seg.plane_segmentations
-                ):  # this requirement in nwbfile is enforced
+                if "PlaneSegmentation" in image_seg.plane_segmentations:  # this requirement in nwbfile is enforced
                     ps = image_seg.plane_segmentations["PlaneSegmentation"]
                     if "image_mask" in ps.colnames:
-                        self._image_masks = DatasetView(
-                            ps["image_mask"].data
-                        ).lazy_transpose([2, 1, 0])
+                        self._image_masks = DatasetView(ps["image_mask"].data).lazy_transpose([2, 1, 0])
                     else:
                         raise Exception("could not find any image_masks in nwbfile")
                     if "RoiCentroid" in ps.colnames:
@@ -321,9 +294,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             if "SegmentationImages" in ophys.data_interfaces:
                 images_container = ophys.data_interfaces["SegmentationImages"]
                 if "correlation" in images_container.images:
-                    self._image_correlation = (
-                        images_container.images["correlation"].data[()].T
-                    )
+                    self._image_correlation = images_container.images["correlation"].data[()].T
                 if "mean" in images_container.images:
                     self._image_mean = images_container.images["mean"].data[()].T
         # Imaging plane:

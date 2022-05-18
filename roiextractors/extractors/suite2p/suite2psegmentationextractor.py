@@ -17,9 +17,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     mode = "file"
     installation_mesg = ""  # error message when not installed
 
-    def __init__(
-        self, file_path: PathType, combined: bool = False, plane_no: IntType = 0
-    ):
+    def __init__(self, file_path: PathType, combined: bool = False, plane_no: IntType = 0):
         """
         Creating SegmentationExtractor object out of suite 2p data type.
         Parameters
@@ -41,9 +39,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self._roi_response_deconvolved = self._load_npy("spks.npy", mmap_mode="r")
         self.iscell = self._load_npy("iscell.npy", mmap_mode="r")
         self.ops = self._load_npy("ops.npy").item()
-        self._channel_names = [
-            f"OpticalChannel{i}" for i in range(self.ops["nchannels"])
-        ]
+        self._channel_names = [f"OpticalChannel{i}" for i in range(self.ops["nchannels"])]
         self._sampling_frequency = self.ops["fs"] * [2 if self.combined else 1][0]
         self._raw_movie_file_location = self.ops.get("filelist", [None])[0]
         self._image_correlation = self._summary_image_read("Vcorr")
@@ -65,9 +61,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             if bstr == "Vcorr" or bstr == "max_proj":
                 img = np.zeros((self.ops["Ly"], self.ops["Lx"]), np.float32)
                 img[
-                    (self.ops["Ly"] - self.ops["yrange"][-1]) : (
-                        self.ops["Ly"] - self.ops["yrange"][0]
-                    ),
+                    (self.ops["Ly"] - self.ops["yrange"][-1]) : (self.ops["Ly"] - self.ops["yrange"][0]),
                     self.ops["xrange"][0] : self.ops["xrange"][-1],
                 ] = self.ops[bstr]
             else:
@@ -79,25 +73,19 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return np.array([j["med"] for j in self.stat]).T.astype(int)
 
     @staticmethod
-    def write_segmentation(
-        segmentation_object: SegmentationExtractor, save_path, overwrite=True
-    ):
+    def write_segmentation(segmentation_object: SegmentationExtractor, save_path, overwrite=True):
         save_path = Path(save_path)
         assert not save_path.is_file(), "'save_path' must be a folder"
         if save_path.is_dir():
             if len(list(save_path.glob("*"))) > 0 and not overwrite:
-                raise FileExistsError(
-                    "The specified folder is not empty! Use overwrite=True to overwrite it."
-                )
+                raise FileExistsError("The specified folder is not empty! Use overwrite=True to overwrite it.")
             else:
                 shutil.rmtree(str(save_path))
         if isinstance(segmentation_object, MultiSegmentationExtractor):
             segext_objs = segmentation_object.segmentations
             for plane_num, segext_obj in enumerate(segext_objs):
                 save_path_plane = save_path / f"plane{plane_num}"
-                Suite2pSegmentationExtractor.write_segmentation(
-                    segext_obj, save_path_plane
-                )
+                Suite2pSegmentationExtractor.write_segmentation(segext_obj, save_path_plane)
         if not save_path.is_dir():
             save_path.mkdir(parents=True)
         if "plane" not in save_path.stem:
@@ -107,9 +95,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         if segmentation_object.get_traces(name="raw") is not None:
             np.save(save_path / "F.npy", segmentation_object.get_traces(name="raw"))
         if segmentation_object.get_traces(name="neuropil") is not None:
-            np.save(
-                save_path / "Fneu.npy", segmentation_object.get_traces(name="neuropil")
-            )
+            np.save(save_path / "Fneu.npy", segmentation_object.get_traces(name="neuropil"))
         if segmentation_object.get_traces(name="deconvolved") is not None:
             np.save(
                 save_path / "spks.npy",
@@ -118,15 +104,11 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         # save stat
         stat = np.zeros(segmentation_object.get_num_rois(), "O")
         roi_locs = segmentation_object.roi_locations.T
-        pixel_masks = segmentation_object.get_roi_pixel_masks(
-            roi_ids=range(segmentation_object.get_num_rois())
-        )
+        pixel_masks = segmentation_object.get_roi_pixel_masks(roi_ids=range(segmentation_object.get_num_rois()))
         for no, i in enumerate(stat):
             stat[no] = {
                 "med": roi_locs[no, :].tolist(),
-                "ypix": segmentation_object.get_image_size()[0]
-                - 1
-                - pixel_masks[no][:, 0],
+                "ypix": segmentation_object.get_image_size()[0] - 1 - pixel_masks[no][:, 0],
                 "xpix": pixel_masks[no][:, 1],
                 "lam": pixel_masks[no][:, 2],
             }

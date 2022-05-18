@@ -94,30 +94,20 @@ class SbxImagingExtractor(ImagingExtractor):
             info["fov_repeats"] = 1
 
         info["frame_rate"] = int(
-            info["resfreq"]
-            / info["config"]["lines"]
-            * (2 - info["scanmode"])
-            * info["fov_repeats"]
+            info["resfreq"] / info["config"]["lines"] * (2 - info["scanmode"]) * info["fov_repeats"]
         )
         # SIMA:
         info["nsamples"] = info["sz"][1] * info["recordsPerBuffer"] * info["nChan"] * 2
         # SIMA:
-        if ("volscan" in info and info["volscan"] > 0) or (
-            "volscan" not in info and len(info.get("otwave", []))
-        ):
+        if ("volscan" in info and info["volscan"] > 0) or ("volscan" not in info and len(info.get("otwave", []))):
             info["nplanes"] = len(info["otwave"])
         else:
             info["nplanes"] = 1
         # SIMA:
         if info.get("scanbox_version", -1) >= 2:
-            info["max_idx"] = (
-                os.path.getsize(self.sbx_file_path) // info["nsamples"] - 1
-            )
+            info["max_idx"] = os.path.getsize(self.sbx_file_path) // info["nsamples"] - 1
         else:
-            info["max_idx"] = (
-                os.path.getsize(self.sbx_file_path) // info["bytesPerBuffer"] * factor
-                - 1
-            )
+            info["max_idx"] = os.path.getsize(self.sbx_file_path) // info["bytesPerBuffer"] * factor - 1
         # SIMA: Fix for old scanbox versions
         if "sz" not in info:
             info["sz"] = np.array([512, 796])
@@ -130,9 +120,7 @@ class SbxImagingExtractor(ImagingExtractor):
         nplanes = self._info["nplanes"]
         nframes = (self._info["max_idx"] + 1) // nplanes
         shape = (nchannels, ncols, nrows, nplanes, nframes)
-        np_data = np.memmap(
-            self.sbx_file_path, dtype="uint16", mode="r", shape=shape, order="F"
-        )
+        np_data = np.memmap(self.sbx_file_path, dtype="uint16", mode="r", shape=shape, order="F")
         return np_data
 
     def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> np.array:
