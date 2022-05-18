@@ -172,10 +172,3 @@ Output:
 .. code-block:: shell
 
     72
-
-
-
-
-
-
-
