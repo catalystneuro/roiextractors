@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 
-file_path = "./gin_test_config.json"
+file_path = Path(__file__) / "gin_test_config.json"
 
 with open(file=file_path) as f:
     test_config_dict = json.load(f)
