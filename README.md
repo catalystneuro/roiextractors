@@ -25,7 +25,7 @@ Developed by [CatalystNeuro](http://catalystneuro.com/).
 45. Numpy (a data format for manual input of optical physiology data as various numpy datasets)
 
 #### Functionality:
-Interconversion amongst the various data formats as well as conversion to the NWB format and back.  
+Interconversion amongst the various data formats as well as conversion to the NWB format and back.
 
 #### Features:
 1. SegmentationExtractor object:
@@ -48,7 +48,7 @@ Interconversion amongst the various data formats as well as conversion to the NW
     * `seg_obj.get_roi_locations()`:
     Centroid pixel location of the ROI (Regions Of Interest) as (x,y).
     * `seg_obj.get_num_rois()`:
-    Total number of ROIs after segmentation operation.  
+    Total number of ROIs after segmentation operation.
     * `seg_obj.get_roi_ids()`:
     Any integer tags associated with an ROI, defaults to `0:num_of_rois`
 
@@ -121,5 +121,3 @@ Will need a manual installation for package dependency **SIMA** since it does no
 ### Funded by
 * Stanford University as part of the Ripple U19 project (U19NS104590).
 * LBNL as part of the NWB U24 (U24NS120057).
-
-

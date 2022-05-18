@@ -66,4 +66,3 @@ To build your custom ImagingExtractor to interface with a new raw image storage 
             This is an example of a function that is not abstract so it is optional if you want to override it.
             It allows other ImageExtractors to use your new ImageExtractors to convert their  data into your this file format.
             '''
-
