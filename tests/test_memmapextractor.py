@@ -36,6 +36,7 @@ class TestMemmapExtractor(unittest.TestCase):
     def test_extractor_defaults(self, dtype, num_channels, rows, columns, case_name=""):
         # Build a video
         num_frames = 25
+        sampling_frequency = 30
         memmap_shape = (num_frames, num_channels, rows, columns)
         random_video = np.random.randint(low=1, size=memmap_shape).astype(dtype)
 
@@ -48,7 +49,12 @@ class TestMemmapExtractor(unittest.TestCase):
 
         # Load extractor and test-it
         frame_shape = (num_channels, rows, columns)
-        extractor = MemmapImagingExtractor(file_path=file_path, frame_shape=frame_shape, dtype=dtype)
+        extractor = MemmapImagingExtractor(
+            file_path=file_path,
+            frame_shape=frame_shape,
+            sampling_frequency=sampling_frequency,
+            dtype=dtype,
+        )
 
         # Property assertions
         extractor.get_num_channels(), extractor.get_image_size(), extractor.get_num_frames()
@@ -63,6 +69,7 @@ class TestMemmapExtractor(unittest.TestCase):
 
         # Build a random video
         num_frames = 50
+        sampling_frequency = 30
         num_channels = 3
         rows = 10
         columns = 10
@@ -82,7 +89,11 @@ class TestMemmapExtractor(unittest.TestCase):
         frame_shape = (num_channels, rows, columns)
         image_structure_to_axis = dict(frame_axis=frame_axis, num_channels=0, rows=1, columns=2)
         extractor = MemmapImagingExtractor(
-            file_path=file_path, frame_shape=frame_shape, dtype=dtype, image_structure_to_axis=image_structure_to_axis
+            file_path=file_path,
+            frame_shape=frame_shape,
+            sampling_frequency=sampling_frequency,
+            dtype=dtype,
+            image_structure_to_axis=image_structure_to_axis,
         )
 
         # Assertions
@@ -98,6 +109,7 @@ class TestMemmapExtractor(unittest.TestCase):
 
         # Build a random video
         num_frames = 50
+        sampling_frequency = 30
         num_channels = 3
         rows = 10
         columns = 10
@@ -117,7 +129,11 @@ class TestMemmapExtractor(unittest.TestCase):
         frame_axis = 1
         image_structure_to_axis = dict(frame_axis=frame_axis, num_channels=0, rows=2, columns=3)
         extractor = MemmapImagingExtractor(
-            file_path=file_path, frame_shape=frame_shape, dtype=dtype, image_structure_to_axis=image_structure_to_axis
+            file_path=file_path,
+            frame_shape=frame_shape,
+            sampling_frequency=sampling_frequency,
+            dtype=dtype,
+            image_structure_to_axis=image_structure_to_axis,
         )
 
         # Assertions

@@ -24,9 +24,9 @@ class MemmapImagingExtractor(ImagingExtractor):
         self,
         file_path: PathType,
         frame_shape: Tuple[int, int],
+        sampling_frequency: float,
         dtype: DtypeType,
         offset: int = 0,
-        sampling_frequency: float = 0,
         image_structure_to_axis: Dict[str, int] = None,
     ):
         """Class for reading optical imaging data stored in a binary format
@@ -134,3 +134,45 @@ class MemmapImagingExtractor(ImagingExtractor):
             integer count of number of channels
         """
         return self._num_channels
+
+    @staticmethod
+    def write_imaging(imaging_extractor: ImagingExtractor, save_path: PathType = None, verbose: bool = False):
+        """
+        Static method to write imaging.
+
+        Parameters
+        ----------
+        imaging: ImagingExtractor object
+            The EXTRACT segmentation object from which an EXTRACT native format
+            file has to be generated.
+        save_path: str
+            path to save the native format.
+        overwrite: bool
+            If True and save_path is existing, it is overwritten
+        """
+        imaging = imaging_extractor
+        video_to_save = np.memmap(
+            save_path,
+            shape=(
+                imaging.get_num_channels(),
+                imaging.get_num_frames(),
+                imaging.get_image_size()[0],
+                imaging.get_image_size()[1],
+            ),
+            dtype=imaging.get_dtype(),
+            mode="w+",
+        )
+
+        if verbose:
+            for ch in range(imaging.get_num_channels()):
+                print(f"Saving channel {ch}")
+                for i in tqdm(range(imaging.get_num_frames())):
+                    plane = imaging.get_frames(i, channel=ch)
+                    video_to_save[ch, i] = plane
+        else:
+            for ch in range(imaging.get_num_channels()):
+                for i in range(imaging.get_num_frames()):
+                    plane = imaging.get_frames(i, channel=ch)
+                    video_to_save[ch, i] = plane
+
+        video_to_save.flush()
