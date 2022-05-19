@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
+from typing import Union, Optional
 
 import numpy as np
 from tqdm import tqdm
@@ -9,102 +10,110 @@ from tqdm import tqdm
 from .extraction_tools import PathType, check_get_frames_args
 from .imagingextractor import ImagingExtractor
 
+PathType = Union[str, Path]
+DtypeType = Union[str, np.dtype]
+OptionalDtypeType = Optional[DtypeType]
+DtypeType = Union[str, np.dtype]
+
 
 class MemmapImagingExtractor(ImagingExtractor):
+
+    extractor_name = "MemmapImagingExtractor"
+
     def __init__(
         self,
-        imaging_extractor: ImagingExtractor,
-        save_path: PathType = None,
-        verbose: bool = False,
+        file_path: PathType,
+        frame_shape: tuple,
+        dtype: DtypeType,
+        offset: int = 0,
+        sampling_frequency: float = 0,
+        image_structure_to_axis: dict = None,
     ):
-        ImagingExtractor.__init__(self)
-        self.imaging = imaging_extractor
-        tmp_folder = self.get_tmp_folder()
+        """Class for reading binary data.
 
-        if save_path is None:
-            self._is_tmp = True
-            self._tmp_file = tempfile.NamedTemporaryFile(suffix=".dat", dir=tmp_folder).name
-        else:
-            save_path = Path(save_path)
-            if save_path.suffix != ".dat" and save_path.suffix != ".bin":
-                save_path = save_path.with_suffix(".dat")
-            if not save_path.parent.is_dir():
-                os.makedirs(save_path.parent)
-            self._is_tmp = False
-            self._tmp_file = save_path
 
-        self._save_memmap_video(verbose)
-        self._verbose = verbose
+        Parameters
+        ----------
+        file_path : PathType
+            the file_path where the data resides.
+        frame_shape : tuple
+            The frame shape of the image determines how each frame looks. Examples:
+            (n_channels, rows, columns), (rows, columns, n_channels), (n_channels, columns, rows), etc.
+            Note that n_channels is 1 for grayscale and 3 for color images.
+        dtype : DtypeType
+            The type of the data to be loaded (int, float, etc.)
+        offset : int, optional
+            The offset in bytes. Usually corresponds to the number of bytes occupied by the header. 0 by default.
+        sampling_frequency : float, optional
+            The sampling frequency.
+        image_structure_to_axis : dict, optional
+            A dictionary indicating what axis corresponds to what in the memmap. The default values are:
+            dict(frame_axis=0, num_channels=1, rows=2, columns=3)
+            frame_axis=0 indicates that the first axis corresponds to the frames (usually time)
+            num_channels=1 here indicates that the first axis corresponds to the  n_channels.
+            rows=2 indicates that the rows in the image are in the second axis
+            columns=3 indicates that columns is the last axis or dimension in this structure.
 
-    def __del__(self):
-        if self._is_tmp:
-            try:
-                os.remove(self._tmp_file)
-            except Exception as e:
-                print("Unable to remove temporary file", e)
+            Notice that this should correspond with frame_shape.
+        """
 
-    def _save_memmap_video(self, verbose=False):
-        save_path = Path(self._tmp_file)
-        self._video = np.memmap(
-            save_path,
-            shape=(
-                self.imaging.get_num_channels(),
-                self.imaging.get_num_frames(),
-                self.imaging.get_image_size()[0],
-                self.imaging.get_image_size()[1],
-            ),
-            dtype=self.imaging.get_dtype(),
-            mode="w+",
-        )
+        self.installed = True
+        super().__init__()
 
-        if verbose:
-            for ch in range(self.imaging.get_num_channels()):
-                print(f"Saving channel {ch}")
-                for i in tqdm(range(self.imaging.get_num_frames())):
-                    plane = self.imaging.get_frames(i, channel=ch)
-                    self._video[ch, i] = plane
-        else:
-            for ch in range(self.imaging.get_num_channels()):
-                for i in range(self.imaging.get_num_frames()):
-                    plane = self.imaging.get_frames(i, channel=ch)
-                    self._video[ch, i] = plane
+        self.file_path = file_path
+        self._sampling_frequency = sampling_frequency
+        self.offset = offset
+        self.dtype = dtype
 
-    @property
-    def filename(self):
-        return str(self._tmp_file)
+        # Get the structure, apply default if not available
+        self.frame_shape = frame_shape
+        image_structure_to_axis = dict() if image_structure_to_axis is None else image_structure_to_axis
+        self.image_structure_to_axis = dict(frame_axis=0, num_channels=1, rows=2, columns=3)
+        self.image_structure_to_axis.update(image_structure_to_axis)
+        self.frame_axis = self.image_structure_to_axis["frame_axis"]
 
-    def move_to(self, save_path):
-        save_path = Path(save_path)
-        if save_path.suffix != ".dat" and save_path.suffix != ".bin":
-            save_path = save_path.with_suffix(".dat")
-        if not save_path.parent.is_dir():
-            os.makedirs(save_path.parent)
-        shutil.move(self._tmp_file, str(save_path))
-        self._tmp_file = str(save_path)
-        self._video = np.memmap(
-            save_path,
-            shape=(
-                self.imaging.get_num_channels(),
-                self.imaging.get_num_frames(),
-                self.imaging.get_image_size()[0],
-                self.imaging.get_image_size()[0],
-            ),
-            dtype=self.imaging.get_dtype(),
-            mode="r",
-        )
+        # Extract video
+        self._video = self.read_binary_video()
 
-    @check_get_frames_args
-    def get_frames(self, frame_idxs, channel=0):
-        return self._video[channel, frame_idxs]
+        # Get the image structure as attributes
+        self._rows = self._video.shape[self.image_structure_to_axis["rows"]]
+        self._columns = self._video.shape[self.image_structure_to_axis["columns"]]
+        self._num_channels = self._video.shape[self.image_structure_to_axis["num_channels"]]
+        self._num_frames = self._video.shape[self.image_structure_to_axis["frame_axis"]]
+
+    def read_binary_video(self):
+        file = self.file_path.open()
+        file_descriptor = file.fileno()
+        file_size_bytes = os.fstat(file_descriptor).st_size
+
+        pixels_per_frame = np.prod(self.frame_shape)
+        type_size = np.dtype(self.dtype).itemsize
+        frame_size_bytes = pixels_per_frame * type_size
+
+        bytes_available = file_size_bytes - self.offset
+        number_of_frames = bytes_available // frame_size_bytes
+
+        memmap_shape = list(self.frame_shape)
+        memmap_shape.insert(self.frame_axis, number_of_frames)
+        memmap_shape = tuple(memmap_shape)
+
+        video_memap = np.memmap(self.file_path, offset=self.offset, dtype=self.dtype, mode="r", shape=memmap_shape)
+
+        return video_memap
+
+    def get_frames(self, frame_idxs=None):
+        if frame_idxs is None:
+            frame_idxs = [frame for frame in range(self.get_num_frames())]
+        return self._video.take(indices=frame_idxs, axis=self.frame_axis)
 
     def get_image_size(self):
-        return self.imaging.get_image_size()
+        return (self._rows, self._columns)
 
     def get_num_frames(self):
-        return self.imaging.get_num_frames()
+        return self._num_frames
 
     def get_sampling_frequency(self):
-        return self.imaging.get_sampling_frequency()
+        return self._sampling_frequency
 
     def get_channel_names(self):
         """List of  channels in the recoding.
@@ -114,7 +123,7 @@ class MemmapImagingExtractor(ImagingExtractor):
         channel_names: list
             List of strings of channel names
         """
-        return self.imaging.get_channel_names()
+        pass
 
     def get_num_channels(self):
         """Total number of active channels in the recording
@@ -124,4 +133,4 @@ class MemmapImagingExtractor(ImagingExtractor):
         no_of_channels: int
             integer count of number of channels
         """
-        return self.imaging.get_channel_names()
+        return self._num_channels
