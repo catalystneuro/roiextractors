@@ -2,18 +2,19 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Union, Optional
+from typing import Tuple, Dict
 
 import numpy as np
 from tqdm import tqdm
 
 from .extraction_tools import PathType, check_get_frames_args
 from .imagingextractor import ImagingExtractor
+from typing import Tuple, Dict
 
-PathType = Union[str, Path]
-DtypeType = Union[str, np.dtype]
-OptionalDtypeType = Optional[DtypeType]
-DtypeType = Union[str, np.dtype]
+from .extraction_tools import (
+    PathType,
+    DtypeType,
+)
 
 
 class MemmapImagingExtractor(ImagingExtractor):
@@ -23,13 +24,13 @@ class MemmapImagingExtractor(ImagingExtractor):
     def __init__(
         self,
         file_path: PathType,
-        frame_shape: tuple,
+        frame_shape: Tuple[int, int],
         dtype: DtypeType,
         offset: int = 0,
         sampling_frequency: float = 0,
-        image_structure_to_axis: dict = None,
+        image_structure_to_axis: Dict[str, int] = None,
     ):
-        """Class for reading binary data.
+        """Class for reading optical imaging data stored in a binary format
 
 
         Parameters
@@ -60,7 +61,7 @@ class MemmapImagingExtractor(ImagingExtractor):
         self.installed = True
         super().__init__()
 
-        self.file_path = file_path
+        self.file_path = Path(file_path)
         self._sampling_frequency = sampling_frequency
         self.offset = offset
         self.dtype = dtype
