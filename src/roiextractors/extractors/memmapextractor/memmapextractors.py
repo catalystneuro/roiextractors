@@ -7,11 +7,10 @@ from typing import Tuple, Dict
 import numpy as np
 from tqdm import tqdm
 
-from .extraction_tools import PathType, check_get_frames_args
-from .imagingextractor import ImagingExtractor
+from ...imagingextractor import ImagingExtractor
 from typing import Tuple, Dict
 
-from .extraction_tools import (
+from ...extraction_tools import (
     PathType,
     DtypeType,
 )
