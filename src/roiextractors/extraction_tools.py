@@ -77,7 +77,7 @@ def get_video_shape(video):
 
 def check_get_frames_args(func):
     """
-    This decorator allows the function to the frames to be queried with either
+    This decorator allows the get_frames function to be queried with either
     an integer, slice or an array and handles a common return. [I think that np.take can be used instead of this]
     """
 
