@@ -13,6 +13,7 @@ from .extractors.simaextractor import SimaSegmentationExtractor
 from .extractors.suite2p import Suite2pSegmentationExtractor
 from .extractors.tiffimagingextractor import TiffImagingExtractor
 from .extractors.sbximagingextractor import SbxImagingExtractor
+from .extractors.memmapextractors import NumpyMemmapImagingExtractor
 from .multisegmentationextractor import MultiSegmentationExtractor
 
 segmentation_extractor_full_list = [
@@ -32,6 +33,7 @@ imaging_extractor_full_list = [
     TiffImagingExtractor,
     NwbImagingExtractor,
     SbxImagingExtractor,
+    NumpyMemmapImagingExtractor,
 ]
 
 segmentation_extractor_dict = {

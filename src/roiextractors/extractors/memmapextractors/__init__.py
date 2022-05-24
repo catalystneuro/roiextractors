@@ -1,0 +1,1 @@
+from .numpymemampextractor import NumpyMemmapImagingExtractor
