@@ -29,7 +29,7 @@ IntType = Union[int, np.integer]
 FloatType = float
 
 
-@dataclass(frozen=True)
+@dataclass()
 class VideoStructure:
     rows: int
     columns: int
