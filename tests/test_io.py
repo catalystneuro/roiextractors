@@ -38,6 +38,13 @@ class TestExtractors(unittest.TestCase):
             ),
         ),
         param(
+            extractor_class=TiffImagingExtractor,
+            extractor_kwargs=dict(
+                file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "sample_scanimage.tiff"),  # Not memmable
+                sampling_frequency=15.0,
+            ),
+        ),
+        param(
             extractor_class=Hdf5ImagingExtractor,
             extractor_kwargs=dict(file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "hdf5" / "demoMovie.hdf5")),
         ),
