@@ -74,7 +74,7 @@ class VideoStructure:
             raise ValueError(exception_message)
 
     def build_video_shape(self, n_frames: int) -> Tuple[int, int, int, int]:
-        video_shape = [None, None, None, None]
+        video_shape = [None] * 4
         video_shape[self.frame_axis] = n_frames
         video_shape[self.rows_axis] = self.rows
         video_shape[self.columns_axis] = self.columns
