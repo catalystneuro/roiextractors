@@ -5,6 +5,7 @@ from typing import Union, Tuple
 from dataclasses import dataclass, field
 
 import numpy as np
+import scipy
 from spikeextractors.extraction_tools import cast_start_end_frame
 from tqdm import tqdm
 
@@ -15,7 +16,10 @@ try:
 except ImportError:
     HAVE_H5 = False
 try:
-    import scipy.io as spio
+    if hasattr(scipy.io.matlab, "mat_struct"):
+        from scipy.io.matlab import mat_struct
+    else:
+        from scipy.io.matlab.mio5_params import mat_struct
 
     HAVE_Scipy = True
 except ImportError:
@@ -341,7 +345,7 @@ def check_keys(dict):
     """
     assert HAVE_Scipy, "To write to h5 you need to install scipy: pip install scipy"
     for key in dict:
-        if isinstance(dict[key], spio.matlab.mio5_params.mat_struct):
+        if isinstance(dict[key], mat_struct):
             dict[key] = todict(dict[key])
     return dict
 
@@ -353,7 +357,7 @@ def todict(matobj):
     dict = {}
     for strg in matobj._fieldnames:
         elem = matobj.__dict__[strg]
-        if isinstance(elem, spio.matlab.mio5_params.mat_struct):
+        if isinstance(elem, mat_struct):
             dict[strg] = todict(elem)
         else:
             dict[strg] = elem
