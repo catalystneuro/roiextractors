@@ -14,6 +14,7 @@ from .extractors.suite2p import Suite2pSegmentationExtractor
 from .extractors.tiffimagingextractor import TiffImagingExtractor
 from .extractors.sbximagingextractor import SbxImagingExtractor
 from .extractors.memmapextractors import NumpyMemmapImagingExtractor
+from .extractors.memmapextractors import MemmapImagingExtractor
 from .multisegmentationextractor import MultiSegmentationExtractor
 
 segmentation_extractor_full_list = [
@@ -34,6 +35,7 @@ imaging_extractor_full_list = [
     NwbImagingExtractor,
     SbxImagingExtractor,
     NumpyMemmapImagingExtractor,
+    MemmapImagingExtractor,
 ]
 
 segmentation_extractor_dict = {

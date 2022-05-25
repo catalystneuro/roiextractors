@@ -1,1 +1,2 @@
 from .numpymemampextractor import NumpyMemmapImagingExtractor
+from .memmapextractors import MemmapImagingExtractor
