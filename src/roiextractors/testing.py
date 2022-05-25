@@ -44,29 +44,33 @@ def _assert_iterable_complete(iterable, dtypes=None, element_dtypes=None, shape=
             _assert_iterable_element_dtypes(iterable, element_dtypes)
 
 
-def check_segmentations_equal(seg1: SegmentationExtractor, seg2: SegmentationExtractor):
-    check_segmentation_return_types(seg1)
-    check_segmentation_return_types(seg2)
+def check_segmentations_equal(
+    segmentation_extractor1: SegmentationExtractor, segmentation_extractor2: SegmentationExtractor
+):
+    check_segmentation_return_types(segmentation_extractor1)
+    check_segmentation_return_types(segmentation_extractor2)
     # assert equality:
-    assert seg1.get_num_rois() == seg2.get_num_rois()
-    assert seg1.get_num_frames() == seg2.get_num_frames()
-    assert seg1.get_num_channels() == seg2.get_num_channels()
-    assert seg1.get_sampling_frequency() == seg2.get_sampling_frequency()
-    assert_array_equal(seg1.get_channel_names(), seg2.get_channel_names())
-    assert_array_equal(seg1.get_image_size(), seg2.get_image_size())
+    assert segmentation_extractor1.get_num_rois() == segmentation_extractor2.get_num_rois()
+    assert segmentation_extractor1.get_num_frames() == segmentation_extractor2.get_num_frames()
+    assert segmentation_extractor1.get_num_channels() == segmentation_extractor2.get_num_channels()
+    assert segmentation_extractor1.get_sampling_frequency() == segmentation_extractor2.get_sampling_frequency()
+    assert_array_equal(segmentation_extractor1.get_channel_names(), segmentation_extractor2.get_channel_names())
+    assert_array_equal(segmentation_extractor1.get_image_size(), segmentation_extractor2.get_image_size())
     assert_array_equal(
-        seg1.get_roi_image_masks(roi_ids=seg1.get_roi_ids()[:1]),
-        seg2.get_roi_image_masks(roi_ids=seg2.get_roi_ids()[:1]),
+        segmentation_extractor1.get_roi_image_masks(roi_ids=segmentation_extractor1.get_roi_ids()[:1]),
+        segmentation_extractor2.get_roi_image_masks(roi_ids=segmentation_extractor2.get_roi_ids()[:1]),
     )
-    assert set(seg1.get_roi_pixel_masks(roi_ids=seg1.get_roi_ids()[:1])[0].flatten()) == set(
-        seg2.get_roi_pixel_masks(roi_ids=seg1.get_roi_ids()[:1])[0].flatten()
+    assert set(
+        segmentation_extractor1.get_roi_pixel_masks(roi_ids=segmentation_extractor1.get_roi_ids()[:1])[0].flatten()
+    ) == set(
+        segmentation_extractor2.get_roi_pixel_masks(roi_ids=segmentation_extractor1.get_roi_ids()[:1])[0].flatten()
     )
-    assert_array_equal(seg1.get_image(), seg2.get_image())
-    assert_array_equal(seg1.get_accepted_list(), seg2.get_accepted_list())
-    assert_array_equal(seg1.get_rejected_list(), seg2.get_rejected_list())
-    assert_array_equal(seg1.get_roi_locations(), seg2.get_roi_locations())
-    assert_array_equal(seg1.get_roi_ids(), seg2.get_roi_ids())
-    assert_array_equal(seg1.get_traces(), seg2.get_traces())
+    assert_array_equal(segmentation_extractor1.get_image(), segmentation_extractor2.get_image())
+    assert_array_equal(segmentation_extractor1.get_accepted_list(), segmentation_extractor2.get_accepted_list())
+    assert_array_equal(segmentation_extractor1.get_rejected_list(), segmentation_extractor2.get_rejected_list())
+    assert_array_equal(segmentation_extractor1.get_roi_locations(), segmentation_extractor2.get_roi_locations())
+    assert_array_equal(segmentation_extractor1.get_roi_ids(), segmentation_extractor2.get_roi_ids())
+    assert_array_equal(segmentation_extractor1.get_traces(), segmentation_extractor2.get_traces())
 
 
 def check_segmentation_return_types(seg: SegmentationExtractor):
@@ -141,19 +145,19 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
     assert {"mean", "correlation"} == set(seg.get_images_dict().keys())
 
 
-def check_imaging_equal(img1: ImagingExtractor, img2: ImagingExtractor):
-    check_imaging_return_types(img1)
-    check_imaging_return_types(img2)
+def check_imaging_equal(imaging_extractor1: ImagingExtractor, imaging_extractor2: ImagingExtractor):
+    check_imaging_return_types(imaging_extractor1)
+    check_imaging_return_types(imaging_extractor2)
     # assert equality:
-    assert img1.get_num_frames() == img2.get_num_frames()
-    assert img1.get_num_channels() == img2.get_num_channels()
-    assert np.isclose(img1.get_sampling_frequency(), img2.get_sampling_frequency())
-    assert_array_equal(img1.get_channel_names(), img2.get_channel_names())
-    assert_array_equal(img1.get_image_size(), img2.get_image_size())
-    assert_array_equal(img1.get_frames(frame_idxs=[0]), img2.get_frames(frame_idxs=[0]))
+    assert imaging_extractor1.get_num_frames() == imaging_extractor2.get_num_frames()
+    assert imaging_extractor1.get_num_channels() == imaging_extractor2.get_num_channels()
+    assert np.isclose(imaging_extractor1.get_sampling_frequency(), imaging_extractor2.get_sampling_frequency())
+    assert_array_equal(imaging_extractor1.get_channel_names(), imaging_extractor2.get_channel_names())
+    assert_array_equal(imaging_extractor1.get_image_size(), imaging_extractor2.get_image_size())
+    assert_array_equal(imaging_extractor1.get_frames(frame_idxs=[0]), imaging_extractor2.get_frames(frame_idxs=[0]))
     assert_array_almost_equal(
-        img1.frame_to_time(np.arange(img1.get_num_frames())),
-        img2.frame_to_time(np.arange(img2.get_num_frames())),
+        imaging_extractor1.frame_to_time(np.arange(imaging_extractor1.get_num_frames())),
+        imaging_extractor2.frame_to_time(np.arange(imaging_extractor2.get_num_frames())),
     )
 
 
