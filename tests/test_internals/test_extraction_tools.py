@@ -33,7 +33,7 @@ class TestVideoStructureClass(unittest.TestCase):
         expected_pixels_per_frame = self.rows * self.columns * self.num_channels
         expected_video_shape = (self.num_frames, self.rows, self.columns, self.num_channels)
 
-        structure = VideoStructure(
+        video_structure = VideoStructure(
             rows=self.rows,
             columns=self.columns,
             num_channels=self.num_channels,
@@ -43,9 +43,9 @@ class TestVideoStructureClass(unittest.TestCase):
             frame_axis=self.frame_axis,
         )
 
-        assert structure.frame_shape == expected_frame_shape
-        assert structure.number_of_pixels_per_frame == expected_pixels_per_frame
-        assert structure.build_video_shape(self.num_frames) == expected_video_shape
+        assert video_structure.frame_shape == expected_frame_shape
+        assert video_structure.number_of_pixels_per_frame == expected_pixels_per_frame
+        assert video_structure.build_video_shape(self.num_frames) == expected_video_shape
 
     def test_axis_permutation_1(self):
 
@@ -58,7 +58,7 @@ class TestVideoStructureClass(unittest.TestCase):
         expected_pixels_per_frame = self.rows * self.columns * self.num_channels
         expected_video_shape = (self.num_channels, self.columns, self.rows, self.num_frames)
 
-        structure = VideoStructure(
+        video_structure = VideoStructure(
             rows=self.rows,
             columns=self.columns,
             num_channels=self.num_channels,
@@ -68,9 +68,9 @@ class TestVideoStructureClass(unittest.TestCase):
             frame_axis=self.frame_axis,
         )
 
-        assert structure.frame_shape == expected_frame_shape
-        assert structure.number_of_pixels_per_frame == expected_pixels_per_frame
-        assert structure.build_video_shape(self.num_frames) == expected_video_shape
+        assert video_structure.frame_shape == expected_frame_shape
+        assert video_structure.number_of_pixels_per_frame == expected_pixels_per_frame
+        assert video_structure.build_video_shape(self.num_frames) == expected_video_shape
 
     def test_axis_permutation_2(self):
 
@@ -83,7 +83,7 @@ class TestVideoStructureClass(unittest.TestCase):
         expected_pixels_per_frame = self.rows * self.columns * self.num_channels
         expected_video_shape = (self.rows, self.columns, self.num_frames, self.num_channels)
 
-        structure = VideoStructure(
+        video_structure = VideoStructure(
             rows=self.rows,
             columns=self.columns,
             num_channels=self.num_channels,
@@ -93,9 +93,9 @@ class TestVideoStructureClass(unittest.TestCase):
             frame_axis=self.frame_axis,
         )
 
-        assert structure.frame_shape == expected_frame_shape
-        assert structure.number_of_pixels_per_frame == expected_pixels_per_frame
-        assert structure.build_video_shape(self.num_frames) == expected_video_shape
+        assert video_structure.frame_shape == expected_frame_shape
+        assert video_structure.number_of_pixels_per_frame == expected_pixels_per_frame
+        assert video_structure.build_video_shape(self.num_frames) == expected_video_shape
 
     def test_invalid_structure_with_repeated_axis(self):
 
@@ -104,7 +104,7 @@ class TestVideoStructureClass(unittest.TestCase):
             "^Invalid structure: (.*?) each property axis should be unique value between 0 and 3 (inclusive)?"
         )
         with self.assertRaisesRegex(ValueError, reg_expression):
-            structure = VideoStructure(
+            video_structure = VideoStructure(
                 rows=self.rows,
                 columns=self.columns,
                 num_channels=self.num_channels,
@@ -121,7 +121,7 @@ class TestVideoStructureClass(unittest.TestCase):
         )
 
         with self.assertRaisesRegex(ValueError, reg_expression):
-            structure = VideoStructure(
+            video_structure = VideoStructure(
                 rows=self.rows,
                 columns=self.columns,
                 num_channels=self.num_channels,
