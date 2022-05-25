@@ -135,19 +135,10 @@ class TestReadNumpyMemmapVideo(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.write_directory = Path(mkdtemp())
-        # Reproducible random number reproduction
+        # Reproducible random number generation
         cls.rng = np.random.default_rng(12345)
 
     def setUp(self):
-        self.rows = 10
-        self.columns = 5
-        self.num_channels = 3
-
-        self.frame_axis = 0
-        self.rows_axis = 1
-        self.columns_axis = 2
-        self.num_channels_axis = 3
-
         self.num_frames = 20
         self.offset = 0
 
