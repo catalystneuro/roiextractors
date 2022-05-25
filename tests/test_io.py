@@ -2,6 +2,7 @@ import unittest
 from pathlib import Path
 from copy import copy
 
+from roiextractors.testing import check_imaging_equal, check_segmentations_equal
 from parameterized import parameterized, param
 
 from roiextractors import (
@@ -101,7 +102,7 @@ class TestExtractors(unittest.TestCase):
             roundtrip_kwargs.update(file_path=output_path)
             roundtrip_extractor = extractor_class(**roundtrip_kwargs)
             # TODO: this roundtrip test has been failing for some time now
-            # check_imaging_equal(img1=extractor, img2=roundtrip_extractor)
+            check_imaging_equal(imaging_extractor1=extractor, imaging_extractor2=roundtrip_extractor)
         except NotImplementedError:
             return
 
@@ -114,14 +115,25 @@ class TestExtractors(unittest.TestCase):
 
             # TODO: Suit2P Segmentation fails to make certain files; probably related to how
             # the input argument is a 'file_path' but is actually a folder?
-            if extractor_class.__name__ != "Suite2pSegmentationExtractor":
+            # CnmfeSegmentation fails because of transpose issues when saving
+            # Not yet sure about ExtractSegmentation
+            extractors_not_ready = [
+                "Suite2pSegmentationExtractor",
+                "CnmfeSegmentationExtractor",
+                "ExtractSegmentationExtractor",
+            ]
+
+            if extractor_class.__name__ not in extractors_not_ready:
                 extractor_class.write_segmentation(extractor, output_path)
 
                 roundtrip_kwargs = copy(extractor_kwargs)
                 roundtrip_kwargs.update(file_path=output_path)
                 roundtrip_extractor = extractor_class(**roundtrip_kwargs)
                 # TODO: this roundtrip test has been failing for some time now
-                # check_segmentations_equal(img1=extractor, img2=roundtrip_extractor)
+                check_segmentations_equal(
+                    segmentation_extractor1=extractor, segmentation_extractor2=roundtrip_extractor
+                )
+
         except NotImplementedError:
             return
 

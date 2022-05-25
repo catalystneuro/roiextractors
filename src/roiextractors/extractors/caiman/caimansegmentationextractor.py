@@ -81,12 +81,17 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         accepted = self._dataset_file["estimates"]["idx_components"]
         if len(accepted.shape) == 0:
             accepted = list(range(self.get_num_rois()))
+        else:
+            accepted = list(accepted[:])
         return accepted
 
     def get_rejected_list(self):
         rejected = self._dataset_file["estimates"]["idx_components_bad"]
-        if len(rejected.shape) > 0:
-            return rejected
+        if len(rejected.shape) == 0:
+            rejected = list()
+        else:
+            rejected = list(rejected[:])
+        return rejected
 
     @staticmethod
     def write_segmentation(segmentation_object, save_path, overwrite=True):
