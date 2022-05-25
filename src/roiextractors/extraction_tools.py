@@ -90,6 +90,27 @@ class VideoStructure:
         return re_mapped_video
 
 
+def read_numpy_memmap_video(
+    file_path: PathType, video_structure: VideoStructure, dtype: DtypeType, offset: int = 0
+) -> np.array:
+
+    file = file_path.open()
+    file_descriptor = file.fileno()
+    file_size_bytes = os.fstat(file_descriptor).st_size
+
+    pixels_per_frame = video_structure.number_of_pixels_per_frame
+    type_size = np.dtype(dtype).itemsize
+    frame_size_bytes = pixels_per_frame * type_size
+
+    bytes_available = file_size_bytes - offset
+    number_of_frames = bytes_available // frame_size_bytes
+
+    memmap_shape = video_structure.build_video_shape(n_frames=number_of_frames)
+    video_memap = np.memmap(file_path, offset=offset, dtype=dtype, mode="r", shape=memmap_shape)
+
+    return video_memap
+
+
 def _pixel_mask_extractor(image_mask_, _roi_ids):
     """An alternative data format for storage of image masks.
     Returns

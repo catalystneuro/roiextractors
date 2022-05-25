@@ -1,17 +1,12 @@
 import unittest
 from pathlib import Path
 from tempfile import mkdtemp
-from copy import deepcopy
 from itertools import product
 
 import numpy as np
 from parameterized import parameterized, param
 
 from roiextractors.extraction_tools import VideoStructure, read_numpy_memmap_video
-
-
-def custom_name_func(testcase_func, param_num, param):
-    return f"{testcase_func.__name__}_{param_num}_" f"_{param.kwargs.get('case_name', '')}"
 
 
 class TestVideoStructureClass(unittest.TestCase):
@@ -130,6 +125,79 @@ class TestVideoStructureClass(unittest.TestCase):
                 num_channels_axis=self.num_channels_axis,
                 frame_axis=self.frame_axis,
             )
+
+
+def custom_name_func(testcase_func, param_num, param):
+    return f"{testcase_func.__name__}_{param_num}_" f"_{param.kwargs.get('case_name', '')}"
+
+
+class TestReadNumpyMemmapVideo(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.write_directory = Path(mkdtemp())
+        # Reproducible random number reproduction
+        cls.rng = np.random.default_rng(12345)
+
+    def setUp(self):
+        self.rows = 10
+        self.columns = 5
+        self.num_channels = 3
+
+        self.frame_axis = 0
+        self.rows_axis = 1
+        self.columns_axis = 2
+        self.num_channels_axis = 3
+
+        self.num_frames = 20
+        self.offset = 0
+
+    parameterized_list = list()
+    dtype_list = ["uint16", "float", "int"]
+    num_channels_list = [1, 3]
+    sizes_list = [10, 25]
+    for dtype, num_channels, rows, columns in product(dtype_list, num_channels_list, sizes_list, sizes_list):
+        param_case = param(
+            dtype=dtype,
+            num_channels=num_channels,
+            rows=rows,
+            columns=columns,
+            case_name=f"dtype={dtype}, num_channels={num_channels}, rows={rows}, columns={columns}",
+        )
+        parameterized_list.append(param_case)
+
+    @parameterized.expand(input=parameterized_list, name_func=custom_name_func)
+    def test_roundtrip(self, dtype, num_channels, rows, columns, case_name=""):
+
+        permutation = self.rng.choice([0, 1, 2, 3], size=4, replace=False)
+        rows_axis, columns_axis, num_channels_axis, frame_axis = permutation
+        # Build a video structure
+        video_structure = VideoStructure(
+            rows=rows,
+            columns=columns,
+            num_channels=num_channels,
+            rows_axis=rows_axis,
+            columns_axis=columns_axis,
+            num_channels_axis=num_channels_axis,
+            frame_axis=frame_axis,
+        )
+
+        # Build a random video
+        memmap_shape = video_structure.build_video_shape(self.num_frames)
+        random_video = np.random.randint(low=1, size=memmap_shape).astype(dtype)
+
+        # Save it to memory
+        file_path = self.write_directory / f"video_{case_name}.dat"
+        file = np.memmap(file_path, dtype=dtype, mode="w+", shape=memmap_shape)
+        file[:] = random_video[:]
+        file.flush()
+        del file
+
+        # Load extractor and test-it
+        memmap_video = read_numpy_memmap_video(
+            file_path=file_path, video_structure=video_structure, dtype=dtype, offset=self.offset
+        )
+        # Compare the extracted video
+        np.testing.assert_array_almost_equal(random_video, memmap_video)
 
 
 if __name__ == "__main__":
