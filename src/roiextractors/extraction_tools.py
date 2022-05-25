@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Union
 
 import numpy as np
+import scipy
 from spikeextractors.extraction_tools import cast_start_end_frame
 from tqdm import tqdm
 
@@ -13,7 +14,10 @@ try:
 except ImportError:
     HAVE_H5 = False
 try:
-    from scipy.io.matlab import mat_struct
+    if hasattr(scipy.io.matlab, "mat_struct"):
+        from scipy.io.matlab import mat_struct
+    else:
+        from scipy.io.matlab.mio5_params import mat_struct
 
     HAVE_Scipy = True
 except ImportError:
