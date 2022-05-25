@@ -16,7 +16,7 @@ def custom_name_func(testcase_func, param_num, param):
     return f"{testcase_func.__name__}_{param_num}_" f"_{param.kwargs.get('case_name', '')}"
 
 
-class TestMemmapExtractor(unittest.TestCase):
+class TestNumpyMemmapExtractor(unittest.TestCase):
 
     parameterized_list = list()
     dtype_list = ["uint16", "float", "int"]
