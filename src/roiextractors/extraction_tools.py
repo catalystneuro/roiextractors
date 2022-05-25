@@ -76,6 +76,11 @@ def get_video_shape(video):
 
 
 def check_get_frames_args(func):
+    """
+    This decorator allows the get_frames function to be queried with either
+    an integer, slice or an array and handles a common return. [I think that np.take can be used instead of this]
+    """
+
     @wraps(func)
     def corrected_args(imaging, frame_idxs, channel=0):
         channel = int(channel)

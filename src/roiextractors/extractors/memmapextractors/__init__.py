@@ -1,0 +1,1 @@
+from .memmapextractors import MemmapImagingExtractor
