@@ -1,6 +1,8 @@
+import os
 from functools import wraps
 from pathlib import Path
-from typing import Union
+from typing import Union, Tuple
+from dataclasses import dataclass, field
 
 import numpy as np
 import scipy
@@ -22,12 +24,95 @@ try:
     HAVE_Scipy = True
 except ImportError:
     HAVE_Scipy = False
+
 ArrayType = Union[list, np.array]
 PathType = Union[str, Path]
 NumpyArray = Union[np.array, np.memmap]
 DtypeType = Union[str, np.dtype]
 IntType = Union[int, np.integer]
 FloatType = float
+
+
+@dataclass
+class VideoStructure:
+    rows: int
+    columns: int
+    num_channels: int
+    rows_axis: int
+    columns_axis: int
+    num_channels_axis: int
+    frame_axis: int
+
+    def __post_init__(self) -> None:
+        self._validate_video_structure()
+        self._initialize_frame_shape()
+        self.number_of_pixels_per_frame = np.prod(self.frame_shape)
+
+    def _initialize_frame_shape(self) -> None:
+        self.frame_shape = [None, None, None, None]
+        self.frame_shape[self.rows_axis] = self.rows
+        self.frame_shape[self.columns_axis] = self.columns
+        self.frame_shape[self.num_channels_axis] = self.num_channels
+        self.frame_shape.pop(self.frame_axis)
+        self.frame_shape = tuple(self.frame_shape)
+
+    def _validate_video_structure(self) -> None:
+
+        exception_message = (
+            "Invalid structure: "
+            f"{self.__repr__()}, "
+            "each property axis should be unique value between 0 and 3 (inclusive)"
+        )
+
+        axis_values = set((self.rows_axis, self.columns_axis, self.num_channels_axis, self.frame_axis))
+        axis_values_are_not_unique = len(axis_values) != 4
+        if axis_values_are_not_unique:
+            raise ValueError(exception_message)
+
+        values_out_of_range = any([axis < 0 or axis > 4 for axis in axis_values])
+        if values_out_of_range:
+            raise ValueError(exception_message)
+
+    def build_video_shape(self, n_frames: int) -> Tuple[int, int, int, int]:
+        video_shape = [None] * 4
+        video_shape[self.frame_axis] = n_frames
+        video_shape[self.rows_axis] = self.rows
+        video_shape[self.columns_axis] = self.columns
+        video_shape[self.num_channels_axis] = self.num_channels
+
+        return tuple(video_shape)
+
+    def transform_video_to_canonical_form(self, video: np.array) -> np.array:
+        canonical_frame_axis = 0
+        canonical_rows_axis = 1
+        canonical_columns_axis = 2
+        canonical_num_channels_axis = 3
+
+        # To-do Implement the mapping
+        re_mapped_video = None
+        assert "Not Implemented yet"
+        return re_mapped_video
+
+
+def read_numpy_memmap_video(
+    file_path: PathType, video_structure: VideoStructure, dtype: DtypeType, offset: int = 0
+) -> np.array:
+
+    file = file_path.open()
+    file_descriptor = file.fileno()
+    file_size_bytes = os.fstat(file_descriptor).st_size
+
+    pixels_per_frame = video_structure.number_of_pixels_per_frame
+    type_size = np.dtype(dtype).itemsize
+    frame_size_bytes = pixels_per_frame * type_size
+
+    bytes_available = file_size_bytes - offset
+    number_of_frames = bytes_available // frame_size_bytes
+
+    memmap_shape = video_structure.build_video_shape(n_frames=number_of_frames)
+    video_memap = np.memmap(file_path, offset=offset, dtype=dtype, mode="r", shape=memmap_shape)
+
+    return video_memap
 
 
 def _pixel_mask_extractor(image_mask_, _roi_ids):
