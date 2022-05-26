@@ -4,6 +4,7 @@ from copy import copy
 
 from roiextractors.testing import check_imaging_equal, check_segmentations_equal
 from parameterized import parameterized, param
+from hdmf.testing import TestCase
 
 from roiextractors import (
     TiffImagingExtractor,
@@ -26,7 +27,7 @@ def custom_name_func(testcase_func, param_num, param):
     )
 
 
-class TestExtractors(unittest.TestCase):
+class TestExtractors(TestCase):
     savedir = OUTPUT_PATH
 
     imaging_extractor_list = [
@@ -35,13 +36,6 @@ class TestExtractors(unittest.TestCase):
             extractor_kwargs=dict(
                 file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "demoMovie.tif"),
                 sampling_frequency=15.0,  # typically provied by user
-            ),
-        ),
-        param(
-            extractor_class=TiffImagingExtractor,
-            extractor_kwargs=dict(
-                file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "sample_scanimage.tiff"),  # Not memmable
-                sampling_frequency=15.0,
             ),
         ),
         param(
@@ -112,6 +106,14 @@ class TestExtractors(unittest.TestCase):
             check_imaging_equal(imaging_extractor1=extractor, imaging_extractor2=roundtrip_extractor)
         except NotImplementedError:
             return
+
+    def test_tiff_non_memmap_warning(self):
+        file_path = OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "sample_scanimage.tiff"
+        with self.assertWarnsWith(
+            warn_type=UserWarning,
+            exc_msg="memmap of TIFF file could not be established. Reading entire matrix into memory.",
+        ):
+            TiffImagingExtractor(file_path=str(file_path), sampling_frequency=15.0)
 
     @parameterized.expand(segmentation_extractor_list, name_func=custom_name_func)
     def test_segmentation_extractors(self, extractor_class, extractor_kwargs):
