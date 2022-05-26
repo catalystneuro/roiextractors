@@ -35,6 +35,44 @@ FloatType = float
 
 @dataclass
 class VideoStructure:
+    """A data class for specifying the structure of a video.
+
+    The role of the data class is to ensure consistency in naming and provide some initial
+    consistency checks to ensure the validity of the sturcture.
+
+    Attributes:
+        rows (int): The number of rows of each frame as a matrix.
+        columns (int): The number of columns of each frame as a matrix.
+        num_channels (int): The number of chanenls (1 for gray, 3 for colors).
+        rows_axis (int): The axis or dimension corresponding to the rows.
+        columns_axis (int):  The axis or dimension corresponding to the columns.
+        num_channels_axis (int): The axis or dimension corresponding to the channels.
+        frame_axis (int): The axis or dimension corresponding to the frames in the video.
+
+    As an example if you wanted to build the structure for a video with gray (n_channels=1) frames of 10 x 5
+    where the video is to have the following shape (n_frames, rows, columns, n_channels) you
+    could define the class this way:
+
+    from roiextractors.extraction_tools import VideoStructure
+    rows = 10
+    columns = 5
+    num_channels = 1
+    frame_axis = 0
+    rows_axis = 1
+    columns_axis = 2
+    num_channels_axis = 3
+    video_structure = VideoStructure(
+        rows=rows,
+        columns=columns,
+        num_channels=num_channels,
+        rows_axis=rows_axis,
+        columns_axis=columns_axis,
+        num_channels_axis=num_channels_axis,
+        frame_axis=frame_axis,
+    )
+
+    """
+
     rows: int
     columns: int
     num_channels: int
