@@ -32,7 +32,7 @@ jobs:
           args: install git-annex --ignore-checksums
       - if: ${{ matrix.os == 'windows-latest' }}
         name: Get datalad - Windows and Mac
-        run: pip install datalad==0.15.6
+        run: pip install datalad==0.16.3
 
       - name: Global Setup
         run: |
