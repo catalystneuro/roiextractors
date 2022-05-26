@@ -22,10 +22,8 @@ class MemmapImagingExtractor(ImagingExtractor):
 
     def __init__(
         self,
-        imaging_extractor: ImagingExtractor,
-        save_path: PathType = None,
-        verbose: bool = False,
     ):
+        super().__init__()
 
         pass
 
@@ -71,36 +69,20 @@ class MemmapImagingExtractor(ImagingExtractor):
         Parameters
         ----------
         imaging: ImagingExtractor object
-            The EXTRACT segmentation object from which an EXTRACT native format
-            file has to be generated.
         save_path: str
             path to save the native format.
         overwrite: bool
             If True and save_path is existing, it is overwritten
         """
         imaging = imaging_extractor
-        video_to_save = np.memmap(
+        video_data_to_save = imaging.get_frames()[:]
+        memmap_shape = video_data_to_save.shape
+        video_memmap = np.memmap(
             save_path,
-            shape=(
-                imaging.get_num_frames(),
-                imaging.get_num_channels(),
-                imaging.get_image_size()[0],
-                imaging.get_image_size()[1],
-            ),
+            shape=memmap_shape,
             dtype=imaging.get_dtype(),
             mode="w+",
         )
 
-        if verbose:
-            for ch in range(imaging.get_num_channels()):
-                print(f"Saving channel {ch}")
-                for i in tqdm(range(imaging.get_num_frames())):
-                    plane = imaging.get_frames(i, channel=ch)
-                    video_to_save[ch, i] = plane
-        else:
-            for ch in range(imaging.get_num_channels()):
-                for i in range(imaging.get_num_frames()):
-                    plane = imaging.get_frames(i, channel=ch)
-                    video_to_save[ch, i] = plane
-
-        video_to_save.flush()
+        video_memmap[:] = video_data_to_save
+        video_memmap.flush()
