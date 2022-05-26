@@ -34,25 +34,39 @@ class NumpyMemmapImagingExtractor(ImagingExtractor):
         ----------
         file_path : PathType
             the file_path where the data resides.
-        frame_shape : tuple
-            The frame shape of the image determines how each frame looks. Examples:
-            (n_channels, rows, columns), (rows, columns, n_channels), (n_channels, columns, rows), etc.
-            Note that n_channels is 1 for grayscale and 3 for color images.
+        video_structure : VideoStructure
+            A VideoStructure instance describing the structure of the image to read. This includes parameters
+            such as the rows, columns and number of channels of the images plus which axis (i.e. dimension) of the
+            image corresponds to each of them.
+
+            As an example you create one of these structures in the following way:
+
+            from roiextractors.extraction_tools import VideoStructure
+
+            rows = 10
+            columns = 5
+            num_channels = 3
+            frame_axis = 0
+            rows_axis = 1
+            columns_axis = 2
+            num_channels_axis = 3
+
+            video_structure = VideoStructure(
+                rows=rows,
+                columns=columns,
+                num_channels=num_channels,
+                rows_axis=rows_axis,
+                columns_axis=columns_axis,
+                num_channels_axis=num_channels_axis,
+                frame_axis=frame_axis,
+            )
+
+        sampling_frequency : float, optional
+            The sampling frequency.
         dtype : DtypeType
             The type of the data to be loaded (int, float, etc.)
         offset : int, optional
             The offset in bytes. Usually corresponds to the number of bytes occupied by the header. 0 by default.
-        sampling_frequency : float, optional
-            The sampling frequency.
-        image_structure_to_axis : dict, optional
-            A dictionary indicating what axis corresponds to what in the memmap. The default values are:
-            dict(frame_axis=0, num_channels=1, rows=2, columns=3)
-            frame_axis=0 indicates that the first axis corresponds to the frames (usually time)
-            num_channels=1 here indicates that the first axis corresponds to the  n_channels.
-            rows=2 indicates that the rows in the image are in the second axis
-            columns=3 indicates that columns is the last axis or dimension in this structure.
-
-            Notice that this should correspond with frame_shape.
         """
 
         self.installed = True
