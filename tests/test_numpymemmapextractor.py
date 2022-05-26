@@ -7,7 +7,10 @@ from itertools import product
 import numpy as np
 from parameterized import parameterized, param
 
+from roiextractors.extraction_tools import VideoStructure
+from roiextractors.testing import check_imaging_equal
 from roiextractors import NumpyMemmapImagingExtractor
+
 
 from .setup_paths import OUTPUT_PATH
 
@@ -17,6 +20,15 @@ def custom_name_func(testcase_func, param_num, param):
 
 
 class TestNumpyMemmapExtractor(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.write_directory = Path(mkdtemp())
+        # Reproducible random number generation
+        cls.rng = np.random.default_rng(12345)
+
+    def setUp(self):
+        self.num_frames = 20
+        self.offset = 0
 
     parameterized_list = list()
     dtype_list = ["uint16", "float", "int"]
@@ -33,117 +45,49 @@ class TestNumpyMemmapExtractor(unittest.TestCase):
         parameterized_list.append(param_case)
 
     @parameterized.expand(input=parameterized_list, name_func=custom_name_func)
-    def test_extractor_defaults(self, dtype, num_channels, rows, columns, case_name=""):
-        # Build a video
-        num_frames = 25
-        sampling_frequency = 30
-        memmap_shape = (num_frames, num_channels, rows, columns)
-        random_video = np.random.randint(low=1, size=memmap_shape).astype(dtype)
+    def test_roundtrip(self, dtype, num_channels, rows, columns, case_name=""):
 
-        # Save it to memory
-        file_path = OUTPUT_PATH / f"video_{case_name}.dat"
-        file = np.memmap(file_path, dtype=dtype, mode="w+", shape=memmap_shape)
-        file[:] = random_video[:]
-        file.flush()
-        del file
+        permutation = self.rng.choice([0, 1, 2, 3], size=4, replace=False)
+        rows_axis, columns_axis, num_channels_axis, frame_axis = permutation
 
-        # Load extractor and test-it
-        frame_shape = (num_channels, rows, columns)
-        extractor = NumpyMemmapImagingExtractor(
-            file_path=file_path,
-            frame_shape=frame_shape,
-            sampling_frequency=sampling_frequency,
-            dtype=dtype,
+        # Build a video structure
+        video_structure = VideoStructure(
+            rows=rows,
+            columns=columns,
+            num_channels=num_channels,
+            rows_axis=rows_axis,
+            columns_axis=columns_axis,
+            num_channels_axis=num_channels_axis,
+            frame_axis=frame_axis,
         )
-
-        # Property assertions
-        extractor.get_num_channels(), extractor.get_image_size(), extractor.get_num_frames()
-        self.assertEqual(extractor.get_num_channels(), num_channels)
-        self.assertEqual(extractor.get_image_size(), (rows, columns))
-        self.assertEqual(extractor.get_num_frames(), num_frames)
-
-        # Compare the extracted video
-        np.testing.assert_array_almost_equal(random_video, extractor.get_frames())
-
-    def test_frames_on_last_axis(self):
 
         # Build a random video
-        num_frames = 50
-        sampling_frequency = 30
-        num_channels = 3
-        rows = 10
-        columns = 10
-        memmap_shape = (num_channels, rows, columns, num_frames)
-        dtype = "uint16"
-        random_video = np.random.randint(low=1, size=memmap_shape).astype(dtype)
+        memmap_shape = video_structure.build_video_shape(self.num_frames)
+        random_video = np.random.randint(low=0, high=256, size=memmap_shape).astype(dtype)
 
         # Save it to memory
-        file_path = Path(mkdtemp()) / "random_video_last.dat"
+        file_path = self.write_directory / f"video_{case_name}.dat"
         file = np.memmap(file_path, dtype=dtype, mode="w+", shape=memmap_shape)
         file[:] = random_video[:]
         file.flush()
         del file
 
-        # Call the extractor and test it
-        frame_axis = 3
-        frame_shape = (num_channels, rows, columns)
-        image_structure_to_axis = dict(frame_axis=frame_axis, num_channels=0, rows=1, columns=2)
+        # Load the video with the extactor
         extractor = NumpyMemmapImagingExtractor(
-            file_path=file_path,
-            frame_shape=frame_shape,
-            sampling_frequency=sampling_frequency,
-            dtype=dtype,
-            image_structure_to_axis=image_structure_to_axis,
+            file_path=file_path, video_structure=video_structure, sampling_frequency=1, dtype=dtype, offset=self.offset
         )
 
-        # Assertions
-        extractor.get_num_channels(), extractor.get_image_size(), extractor.get_num_frames()
-        self.assertEqual(extractor.get_num_channels(), num_channels)
-        self.assertEqual(extractor.get_image_size(), (rows, columns))
-        self.assertEqual(extractor.get_num_frames(), num_frames)
-
-        # Compare the extracted video
-        np.testing.assert_array_almost_equal(random_video, extractor.get_frames())
-
-    def test_channel_and_frames_inversion(self):
-
-        # Build a random video
-        num_frames = 50
-        sampling_frequency = 30
-        num_channels = 3
-        rows = 10
-        columns = 10
-        memmap_shape = (num_channels, num_frames, rows, columns)
-        dtype = "uint16"
-        random_video = np.random.randint(low=1, size=memmap_shape).astype(dtype)
-
-        # Save it to memory
-        file_path = Path(mkdtemp()) / "random_video_inversion.dat"
-        file = np.memmap(file_path, dtype=dtype, mode="w+", shape=memmap_shape)
-        file[:] = random_video[:]
-        file.flush()
-        del file
-
-        # Call the extractor and test it
-        frame_shape = (num_channels, rows, columns)
-        frame_axis = 1
-        image_structure_to_axis = dict(frame_axis=frame_axis, num_channels=0, rows=2, columns=3)
-        extractor = NumpyMemmapImagingExtractor(
-            file_path=file_path,
-            frame_shape=frame_shape,
-            sampling_frequency=sampling_frequency,
+        # Use the write method and do a round-trip
+        write_path = self.write_directory / f"video_output_{case_name}.dat"
+        extractor.write_imaging(extractor, write_path)
+        roundtrip_extractor = NumpyMemmapImagingExtractor(
+            file_path=write_path,
+            video_structure=video_structure,
+            sampling_frequency=1,
             dtype=dtype,
-            image_structure_to_axis=image_structure_to_axis,
+            offset=self.offset,
         )
-
-        # Assertions
-        extractor.get_num_channels(), extractor.get_image_size(), extractor.get_num_frames()
-        self.assertEqual(extractor.get_num_channels(), num_channels)
-        self.assertEqual(extractor.get_image_size(), (rows, columns))
-        self.assertEqual(extractor.get_num_frames(), num_frames)
-
-        # Compare the extracted video
-        np.testing.assert_array_almost_equal(random_video, extractor.get_frames())
+        check_imaging_equal(imaging_extractor1=extractor, imaging_extractor2=roundtrip_extractor)
 
 
 if __name__ == "__main__":
