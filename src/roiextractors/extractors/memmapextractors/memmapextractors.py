@@ -72,9 +72,11 @@ class MemmapImagingExtractor(ImagingExtractor):
         ----------
         imaging: ImagingExtractor object
         save_path: str
-            path to save the native format.
-        overwrite: bool
-            If True and save_path is existing, it is overwritten
+            path to save the native format to.
+        verbose: bool
+            Displays a progress bar.
+        force_chunk: bool
+            Forces chunk to occur even if memmory is available
         """
         imaging = imaging_extractor
         safety_margin = 0.80  # 80 per cent
