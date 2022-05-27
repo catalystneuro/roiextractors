@@ -100,6 +100,10 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
 
         return frames
 
+    def get_video(self, start_frame: int = None, end_frame: int = None) -> np.array:
+        frame_idxs = range(start_frame, end_frame)
+        return self.get_frames(frame_idxs=frame_idxs)
+
     def get_image_size(self):
         return (self._rows, self._columns)
 

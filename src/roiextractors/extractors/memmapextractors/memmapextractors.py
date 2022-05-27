@@ -1,10 +1,7 @@
-import os
-import shutil
-import tempfile
 from pathlib import Path
-from typing import Tuple, Dict
 
 import numpy as np
+import psutil
 from tqdm import tqdm
 
 from ...imagingextractor import ImagingExtractor
@@ -62,7 +59,12 @@ class MemmapImagingExtractor(ImagingExtractor):
         return self._num_channels
 
     @staticmethod
-    def write_imaging(imaging_extractor: ImagingExtractor, save_path: PathType = None, verbose: bool = False):
+    def write_imaging(
+        imaging_extractor: ImagingExtractor,
+        save_path: PathType = None,
+        verbose: bool = False,
+        force_chunk: bool = False,
+    ):
         """
         Static method to write imaging.
 
@@ -75,14 +77,67 @@ class MemmapImagingExtractor(ImagingExtractor):
             If True and save_path is existing, it is overwritten
         """
         imaging = imaging_extractor
-        video_data_to_save = imaging.get_frames()[:]
-        memmap_shape = video_data_to_save.shape
-        video_memmap = np.memmap(
-            save_path,
-            shape=memmap_shape,
-            dtype=imaging.get_dtype(),
-            mode="w+",
-        )
+        safety_margin = 0.80  # 80 per cent
+        file_size_in_bytes = Path(imaging.file_path).stat().st_size
+        available_memory_in_bytes = psutil.virtual_memory().available
 
-        video_memmap[:] = video_data_to_save
-        video_memmap.flush()
+        memory_limit = available_memory_in_bytes * safety_margin
+        if file_size_in_bytes < memory_limit and not force_chunk:
+            video_data_to_save = imaging.get_frames()
+            memmap_shape = video_data_to_save.shape
+            video_memmap = np.memmap(
+                save_path,
+                shape=memmap_shape,
+                dtype=imaging.get_dtype(),
+                mode="w+",
+            )
+
+            video_memmap[:] = video_data_to_save
+            video_memmap.flush()
+
+        else:
+            chunk_size_in_bytes = int(available_memory_in_bytes * safety_margin)
+            dtype = imaging.get_dtype()
+            type_size = np.dtype(dtype).itemsize
+
+            n_channels = imaging.get_num_channels()
+            pixels_per_frame = n_channels * np.product(imaging.get_image_size())
+            bytes_per_frame = type_size * pixels_per_frame
+            frames_per_chunk = chunk_size_in_bytes // bytes_per_frame
+            # number_of_chunks = file_size_in_bytes / chunk_size_in_bytes
+
+            num_frames = imaging.get_num_frames()
+            memmap_shape = imaging.video_structure.build_video_shape(n_frames=num_frames)
+
+            iterator = range(0, num_frames, frames_per_chunk)
+            if verbose:
+                iterator = tqdm(iterator, ascii=True, desc="Writing to .tiff file")
+
+            for frame in iterator:
+                end_frame = min(frame + frames_per_chunk, num_frames)
+
+                # Get the video chunk
+                video_chunk = imaging.get_video(start_frame=frame, end_frame=end_frame)
+
+                # Load the memmap
+                video_memmap = np.memmap(
+                    save_path,
+                    shape=memmap_shape,
+                    dtype=dtype,
+                    mode="w+",
+                )
+
+                # Write to map
+                indices = np.arange(start=frame, stop=end_frame)
+                axis_to_expand = (
+                    imaging.video_structure.rows_axis,
+                    imaging.video_structure.columns_axis,
+                    imaging.video_structure.num_channels_axis,
+                )
+                indices = np.expand_dims(indices, axis=axis_to_expand)
+                frame_axis = imaging.video_structure.frame_axis
+                np.put_along_axis(arr=video_memmap, indices=indices, values=video_chunk, axis=frame_axis)
+
+                # Flush to liberate memory for next iteration
+                video_memmap.flush()
+                del video_memmap
