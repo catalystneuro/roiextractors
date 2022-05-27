@@ -113,7 +113,7 @@ class MemmapImagingExtractor(ImagingExtractor):
 
             iterator = range(0, num_frames, frames_per_chunk)
             if verbose:
-                iterator = tqdm(iterator, ascii=True, desc="Writing to .tiff file")
+                iterator = tqdm(iterator, ascii=True, desc="Writing to .dat file")
 
             for frame in iterator:
                 end_frame = min(frame + frames_per_chunk, num_frames)
