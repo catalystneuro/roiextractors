@@ -66,7 +66,7 @@ class MemmapImagingExtractor(ImagingExtractor):
         imaging_extractor: ImagingExtractor,
         save_path: PathType = None,
         verbose: bool = False,
-        chunk_data: bool = False,
+        buffer_data: bool = False,
     ):
         """
         Static method to write imaging.
@@ -78,7 +78,7 @@ class MemmapImagingExtractor(ImagingExtractor):
             path to save the native format to.
         verbose: bool
             Displays a progress bar.
-        chunk_data: bool
+        buffer_data: bool
             Forces chunk to occur even if memmory is available
         """
         imaging = imaging_extractor
@@ -87,7 +87,7 @@ class MemmapImagingExtractor(ImagingExtractor):
         available_memory_in_bytes = psutil.virtual_memory().available
 
         memory_limit = available_memory_in_bytes * memory_safety_margin
-        if file_size_in_bytes < memory_limit and not chunk_data:
+        if file_size_in_bytes < memory_limit and not buffer_data:
             video_data_to_save = imaging.get_frames()
             memmap_shape = video_data_to_save.shape
             video_memmap = np.memmap(
