@@ -66,7 +66,7 @@ class MemmapImagingExtractor(ImagingExtractor):
         imaging_extractor: ImagingExtractor,
         save_path: PathType = None,
         verbose: bool = False,
-        force_chunk: bool = False,
+        chunk_data: bool = False,
     ):
         """
         Static method to write imaging.
@@ -78,16 +78,16 @@ class MemmapImagingExtractor(ImagingExtractor):
             path to save the native format to.
         verbose: bool
             Displays a progress bar.
-        force_chunk: bool
+        chunk_data: bool
             Forces chunk to occur even if memmory is available
         """
         imaging = imaging_extractor
-        safety_margin = 0.80  # Accept a file smaller than 80 per cent of available memory
+        memory_safety_margin = 0.80  # Accept a file smaller than 80 per cent of available memory
         file_size_in_bytes = Path(imaging.file_path).stat().st_size
         available_memory_in_bytes = psutil.virtual_memory().available
 
-        memory_limit = available_memory_in_bytes * safety_margin
-        if file_size_in_bytes < memory_limit and not force_chunk:
+        memory_limit = available_memory_in_bytes * memory_safety_margin
+        if file_size_in_bytes < memory_limit and not chunk_data:
             video_data_to_save = imaging.get_frames()
             memmap_shape = video_data_to_save.shape
             video_memmap = np.memmap(
@@ -101,7 +101,7 @@ class MemmapImagingExtractor(ImagingExtractor):
             video_memmap.flush()
 
         else:
-            chunk_size_in_bytes = int(available_memory_in_bytes * safety_margin)
+            chunk_size_in_bytes = int(available_memory_in_bytes * memory_safety_margin)
             dtype = imaging.get_dtype()
             type_size = np.dtype(dtype).itemsize
 

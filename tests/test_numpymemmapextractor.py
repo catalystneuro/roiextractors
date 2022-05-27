@@ -36,21 +36,21 @@ class TestNumpyMemmapExtractor(unittest.TestCase):
     sizes_list = [10, 25]
     chunking_condition = [True, False]
     for parameters in product(dtype_list, num_channels_list, sizes_list, sizes_list, chunking_condition):
-        dtype, num_channels, rows, columns, force_chunk = parameters
+        dtype, num_channels, rows, columns, chunk_data = parameters
         param_case = param(
             dtype=dtype,
             num_channels=num_channels,
             rows=rows,
             columns=columns,
-            force_chunk=force_chunk,
+            chunk_data=chunk_data,
             case_name=(
-                f"dtype={dtype}, num_channels={num_channels}, rows={rows}, columns={columns}, chunking={force_chunk}"
+                f"dtype={dtype}, num_channels={num_channels}, rows={rows}, columns={columns}, chunking={chunk_data}"
             ),
         )
         parameterized_list.append(param_case)
 
     @parameterized.expand(input=parameterized_list, name_func=custom_name_func)
-    def test_roundtrip(self, dtype, num_channels, rows, columns, force_chunk, case_name=""):
+    def test_roundtrip(self, dtype, num_channels, rows, columns, chunk_data, case_name=""):
 
         permutation = self.rng.choice([0, 1, 2, 3], size=4, replace=False)
         rows_axis, columns_axis, num_channels_axis, frame_axis = permutation
@@ -84,7 +84,7 @@ class TestNumpyMemmapExtractor(unittest.TestCase):
 
         # Use the write method and do a round-trip
         write_path = self.write_directory / f"video_output_{case_name}.dat"
-        extractor.write_imaging(extractor, write_path, force_chunk=force_chunk)
+        extractor.write_imaging(extractor, write_path, chunk_data=chunk_data)
         roundtrip_extractor = NumpyMemmapImagingExtractor(
             file_path=write_path,
             video_structure=video_structure,
