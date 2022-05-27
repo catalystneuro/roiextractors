@@ -20,6 +20,9 @@ class MemmapImagingExtractor(ImagingExtractor):
     def __init__(
         self,
     ):
+        """
+        Abstract class for memmapable imaging extractors.
+        """
         super().__init__()
 
         pass
@@ -70,7 +73,7 @@ class MemmapImagingExtractor(ImagingExtractor):
 
         Parameters
         ----------
-        imaging: ImagingExtractor object
+        imaging: An ImagingExtractor object that inherited from MemmapImagingExtractor
         save_path: str
             path to save the native format to.
         verbose: bool
@@ -79,7 +82,7 @@ class MemmapImagingExtractor(ImagingExtractor):
             Forces chunk to occur even if memmory is available
         """
         imaging = imaging_extractor
-        safety_margin = 0.80  # 80 per cent
+        safety_margin = 0.80  # Accept a file smaller than 80 per cent of available memory
         file_size_in_bytes = Path(imaging.file_path).stat().st_size
         available_memory_in_bytes = psutil.virtual_memory().available
 
@@ -106,7 +109,6 @@ class MemmapImagingExtractor(ImagingExtractor):
             pixels_per_frame = n_channels * np.product(imaging.get_image_size())
             bytes_per_frame = type_size * pixels_per_frame
             frames_per_chunk = chunk_size_in_bytes // bytes_per_frame
-            # number_of_chunks = file_size_in_bytes / chunk_size_in_bytes
 
             num_frames = imaging.get_num_frames()
             memmap_shape = imaging.video_structure.build_video_shape(n_frames=num_frames)
@@ -129,7 +131,7 @@ class MemmapImagingExtractor(ImagingExtractor):
                     mode="w+",
                 )
 
-                # Write to map
+                # Fit the video chunk in the memmap array
                 indices = np.arange(start=frame, stop=end_frame)
                 axis_to_expand = (
                     imaging.video_structure.rows_axis,
