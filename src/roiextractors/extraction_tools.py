@@ -1,4 +1,3 @@
-import os
 from functools import wraps
 from pathlib import Path
 from typing import Union, Tuple
@@ -135,10 +134,51 @@ class VideoStructure:
 def read_numpy_memmap_video(
     file_path: PathType, video_structure: VideoStructure, dtype: DtypeType, offset: int = 0
 ) -> np.array:
+    """Auxiliary function to read videos from binary files.
 
-    file = file_path.open()
-    file_descriptor = file.fileno()
-    file_size_bytes = os.fstat(file_descriptor).st_size
+    Parameters
+    ----------
+        file_path : PathType
+            the file_path where the data resides.
+        video_structure : VideoStructure
+            A VideoStructure instance describing the structure of the video to read. This includes parameters
+            such as the rows, columns and number of channels of the frames plus which axis (i.e. dimension) of the
+            image corresponds to each of them.
+
+            As an example you create one of these structures in the following way:
+
+            from roiextractors.extraction_tools import VideoStructure
+
+            rows = 10
+            columns = 5
+            num_channels = 3
+            frame_axis = 0
+            rows_axis = 1
+            columns_axis = 2
+            num_channels_axis = 3
+
+            video_structure = VideoStructure(
+                rows=rows,
+                columns=columns,
+                num_channels=num_channels,
+                rows_axis=rows_axis,
+                columns_axis=columns_axis,
+                num_channels_axis=num_channels_axis,
+                frame_axis=frame_axis,
+            )
+
+        dtype : DtypeType
+            The type of the data to be loaded (int, float, etc.)
+        offset : int, optional
+            The offset in bytes. Usually corresponds to the number of bytes occupied by the header. 0 by default.
+
+    Returns
+    -------
+    video_memap: np.array
+        A numpy memmap pointing to the video.
+    """
+
+    file_size_bytes = Path(file_path).stat().st_size
 
     pixels_per_frame = video_structure.number_of_pixels_per_frame
     type_size = np.dtype(dtype).itemsize
