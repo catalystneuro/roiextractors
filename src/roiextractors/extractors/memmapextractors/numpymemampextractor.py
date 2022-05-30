@@ -7,13 +7,8 @@ from tqdm import tqdm
 
 from ...imagingextractor import ImagingExtractor
 from typing import Tuple, Dict
-from roiextractors.extraction_tools import read_numpy_memmap_video, VideoStructure
+from roiextractors.extraction_tools import read_numpy_memmap_video, VideoStructure, DtypeType, PathType
 from .memmapextractors import MemmapImagingExtractor
-
-from ...extraction_tools import (
-    PathType,
-    DtypeType,
-)
 
 
 class NumpyMemmapImagingExtractor(MemmapImagingExtractor):

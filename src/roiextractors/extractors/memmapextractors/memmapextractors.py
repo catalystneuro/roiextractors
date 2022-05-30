@@ -64,9 +64,9 @@ class MemmapImagingExtractor(ImagingExtractor):
     @staticmethod
     def write_imaging(
         imaging_extractor: ImagingExtractor,
-        save_path: PathType = None,
+        save_path: PathType,
         verbose: bool = False,
-        buffer_data: bool = False,
+        buffer_gb: int = 0,
     ):
         """
         Static method to write imaging.
@@ -78,31 +78,34 @@ class MemmapImagingExtractor(ImagingExtractor):
             path to save the native format to.
         verbose: bool
             Displays a progress bar.
-        buffer_data: bool
-            Forces chunk to occur even if memmory is available
+        buffer_gb: int
+            The size of the buffer in Gigabytes. Default of 0 forces chunks that cover only one image.
         """
         imaging = imaging_extractor
-        memory_safety_margin = 0.80  # Accept a file smaller than 80 per cent of available memory
         file_size_in_bytes = Path(imaging.file_path).stat().st_size
         available_memory_in_bytes = psutil.virtual_memory().available
+        buffer_size_in_bytes = buffer_gb * 10**9
+        if available_memory_in_bytes < buffer_size_in_bytes:
+            raise f"Not enough memory available memory {available_memory_in_bytes* 10**9} for buffer size {buffer_gb}"
 
-        memory_limit = available_memory_in_bytes * memory_safety_margin
-        if file_size_in_bytes < memory_limit and not buffer_data:
+        num_frames = imaging.get_num_frames()
+        memmap_shape = imaging.video_structure.build_video_shape(n_frames=num_frames)
+        dtype = imaging.get_dtype()
+
+        # Load the memmap
+        video_memmap = np.memmap(
+            save_path,
+            shape=memmap_shape,
+            dtype=dtype,
+            mode="w+",
+        )
+
+        if file_size_in_bytes < buffer_size_in_bytes:
             video_data_to_save = imaging.get_frames()
-            memmap_shape = video_data_to_save.shape
-            video_memmap = np.memmap(
-                save_path,
-                shape=memmap_shape,
-                dtype=imaging.get_dtype(),
-                mode="w+",
-            )
-
             video_memmap[:] = video_data_to_save
-            video_memmap.flush()
 
         else:
-            chunk_size_in_bytes = int(available_memory_in_bytes * memory_safety_margin)
-            dtype = imaging.get_dtype()
+            chunk_size_in_bytes = int(buffer_size_in_bytes)
             type_size = np.dtype(dtype).itemsize
 
             n_channels = imaging.get_num_channels()
@@ -110,9 +113,8 @@ class MemmapImagingExtractor(ImagingExtractor):
             bytes_per_frame = type_size * pixels_per_frame
             frames_per_chunk = chunk_size_in_bytes // bytes_per_frame
 
-            num_frames = imaging.get_num_frames()
-            memmap_shape = imaging.video_structure.build_video_shape(n_frames=num_frames)
-
+            # If the chunk size is smaller than one image, the iterator goes over one image only.
+            frames_per_chunk = max(frames_per_chunk, 1)
             iterator = range(0, num_frames, frames_per_chunk)
             if verbose:
                 iterator = tqdm(iterator, ascii=True, desc="Writing to .dat file")
@@ -122,14 +124,6 @@ class MemmapImagingExtractor(ImagingExtractor):
 
                 # Get the video chunk
                 video_chunk = imaging.get_video(start_frame=frame, end_frame=end_frame)
-
-                # Load the memmap
-                video_memmap = np.memmap(
-                    save_path,
-                    shape=memmap_shape,
-                    dtype=dtype,
-                    mode="w+",
-                )
 
                 # Fit the video chunk in the memmap array
                 indices = np.arange(start=frame, stop=end_frame)
@@ -142,6 +136,6 @@ class MemmapImagingExtractor(ImagingExtractor):
                 frame_axis = imaging.video_structure.frame_axis
                 np.put_along_axis(arr=video_memmap, indices=indices, values=video_chunk, axis=frame_axis)
 
-                # Flush to liberate memory for next iteration
-                video_memmap.flush()
-                del video_memmap
+        # Flush the video and delete it
+        video_memmap.flush()
+        del video_memmap

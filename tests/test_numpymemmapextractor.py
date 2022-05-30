@@ -34,23 +34,23 @@ class TestNumpyMemmapExtractor(unittest.TestCase):
     dtype_list = ["uint16", "float", "int"]
     num_channels_list = [1, 3]
     sizes_list = [10, 25]
-    ber_data_condition_condition = [True, False]
-    for parameters in product(dtype_list, num_channels_list, sizes_list, sizes_list, ber_data_condition_condition):
-        dtype, num_channels, rows, columns, buffer_data = parameters
+    buffer_gb_list = [0.0001, 1]
+    for parameters in product(dtype_list, num_channels_list, sizes_list, sizes_list, buffer_gb_list):
+        dtype, num_channels, rows, columns, buffer_gb = parameters
         param_case = param(
             dtype=dtype,
             num_channels=num_channels,
             rows=rows,
             columns=columns,
-            buffer_data=buffer_data,
+            buffer_gb=buffer_gb,
             case_name=(
-                f"dtype={dtype}, num_channels={num_channels}, rows={rows}, columns={columns}, buffer_data={buffer_data}"
+                f"dtype={dtype}, num_channels={num_channels}, rows={rows}, columns={columns}, buffer_gb={buffer_gb}"
             ),
         )
         parameterized_list.append(param_case)
 
     @parameterized.expand(input=parameterized_list, name_func=custom_name_func)
-    def test_roundtrip(self, dtype, num_channels, rows, columns, buffer_data, case_name=""):
+    def test_roundtrip(self, dtype, num_channels, rows, columns, buffer_gb, case_name=""):
 
         permutation = self.rng.choice([0, 1, 2, 3], size=4, replace=False)
         rows_axis, columns_axis, num_channels_axis, frame_axis = permutation
@@ -84,7 +84,7 @@ class TestNumpyMemmapExtractor(unittest.TestCase):
 
         # Use the write method and do a round-trip
         write_path = self.write_directory / f"video_output_{case_name}.dat"
-        extractor.write_imaging(extractor, write_path, buffer_data=buffer_data)
+        extractor.write_imaging(extractor, write_path, buffer_gb=buffer_gb)
         roundtrip_extractor = NumpyMemmapImagingExtractor(
             file_path=write_path,
             video_structure=video_structure,
