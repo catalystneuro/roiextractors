@@ -19,18 +19,25 @@ class MemmapImagingExtractor(ImagingExtractor):
 
     def __init__(
         self,
+        video,
     ):
         """
         Abstract class for memmapable imaging extractors.
         """
+        self._video = video
         super().__init__()
-
-        pass
 
     def get_frames(self, frame_idxs=None):
         if frame_idxs is None:
             frame_idxs = [frame for frame in range(self.get_num_frames())]
-        return self._video.take(indices=frame_idxs, axis=self.frame_axis)
+
+        frames = self._video.take(indices=frame_idxs, axis=0)
+
+        return frames
+
+    def get_video(self, start_frame: int = None, end_frame: int = None) -> np.array:
+        frame_idxs = range(start_frame, end_frame)
+        return self.get_frames(frame_idxs=frame_idxs)
 
     def get_image_size(self):
         return (self._rows, self._columns)
@@ -61,6 +68,13 @@ class MemmapImagingExtractor(ImagingExtractor):
         """
         return self._num_channels
 
+    def get_dtype(self) -> DtypeType:
+        return self.dtype
+
+    def get_video_shape(self):
+
+        return (self._num_frames, self._rows, self._columns, self._num_channels)
+
     @staticmethod
     def write_imaging(
         imaging_extractor: ImagingExtractor,
@@ -89,7 +103,7 @@ class MemmapImagingExtractor(ImagingExtractor):
             raise f"Not enough memory available memory {available_memory_in_bytes* 10**9} for buffer size {buffer_gb}"
 
         num_frames = imaging.get_num_frames()
-        memmap_shape = imaging.video_structure.build_video_shape(n_frames=num_frames)
+        memmap_shape = imaging.get_video_shape()
         dtype = imaging.get_dtype()
 
         # Load the memmap
@@ -120,21 +134,14 @@ class MemmapImagingExtractor(ImagingExtractor):
                 iterator = tqdm(iterator, ascii=True, desc="Writing to .dat file")
 
             for frame in iterator:
+                start_frame = frame
                 end_frame = min(frame + frames_per_chunk, num_frames)
 
                 # Get the video chunk
-                video_chunk = imaging.get_video(start_frame=frame, end_frame=end_frame)
+                video_chunk = imaging.get_video(start_frame=start_frame, end_frame=end_frame)
 
                 # Fit the video chunk in the memmap array
-                indices = np.arange(start=frame, stop=end_frame)
-                axis_to_expand = (
-                    imaging.video_structure.rows_axis,
-                    imaging.video_structure.columns_axis,
-                    imaging.video_structure.num_channels_axis,
-                )
-                indices = np.expand_dims(indices, axis=axis_to_expand)
-                frame_axis = imaging.video_structure.frame_axis
-                np.put_along_axis(arr=video_memmap, indices=indices, values=video_chunk, axis=frame_axis)
+                video_memmap[start_frame:end_frame, ...] = video_chunk
 
         # Flush the video and delete it
         video_memmap.flush()
