@@ -11,6 +11,8 @@ from ...extraction_tools import (
     FloatType,
     ArrayType,
 )
+
+from typing import Tuple
 from ...imagingextractor import ImagingExtractor
 
 try:
@@ -80,7 +82,7 @@ class TiffImagingExtractor(ImagingExtractor):
     def get_frames(self, frame_idxs, channel=0):
         return self._video[channel, frame_idxs]
 
-    def get_image_size(self):
+    def get_image_size(self) -> Tuple[int, int]:
         return (self._size_x, self._size_y)
 
     def get_num_frames(self):
