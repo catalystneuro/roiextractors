@@ -66,7 +66,7 @@ class MemmapImagingExtractor(ImagingExtractor):
         imaging_extractor: ImagingExtractor,
         save_path: PathType,
         verbose: bool = False,
-        buffer_gb: int = 0,
+        buffer_gb: float = 0,
     ):
         """
         Static method to write imaging.
@@ -84,9 +84,9 @@ class MemmapImagingExtractor(ImagingExtractor):
         imaging = imaging_extractor
         file_size_in_bytes = Path(imaging.file_path).stat().st_size
         available_memory_in_bytes = psutil.virtual_memory().available
-        buffer_size_in_bytes = buffer_gb * 10**9
+        buffer_size_in_bytes = buffer_gb * 1e9
         if available_memory_in_bytes < buffer_size_in_bytes:
-            raise f"Not enough memory available memory {available_memory_in_bytes* 10**9} for buffer size {buffer_gb}"
+            raise f"Not enough memory available memory {available_memory_in_bytes* 1e9} for buffer size {buffer_gb}"
 
         num_frames = imaging.get_num_frames()
         memmap_shape = imaging.video_structure.build_video_shape(n_frames=num_frames)
