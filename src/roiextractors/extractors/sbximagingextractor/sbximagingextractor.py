@@ -7,6 +7,8 @@ from ...extraction_tools import PathType, ArrayType
 from ...extraction_tools import check_keys
 from ...imagingextractor import ImagingExtractor
 
+from typing import Tuple
+
 try:
     import scipy.io as spio
 
@@ -130,8 +132,8 @@ class SbxImagingExtractor(ImagingExtractor):
         frame_out = np.stack(frames_list, axis=2).T.squeeze()
         return np.iinfo("uint16").max - frame_out
 
-    def get_image_size(self) -> ArrayType:
-        return self._info["sz"]
+    def get_image_size(self) -> Tuple[int, int]:
+        return tuple(self._info["sz"])
 
     def get_num_frames(self) -> int:
         return (self._info["max_idx"] + 1) // self._info["nplanes"]
