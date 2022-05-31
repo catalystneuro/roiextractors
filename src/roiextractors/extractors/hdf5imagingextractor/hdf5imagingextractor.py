@@ -108,7 +108,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
             # return lazy_ops.DatasetView(self._video).lazy_slice[channel, sorted_idxs].lazy_slice[:, argsorted_idxs]
 
     def get_image_size(self):
-        return [self._size_x, self._size_y]
+        return (self._size_x, self._size_y)
 
     def get_num_frames(self):
         return self._num_frames

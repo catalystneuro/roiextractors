@@ -131,7 +131,7 @@ class SbxImagingExtractor(ImagingExtractor):
         return np.iinfo("uint16").max - frame_out
 
     def get_image_size(self) -> ArrayType:
-        return self._info["sz"]
+        return tuple(self._info["sz"])
 
     def get_num_frames(self) -> int:
         return (self._info["max_idx"] + 1) // self._info["nplanes"]
