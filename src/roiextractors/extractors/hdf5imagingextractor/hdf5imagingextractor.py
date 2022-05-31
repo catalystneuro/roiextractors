@@ -9,6 +9,7 @@ from ...extraction_tools import (
     write_to_h5_dataset_format,
 )
 from ...imagingextractor import ImagingExtractor
+from typing import Tuple
 
 try:
     import h5py
@@ -107,8 +108,8 @@ class Hdf5ImagingExtractor(ImagingExtractor):
             return self._video[channel, sorted_idxs][:, argsorted_idxs]
             # return lazy_ops.DatasetView(self._video).lazy_slice[channel, sorted_idxs].lazy_slice[:, argsorted_idxs]
 
-    def get_image_size(self):
-        return [self._size_x, self._size_y]
+    def get_image_size(self) -> Tuple[int, int]:
+        return (self._size_x, self._size_y)
 
     def get_num_frames(self):
         return self._num_frames
