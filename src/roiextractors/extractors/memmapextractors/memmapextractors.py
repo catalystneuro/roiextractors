@@ -27,17 +27,19 @@ class MemmapImagingExtractor(ImagingExtractor):
         self._video = video
         super().__init__()
 
-    def get_frames(self, frame_idxs=None):
+    def get_frames(self, frame_idxs=None, channel: int = 0):
         if frame_idxs is None:
             frame_idxs = [frame for frame in range(self.get_num_frames())]
 
         frames = self._video.take(indices=frame_idxs, axis=0)
+        if channel is not None:
+            frames = frames[:, :, :, channel].squeeze()
 
         return frames
 
-    def get_video(self, start_frame: int = None, end_frame: int = None) -> np.array:
+    def get_video(self, start_frame: int = None, end_frame: int = None, channel: int = 0) -> np.array:
         frame_idxs = range(start_frame, end_frame)
-        return self.get_frames(frame_idxs=frame_idxs)
+        return self.get_frames(frame_idxs=frame_idxs, channel=channel)
 
     def get_image_size(self):
         return (self._rows, self._columns)
@@ -120,7 +122,7 @@ class MemmapImagingExtractor(ImagingExtractor):
         )
 
         if file_size_in_bytes < buffer_size_in_bytes:
-            video_data_to_save = imaging.get_frames()
+            video_data_to_save = imaging.get_frames(channel=None)
             video_memmap[:] = video_data_to_save
 
         else:
@@ -143,7 +145,7 @@ class MemmapImagingExtractor(ImagingExtractor):
                 end_frame = min(frame + frames_in_buffer, num_frames)
 
                 # Get the video chunk
-                video_chunk = imaging.get_video(start_frame=start_frame, end_frame=end_frame)
+                video_chunk = imaging.get_video(start_frame=start_frame, end_frame=end_frame, channel=None)
 
                 # Fit the video chunk in the memmap array
                 video_memmap[start_frame:end_frame, ...] = video_chunk
