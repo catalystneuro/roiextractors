@@ -5,7 +5,7 @@ import psutil
 from tqdm import tqdm
 
 from ...imagingextractor import ImagingExtractor
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional
 
 from ...extraction_tools import (
     PathType,
@@ -66,7 +66,7 @@ class MemmapImagingExtractor(ImagingExtractor):
         imaging_extractor: ImagingExtractor,
         save_path: PathType,
         verbose: bool = False,
-        buffer_gb: float = 0,
+        buffer_size_in_gb: Optional[float] = None,
     ):
         """
         Static method to write imaging.
@@ -78,15 +78,20 @@ class MemmapImagingExtractor(ImagingExtractor):
             path to save the native format to.
         verbose: bool
             Displays a progress bar.
-        buffer_gb: int
-            The size of the buffer in Gigabytes. Default of 0 forces chunks that cover only one image.
+        buffer_size_in_gb: float
+            The size of the buffer in Gigabytes. The default of None results in buffering over one frame at a time.
         """
+
+        # The base and default case is to load one image at a time.
+        if buffer_size_in_gb is None:
+            buffer_size_in_gb = 0
+
         imaging = imaging_extractor
         file_size_in_bytes = Path(imaging.file_path).stat().st_size
         available_memory_in_bytes = psutil.virtual_memory().available
-        buffer_size_in_bytes = buffer_gb * 1e9
+        buffer_size_in_bytes = int(buffer_size_in_gb * 1e9)
         if available_memory_in_bytes < buffer_size_in_bytes:
-            raise f"Not enough memory available memory {available_memory_in_bytes* 1e9} for buffer size {buffer_gb}"
+            raise f"Not enough memory available, {available_memory_in_bytes* 1e9} for buffer size {buffer_size_in_gb}"
 
         num_frames = imaging.get_num_frames()
         memmap_shape = imaging.video_structure.build_video_shape(n_frames=num_frames)
@@ -105,27 +110,27 @@ class MemmapImagingExtractor(ImagingExtractor):
             video_memmap[:] = video_data_to_save
 
         else:
-            chunk_size_in_bytes = int(buffer_size_in_bytes)
+            buffer_size_in_bytes = int(buffer_size_in_bytes)
             type_size = np.dtype(dtype).itemsize
 
             n_channels = imaging.get_num_channels()
             pixels_per_frame = n_channels * np.product(imaging.get_image_size())
             bytes_per_frame = type_size * pixels_per_frame
-            frames_per_chunk = chunk_size_in_bytes // bytes_per_frame
+            frames_in_buffer = buffer_size_in_bytes // bytes_per_frame
 
-            # If the chunk size is smaller than one image, the iterator goes over one image only.
-            frames_per_chunk = max(frames_per_chunk, 1)
-            iterator = range(0, num_frames, frames_per_chunk)
+            # If the buffer size is smaller than the size of one image, the iterator goes over one image only.
+            frames_in_buffer = max(frames_in_buffer, 1)
+            iterator = range(0, num_frames, frames_in_buffer)
             if verbose:
                 iterator = tqdm(iterator, ascii=True, desc="Writing to .dat file")
 
             for frame in iterator:
-                end_frame = min(frame + frames_per_chunk, num_frames)
+                end_frame = min(frame + frames_in_buffer, num_frames)
 
-                # Get the video chunk
-                video_chunk = imaging.get_video(start_frame=frame, end_frame=end_frame)
+                # Get the video in buffer
+                video_in_buffer = imaging.get_video(start_frame=frame, end_frame=end_frame)
 
-                # Fit the video chunk in the memmap array
+                # Fit the video buffer in the memmap array
                 indices = np.arange(start=frame, stop=end_frame)
                 axis_to_expand = (
                     imaging.video_structure.rows_axis,
@@ -134,7 +139,7 @@ class MemmapImagingExtractor(ImagingExtractor):
                 )
                 indices = np.expand_dims(indices, axis=axis_to_expand)
                 frame_axis = imaging.video_structure.frame_axis
-                np.put_along_axis(arr=video_memmap, indices=indices, values=video_chunk, axis=frame_axis)
+                np.put_along_axis(arr=video_memmap, indices=indices, values=video_in_buffer, axis=frame_axis)
 
         # Flush the video and delete it
         video_memmap.flush()
