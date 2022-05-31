@@ -14,6 +14,7 @@ from .extraction_tools import (
     FloatType,
     check_get_videos_args,
 )
+from typing import Tuple
 
 
 class ImagingExtractor(ABC, BaseExtractor):
@@ -31,7 +32,7 @@ class ImagingExtractor(ABC, BaseExtractor):
         pass
 
     @abstractmethod
-    def get_image_size(self) -> ArrayType:
+    def get_image_size(self) -> Tuple[int, int]:
         pass
 
     @abstractmethod
