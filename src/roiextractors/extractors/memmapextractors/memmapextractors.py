@@ -1,14 +1,11 @@
-import os
-import shutil
-import tempfile
 from pathlib import Path
-from typing import Tuple, Dict
 
 import numpy as np
+import psutil
 from tqdm import tqdm
 
 from ...imagingextractor import ImagingExtractor
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional
 
 from ...extraction_tools import (
     PathType,
@@ -22,10 +19,11 @@ class MemmapImagingExtractor(ImagingExtractor):
 
     def __init__(
         self,
-        imaging_extractor: ImagingExtractor,
-        save_path: PathType = None,
-        verbose: bool = False,
     ):
+        """
+        Abstract class for memmapable imaging extractors.
+        """
+        super().__init__()
 
         pass
 
@@ -64,43 +62,85 @@ class MemmapImagingExtractor(ImagingExtractor):
         return self._num_channels
 
     @staticmethod
-    def write_imaging(imaging_extractor: ImagingExtractor, save_path: PathType = None, verbose: bool = False):
+    def write_imaging(
+        imaging_extractor: ImagingExtractor,
+        save_path: PathType,
+        verbose: bool = False,
+        buffer_size_in_gb: Optional[float] = None,
+    ):
         """
         Static method to write imaging.
 
         Parameters
         ----------
-        imaging: ImagingExtractor object
-            The EXTRACT segmentation object from which an EXTRACT native format
-            file has to be generated.
+        imaging: An ImagingExtractor object that inherited from MemmapImagingExtractor
         save_path: str
-            path to save the native format.
-        overwrite: bool
-            If True and save_path is existing, it is overwritten
+            path to save the native format to.
+        verbose: bool
+            Displays a progress bar.
+        buffer_size_in_gb: float
+            The size of the buffer in Gigabytes. The default of None results in buffering over one frame at a time.
         """
+
+        # The base and default case is to load one image at a time.
+        if buffer_size_in_gb is None:
+            buffer_size_in_gb = 0
+
         imaging = imaging_extractor
-        video_to_save = np.memmap(
+        file_size_in_bytes = Path(imaging.file_path).stat().st_size
+        available_memory_in_bytes = psutil.virtual_memory().available
+        buffer_size_in_bytes = int(buffer_size_in_gb * 1e9)
+        if available_memory_in_bytes < buffer_size_in_bytes:
+            raise f"Not enough memory available, {available_memory_in_bytes* 1e9} for buffer size {buffer_size_in_gb}"
+
+        num_frames = imaging.get_num_frames()
+        memmap_shape = imaging.video_structure.build_video_shape(n_frames=num_frames)
+        dtype = imaging.get_dtype()
+
+        # Load the memmap
+        video_memmap = np.memmap(
             save_path,
-            shape=(
-                imaging.get_num_frames(),
-                imaging.get_num_channels(),
-                imaging.get_image_size()[0],
-                imaging.get_image_size()[1],
-            ),
-            dtype=imaging.get_dtype(),
+            shape=memmap_shape,
+            dtype=dtype,
             mode="w+",
         )
 
-        if verbose:
-            for ch in range(imaging.get_num_channels()):
-                print(f"Saving channel {ch}")
-                for i in tqdm(range(imaging.get_num_frames())):
-                    plane = imaging.get_frames(i, channel=ch)
-                    video_to_save[ch, i] = plane
-        else:
-            for ch in range(imaging.get_num_channels()):
-                for i in range(imaging.get_num_frames()):
-                    plane = imaging.get_frames(i, channel=ch)
-                    video_to_save[ch, i] = plane
+        if file_size_in_bytes < buffer_size_in_bytes:
+            video_data_to_save = imaging.get_frames()
+            video_memmap[:] = video_data_to_save
 
-        video_to_save.flush()
+        else:
+            buffer_size_in_bytes = int(buffer_size_in_bytes)
+            type_size = np.dtype(dtype).itemsize
+
+            n_channels = imaging.get_num_channels()
+            pixels_per_frame = n_channels * np.product(imaging.get_image_size())
+            bytes_per_frame = type_size * pixels_per_frame
+            frames_in_buffer = buffer_size_in_bytes // bytes_per_frame
+
+            # If the buffer size is smaller than the size of one image, the iterator goes over one image only.
+            frames_in_buffer = max(frames_in_buffer, 1)
+            iterator = range(0, num_frames, frames_in_buffer)
+            if verbose:
+                iterator = tqdm(iterator, ascii=True, desc="Writing to .dat file")
+
+            for frame in iterator:
+                end_frame = min(frame + frames_in_buffer, num_frames)
+
+                # Get the video in buffer
+                video_in_buffer = imaging.get_video(start_frame=frame, end_frame=end_frame)
+
+                # Fit the video buffer in the memmap array
+                indices = np.arange(start=frame, stop=end_frame)
+                axis_to_expand = (
+                    imaging.video_structure.rows_axis,
+                    imaging.video_structure.columns_axis,
+                    imaging.video_structure.num_channels_axis,
+                )
+                indices = np.expand_dims(indices, axis=axis_to_expand)
+                frame_axis = imaging.video_structure.frame_axis
+                np.put_along_axis(arr=video_memmap, indices=indices, values=video_in_buffer, axis=frame_axis)
+
+        # Flush the video and delete it
+        video_memmap.flush()
+        del video_memmap

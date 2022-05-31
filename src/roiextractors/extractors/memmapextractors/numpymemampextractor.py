@@ -7,15 +7,11 @@ from tqdm import tqdm
 
 from ...imagingextractor import ImagingExtractor
 from typing import Tuple, Dict
-from roiextractors.extraction_tools import read_numpy_memmap_video, VideoStructure
-
-from ...extraction_tools import (
-    PathType,
-    DtypeType,
-)
+from roiextractors.extraction_tools import read_numpy_memmap_video, VideoStructure, DtypeType, PathType
+from .memmapextractors import MemmapImagingExtractor
 
 
-class NumpyMemmapImagingExtractor(ImagingExtractor):
+class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
 
     extractor_name = "NumpyMemmapImagingExtractor"
 
@@ -99,6 +95,10 @@ class NumpyMemmapImagingExtractor(ImagingExtractor):
 
         return frames
 
+    def get_video(self, start_frame: int = None, end_frame: int = None) -> np.array:
+        frame_idxs = range(start_frame, end_frame)
+        return self.get_frames(frame_idxs=frame_idxs)
+
     def get_image_size(self):
         return (self._rows, self._columns)
 
@@ -130,29 +130,3 @@ class NumpyMemmapImagingExtractor(ImagingExtractor):
 
     def get_dtype(self) -> DtypeType:
         return self.dtype
-
-    @staticmethod
-    def write_imaging(imaging_extractor: ImagingExtractor, save_path: PathType = None, verbose: bool = False):
-        """
-        Static method to write imaging.
-
-        Parameters
-        ----------
-        imaging: ImagingExtractor object
-        save_path: str
-            path to save the native format.
-        overwrite: bool
-            If True and save_path is existing, it is overwritten
-        """
-        imaging = imaging_extractor
-        video_data_to_save = imaging.get_frames()[:]
-        memmap_shape = video_data_to_save.shape
-        video_memmap = np.memmap(
-            save_path,
-            shape=memmap_shape,
-            dtype=imaging.get_dtype(),
-            mode="w+",
-        )
-
-        video_memmap[:] = video_data_to_save
-        video_memmap.flush()
