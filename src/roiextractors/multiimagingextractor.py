@@ -23,9 +23,7 @@ class MultiImagingExtractor(ImagingExtractor, ABC):
             list of imaging extractor objects
         """
         super().__init__()
-        assert isinstance(
-            imaging_extractors, list
-        ), "Enter a list of imaging extractor objects as argument"
+        assert isinstance(imaging_extractors, list), "Enter a list of imaging extractor objects as argument"
         assert all(isinstance(IX, ImagingExtractor) for IX in imaging_extractors)
         self._imaging_extractors = imaging_extractors
 
@@ -33,9 +31,7 @@ class MultiImagingExtractor(ImagingExtractor, ABC):
         self._first_imaging_extractor = self._imaging_extractors[0]
         self._num_channels = self._first_imaging_extractor.get_num_channels()
         self._channel_names = self._first_imaging_extractor.get_channel_names()
-        self._sampling_frequency = (
-            self._first_imaging_extractor.get_sampling_frequency()
-        )
+        self._sampling_frequency = self._first_imaging_extractor.get_sampling_frequency()
         self._image_size = self._first_imaging_extractor.get_image_size()
 
         self._start_frames, self._end_frames = [], []
