@@ -56,18 +56,30 @@ class MultiImagingExtractor(ImagingExtractor, ABC):
         self._num_frames = int(num_frames)
 
     def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> NumpyArray:
-        extractor_index = self._get_imaging_extractor_index(frame_idxs[0])
-        rel_frame_index = frame_idxs[0] - int(self._start_frames[extractor_index])
+        extractor_indices = np.searchsorted(self._end_frames, frame_idxs, side="right")
+
+        frames_to_concatenate = []
+        # Extract frames for each extractor and concatenate
+        for extractor_index in extractor_indices:
+            frames_for_each_extractor = self._get_frames_from_an_imaging_extractor(
+                extractor_index=extractor_index,
+                frame_idxs=frame_idxs,
+            )
+            frames_to_concatenate.append(frames_for_each_extractor[np.newaxis, ...])
+
+        frames = np.concatenate(frames_to_concatenate, axis=0)
+        return frames
+
+    def _get_frames_from_an_imaging_extractor(
+        self, extractor_index: int, frame_idxs: ArrayType
+    ):
+        relative_frame_indices = (
+            np.array(frame_idxs) - self._start_frames[extractor_index]
+        ).astype(int)
         imaging_extractor = self._imaging_extractors[extractor_index]
 
-        return imaging_extractor.get_frames(frame_idxs=[rel_frame_index])
-
-    def _get_imaging_extractor_index(self, frame_index: int):
-        for ind, (start, end) in enumerate(zip(self._start_frames, self._end_frames)):
-            if start <= frame_index < end:
-                return ind
-
-        return len(self._start_frames) - 1
+        frames = imaging_extractor.get_frames(frame_idxs=relative_frame_indices)
+        return frames
 
     def get_image_size(self) -> Tuple:
         return self._image_size
