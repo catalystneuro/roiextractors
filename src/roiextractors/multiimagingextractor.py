@@ -70,12 +70,8 @@ class MultiImagingExtractor(ImagingExtractor, ABC):
         frames = np.concatenate(frames_to_concatenate, axis=0)
         return frames
 
-    def _get_frames_from_an_imaging_extractor(
-        self, extractor_index: int, frame_idxs: ArrayType
-    ):
-        relative_frame_indices = (
-            np.array(frame_idxs) - self._start_frames[extractor_index]
-        ).astype(int)
+    def _get_frames_from_an_imaging_extractor(self, extractor_index: int, frame_idxs: ArrayType):
+        relative_frame_indices = (np.array(frame_idxs) - self._start_frames[extractor_index]).astype(int)
         imaging_extractor = self._imaging_extractors[extractor_index]
 
         frames = imaging_extractor.get_frames(frame_idxs=relative_frame_indices)
