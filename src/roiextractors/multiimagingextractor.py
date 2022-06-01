@@ -2,6 +2,8 @@ from abc import ABC
 from array import ArrayType
 from typing import Tuple
 
+import numpy as np
+
 from .extraction_tools import NumpyArray
 from .imagingextractor import ImagingExtractor
 
@@ -40,7 +42,7 @@ class MultiImagingExtractor(ImagingExtractor, ABC):
 
         self._start_frames, self._end_frames = [], []
         num_frames = 0.0
-        for extractor_index, imaging_extractor in enumerate(self._imaging_extractors):
+        for imaging_extractor in self._imaging_extractors:
             self._start_frames.append(num_frames)
             num_frames = num_frames + imaging_extractor.get_num_frames()
             self._end_frames.append(num_frames)
