@@ -1,6 +1,6 @@
 from abc import ABC
 from array import ArrayType
-from typing import Tuple
+from typing import Tuple, List
 
 import numpy as np
 
@@ -17,7 +17,7 @@ class MultiImagingExtractor(ImagingExtractor, ABC):
     installed = True
     installation_mesg = ""
 
-    def __init__(self, imaging_extractors: list):
+    def __init__(self, imaging_extractors: List[ImagingExtractor]):
         """
         Parameters
         ----------
