@@ -25,11 +25,14 @@ class MultiImagingExtractor(ImagingExtractor, ABC):
             list of imaging extractor objects
         """
         super().__init__()
-        assert isinstance(imaging_extractors, list), "Enter a list of imaging extractor objects as argument"
+        assert isinstance(imaging_extractors, list), "Enter a list of ImagingExtractor objects as argument"
         assert all(isinstance(IX, ImagingExtractor) for IX in imaging_extractors)
         self._imaging_extractors = imaging_extractors
 
-        # Num channels and sampling frequency based off the initial extractor
+        # Checks that properties are consistent between extractors
+        self._check_consistency_between_imaging_extractors()
+
+        # Set properties based off the initial extractor
         self._first_imaging_extractor = self._imaging_extractors[0]
         self._num_channels = self._first_imaging_extractor.get_num_channels()
         self._channel_names = self._first_imaging_extractor.get_channel_names()
@@ -43,17 +46,25 @@ class MultiImagingExtractor(ImagingExtractor, ABC):
             num_frames = num_frames + imaging_extractor.get_num_frames()
             self._end_frames.append(num_frames)
 
-            # Check consistency between extractors
-            sampling_frequency = imaging_extractor.get_sampling_frequency()
-            assert (
-                self._sampling_frequency == sampling_frequency
-            ), f"Inconsistent sampling frequency ({sampling_frequency}) for {imaging_extractor.file_path}"
-            image_size = imaging_extractor.get_image_size()
-            assert (
-                self._image_size == image_size
-            ), f"Inconsistent image size ({image_size}) for {imaging_extractor.file_path}"
-
         self._num_frames = int(num_frames)
+
+    def _check_consistency_between_imaging_extractors(self):
+        properties_to_check = dict(
+            get_num_frames="The number of frames",
+            get_sampling_frequency="The sampling frequency",
+            get_image_size="The size of a frame",
+            get_num_channels="The number of channels",
+            get_channel_names="The name of the channels",
+        )
+        for method, property_desc in properties_to_check.items():
+            values = [
+                getattr(extractor, method)() if hasattr(extractor, method) else None
+                for extractor in self._imaging_extractors
+            ]
+            unique_values = list(set(values))
+            assert (
+                len(unique_values) == 1
+            ), f"{property_desc} is not consistent over the files {unique_values}"
 
     def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> NumpyArray:
         extractor_indices = np.searchsorted(self._end_frames, frame_idxs, side="right")
