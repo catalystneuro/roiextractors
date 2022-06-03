@@ -5,15 +5,8 @@ from copy import deepcopy
 
 from spikeextractors.baseextractor import BaseExtractor
 
-from .extraction_tools import (
-    ArrayType,
-    PathType,
-    NumpyArray,
-    DtypeType,
-    IntType,
-    FloatType,
-    check_get_videos_args,
-)
+from .framesliceimaging import FrameSliceImaging
+from .extraction_tools import ArrayType, PathType, NumpyArray, DtypeType, IntType, FloatType, check_get_videos_args
 
 
 class ImagingExtractor(ABC, BaseExtractor):
@@ -130,6 +123,10 @@ class ImagingExtractor(ABC, BaseExtractor):
         """
         if extractor._times is not None:
             self.set_times(deepcopy(extractor._times))
+
+    def frame_slice(self, start_frame, end_frame):
+        """Return a new ImagingExtractor ranging from the start_frame to the end_frame."""
+        return FrameSliceImaging(parent_imaging=self, start_frame=start_frame, end_frame=end_frame)
 
     @staticmethod
     def write_imaging(imaging, save_path: PathType, overwrite: bool = False):
