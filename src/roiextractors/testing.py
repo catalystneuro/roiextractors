@@ -171,15 +171,18 @@ def check_imaging_return_types(img_ex: ImagingExtractor):
     assert isinstance(img_ex.get_num_channels(), inttype)
     assert isinstance(img_ex.get_sampling_frequency(), (NoneType, floattype, inttype))
     _assert_iterable_complete(
-        img_ex.get_channel_names(),
-        dtypes=list,
+        iterable=img_ex.get_channel_names(),
+        dtypes=(list, NoneType),
         element_dtypes=str,
         shape_max=(img_ex.get_num_channels(),),
     )
-    _assert_iterable_complete(img_ex.get_image_size(), dtypes=Iterable, element_dtypes=inttype, shape=(2,))
-    _assert_iterable_complete(
-        img_ex.get_frames(frame_idxs=[0, 1]),
-        dtypes=(np.ndarray,),
-        element_dtypes=inttype + floattype,
-        shape=(2, *img_ex.get_image_size()),
-    )
+    _assert_iterable_complete(iterable=img_ex.get_image_size(), dtypes=Iterable, element_dtypes=inttype, shape=(2,))
+
+    # This needs a method for getting frame shape not image size. It only works for n_channel==1
+    # two_first_frames = img_ex.get_frames(frame_idxs=[0, 1])
+    # _assert_iterable_complete(
+    #     iterable=two_first_frames,
+    #     dtypes=(np.ndarray,),
+    #     element_dtypes=inttype + floattype,
+    #     shape=(2, *img_ex.get_image_size()),
+    # )

@@ -1,12 +1,20 @@
 from abc import ABC, abstractmethod
-from typing import Union
+from typing import Union, Tuple
 import numpy as np
 from copy import deepcopy
 
 from spikeextractors.baseextractor import BaseExtractor
 
 from .framesliceimaging import FrameSliceImaging
-from .extraction_tools import ArrayType, PathType, NumpyArray, DtypeType, IntType, FloatType, check_get_videos_args
+from .extraction_tools import (
+    ArrayType,
+    PathType,
+    NumpyArray,
+    DtypeType,
+    IntType,
+    FloatType,
+    check_get_videos_args,
+)
 
 
 class ImagingExtractor(ABC, BaseExtractor):
@@ -24,7 +32,7 @@ class ImagingExtractor(ABC, BaseExtractor):
         pass
 
     @abstractmethod
-    def get_image_size(self) -> ArrayType:
+    def get_image_size(self) -> Tuple[int, int]:
         pass
 
     @abstractmethod
