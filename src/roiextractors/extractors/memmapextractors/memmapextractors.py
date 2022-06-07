@@ -10,6 +10,7 @@ from typing import Tuple, Dict, Optional
 from ...extraction_tools import (
     PathType,
     DtypeType,
+    NumpyArray,
 )
 
 
@@ -27,7 +28,7 @@ class MemmapImagingExtractor(ImagingExtractor):
         self._video = video
         super().__init__()
 
-    def get_frames(self, frame_idxs=None, channel: int = 0):
+    def get_frames(self, frame_idxs=None, channel: Optional[int] = 0) -> NumpyArray:
         if frame_idxs is None:
             frame_idxs = [frame for frame in range(self.get_num_frames())]
 
@@ -37,17 +38,19 @@ class MemmapImagingExtractor(ImagingExtractor):
 
         return frames
 
-    def get_video(self, start_frame: int = None, end_frame: int = None, channel: int = 0) -> np.array:
+    def get_video(
+        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
+    ) -> NumpyArray:
         frame_idxs = range(start_frame, end_frame)
         return self.get_frames(frame_idxs=frame_idxs, channel=channel)
 
-    def get_image_size(self):
+    def get_image_size(self) -> Tuple[int, int]:
         return (self._rows, self._columns)
 
-    def get_num_frames(self):
+    def get_num_frames(self) -> int:
         return self._num_frames
 
-    def get_sampling_frequency(self):
+    def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
 
     def get_channel_names(self):
@@ -60,7 +63,7 @@ class MemmapImagingExtractor(ImagingExtractor):
         """
         pass
 
-    def get_num_channels(self):
+    def get_num_channels(self) -> int:
         """Total number of active channels in the recording
 
         Returns
@@ -73,7 +76,7 @@ class MemmapImagingExtractor(ImagingExtractor):
     def get_dtype(self) -> DtypeType:
         return self.dtype
 
-    def get_video_shape(self):
+    def get_video_shape(self) -> Tuple[int, int, int, int]:
 
         return (self._num_frames, self._rows, self._columns, self._num_channels)
 
@@ -83,7 +86,7 @@ class MemmapImagingExtractor(ImagingExtractor):
         save_path: PathType,
         verbose: bool = False,
         buffer_size_in_gb: Optional[float] = None,
-    ):
+    ) -> None:
         """
         Static method to write imaging.
 
