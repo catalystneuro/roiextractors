@@ -50,10 +50,10 @@ class NumpyImagingExtractor(ImagingExtractor):
         self._channel_names = channel_names
 
         (
-            self._num_channels,
             self._num_frames,
             self._size_x,
             self._size_y,
+            self._num_channels,
         ) = get_video_shape(self._video)
 
         if len(self._video.shape) == 3:
