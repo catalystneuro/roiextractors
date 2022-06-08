@@ -11,6 +11,41 @@ floattype = (float, np.floating)
 inttype = (int, np.integer)
 
 
+import numpy as np
+
+from roiextractors import NumpyImagingExtractor
+from roiextractors.extraction_tools import DtypeType
+
+
+def generate_dummy_imaging_extractor(
+    num_frames: int = 30,
+    rows: int = 10,
+    columns: int = 10,
+    num_channels: int = 1,
+    sampling_frequency: float = 30,
+    dtype: DtypeType = "uint16",
+):
+    channel_names = [f"channel_num_{num}" for num in range(num_channels)]
+
+    dtype = np.dtype(dtype)
+    number_of_bytes = dtype.itemsize
+
+    low = 0 if "u" in dtype.name else 2 ** (number_of_bytes - 1) - 2**number_of_bytes
+    high = 2**number_of_bytes - 1 if "u" in dtype.name else 2**number_of_bytes - 2 ** (number_of_bytes - 1) - 1
+    size = (num_frames, rows, columns, num_channels)
+    video = (
+        np.random.random(size=size)
+        if "float" in dtype.name
+        else np.random.randint(low=low, high=high, size=size, dtype=dtype)
+    )
+
+    imaging_extractor = NumpyImagingExtractor(
+        timeseries=video, sampling_frequency=sampling_frequency, channel_names=channel_names
+    )
+
+    return imaging_extractor
+
+
 def _assert_iterable_shape(iterable, shape):
     ar = iterable if isinstance(iterable, np.ndarray) else np.array(iterable)
     for ar_shape, given_shape in zip(ar.shape, shape):
