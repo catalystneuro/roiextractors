@@ -3,11 +3,11 @@ from pathlib import Path
 from typing import Union, Tuple
 from dataclasses import dataclass, field
 
-import numpy as np
-import scipy
-from tqdm import tqdm
-
 import lazy_ops
+import scipy
+import numpy as np
+from numpy.typing import ArrayLike, DTypeLike
+from tqdm import tqdm
 from spikeextractors.extraction_tools import cast_start_end_frame
 
 try:

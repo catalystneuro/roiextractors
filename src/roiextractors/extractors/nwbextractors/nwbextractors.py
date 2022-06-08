@@ -13,10 +13,10 @@ try:
 except ImportError:
     HAVE_NWB = False
 from ...extraction_tools import (
-    NumpyArray,
     PathType,
     FloatType,
     IntType,
+    ArrayType,
     check_get_frames_args,
     check_get_videos_args,
 )
@@ -111,13 +111,13 @@ class NwbImagingExtractor(ImagingExtractor):
     def __del__(self):
         self.io.close()
 
-    def time_to_frame(self, times: Union[FloatType, NumpyArray]):
+    def time_to_frame(self, times: Union[FloatType, ArrayType]) -> np.ndarray:
         if self._times is None:
             return ((times - self._imaging_start_time) * self.get_sampling_frequency()).astype("int64")
         else:
             return super().time_to_frame(times)
 
-    def frame_to_time(self, frames: Union[IntType, NumpyArray]):
+    def frame_to_time(self, frames: Union[IntType, ArrayType]) -> np.ndarray:
         if self._times is None:
             return (frames / self.get_sampling_frequency() + self._imaging_start_time).astype("float")
         else:
