@@ -21,14 +21,14 @@ class MemmapImagingExtractor(ImagingExtractor):
     def __init__(
         self,
         video,
-    ):
+    ) -> None:
         """
         Abstract class for memmapable imaging extractors.
         """
         self._video = video
         super().__init__()
 
-    def get_frames(self, frame_idxs=None, channel: Optional[int] = 0) -> NumpyArray:
+    def get_frames(self, frame_idxs=None, channel: Optional[int] = 0) -> np.ndarray:
         if frame_idxs is None:
             frame_idxs = [frame for frame in range(self.get_num_frames())]
 
@@ -40,7 +40,7 @@ class MemmapImagingExtractor(ImagingExtractor):
 
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
-    ) -> NumpyArray:
+    ) -> np.ndarray:
         frame_idxs = range(start_frame, end_frame)
         return self.get_frames(frame_idxs=frame_idxs, channel=channel)
 
