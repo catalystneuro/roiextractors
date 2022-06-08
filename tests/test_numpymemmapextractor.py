@@ -84,9 +84,21 @@ class TestNumpyMemmapExtractor(unittest.TestCase):
             file_path=file_path, video_structure=video_structure, sampling_frequency=1, dtype=dtype, offset=self.offset
         )
 
-        # Use the write method and do a round-trip
+        # Use the write method
         write_path = self.write_directory / f"video_output_{case_name}.dat"
         extractor.write_imaging(extractor, write_path, buffer_size_in_gb=buffer_size_in_gb)
+
+        # Read again for a round-trip, note that the data is stored in canonical form.
+        video_structure = VideoStructure(
+            rows=rows,
+            columns=columns,
+            num_channels=num_channels,
+            rows_axis=1,
+            columns_axis=2,
+            num_channels_axis=3,
+            frame_axis=0,
+        )
+
         roundtrip_extractor = NumpyMemmapImagingExtractor(
             file_path=write_path,
             video_structure=video_structure,
