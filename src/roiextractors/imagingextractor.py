@@ -8,7 +8,6 @@ from spikeextractors.baseextractor import BaseExtractor
 from .extraction_tools import (
     ArrayType,
     PathType,
-    NumpyArray,
     DtypeType,
     IntType,
     FloatType,
@@ -28,7 +27,7 @@ class ImagingExtractor(ABC, BaseExtractor):
         self._memmapped = False
 
     @abstractmethod
-    def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> NumpyArray:
+    def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> np.ndarray:
         pass
 
     @abstractmethod
@@ -69,10 +68,10 @@ class ImagingExtractor(ABC, BaseExtractor):
         return self.get_frames(0, 0).dtype
 
     @check_get_videos_args
-    def get_video(self, start_frame: int = None, end_frame: int = None, channel: int = 0) -> NumpyArray:
+    def get_video(self, start_frame: int = None, end_frame: int = None, channel: int = 0) -> np.ndarray:
         return self.get_frames(range(start_frame, end_frame), channel)
 
-    def frame_to_time(self, frames: Union[FloatType, NumpyArray]) -> Union[FloatType, NumpyArray]:
+    def frame_to_time(self, frames: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
         """This function converts user-inputted frame indexes to times with units of seconds.
 
         Parameters
@@ -91,7 +90,7 @@ class ImagingExtractor(ABC, BaseExtractor):
         else:
             return self._times[frames]
 
-    def time_to_frame(self, times: Union[FloatType, NumpyArray]) -> Union[FloatType, NumpyArray]:
+    def time_to_frame(self, times: Union[FloatType, ArrayType]) -> Union[FloatType, np.ndarray]:
         """This function converts a user-inputted times (in seconds) to a frame indexes.
 
         Parameters
@@ -110,7 +109,7 @@ class ImagingExtractor(ABC, BaseExtractor):
         else:
             return np.searchsorted(self._times, times).astype("int64")
 
-    def set_times(self, times: NumpyArray):
+    def set_times(self, times: ArrayType):
         """This function sets the recording times (in seconds) for each frame
 
         Parameters
