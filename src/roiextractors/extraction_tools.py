@@ -4,9 +4,11 @@ from typing import Union, Tuple
 from dataclasses import dataclass, field
 
 import numpy as np
+from numpy.typing import ArrayLike, DTypeLike
 import scipy
 from spikeextractors.extraction_tools import cast_start_end_frame
 from tqdm import tqdm
+
 
 try:
     import h5py
@@ -24,10 +26,9 @@ try:
 except ImportError:
     HAVE_Scipy = False
 
-ArrayType = Union[list, np.array]
+ArrayType = ArrayLike
 PathType = Union[str, Path]
-NumpyArray = Union[np.array, np.memmap]
-DtypeType = Union[str, np.dtype]
+DtypeType = DTypeLike
 IntType = Union[int, np.integer]
 FloatType = float
 
