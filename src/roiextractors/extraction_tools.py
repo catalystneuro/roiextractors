@@ -3,12 +3,12 @@ from pathlib import Path
 from typing import Union, Tuple
 from dataclasses import dataclass, field
 
+import lazy_ops
+import scipy
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
-import scipy
-from spikeextractors.extraction_tools import cast_start_end_frame
 from tqdm import tqdm
-
+from spikeextractors.extraction_tools import cast_start_end_frame
 
 try:
     import h5py
@@ -26,9 +26,18 @@ try:
 except ImportError:
     HAVE_Scipy = False
 
-ArrayType = ArrayLike
+try:
+    import zarr
+
+    HAVE_ZARR = True
+except ImportError:
+    HAVE_ZARR = False
+
+
+ArrayType = Union[list, np.array]
 PathType = Union[str, Path]
-DtypeType = DTypeLike
+NumpyArray = np.ndarray
+DtypeType = Union[str, np.dtype]
 IntType = Union[int, np.integer]
 FloatType = float
 
@@ -53,15 +62,15 @@ class VideoStructure:
     where the video is to have the following shape (n_frames, rows, columns, n_channels) you
     could define the class this way:
 
-    from roiextractors.extraction_tools import VideoStructure
-    rows = 10
-    columns = 5
-    num_channels = 1
-    frame_axis = 0
-    rows_axis = 1
-    columns_axis = 2
-    num_channels_axis = 3
-    video_structure = VideoStructure(
+    >>> from roiextractors.extraction_tools import VideoStructure
+    >>> rows = 10
+    >>> columns = 5
+    >>> num_channels = 1
+    >>> frame_axis = 0
+    >>> rows_axis = 1
+    >>> columns_axis = 2
+    >>> num_channels_axis = 3
+    >>> video_structure = VideoStructure(
         rows=rows,
         columns=columns,
         num_channels=num_channels,
@@ -120,15 +129,33 @@ class VideoStructure:
 
         return tuple(video_shape)
 
-    def transform_video_to_canonical_form(self, video: np.array) -> np.array:
-        canonical_frame_axis = 0
-        canonical_rows_axis = 1
-        canonical_columns_axis = 2
-        canonical_num_channels_axis = 3
+    def transform_video_to_canonical_form(self, video: np.ndarray) -> np.ndarray:
+        """Transform a video with the structure in this class to the canonical internal format of
+        roiextractors (frames, rows, columns, num_channels)
 
-        # To-do Implement the mapping
-        re_mapped_video = None
-        assert "Not Implemented yet"
+        The function supports either
+        Parameters
+        ----------
+        video : np.ndarray
+            The video to be transformed
+        Returns
+        -------
+        np.ndarray
+            The reshaped video
+
+        Raises
+        ------
+        KeyError
+
+        """
+        canonical_shape = (self.frame_axis, self.rows_axis, self.columns_axis, self.num_channels_axis)
+        if isinstance(video, (h5py.Dataset, zarr.core.Array)):
+            re_mapped_video = lazy_ops.DatasetView(video).lazy_transpose(canonical_shape)
+        elif isinstance(video, np.ndarray):
+            re_mapped_video = video.transpose(canonical_shape)
+        else:
+            raise KeyError(f"Function not implemented for specific format {type(video)}")
+
         return re_mapped_video
 
 

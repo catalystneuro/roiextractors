@@ -174,7 +174,7 @@ class TestReadNumpyMemmapVideo(unittest.TestCase):
 
         # Build a random video
         memmap_shape = video_structure.build_video_shape(self.num_frames)
-        random_video = np.random.randint(low=1, size=memmap_shape).astype(dtype)
+        random_video = np.random.randint(low=0, high=256, size=memmap_shape).astype(dtype)
 
         # Save it to memory
         file_path = self.write_directory / f"video_{case_name}.dat"
@@ -189,6 +189,10 @@ class TestReadNumpyMemmapVideo(unittest.TestCase):
         )
         # Compare the extracted video
         np.testing.assert_array_almost_equal(random_video, memmap_video)
+
+        # Test canonical form
+        canonical_video = video_structure.transform_video_to_canonical_form(memmap_video)
+        assert canonical_video.shape == (self.num_frames, rows, columns, num_channels)
 
 
 if __name__ == "__main__":
