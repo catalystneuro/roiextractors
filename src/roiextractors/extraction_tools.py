@@ -26,6 +26,13 @@ try:
 except ImportError:
     HAVE_Scipy = False
 
+try:
+    import zarr
+
+    HAVE_ZARR = True
+except ImportError:
+    HAVE_ZARR = False
+
 
 ArrayType = Union[list, np.array]
 PathType = Union[str, Path]
