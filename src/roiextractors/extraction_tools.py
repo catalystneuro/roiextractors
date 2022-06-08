@@ -29,7 +29,7 @@ except ImportError:
 
 ArrayType = Union[list, np.array]
 PathType = Union[str, Path]
-NumpyArray = Union[np.array, np.memmap]
+NumpyArray = np.ndarray
 DtypeType = Union[str, np.dtype]
 IntType = Union[int, np.integer]
 FloatType = float
