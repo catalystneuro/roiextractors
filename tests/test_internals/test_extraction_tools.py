@@ -5,8 +5,33 @@ from itertools import product
 
 import numpy as np
 from parameterized import parameterized, param
+from hdmf.testing import TestCase
 
-from roiextractors.extraction_tools import VideoStructure, read_numpy_memmap_video
+from roiextractors.extraction_tools import VideoStructure, read_numpy_memmap_video, get_video_shape
+
+
+class TestGetVideoShapeAssertion(TestCase):
+    def test_get_video_shape_assertion(self):
+        with self.assertRaisesWith(
+            exc_type=NotImplementedError,
+            exc_msg=(
+                "Tool function 'get_video_shape' cannot handle videos with a number of dimensions other than 3 or 4!"
+            ),
+        ):
+            video = np.zeros(shape=(1, 1))
+            get_video_shape(video=video)
+
+
+def test_get_video_shape_3_dims():
+    shape = [5, 3, 2]
+    video = np.zeros(shape=shape)
+    assert get_video_shape(video=video) == tuple(shape + [1])
+
+
+def test_get_video_shape_4_dims():
+    shape = (5, 3, 2, 3)
+    video = np.zeros(shape=shape)
+    assert get_video_shape(video=video) == shape
 
 
 class TestVideoStructureClass(unittest.TestCase):

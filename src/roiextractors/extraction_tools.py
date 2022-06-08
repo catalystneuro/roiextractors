@@ -260,14 +260,19 @@ def _image_mask_extractor(pixel_mask, _roi_ids, image_shape):
     return image_mask
 
 
-def get_video_shape(video):
-    if len(video.shape) == 3:
-        # 1 channel
+def get_video_shape(video) -> Union[Tuple[int, int, int], Tuple[int, int, int, int]]:
+    """Return the shape of the video according to the standardized structure of (frames, rows, columns, channels)."""
+    n_dims = len(video.shape)
+    if n_dims == 3:
         num_channels = 1
         num_frames, size_x, size_y = video.shape
+    elif n_dims == 4:
+        num_frames, size_x, size_y, num_channels = video.shape
     else:
-        num_channels, num_frames, size_x, size_y = video.shape
-    return num_channels, num_frames, size_x, size_y
+        raise NotImplementedError(
+            "Tool function 'get_video_shape' cannot handle videos with a number of dimensions other than 3 or 4!"
+        )
+    return num_frames, size_x, size_y, num_channels
 
 
 def check_get_frames_args(func):

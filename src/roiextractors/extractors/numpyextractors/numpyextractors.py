@@ -1,3 +1,4 @@
+"""A standard interface for reading Imaging and Segmentation data with numpy arrays, either on disk or in memory."""
 from pathlib import Path
 
 import numpy as np
@@ -9,6 +10,8 @@ from ...segmentationextractor import SegmentationExtractor
 
 
 class NumpyImagingExtractor(ImagingExtractor):
+    """Reads Imaging data from numpy arrays, either on disk or in memory."""
+
     extractor_name = "NumpyImagingExtractor"
     installed = True
     is_writable = True
@@ -44,21 +47,11 @@ class NumpyImagingExtractor(ImagingExtractor):
         else:
             raise TypeError("'timeseries' can be a str or a numpy array")
 
-        self._sampling_frequency = float(sampling_frequency)
-
-        self._sampling_frequency = sampling_frequency
-        self._channel_names = channel_names
-
-        (
-            self._num_frames,
-            self._size_x,
-            self._size_y,
-            self._num_channels,
-        ) = get_video_shape(self._video)
-
         if len(self._video.shape) == 3:
-            # check if this converts to np.ndarray
-            self._video = self._video[np.newaxis, :]
+            self._video = self._video[..., np.newaxis]
+        self._sampling_frequency = float(sampling_frequency)
+        self._channel_names = channel_names
+        self._num_frames, self._size_x, self._size_y, self._num_channels = get_video_shape(self._video)
 
         if self._channel_names is not None:
             assert len(self._channel_names) == self._num_channels, (
@@ -81,23 +74,9 @@ class NumpyImagingExtractor(ImagingExtractor):
         return self._sampling_frequency
 
     def get_channel_names(self):
-        """List of  channels in the recoding.
-
-        Returns
-        -------
-        channel_names: list
-            List of strings of channel names
-        """
         return self._channel_names
 
     def get_num_channels(self):
-        """Total number of active channels in the recording
-
-        Returns
-        -------
-        no_of_channels: int
-            integer count of number of channels
-        """
         return self._num_channels
 
     @staticmethod
