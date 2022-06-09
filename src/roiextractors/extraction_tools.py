@@ -34,10 +34,10 @@ except ImportError:
     HAVE_ZARR = False
 
 
-ArrayType = Union[list, np.array]
+ArrayType = ArrayLike
 PathType = Union[str, Path]
 NumpyArray = np.ndarray
-DtypeType = Union[str, np.dtype]
+DtypeType = DTypeLike
 IntType = Union[int, np.integer]
 FloatType = float
 

@@ -21,7 +21,7 @@ class ImagingExtractor(ABC, BaseExtractor):
     the imaging data.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         BaseExtractor.__init__(self)
         assert self.installed, self.installation_mesg
         self._memmapped = False
@@ -109,7 +109,7 @@ class ImagingExtractor(ABC, BaseExtractor):
         else:
             return np.searchsorted(self._times, times).astype("int64")
 
-    def set_times(self, times: ArrayType):
+    def set_times(self, times: ArrayType) -> None:
         """This function sets the recording times (in seconds) for each frame
 
         Parameters
@@ -120,7 +120,7 @@ class ImagingExtractor(ABC, BaseExtractor):
         assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames"
         self._times = times.astype("float64")
 
-    def copy_times(self, extractor: BaseExtractor):
+    def copy_times(self, extractor: BaseExtractor) -> None:
         """This function copies times from another extractor.
 
         Parameters
