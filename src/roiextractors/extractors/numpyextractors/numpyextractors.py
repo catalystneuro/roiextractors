@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 
@@ -67,9 +68,15 @@ class NumpyImagingExtractor(ImagingExtractor):
         else:
             self._channel_names = [f"channel_{ch}" for ch in range(self._num_channels)]
 
-    @check_get_frames_args
-    def get_frames(self, frame_idxs, channel=0):
-        return self._video[channel, frame_idxs]
+    def get_frames(self, frame_idxs=None, channel: Optional[int] = 0) -> np.ndarray:
+        if frame_idxs is None:
+            frame_idxs = [frame for frame in range(self.get_num_frames())]
+
+        frames = self._video.take(indices=frame_idxs, axis=0)
+        if channel is not None:
+            frames = frames[:, :, :, channel].squeeze()
+
+        return frames
 
     def get_image_size(self):
         return [self._size_x, self._size_y]
