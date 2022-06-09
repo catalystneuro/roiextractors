@@ -1,3 +1,4 @@
+"""Base class definitions for all ImagingExtractors."""
 from abc import ABC, abstractmethod
 from typing import Union, Optional, Tuple
 import numpy as np
@@ -23,7 +24,7 @@ class ImagingExtractor(ABC, BaseExtractor):
         self._memmapped = False
 
     @abstractmethod
-    def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> np.ndarray:
+    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
         pass
 
     @abstractmethod
@@ -153,7 +154,7 @@ class FrameSliceImagingExtractor(ImagingExtractor):
     """
     Class to get a lazy frame slice.
 
-    Do not use this class directly but use `recording.frame_slice(...)`
+    Do not use this class directly but use `.frame_slice(...)` on an ImagingExtractor object.
     """
 
     extractor_name = "FrameSliceImagingExtractor"
@@ -182,7 +183,7 @@ class FrameSliceImagingExtractor(ImagingExtractor):
 
         super().__init__()
 
-    def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> np.ndarray:
+    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
         assert max(frame_idxs) < self._num_frames, "'frame_idxs' range beyond number of available frames!"
         mapped_frame_idxs = np.array(frame_idxs) + self._start_frame
         return self._parent_imaging.get_frames(frame_idxs=mapped_frame_idxs, channel=channel)
