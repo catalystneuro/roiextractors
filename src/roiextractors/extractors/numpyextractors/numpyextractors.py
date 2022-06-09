@@ -16,10 +16,7 @@ class NumpyImagingExtractor(ImagingExtractor):
     installation_mesg = ""  # error message when not installed
 
     def __init__(
-        self,
-        timeseries: PathType,
-        sampling_frequency: FloatType,
-        channel_names: ArrayType = None,
+        self, timeseries: PathType, sampling_frequency: FloatType, channel_names: ArrayType = None,
     ):
         ImagingExtractor.__init__(self)
 
@@ -50,12 +47,7 @@ class NumpyImagingExtractor(ImagingExtractor):
         self._sampling_frequency = sampling_frequency
         self._channel_names = channel_names
 
-        (
-            self._num_channels,
-            self._num_frames,
-            self._size_x,
-            self._size_y,
-        ) = get_video_shape(self._video)
+        (self._num_frames, self._size_x, self._size_y, self._num_channels,) = get_video_shape(self._video)
 
         if len(self._video.shape) == 3:
             # check if this converts to np.ndarray

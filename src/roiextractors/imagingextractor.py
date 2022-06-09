@@ -165,6 +165,26 @@ class FrameSliceImagingExtractor(ImagingExtractor):
     def __init__(
         self, parent_imaging: ImagingExtractor, start_frame: Optional[int] = None, end_frame: Optional[int] = None
     ):
+        """
+        Initialize an ImagingExtractor whose frames subset the parent.
+
+        Subset is exclusive on the right bound, that is, the indexes of this ImagingExtractor range over
+        [0, ..., end_frame-start_frame-1], which is used to resolve the index mapping in `get_frames(frame_idxs=[...])`.
+
+        Parameters
+        ----------
+        parent_imaging : ImagingExtractor
+            DESCRIPTION.
+        start_frame : Optional[int], optional
+            DESCRIPTION. The default is None.
+        end_frame : Optional[int], optional
+            DESCRIPTION. The default is None.
+
+        Returns
+        -------
+        None.
+
+        """
         self._parent_imaging = parent_imaging
         self._start_frame = start_frame
         self._end_frame = end_frame

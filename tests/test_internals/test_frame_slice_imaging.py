@@ -1,18 +1,16 @@
 import unittest
 
 from hdmf.testing import TestCase
-import numpy as np
 from numpy.testing import assert_array_equal
 
-from roiextractors import NumpyImagingExtractor
+from roiextractors.testing import generate_dummy_imaging_extractor
 
 
 class TestFrameSliceImaging(TestCase):
     @classmethod
     def setUpClass(cls):
         """Use a toy example of ten frames of a 5 x 4 grayscale image."""
-        cls.toy_data = np.random.random(size=(1, 10, 5, 4))
-        cls.toy_imaging_example = NumpyImagingExtractor(timeseries=cls.toy_data, sampling_frequency=1.0)
+        cls.toy_imaging_example = generate_dummy_imaging_extractor(num_frames=10, rows=5, columns=4, num_channels=1)
         cls.frame_sliced_imaging = cls.toy_imaging_example.frame_slice(start_frame=2, end_frame=7)
 
     def test_get_image_size(self):
@@ -22,10 +20,10 @@ class TestFrameSliceImaging(TestCase):
         assert self.frame_sliced_imaging.get_num_frames() == 5
 
     def test_get_sampling_frequency(self):
-        assert self.frame_sliced_imaging.get_sampling_frequency() == 1.0
+        assert self.frame_sliced_imaging.get_sampling_frequency() == 30.0
 
     def test_get_channel_names(self):
-        assert self.frame_sliced_imaging.get_channel_names() == ["channel_0"]
+        assert self.frame_sliced_imaging.get_channel_names() == ["channel_num_0"]
 
     def test_get_num_channels(self):
         assert self.frame_sliced_imaging.get_num_channels() == 1
@@ -38,7 +36,8 @@ class TestFrameSliceImaging(TestCase):
 
     def test_get_frames(self):
         assert_array_equal(
-            self.frame_sliced_imaging.get_frames(frame_idxs=[2, 4]), self.toy_data[:, [4, 6], ...].squeeze()
+            self.frame_sliced_imaging.get_frames(frame_idxs=[2, 4]),
+            self.toy_imaging_example.get_frames(frame_idxs=[4, 6]),
         )
 
 
