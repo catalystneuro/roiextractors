@@ -1,6 +1,5 @@
-from collections import abc
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 
 import numpy as np
 from lazy_ops import DatasetView
@@ -49,7 +48,7 @@ class NwbImagingExtractor(ImagingExtractor):
     mode = "file"
     installation_mesg = "To use the Nwb Extractor run:\n\n pip install pynwb\n\n"  # error message when not installed
 
-    def __init__(self, file_path: PathType, optical_series_name: str = "TwoPhotonSeries"):
+    def __init__(self, file_path: PathType, optical_series_name: Optional[str] = "TwoPhotonSeries"):
         """
         Parameters
         ----------
@@ -72,25 +71,37 @@ class NwbImagingExtractor(ImagingExtractor):
             if len(a_names) == 0:
                 raise ValueError("No acquisitions found in the .nwb file.")
             self._optical_series_name = a_names[0]
-        opts = self.nwbfile.acquisition[self._optical_series_name]
-        assert isinstance(opts, TwoPhotonSeries), "The optical series must be of type pynwb.TwoPhotonSeries"
+
+        self.two_photon_series = self.nwbfile.acquisition[self._optical_series_name]
+        assert isinstance(
+            self.two_photon_series, TwoPhotonSeries
+        ), "The optical series must be of type pynwb.TwoPhotonSeries"
 
         # TODO if external file --> return another proper extractor (e.g. TiffImagingExtractor)
-        assert opts.external_file is None, "Only 'raw' format is currently supported"
+        assert self.two_photon_series.external_file is None, "Only 'raw' format is currently supported"
 
-        if len(opts.data.shape) == 3:
-            self._num_frames, self._size_x, self._size_y = opts.data.shape
-            self._channel_names = [i.name for i in opts.imaging_plane.optical_channel]
-            self._num_channels = len(self._channel_names)
+        # Load the two video structures that TwoPhotonSeries supports.
+        self._data_has_channels_axis = True
+        if len(self.two_photon_series.data.shape) == 3:
+            self._data_has_channels_axis = False
+            self._num_channels = 1
+            self._num_frames, self._rows, self._columns = self.two_photon_series.data.shape
         else:
-            raise NotImplementedError("4D volumetric data are currently not supported")
-        if hasattr(opts, "timestamps") and opts.timestamps:
-            self._sampling_frequency = 1.0 / np.median(np.diff(opts.timestamps))
-            self._imaging_start_time = opts.timestamps[0]
-            self.set_times(np.array(opts.timestamps))
+            self._num_frames, self._rows, self._columns, self._num_channels = self.two_photon_series.data.shape
+            raise "videos with multiple channel not supported yet"
+
+        # Set channel names
+        self._channel_names = [i.name for i in self.two_photon_series.imaging_plane.optical_channel]
+
+        # Set sampling frequency
+        if hasattr(self.two_photon_series, "timestamps") and self.two_photon_series.timestamps:
+            self._sampling_frequency = 1.0 / np.median(np.diff(self.two_photon_series.timestamps))
+            self._imaging_start_time = self.two_photon_series.timestamps[0]
+            self.set_times(np.array(self.two_photon_series.timestamps))
         else:
-            self._sampling_frequency = opts.rate
-            self._imaging_start_time = opts.fields.get("starting_time", 0.0)
+            self._sampling_frequency = self.two_photon_series.rate
+            self._imaging_start_time = self.two_photon_series.fields.get("starting_time", 0.0)
+
         # Fill epochs dictionary
         self._epochs = {}
         if self.nwbfile.epochs is not None:
@@ -139,24 +150,33 @@ class NwbImagingExtractor(ImagingExtractor):
             ),
         )
 
-    @check_get_frames_args
-    def get_frames(self, frame_idxs, channel=0):
-        opts = self.nwbfile.acquisition[self._optical_series_name]
-        if frame_idxs.size > 1 and np.all(np.diff(frame_idxs) > 0):
-            return opts.data[frame_idxs].transpose([0, 2, 1])
-        else:
-            sorted_idxs = np.sort(frame_idxs)
-            argsorted_idxs = np.argsort(frame_idxs)
-            return opts.data[sorted_idxs][argsorted_idxs].transpose([0, 2, 1])
+    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0):
 
-    @check_get_videos_args
-    def get_video(self, start_frame=None, end_frame=None, channel=0):
-        opts = self.nwbfile.acquisition[self._optical_series_name]
-        video = opts.data[start_frame:end_frame].transpose([0, 2, 1])
+        # Fancy indexing is non performant for h5.py with long frame lists
+        if frame_idxs is not None:
+            slice_start = np.min(frame_idxs)
+            slice_stop = min(np.max(frame_idxs) + 1, self.get_num_frames())
+        else:
+            slice_start = 0
+            slice_stop = self.get_num_frames()
+
+        data = self.two_photon_series.data
+
+        if self._data_has_channels_axis and channel is not None:
+            frames = data[slice_start:slice_stop, :, :, channel]
+        else:
+            frames = data[slice_start:slice_stop, ...]
+
+        return frames.squeeze()
+
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0):
+        start_frame = start_frame if start_frame is not None else 0
+        end_frame = end_frame if end_frame is not None else self.get_num_frames()
+        video = self.get_frames(frame_idxs=range(start_frame, end_frame), channel=channel)
         return video
 
     def get_image_size(self):
-        return [self._size_y, self._size_x]
+        return (self._rows, self._columns)
 
     def get_num_frames(self):
         return self._num_frames

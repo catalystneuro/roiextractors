@@ -10,24 +10,14 @@ from pynwb.image import ImageSeries
 from pynwb.ophys import TwoPhotonSeries, OpticalChannel, ImageSegmentation
 
 from roiextractors import NwbImagingExtractor
+from roiextractors.testing import generate_dummy_video
+from roiextractors.extraction_tools import PathType, ArrayType
 
 
 class TestNwbImagingExtractor(unittest.TestCase):
     def setUp(self) -> None:
-        self.session_start_time = datetime.now()
+        self.session_start_time = datetime.now().astimezone()
         self.file_path = Path(mkdtemp()) / "test_nwb_imaging_extractor.nwb"
-
-        self.nwbfile = NWBFile(
-            session_description="session_description",
-            identifier="file_id",
-            session_start_time=self.session_start_time,
-        )
-        self.device = self.nwbfile.create_device(
-            name="Microscope", description="My two-photon microscope", manufacturer="The best microscope manufacturer"
-        )
-        self.optical_channel = OpticalChannel(
-            name="OpticalChannel", description="an optical channel", emission_lambda=500.0
-        )
 
         self.sampling_frequency = 30.0
         self.num_frames = 30
@@ -35,44 +25,52 @@ class TestNwbImagingExtractor(unittest.TestCase):
         self.columns = 25
         self.num_channels = 1
 
-        self.video_shape = (self.num_frames, self.rows, self.columns, self.num_channels)
+        self.nwbfile = NWBFile(
+            session_description="session_description",
+            identifier="file_id",
+            session_start_time=self.session_start_time,
+        )
+        self.device = self.nwbfile.create_device(name="Microscope")
+
+        channel_names = [f"channel_num_{num}" for num in range(self.num_channels)]
+        self.optical_channel_list = [
+            OpticalChannel(name=channel_name, description="description", emission_lambda=500.0)
+            for channel_name in channel_names
+        ]
+        self.video_shape = (self.num_frames, self.rows, self.columns)
         self.image_size = (self.rows, self.columns)
 
         self.dtype = "uint"
-        self.video = np.random.randint(low=0, high=256, size=self.video_shape).astype(self.dtype)
+        self.video = generate_dummy_video(size=self.video_shape, dtype=self.dtype)
 
         self.imaging_plane = self.nwbfile.create_imaging_plane(
             name="ImagingPlane",
-            optical_channel=self.optical_channel,
+            optical_channel=self.optical_channel_list,
             imaging_rate=self.sampling_frequency,
             description="a very interesting part of the brain",
             device=self.device,
             excitation_lambda=600.0,
             indicator="GFP",
-            location="V1",
-            grid_spacing=[0.01, 0.01],
-            grid_spacing_unit="meters",
-            origin_coords=[1.0, 2.0, 3.0],
-            origin_coords_unit="meters",
+            location="the location in the brain",
         )
 
         # using internal data. this data will be stored inside the NWB file
-        self.image_series1 = TwoPhotonSeries(
-            name="TwoPhotonSeries1",
+        self.image_series = TwoPhotonSeries(
+            name="TwoPhotonSeries",
             data=self.video,
             imaging_plane=self.imaging_plane,
             rate=self.sampling_frequency,
             unit="normalized amplitude",
         )
 
-        self.nwbfile.add_acquisition(self.image_series1)
+        self.nwbfile.add_acquisition(self.image_series)
 
         with NWBHDF5IO(self.file_path, "w") as io:
             io.write(self.nwbfile)
 
     def test_basic_setup(self):
 
-        nwb_imaging_extractor = NwbImagingExtractor(file_path=self.file_path, optical_series_name=None)
+        nwb_imaging_extractor = NwbImagingExtractor(file_path=self.file_path)
 
         image_size = nwb_imaging_extractor.get_image_size()
         num_frames = nwb_imaging_extractor.get_num_frames()
@@ -85,6 +83,21 @@ class TestNwbImagingExtractor(unittest.TestCase):
         assert image_size == expected_image_size
         assert num_frames == expected_num_frames
         assert num_channels == expected_num_channels
+
+        frame_idxs = 0
+        frames_with_scalar = nwb_imaging_extractor.get_frames(frame_idxs)
+        expected_frames = self.video[frame_idxs, ...]
+        np.testing.assert_array_almost_equal(frames_with_scalar, expected_frames)
+
+        frame_idxs = [0, 1]
+        frames_with_list = nwb_imaging_extractor.get_frames(frame_idxs)
+        expected_frames = self.video[frame_idxs, ...]
+        np.testing.assert_array_almost_equal(frames_with_list, expected_frames)
+
+        frame_idxs = np.array([0, 1])
+        frames_with_array = nwb_imaging_extractor.get_frames(frame_idxs)
+        expected_frames = self.video[frame_idxs, ...]
+        np.testing.assert_array_almost_equal(frames_with_array, expected_frames)
 
         video = nwb_imaging_extractor.get_video()
         expected_video = self.video
