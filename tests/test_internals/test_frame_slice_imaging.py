@@ -1,9 +1,28 @@
 import unittest
 
+import numpy as np
 from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
 
 from roiextractors.testing import generate_dummy_imaging_extractor
+
+
+def test_frame_slicing_imaging_times():
+    num_frames = 10
+    timestamp_shift = 7.1
+    times = np.array(range(num_frames)) + timestamp_shift
+    start_frame, end_frame = 2, 7
+
+    toy_imaging_example = generate_dummy_imaging_extractor(num_frames=num_frames, rows=5, columns=4, num_channels=1)
+    toy_imaging_example.set_times(times=times)
+
+    frame_sliced_imaging = toy_imaging_example.frame_slice(start_frame=start_frame, end_frame=end_frame)
+    assert_array_equal(
+        frame_sliced_imaging.frame_to_time(
+            frames=np.array([idx for idx in range(frame_sliced_imaging.get_num_frames())])
+        ),
+        times[start_frame:end_frame],
+    )
 
 
 class TestFrameSliceImaging(TestCase):

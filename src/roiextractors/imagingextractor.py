@@ -114,8 +114,8 @@ class ImagingExtractor(ABC, BaseExtractor):
         times: array-like
             The times in seconds for each frame
         """
-        assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames"
-        self._times = times.astype("float64")
+        assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames!"
+        self._times = np.array(times).astype("float64")
 
     def copy_times(self, extractor: BaseExtractor) -> None:
         """This function copies times from another extractor.
@@ -174,15 +174,13 @@ class FrameSliceImagingExtractor(ImagingExtractor):
         Parameters
         ----------
         parent_imaging : ImagingExtractor
-            DESCRIPTION.
-        start_frame : Optional[int], optional
-            DESCRIPTION. The default is None.
-        end_frame : Optional[int], optional
-            DESCRIPTION. The default is None.
-
-        Returns
-        -------
-        None.
+            The ImagingExtractor object to sebset the frames of.
+        start_frame : int, optional
+            The left bound of the frames to subset.
+            The default is the start frame of the parent.
+        end_frame : int, optional
+            The right bound of the frames, exlcusively, to subset.
+            The default is end frame of the parent.
 
         """
         self._parent_imaging = parent_imaging
@@ -202,6 +200,8 @@ class FrameSliceImagingExtractor(ImagingExtractor):
         assert end_frame > start_frame, "'start_frame' must be smaller than 'end_frame'!"
 
         super().__init__()
+        if getattr(self._parent_imaging, "_times") is not None:
+            self._times = self._parent_imaging._times[start_frame:end_frame]
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
         assert max(frame_idxs) < self._num_frames, "'frame_idxs' range beyond number of available frames!"
