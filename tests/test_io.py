@@ -53,6 +53,22 @@ class TestExtractors(TestCase):
             ),
         )
 
+    @parameterized.expand(imaging_extractor_list, name_func=custom_name_func)
+    def test_imaging_extractors(self, extractor_class, extractor_kwargs):
+        extractor = extractor_class(**extractor_kwargs)
+        try:
+            suffix = Path(extractor_kwargs["file_path"]).suffix
+            output_path = self.savedir / f"{extractor_class.__name__}{suffix}"
+            extractor_class.write_imaging(extractor, output_path)
+
+            roundtrip_kwargs = copy(extractor_kwargs)
+            roundtrip_kwargs.update(file_path=output_path)
+            roundtrip_extractor = extractor_class(**roundtrip_kwargs)
+            # TODO: this roundtrip test has been failing for some time now
+            check_imaging_equal(imaging_extractor1=extractor, imaging_extractor2=roundtrip_extractor)
+        except NotImplementedError:
+            return
+
     segmentation_extractor_list = [
         param(
             extractor_class=CaimanSegmentationExtractor,
@@ -91,30 +107,6 @@ class TestExtractors(TestCase):
         ),
     ]
 
-    @parameterized.expand(imaging_extractor_list, name_func=custom_name_func)
-    def test_imaging_extractors(self, extractor_class, extractor_kwargs):
-        extractor = extractor_class(**extractor_kwargs)
-        try:
-            suffix = Path(extractor_kwargs["file_path"]).suffix
-            output_path = self.savedir / f"{extractor_class.__name__}{suffix}"
-            extractor_class.write_imaging(extractor, output_path)
-
-            roundtrip_kwargs = copy(extractor_kwargs)
-            roundtrip_kwargs.update(file_path=output_path)
-            roundtrip_extractor = extractor_class(**roundtrip_kwargs)
-            # TODO: this roundtrip test has been failing for some time now
-            check_imaging_equal(imaging_extractor1=extractor, imaging_extractor2=roundtrip_extractor)
-        except NotImplementedError:
-            return
-
-    def test_tiff_non_memmap_warning(self):
-        file_path = OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "sample_scanimage.tiff"
-        with self.assertWarnsWith(
-            warn_type=UserWarning,
-            exc_msg="memmap of TIFF file could not be established. Reading entire matrix into memory.",
-        ):
-            TiffImagingExtractor(file_path=str(file_path), sampling_frequency=15.0)
-
     @parameterized.expand(segmentation_extractor_list, name_func=custom_name_func)
     def test_segmentation_extractors(self, extractor_class, extractor_kwargs):
         extractor = extractor_class(**extractor_kwargs)
@@ -128,7 +120,6 @@ class TestExtractors(TestCase):
             # Not yet sure about ExtractSegmentation
             extractors_not_ready = [
                 "Suite2pSegmentationExtractor",
-                "CnmfeSegmentationExtractor",
                 "ExtractSegmentationExtractor",
             ]
 
@@ -145,6 +136,14 @@ class TestExtractors(TestCase):
 
         except NotImplementedError:
             return
+
+    def test_tiff_non_memmap_warning(self):
+        file_path = OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "sample_scanimage.tiff"
+        with self.assertWarnsWith(
+            warn_type=UserWarning,
+            exc_msg="memmap of TIFF file could not be established. Reading entire matrix into memory.",
+        ):
+            TiffImagingExtractor(file_path=str(file_path), sampling_frequency=15.0)
 
 
 if __name__ == "__main__":
