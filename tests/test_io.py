@@ -94,6 +94,16 @@ class TestExtractors(TestCase):
     @parameterized.expand(imaging_extractor_list, name_func=custom_name_func)
     def test_imaging_extractors(self, extractor_class, extractor_kwargs):
         extractor = extractor_class(**extractor_kwargs)
+
+        # Test for standard structure
+        if extractor._images_in_standard_structure:
+            num_frames = extractor.get_num_frames()
+            rows, columns = extractor.get_image_size()
+            num_channels = extractor.get_num_channels()
+            expected_video_shape = (num_frames, rows, columns, num_channels)
+            assert expected_video_shape == extractor.get_video_shape()
+
+        # Test round trip if write_method implemented
         try:
             suffix = Path(extractor_kwargs["file_path"]).suffix
             output_path = self.savedir / f"{extractor_class.__name__}{suffix}"

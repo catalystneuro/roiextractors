@@ -22,6 +22,7 @@ class NumpyImagingExtractor(ImagingExtractor):
         channel_names: ArrayType = None,
     ):
         ImagingExtractor.__init__(self)
+        self._images_in_standard_structure = True
 
         if isinstance(timeseries, (str, Path)):
             timeseries = Path(timeseries)
