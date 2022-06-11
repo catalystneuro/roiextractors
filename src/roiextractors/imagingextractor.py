@@ -73,10 +73,17 @@ class ImagingExtractor(ABC, BaseExtractor):
         return self.get_frames(range(start_frame, end_frame), channel)
 
     def get_video_shape(self):
-        more_frames_than_num_channels = self.get_num_channels() + 1
-        frame_idxs = [_ for _ in range(more_frames_than_num_channels)]
+        rows, columns = self.get_image_size()
+        num_channels = self.get_num_channels()
+        unique_frame_value = num_channels + 1
+        if unique_frame_value == rows:
+            unique_frame_value += 1
+        if unique_frame_value == columns:
+            unique_frame_value += 1
+
+        frame_idxs = [_ for _ in range(unique_frame_value)]
         video_shape = np.array(self.get_frames(frame_idxs=frame_idxs, channel=None).shape)
-        video_shape[video_shape == more_frames_than_num_channels] = self.get_num_frames()
+        video_shape[video_shape == unique_frame_value] = self.get_num_frames()
 
         return tuple(video_shape)
 
