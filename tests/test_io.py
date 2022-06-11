@@ -119,7 +119,7 @@ class TestExtractors(TestCase):
             # CnmfeSegmentation fails because of transpose issues when saving
             # Not yet sure about ExtractSegmentation
             extractors_not_ready = [
-                "CnmfeSegmentationExtractor",
+                "Suite2pSegmentationExtractor",
                 "ExtractSegmentationExtractor",
             ]
 
