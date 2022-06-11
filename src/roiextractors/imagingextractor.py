@@ -144,7 +144,7 @@ class ImagingExtractor(ABC, BaseExtractor):
         if extractor._times is not None:
             self.set_times(deepcopy(extractor._times))
 
-    def frame_slice(self, start_frame, end_frame):
+    def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
         """Return a new ImagingExtractor ranging from the start_frame to the end_frame."""
         return FrameSliceImagingExtractor(parent_imaging=self, start_frame=start_frame, end_frame=end_frame)
 
