@@ -64,7 +64,6 @@ class TestExtractors(TestCase):
             roundtrip_kwargs = copy(extractor_kwargs)
             roundtrip_kwargs.update(file_path=output_path)
             roundtrip_extractor = extractor_class(**roundtrip_kwargs)
-            # TODO: this roundtrip test has been failing for some time now
             check_imaging_equal(imaging_extractor1=extractor, imaging_extractor2=roundtrip_extractor)
         except NotImplementedError:
             return
@@ -114,12 +113,8 @@ class TestExtractors(TestCase):
             suffix = Path(extractor_kwargs["file_path"]).suffix
             output_path = self.savedir / f"{extractor_class.__name__}{suffix}"
 
-            # TODO: Suit2P Segmentation fails to make certain files; probably related to how
-            # the input argument is a 'file_path' but is actually a folder?
-            # CnmfeSegmentation fails because of transpose issues when saving
-            # Not yet sure about ExtractSegmentation
+            # TODO:  ExtractSegmentation
             extractors_not_ready = [
-                "Suite2pSegmentationExtractor",
                 "ExtractSegmentationExtractor",
             ]
 
@@ -129,7 +124,6 @@ class TestExtractors(TestCase):
                 roundtrip_kwargs = copy(extractor_kwargs)
                 roundtrip_kwargs.update(file_path=output_path)
                 roundtrip_extractor = extractor_class(**roundtrip_kwargs)
-                # TODO: this roundtrip test has been failing for some time now
                 check_segmentations_equal(
                     segmentation_extractor1=extractor, segmentation_extractor2=roundtrip_extractor
                 )
