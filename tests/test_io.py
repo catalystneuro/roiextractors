@@ -79,8 +79,6 @@ class TestExtractors(TestCase):
         except NotImplementedError:
             return
 
-
-
     segmentation_extractor_list = [
         param(
             extractor_class=CaimanSegmentationExtractor,
