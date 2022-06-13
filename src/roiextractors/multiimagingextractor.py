@@ -61,7 +61,9 @@ class MultiImagingExtractor(ImagingExtractor, ABC):
                 for extractor in self._imaging_extractors
             ]
             unique_values = list(set(values))
-            assert len(unique_values) == 1, f"{property_message} is not consistent over the files (found {unique_values})."
+            assert (
+                len(unique_values) == 1
+            ), f"{property_message} is not consistent over the files (found {unique_values})."
 
     def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> NumpyArray:
         extractor_indices = np.searchsorted(self._end_frames, frame_idxs, side="right")
