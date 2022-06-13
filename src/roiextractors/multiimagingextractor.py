@@ -56,10 +56,7 @@ class MultiImagingExtractor(ImagingExtractor, ABC):
             get_channel_names="The name of the channels",
         )
         for method, property_message in properties_to_check.items():
-            values = [
-                getattr(extractor, method)() if hasattr(extractor, method) else None
-                for extractor in self._imaging_extractors
-            ]
+            values = [getattr(extractor, method, None) for extractor in self._imaging_extractors]
             unique_values = list(set(values))
             assert len(unique_values) == 1, f"{property_message} is not consistent over the files (found {unique_values})."
 
