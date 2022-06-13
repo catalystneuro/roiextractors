@@ -66,7 +66,6 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
         """
 
         self.installed = True
-        super().__init__()
 
         self.file_path = Path(file_path)
         self.video_structure = video_structure
@@ -78,55 +77,7 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
         self._video = read_numpy_memmap_video(
             file_path=file_path, video_structure=video_structure, dtype=dtype, offset=offset
         )
+        self._video = video_structure.transform_video_to_canonical_form(self._video)
+        self._num_frames, self._rows, self._columns, self._num_channels = self._video.shape
 
-        # Get the image structure as attributes
-        self._rows = self.video_structure.rows
-        self._columns = self.video_structure.columns
-        self._num_channels = self.video_structure.num_channels
-
-        self.frame_axis = self.video_structure.frame_axis
-        self._num_frames = self._video.shape[self.frame_axis]
-
-    def get_frames(self, frame_idxs=None):
-        if frame_idxs is None:
-            frame_idxs = [frame for frame in range(self.get_num_frames())]
-
-        frames = self._video.take(indices=frame_idxs, axis=self.frame_axis)
-
-        return frames
-
-    def get_video(self, start_frame: int = None, end_frame: int = None) -> np.array:
-        frame_idxs = range(start_frame, end_frame)
-        return self.get_frames(frame_idxs=frame_idxs)
-
-    def get_image_size(self):
-        return (self._rows, self._columns)
-
-    def get_num_frames(self):
-        return self._num_frames
-
-    def get_sampling_frequency(self):
-        return self._sampling_frequency
-
-    def get_channel_names(self):
-        """List of  channels in the recoding.
-
-        Returns
-        -------
-        channel_names: list
-            List of strings of channel names
-        """
-        pass
-
-    def get_num_channels(self):
-        """Total number of active channels in the recording
-
-        Returns
-        -------
-        no_of_channels: int
-            integer count of number of channels
-        """
-        return self._num_channels
-
-    def get_dtype(self) -> DtypeType:
-        return self.dtype
+        super().__init__(video=self._video)
