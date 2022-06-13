@@ -50,19 +50,18 @@ class MultiImagingExtractor(ImagingExtractor, ABC):
 
     def _check_consistency_between_imaging_extractors(self):
         properties_to_check = dict(
-            get_num_frames="The number of frames",
             get_sampling_frequency="The sampling frequency",
             get_image_size="The size of a frame",
             get_num_channels="The number of channels",
             get_channel_names="The name of the channels",
         )
-        for method, property_desc in properties_to_check.items():
+        for method, property_message in properties_to_check.items():
             values = [
                 getattr(extractor, method)() if hasattr(extractor, method) else None
                 for extractor in self._imaging_extractors
             ]
             unique_values = list(set(values))
-            assert len(unique_values) == 1, f"{property_desc} is not consistent over the files (found {unique_values})."
+            assert len(unique_values) == 1, f"{property_message} is not consistent over the files (found {unique_values})."
 
     def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> NumpyArray:
         extractor_indices = np.searchsorted(self._end_frames, frame_idxs, side="right")
