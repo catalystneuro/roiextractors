@@ -57,7 +57,7 @@ class TestMultiImagingExtractor(TestCase):
             (3, 4, 20.0, 2, "The number of channels is not consistent over the files (found {1, 2})."),
         ]
     )
-    def test_inconsistent_sampling_frequency_assertion(self, rows, columns, sampling_frequency, num_channels, msg):
+    def test_inconsistent_property_assertion(self, rows, columns, sampling_frequency, num_channels, msg):
         inconsistent_extractors = [
             self.extractors[0],
             generate_dummy_imaging_extractor(
