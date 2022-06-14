@@ -1,4 +1,5 @@
 """Specialized extractor for reading TIFF files produced via ScanImage."""
+import re
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -57,9 +58,7 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
         super().__init__()
         self.file_path = Path(file_path)
         self._scan_image_io = ScanImageTiffReader(str(self.file_path))
-        self._metadata = {
-            k: v for k, v in [line.split("=") for line in self._scan_image_io.description(0).split("\n") if line != ""]
-        }
+        self._metadata = {k: v for k, v in re.findall(pattern="(.+)=(.+)", string=self._scan_image_io.description(0))}
         self._sampling_frequency = sampling_frequency if sampling_frequency is not None else self._metadata["fps"]
         assert self.file_path.suffix in [".tiff", ".tif", ".TIFF", ".TIF"]
 
