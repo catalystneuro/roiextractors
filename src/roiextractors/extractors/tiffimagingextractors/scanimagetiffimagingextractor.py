@@ -75,7 +75,7 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
 
     @check_get_frames_args
     def get_frames(self, frame_idxs, channel=0) -> np.ndarray:
-        if not all(np.diff(frame_idxs) == 0):
+        if not all(np.diff(frame_idxs) == 1):
             return np.concatenate([self._scan_image_io.data(beg=idx, end=idx + 1) for idx in frame_idxs])
         else:
             return self._scan_image_io.data(beg=frame_idxs[0], end=frame_idxs[-1])
