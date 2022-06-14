@@ -8,6 +8,7 @@ from hdmf.testing import TestCase
 
 from roiextractors import (
     TiffImagingExtractor,
+    ScanImageTiffImagingExtractor,
     Hdf5ImagingExtractor,
     SbxImagingExtractor,
     CaimanSegmentationExtractor,
@@ -15,7 +16,6 @@ from roiextractors import (
     Suite2pSegmentationExtractor,
     CnmfeSegmentationExtractor,
 )
-
 
 from .setup_paths import OPHYS_DATA_PATH, OUTPUT_PATH
 
@@ -36,6 +36,12 @@ class TestExtractors(TestCase):
             extractor_kwargs=dict(
                 file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "demoMovie.tif"),
                 sampling_frequency=15.0,  # typically provied by user
+            ),
+        ),
+        param(
+            extractor_class=ScanImageTiffImagingExtractor,
+            extractor_kwargs=dict(
+                file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "sample_scanimage.tiff")
             ),
         ),
         param(

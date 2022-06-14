@@ -1,20 +1,15 @@
 """Specialized extractor for reading TIFF files produced via ScanImage."""
-import warnings
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
-from tqdm import tqdm
 
 from ...extraction_tools import (
     PathType,
-    get_video_shape,
     check_get_frames_args,
     FloatType,
     ArrayType,
 )
-
-from typing import Tuple
 from ...imagingextractor import ImagingExtractor
 
 try:
@@ -41,7 +36,6 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
         self,
         file_path: PathType,
         sampling_frequency: Optional[FloatType] = None,
-        channel_names: Optional[ArrayType] = None,
     ):
         """
         Specialized extractor for reading TIFF files produced via ScanImage.
@@ -55,6 +49,9 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
         ----------
         file_path : PathType
             Path to the TIFF file.
+        sampling_frequency : float, optional
+            The frequency at which the frames were sampled, in Hz.
+            The default pulls this information from the 'fps' of the TIFF file metadata.
         """
         assert self.installed, self.installation_mesg
         super().__init__()
@@ -64,7 +61,6 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
             k: v for k, v in [line.split("=") for line in self._scan_image_io.description(0).split("\n") if line != ""]
         }
         self._sampling_frequency = sampling_frequency if sampling_frequency is not None else self._metadata["fps"]
-        self._channel_names = channel_names
         assert self.file_path.suffix in [".tiff", ".tif", ".TIFF", ".TIF"]
 
         shape = self._scan_image_io.shape()  # [frames, rows, cols]
@@ -87,14 +83,14 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
     def get_image_size(self) -> Tuple[int, int]:
         return (self._size_x, self._size_y)
 
-    def get_num_frames(self):
+    def get_num_frames(self) -> int:
         return self._num_frames
 
-    def get_sampling_frequency(self):
+    def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
 
-    def get_channel_names(self):
+    def get_channel_names(self) -> Optional[ArrayType]:
         return self._channel_names
 
-    def get_num_channels(self):
+    def get_num_channels(self) -> int:
         return self._num_channels
