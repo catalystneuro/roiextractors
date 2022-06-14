@@ -2,9 +2,9 @@ import unittest
 from pathlib import Path
 from copy import copy
 
-from roiextractors.testing import check_imaging_equal, check_segmentations_equal
 from parameterized import parameterized, param
 from hdmf.testing import TestCase
+from numpy.testing import assert_array_equal
 
 from roiextractors import (
     TiffImagingExtractor,
@@ -16,6 +16,7 @@ from roiextractors import (
     Suite2pSegmentationExtractor,
     CnmfeSegmentationExtractor,
 )
+from roiextractors.testing import check_imaging_equal, check_segmentations_equal
 
 from .setup_paths import OPHYS_DATA_PATH, OUTPUT_PATH
 
@@ -136,14 +137,6 @@ class TestExtractors(TestCase):
 
         except NotImplementedError:
             return
-
-    def test_tiff_non_memmap_warning(self):
-        file_path = OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "sample_scanimage.tiff"
-        with self.assertWarnsWith(
-            warn_type=UserWarning,
-            exc_msg="memmap of TIFF file could not be established. Reading entire matrix into memory.",
-        ):
-            TiffImagingExtractor(file_path=str(file_path), sampling_frequency=15.0)
 
 
 if __name__ == "__main__":

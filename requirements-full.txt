@@ -1,2 +1,2 @@
 tifffile==2018.10.18
-scanimage-tiff-reader==1.4.1
+scanimage-tiff-reader

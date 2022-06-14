@@ -52,7 +52,7 @@ class TiffImagingExtractor(ImagingExtractor):
         except ValueError:
             warnings.warn(
                 "memmap of TIFF file could not be established. Reading entire matrix into memory. "
-                "Using the ScanImageTiffExtractor for lazy data access."
+                "Consider using the ScanImageTiffExtractor for lazy data access."
             )
             with tifffile.TiffFile(self.file_path) as tif:
                 self._video = tif.asarray()
