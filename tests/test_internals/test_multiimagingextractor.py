@@ -52,17 +52,12 @@ class TestMultiImagingExtractor(TestCase):
 
     @parameterized.expand(
         [
-            (3, 4, 15.0, 1,
-             "The sampling frequency is not consistent over the files (found {20.0, 15.0})."),
-            (3, 5, 20.0, 1,
-             "The size of a frame is not consistent over the files (found {(3, 4), (3, 5)})."),
-            (3, 4, 20.0, 2,
-             "The number of channels is not consistent over the files (found {1, 2})."),
+            (3, 4, 15.0, 1, "The sampling frequency is not consistent over the files (found {20.0, 15.0})."),
+            (3, 5, 20.0, 1, "The size of a frame is not consistent over the files (found {(3, 4), (3, 5)})."),
+            (3, 4, 20.0, 2, "The number of channels is not consistent over the files (found {1, 2})."),
         ]
     )
-    def test_inconsistent_sampling_frequency_assertion(self, rows, columns,
-                                                       sampling_frequency, num_channels,
-                                                       msg):
+    def test_inconsistent_sampling_frequency_assertion(self, rows, columns, sampling_frequency, num_channels, msg):
         inconsistent_extractors = [
             self.extractors[0],
             generate_dummy_imaging_extractor(
@@ -74,8 +69,8 @@ class TestMultiImagingExtractor(TestCase):
             ),
         ]
         with self.assertRaisesWith(
-                exc_type=AssertionError,
-                exc_msg=msg,
+            exc_type=AssertionError,
+            exc_msg=msg,
         ):
             MultiImagingExtractor(imaging_extractors=inconsistent_extractors)
 
