@@ -1,6 +1,6 @@
 from abc import ABC
 from array import ArrayType
-from typing import Tuple, List
+from typing import Tuple, List, Iterable
 
 import numpy as np
 
@@ -56,25 +56,32 @@ class MultiImagingExtractor(ImagingExtractor, ABC):
             get_channel_names="The name of the channels",
         )
         for method, property_message in properties_to_check.items():
-            values = [getattr(extractor, method, None) for extractor in self._imaging_extractors]
-            unique_values = list(set(values))
+            values = [getattr(extractor, method, None)() for extractor in self._imaging_extractors]
+            unique_values = set(tuple(v) if isinstance(v, Iterable) else v for v in values)
             assert (
                 len(unique_values) == 1
             ), f"{property_message} is not consistent over the files (found {unique_values})."
 
     def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> NumpyArray:
+        assert max(frame_idxs) < self._num_frames, "'frame_idxs' range beyond number of available frames!"
         extractor_indices = np.searchsorted(self._end_frames, frame_idxs, side="right")
+        # Match frame_idxs to imaging extractors
+        extractors_dict = {}
+        for extractor_index, frame_index in zip(extractor_indices, frame_idxs):
+            extractors_dict.setdefault(extractor_index, []).append(frame_index)
 
         frames_to_concatenate = []
         # Extract frames for each extractor and concatenate
-        for extractor_index in extractor_indices:
+        for extractor_index, frame_indices in extractors_dict.items():
             frames_for_each_extractor = self._get_frames_from_an_imaging_extractor(
                 extractor_index=extractor_index,
-                frame_idxs=frame_idxs,
+                frame_idxs=frame_indices,
             )
-            frames_to_concatenate.append(frames_for_each_extractor[np.newaxis, ...])
+            if len(frame_indices) == 1:
+                frames_for_each_extractor = frames_for_each_extractor[np.newaxis, ...]
+            frames_to_concatenate.append(frames_for_each_extractor)
 
-        frames = np.concatenate(frames_to_concatenate, axis=0)
+        frames = np.concatenate(frames_to_concatenate, axis=0).squeeze()
         return frames
 
     def _get_frames_from_an_imaging_extractor(self, extractor_index: int, frame_idxs: ArrayType):
