@@ -1,16 +1,15 @@
-from abc import ABC
-from array import ArrayType
-from typing import Tuple, List, Iterable
+from collections import defaultdict
+from typing import Tuple, List, Iterable, Optional
 
 import numpy as np
 
-from .extraction_tools import NumpyArray
+from .extraction_tools import ArrayType, NumpyArray, check_get_frames_args
 from .imagingextractor import ImagingExtractor
 
 
-class MultiImagingExtractor(ImagingExtractor, ABC):
+class MultiImagingExtractor(ImagingExtractor):
     """
-    This class is used to combine multiple ImagingExtractor objects by frame.
+    This class is used to combine multiple ImagingExtractor objects by frames.
     """
 
     extractor_name = "MultiImagingExtractor"
@@ -32,21 +31,13 @@ class MultiImagingExtractor(ImagingExtractor, ABC):
         # Checks that properties are consistent between extractors
         self._check_consistency_between_imaging_extractors()
 
-        # Set properties based off the initial extractor
-        self._first_imaging_extractor = self._imaging_extractors[0]
-        self._num_channels = self._first_imaging_extractor.get_num_channels()
-        self._channel_names = self._first_imaging_extractor.get_channel_names()
-        self._sampling_frequency = self._first_imaging_extractor.get_sampling_frequency()
-        self._image_size = self._first_imaging_extractor.get_image_size()
-
         self._start_frames, self._end_frames = [], []
-        num_frames = 0.0
+        num_frames = 0
         for imaging_extractor in self._imaging_extractors:
             self._start_frames.append(num_frames)
             num_frames = num_frames + imaging_extractor.get_num_frames()
             self._end_frames.append(num_frames)
-
-        self._num_frames = int(num_frames)
+        self._num_frames = num_frames
 
     def _check_consistency_between_imaging_extractors(self):
         properties_to_check = dict(
@@ -66,9 +57,9 @@ class MultiImagingExtractor(ImagingExtractor, ABC):
         assert max(frame_idxs) < self._num_frames, "'frame_idxs' range beyond number of available frames!"
         extractor_indices = np.searchsorted(self._end_frames, frame_idxs, side="right")
         # Match frame_idxs to imaging extractors
-        extractors_dict = {}
+        extractors_dict = defaultdict(list)
         for extractor_index, frame_index in zip(extractor_indices, frame_idxs):
-            extractors_dict.setdefault(extractor_index, []).append(frame_index)
+            extractors_dict[extractor_index].append(frame_index)
 
         frames_to_concatenate = []
         # Extract frames for each extractor and concatenate
@@ -84,7 +75,7 @@ class MultiImagingExtractor(ImagingExtractor, ABC):
         frames = np.concatenate(frames_to_concatenate, axis=0).squeeze()
         return frames
 
-    def _get_frames_from_an_imaging_extractor(self, extractor_index: int, frame_idxs: ArrayType):
+    def _get_frames_from_an_imaging_extractor(self, extractor_index: int, frame_idxs: ArrayType) -> NumpyArray:
         relative_frame_indices = (np.array(frame_idxs) - self._start_frames[extractor_index]).astype(int)
         imaging_extractor = self._imaging_extractors[extractor_index]
 
@@ -92,16 +83,16 @@ class MultiImagingExtractor(ImagingExtractor, ABC):
         return frames
 
     def get_image_size(self) -> Tuple:
-        return self._image_size
+        return self._imaging_extractors[0].get_image_size()
 
     def get_num_frames(self) -> int:
         return self._num_frames
 
     def get_sampling_frequency(self) -> float:
-        return self._sampling_frequency
+        return self._imaging_extractors[0].get_sampling_frequency()
 
     def get_channel_names(self) -> list:
-        return self._channel_names
+        return self._imaging_extractors[0].get_channel_names()
 
     def get_num_channels(self) -> int:
-        return self._num_channels
+        return self._imaging_extractors[0].get_num_channels()
