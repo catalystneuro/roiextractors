@@ -53,8 +53,8 @@ class MultiImagingExtractor(ImagingExtractor):
                 len(unique_values) == 1
             ), f"{property_message} is not consistent over the files (found {unique_values})."
 
-    def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> NumpyArray:
-        assert max(frame_idxs) < self._num_frames, "'frame_idxs' range beyond number of available frames!"
+    @check_get_frames_args
+    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> NumpyArray:
         extractor_indices = np.searchsorted(self._end_frames, frame_idxs, side="right")
         # Match frame_idxs to imaging extractors
         extractors_dict = defaultdict(list)
