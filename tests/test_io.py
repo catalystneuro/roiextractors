@@ -2,6 +2,7 @@ import unittest
 from pathlib import Path
 from copy import copy
 
+import numpy as np
 from roiextractors.testing import check_imaging_equal, check_segmentations_equal
 from parameterized import parameterized, param
 from hdmf.testing import TestCase
@@ -67,6 +68,16 @@ class TestExtractors(TestCase):
             check_imaging_equal(imaging_extractor1=extractor, imaging_extractor2=roundtrip_extractor)
         except NotImplementedError:
             return
+
+    @parameterized.expand(imaging_extractor_list, name_func=custom_name_func)
+    def test_imaging_extractors_canonical_shape(self, extractor_class, extractor_kwargs):
+        extractor = extractor_class(**extractor_kwargs)
+        video = extractor.get_video(channel=None)
+        image_size = extractor.get_image_size()
+        canonical_video_shape = np.array(
+            [extractor.get_num_frames(), image_size[0], image_size[1], extractor.get_num_channels()]
+        ).squeeze()
+        assert video.shape == canonical_video_shape
 
     segmentation_extractor_list = [
         param(
