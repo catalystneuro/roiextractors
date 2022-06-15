@@ -35,7 +35,7 @@ class TestMultiImagingExtractor(TestCase):
 
     def test_get_frames_assertion(self):
         with self.assertRaisesWith(
-            exc_type=AssertionError, exc_msg="'frame_idxs' range beyond number of available frames!"
+            exc_type=AssertionError, exc_msg="'frame_idxs' exceed number of frames"
         ):
             self.multi_imaging_extractor.get_frames(frame_idxs=[31])
 
