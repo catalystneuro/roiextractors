@@ -78,7 +78,6 @@ class TiffImagingExtractor(ImagingExtractor):
             "channel_names": channel_names,
         }
 
-    @check_get_frames_args
     def get_frames(self, frame_idxs, channel=0):
         return self._video[channel, frame_idxs]
 
