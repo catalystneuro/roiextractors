@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
-from parameterized import parameterized
+from parameterized import parameterized, param
 
 from roiextractors.multiimagingextractor import MultiImagingExtractor
 from roiextractors.testing import generate_dummy_imaging_extractor
@@ -34,9 +34,7 @@ class TestMultiImagingExtractor(TestCase):
         assert self.multi_imaging_extractor.get_num_channels() == 1
 
     def test_get_frames_assertion(self):
-        with self.assertRaisesWith(
-            exc_type=AssertionError, exc_msg="'frame_idxs' exceed number of frames"
-        ):
+        with self.assertRaisesWith(exc_type=AssertionError, exc_msg="'frame_idxs' exceed number of frames"):
             self.multi_imaging_extractor.get_frames(frame_idxs=[31])
 
     def test_get_frames(self):
@@ -52,12 +50,30 @@ class TestMultiImagingExtractor(TestCase):
 
     @parameterized.expand(
         [
-            (3, 4, 15.0, 1, "The sampling frequency is not consistent over the files (found {20.0, 15.0})."),
-            (3, 5, 20.0, 1, "The size of a frame is not consistent over the files (found {(3, 4), (3, 5)})."),
-            (3, 4, 20.0, 2, "The number of channels is not consistent over the files (found {1, 2})."),
-        ]
+            param(
+                rows=3,
+                columns=4,
+                sampling_frequency=15.0,
+                num_channels=1,
+                expected_error_msg="The sampling frequency is not consistent over the files (found {20.0, 15.0}).",
+            ),
+            param(
+                rows=3,
+                columns=5,
+                sampling_frequency=20.0,
+                num_channels=1,
+                expected_error_msg="The size of a frame is not consistent over the files (found {(3, 4), (3, 5)}).",
+            ),
+            param(
+                rows=3,
+                columns=4,
+                sampling_frequency=20.0,
+                num_channels=2,
+                expected_error_msg="The number of channels is not consistent over the files (found {1, 2}).",
+            ),
+        ],
     )
-    def test_inconsistent_property_assertion(self, rows, columns, sampling_frequency, num_channels, msg):
+    def test_inconsistent_property_assertion(self, rows, columns, sampling_frequency, num_channels, expected_error_msg):
         inconsistent_extractors = [
             self.extractors[0],
             generate_dummy_imaging_extractor(
@@ -70,7 +86,7 @@ class TestMultiImagingExtractor(TestCase):
         ]
         with self.assertRaisesWith(
             exc_type=AssertionError,
-            exc_msg=msg,
+            exc_msg=expected_error_msg,
         ):
             MultiImagingExtractor(imaging_extractors=inconsistent_extractors)
 
