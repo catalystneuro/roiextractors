@@ -34,9 +34,7 @@ class TestMultiImagingExtractor(TestCase):
         assert self.multi_imaging_extractor.get_num_channels() == 1
 
     def test_get_frames_assertion(self):
-        with self.assertRaisesWith(
-            exc_type=AssertionError, exc_msg="'frame_idxs' exceed number of frames"
-        ):
+        with self.assertRaisesWith(exc_type=AssertionError, exc_msg="'frame_idxs' exceed number of frames"):
             self.multi_imaging_extractor.get_frames(frame_idxs=[31])
 
     def test_get_frames(self):
