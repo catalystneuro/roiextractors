@@ -77,9 +77,9 @@ class MultiImagingExtractor(ImagingExtractor):
             # Extract frames for each extractor and concatenate
             for extractor_index, frame_indices in extractors_matched_to_frame_indices.items():
                 frames_for_each_extractor = self._get_frames_from_an_imaging_extractor(
-                        extractor_index=extractor_index,
-                        frame_idxs=frame_indices,
-                    )
+                    extractor_index=extractor_index,
+                    frame_idxs=frame_indices,
+                )
                 if len(frame_indices) == 1:
                     frames_for_each_extractor = frames_for_each_extractor[np.newaxis, ...]
                 frames_to_concatenate.append(frames_for_each_extractor)
