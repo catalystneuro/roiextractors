@@ -56,9 +56,10 @@ class MultiImagingExtractor(ImagingExtractor):
     @check_get_frames_args
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> NumpyArray:
         extractor_indices = np.searchsorted(self._end_frames, frame_idxs, side="right")
+        relative_frame_indices = frame_idxs - np.array(self._start_frames)[extractor_indices]
         # Match frame_idxs to imaging extractors
         extractors_dict = defaultdict(list)
-        for extractor_index, frame_index in zip(extractor_indices, frame_idxs):
+        for extractor_index, frame_index in zip(extractor_indices, relative_frame_indices):
             extractors_dict[extractor_index].append(frame_index)
 
         frames_to_concatenate = []
@@ -76,10 +77,8 @@ class MultiImagingExtractor(ImagingExtractor):
         return frames
 
     def _get_frames_from_an_imaging_extractor(self, extractor_index: int, frame_idxs: ArrayType) -> NumpyArray:
-        relative_frame_indices = (np.array(frame_idxs) - self._start_frames[extractor_index]).astype(int)
         imaging_extractor = self._imaging_extractors[extractor_index]
-
-        frames = imaging_extractor.get_frames(frame_idxs=relative_frame_indices)
+        frames = imaging_extractor.get_frames(frame_idxs=frame_idxs)
         return frames
 
     def get_image_size(self) -> Tuple:
