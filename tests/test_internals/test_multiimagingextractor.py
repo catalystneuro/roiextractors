@@ -39,7 +39,8 @@ class TestMultiImagingExtractor(TestCase):
         with self.assertRaisesWith(exc_type=AssertionError, exc_msg="'frame_idxs' exceed number of frames"):
             self.multi_imaging_extractor.get_frames(frame_idxs=[31])
 
-    def test_get_frames(self):
+    def test_get_non_consecutive_frames(self):
+        test_frames = self.multi_imaging_extractor.get_frames(frame_idxs=[8, 10, 12, 15, 20, 29])
         expected_frames = np.concatenate(
             (
                 self.extractors[0].get_frames(frame_idxs=[8])[np.newaxis, ...],
@@ -48,7 +49,28 @@ class TestMultiImagingExtractor(TestCase):
             ),
             axis=0,
         )
-        assert_array_equal(self.multi_imaging_extractor.get_frames(frame_idxs=[8, 10, 12, 15, 20, 29]), expected_frames)
+        assert_array_equal(test_frames, expected_frames)
+
+    def test_get_consecutive_frames(self):
+        test_frames = self.multi_imaging_extractor.get_frames(frame_idxs=np.arange(16, 22))
+        expected_frames = np.concatenate(
+            (
+                self.extractors[1].get_frames(frame_idxs=np.arange(6, 10)),
+                self.extractors[2].get_frames(frame_idxs=[0, 1]),
+            ),
+            axis=0,
+        )
+
+        assert_array_equal(test_frames, expected_frames)
+
+    def test_get_all_frames(self):
+        test_frames = self.multi_imaging_extractor.get_frames(frame_idxs=np.arange(0, 30))
+        expected_frames = np.concatenate(
+            [extractor.get_frames(np.arange(0, 10)) for extractor in self.extractors],
+            axis=0,
+        )
+
+        assert_array_equal(test_frames, expected_frames)
 
     @parameterized.expand(
         [
