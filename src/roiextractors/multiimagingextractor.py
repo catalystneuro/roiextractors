@@ -53,33 +53,46 @@ class MultiImagingExtractor(ImagingExtractor):
                 len(unique_values) == 1
             ), f"{property_message} is not consistent over the files (found {unique_values})."
 
-    @check_get_frames_args
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> NumpyArray:
-        extractor_indices = np.searchsorted(self._end_frames, frame_idxs, side="right")
-        # Match frame_idxs to imaging extractors
-        extractors_dict = defaultdict(list)
-        for extractor_index, frame_index in zip(extractor_indices, frame_idxs):
-            extractors_dict[extractor_index].append(frame_index)
+        if isinstance(frame_idxs, (int, np.integer)):
+            frame_idxs = [frame_idxs]
+        frame_idxs = np.array(frame_idxs)
+        assert np.max(frame_idxs) < self._num_frames, "'frame_idxs' range beyond number of available frames!"
+        extractors = np.searchsorted(self._end_frames, frame_idxs, side="right")
 
-        frames_to_concatenate = []
-        # Extract frames for each extractor and concatenate
-        for extractor_index, frame_indices in extractors_dict.items():
-            frames_for_each_extractor = self._get_frames_from_an_imaging_extractor(
-                extractor_index=extractor_index,
-                frame_idxs=frame_indices,
-            )
-            if len(frame_indices) == 1:
-                frames_for_each_extractor = frames_for_each_extractor[np.newaxis, ...]
-            frames_to_concatenate.append(frames_for_each_extractor)
+        # Make sure they are iterable
+        if not any([isinstance(frame_idx, Iterable) for frame_idx in frame_idxs]):
+            extractors = extractors[np.newaxis, ...]
+            frame_idxs = frame_idxs[np.newaxis, ...]
 
-        frames = np.concatenate(frames_to_concatenate, axis=0).squeeze()
-        return frames
+        relative_frame_indices = frame_idxs - np.array(self._start_frames)[extractors]
+        total_frames_to_concatenate = []
+        for extractor, relative_frames in zip(extractors, relative_frame_indices):
+            frames_to_concatenate = []
+            # Match frames to imaging extractors
+            extractors_matched_to_frame_indices = defaultdict(list)
+            for extractor_index, frame_index in zip(extractor, relative_frames):
+                extractors_matched_to_frame_indices[extractor_index].append(frame_index)
+
+            # Extract frames for each extractor and concatenate
+            for extractor_index, frame_indices in extractors_matched_to_frame_indices.items():
+                frames_for_each_extractor = self._get_frames_from_an_imaging_extractor(
+                        extractor_index=extractor_index,
+                        frame_idxs=frame_indices,
+                    )
+                if len(frame_indices) == 1:
+                    frames_for_each_extractor = frames_for_each_extractor[np.newaxis, ...]
+                frames_to_concatenate.append(frames_for_each_extractor)
+
+            frames = np.concatenate(frames_to_concatenate, axis=0)
+            total_frames_to_concatenate.append(frames[np.newaxis, ...])
+
+        total_frames = np.concatenate(total_frames_to_concatenate, axis=0).squeeze()
+        return total_frames
 
     def _get_frames_from_an_imaging_extractor(self, extractor_index: int, frame_idxs: ArrayType) -> NumpyArray:
-        relative_frame_indices = (np.array(frame_idxs) - self._start_frames[extractor_index]).astype(int)
         imaging_extractor = self._imaging_extractors[extractor_index]
-
-        frames = imaging_extractor.get_frames(frame_idxs=relative_frame_indices)
+        frames = imaging_extractor.get_frames(frame_idxs=frame_idxs)
         return frames
 
     def get_image_size(self) -> Tuple:
