@@ -86,19 +86,13 @@ class TestMultiImagingExtractor(TestCase):
         )
         expected_frames = np.concatenate(
             (
-                self.extractors[1].get_frames(frame_idxs=[np.arange(0, 3), np.arange(6, 9)]),
-                np.concatenate(
-                    (
-                        self.extractors[1].get_frames(frame_idxs=[9])[np.newaxis, ...],
-                        self.extractors[2].get_frames(frame_idxs=[0, 1]),
-                    ),
-                    axis=0,
-                )[:, :, 0][np.newaxis, ...],
+                self.extractors[1].get_frames(frame_idxs=[0, 1, 2, 6, 7, 8, 9]),
+                self.extractors[2].get_frames(frame_idxs=[0, 1]),
             ),
             axis=0,
         )
 
-        assert_array_equal(test_frames[:, :, :, 0], expected_frames)
+        assert_array_equal(test_frames, expected_frames)
 
     @parameterized.expand(
         [
