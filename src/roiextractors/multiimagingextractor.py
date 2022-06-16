@@ -57,38 +57,29 @@ class MultiImagingExtractor(ImagingExtractor):
         if isinstance(frame_idxs, (int, np.integer)):
             frame_idxs = [frame_idxs]
         frame_idxs = np.array(frame_idxs)
+        if all([isinstance(frame_idx, Iterable) for frame_idx in frame_idxs]):
+            frame_idxs = frame_idxs.flatten()
         assert np.max(frame_idxs) < self._num_frames, "'frame_idxs' range beyond number of available frames!"
         extractors = np.searchsorted(self._end_frames, frame_idxs, side="right")
-
-        # Make sure they are iterable
-        if not any([isinstance(frame_idx, Iterable) for frame_idx in frame_idxs]):
-            extractors = extractors[np.newaxis, ...]
-            frame_idxs = frame_idxs[np.newaxis, ...]
-
         relative_frame_indices = frame_idxs - np.array(self._start_frames)[extractors]
-        total_frames_to_concatenate = []
-        for extractor, relative_frames in zip(extractors, relative_frame_indices):
-            frames_to_concatenate = []
-            # Match frames to imaging extractors
-            extractors_matched_to_frame_indices = defaultdict(list)
-            for extractor_index, frame_index in zip(extractor, relative_frames):
-                extractors_matched_to_frame_indices[extractor_index].append(frame_index)
+        # Match frames to imaging extractors
+        extractors_matched_to_frame_indices = defaultdict(list)
+        for extractor_index, frame_index in zip(extractors, relative_frame_indices):
+            extractors_matched_to_frame_indices[extractor_index].append(frame_index)
 
-            # Extract frames for each extractor and concatenate
-            for extractor_index, frame_indices in extractors_matched_to_frame_indices.items():
-                frames_for_each_extractor = self._get_frames_from_an_imaging_extractor(
-                        extractor_index=extractor_index,
-                        frame_idxs=frame_indices,
-                    )
-                if len(frame_indices) == 1:
-                    frames_for_each_extractor = frames_for_each_extractor[np.newaxis, ...]
-                frames_to_concatenate.append(frames_for_each_extractor)
+        frames_to_concatenate = []
+        # Extract frames for each extractor and concatenate
+        for extractor_index, frame_indices in extractors_matched_to_frame_indices.items():
+            frames_for_each_extractor = self._get_frames_from_an_imaging_extractor(
+                extractor_index=extractor_index,
+                frame_idxs=frame_indices,
+            )
+            if len(frame_indices) == 1:
+                frames_for_each_extractor = frames_for_each_extractor[np.newaxis, ...]
+            frames_to_concatenate.append(frames_for_each_extractor)
 
-            frames = np.concatenate(frames_to_concatenate, axis=0)
-            total_frames_to_concatenate.append(frames[np.newaxis, ...])
-
-        total_frames = np.concatenate(total_frames_to_concatenate, axis=0).squeeze()
-        return total_frames
+        frames = np.concatenate(frames_to_concatenate, axis=0).squeeze()
+        return frames
 
     def _get_frames_from_an_imaging_extractor(self, extractor_index: int, frame_idxs: ArrayType) -> NumpyArray:
         imaging_extractor = self._imaging_extractors[extractor_index]
