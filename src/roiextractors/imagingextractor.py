@@ -64,6 +64,7 @@ class ImagingExtractor(ABC, BaseExtractor):
     def get_dtype(self) -> DtypeType:
         return self.get_frames(0, 0).dtype
 
+    @check_get_videos_args
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
     ) -> np.ndarray:
