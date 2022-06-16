@@ -36,10 +36,28 @@ class TestMultiImagingExtractor(TestCase):
         assert self.multi_imaging_extractor.get_num_channels() == 1
 
     def test_get_frames_assertion(self):
-        with self.assertRaisesWith(exc_type=AssertionError, exc_msg="'frame_idxs' exceed number of frames"):
+        with self.assertRaisesWith(
+            exc_type=AssertionError, exc_msg="'frame_idxs' range beyond number of available frames!"
+        ):
             self.multi_imaging_extractor.get_frames(frame_idxs=[31])
 
-    def test_get_frames(self):
+    def test_get_single_frame(self):
+        test_frames = self.multi_imaging_extractor.get_frames(frame_idxs=[29])
+        expected_frames = self.extractors[2].get_frames(frame_idxs=[9])
+
+        assert_array_equal(test_frames, expected_frames)
+
+    def test_get_all_frames(self):
+        test_frames = self.multi_imaging_extractor.get_frames(frame_idxs=np.arange(0, 30))
+        expected_frames = np.concatenate(
+            [self.extractors[i].get_frames(frame_idxs=np.arange(0, 10)) for i in range(3)],
+            axis=0,
+        )
+
+        assert_array_equal(test_frames, expected_frames)
+
+    def test_get_selected_frames(self):
+        test_frames = self.multi_imaging_extractor.get_frames(frame_idxs=[8, 10, 12, 15, 20, 29])
         expected_frames = np.concatenate(
             (
                 self.extractors[0].get_frames(frame_idxs=[8])[np.newaxis, ...],
@@ -48,7 +66,39 @@ class TestMultiImagingExtractor(TestCase):
             ),
             axis=0,
         )
-        assert_array_equal(self.multi_imaging_extractor.get_frames(frame_idxs=[8, 10, 12, 15, 20, 29]), expected_frames)
+        assert_array_equal(test_frames, expected_frames)
+
+    def test_get_frames_from_continuous_range(self):
+        test_frames = self.multi_imaging_extractor.get_frames(frame_idxs=np.arange(16, 30))
+        expected_frames = np.concatenate(
+            (
+                self.extractors[1].get_frames(frame_idxs=np.arange(6, 10)),
+                self.extractors[2].get_frames(frame_idxs=np.arange(0, 10)),
+            ),
+            axis=0,
+        )
+
+        assert_array_equal(test_frames, expected_frames)
+
+    def test_get_frames_from_distinct_ranges(self):
+        test_frames = self.multi_imaging_extractor.get_frames(
+            frame_idxs=[np.arange(10, 13), np.arange(16, 19), np.arange(19, 22)]
+        )
+        expected_frames = np.concatenate(
+            (
+                self.extractors[1].get_frames(frame_idxs=[np.arange(0, 3), np.arange(6, 9)]),
+                np.concatenate(
+                    (
+                        self.extractors[1].get_frames(frame_idxs=[9])[np.newaxis, ...],
+                        self.extractors[2].get_frames(frame_idxs=[0, 1]),
+                    ),
+                    axis=0,
+                )[:, :, 0][np.newaxis, ...],
+            ),
+            axis=0,
+        )
+
+        assert_array_equal(test_frames[:, :, :, 0], expected_frames)
 
     @parameterized.expand(
         [
