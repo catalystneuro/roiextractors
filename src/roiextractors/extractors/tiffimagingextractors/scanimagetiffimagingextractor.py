@@ -33,7 +33,9 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
     )
 
     def __init__(
-        self, file_path: PathType, sampling_frequency: FloatType,
+        self,
+        file_path: PathType,
+        sampling_frequency: FloatType,
     ):
         """
         Specialized extractor for reading TIFF files produced via ScanImage.
