@@ -14,8 +14,10 @@ class TestMultiImagingExtractor(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        dummy_extractor = generate_dummy_imaging_extractor(num_frames=10, rows=3, columns=4, sampling_frequency=20.0)
-        cls.extractors = [dummy_extractor] * 3
+        cls.extractors = [
+            generate_dummy_imaging_extractor(num_frames=10, rows=3, columns=4, sampling_frequency=20.0)
+            for _ in range(3)
+        ]
         cls.multi_imaging_extractor = MultiImagingExtractor(imaging_extractors=cls.extractors)
 
     def test_get_image_size(self):
