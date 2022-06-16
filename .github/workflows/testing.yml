@@ -28,7 +28,7 @@ jobs:
           pip install pytest-xdist
           git config --global user.email "CI@example.com"
           git config --global user.name "CI Almighty"
-          pip install wheel  # might be needed for scanimage?
+          pip install wheel  # needed for scanimage
       - name: Test minimal installation
         run: pip install .
       - name: Test full installation
