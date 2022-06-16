@@ -33,11 +33,17 @@ class MultiImagingExtractor(ImagingExtractor):
 
         self._start_frames, self._end_frames = [], []
         num_frames = 0
+        times = []
         for imaging_extractor in self._imaging_extractors:
             self._start_frames.append(num_frames)
             num_frames = num_frames + imaging_extractor.get_num_frames()
             self._end_frames.append(num_frames)
+            if getattr(imaging_extractor, "_times") is not None:
+                times.extend(imaging_extractor._times)
         self._num_frames = num_frames
+
+        if times:
+            self.set_times(times=times)
 
     def _check_consistency_between_imaging_extractors(self):
         properties_to_check = dict(
