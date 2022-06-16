@@ -28,14 +28,13 @@ jobs:
           pip install pytest-xdist
           git config --global user.email "CI@example.com"
           git config --global user.name "CI Almighty"
+          pip install wheel  # might be needed for scanimage?
       - name: Test minimal installation
         run: pip install .
       - name: Test full installation
         run: pip install .[full]
       - name: Install testing requirements (-e needed for codecov report)
         run: pip install -e .[testing]
-      - name: Testing pip cache dir
-        run: pip install scanimage-tiff-reader==1.4.1 --no-cache-dir
 
       - name: Get ophys_testing_data current head hash
         id: ophys
