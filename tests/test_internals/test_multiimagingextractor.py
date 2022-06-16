@@ -80,6 +80,28 @@ class TestMultiImagingExtractor(TestCase):
         )
         assert_array_equal(test_frames, expected_frames)
 
+    def test_set_incorrect_times(self):
+        self.extractors[0].set_times(np.arange(0, 10) / 20.0)
+
+        with self.assertRaisesWith(
+            exc_type=AssertionError,
+            exc_msg="'times' should have the same length of the number of frames!",
+        ):
+            MultiImagingExtractor(imaging_extractors=self.extractors)
+
+        self.assertEqual(self.multi_imaging_extractor._times, None)
+
+    def test_set_times(self):
+        [extractor.set_times(np.arange(0, 10) / 20.0) for extractor in self.extractors]
+        multi_imaging_extractor = MultiImagingExtractor(imaging_extractors=self.extractors)
+
+        dummy_times = list(np.arange(0, 10) / 20.0) * 3
+        assert_array_equal(multi_imaging_extractor._times, dummy_times)
+
+        self.multi_imaging_extractor.set_times(times=dummy_times)
+
+        assert_array_equal(self.multi_imaging_extractor._times, dummy_times)
+
     @parameterized.expand(
         [
             param(
