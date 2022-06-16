@@ -72,18 +72,19 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
     @check_get_frames_args
     def get_frames(self, frame_idxs: list, channel: int = 0) -> np.ndarray:
         if not all(np.diff(frame_idxs) == 1):
-            with ScanImageTiffReader(str(self.file_path)) as io:
-                return np.concatenate([self._get_single_frame(idx=idx) for idx in frame_idxs])
+            return np.concatenate([self._get_single_frame(idx=idx) for idx in frame_idxs])
         else:
-            with ScanImageTiffReader(str(self.file_path)) as io:
-                return io.data(beg=frame_idxs[0], end=frame_idxs[-1])
+            with ScanImageTiffReader(filename=str(self.file_path)) as io:
+                return io.data(beg=frame_idxs[0], end=frame_idxs[-1] + 1)
 
     def _get_single_frame(self, idx: int) -> np.ndarray:
+        """
+        Data accessed through an open ScanImageTiffReader io gets scrambled if there are multiple calls.
+
+        Thus, open fresh io in context each time something is needed.
+        """
         with ScanImageTiffReader(str(self.file_path)) as io:
-            if idx == self.get_num_frames() - 1:
-                return io.data(beg=idx)  # crashes kernel if access attempted beyond end
-            else:
-                return io.data(beg=idx, end=idx + 1)  # otherwise, default is to read to the end of the video
+            return io.data(beg=idx, end=idx + 1)
 
     def get_image_size(self) -> Tuple[int, int]:
         return (self._num_rows, self._num_cols)
