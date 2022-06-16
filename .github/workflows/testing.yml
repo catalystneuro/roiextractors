@@ -45,15 +45,15 @@ jobs:
         with:
           path: ./ophys_testing_data
           key: ophys-datasets-051822-${{ matrix.os }}-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
-      - if: steps.cache-ophys-datasets.outputs.cache-hit == false && ${{ matrix.os == 'ubuntu-latest' }}
+      - if: ${{ steps.cache-ophys-datasets.outputs.cache-hit == false && matrix.os == 'ubuntu-latest' }}
         name: Get datalad - Linux
         run: conda install -c conda-forge datalad==0.16.3
-      - if: steps.cache-ophys-datasets.outputs.cache-hit == false && ${{ matrix.os == 'windows-latest' }}
+      - if: ${{ steps.cache-ophys-datasets.outputs.cache-hit == false && matrix.os == 'windows-latest' }}
         name: Get git-annex - Windows
         uses: crazy-max/ghaction-chocolatey@v1.6.0
         with:
           args: install git-annex --ignore-checksums
-      - if: steps.cache-ophys-datasets.outputs.cache-hit == false && ${{ matrix.os == 'windows-latest' }}
+      - if: ${{ steps.cache-ophys-datasets.outputs.cache-hit == false && matrix.os == 'windows-latest' }}
         name: Get datalad - Windows and Mac
         run: pip install datalad==0.16.3
       - name: "Force GIN: ophys download"
