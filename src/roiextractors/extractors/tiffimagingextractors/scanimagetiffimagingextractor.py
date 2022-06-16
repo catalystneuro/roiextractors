@@ -1,5 +1,4 @@
 """Specialized extractor for reading TIFF files produced via ScanImage."""
-import re
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -34,9 +33,7 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
     )
 
     def __init__(
-        self,
-        file_path: PathType,
-        sampling_frequency: Optional[FloatType] = None,
+        self, file_path: PathType, sampling_frequency: FloatType,
     ):
         """
         Specialized extractor for reading TIFF files produced via ScanImage.
@@ -50,19 +47,17 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
         ----------
         file_path : PathType
             Path to the TIFF file.
-        sampling_frequency : float, optional
+        sampling_frequency : float
             The frequency at which the frames were sampled, in Hz.
-            The default pulls this information from the 'fps' of the TIFF file metadata.
         """
         assert self.installed, self.installation_mesg
         super().__init__()
         self.file_path = Path(file_path)
-        self._scan_image_io = ScanImageTiffReader(str(self.file_path))
-        self._metadata = {k: v for k, v in re.findall(pattern="(.+)=(.+)", string=self._scan_image_io.description(0))}
-        self._sampling_frequency = sampling_frequency if sampling_frequency is not None else self._metadata["fps"]
+        self._sampling_frequency = sampling_frequency
         assert self.file_path.suffix in [".tiff", ".tif", ".TIFF", ".TIF"]
 
-        shape = self._scan_image_io.shape()  # [frames, rows, cols]
+        with ScanImageTiffReader(str(self.file_path)) as io:
+            shape = io.shape()  # [frames, rows, cols]
         if len(shape) == 3:
             self._num_frames, self._num_rows, self._num_cols = shape
             self._num_channels = 1
@@ -73,14 +68,23 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
             )
 
     @check_get_frames_args
-    def get_frames(self, frame_idxs, channel=0) -> np.ndarray:
+    def get_frames(self, frame_idxs: list, channel: int = 0) -> np.ndarray:
         if not all(np.diff(frame_idxs) == 1):
-            return np.concatenate([self._scan_image_io.data(beg=idx, end=idx + 1) for idx in frame_idxs])
+            with ScanImageTiffReader(str(self.file_path)) as io:
+                return np.concatenate([self._get_single_frame(idx=idx) for idx in frame_idxs])
         else:
-            return self._scan_image_io.data(beg=frame_idxs[0], end=frame_idxs[-1])
+            with ScanImageTiffReader(str(self.file_path)) as io:
+                return io.data(beg=frame_idxs[0], end=frame_idxs[-1])
+
+    def _get_single_frame(self, idx: int) -> np.ndarray:
+        with ScanImageTiffReader(str(self.file_path)) as io:
+            if idx == self.get_num_frames() - 1:
+                return io.data(beg=idx)  # crashes kernel if access attempted beyond end
+            else:
+                return io.data(beg=idx, end=idx + 1)  # otherwise, default is to read to the end of the video
 
     def get_image_size(self) -> Tuple[int, int]:
-        return (self._size_x, self._size_y)
+        return (self._num_rows, self._num_cols)
 
     def get_num_frames(self) -> int:
         return self._num_frames

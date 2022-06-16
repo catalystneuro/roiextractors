@@ -42,7 +42,8 @@ class TestExtractors(TestCase):
         param(
             extractor_class=ScanImageTiffImagingExtractor,
             extractor_kwargs=dict(
-                file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "sample_scanimage.tiff")
+                file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "sample_scanimage.tiff"),
+                sampling_frequency=30.0,
             ),
         ),
         param(

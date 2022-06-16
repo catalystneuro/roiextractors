@@ -1,3 +1,2 @@
 tifffile==2018.10.18
-wheel==0.37.1  # needed for scanimage-tiff-reader?
 scanimage-tiff-reader==1.4.1
