@@ -72,6 +72,14 @@ class TestMultiImagingExtractor(TestCase):
 
         assert_array_equal(test_frames, expected_frames)
 
+    def test_get_video(self):
+        test_frames = self.multi_imaging_extractor.get_video()
+        expected_frames = np.concatenate(
+            [self.extractors[i].get_video() for i in range(3)],
+            axis=0,
+        )
+        assert_array_equal(test_frames, expected_frames)
+
     @parameterized.expand(
         [
             param(
