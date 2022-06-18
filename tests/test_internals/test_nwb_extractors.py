@@ -57,7 +57,7 @@ class TestNwbImagingExtractor(unittest.TestCase):
         # using internal data. this data will be stored inside the NWB file
         self.image_series = TwoPhotonSeries(
             name="TwoPhotonSeries",
-            data=self.video,
+            data=self.video.transpose([0, 2, 1]),
             imaging_plane=self.imaging_plane,
             rate=self.sampling_frequency,
             unit="normalized amplitude",
@@ -88,6 +88,11 @@ class TestNwbImagingExtractor(unittest.TestCase):
         frames_with_scalar = nwb_imaging_extractor.get_frames(frame_idxs)
         expected_frames = self.video[frame_idxs, ...]
         np.testing.assert_array_almost_equal(frames_with_scalar, expected_frames)
+
+        frame_idxs = [0]
+        frames_with_singleton = nwb_imaging_extractor.get_frames(frame_idxs)
+        expected_frames = self.video[frame_idxs, ...]
+        np.testing.assert_array_almost_equal(frames_with_singleton, expected_frames)
 
         frame_idxs = [0, 1]
         frames_with_list = nwb_imaging_extractor.get_frames(frame_idxs)

@@ -83,14 +83,12 @@ class NwbImagingExtractor(ImagingExtractor):
         # Load the two video structures that TwoPhotonSeries supports.
         self._data_has_channels_axis = True
         if len(self.two_photon_series.data.shape) == 3:
-            self._data_has_channels_axis = False
             self._num_channels = 1
-            self._num_frames, self._rows, self._columns = self.two_photon_series.data.shape
+            self._num_frames, self._columns, self._rows = self.two_photon_series.data.shape
         else:
-            self._num_frames, self._rows, self._columns, self._num_channels = self.two_photon_series.data.shape
-            raise "videos with multiple channel not supported yet"
+            raise "TwoPhothonSeries with depth dimension (z) not supported"
 
-        # Set channel names
+        # Set channel names (This should disambiguate which optical channel)
         self._channel_names = [i.name for i in self.two_photon_series.imaging_plane.optical_channel]
 
         # Set sampling frequency
@@ -161,13 +159,11 @@ class NwbImagingExtractor(ImagingExtractor):
             slice_stop = self.get_num_frames()
 
         data = self.two_photon_series.data
+        frames = data[slice_start:slice_stop, ...].transpose([0, 2, 1])
 
-        if self._data_has_channels_axis and channel is not None:
-            frames = data[slice_start:slice_stop, :, :, channel]
-        else:
-            frames = data[slice_start:slice_stop, ...]
-
-        return frames.squeeze()
+        if isinstance(frame_idxs, int):
+            frames = frames.squeeze()
+        return frames
 
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0):
         start_frame = start_frame if start_frame is not None else 0

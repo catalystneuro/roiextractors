@@ -196,7 +196,9 @@ def check_imaging_equal(imaging_extractor1: ImagingExtractor, imaging_extractor2
     assert np.isclose(imaging_extractor1.get_sampling_frequency(), imaging_extractor2.get_sampling_frequency())
     assert_array_equal(imaging_extractor1.get_channel_names(), imaging_extractor2.get_channel_names())
     assert_array_equal(imaging_extractor1.get_image_size(), imaging_extractor2.get_image_size())
-    assert_array_equal(imaging_extractor1.get_frames(frame_idxs=[0]), imaging_extractor2.get_frames(frame_idxs=[0]))
+    assert_array_equal(
+        imaging_extractor1.get_frames(frame_idxs=[0, 1]), imaging_extractor2.get_frames(frame_idxs=[0, 1])
+    )
     assert_array_almost_equal(
         imaging_extractor1.frame_to_time(np.arange(imaging_extractor1.get_num_frames())),
         imaging_extractor2.frame_to_time(np.arange(imaging_extractor2.get_num_frames())),
