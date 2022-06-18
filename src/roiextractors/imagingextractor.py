@@ -65,8 +65,13 @@ class ImagingExtractor(ABC, BaseExtractor):
         return self.get_frames(0, 0).dtype
 
     @check_get_videos_args
-    def get_video(self, start_frame: int = None, end_frame: int = None, channel: int = 0) -> np.ndarray:
-        return self.get_frames(range(start_frame, end_frame), channel)
+    def get_video(
+        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
+    ) -> np.ndarray:
+        start = start_frame if start_frame is not None else 0
+        stop = end_frame if end_frame is not None else self.get_num_frames()
+        frame_idxs = range(start, stop)
+        return self.get_frames(frame_idxs=frame_idxs, channel=channel)
 
     def frame_to_time(self, frames: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
         """This function converts user-inputted frame indexes to times with units of seconds.
