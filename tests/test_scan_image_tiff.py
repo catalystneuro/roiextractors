@@ -29,12 +29,14 @@ class TestScanImageTiffExtractor(TestCase):
             TiffImagingExtractor(file_path=self.file_path, sampling_frequency=30.0)
 
     def test_tiff_suffix_warning(self):
-        different_suffix_file_path = Path(f"{self.file_path.stem}.jpg").symlink_to(self.file_path)
+        different_suffix_file_path = (
+            OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / f"{self.file_path.stem}.jpg"
+        ).symlink_to(self.file_path)
         with self.assertWarnsWith(
             warn_type=UserWarning,
             exc_msg=(
-                "memmap of TIFF file could not be established. Reading entire matrix into memory. "
-                "Consider using the ScanImageTiffExtractor for lazy data access."
+                "Suffix (.jpg) is not of type .tiff, .tif, .TIFF, or .TIF! "
+                "The ScanImageTiffExtractor may not be appropriate for the file."
             ),
         ):
             ScanImageTiffImagingExtractor(file_path=different_suffix_file_path, sampling_frequency=30.0)

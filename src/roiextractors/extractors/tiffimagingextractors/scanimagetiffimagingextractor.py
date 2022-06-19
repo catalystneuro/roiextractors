@@ -59,7 +59,8 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
         if self.file_path.suffix in valid_suffixes:
             suffix_string = ", ".join(valid_suffixes[:-1]) + f", or {valid_suffixes[-1]}"
             warn(
-                f"Suffix is not of type {suffix_string}! The {self.extractor_name} may not be appropriate for the file."
+                f"Suffix ({self.file_path.suffix}) is not of type {suffix_string}! "
+                f"The {self.extractor_name} may not be appropriate for the file."
             )
 
         with ScanImageTiffReader(str(self.file_path)) as io:
