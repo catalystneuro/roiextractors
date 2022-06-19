@@ -76,6 +76,18 @@ class TestExtractors(TestCase):
         except NotImplementedError:
             return
 
+    @parameterized.expand(imaging_extractor_list, name_func=custom_name_func)
+    def test_imaging_extractors_canonical_shape(self, extractor_class, extractor_kwargs):
+        extractor = extractor_class(**extractor_kwargs)
+        image_size = extractor.get_image_size()
+        num_channels = extractor.get_num_channels()
+        video = extractor.get_video()
+
+        canonical_video_shape = [extractor.get_num_frames(), image_size[0], image_size[1]]
+        if num_channels > 1:
+            canonical_video_shape.append(num_channels)
+        assert video.shape == tuple(canonical_video_shape)
+
     segmentation_extractor_list = [
         param(
             extractor_class=CaimanSegmentationExtractor,
