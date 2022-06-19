@@ -30,23 +30,16 @@ class TiffImagingExtractor(ImagingExtractor):
     mode = "file"
     installation_mesg = "To use the TiffImagingExtractor install tifffile: \n\n pip install tifffile\n\n"
 
-    def __init__(
-        self,
-        file_path: PathType,
-        sampling_frequency: FloatType,
-        channel_names: ArrayType = None,
-    ):
+    def __init__(self, file_path: PathType, sampling_frequency: FloatType):
         assert HAVE_TIFF, self.installation_mesg
         ImagingExtractor.__init__(self)
         self.file_path = Path(file_path)
         self._sampling_frequency = sampling_frequency
-        self._channel_names = channel_names
         assert self.file_path.suffix in [".tiff", ".tif", ".TIFF", ".TIF"]
 
         with tifffile.TiffFile(self.file_path) as tif:
             self._num_channels = len(tif.series)
 
-        # deal with multiple channels
         try:
             self._video = tifffile.memmap(self.file_path, mode="r")
         except ValueError:
@@ -54,28 +47,20 @@ class TiffImagingExtractor(ImagingExtractor):
             with tifffile.TiffFile(self.file_path) as tif:
                 self._video = tif.asarray()
 
-        (
-            self._num_channels,
-            self._num_frames,
-            self._size_x,
-            self._size_y,
-        ) = get_video_shape(self._video)
-
-        if len(self._video.shape) == 3:
-            # check if this converts to np.ndarray
-            self._video = self._video[np.newaxis, :]
-
-        if self._channel_names is not None:
-            assert len(self._channel_names) == self._num_channels, (
-                "'channel_names' length is different than number " "of channels"
-            )
+        shape = self._video.shape
+        if len(shape) == 3:
+            self._num_frames, self._num_rows, self._num_cols = shape
+            self._num_channels = 1
         else:
-            self._channel_names = [f"channel_{ch}" for ch in range(self._num_channels)]
+            raise NotImplementedError(
+                "The TiffImagingExtracgtor does not currently support multiple color channels or 3-dimensional depth."
+                "If you with to request either of these features, please do so by raising an issue at "
+                "https://github.com/catalystneuro/roiextractors/issues"
+            )
 
         self._kwargs = {
             "file_path": str(Path(file_path).absolute()),
             "sampling_frequency": sampling_frequency,
-            "channel_names": channel_names,
         }
 
     @check_get_frames_args
@@ -91,35 +76,16 @@ class TiffImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self):
         return self._sampling_frequency
 
-    def get_channel_names(self):
-        """List of  channels in the recoding.
-
-        Returns
-        -------
-        channel_names: list
-            List of strings of channel names
-        """
-        return self._channel_names
-
     def get_num_channels(self):
-        """Total number of active channels in the recording
-
-        Returns
-        -------
-        no_of_channels: int
-            integer count of number of channels
-        """
         return self._num_channels
+
+    def get_channel_names(self):
+        pass
 
     @staticmethod
     def write_imaging(imaging, save_path, overwrite: bool = False, chunk_size=None, verbose=True):
         save_path = Path(save_path)
-        assert save_path.suffix in [
-            ".tiff",
-            ".tif",
-            ".TIFF",
-            ".TIF",
-        ], "'save_path' file is not an .tiff file"
+        assert save_path.suffix in [".tiff", ".tif", ".TIFF", ".TIF",], "'save_path' file is not an .tiff file"
 
         if save_path.is_file():
             if not overwrite:
@@ -142,8 +108,7 @@ class TiffImagingExtractor(ImagingExtractor):
             with tifffile.TiffWriter(save_path) as tif:
                 for i in chunks:
                     video = imaging.get_video(
-                        start_frame=i * chunk_size,
-                        end_frame=min((i + 1) * chunk_size, num_frames),
+                        start_frame=i * chunk_size, end_frame=min((i + 1) * chunk_size, num_frames),
                     )
                     chunk_frames = np.squeeze(video)
                     tif.save(chunk_frames, contiguous=True, metadata=None)
