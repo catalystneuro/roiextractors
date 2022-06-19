@@ -39,10 +39,7 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
         """
         Specialized extractor for reading TIFF files produced via ScanImage.
 
-        The generic TiffImagingExtractor has issues loading these types of TIFF files in a lazy (memory mapped) manner.
-
-        The API calls to this extractor, however, have fully lazy behavior; however, direct slicing of the underlying
-        data structure is not equivalent to a numpy memory map.
+        This extractor allows for lazy accessing of slices, unlike :py:class:`~roiextractors.extractors.tiffimagingextractors.TiffImagingExtractor`. However, direct slicing of the underlying data structure is not equivalent to a numpy memory map.
 
         Parameters
         ----------
