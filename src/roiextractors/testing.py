@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from typing import Tuple
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
@@ -17,6 +18,21 @@ from roiextractors import NumpyImagingExtractor
 from roiextractors.extraction_tools import DtypeType
 
 
+def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16"):
+    dtype = np.dtype(dtype)
+    number_of_bytes = dtype.itemsize
+
+    low = 0 if "u" in dtype.name else 2 ** (number_of_bytes - 1) - 2**number_of_bytes
+    high = 2**number_of_bytes - 1 if "u" in dtype.name else 2**number_of_bytes - 2 ** (number_of_bytes - 1) - 1
+    video = (
+        np.random.random(size=size)
+        if "float" in dtype.name
+        else np.random.randint(low=low, high=high, size=size, dtype=dtype)
+    )
+
+    return video
+
+
 def generate_dummy_imaging_extractor(
     num_frames: int = 30,
     rows: int = 10,
@@ -27,17 +43,8 @@ def generate_dummy_imaging_extractor(
 ):
     channel_names = [f"channel_num_{num}" for num in range(num_channels)]
 
-    dtype = np.dtype(dtype)
-    number_of_bytes = dtype.itemsize
-
-    low = 0 if "u" in dtype.name else 2 ** (number_of_bytes - 1) - 2**number_of_bytes
-    high = 2**number_of_bytes - 1 if "u" in dtype.name else 2**number_of_bytes - 2 ** (number_of_bytes - 1) - 1
     size = (num_frames, rows, columns, num_channels)
-    video = (
-        np.random.random(size=size)
-        if "float" in dtype.name
-        else np.random.randint(low=low, high=high, size=size, dtype=dtype)
-    )
+    video = generate_dummy_video(size=size, dtype=dtype)
 
     imaging_extractor = NumpyImagingExtractor(
         timeseries=video, sampling_frequency=sampling_frequency, channel_names=channel_names
@@ -189,7 +196,9 @@ def check_imaging_equal(imaging_extractor1: ImagingExtractor, imaging_extractor2
     assert np.isclose(imaging_extractor1.get_sampling_frequency(), imaging_extractor2.get_sampling_frequency())
     assert_array_equal(imaging_extractor1.get_channel_names(), imaging_extractor2.get_channel_names())
     assert_array_equal(imaging_extractor1.get_image_size(), imaging_extractor2.get_image_size())
-    assert_array_equal(imaging_extractor1.get_frames(frame_idxs=[0]), imaging_extractor2.get_frames(frame_idxs=[0]))
+    assert_array_equal(
+        imaging_extractor1.get_frames(frame_idxs=[0, 1]), imaging_extractor2.get_frames(frame_idxs=[0, 1])
+    )
     assert_array_almost_equal(
         imaging_extractor1.frame_to_time(np.arange(imaging_extractor1.get_num_frames())),
         imaging_extractor2.frame_to_time(np.arange(imaging_extractor2.get_num_frames())),
