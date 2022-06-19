@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from warnings import warn
 
 import numpy as np
 
@@ -47,7 +48,10 @@ class SbxImagingExtractor(ImagingExtractor):
         file_path = Path(file_path)
         assertion_msg = "for file_path arg, provide a path to one .sbx /  .mat file"
         file_type = file_path.suffix
-        assert file_type in [".mat", ".sbx"], assertion_msg
+        if file_type not in [".mat", ".sbx"]:
+            warn(
+                "File suffix ({file_type}) is not one of .mat or .sbx - the SbxImagingExtractor may not be appropriate!"
+            )
         if file_type == ".mat":
             mat_file_path = file_path
             sbx_file_path = file_path.with_suffix(".sbx")

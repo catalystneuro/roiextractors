@@ -1,4 +1,5 @@
 from pathlib import Path
+from warnings import warn
 
 import numpy as np
 
@@ -39,10 +40,8 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         self.filepath = Path(file_path)
         self._sampling_frequency = sampling_frequency
         self._mov_field = mov_field
-        assert self.filepath.suffix in [
-            ".h5",
-            ".hdf5",
-        ], "'file_path' file is not an .hdf5 or .h5 file"
+        if self.filepath.suffix not in [".h5", ".hdf5"]:
+            warn("'file_path' file is not an .hdf5 or .h5 file")
         self._channel_names = channel_names
 
         self._file = h5py.File(file_path, "r")
@@ -68,12 +67,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         else:
             self.metadata = metadata
 
-        (
-            self._num_channels,
-            self._num_frames,
-            self._size_x,
-            self._size_y,
-        ) = get_video_shape(self._video)
+        (self._num_channels, self._num_frames, self._size_x, self._size_y,) = get_video_shape(self._video)
 
         if len(self._video.shape) == 3:
             # check if this converts to np.ndarray
@@ -125,17 +119,10 @@ class Hdf5ImagingExtractor(ImagingExtractor):
 
     @staticmethod
     def write_imaging(
-        imaging: ImagingExtractor,
-        save_path,
-        overwrite: bool = False,
-        mov_field="mov",
-        **kwargs,
+        imaging: ImagingExtractor, save_path, overwrite: bool = False, mov_field="mov", **kwargs,
     ):
         save_path = Path(save_path)
-        assert save_path.suffix in [
-            ".h5",
-            ".hdf5",
-        ], "'save_path' file is not an .hdf5 or .h5 file"
+        assert save_path.suffix in [".h5", ".hdf5",], "'save_path' file is not an .hdf5 or .h5 file"
 
         if save_path.is_file():
             if not overwrite:
