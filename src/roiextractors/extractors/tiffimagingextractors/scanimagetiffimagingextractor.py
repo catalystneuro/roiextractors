@@ -1,6 +1,7 @@
 """Specialized extractor for reading TIFF files produced via ScanImage."""
 from pathlib import Path
 from typing import Optional, Tuple
+from warnings import warn
 
 import numpy as np
 
@@ -33,9 +34,7 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
     )
 
     def __init__(
-        self,
-        file_path: PathType,
-        sampling_frequency: FloatType,
+        self, file_path: PathType, sampling_frequency: FloatType,
     ):
         """
         Specialized extractor for reading TIFF files produced via ScanImage.
@@ -56,7 +55,12 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
         super().__init__()
         self.file_path = Path(file_path)
         self._sampling_frequency = sampling_frequency
-        assert self.file_path.suffix in [".tiff", ".tif", ".TIFF", ".TIF"]
+        valid_suffixes = [".tiff", ".tif", ".TIFF", ".TIF"]
+        if self.file_path.suffix in valid_suffixes:
+            suffix_string = ", ".join(valid_suffixes[:-1]) + f", or {valid_suffixes[-1]}"
+            warn(
+                f"Suffix is not of type {suffix_string}! The {self.extractor_name} may not be appropriate for the file."
+            )
 
         with ScanImageTiffReader(str(self.file_path)) as io:
             shape = io.shape()  # [frames, rows, cols]
@@ -94,9 +98,6 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
 
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
-
-    def get_channel_names(self) -> Optional[ArrayType]:
-        return self._channel_names
 
     def get_num_channels(self) -> int:
         return self._num_channels
