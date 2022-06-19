@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 from tempfile import mkdtemp
-from shutil import rmtree
+from shutil import rmtree, copy
 
 from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
@@ -37,7 +37,8 @@ class TestScanImageTiffExtractor(TestCase):
 
     def test_tiff_suffix_warning(self):
         different_suffix_file_path = self.tmpdir / f"{self.file_path.stem}.jpg"
-        different_suffix_file_path.symlink_to(self.file_path)
+        # different_suffix_file_path.symlink_to(self.file_path)
+        copy(src=self.file_path, dst=different_suffix_file_path)
         with self.assertWarnsWith(
             warn_type=UserWarning,
             exc_msg=(
