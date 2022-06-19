@@ -39,7 +39,9 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
         """
         Specialized extractor for reading TIFF files produced via ScanImage.
 
-        This extractor allows for lazy accessing of slices, unlike :py:class:`~roiextractors.extractors.tiffimagingextractors.TiffImagingExtractor`. However, direct slicing of the underlying data structure is not equivalent to a numpy memory map.
+        This extractor allows for lazy accessing of slices, unlike
+        :py:class:`~roiextractors.extractors.tiffimagingextractors.TiffImagingExtractor`.
+        However, direct slicing of the underlying data structure is not equivalent to a numpy memory map.
 
         Parameters
         ----------
@@ -99,3 +101,6 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
 
     def get_num_channels(self) -> int:
         return self._num_channels
+
+    def get_channel_names(self) -> list:
+        pass
