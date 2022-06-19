@@ -1,5 +1,7 @@
 import unittest
 from pathlib import Path
+from tempfile import mkdtemp
+from shutil import rmtree
 
 from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
@@ -14,9 +16,14 @@ class TestScanImageTiffExtractor(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.file_path = OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "sample_scanimage.tiff"
+        cls.tmpdir = Path(mkdtemp())
         cls.imaging_extractor = ScanImageTiffImagingExtractor(file_path=cls.file_path, sampling_frequency=30.0)
         with ScanImageTiffReader(filename=str(cls.imaging_extractor.file_path)) as io:
             cls.data = io.data()
+
+    @classmethod
+    def tearDownClass(cls):
+        rmtree(cls.tmpdir)
 
     def test_tiff_non_memmap_warning(self):
         with self.assertWarnsWith(
@@ -29,14 +36,13 @@ class TestScanImageTiffExtractor(TestCase):
             TiffImagingExtractor(file_path=self.file_path, sampling_frequency=30.0)
 
     def test_tiff_suffix_warning(self):
-        different_suffix_file_path = (
-            OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / f"{self.file_path.stem}.jpg"
-        ).symlink_to(self.file_path)
+        different_suffix_file_path = self.tmpdir / f"{self.file_path.stem}.jpg"
+        different_suffix_file_path.symlink_to(self.file_path)
         with self.assertWarnsWith(
             warn_type=UserWarning,
             exc_msg=(
                 "Suffix (.jpg) is not of type .tiff, .tif, .TIFF, or .TIF! "
-                "The ScanImageTiffExtractor may not be appropriate for the file."
+                "The ScanImageTiffImagingExtractor may not be appropriate for the file."
             ),
         ):
             ScanImageTiffImagingExtractor(file_path=different_suffix_file_path, sampling_frequency=30.0)
