@@ -1,16 +1,17 @@
 from pathlib import Path
+from typing import Optional, Tuple
 from warnings import warn
 
 import numpy as np
 
 from ...extraction_tools import PathType, FloatType, ArrayType
 from ...extraction_tools import (
-    check_get_frames_args,
     get_video_shape,
     write_to_h5_dataset_format,
 )
 from ...imagingextractor import ImagingExtractor
-from typing import Tuple
+from lazy_ops import DatasetView
+
 
 try:
     import h5py
@@ -37,6 +38,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         channel_names: ArrayType = None,
     ):
         ImagingExtractor.__init__(self)
+
         self.filepath = Path(file_path)
         self._sampling_frequency = sampling_frequency
         self._mov_field = mov_field
@@ -46,7 +48,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
 
         self._file = h5py.File(file_path, "r")
         if "mov" in self._file.keys():
-            self._video = self._file[self._mov_field]
+            self._video = DatasetView(self._file[self._mov_field])
             if sampling_frequency is None:
                 assert "fr" in self._video.attrs, "sampling frequency information is unavailable!"
                 self._sampling_frequency = self._video.attrs["fr"]
@@ -67,16 +69,9 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         else:
             self.metadata = metadata
 
-        (
-            self._num_channels,
-            self._num_frames,
-            self._size_x,
-            self._size_y,
-        ) = get_video_shape(self._video)
-
-        if len(self._video.shape) == 3:
-            # check if this converts to np.ndarray
-            self._video = self._video[np.newaxis, :]
+        # The test data has four dimensions and the first axis is channels
+        self._num_channels, self._num_frames, self._num_rows, self._num_cols = self._video.shape
+        self._video = self._video.lazy_transpose([1, 2, 3, 0])
 
         if self._channel_names is not None:
             assert len(self._channel_names) == self._num_channels, (
@@ -95,20 +90,21 @@ class Hdf5ImagingExtractor(ImagingExtractor):
     def __del__(self):
         self._file.close()
 
-    @check_get_frames_args
-    def get_frames(self, frame_idxs, channel=0):
-        if frame_idxs.size > 1 and np.all(np.diff(frame_idxs) > 0) or frame_idxs.size == 1:
-            return self._video[channel, frame_idxs]
-            # return lazy_ops.DatasetView(self._video).lazy_slice[channel, frame_idxs]
+    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0):
+
+        # Fancy indexing is non performant for h5.py with long frame lists
+        if frame_idxs is not None:
+            slice_start = np.min(frame_idxs)
+            slice_stop = min(np.max(frame_idxs) + 1, self.get_num_frames())
         else:
-            # unsorted multiple frame idxs
-            sorted_idxs = np.sort(frame_idxs)
-            argsorted_idxs = np.argsort(frame_idxs)
-            return self._video[channel, sorted_idxs][:, argsorted_idxs]
-            # return lazy_ops.DatasetView(self._video).lazy_slice[channel, sorted_idxs].lazy_slice[:, argsorted_idxs]
+            slice_start = 0
+            slice_stop = self.get_num_frames()
+
+        frames = self._video.lazy_slice[slice_start:slice_stop, :, :, channel]
+        return frames
 
     def get_image_size(self) -> Tuple[int, int]:
-        return (self._size_x, self._size_y)
+        return (self._num_rows, self._num_cols)
 
     def get_num_frames(self):
         return self._num_frames
