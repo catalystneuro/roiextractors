@@ -1,9 +1,10 @@
 import os
 from pathlib import Path
+from warnings import warn
 
 import numpy as np
 
-from ...extraction_tools import PathType, ArrayType
+from ...extraction_tools import PathType, ArrayType, raise_multi_channel_or_depth_not_implemented
 from ...extraction_tools import check_keys
 from ...imagingextractor import ImagingExtractor
 
@@ -47,7 +48,10 @@ class SbxImagingExtractor(ImagingExtractor):
         file_path = Path(file_path)
         assertion_msg = "for file_path arg, provide a path to one .sbx /  .mat file"
         file_type = file_path.suffix
-        assert file_type in [".mat", ".sbx"], assertion_msg
+        if file_type not in [".mat", ".sbx"]:
+            warn(
+                "File suffix ({file_type}) is not one of .mat or .sbx - the SbxImagingExtractor may not be appropriate!"
+            )
         if file_type == ".mat":
             mat_file_path = file_path
             sbx_file_path = file_path.with_suffix(".sbx")
@@ -122,6 +126,10 @@ class SbxImagingExtractor(ImagingExtractor):
         nplanes = self._info["nplanes"]
         nframes = (self._info["max_idx"] + 1) // nplanes
         shape = (nchannels, ncols, nrows, nplanes, nframes)
+
+        if nchannels != 1:
+            raise_multi_channel_or_depth_not_implemented(extractor_name=self.extractor_name)
+
         np_data = np.memmap(self.sbx_file_path, dtype="uint16", mode="r", shape=shape, order="F")
         return np_data
 

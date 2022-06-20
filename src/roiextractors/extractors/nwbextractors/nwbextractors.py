@@ -18,6 +18,7 @@ from ...extraction_tools import (
     ArrayType,
     check_get_frames_args,
     check_get_videos_args,
+    raise_multi_channel_or_depth_not_implemented,
 )
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
@@ -86,7 +87,7 @@ class NwbImagingExtractor(ImagingExtractor):
             self._num_channels = 1
             self._num_frames, self._columns, self._rows = self.two_photon_series.data.shape
         else:
-            raise "TwoPhothonSeries with depth dimension (z) not supported"
+            raise_multi_channel_or_depth_not_implemented(extractor_name=self.extractor_name)
 
         # Set channel names (This should disambiguate which optical channel)
         self._channel_names = [i.name for i in self.two_photon_series.imaging_plane.optical_channel]
