@@ -85,7 +85,7 @@ class NwbImagingExtractor(ImagingExtractor):
         self._data_has_channels_axis = True
         if len(self.two_photon_series.data.shape) == 3:
             self._num_channels = 1
-            self._num_frames, self._columns, self._rows = self.two_photon_series.data.shape
+            self._num_frames, self._columns, self._num_rows = self.two_photon_series.data.shape
         else:
             raise_multi_channel_or_depth_not_implemented(extractor_name=self.extractor_name)
 
@@ -173,7 +173,7 @@ class NwbImagingExtractor(ImagingExtractor):
         return video
 
     def get_image_size(self):
-        return (self._rows, self._columns)
+        return (self._num_rows, self._columns)
 
     def get_num_frames(self):
         return self._num_frames

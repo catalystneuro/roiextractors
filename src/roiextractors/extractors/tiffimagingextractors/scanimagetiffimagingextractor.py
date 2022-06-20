@@ -65,9 +65,9 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
             )
 
         with ScanImageTiffReader(str(self.file_path)) as io:
-            shape = io.shape()  # [frames, rows, cols]
+            shape = io.shape()  # [frames, rows, columns]
         if len(shape) == 3:
-            self._num_frames, self._num_rows, self._num_cols = shape
+            self._num_frames, self._num_rows, self._num_columns = shape
             self._num_channels = 1
         else:  # no example file for multiple color channels or depths
             raise NotImplementedError(
@@ -93,7 +93,7 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
             return io.data(beg=idx, end=idx + 1)
 
     def get_image_size(self) -> Tuple[int, int]:
-        return (self._num_rows, self._num_cols)
+        return (self._num_rows, self._num_columns)
 
     def get_num_frames(self) -> int:
         return self._num_frames

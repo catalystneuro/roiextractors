@@ -57,7 +57,7 @@ class TiffImagingExtractor(ImagingExtractor):
 
         shape = self._video.shape
         if len(shape) == 3:
-            self._num_frames, self._num_rows, self._num_cols = shape
+            self._num_frames, self._num_rows, self._num_columns = shape
             self._num_channels = 1
         else:
             raise_multi_channel_or_depth_not_implemented(extractor_name=self.extractor_name)
@@ -72,7 +72,7 @@ class TiffImagingExtractor(ImagingExtractor):
         return self._video[frame_idxs, ...]
 
     def get_image_size(self) -> Tuple[int, int]:
-        return (self._num_rows, self._num_cols)
+        return (self._num_rows, self._num_columns)
 
     def get_num_frames(self):
         return self._num_frames

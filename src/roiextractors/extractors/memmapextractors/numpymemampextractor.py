@@ -32,28 +32,28 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
             the file_path where the data resides.
         video_structure : VideoStructure
             A VideoStructure instance describing the structure of the image to read. This includes parameters
-            such as the rows, columns and number of channels of the images plus which axis (i.e. dimension) of the
+            such as the number of rows, columns and channels plus which axis (i.e. dimension) of the
             image corresponds to each of them.
 
             As an example you create one of these structures in the following way:
 
             from roiextractors.extraction_tools import VideoStructure
 
-            rows = 10
-            columns = 5
+            num_rows = 10
+            num_columns = 5
             num_channels = 3
             frame_axis = 0
             rows_axis = 1
             columns_axis = 2
-            num_channels_axis = 3
+            channel_axis = 3
 
             video_structure = VideoStructure(
-                rows=rows,
+                num_rows=num_rows,
                 columns=columns,
                 num_channels=num_channels,
                 rows_axis=rows_axis,
                 columns_axis=columns_axis,
-                num_channels_axis=num_channels_axis,
+                channel_axis=channel_axis,
                 frame_axis=frame_axis,
             )
 
@@ -78,6 +78,6 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
             file_path=file_path, video_structure=video_structure, dtype=dtype, offset=offset
         )
         self._video = video_structure.transform_video_to_canonical_form(self._video)
-        self._num_frames, self._rows, self._columns, self._num_channels = self._video.shape
+        self._num_frames, self._num_rows, self._num_columns, self._num_channels = self._video.shape
 
         super().__init__(video=self._video)

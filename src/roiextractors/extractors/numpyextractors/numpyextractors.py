@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -52,8 +52,8 @@ class NumpyImagingExtractor(ImagingExtractor):
 
         (
             self._num_frames,
-            self._size_x,
-            self._size_y,
+            self._num_rows,
+            self._num_columns,
             self._num_channels,
         ) = get_video_shape(self._video)
 
@@ -78,8 +78,8 @@ class NumpyImagingExtractor(ImagingExtractor):
 
         return frames
 
-    def get_image_size(self):
-        return [self._size_x, self._size_y]
+    def get_image_size(self) -> Tuple[int, int]:
+        return (self._num_rows, self._num_columns)
 
     def get_num_frames(self):
         return self._num_frames
