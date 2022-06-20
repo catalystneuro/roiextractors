@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: SpikeInterface
+    url: https://github.com/SpikeInterface/spikeinterface
+    about: The sister project for reading from extracellular electrophysiology data formats.
+  - name: NWB Conversion Tools
+    url: https://github.com/catalystneuro/nwb-conversion-tools
+    about: For writing any ROIExtractor object to the Neurodata Without Borders (NWB) format.
