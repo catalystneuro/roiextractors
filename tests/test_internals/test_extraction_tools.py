@@ -12,28 +12,28 @@ from roiextractors.extraction_tools import VideoStructure, read_numpy_memmap_vid
 class TestVideoStructureClass(unittest.TestCase):
     def setUp(self) -> None:
         self.num_rows = 10
-        self.num_cols = 5
+        self.num_columns = 5
         self.num_channels = 3
 
         self.frame_axis = 0
         self.rows_axis = 1
-        self.cols_axis = 2
+        self.columns_axis = 2
         self.channels_axis = 3
 
         self.num_frames = 20
 
     def test_basic_parameters(self):
 
-        expected_frame_shape = (self.num_rows, self.num_cols, self.num_channels)
-        expected_pixels_per_frame = self.num_rows * self.num_cols * self.num_channels
-        expected_video_shape = (self.num_frames, self.num_rows, self.num_cols, self.num_channels)
+        expected_frame_shape = (self.num_rows, self.num_columns, self.num_channels)
+        expected_pixels_per_frame = self.num_rows * self.num_columns * self.num_channels
+        expected_video_shape = (self.num_frames, self.num_rows, self.num_columns, self.num_channels)
 
         video_structure = VideoStructure(
             num_rows=self.num_rows,
-            num_cols=self.num_cols,
+            num_columns=self.num_columns,
             num_channels=self.num_channels,
             rows_axis=self.rows_axis,
-            cols_axis=self.cols_axis,
+            columns_axis=self.columns_axis,
             channels_axis=self.channels_axis,
             frame_axis=self.frame_axis,
         )
@@ -46,19 +46,19 @@ class TestVideoStructureClass(unittest.TestCase):
 
         self.frame_axis = 3
         self.rows_axis = 2
-        self.cols_axis = 1
+        self.columns_axis = 1
         self.channels_axis = 0
 
-        expected_frame_shape = (self.num_channels, self.num_cols, self.num_rows)
-        expected_pixels_per_frame = self.num_rows * self.num_cols * self.num_channels
-        expected_video_shape = (self.num_channels, self.num_cols, self.num_rows, self.num_frames)
+        expected_frame_shape = (self.num_channels, self.num_columns, self.num_rows)
+        expected_pixels_per_frame = self.num_rows * self.num_columns * self.num_channels
+        expected_video_shape = (self.num_channels, self.num_columns, self.num_rows, self.num_frames)
 
         video_structure = VideoStructure(
             num_rows=self.num_rows,
-            num_cols=self.num_cols,
+            num_columns=self.num_columns,
             num_channels=self.num_channels,
             rows_axis=self.rows_axis,
-            cols_axis=self.cols_axis,
+            columns_axis=self.columns_axis,
             channels_axis=self.channels_axis,
             frame_axis=self.frame_axis,
         )
@@ -71,19 +71,19 @@ class TestVideoStructureClass(unittest.TestCase):
 
         self.frame_axis = 2
         self.rows_axis = 0
-        self.cols_axis = 1
+        self.columns_axis = 1
         self.channels_axis = 3
 
-        expected_frame_shape = (self.num_rows, self.num_cols, self.num_channels)
-        expected_pixels_per_frame = self.num_rows * self.num_cols * self.num_channels
-        expected_video_shape = (self.num_rows, self.num_cols, self.num_frames, self.num_channels)
+        expected_frame_shape = (self.num_rows, self.num_columns, self.num_channels)
+        expected_pixels_per_frame = self.num_rows * self.num_columns * self.num_channels
+        expected_video_shape = (self.num_rows, self.num_columns, self.num_frames, self.num_channels)
 
         video_structure = VideoStructure(
             num_rows=self.num_rows,
-            num_cols=self.num_cols,
+            num_columns=self.num_columns,
             num_channels=self.num_channels,
             rows_axis=self.rows_axis,
-            cols_axis=self.cols_axis,
+            columns_axis=self.columns_axis,
             channels_axis=self.channels_axis,
             frame_axis=self.frame_axis,
         )
@@ -101,10 +101,10 @@ class TestVideoStructureClass(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, reg_expression):
             video_structure = VideoStructure(
                 num_rows=self.num_rows,
-                num_cols=self.num_cols,
+                num_columns=self.num_columns,
                 num_channels=self.num_channels,
                 rows_axis=self.rows_axis,
-                cols_axis=self.cols_axis,
+                columns_axis=self.columns_axis,
                 channels_axis=self.channels_axis,
                 frame_axis=self.frame_axis,
             )
@@ -118,10 +118,10 @@ class TestVideoStructureClass(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, reg_expression):
             video_structure = VideoStructure(
                 num_rows=self.num_rows,
-                num_cols=self.num_cols,
+                num_columns=self.num_columns,
                 num_channels=self.num_channels,
                 rows_axis=self.rows_axis,
-                cols_axis=self.cols_axis,
+                columns_axis=self.columns_axis,
                 channels_axis=self.channels_axis,
                 frame_axis=self.frame_axis,
             )
@@ -146,28 +146,28 @@ class TestReadNumpyMemmapVideo(unittest.TestCase):
     dtype_list = ["uint16", "float", "int"]
     num_channels_list = [1, 3]
     sizes_list = [10, 25]
-    for dtype, num_channels, num_rows, num_cols in product(dtype_list, num_channels_list, sizes_list, sizes_list):
+    for dtype, num_channels, num_rows, num_columns in product(dtype_list, num_channels_list, sizes_list, sizes_list):
         param_case = param(
             dtype=dtype,
             num_channels=num_channels,
             num_rows=num_rows,
-            num_cols=num_cols,
-            case_name=f"dtype={dtype}, num_channels={num_channels}, num_rows={num_rows}, num_cols={num_cols}",
+            num_columns=num_columns,
+            case_name=f"dtype={dtype}, num_channels={num_channels}, num_rows={num_rows}, num_columns={num_columns}",
         )
         parameterized_list.append(param_case)
 
     @parameterized.expand(input=parameterized_list, name_func=custom_name_func)
-    def test_roundtrip(self, dtype, num_channels, num_rows, num_cols, case_name=""):
+    def test_roundtrip(self, dtype, num_channels, num_rows, num_columns, case_name=""):
 
         permutation = self.rng.choice([0, 1, 2, 3], size=4, replace=False)
-        rows_axis, cols_axis, channels_axis, frame_axis = permutation
+        rows_axis, columns_axis, channels_axis, frame_axis = permutation
         # Build a video structure
         video_structure = VideoStructure(
             num_rows=num_rows,
-            num_cols=num_cols,
+            num_columns=num_columns,
             num_channels=num_channels,
             rows_axis=rows_axis,
-            cols_axis=cols_axis,
+            columns_axis=columns_axis,
             channels_axis=channels_axis,
             frame_axis=frame_axis,
         )
@@ -192,7 +192,7 @@ class TestReadNumpyMemmapVideo(unittest.TestCase):
 
         # Test canonical form
         canonical_video = video_structure.transform_video_to_canonical_form(memmap_video)
-        assert canonical_video.shape == (self.num_frames, num_rows, num_cols, num_channels)
+        assert canonical_video.shape == (self.num_frames, num_rows, num_columns, num_channels)
 
 
 if __name__ == "__main__":

@@ -40,11 +40,11 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
             from roiextractors.extraction_tools import VideoStructure
 
             num_rows = 10
-            num_cols = 5
+            num_columns = 5
             num_channels = 3
             frame_axis = 0
             rows_axis = 1
-            cols_axis = 2
+            columns_axis = 2
             channel_axis = 3
 
             video_structure = VideoStructure(
@@ -52,7 +52,7 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
                 columns=columns,
                 num_channels=num_channels,
                 rows_axis=rows_axis,
-                cols_axis=cols_axis,
+                columns_axis=columns_axis,
                 channel_axis=channel_axis,
                 frame_axis=frame_axis,
             )
@@ -78,6 +78,6 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
             file_path=file_path, video_structure=video_structure, dtype=dtype, offset=offset
         )
         self._video = video_structure.transform_video_to_canonical_form(self._video)
-        self._num_frames, self._num_rows, self._num_cols, self._num_channels = self._video.shape
+        self._num_frames, self._num_rows, self._num_columns, self._num_channels = self._video.shape
 
         super().__init__(video=self._video)

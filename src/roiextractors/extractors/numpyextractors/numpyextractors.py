@@ -53,7 +53,7 @@ class NumpyImagingExtractor(ImagingExtractor):
         (
             self._num_frames,
             self._num_rows,
-            self._num_cols,
+            self._num_columns,
             self._num_channels,
         ) = get_video_shape(self._video)
 
@@ -79,7 +79,7 @@ class NumpyImagingExtractor(ImagingExtractor):
         return frames
 
     def get_image_size(self) -> Tuple[int, int]:
-        return (self._num_rows, self._num_cols)
+        return (self._num_rows, self._num_columns)
 
     def get_num_frames(self):
         return self._num_frames
