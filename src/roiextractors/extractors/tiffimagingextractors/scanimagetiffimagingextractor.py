@@ -65,7 +65,7 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
             )
 
         with ScanImageTiffReader(str(self.file_path)) as io:
-            shape = io.shape()  # [frames, rows, cols]
+            shape = io.shape()  # [frames, rows, columns]
         if len(shape) == 3:
             self._num_frames, self._num_rows, self._num_columns = shape
             self._num_channels = 1
