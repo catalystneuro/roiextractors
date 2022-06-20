@@ -1,1 +1,0 @@
-from .tiffimagingextractor import TiffImagingExtractor
