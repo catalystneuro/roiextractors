@@ -126,7 +126,6 @@ class TestExtractors(TestCase):
         ),
     ]
 
-    
     @parameterized.expand(segmentation_extractor_list, name_func=custom_name_func)
     def test_segmentation_extractors(self, extractor_class, extractor_kwargs):
         extractor = extractor_class(**extractor_kwargs)
