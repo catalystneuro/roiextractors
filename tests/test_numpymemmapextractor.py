@@ -36,35 +36,35 @@ class TestNumpyMemmapExtractor(unittest.TestCase):
     sizes_list = [10, 25]
     buffer_gb_list = [None, 0.1]
     for parameters in product(dtype_list, num_channels_list, sizes_list, sizes_list, buffer_gb_list):
-        dtype, num_channels, rows, columns, buffer_size_in_gb = parameters
+        dtype, num_channels, num_rows, num_cols, buffer_size_in_gb = parameters
         case_name = (
-            f"dtype={dtype}, num_channels={num_channels}, rows={rows},"
-            f"columns={columns}, buffer_size_in_gb={buffer_size_in_gb}"
+            f"dtype={dtype}, num_channels={num_channels}, num_rows={num_rows},"
+            f"num_cols={num_cols}, buffer_size_in_gb={buffer_size_in_gb}"
         )
         param_case = param(
             dtype=dtype,
             num_channels=num_channels,
-            rows=rows,
-            columns=columns,
+            num_rows=num_rows,
+            num_cols=num_cols,
             buffer_size_in_gb=buffer_size_in_gb,
             case_name=case_name,
         )
         parameterized_list.append(param_case)
 
     @parameterized.expand(input=parameterized_list, name_func=custom_name_func)
-    def test_roundtrip(self, dtype, num_channels, rows, columns, buffer_size_in_gb, case_name=""):
+    def test_roundtrip(self, dtype, num_channels, num_rows, num_cols, buffer_size_in_gb, case_name=""):
 
         permutation = self.rng.choice([0, 1, 2, 3], size=4, replace=False)
-        rows_axis, columns_axis, num_channels_axis, frame_axis = permutation
+        rows_axis, cols_axis, channels_axis, frame_axis = permutation
 
         # Build a video structure
         video_structure = VideoStructure(
-            rows=rows,
-            columns=columns,
+            num_rows=num_rows,
+            num_cols=num_cols,
             num_channels=num_channels,
             rows_axis=rows_axis,
-            columns_axis=columns_axis,
-            num_channels_axis=num_channels_axis,
+            cols_axis=cols_axis,
+            channels_axis=channels_axis,
             frame_axis=frame_axis,
         )
 
@@ -90,12 +90,12 @@ class TestNumpyMemmapExtractor(unittest.TestCase):
 
         # Read again for a round-trip, note that the data is stored in canonical form.
         video_structure = VideoStructure(
-            rows=rows,
-            columns=columns,
+            num_rows=num_rows,
+            num_cols=num_cols,
             num_channels=num_channels,
             rows_axis=1,
-            columns_axis=2,
-            num_channels_axis=3,
+            cols_axis=2,
+            channels_axis=3,
             frame_axis=0,
         )
 

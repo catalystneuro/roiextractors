@@ -35,15 +35,15 @@ def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16"):
 
 def generate_dummy_imaging_extractor(
     num_frames: int = 30,
-    rows: int = 10,
-    columns: int = 10,
+    num_rows: int = 10,
+    num_cols: int = 10,
     num_channels: int = 1,
     sampling_frequency: float = 30,
     dtype: DtypeType = "uint16",
 ):
     channel_names = [f"channel_num_{num}" for num in range(num_channels)]
 
-    size = (num_frames, rows, columns, num_channels)
+    size = (num_frames, num_rows, num_cols, num_channels)
     video = generate_dummy_video(size=size, dtype=dtype)
 
     imaging_extractor = NumpyImagingExtractor(

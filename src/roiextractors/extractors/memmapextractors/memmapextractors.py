@@ -45,7 +45,7 @@ class MemmapImagingExtractor(ImagingExtractor):
         return self.get_frames(frame_idxs=frame_idxs, channel=channel)
 
     def get_image_size(self) -> Tuple[int, int]:
-        return (self._rows, self._columns)
+        return (self._num_rows, self._num_cols)
 
     def get_num_frames(self) -> int:
         return self._num_frames
@@ -78,7 +78,7 @@ class MemmapImagingExtractor(ImagingExtractor):
 
     def get_video_shape(self) -> Tuple[int, int, int, int]:
 
-        return (self._num_frames, self._rows, self._columns, self._num_channels)
+        return (self._num_frames, self._num_rows, self._num_cols, self._num_channels)
 
     @staticmethod
     def write_imaging(

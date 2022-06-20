@@ -59,44 +59,44 @@ class VideoStructure:
     consistency checks to ensure the validity of the sturcture.
 
     Attributes:
-        rows (int): The number of rows of each frame as a matrix.
-        columns (int): The number of columns of each frame as a matrix.
+        num_rows (int): The number of rows of each frame as a matrix.
+        num_columns (int): The number of columns of each frame as a matrix.
         num_channels (int): The number of chanenls (1 for gray, 3 for colors).
         rows_axis (int): The axis or dimension corresponding to the rows.
         columns_axis (int):  The axis or dimension corresponding to the columns.
-        num_channels_axis (int): The axis or dimension corresponding to the channels.
+        channels_axis (int): The axis or dimension corresponding to the channels.
         frame_axis (int): The axis or dimension corresponding to the frames in the video.
 
     As an example if you wanted to build the structure for a video with gray (n_channels=1) frames of 10 x 5
-    where the video is to have the following shape (n_frames, rows, columns, n_channels) you
+    where the video is to have the following shape (num_frames, num_rows, num_cols, num_channels) you
     could define the class this way:
 
     >>> from roiextractors.extraction_tools import VideoStructure
-    >>> rows = 10
-    >>> columns = 5
+    >>> num_rows = 10
+    >>> num_columns = 5
     >>> num_channels = 1
     >>> frame_axis = 0
     >>> rows_axis = 1
-    >>> columns_axis = 2
-    >>> num_channels_axis = 3
+    >>> cols_axis = 2
+    >>> channels_axis = 3
     >>> video_structure = VideoStructure(
-        rows=rows,
-        columns=columns,
+        num_rows=num_rows,
+        num_columns=num_columns,
         num_channels=num_channels,
         rows_axis=rows_axis,
-        columns_axis=columns_axis,
-        num_channels_axis=num_channels_axis,
+        cols_axis=cols_axis,
+        channels_axis=channels_axis,
         frame_axis=frame_axis,
     )
 
     """
 
-    rows: int
-    columns: int
+    num_rows: int
+    num_cols: int
     num_channels: int
     rows_axis: int
-    columns_axis: int
-    num_channels_axis: int
+    cols_axis: int
+    channels_axis: int
     frame_axis: int
 
     def __post_init__(self) -> None:
@@ -106,9 +106,9 @@ class VideoStructure:
 
     def _initialize_frame_shape(self) -> None:
         self.frame_shape = [None, None, None, None]
-        self.frame_shape[self.rows_axis] = self.rows
-        self.frame_shape[self.columns_axis] = self.columns
-        self.frame_shape[self.num_channels_axis] = self.num_channels
+        self.frame_shape[self.rows_axis] = self.num_rows
+        self.frame_shape[self.cols_axis] = self.num_cols
+        self.frame_shape[self.channels_axis] = self.num_channels
         self.frame_shape.pop(self.frame_axis)
         self.frame_shape = tuple(self.frame_shape)
 
@@ -120,7 +120,7 @@ class VideoStructure:
             "each property axis should be unique value between 0 and 3 (inclusive)"
         )
 
-        axis_values = set((self.rows_axis, self.columns_axis, self.num_channels_axis, self.frame_axis))
+        axis_values = set((self.rows_axis, self.cols_axis, self.channels_axis, self.frame_axis))
         axis_values_are_not_unique = len(axis_values) != 4
         if axis_values_are_not_unique:
             raise ValueError(exception_message)
@@ -132,15 +132,15 @@ class VideoStructure:
     def build_video_shape(self, n_frames: int) -> Tuple[int, int, int, int]:
         video_shape = [None] * 4
         video_shape[self.frame_axis] = n_frames
-        video_shape[self.rows_axis] = self.rows
-        video_shape[self.columns_axis] = self.columns
-        video_shape[self.num_channels_axis] = self.num_channels
+        video_shape[self.rows_axis] = self.num_rows
+        video_shape[self.cols_axis] = self.num_cols
+        video_shape[self.channels_axis] = self.num_channels
 
         return tuple(video_shape)
 
     def transform_video_to_canonical_form(self, video: np.ndarray) -> np.ndarray:
         """Transform a video with the structure in this class to the canonical internal format of
-        roiextractors (frames, rows, columns, num_channels)
+        roiextractors (num_frames, num_rows, num_cols, num_channels)
 
         The function supports either
         Parameters
@@ -157,7 +157,7 @@ class VideoStructure:
         KeyError
 
         """
-        canonical_shape = (self.frame_axis, self.rows_axis, self.columns_axis, self.num_channels_axis)
+        canonical_shape = (self.frame_axis, self.rows_axis, self.cols_axis, self.channels_axis)
         if isinstance(video, (h5py.Dataset, zarr.core.Array)):
             re_mapped_video = lazy_ops.DatasetView(video).lazy_transpose(canonical_shape)
         elif isinstance(video, np.ndarray):
@@ -179,28 +179,28 @@ def read_numpy_memmap_video(
             the file_path where the data resides.
         video_structure : VideoStructure
             A VideoStructure instance describing the structure of the video to read. This includes parameters
-            such as the rows, columns and number of channels of the frames plus which axis (i.e. dimension) of the
+            such as the number of rows, columns and channels plus which axis (i.e. dimension) of the
             image corresponds to each of them.
 
             As an example you create one of these structures in the following way:
 
             from roiextractors.extraction_tools import VideoStructure
 
-            rows = 10
-            columns = 5
+            num_rows = 10
+            num_cols = 5
             num_channels = 3
             frame_axis = 0
             rows_axis = 1
-            columns_axis = 2
-            num_channels_axis = 3
+            cols_axis = 2
+            channels_axis = 3
 
             video_structure = VideoStructure(
-                rows=rows,
-                columns=columns,
+                num_rows=num_rows,
+                num_cols=num_cols,
                 num_channels=num_channels,
                 rows_axis=rows_axis,
-                columns_axis=columns_axis,
-                num_channels_axis=num_channels_axis,
+                cols_axis=cols_axis,
+                channels_axis=channels_axis,
                 frame_axis=frame_axis,
             )
 
