@@ -60,7 +60,7 @@ class VideoStructure:
 
     Attributes:
         num_rows (int): The number of rows of each frame as a matrix.
-        num_columns (int): The number of columns of each frame as a matrix.
+        num_cols (int): The number of columns of each frame as a matrix.
         num_channels (int): The number of chanenls (1 for gray, 3 for colors).
         rows_axis (int): The axis or dimension corresponding to the rows.
         columns_axis (int):  The axis or dimension corresponding to the columns.
@@ -73,7 +73,7 @@ class VideoStructure:
 
     >>> from roiextractors.extraction_tools import VideoStructure
     >>> num_rows = 10
-    >>> num_columns = 5
+    >>> num_cols = 5
     >>> num_channels = 1
     >>> frame_axis = 0
     >>> rows_axis = 1
@@ -81,7 +81,7 @@ class VideoStructure:
     >>> channels_axis = 3
     >>> video_structure = VideoStructure(
         num_rows=num_rows,
-        num_columns=num_columns,
+        num_cols=num_cols,
         num_channels=num_channels,
         rows_axis=rows_axis,
         cols_axis=cols_axis,
