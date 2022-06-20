@@ -42,6 +42,15 @@ IntType = Union[int, np.integer]
 FloatType = float
 
 
+def raise_multi_channel_or_depth_not_implemented(extractor_name: str):
+    """Raise a NotImplementedError for an extractor that does not support multiple channels or depth (z-axis)."""
+    raise NotImplementedError(
+        f"The {extractor_name}Extractor does not currently support multiple color channels or 3-dimensional depth."
+        "If you with to request either of these features, please do so by raising an issue at "
+        "https://github.com/catalystneuro/roiextractors/issues"
+    )
+
+
 @dataclass
 class VideoStructure:
     """A data class for specifying the structure of a video.
@@ -323,14 +332,7 @@ def check_get_videos_args(func):
 
 
 def write_to_h5_dataset_format(
-    imaging,
-    dataset_path,
-    save_path=None,
-    file_handle=None,
-    dtype=None,
-    chunk_size=None,
-    chunk_mb=1000,
-    verbose=False,
+    imaging, dataset_path, save_path=None, file_handle=None, dtype=None, chunk_size=None, chunk_mb=1000, verbose=False,
 ):
     """Saves the video of an imaging extractor in an h5 dataset.
 
@@ -403,9 +405,7 @@ def write_to_h5_dataset_format(
                 chunks = range(n_chunk)
             for i in chunks:
                 video = imaging.get_video(
-                    start_frame=i * chunk_size,
-                    end_frame=min((i + 1) * chunk_size, num_frames),
-                    channel=ch,
+                    start_frame=i * chunk_size, end_frame=min((i + 1) * chunk_size, num_frames), channel=ch,
                 )
                 chunk_frames = np.squeeze(video).shape[0]
                 if dtype is not None:
@@ -434,12 +434,7 @@ def show_video(imaging, ax=None):
     im = ax.imshow(im0, interpolation="none", aspect="auto", vmin=0, vmax=1)
     interval = 1 / imaging.get_sampling_frequency() * 1000
     anim = animation.FuncAnimation(
-        fig,
-        animate_func,
-        frames=imaging.get_num_frames(),
-        fargs=(imaging, im, ax),
-        interval=interval,
-        blit=False,
+        fig, animate_func, frames=imaging.get_num_frames(), fargs=(imaging, im, ax), interval=interval, blit=False,
     )
     return anim
 

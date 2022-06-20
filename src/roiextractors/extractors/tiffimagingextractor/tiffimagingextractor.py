@@ -10,6 +10,7 @@ from ...extraction_tools import (
     check_get_frames_args,
     FloatType,
     ArrayType,
+    raise_multi_channel_or_depth_not_implemented,
 )
 
 from typing import Tuple
@@ -52,11 +53,7 @@ class TiffImagingExtractor(ImagingExtractor):
             self._num_frames, self._num_rows, self._num_cols = shape
             self._num_channels = 1
         else:
-            raise NotImplementedError(
-                "The TiffImagingExtracgtor does not currently support multiple color channels or 3-dimensional depth."
-                "If you with to request either of these features, please do so by raising an issue at "
-                "https://github.com/catalystneuro/roiextractors/issues"
-            )
+            raise_multi_channel_or_depth_not_implemented(extractor_name=self.extractor_name)
 
         self._kwargs = {
             "file_path": str(Path(file_path).absolute()),
