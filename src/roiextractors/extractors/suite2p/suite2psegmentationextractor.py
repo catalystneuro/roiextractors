@@ -73,23 +73,28 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return np.array([j["med"] for j in self.stat]).T.astype(int)
 
     @staticmethod
-    def write_segmentation(segmentation_object: SegmentationExtractor, save_path, overwrite=True):
+    def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite=True):
         save_path = Path(save_path)
         assert not save_path.is_file(), "'save_path' must be a folder"
+
         if save_path.is_dir():
             if len(list(save_path.glob("*"))) > 0 and not overwrite:
                 raise FileExistsError("The specified folder is not empty! Use overwrite=True to overwrite it.")
             else:
                 shutil.rmtree(str(save_path))
+
+        # Solve with recursion
         if isinstance(segmentation_object, MultiSegmentationExtractor):
             segext_objs = segmentation_object.segmentations
             for plane_num, segext_obj in enumerate(segext_objs):
                 save_path_plane = save_path / f"plane{plane_num}"
                 Suite2pSegmentationExtractor.write_segmentation(segext_obj, save_path_plane)
+
         if not save_path.is_dir():
             save_path.mkdir(parents=True)
         if "plane" not in save_path.stem:
             save_path = save_path / "plane0"
+            save_path.mkdir()
 
         # saving traces:
         if segmentation_object.get_traces(name="raw") is not None:
@@ -118,6 +123,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         iscell[segmentation_object.get_rejected_list(), 0] = 0
         np.save(save_path / "iscell.npy", iscell)
         # saving ops
+
         ops = dict(
             nframes=segmentation_object.get_num_frames(),
             Lx=segmentation_object.get_image_size()[1],
@@ -125,7 +131,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             xrange=[0, segmentation_object.get_image_size()[1]],
             yrange=[0, segmentation_object.get_image_size()[0]],
             fs=segmentation_object.get_sampling_frequency(),
-            nchannels=1,
+            nchannels=segmentation_object.get_num_channels(),
             meanImg=segmentation_object.get_image("mean"),
             Vcorr=segmentation_object.get_image("correlation"),
         )

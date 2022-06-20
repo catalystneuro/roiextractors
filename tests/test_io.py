@@ -2,12 +2,13 @@ import unittest
 from pathlib import Path
 from copy import copy
 
-from roiextractors.testing import check_imaging_equal, check_segmentations_equal
 from parameterized import parameterized, param
 from hdmf.testing import TestCase
+from numpy.testing import assert_array_equal
 
 from roiextractors import (
     TiffImagingExtractor,
+    ScanImageTiffImagingExtractor,
     Hdf5ImagingExtractor,
     SbxImagingExtractor,
     CaimanSegmentationExtractor,
@@ -15,7 +16,7 @@ from roiextractors import (
     Suite2pSegmentationExtractor,
     CnmfeSegmentationExtractor,
 )
-
+from roiextractors.testing import check_imaging_equal, check_segmentations_equal
 
 from .setup_paths import OPHYS_DATA_PATH, OUTPUT_PATH
 
@@ -39,6 +40,13 @@ class TestExtractors(TestCase):
             ),
         ),
         param(
+            extractor_class=ScanImageTiffImagingExtractor,
+            extractor_kwargs=dict(
+                file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "sample_scanimage.tiff"),
+                sampling_frequency=30.0,
+            ),
+        ),
+        param(
             extractor_class=Hdf5ImagingExtractor,
             extractor_kwargs=dict(file_path=str(OPHYS_DATA_PATH / "imaging_datasets" / "hdf5" / "demoMovie.hdf5")),
         ),
@@ -52,6 +60,33 @@ class TestExtractors(TestCase):
                 ),
             ),
         )
+
+    @parameterized.expand(imaging_extractor_list, name_func=custom_name_func)
+    def test_imaging_extractors(self, extractor_class, extractor_kwargs):
+        extractor = extractor_class(**extractor_kwargs)
+        try:
+            suffix = Path(extractor_kwargs["file_path"]).suffix
+            output_path = self.savedir / f"{extractor_class.__name__}{suffix}"
+            extractor_class.write_imaging(extractor, output_path)
+
+            roundtrip_kwargs = copy(extractor_kwargs)
+            roundtrip_kwargs.update(file_path=output_path)
+            roundtrip_extractor = extractor_class(**roundtrip_kwargs)
+            check_imaging_equal(imaging_extractor1=extractor, imaging_extractor2=roundtrip_extractor)
+        except NotImplementedError:
+            return
+
+    @parameterized.expand(imaging_extractor_list, name_func=custom_name_func)
+    def test_imaging_extractors_canonical_shape(self, extractor_class, extractor_kwargs):
+        extractor = extractor_class(**extractor_kwargs)
+        image_size = extractor.get_image_size()
+        num_channels = extractor.get_num_channels()
+        video = extractor.get_video()
+
+        canonical_video_shape = [extractor.get_num_frames(), image_size[0], image_size[1]]
+        if num_channels > 1:
+            canonical_video_shape.append(num_channels)
+        assert video.shape == tuple(canonical_video_shape)
 
     segmentation_extractor_list = [
         param(
@@ -91,30 +126,6 @@ class TestExtractors(TestCase):
         ),
     ]
 
-    @parameterized.expand(imaging_extractor_list, name_func=custom_name_func)
-    def test_imaging_extractors(self, extractor_class, extractor_kwargs):
-        extractor = extractor_class(**extractor_kwargs)
-        try:
-            suffix = Path(extractor_kwargs["file_path"]).suffix
-            output_path = self.savedir / f"{extractor_class.__name__}{suffix}"
-            extractor_class.write_imaging(extractor, output_path)
-
-            roundtrip_kwargs = copy(extractor_kwargs)
-            roundtrip_kwargs.update(file_path=output_path)
-            roundtrip_extractor = extractor_class(**roundtrip_kwargs)
-            # TODO: this roundtrip test has been failing for some time now
-            check_imaging_equal(imaging_extractor1=extractor, imaging_extractor2=roundtrip_extractor)
-        except NotImplementedError:
-            return
-
-    def test_tiff_non_memmap_warning(self):
-        file_path = OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "sample_scanimage.tiff"
-        with self.assertWarnsWith(
-            warn_type=UserWarning,
-            exc_msg="memmap of TIFF file could not be established. Reading entire matrix into memory.",
-        ):
-            TiffImagingExtractor(file_path=str(file_path), sampling_frequency=15.0)
-
     @parameterized.expand(segmentation_extractor_list, name_func=custom_name_func)
     def test_segmentation_extractors(self, extractor_class, extractor_kwargs):
         extractor = extractor_class(**extractor_kwargs)
@@ -122,13 +133,8 @@ class TestExtractors(TestCase):
             suffix = Path(extractor_kwargs["file_path"]).suffix
             output_path = self.savedir / f"{extractor_class.__name__}{suffix}"
 
-            # TODO: Suit2P Segmentation fails to make certain files; probably related to how
-            # the input argument is a 'file_path' but is actually a folder?
-            # CnmfeSegmentation fails because of transpose issues when saving
-            # Not yet sure about ExtractSegmentation
+            # TODO:  ExtractSegmentation
             extractors_not_ready = [
-                "Suite2pSegmentationExtractor",
-                "CnmfeSegmentationExtractor",
                 "ExtractSegmentationExtractor",
             ]
 
@@ -138,7 +144,6 @@ class TestExtractors(TestCase):
                 roundtrip_kwargs = copy(extractor_kwargs)
                 roundtrip_kwargs.update(file_path=output_path)
                 roundtrip_extractor = extractor_class(**roundtrip_kwargs)
-                # TODO: this roundtrip test has been failing for some time now
                 check_segmentations_equal(
                     segmentation_extractor1=extractor, segmentation_extractor2=roundtrip_extractor
                 )
