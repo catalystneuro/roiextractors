@@ -42,6 +42,15 @@ IntType = Union[int, np.integer]
 FloatType = float
 
 
+def raise_multi_channel_or_depth_not_implemented(extractor_name: str):
+    """Raise a NotImplementedError for an extractor that does not support multiple channels or depth (z-axis)."""
+    raise NotImplementedError(
+        f"The {extractor_name}Extractor does not currently support multiple color channels or 3-dimensional depth."
+        "If you with to request either of these features, please do so by raising an issue at "
+        "https://github.com/catalystneuro/roiextractors/issues"
+    )
+
+
 @dataclass
 class VideoStructure:
     """A data class for specifying the structure of a video.

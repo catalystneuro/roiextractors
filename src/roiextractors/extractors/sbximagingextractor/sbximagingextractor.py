@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ...extraction_tools import PathType, ArrayType
+from ...extraction_tools import PathType, ArrayType, raise_multi_channel_or_depth_not_implemented
 from ...extraction_tools import check_keys
 from ...imagingextractor import ImagingExtractor
 
@@ -122,6 +122,10 @@ class SbxImagingExtractor(ImagingExtractor):
         nplanes = self._info["nplanes"]
         nframes = (self._info["max_idx"] + 1) // nplanes
         shape = (nchannels, ncols, nrows, nplanes, nframes)
+
+        if nchannels != 1:
+            raise_multi_channel_or_depth_not_implemented(extractor_name=self.extractor_name)
+
         np_data = np.memmap(self.sbx_file_path, dtype="uint16", mode="r", shape=shape, order="F")
         return np_data
 
