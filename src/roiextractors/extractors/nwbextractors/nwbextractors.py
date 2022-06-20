@@ -143,7 +143,10 @@ class NwbImagingExtractor(ImagingExtractor):
                 institution=nwbfile.institution,
                 lab=nwbfile.lab,
             ),
-            Ophys=dict(Device=[dict(name=dev) for dev in nwbfile.devices], TwoPhotonSeries=[dict(name=opts.name)],),
+            Ophys=dict(
+                Device=[dict(name=dev) for dev in nwbfile.devices],
+                TwoPhotonSeries=[dict(name=opts.name)],
+            ),
         )
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0):
