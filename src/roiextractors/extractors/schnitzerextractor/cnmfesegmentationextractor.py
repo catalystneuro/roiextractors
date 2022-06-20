@@ -48,7 +48,8 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         self._image_masks = self._image_mask_extractor_read()
         self._roi_response_raw = self._trace_extractor_read()
         self._raw_movie_file_location = self._raw_datafile_read()
-        self._sampling_frequency = self._roi_response_raw.shape[1] / self._tot_exptime_extractor_read()
+        self._sampling_frequency = self.get_num_frames() / self._tot_exptime_extractor_read()
+        # self._sampling_frequency = self._dataset_file[self._group0[0]]['inputOptions']["Fs"][...][0][0]
         self._image_correlation = self._summary_image_read()
 
     def __del__(self):
@@ -111,16 +112,15 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             # create base groups:
             _ = f.create_group("#refs#")
             main = f.create_group("cnmfeAnalysisOutput")
-            # create datasets:
-            main.create_dataset("extractedImages", data=segmentation_object.get_roi_image_masks().T)
+            # create datasets:   #
+            main.create_dataset("extractedImages", data=segmentation_object.get_roi_image_masks().transpose(2, 0, 1))
             main.create_dataset("extractedSignals", data=segmentation_object.get_traces().T)
             time = main.create_group("time")
             if segmentation_object.get_sampling_frequency() is not None:
                 time.create_dataset(
                     "totalTime",
                     (1, 1),
-                    data=segmentation_object.get_roi_image_masks().shape[1]
-                    / segmentation_object.get_sampling_frequency(),
+                    data=segmentation_object.get_num_frames() / segmentation_object.get_sampling_frequency(),
                 )
             if getattr(segmentation_object, "_raw_movie_file_location", None):
                 main.create_dataset(
