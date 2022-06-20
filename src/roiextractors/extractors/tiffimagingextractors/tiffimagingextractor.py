@@ -1,5 +1,5 @@
 from pathlib import Path
-import warnings
+from warnings import warn
 
 import numpy as np
 from tqdm import tqdm
@@ -36,7 +36,11 @@ class TiffImagingExtractor(ImagingExtractor):
         ImagingExtractor.__init__(self)
         self.file_path = Path(file_path)
         self._sampling_frequency = sampling_frequency
-        assert self.file_path.suffix in [".tiff", ".tif", ".TIFF", ".TIF"]
+        if self.file_path.suffix not in [".tiff", ".tif", ".TIFF", ".TIF"]:
+            warn(
+                "File suffix ({self.file_path.suffix}) is not one of .tiff, .tif, .TIFF, or .TIF! "
+                "The TiffImagingExtracto may not be appropriate."
+            )
 
         with tifffile.TiffFile(self.file_path) as tif:
             self._num_channels = len(tif.series)
@@ -44,7 +48,7 @@ class TiffImagingExtractor(ImagingExtractor):
         try:
             self._video = tifffile.memmap(self.file_path, mode="r")
         except ValueError:
-            warnings.warn(
+            warn(
                 "memmap of TIFF file could not be established. Reading entire matrix into memory. "
                 "Consider using the ScanImageTiffExtractor for lazy data access."
             )
