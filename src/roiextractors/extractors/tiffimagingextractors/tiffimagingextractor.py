@@ -54,7 +54,7 @@ class TiffImagingExtractor(ImagingExtractor):
         try:
             self._video = tifffile.memmap(self.file_path, mode="r")
         except ValueError:
-            warnings.warn(
+            warn(
                 "memmap of TIFF file could not be established. Reading entire matrix into memory. "
                 "Consider using the ScanImageTiffExtractor for lazy data access."
             )
