@@ -22,7 +22,6 @@ class ImagingExtractor(ABC, BaseExtractor):
         BaseExtractor.__init__(self)
         assert self.installed, self.installation_mesg
         self._memmapped = False
-        self._images_in_standard_structure = False
 
     @abstractmethod
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
@@ -73,21 +72,6 @@ class ImagingExtractor(ABC, BaseExtractor):
         stop = end_frame if end_frame is not None else self.get_num_frames()
         frame_idxs = range(start, stop)
         return self.get_frames(frame_idxs=frame_idxs, channel=channel)
-
-    def get_video_shape(self):
-        rows, columns = self.get_image_size()
-        num_channels = self.get_num_channels()
-        unique_frame_value = num_channels + 1
-        if unique_frame_value == rows:
-            unique_frame_value += 1
-        if unique_frame_value == columns:
-            unique_frame_value += 1
-
-        frame_idxs = [_ for _ in range(unique_frame_value)]
-        video_shape = np.array(self.get_frames(frame_idxs=frame_idxs, channel=None).shape)
-        video_shape[video_shape == unique_frame_value] = self.get_num_frames()
-
-        return tuple(video_shape)
 
     def frame_to_time(self, frames: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
         """This function converts user-inputted frame indexes to times with units of seconds.

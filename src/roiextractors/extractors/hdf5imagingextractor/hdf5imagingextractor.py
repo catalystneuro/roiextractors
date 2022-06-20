@@ -37,7 +37,6 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         channel_names: ArrayType = None,
     ):
         ImagingExtractor.__init__(self)
-        self._images_in_standard_structure = True
 
         self.filepath = Path(file_path)
         self._sampling_frequency = sampling_frequency
@@ -71,19 +70,9 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         else:
             self.metadata = metadata
 
-        (
-            self._num_channels,
-            self._num_frames,
-            self._rows,
-            self._columns,
-        ) = get_video_shape(self._video)
-
-        # I am assuming that the videos come here with self._num_channels in the first axis
-        self._data_has_channels_axis = self._video.ndim > 3
-        if self._data_has_channels_axis:
-            self._standard_video = self._video.lazy_transpose([1, 2, 3, 0])
-        else:
-            self._standard_video = self._video
+        # The test data has four dimensions and the first axis is channels
+        self._num_channels, self._num_frames, self._num_rows, self._num_cols = self._video.shape
+        self._video = self._video.lazy_transpose([1, 2, 3, 0])
 
         if self._channel_names is not None:
             assert len(self._channel_names) == self._num_channels, (
@@ -112,19 +101,11 @@ class Hdf5ImagingExtractor(ImagingExtractor):
             slice_start = 0
             slice_stop = self.get_num_frames()
 
-        if self._data_has_channels_axis and channel is not None:
-            frames = self._standard_video.lazy_slice[slice_start:slice_stop, :, :, channel]
-        elif self._data_has_channels_axis and channel is None:
-            frames = self._standard_video.lazy_slice[slice_start:slice_stop, ...]
-        elif not self.data_has_channel_axis and channel is None:
-            frames = self._standard_video.lazy_slice[slice_start:slice_stop, ...][:, np.newaxis]
-        else:
-            frames = self._standard_video.lazy_slice[slice_start:slice_stop, ...]
-
+        frames = self._video.lazy_slice[slice_start:slice_stop, :, :, channel]
         return frames
 
     def get_image_size(self) -> Tuple[int, int]:
-        return (self._rows, self._columns)
+        return (self._num_rows, self._num_cols)
 
     def get_num_frames(self):
         return self._num_frames
