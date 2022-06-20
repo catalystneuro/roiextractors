@@ -81,4 +81,3 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
         self._num_frames, self._rows, self._columns, self._num_channels = self._video.shape
 
         super().__init__(video=self._video)
-        self._images_in_standard_structure = False
