@@ -1,7 +1,7 @@
 [![PyPI version](https://badge.fury.io/py/roiextractors.svg)](https://badge.fury.io/py/roiextractors)
 ![Full Tests](https://github.com/catalystneuro/roiextractors/actions/workflows/testing.yml/badge.svg)
 ![Auto-release](https://github.com/catalystneuro/roiextractors/actions/workflows/auto-publish.yml/badge.svg)
-[![codecov](https://codecov.io/github/catalystneuro/roiextractors/coverage.svg?branch=main)](https://codecov.io/github/catalystneuro/roiextractors?branch=master)
+[![codecov](https://codecov.io/github/catalystneuro/roiextractors/coverage.svg?branch=master)](https://codecov.io/github/catalystneuro/roiextractors?branch=master)
 [![documentation](https://readthedocs.org/projects/roiextractors/badge/?version=main)](https://roiextractors.readthedocs.io/en/main/)
 [![License](https://img.shields.io/pypi/l/pynwb.svg)](https://github.com/catalystneuro/roiextractors/license.txt)
 
