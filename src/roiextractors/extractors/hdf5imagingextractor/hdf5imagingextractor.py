@@ -1,4 +1,5 @@
 from pathlib import Path
+from warnings import warn
 
 import numpy as np
 
@@ -39,10 +40,8 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         self.filepath = Path(file_path)
         self._sampling_frequency = sampling_frequency
         self._mov_field = mov_field
-        assert self.filepath.suffix in [
-            ".h5",
-            ".hdf5",
-        ], "'file_path' file is not an .hdf5 or .h5 file"
+        if self.filepath.suffix not in [".h5", ".hdf5"]:
+            warn("'file_path' file is not an .hdf5 or .h5 file")
         self._channel_names = channel_names
 
         self._file = h5py.File(file_path, "r")
