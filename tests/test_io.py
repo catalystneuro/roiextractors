@@ -16,7 +16,11 @@ from roiextractors import (
     Suite2pSegmentationExtractor,
     CnmfeSegmentationExtractor,
 )
-from roiextractors.testing import check_imaging_equal, check_segmentations_equal
+from roiextractors.testing import (
+    check_imaging_equal,
+    check_segmentations_equal,
+    assert_get_frames_function_return_shapes,
+)
 
 from .setup_paths import OPHYS_DATA_PATH, OUTPUT_PATH
 
@@ -64,6 +68,8 @@ class TestExtractors(TestCase):
     @parameterized.expand(imaging_extractor_list, name_func=custom_name_func)
     def test_imaging_extractors(self, extractor_class, extractor_kwargs):
         extractor = extractor_class(**extractor_kwargs)
+        assert_get_frames_function_return_shapes(imaging_extractor=extractor)
+
         try:
             suffix = Path(extractor_kwargs["file_path"]).suffix
             output_path = self.savedir / f"{extractor_class.__name__}{suffix}"

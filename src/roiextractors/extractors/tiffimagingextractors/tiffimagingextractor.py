@@ -67,7 +67,6 @@ class TiffImagingExtractor(ImagingExtractor):
             "sampling_frequency": sampling_frequency,
         }
 
-    @check_get_frames_args
     def get_frames(self, frame_idxs, channel: int = 0):
         return self._video[frame_idxs, ...]
 

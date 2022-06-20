@@ -131,14 +131,13 @@ class SbxImagingExtractor(ImagingExtractor):
             raise_multi_channel_or_depth_not_implemented(extractor_name=self.extractor_name)
 
         np_data = np.memmap(self.sbx_file_path, dtype="uint16", mode="r", shape=shape, order="F")
-        return np_data
+        return np_data.transpose(4, 2, 1, 0, 3)
 
     def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> np.array:
-        frames_list = []
-        for frame_no in frame_idxs:
-            frames_list.append(self._data[channel, :, :, 0, frame_no])
-        frame_out = np.stack(frames_list, axis=2).T.squeeze()
-        return np.iinfo("uint16").max - frame_out
+
+        frames = self._data.squeeze()[frame_idxs, ...]
+
+        return np.iinfo("uint16").max - frames
 
     def get_image_size(self) -> Tuple[int, int]:
         return tuple(self._info["sz"])
