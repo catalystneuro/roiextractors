@@ -13,7 +13,9 @@ def test_frame_slicing_imaging_times():
     times = np.array(range(num_frames)) + timestamp_shift
     start_frame, end_frame = 2, 7
 
-    toy_imaging_example = generate_dummy_imaging_extractor(num_frames=num_frames, rows=5, columns=4, num_channels=1)
+    toy_imaging_example = generate_dummy_imaging_extractor(
+        num_frames=num_frames, num_rows=5, num_columns=4, num_channels=1
+    )
     toy_imaging_example.set_times(times=times)
 
     frame_sliced_imaging = toy_imaging_example.frame_slice(start_frame=start_frame, end_frame=end_frame)
@@ -29,7 +31,9 @@ class TestFrameSliceImaging(TestCase):
     @classmethod
     def setUpClass(cls):
         """Use a toy example of ten frames of a 5 x 4 grayscale image."""
-        cls.toy_imaging_example = generate_dummy_imaging_extractor(num_frames=10, rows=5, columns=4, num_channels=1)
+        cls.toy_imaging_example = generate_dummy_imaging_extractor(
+            num_frames=10, num_rows=5, num_columns=4, num_channels=1
+        )
         cls.frame_sliced_imaging = cls.toy_imaging_example.frame_slice(start_frame=2, end_frame=7)
 
     def test_get_image_size(self):
