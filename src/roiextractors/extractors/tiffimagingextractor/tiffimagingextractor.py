@@ -61,11 +61,11 @@ class TiffImagingExtractor(ImagingExtractor):
         }
 
     @check_get_frames_args
-    def get_frames(self, frame_idxs, channel=0):
-        return self._video[channel, frame_idxs]
+    def get_frames(self, frame_idxs, channel: int = 0):
+        return self._video[frame_idxs, ...]
 
     def get_image_size(self) -> Tuple[int, int]:
-        return (self._size_x, self._size_y)
+        return (self._num_rows, self._num_cols)
 
     def get_num_frames(self):
         return self._num_frames
