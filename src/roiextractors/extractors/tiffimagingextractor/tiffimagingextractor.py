@@ -82,7 +82,12 @@ class TiffImagingExtractor(ImagingExtractor):
     @staticmethod
     def write_imaging(imaging, save_path, overwrite: bool = False, chunk_size=None, verbose=True):
         save_path = Path(save_path)
-        assert save_path.suffix in [".tiff", ".tif", ".TIFF", ".TIF",], "'save_path' file is not an .tiff file"
+        assert save_path.suffix in [
+            ".tiff",
+            ".tif",
+            ".TIFF",
+            ".TIF",
+        ], "'save_path' file is not an .tiff file"
 
         if save_path.is_file():
             if not overwrite:
@@ -105,7 +110,8 @@ class TiffImagingExtractor(ImagingExtractor):
             with tifffile.TiffWriter(save_path) as tif:
                 for i in chunks:
                     video = imaging.get_video(
-                        start_frame=i * chunk_size, end_frame=min((i + 1) * chunk_size, num_frames),
+                        start_frame=i * chunk_size,
+                        end_frame=min((i + 1) * chunk_size, num_frames),
                     )
                     chunk_frames = np.squeeze(video)
                     tif.save(chunk_frames, contiguous=True, metadata=None)
