@@ -31,7 +31,10 @@ class TiffImagingExtractor(ImagingExtractor):
     installation_mesg = "To use the TiffImagingExtractor install tifffile: \n\n pip install tifffile\n\n"
 
     def __init__(
-        self, file_path: PathType, sampling_frequency: FloatType, channel_names: ArrayType = None,
+        self,
+        file_path: PathType,
+        sampling_frequency: FloatType,
+        channel_names: ArrayType = None,
     ):
         assert HAVE_TIFF, self.installation_mesg
         ImagingExtractor.__init__(self)
@@ -55,7 +58,12 @@ class TiffImagingExtractor(ImagingExtractor):
             with tifffile.TiffFile(self.file_path) as tif:
                 self._video = tif.asarray()
 
-        (self._num_channels, self._num_frames, self._size_x, self._size_y,) = get_video_shape(self._video)
+        (
+            self._num_channels,
+            self._num_frames,
+            self._size_x,
+            self._size_y,
+        ) = get_video_shape(self._video)
 
         if len(self._video.shape) == 3:
             # check if this converts to np.ndarray
@@ -110,7 +118,12 @@ class TiffImagingExtractor(ImagingExtractor):
     @staticmethod
     def write_imaging(imaging, save_path, overwrite: bool = False, chunk_size=None, verbose=True):
         save_path = Path(save_path)
-        assert save_path.suffix in [".tiff", ".tif", ".TIFF", ".TIF",], "'save_path' file is not an .tiff file"
+        assert save_path.suffix in [
+            ".tiff",
+            ".tif",
+            ".TIFF",
+            ".TIF",
+        ], "'save_path' file is not an .tiff file"
 
         if save_path.is_file():
             if not overwrite:
@@ -133,7 +146,8 @@ class TiffImagingExtractor(ImagingExtractor):
             with tifffile.TiffWriter(save_path) as tif:
                 for i in chunks:
                     video = imaging.get_video(
-                        start_frame=i * chunk_size, end_frame=min((i + 1) * chunk_size, num_frames),
+                        start_frame=i * chunk_size,
+                        end_frame=min((i + 1) * chunk_size, num_frames),
                     )
                     chunk_frames = np.squeeze(video)
                     tif.save(chunk_frames, contiguous=True, metadata=None)
