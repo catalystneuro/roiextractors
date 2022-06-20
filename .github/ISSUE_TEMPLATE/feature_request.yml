@@ -1,7 +1,5 @@
 name: Feature Request
-description: |
-  Suggest an idea for a brand new feature, or a change to an existing one.
-  Common requests include adding read capability for multiple channels or a depth (z) dimension for one of the proprietary formats.
+description: Suggest an idea for a brand new feature, or a change to an existing one.
 title: "[Feature]: "
 labels: ["enhancement"]
 body:
