@@ -15,7 +15,7 @@ class TestMultiImagingExtractor(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.extractors = [
-            generate_dummy_imaging_extractor(num_frames=10, rows=3, columns=4, sampling_frequency=20.0)
+            generate_dummy_imaging_extractor(num_frames=10, num_rows=3, num_columns=4, sampling_frequency=20.0)
             for _ in range(3)
         ]
         cls.multi_imaging_extractor = MultiImagingExtractor(imaging_extractors=cls.extractors)
@@ -132,8 +132,8 @@ class TestMultiImagingExtractor(TestCase):
             self.extractors[0],
             generate_dummy_imaging_extractor(
                 num_frames=1,
-                rows=rows,
-                columns=columns,
+                num_rows=rows,
+                num_columns=columns,
                 sampling_frequency=sampling_frequency,
                 num_channels=num_channels,
             ),
