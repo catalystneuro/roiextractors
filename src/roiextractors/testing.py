@@ -205,7 +205,7 @@ def check_imaging_equal(imaging_extractor1: ImagingExtractor, imaging_extractor2
     )
 
 
-def assert_get_frames_function_return_shapes(imaging_extractor: ImagingExtractor):
+def assert_get_frames_indexing_with_single_channel(imaging_extractor: ImagingExtractor):
     """Utiliy to check whether an ImagingExtractor get_frames function behaves as expected. We aim for the function to
     behave as numpy slicing and indexing as much as possible
 
@@ -216,19 +216,22 @@ def assert_get_frames_function_return_shapes(imaging_extractor: ImagingExtractor
     """
 
     image_size = imaging_extractor.get_image_size()
-    frames_with_scalar = imaging_extractor.get_frames(0, channel=0)
 
+    frame_idxs = 0
+    frames_with_scalar = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
     assert frames_with_scalar.shape == image_size
 
-    frames_with_single_element_list = imaging_extractor.get_frames([0], channel=0)
+    frame_idxs = [0]
+    frames_with_single_element_list = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
     assert frames_with_single_element_list.shape == (1, image_size[0], image_size[1])
 
-    frames_with_list = imaging_extractor.get_frames([0, 1], channel=0)
+    frame_idxs = [0, 1]
+    frames_with_list = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
     assert frames_with_list.shape == (2, image_size[0], image_size[1])
 
     frame_idxs = np.array([0, 1])
     frames_with_array = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
-    assert frames_with_list.shape == (2, image_size[0], image_size[1])
+    assert frames_with_array.shape == (2, image_size[0], image_size[1])
 
 
 def check_imaging_return_types(img_ex: ImagingExtractor):
