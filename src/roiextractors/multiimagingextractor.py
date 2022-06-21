@@ -33,16 +33,14 @@ class MultiImagingExtractor(ImagingExtractor):
 
         self._start_frames, self._end_frames = [], []
         num_frames = 0
-        times = []
         for imaging_extractor in self._imaging_extractors:
             self._start_frames.append(num_frames)
             num_frames = num_frames + imaging_extractor.get_num_frames()
             self._end_frames.append(num_frames)
-            if getattr(imaging_extractor, "_times") is not None:
-                times.extend(imaging_extractor._times)
         self._num_frames = num_frames
 
-        if times:
+        if any((getattr(imaging_extractor, "_times") is not None for imaging_extractor in self._imaging_extractors)):
+            times = self._get_times()
             self.set_times(times=times)
 
     def _check_consistency_between_imaging_extractors(self):
@@ -58,6 +56,17 @@ class MultiImagingExtractor(ImagingExtractor):
             assert (
                 len(unique_values) == 1
             ), f"{property_message} is not consistent over the files (found {unique_values})."
+
+    def _get_times(self):
+        frame_indices = np.array([*range(self._start_frames[0], self._end_frames[-1])])
+        times = self.frame_to_time(frames=frame_indices)
+
+        for extractor_index, extractor in enumerate(self._imaging_extractors):
+            if getattr(extractor, "_times") is not None:
+                to_replace = [*range(self._start_frames[extractor_index], self._end_frames[extractor_index])]
+                times[to_replace] = extractor._times
+
+        return times
 
     @check_get_frames_args
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> NumpyArray:
