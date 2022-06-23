@@ -10,7 +10,7 @@ from pynwb.image import ImageSeries
 from pynwb.ophys import TwoPhotonSeries, OpticalChannel, ImageSegmentation
 
 from roiextractors import NwbImagingExtractor
-from roiextractors.testing import generate_dummy_video
+from roiextractors.testing import generate_dummy_video, assert_get_frames_indexing_with_single_channel
 from roiextractors.extraction_tools import PathType, ArrayType
 
 
@@ -108,6 +108,11 @@ class TestNwbImagingExtractor(unittest.TestCase):
         expected_video = self.video
 
         np.testing.assert_array_almost_equal(video, expected_video)
+
+    def test_get_frames_indexing_with_single_channel(self):
+
+        nwb_imaging_extractor = NwbImagingExtractor(file_path=self.file_path)
+        assert_get_frames_indexing_with_single_channel(imaging_extractor=nwb_imaging_extractor)
 
 
 if __name__ == "__main__":
