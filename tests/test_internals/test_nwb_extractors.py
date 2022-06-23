@@ -5,13 +5,11 @@ from pathlib import Path
 
 import numpy as np
 
-from pynwb import NWBFile, TimeSeries, NWBHDF5IO
-from pynwb.image import ImageSeries
-from pynwb.ophys import TwoPhotonSeries, OpticalChannel, ImageSegmentation
+from pynwb import NWBFile, NWBHDF5IO
+from pynwb.ophys import TwoPhotonSeries, OpticalChannel
 
 from roiextractors import NwbImagingExtractor
-from roiextractors.testing import generate_dummy_video, assert_get_frames_indexing_with_single_channel
-from roiextractors.extraction_tools import PathType, ArrayType
+from roiextractors.testing import generate_dummy_video, assert_get_frames_return_shape
 
 
 class TestNwbImagingExtractor(unittest.TestCase):
@@ -112,7 +110,7 @@ class TestNwbImagingExtractor(unittest.TestCase):
     def test_get_frames_indexing_with_single_channel(self):
 
         nwb_imaging_extractor = NwbImagingExtractor(file_path=self.file_path)
-        assert_get_frames_indexing_with_single_channel(imaging_extractor=nwb_imaging_extractor)
+        assert_get_frames_return_shape(imaging_extractor=nwb_imaging_extractor)
 
 
 if __name__ == "__main__":

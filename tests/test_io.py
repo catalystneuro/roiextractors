@@ -19,7 +19,7 @@ from roiextractors import (
 from roiextractors.testing import (
     check_imaging_equal,
     check_segmentations_equal,
-    assert_get_frames_indexing_with_single_channel,
+    assert_get_frames_return_shape,
 )
 
 from .setup_paths import OPHYS_DATA_PATH, OUTPUT_PATH
@@ -68,7 +68,6 @@ class TestExtractors(TestCase):
     @parameterized.expand(imaging_extractor_list, name_func=custom_name_func)
     def test_imaging_extractors(self, extractor_class, extractor_kwargs):
         extractor = extractor_class(**extractor_kwargs)
-        assert_get_frames_indexing_with_single_channel(imaging_extractor=extractor)
 
         try:
             suffix = Path(extractor_kwargs["file_path"]).suffix
@@ -83,16 +82,9 @@ class TestExtractors(TestCase):
             return
 
     @parameterized.expand(imaging_extractor_list, name_func=custom_name_func)
-    def test_imaging_extractors_canonical_shape(self, extractor_class, extractor_kwargs):
+    def test_get_frames_shape(self, extractor_class, extractor_kwargs):
         extractor = extractor_class(**extractor_kwargs)
-        image_size = extractor.get_image_size()
-        num_channels = extractor.get_num_channels()
-        video = extractor.get_video()
-
-        canonical_video_shape = [extractor.get_num_frames(), image_size[0], image_size[1]]
-        if num_channels > 1:
-            canonical_video_shape.append(num_channels)
-        assert video.shape == tuple(canonical_video_shape)
+        assert_get_frames_return_shape(imaging_extractor=extractor)
 
     segmentation_extractor_list = [
         param(
