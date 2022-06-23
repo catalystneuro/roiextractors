@@ -119,10 +119,11 @@ class TestExtractors(TestCase):
         ),
         param(
             extractor_class=Suite2pSegmentationExtractor,
-            extractor_kwargs=dict(
-                # TODO: argument name is 'file_path' on roiextractors, but it clearly refers to a folder_path
-                file_path=str(OPHYS_DATA_PATH / "segmentation_datasets" / "suite2p")
-            ),
+            extractor_kwargs=dict(folder_path=str(OPHYS_DATA_PATH / "segmentation_datasets" / "suite2p")),
+        ),
+        param(
+            extractor_class=Suite2pSegmentationExtractor,
+            extractor_kwargs=dict(file_path=str(OPHYS_DATA_PATH / "segmentation_datasets" / "suite2p")),
         ),
     ]
 
@@ -130,8 +131,15 @@ class TestExtractors(TestCase):
     def test_segmentation_extractors(self, extractor_class, extractor_kwargs):
         extractor = extractor_class(**extractor_kwargs)
         try:
-            suffix = Path(extractor_kwargs["file_path"]).suffix
-            output_path = self.savedir / f"{extractor_class.__name__}{suffix}"
+            roundtrip_kwargs = copy(extractor_kwargs)
+            if "folder_path" in extractor_kwargs:
+                output_path = self.savedir / f"{extractor_class.__name__}"
+                roundtrip_kwargs.update(folder_path=output_path)
+
+            elif "file_path" in extractor_kwargs:
+                suffix = Path(extractor_kwargs["file_path"]).suffix
+                output_path = self.savedir / f"{extractor_class.__name__}{suffix}"
+                roundtrip_kwargs.update(file_path=output_path)
 
             # TODO:  ExtractSegmentation
             extractors_not_ready = [
@@ -140,9 +148,6 @@ class TestExtractors(TestCase):
 
             if extractor_class.__name__ not in extractors_not_ready:
                 extractor_class.write_segmentation(extractor, output_path)
-
-                roundtrip_kwargs = copy(extractor_kwargs)
-                roundtrip_kwargs.update(file_path=output_path)
                 roundtrip_extractor = extractor_class(**roundtrip_kwargs)
                 check_segmentations_equal(
                     segmentation_extractor1=extractor, segmentation_extractor2=roundtrip_extractor

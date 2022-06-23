@@ -1,6 +1,6 @@
-import os
 import shutil
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 
@@ -17,28 +17,52 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     mode = "file"
     installation_mesg = ""  # error message when not installed
 
-    def __init__(self, file_path: PathType, combined: bool = False, plane_no: IntType = 0):
+    def __init__(
+        self,
+        folder_path: Optional[PathType] = None,
+        combined: bool = False,
+        plane_no: IntType = 0,
+        file_path: Optional[PathType] = None,
+    ):
         """
         Creating SegmentationExtractor object out of suite 2p data type.
         Parameters
         ----------
-        file_path: str
+        folder_path: str or Path
             ~/suite2p folder location on disk
         combined: bool
             if the plane is a combined plane as in the Suite2p pipeline
         plane_no: int
             the plane for which to extract segmentation for.
+        file_path: str or Path [Deprecated]
+            ~/suite2p folder location on disk
+
         """
+        from warnings import warn
+
+        if file_path is not None:
+            warning_stiring = (
+                "The keyword argument 'file_path' is being deprecated in favour of 'folder_path', "
+                "'folder_path' takes precence over 'file_path'"
+            )
+            warn(
+                message=warning_stiring,
+                category=DeprecationWarning,
+            )
+            folder_path = file_path if folder_path is None else folder_path
+
         SegmentationExtractor.__init__(self)
         self.combined = combined
         self.plane_no = plane_no
-        self.file_path = file_path
+        self.folder_path = Path(folder_path)
+
         self.stat = self._load_npy("stat.npy")
         self._roi_response_raw = self._load_npy("F.npy", mmap_mode="r")
         self._roi_response_neuropil = self._load_npy("Fneu.npy", mmap_mode="r")
         self._roi_response_deconvolved = self._load_npy("spks.npy", mmap_mode="r")
         self.iscell = self._load_npy("iscell.npy", mmap_mode="r")
         self.ops = self._load_npy("ops.npy").item()
+
         self._channel_names = [f"OpticalChannel{i}" for i in range(self.ops["nchannels"])]
         self._sampling_frequency = self.ops["fs"] * [2 if self.combined else 1][0]
         self._raw_movie_file_location = self.ops.get("filelist", [None])[0]
@@ -46,8 +70,8 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self._image_mean = self._summary_image_read("meanImg")
 
     def _load_npy(self, filename, mmap_mode=None):
-        fpath = os.path.join(self.file_path, f"plane{self.plane_no}", filename)
-        return np.load(fpath, mmap_mode=mmap_mode, allow_pickle=mmap_mode is None)
+        file_path = self.folder_path / f"plane{self.plane_no}" / filename
+        return np.load(file_path, mmap_mode=mmap_mode, allow_pickle=mmap_mode is None)
 
     def get_accepted_list(self):
         return list(np.where(self.iscell[:, 0] == 1)[0])
@@ -71,6 +95,46 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     @property
     def roi_locations(self):
         return np.array([j["med"] for j in self.stat]).T.astype(int)
+
+    # defining the abstract class enforced methods:
+    def get_roi_ids(self):
+        return list(range(self.get_num_rois()))
+
+    def get_roi_image_masks(self, roi_ids=None):
+        if roi_ids is None:
+            roi_idx_ = range(self.get_num_rois())
+        else:
+            roi_idx = [np.where(np.array(i) == self.get_roi_ids())[0] for i in roi_ids]
+            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
+            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
+        return _image_mask_extractor(
+            self.get_roi_pixel_masks(roi_ids=roi_idx_),
+            list(range(len(roi_idx_))),
+            self.get_image_size(),
+        )
+
+    def get_roi_pixel_masks(self, roi_ids=None):
+        pixel_mask = []
+        for i in range(self.get_num_rois()):
+            pixel_mask.append(
+                np.vstack(
+                    [
+                        self.ops["Ly"] - 1 - self.stat[i]["ypix"],
+                        self.stat[i]["xpix"],
+                        self.stat[i]["lam"],
+                    ]
+                ).T
+            )
+        if roi_ids is None:
+            roi_idx_ = range(self.get_num_rois())
+        else:
+            roi_idx = [np.where(np.array(i) == self.get_roi_ids())[0] for i in roi_ids]
+            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
+            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
+        return [pixel_mask[i] for i in roi_idx_]
+
+    def get_image_size(self):
+        return [self.ops["Ly"], self.ops["Lx"]]
 
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite=True):
@@ -140,43 +204,3 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         else:
             ops.update(dict(filelist=[None]))
         np.save(save_path / "ops.npy", ops)
-
-    # defining the abstract class enforced methods:
-    def get_roi_ids(self):
-        return list(range(self.get_num_rois()))
-
-    def get_roi_image_masks(self, roi_ids=None):
-        if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
-        else:
-            roi_idx = [np.where(np.array(i) == self.get_roi_ids())[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return _image_mask_extractor(
-            self.get_roi_pixel_masks(roi_ids=roi_idx_),
-            list(range(len(roi_idx_))),
-            self.get_image_size(),
-        )
-
-    def get_roi_pixel_masks(self, roi_ids=None):
-        pixel_mask = []
-        for i in range(self.get_num_rois()):
-            pixel_mask.append(
-                np.vstack(
-                    [
-                        self.ops["Ly"] - 1 - self.stat[i]["ypix"],
-                        self.stat[i]["xpix"],
-                        self.stat[i]["lam"],
-                    ]
-                ).T
-            )
-        if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
-        else:
-            roi_idx = [np.where(np.array(i) == self.get_roi_ids())[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return [pixel_mask[i] for i in roi_idx_]
-
-    def get_image_size(self):
-        return [self.ops["Ly"], self.ops["Lx"]]
