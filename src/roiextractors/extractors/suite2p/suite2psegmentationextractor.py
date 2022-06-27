@@ -41,12 +41,12 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         from warnings import warn
 
         if file_path is not None:
-            warning_stiring = (
-                "The keyword argument 'file_path' is being deprecated in favour of 'folder_path', "
-                "'folder_path' takes precence over 'file_path'"
+            warning_string = (
+                "The keyword argument 'file_path' is being deprecated on or after August, 2022 in favor of 'folder_path'. "
+                "'folder_path' takes precence over 'file_path'."
             )
             warn(
-                message=warning_stiring,
+                message=warning_string,
                 category=DeprecationWarning,
             )
             folder_path = file_path if folder_path is None else folder_path
