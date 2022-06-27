@@ -139,23 +139,16 @@ class TestExtractors(TestCase):
             if "folder_path" in extractor_kwargs:
                 output_path = self.savedir / f"{extractor_class.__name__}"
                 roundtrip_kwargs.update(folder_path=output_path)
-
             elif "file_path" in extractor_kwargs:
                 suffix = Path(extractor_kwargs["file_path"]).suffix
                 output_path = self.savedir / f"{extractor_class.__name__}{suffix}"
                 roundtrip_kwargs.update(file_path=output_path)
 
-            # TODO:  ExtractSegmentation
-            extractors_not_ready = [
-                "ExtractSegmentationExtractor",
-            ]
+            extractor_class.write_segmentation(extractor, output_path)
 
-            if extractor_class.__name__ not in extractors_not_ready:
-                extractor_class.write_segmentation(extractor, output_path)
-                roundtrip_extractor = extractor_class(**roundtrip_kwargs)
-                check_segmentations_equal(
-                    segmentation_extractor1=extractor, segmentation_extractor2=roundtrip_extractor
-                )
+            roundtrip_kwargs = copy(extractor_kwargs)
+            roundtrip_extractor = extractor_class(**roundtrip_kwargs)
+            check_segmentations_equal(segmentation_extractor1=extractor, segmentation_extractor2=roundtrip_extractor)
 
         except NotImplementedError:
             return
