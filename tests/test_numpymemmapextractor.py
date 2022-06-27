@@ -8,7 +8,7 @@ import numpy as np
 from parameterized import parameterized, param
 
 from roiextractors.extraction_tools import VideoStructure
-from roiextractors.testing import check_imaging_equal
+from roiextractors.testing import check_imaging_equal, assert_get_frames_indexing_with_single_channel
 from roiextractors import NumpyMemmapImagingExtractor
 
 
@@ -107,6 +107,45 @@ class TestNumpyMemmapExtractor(unittest.TestCase):
             offset=self.offset,
         )
         check_imaging_equal(imaging_extractor1=extractor, imaging_extractor2=roundtrip_extractor)
+
+    def test_get_frames_indexing_with_single_channel(self):
+        # Build a video structure
+        num_rows = 10
+        num_columns = 20
+        num_channels = 1
+        frame_axis = 0
+        rows_axis = 1
+        columns_axis = 2
+        channels_axis = 3
+        dtype = "uint16"
+
+        video_structure = VideoStructure(
+            num_rows=num_rows,
+            num_columns=num_columns,
+            num_channels=num_channels,
+            rows_axis=rows_axis,
+            columns_axis=columns_axis,
+            channels_axis=channels_axis,
+            frame_axis=frame_axis,
+        )
+
+        # Build a random video
+        memmap_shape = video_structure.build_video_shape(self.num_frames)
+        random_video = np.random.randint(low=0, high=256, size=memmap_shape).astype(dtype)
+
+        # Save it to memory
+        file_path = self.write_directory / f"video_test_shapes.dat"
+        file = np.memmap(file_path, dtype=dtype, mode="w+", shape=memmap_shape)
+        file[:] = random_video[:]
+        file.flush()
+        del file
+
+        # Load the video with the extactor
+        extractor = NumpyMemmapImagingExtractor(
+            file_path=file_path, video_structure=video_structure, sampling_frequency=1, dtype=dtype, offset=self.offset
+        )
+
+        assert_get_frames_indexing_with_single_channel(imaging_extractor=extractor)
 
 
 if __name__ == "__main__":
