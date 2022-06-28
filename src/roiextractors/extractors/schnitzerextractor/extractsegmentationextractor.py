@@ -54,7 +54,7 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         return f, _group0
 
     def _image_mask_extractor_read(self):
-        return DatasetView(self._dataset_file[self._group0[0]]["filters"]).lazy_transpose([1, 2, 0])
+        return DatasetView(self._dataset_file[self._group0[0]]["filters"]).lazy_transpose([1, 2, 0]).dsetread()
 
     def _trace_extractor_read(self):
         extracted_signals = DatasetView(self._dataset_file[self._group0[0]]["traces"])
@@ -78,6 +78,13 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
     def get_rejected_list(self):
         ac_set = set(self.get_accepted_list())
         return [a for a in range(self.get_num_rois()) if a not in ac_set]
+
+    # defining the abstract class informed methods:
+    def get_roi_ids(self):
+        return list(range(self.get_num_rois()))
+
+    def get_image_size(self):
+        return self._image_masks.shape[0:2]
 
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path, overwrite=True):
@@ -104,8 +111,8 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
             _ = f.create_group("#refs#")
             main = f.create_group("extractAnalysisOutput")
             # create datasets:
-            main.create_dataset("filters", data=segmentation_object.get_roi_image_masks().T)
-            main.create_dataset("traces", data=segmentation_object.get_traces())
+            main.create_dataset("filters", data=segmentation_object.get_roi_image_masks().transpose((2, 0, 1)))
+            main.create_dataset("traces", data=segmentation_object.get_traces().T)
             if getattr(segmentation_object, "_raw_movie_file_location", None):
                 main.create_dataset(
                     "file",
@@ -119,13 +126,5 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
                 time.create_dataset(
                     "totalTime",
                     (1, 1),
-                    data=segmentation_object.get_roi_image_masks().shape[1]
-                    / segmentation_object.get_sampling_frequency(),
+                    data=segmentation_object.get_num_frames() / segmentation_object.get_sampling_frequency(),
                 )
-
-    # defining the abstract class informed methods:
-    def get_roi_ids(self):
-        return list(range(self.get_num_rois()))
-
-    def get_image_size(self):
-        return self._image_masks.shape[0:2]

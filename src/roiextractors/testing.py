@@ -7,15 +7,12 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from .segmentationextractor import SegmentationExtractor
 from .imagingextractor import ImagingExtractor
 
+from roiextractors import NumpyImagingExtractor
+from roiextractors.extraction_tools import DtypeType
+
 NoneType = type(None)
 floattype = (float, np.floating)
 inttype = (int, np.integer)
-
-
-import numpy as np
-
-from roiextractors import NumpyImagingExtractor
-from roiextractors.extraction_tools import DtypeType
 
 
 def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16"):
@@ -188,8 +185,6 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
 
 
 def check_imaging_equal(imaging_extractor1: ImagingExtractor, imaging_extractor2: ImagingExtractor):
-    check_imaging_return_types(imaging_extractor1)
-    check_imaging_return_types(imaging_extractor2)
     # assert equality:
     assert imaging_extractor1.get_num_frames() == imaging_extractor2.get_num_frames()
     assert imaging_extractor1.get_num_channels() == imaging_extractor2.get_num_channels()
@@ -242,7 +237,7 @@ def check_imaging_return_types(img_ex: ImagingExtractor):
     """
     assert isinstance(img_ex.get_num_frames(), inttype)
     assert isinstance(img_ex.get_num_channels(), inttype)
-    assert isinstance(img_ex.get_sampling_frequency(), (NoneType, floattype, inttype))
+    assert isinstance(img_ex.get_sampling_frequency(), floattype)
     _assert_iterable_complete(
         iterable=img_ex.get_channel_names(),
         dtypes=(list, NoneType),
