@@ -4,7 +4,6 @@ from copy import copy
 
 from parameterized import parameterized, param
 from hdmf.testing import TestCase
-from numpy.testing import assert_array_equal
 
 from roiextractors import (
     TiffImagingExtractor,
@@ -19,8 +18,10 @@ from roiextractors import (
 from roiextractors.testing import (
     check_imaging_equal,
     check_segmentations_equal,
-    assert_get_frames_indexing_with_single_channel,
+    assert_get_frames_return_shape,
+    check_imaging_return_types,
 )
+
 
 from .setup_paths import OPHYS_DATA_PATH, OUTPUT_PATH
 
@@ -68,7 +69,7 @@ class TestExtractors(TestCase):
     @parameterized.expand(imaging_extractor_list, name_func=custom_name_func)
     def test_imaging_extractors(self, extractor_class, extractor_kwargs):
         extractor = extractor_class(**extractor_kwargs)
-        assert_get_frames_indexing_with_single_channel(imaging_extractor=extractor)
+        check_imaging_return_types(extractor)
 
         try:
             suffix = Path(extractor_kwargs["file_path"]).suffix
@@ -79,20 +80,15 @@ class TestExtractors(TestCase):
             roundtrip_kwargs.update(file_path=output_path)
             roundtrip_extractor = extractor_class(**roundtrip_kwargs)
             check_imaging_equal(imaging_extractor1=extractor, imaging_extractor2=roundtrip_extractor)
+            check_imaging_return_types(roundtrip_extractor)
+
         except NotImplementedError:
             return
 
     @parameterized.expand(imaging_extractor_list, name_func=custom_name_func)
-    def test_imaging_extractors_canonical_shape(self, extractor_class, extractor_kwargs):
+    def test_get_frames_shape(self, extractor_class, extractor_kwargs):
         extractor = extractor_class(**extractor_kwargs)
-        image_size = extractor.get_image_size()
-        num_channels = extractor.get_num_channels()
-        video = extractor.get_video()
-
-        canonical_video_shape = [extractor.get_num_frames(), image_size[0], image_size[1]]
-        if num_channels > 1:
-            canonical_video_shape.append(num_channels)
-        assert video.shape == tuple(canonical_video_shape)
+        assert_get_frames_return_shape(imaging_extractor=extractor)
 
     segmentation_extractor_list = [
         param(
@@ -125,34 +121,33 @@ class TestExtractors(TestCase):
         ),
         param(
             extractor_class=Suite2pSegmentationExtractor,
-            extractor_kwargs=dict(
-                # TODO: argument name is 'file_path' on roiextractors, but it clearly refers to a folder_path
-                file_path=str(OPHYS_DATA_PATH / "segmentation_datasets" / "suite2p")
-            ),
+            extractor_kwargs=dict(folder_path=str(OPHYS_DATA_PATH / "segmentation_datasets" / "suite2p")),
+        ),
+        param(
+            extractor_class=Suite2pSegmentationExtractor,
+            extractor_kwargs=dict(file_path=str(OPHYS_DATA_PATH / "segmentation_datasets" / "suite2p")),
         ),
     ]
 
     @parameterized.expand(segmentation_extractor_list, name_func=custom_name_func)
     def test_segmentation_extractors(self, extractor_class, extractor_kwargs):
         extractor = extractor_class(**extractor_kwargs)
+
         try:
-            suffix = Path(extractor_kwargs["file_path"]).suffix
-            output_path = self.savedir / f"{extractor_class.__name__}{suffix}"
-
-            # TODO:  ExtractSegmentation
-            extractors_not_ready = [
-                "ExtractSegmentationExtractor",
-            ]
-
-            if extractor_class.__name__ not in extractors_not_ready:
-                extractor_class.write_segmentation(extractor, output_path)
-
-                roundtrip_kwargs = copy(extractor_kwargs)
+            roundtrip_kwargs = copy(extractor_kwargs)
+            if "folder_path" in extractor_kwargs:
+                output_path = self.savedir / f"{extractor_class.__name__}"
+                roundtrip_kwargs.update(folder_path=output_path)
+            elif "file_path" in extractor_kwargs:
+                suffix = Path(extractor_kwargs["file_path"]).suffix
+                output_path = self.savedir / f"{extractor_class.__name__}{suffix}"
                 roundtrip_kwargs.update(file_path=output_path)
-                roundtrip_extractor = extractor_class(**roundtrip_kwargs)
-                check_segmentations_equal(
-                    segmentation_extractor1=extractor, segmentation_extractor2=roundtrip_extractor
-                )
+
+            extractor_class.write_segmentation(extractor, output_path)
+
+            roundtrip_kwargs = copy(extractor_kwargs)
+            roundtrip_extractor = extractor_class(**roundtrip_kwargs)
+            check_segmentations_equal(segmentation_extractor1=extractor, segmentation_extractor2=roundtrip_extractor)
 
         except NotImplementedError:
             return

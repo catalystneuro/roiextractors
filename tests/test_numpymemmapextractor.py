@@ -8,7 +8,7 @@ import numpy as np
 from parameterized import parameterized, param
 
 from roiextractors.extraction_tools import VideoStructure
-from roiextractors.testing import check_imaging_equal, assert_get_frames_indexing_with_single_channel
+from roiextractors.testing import check_imaging_equal, assert_get_frames_return_shape
 from roiextractors import NumpyMemmapImagingExtractor
 
 
@@ -145,7 +145,7 @@ class TestNumpyMemmapExtractor(unittest.TestCase):
             file_path=file_path, video_structure=video_structure, sampling_frequency=1, dtype=dtype, offset=self.offset
         )
 
-        assert_get_frames_indexing_with_single_channel(imaging_extractor=extractor)
+        assert_get_frames_return_shape(imaging_extractor=extractor)
 
 
 if __name__ == "__main__":
