@@ -51,7 +51,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
             self._video = DatasetView(self._file[self._mov_field])
             if sampling_frequency is None:
                 assert "fr" in self._video.attrs, "sampling frequency information is unavailable!"
-                self._sampling_frequency = self._video.attrs["fr"]
+                self._sampling_frequency = float(self._video.attrs["fr"])
             else:
                 self._sampling_frequency = sampling_frequency
         else:
