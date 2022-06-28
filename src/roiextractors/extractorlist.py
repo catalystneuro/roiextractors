@@ -16,17 +16,7 @@ from .extractors.sbximagingextractor import SbxImagingExtractor
 from .extractors.memmapextractors import NumpyMemmapImagingExtractor
 from .extractors.memmapextractors import MemmapImagingExtractor
 from .multisegmentationextractor import MultiSegmentationExtractor
-
-segmentation_extractor_full_list = [
-    NumpySegmentationExtractor,
-    NwbSegmentationExtractor,
-    Suite2pSegmentationExtractor,
-    CnmfeSegmentationExtractor,
-    ExtractSegmentationExtractor,
-    SimaSegmentationExtractor,
-    MultiSegmentationExtractor,
-    CaimanSegmentationExtractor,
-]
+from .multiimagingextractor import MultiImagingExtractor
 
 imaging_extractor_full_list = [
     NumpyImagingExtractor,
@@ -39,8 +29,17 @@ imaging_extractor_full_list = [
     MemmapImagingExtractor,
 ]
 
+segmentation_extractor_full_list = [
+    NumpySegmentationExtractor,
+    NwbSegmentationExtractor,
+    Suite2pSegmentationExtractor,
+    CnmfeSegmentationExtractor,
+    ExtractSegmentationExtractor,
+    SimaSegmentationExtractor,
+    CaimanSegmentationExtractor,
+]
+
+imaging_extractor_dict = {imaging_class.extractor_name: imaging_class for imaging_class in imaging_extractor_full_list}
 segmentation_extractor_dict = {
     segmentation_class.extractor_name: segmentation_class for segmentation_class in segmentation_extractor_full_list
 }
-
-imaging_extractor_dict = {imaging_class.extractor_name: imaging_class for imaging_class in imaging_extractor_full_list}
