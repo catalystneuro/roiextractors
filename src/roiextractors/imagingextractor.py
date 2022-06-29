@@ -62,7 +62,7 @@ class ImagingExtractor(ABC, BaseExtractor):
         pass
 
     def get_dtype(self) -> DtypeType:
-        return self.get_frames(0, 0).dtype
+        return self.get_frames(frame_idxs=[0], channel=0).dtype
 
     @check_get_videos_args
     def get_video(
