@@ -63,6 +63,9 @@ class TestFrameSliceImaging(TestCase):
             self.toy_imaging_example.get_frames(frame_idxs=[4, 6]),
         )
 
+    def test_get_dtype(self):
+        assert self.frame_sliced_imaging.get_dtype() == self.toy_imaging_example.get_dtype()
+
 
 if __name__ == "__main__":
     unittest.main()
