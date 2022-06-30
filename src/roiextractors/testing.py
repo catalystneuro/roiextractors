@@ -205,7 +205,7 @@ def check_imaging_equal(
     )
 
 
-def assert_get_frames_return_shape(imaging_extractor: ImagingExtractor):
+def assert_get_frames_indexing_with_single_channel(imaging_extractor: ImagingExtractor):
     """Utiliy to check whether an ImagingExtractor get_frames function behaves as expected. We aim for the function to
     behave as numpy slicing and indexing as much as possible
 
