@@ -184,13 +184,18 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
     assert {"mean", "correlation"} == set(seg.get_images_dict().keys())
 
 
-def check_imaging_equal(imaging_extractor1: ImagingExtractor, imaging_extractor2: ImagingExtractor):
+def check_imaging_equal(
+    imaging_extractor1: ImagingExtractor, imaging_extractor2: ImagingExtractor, exclude_channel_comparison: bool = False
+):
     # assert equality:
     assert imaging_extractor1.get_num_frames() == imaging_extractor2.get_num_frames()
     assert imaging_extractor1.get_num_channels() == imaging_extractor2.get_num_channels()
     assert np.isclose(imaging_extractor1.get_sampling_frequency(), imaging_extractor2.get_sampling_frequency())
-    assert_array_equal(imaging_extractor1.get_channel_names(), imaging_extractor2.get_channel_names())
     assert_array_equal(imaging_extractor1.get_image_size(), imaging_extractor2.get_image_size())
+
+    if not exclude_channel_comparison:
+        assert_array_equal(imaging_extractor1.get_channel_names(), imaging_extractor2.get_channel_names())
+
     assert_array_equal(
         imaging_extractor1.get_frames(frame_idxs=[0, 1]), imaging_extractor2.get_frames(frame_idxs=[0, 1])
     )

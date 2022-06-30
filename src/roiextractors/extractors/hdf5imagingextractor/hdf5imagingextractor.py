@@ -103,6 +103,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         frames = self._video.lazy_slice[slice_start:slice_stop, :, :, channel].dsetread()
         if isinstance(frame_idxs, int):
             frames = frames.squeeze()
+
         return frames
 
     def get_image_size(self) -> Tuple[int, int]:
