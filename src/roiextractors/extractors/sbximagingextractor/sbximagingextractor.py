@@ -44,6 +44,7 @@ class SbxImagingExtractor(ImagingExtractor):
             raise ValueError(
                 "sampling rate not found in in the `.mat` file, provide it with the sampling_frequency argument"
             )
+        self._sampling_frequency = float(self._sampling_frequency)
 
         # channel names:
         self._channel_names = self._info.get("channel_names", None)
