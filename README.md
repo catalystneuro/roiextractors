@@ -17,11 +17,9 @@ Developed by [CatalystNeuro](http://catalystneuro.com/).
 ## Usage:
 ### Supported file types:
 #### Imaging
-1. HDF5
-2. TIFF
-3. STK
-4. FLI
-5. SBX
+1. TIFF  (Generic and ScanImage)
+2. SBX (Scanbox)
+3. HDF5 (Generic)
 
 #### Segmentation
 1. [calciumImagingAnalysis](https://github.com/bahanonu/calciumImagingAnalysis) (CNMF-E, EXTRACT)
