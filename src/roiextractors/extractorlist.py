@@ -1,3 +1,4 @@
+"""Listing of available formats for extraction."""
 from .extractors.caiman import CaimanSegmentationExtractor
 from .extractors.hdf5imagingextractor import Hdf5ImagingExtractor
 from .extractors.numpyextractors import (
@@ -8,6 +9,7 @@ from .extractors.nwbextractors import NwbImagingExtractor, NwbSegmentationExtrac
 from .extractors.schnitzerextractor import (
     CnmfeSegmentationExtractor,
     ExtractSegmentationExtractor,
+    ExtractPublicSegmentationExtractor,
 )
 from .extractors.simaextractor import SimaSegmentationExtractor
 from .extractors.suite2p import Suite2pSegmentationExtractor
@@ -35,6 +37,7 @@ segmentation_extractor_full_list = [
     Suite2pSegmentationExtractor,
     CnmfeSegmentationExtractor,
     ExtractSegmentationExtractor,
+    ExtractPublicSegmentationExtractor,
     SimaSegmentationExtractor,
     CaimanSegmentationExtractor,
 ]
