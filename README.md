@@ -117,11 +117,6 @@ gin get-content
 To update data later, `cd` into the test directory and run `gin get-content`
 
 
-
-
-
-
-
 ## Class descriptions:
 
 *  **SegmentationExtractor:** An abstract class that contains all the meta-data and output data from the ROI segmentation operation when applied to the pre-processed data. It also contains methods to read from and write to various data formats ouput from  the processing pipelines like SIMA, CaImAn, Suite2p, CNNM-E.
