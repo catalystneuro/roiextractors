@@ -1,14 +1,13 @@
+from multiprocessing.sharedctypes import Value
 import os
 from pathlib import Path
 from warnings import warn
+from typing import Tuple, Optional
 
 import numpy as np
 
-from ...extraction_tools import PathType, ArrayType, raise_multi_channel_or_depth_not_implemented
-from ...extraction_tools import check_keys
+from ...extraction_tools import PathType, ArrayType, raise_multi_channel_or_depth_not_implemented, check_keys
 from ...imagingextractor import ImagingExtractor
-
-from typing import Tuple
 
 try:
     import scipy.io as spio
@@ -25,13 +24,28 @@ class SbxImagingExtractor(ImagingExtractor):
     mode = "folder"
     installation_mesg = "To use the Sbx Extractor run:\n\n pip install scipy\n\n"  # error message when not installed
 
-    def __init__(self, file_path: PathType, sampling_frequency: float = None):
+    def __init__(self, file_path: PathType, sampling_frequency: Optional[float] = None):
+        """Imaging extractor for the Scanbox image format
+
+        Parameters
+        ----------
+        file_path : str or python Path objects
+            The file path pointing to a file in either `.mat` or `.sbx` format.
+        sampling_frequency : float, optional
+            The sampling frequeny of the imaging device.
+        """
         super().__init__()
         self._memmapped = True
-        self.mat_file_path, self.sbx_file_path = self._check_file_path(file_path)
+        self.mat_file_path, self.sbx_file_path = self._return_mat_and_sbx_filepaths(file_path)
         self._info = self._loadmat()
         self._data = self._sbx_read()
-        self._sampling_frequency = sampling_frequency or float(self._info["frame_rate"])
+        self._sampling_frequency = self._info.get("frame_rate", sampling_frequency)
+        if self._sampling_frequency is None:
+            raise ValueError(
+                "sampling rate not found in in the `.mat` file, provide it with the sampling_frequency argument"
+            )
+        self._sampling_frequency = float(self._sampling_frequency)
+
         # channel names:
         self._channel_names = self._info.get("channel_names", None)
         if self._channel_names is None:
@@ -44,22 +58,14 @@ class SbxImagingExtractor(ImagingExtractor):
         }
 
     @staticmethod
-    def _check_file_path(file_path):
+    def _return_mat_and_sbx_filepaths(file_path):
         file_path = Path(file_path)
-        assertion_msg = "for file_path arg, provide a path to one .sbx /  .mat file"
-        file_type = file_path.suffix
-        if file_type not in [".mat", ".sbx"]:
-            warn(
-                "File suffix ({file_type}) is not one of .mat or .sbx - the SbxImagingExtractor may not be appropriate!"
-            )
-        if file_type == ".mat":
-            mat_file_path = file_path
-            sbx_file_path = file_path.with_suffix(".sbx")
-            assert sbx_file_path.is_file(), assertion_msg
-        else:
-            sbx_file_path = file_path
-            mat_file_path = file_path.with_suffix(".mat")
-            assert mat_file_path.is_file(), assertion_msg
+        if file_path.suffix not in [".mat", ".sbx"]:
+            assertion_msg = "File path not pointing to a `.sbx` or `.mat` file"
+            raise ValueError(assertion_msg)
+
+        mat_file_path = file_path.with_suffix(".mat")
+        sbx_file_path = file_path.with_suffix(".sbx")
         return mat_file_path, sbx_file_path
 
     def _loadmat(self):
@@ -68,9 +74,10 @@ class SbxImagingExtractor(ImagingExtractor):
         as it cures the problem of not properly recovering python dictionaries
         from mat files. It calls the function check keys to cure all entries
         which are still mat-objects.
-        Based off of implementations @ :
-        https://github.com/GiocomoLab/TwoPUtils/blob/main/scanner_tools/sbx_utils.py
+        Based off of implementations @:
+        https://github.com/GiocomoLab/TwoPUtils/blob/main/TwoPUtils/scanner_tools/sbx_utils.py
         https://github.com/losonczylab/sima/blob/0b16818d9ba47fe4aae6d4aad1a9735d16da00dc/sima/imaging_parameters.py
+        https://scanbox.org/2016/09/02/reading-scanbox-files-in-python/
         """
         data = spio.loadmat(self.mat_file_path, struct_as_record=False, squeeze_me=True)
         info = check_keys(data)["info"]

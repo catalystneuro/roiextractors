@@ -34,7 +34,7 @@ jobs:
       - name: Test full installation
         run: pip install .[full]
       - name: Install testing requirements (-e needed for codecov report)
-        run: pip install -e .[testing]
+        run: pip install -e .[test]
 
       - name: Get ophys_testing_data current head hash
         id: ophys
