@@ -7,15 +7,12 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from .segmentationextractor import SegmentationExtractor
 from .imagingextractor import ImagingExtractor
 
+from roiextractors import NumpyImagingExtractor
+from roiextractors.extraction_tools import DtypeType
+
 NoneType = type(None)
 floattype = (float, np.floating)
 inttype = (int, np.integer)
-
-
-import numpy as np
-
-from roiextractors import NumpyImagingExtractor
-from roiextractors.extraction_tools import DtypeType
 
 
 def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16"):
@@ -187,15 +184,18 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
     assert {"mean", "correlation"} == set(seg.get_images_dict().keys())
 
 
-def check_imaging_equal(imaging_extractor1: ImagingExtractor, imaging_extractor2: ImagingExtractor):
-    check_imaging_return_types(imaging_extractor1)
-    check_imaging_return_types(imaging_extractor2)
+def check_imaging_equal(
+    imaging_extractor1: ImagingExtractor, imaging_extractor2: ImagingExtractor, exclude_channel_comparison: bool = False
+):
     # assert equality:
     assert imaging_extractor1.get_num_frames() == imaging_extractor2.get_num_frames()
     assert imaging_extractor1.get_num_channels() == imaging_extractor2.get_num_channels()
     assert np.isclose(imaging_extractor1.get_sampling_frequency(), imaging_extractor2.get_sampling_frequency())
-    assert_array_equal(imaging_extractor1.get_channel_names(), imaging_extractor2.get_channel_names())
     assert_array_equal(imaging_extractor1.get_image_size(), imaging_extractor2.get_image_size())
+
+    if not exclude_channel_comparison:
+        assert_array_equal(imaging_extractor1.get_channel_names(), imaging_extractor2.get_channel_names())
+
     assert_array_equal(
         imaging_extractor1.get_frames(frame_idxs=[0, 1]), imaging_extractor2.get_frames(frame_idxs=[0, 1])
     )
@@ -203,6 +203,35 @@ def check_imaging_equal(imaging_extractor1: ImagingExtractor, imaging_extractor2
         imaging_extractor1.frame_to_time(np.arange(imaging_extractor1.get_num_frames())),
         imaging_extractor2.frame_to_time(np.arange(imaging_extractor2.get_num_frames())),
     )
+
+
+def assert_get_frames_indexing_with_single_channel(imaging_extractor: ImagingExtractor):
+    """Utiliy to check whether an ImagingExtractor get_frames function behaves as expected. We aim for the function to
+    behave as numpy slicing and indexing as much as possible
+
+    Parameters
+    ----------
+    imaging_extractor : ImagingExtractor
+    An image extractor
+    """
+
+    image_size = imaging_extractor.get_image_size()
+
+    frame_idxs = 0
+    frames_with_scalar = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
+    assert frames_with_scalar.shape == image_size
+
+    frame_idxs = [0]
+    frames_with_single_element_list = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
+    assert frames_with_single_element_list.shape == (1, image_size[0], image_size[1])
+
+    frame_idxs = [0, 1]
+    frames_with_list = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
+    assert frames_with_list.shape == (2, image_size[0], image_size[1])
+
+    frame_idxs = np.array([0, 1])
+    frames_with_array = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
+    assert frames_with_array.shape == (2, image_size[0], image_size[1])
 
 
 def check_imaging_return_types(img_ex: ImagingExtractor):
@@ -213,7 +242,7 @@ def check_imaging_return_types(img_ex: ImagingExtractor):
     """
     assert isinstance(img_ex.get_num_frames(), inttype)
     assert isinstance(img_ex.get_num_channels(), inttype)
-    assert isinstance(img_ex.get_sampling_frequency(), (NoneType, floattype, inttype))
+    assert isinstance(img_ex.get_sampling_frequency(), floattype)
     _assert_iterable_complete(
         iterable=img_ex.get_channel_names(),
         dtypes=(list, NoneType),

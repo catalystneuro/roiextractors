@@ -69,7 +69,7 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
 
         self.file_path = Path(file_path)
         self.video_structure = video_structure
-        self._sampling_frequency = sampling_frequency
+        self._sampling_frequency = float(sampling_frequency)
         self.offset = offset
         self.dtype = dtype
 

@@ -34,7 +34,7 @@ class MemmapImagingExtractor(ImagingExtractor):
 
         frames = self._video.take(indices=frame_idxs, axis=0)
         if channel is not None:
-            frames = frames[:, :, :, channel].squeeze()
+            frames = frames[..., channel]
 
         return frames
 
