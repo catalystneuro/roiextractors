@@ -102,7 +102,7 @@ roiextractors.NwbSegmentationExtractor.write_segmentation(seg_obj, saveloc,
 ## Example Datasets:
 Example datasets are maintained at https://gin.g-node.org/CatalystNeuro/ophys_testing_data.
 
-To download test data on your machine, 
+To download test data on your machine,
 
 1. Install the gin client (instructions [here](https://gin.g-node.org/G-Node/Info/wiki/GIN+CLI+Setup#linux))
 2. Use gin to download data.
