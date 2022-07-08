@@ -90,21 +90,16 @@ class Hdf5ImagingExtractor(ImagingExtractor):
     def __del__(self):
         self._file.close()
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0):
+    def get_video(
+        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
+    ) -> np.ndarray:
+        return self._video[start_frame:end_frame, :, :, channel]
 
-        # Fancy indexing is non performant for h5.py with long frame lists
-        if frame_idxs is not None:
-            slice_start = np.min(frame_idxs)
-            slice_stop = min(np.max(frame_idxs) + 1, self.get_num_frames())
-        else:
-            slice_start = 0
-            slice_stop = self.get_num_frames()
-
-        frames = self._video.lazy_slice[slice_start:slice_stop, :, :, channel].dsetread()
-        return frames
+    def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> np.ndarray:
+        return self._video[frame_idxs, :, :, channel]
 
     def get_image_size(self) -> Tuple[int, int]:
-        return (self._num_rows, self._num_cols)
+        return self._num_rows, self._num_cols
 
     def get_num_frames(self):
         return self._num_frames
@@ -120,17 +115,10 @@ class Hdf5ImagingExtractor(ImagingExtractor):
 
     @staticmethod
     def write_imaging(
-        imaging: ImagingExtractor,
-        save_path,
-        overwrite: bool = False,
-        mov_field="mov",
-        **kwargs,
+        imaging: ImagingExtractor, save_path, overwrite: bool = False, mov_field="mov", **kwargs,
     ):
         save_path = Path(save_path)
-        assert save_path.suffix in [
-            ".h5",
-            ".hdf5",
-        ], "'save_path' file is not an .hdf5 or .h5 file"
+        assert save_path.suffix in [".h5", ".hdf5",], "'save_path' file is not an .hdf5 or .h5 file"
 
         if save_path.is_file():
             if not overwrite:
