@@ -237,9 +237,9 @@ def _pixel_mask_extractor(image_mask_, _roi_ids):
     Returns
     -------
     pixel_masks: list
-        List of length number of rois, each element is a 2-D array with shape (rows x columns, 3).
-        Columns 1 and 2 are the x and y locations respectively whie the third column represents the weight of
-        the pixel
+        List of length number of rois, each element is a 2-D array with shape (number_of_non_zero_pixels, 3).
+        Columns 1 and 2 are the x and y coordinates of the pixel, while the third column represents the weight of
+        the pixel.
     """
     pixel_mask_list = []
     for i, roiid in enumerate(_roi_ids):
