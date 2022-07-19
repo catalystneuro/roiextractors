@@ -67,13 +67,14 @@ seg_obj_cnmfe = roiextractors.CnmfeSegmentationExtractor('cnmfe_filename.mat') #
 seg_obj_extract = roiextractors.ExtractSegmentationExtractor('extract_filename.mat') # extract
 seg_obj_sima = roiextractors.SimaSegmentationExtractor('sima_filename.sima') # SIMA
 seg_obj_numpy = roiextractors.NumpySegmentationExtractor(
-                    filepath = 'path-to-file',
-                    masks=np.random.rand(movie_size[0],movie_size[1],no_rois),
-                    signal=np.random.randn(num_rois,num_frames),
-                    roi_idx=np.random.randint(no_rois,size=[1,no_rois]),
-                    no_of_channels=None,
-                    summary_image=None,
-                    channel_names=['Blue']) # Numpy object
+        filepath = 'path-to-file',
+        masks=np.random.rand(movie_size[0],movie_size[1],no_rois),
+        signal=np.random.randn(num_rois,num_frames),
+        roi_idx=np.random.randint(no_rois,size=[1,no_rois]),
+        no_of_channels=None,
+        summary_image=None,
+        channel_names=['Blue'],
+) # Numpy object
 seg_obj_nwb = roiextractors.NwbSegmentationExtractor(
                     filepath_of_nwb, optical_channel_name=None, # optical channel to extract and store info from
                     imaging_plane_name=None, image_series_name=None, # imaging plane to extract and store data from
@@ -99,7 +100,22 @@ roiextractors.NwbSegmentationExtractor.write_segmentation(seg_obj, saveloc,
                     emission_lambda=400.0, excitation_lambda=500.0)
 ```
 ## Example Datasets:
-  * Example datasets for each of the file formats can be downloaded  [here](https://drive.google.com/drive/folders/1CeDfr6yza_bh0vYD2E1HF_3_S8pg2yLW?usp=sharing).
+Example datasets are maintained at https://gin.g-node.org/CatalystNeuro/ophys_testing_data.
+
+To download test data on your machine,
+
+1. Install the gin client (instructions [here](https://gin.g-node.org/G-Node/Info/wiki/GIN+CLI+Setup#linux))
+2. Use gin to download data.
+```shell
+gin get CatalystNeuro/ophys_testing_data
+cd ophys_testing_data
+gin get-content
+```
+
+3. Change the file at `roiextractors/tests/gin_test_config.json` to point to the path of this test data
+
+To update data later, `cd` into the test directory and run `gin get-content`
+
 
 ## Class descriptions:
 
