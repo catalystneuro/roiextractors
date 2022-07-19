@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Tuple
+from typing import Tuple, Optional
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
@@ -7,7 +7,8 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from .segmentationextractor import SegmentationExtractor
 from .imagingextractor import ImagingExtractor
 
-from roiextractors import NumpyImagingExtractor
+from roiextractors import NumpyImagingExtractor, NumpySegmentationExtractor
+
 from roiextractors.extraction_tools import DtypeType
 
 NoneType = type(None)
@@ -48,6 +49,101 @@ def generate_dummy_imaging_extractor(
     )
 
     return imaging_extractor
+
+
+def generate_dummy_segmentation_extractor(
+    num_rois: int = 10,
+    num_frames: int = 30,
+    num_rows: int = 25,
+    num_columns: int = 25,
+    sampling_frequency: float = 30.0,
+    has_raw_signal: bool = True,
+    has_dff_signal: bool = True,
+    has_deconvolved_signal: bool = True,
+    has_neuropil_signal: bool = True,
+    rejected_list: Optional[list] = None,
+) -> SegmentationExtractor:
+
+    """
+    A dummy segmentation extractor for testing. The segmentation extractor is built by feeding random data into the
+    `NumpySegmentationExtractor`.
+
+    Note that this dummy example is meant to be a mock object with the right shape, structure and objects but does not
+    contain meaningful content. That is, the image masks matrices are not plausible image mask for a roi, the raw signal
+    is not a meaningful biological signal and is not related appropriately to the deconvolved signal , etc.
+
+    Parameters
+    ----------
+    num_rois : int, optional
+        number of regions of interest, by default 10.
+    num_frames : int, optional
+        _description_, by default 30
+    num_rows : number of frames used in the hypotethical video from which the data was extracted, optional
+        number of rows in the hypotethical video from which the data was extracted, by default 25.
+    num_columns : int, optional
+        numbe rof columns in the hypotethical video from which the data was extracted, by default 25.
+    sampling_frequency : float, optional
+        sampling frequency of the hypotethical video form which the data was extracted, by default 30.0.
+    has_raw_signal : bool, optional
+        whether a raw fluoresence signal is desired in the object, by default True.
+    has_dff_signal : bool, optional
+        whether a relative (df/f) fluoresence signal is desired in the object, by default True.
+    has_deconvolved_signal : bool, optional
+        whether a deconvolved signal is desired in the object, by default True.
+    has_neuropil_signal : bool, optional
+        whether a neuropil signal is desiredi n the object, by default True.
+    rejected_list: list, optional
+        A list of rejected rois, None by default.
+
+    Returns
+    -------
+    SegmentationExtractor
+        A segmentation extractor with random data fed into `NumpySegmentationExtractor`
+    """
+
+    # Create dummy image masks
+    image_masks = np.random.rand(num_rows, num_columns, num_rois)
+    movie_dims = (num_rows, num_columns)
+
+    # Create signals
+    raw = np.random.rand(num_rois, num_frames) if has_raw_signal else None
+    dff = np.random.rand(num_rois, num_frames) if has_dff_signal else None
+    deconvolved = np.random.rand(num_rois, num_frames) if has_deconvolved_signal else None
+    neuropil = np.random.rand(num_rois, num_frames) if has_neuropil_signal else None
+
+    # Summary images
+    mean_image = np.random.rand(num_rows, num_columns)
+    correlation_image = np.random.rand(num_rows, num_columns)
+
+    # Rois
+    roi_ids = [id for id in range(num_rois)]
+    roi_locations_rows = np.random.randint(low=0, high=num_rows, size=num_rois)
+    roi_locations_columns = np.random.randint(low=0, high=num_columns, size=num_rois)
+    roi_locations = np.vstack((roi_locations_rows, roi_locations_columns))
+
+    rejected_list = rejected_list if rejected_list else None
+
+    accepeted_list = roi_ids
+    if rejected_list is not None:
+        accepeted_list = list(set(accepeted_list).difference(rejected_list))
+
+    dummy_segmentation_extractor = NumpySegmentationExtractor(
+        sampling_frequency=sampling_frequency,
+        image_masks=image_masks,
+        raw=raw,
+        dff=dff,
+        deconvolved=deconvolved,
+        neuropil=neuropil,
+        mean_image=mean_image,
+        correlation_image=correlation_image,
+        roi_ids=roi_ids,
+        roi_locations=roi_locations,
+        accepted_lst=accepeted_list,
+        rejected_list=rejected_list,
+        movie_dims=movie_dims,
+    )
+
+    return dummy_segmentation_extractor
 
 
 def _assert_iterable_shape(iterable, shape):

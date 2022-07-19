@@ -104,8 +104,8 @@ class SegmentationExtractor(ABC, BaseExtractor):
 
         Returns
         -------
-        channel_ids: list
-            Channel list.
+        roi_ids: list
+            List of roi ids.
         """
         pass
 
