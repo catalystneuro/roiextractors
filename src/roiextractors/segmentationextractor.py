@@ -142,12 +142,16 @@ class SegmentationExtractor(ABC, BaseExtractor):
 
         Returns
         -------
-        pixel_masks: [list, NoneType]
-            list of length number of rois, each element is a 2-D array os shape (no-pixels, 2)
+        pixel_masks: list
+            List of length number of rois, each element is a 2-D array with shape (rows x columns, 3).
+            Columns 1 and 2 are the x and y locations respectively whie the third column represents the weight of
+            the pixel
         """
+
         if roi_ids is None:
-            return None
-        return _pixel_mask_extractor(self.get_roi_image_masks(roi_ids=roi_ids), range(len(roi_ids)))
+            roi_ids = range(self.get_num_rois())
+
+        return _pixel_mask_extractor(self.get_roi_image_masks(roi_ids=roi_ids), roi_ids)
 
     @abstractmethod
     def get_image_size(self) -> ArrayType:
