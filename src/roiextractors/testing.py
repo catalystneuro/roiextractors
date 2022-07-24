@@ -57,6 +57,7 @@ def generate_dummy_segmentation_extractor(
     num_rows: int = 25,
     num_columns: int = 25,
     sampling_frequency: float = 30.0,
+    has_summary_images: bool = True,
     has_raw_signal: bool = True,
     has_dff_signal: bool = True,
     has_deconvolved_signal: bool = True,
@@ -84,6 +85,8 @@ def generate_dummy_segmentation_extractor(
         numbe rof columns in the hypotethical video from which the data was extracted, by default 25.
     sampling_frequency : float, optional
         sampling frequency of the hypotethical video form which the data was extracted, by default 30.0.
+    has_summary_images : bool, optional
+        whether the dummy segmentation extractor has summary images or not (mean and correlation)
     has_raw_signal : bool, optional
         whether a raw fluoresence signal is desired in the object, by default True.
     has_dff_signal : bool, optional
@@ -112,8 +115,8 @@ def generate_dummy_segmentation_extractor(
     neuropil = np.random.rand(num_rois, num_frames) if has_neuropil_signal else None
 
     # Summary images
-    mean_image = np.random.rand(num_rows, num_columns)
-    correlation_image = np.random.rand(num_rows, num_columns)
+    mean_image = np.random.rand(num_rows, num_columns) if has_summary_images else None
+    correlation_image = np.random.rand(num_rows, num_columns) if has_summary_images else None
 
     # Rois
     roi_ids = [id for id in range(num_rois)]

@@ -231,12 +231,15 @@ def read_numpy_memmap_video(
 
 
 def _pixel_mask_extractor(image_mask_, _roi_ids):
-    """An alternative data format for storage of image masks.
+    """An alternative data format for storage of image masks which relies on the sparsity of the images.
+    The location and weight of each non-zero pixel is stored for each mask.
+
     Returns
     -------
-    pixel_mask: numpy array
-        Total pixels X 4 size. Col 1 and 2 are x and y location of the mask
-        pixel, Col 3 is the weight of that pixel, Col 4 is the ROI index.
+    pixel_masks: list
+        List of length number of rois, each element is a 2-D array with shape (number_of_non_zero_pixels, 3).
+        Columns 1 and 2 are the x and y coordinates of the pixel, while the third column represents the weight of
+        the pixel.
     """
     pixel_mask_list = []
     for i, roiid in enumerate(_roi_ids):
