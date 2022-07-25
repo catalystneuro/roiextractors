@@ -147,6 +147,10 @@ class TestNumpyMemmapExtractor(unittest.TestCase):
 
         assert_get_frames_return_shape(imaging_extractor=extractor)
 
+        one_element_video_shape = extractor.get_video(start_frame=0, end_frame=1, channel=0).shape
+        expected_shape = (1, num_rows, num_columns)
+        assert one_element_video_shape == expected_shape
+
 
 if __name__ == "__main__":
     unittest.main()

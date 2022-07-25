@@ -90,6 +90,11 @@ class TestExtractors(TestCase):
         extractor = extractor_class(**extractor_kwargs)
         assert_get_frames_return_shape(imaging_extractor=extractor)
 
+        # Test spikeinterface-like behavior
+        one_element_video_shape = extractor.get_video(start_frame=0, end_frame=1, channel=0).shape
+        expected_shape = (1, image_size[0], image_size[1])
+        assert one_element_video_shape == expected_shape
+
     segmentation_extractor_list = [
         param(
             extractor_class=CaimanSegmentationExtractor,
