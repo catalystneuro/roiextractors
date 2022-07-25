@@ -92,6 +92,15 @@ class MultiImagingExtractor(ImagingExtractor):
         frames = np.concatenate(frames_to_concatenate, axis=0).squeeze()
         return frames
 
+    def get_video(
+        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
+    ) -> np.ndarray:
+        # To-do: implement this without reference to get_frames
+        start = start_frame if start_frame is not None else 0
+        stop = end_frame if end_frame is not None else self.get_num_frames()
+        frame_idxs = range(start, stop)
+        return self.get_frames(frame_idxs=frame_idxs, channel=channel)
+
     def _get_frames_from_an_imaging_extractor(self, extractor_index: int, frame_idxs: ArrayType) -> NumpyArray:
         imaging_extractor = self._imaging_extractors[extractor_index]
         frames = imaging_extractor.get_frames(frame_idxs=frame_idxs)
