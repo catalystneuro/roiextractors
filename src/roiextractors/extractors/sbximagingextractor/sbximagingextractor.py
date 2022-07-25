@@ -146,6 +146,11 @@ class SbxImagingExtractor(ImagingExtractor):
 
         return np.iinfo("uint16").max - frames
 
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+
+        frame_out = np.iinfo("uint16").max - self._data[channel, :, :, 0, start_frame:end_frame]
+        return frame_out.transpose(2, 1, 0)
+
     def get_image_size(self) -> Tuple[int, int]:
         return tuple(self._info["sz"])
 

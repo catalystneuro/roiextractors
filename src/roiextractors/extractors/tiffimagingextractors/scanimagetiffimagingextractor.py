@@ -100,6 +100,10 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
         with ScanImageTiffReader(str(self.file_path)) as io:
             return io.data(beg=idx, end=idx + 1)
 
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+        with ScanImageTiffReader(filename=str(self.file_path)) as io:
+            return io.data(beg=start_frame, end=end_frame)
+
     def get_image_size(self) -> Tuple[int, int]:
         return (self._num_rows, self._num_columns)
 

@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 from warnings import warn
 
 import numpy as np
@@ -69,6 +70,9 @@ class TiffImagingExtractor(ImagingExtractor):
 
     def get_frames(self, frame_idxs, channel: int = 0):
         return self._video[frame_idxs, ...]
+
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+        return self._video[start_frame:end_frame, ...]
 
     def get_image_size(self) -> Tuple[int, int]:
         return (self._num_rows, self._num_columns)

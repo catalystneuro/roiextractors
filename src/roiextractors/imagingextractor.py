@@ -24,10 +24,6 @@ class ImagingExtractor(ABC, BaseExtractor):
         self._memmapped = False
 
     @abstractmethod
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
-        pass
-
-    @abstractmethod
     def get_image_size(self) -> Tuple[int, int]:
         pass
 
@@ -64,14 +60,15 @@ class ImagingExtractor(ABC, BaseExtractor):
     def get_dtype(self) -> DtypeType:
         return self.get_frames(frame_idxs=[0], channel=0).dtype
 
-    @check_get_videos_args
+    @abstractmethod
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
     ) -> np.ndarray:
-        start = start_frame if start_frame is not None else 0
-        stop = end_frame if end_frame is not None else self.get_num_frames()
-        frame_idxs = range(start, stop)
-        return self.get_frames(frame_idxs=frame_idxs, channel=channel)
+        pass
+
+    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
+
+        return self.get_video()[frame_idxs, ..., channel]  # To-do simplify for contigious frame_idxs case
 
     def frame_to_time(self, frames: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
         """This function converts user-inputted frame indexes to times with units of seconds.
@@ -212,6 +209,11 @@ class FrameSliceImagingExtractor(ImagingExtractor):
         assert max(frame_idxs) < self._num_frames, "'frame_idxs' range beyond number of available frames!"
         mapped_frame_idxs = np.array(frame_idxs) + self._start_frame
         return self._parent_imaging.get_frames(frame_idxs=mapped_frame_idxs, channel=channel)
+
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+        assert max(end_frame) < self._num_frames, "'end_frame' range beyond number of available frames!"
+        start_frame_shifted = start_frame + self._start_frame
+        return self._parent_imaging.get_video(start_frame=start_frame_shifted, end_frame=end_frame, channel=channel)
 
     def get_image_size(self) -> Tuple[int, int]:
         return tuple(self._parent_imaging.get_image_size())

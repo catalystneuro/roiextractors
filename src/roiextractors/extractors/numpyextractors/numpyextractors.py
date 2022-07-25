@@ -78,6 +78,10 @@ class NumpyImagingExtractor(ImagingExtractor):
 
         return frames
 
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+
+        return self._video[start_frame:end_frame, ..., channel]
+
     def get_image_size(self) -> Tuple[int, int]:
         return (self._num_rows, self._num_columns)
 
