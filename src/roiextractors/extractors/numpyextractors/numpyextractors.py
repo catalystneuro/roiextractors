@@ -74,9 +74,13 @@ class NumpyImagingExtractor(ImagingExtractor):
 
         frames = self._video.take(indices=frame_idxs, axis=0)
         if channel is not None:
-            frames = frames[:, :, :, channel].squeeze()
+            frames = frames[..., channel].squeeze()
 
         return frames
+
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+
+        return self._video[start_frame:end_frame, ..., channel]
 
     def get_image_size(self) -> Tuple[int, int]:
         return (self._num_rows, self._num_columns)
@@ -178,7 +182,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             list of ROI ids that are rejected manually or via automated rejection
         channel_names: list
             list of strings representing channel names
-        movie_dims: list
+        movie_dims: tuple
             height x width of the movie
         """
         SegmentationExtractor.__init__(self)
@@ -222,7 +226,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                 raise ValueError("'timeeseries' is does not exist")
         elif isinstance(image_masks, np.ndarray):
             NoneType = type(None)
-            assert isinstance(raw, np.ndarray)
+            assert isinstance(raw, (np.ndarray, NoneType))
             assert isinstance(dff, (np.ndarray, NoneType))
             assert isinstance(neuropil, (np.ndarray, NoneType))
             assert isinstance(deconvolved, (np.ndarray, NoneType))
