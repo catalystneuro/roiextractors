@@ -8,7 +8,9 @@
 
 ### Testing
 
-# v0.4.17
+
+
+# v0.4.18
 
 ### Improvements
 * `get_video` is now an abstract method in `ImagingExtractor` [PR #180](https://github.com/catalystneuro/roiextractors/pull/180)
