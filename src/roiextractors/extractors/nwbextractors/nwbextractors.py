@@ -166,10 +166,12 @@ class NwbImagingExtractor(ImagingExtractor):
             frames = frames.squeeze()
         return frames
 
-    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0):
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
         start_frame = start_frame if start_frame is not None else 0
         end_frame = end_frame if end_frame is not None else self.get_num_frames()
-        video = self.get_frames(frame_idxs=range(start_frame, end_frame), channel=channel)
+
+        video = self.two_photon_series.data
+        video = video[start_frame:end_frame].transpose([0, 2, 1])
         return video
 
     def get_image_size(self):
