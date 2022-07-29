@@ -1,3 +1,6 @@
 from .cnmfesegmentationextractor import CnmfeSegmentationExtractor
-from .extractsegmentationextractor import ExtractSegmentationExtractor
-from .extractpublicsegmentationextractor import ExtractPublicSegmentationExtractor
+from .extractsegmentationextractor import (
+    LegacyExtractSegmentationExtractor,
+    ExtractSegmentationExtractor,
+)
+

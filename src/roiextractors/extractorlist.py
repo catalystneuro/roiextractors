@@ -8,8 +8,8 @@ from .extractors.numpyextractors import (
 from .extractors.nwbextractors import NwbImagingExtractor, NwbSegmentationExtractor
 from .extractors.schnitzerextractor import (
     CnmfeSegmentationExtractor,
+    LegacyExtractSegmentationExtractor,
     ExtractSegmentationExtractor,
-    ExtractPublicSegmentationExtractor,
 )
 from .extractors.simaextractor import SimaSegmentationExtractor
 from .extractors.suite2p import Suite2pSegmentationExtractor
@@ -36,8 +36,8 @@ segmentation_extractor_full_list = [
     NwbSegmentationExtractor,
     Suite2pSegmentationExtractor,
     CnmfeSegmentationExtractor,
+    LegacyExtractSegmentationExtractor,
     ExtractSegmentationExtractor,
-    ExtractPublicSegmentationExtractor,
     SimaSegmentationExtractor,
     CaimanSegmentationExtractor,
 ]
