@@ -3,4 +3,3 @@ from .extractsegmentationextractor import (
     LegacyExtractSegmentationExtractor,
     ExtractSegmentationExtractor,
 )
-

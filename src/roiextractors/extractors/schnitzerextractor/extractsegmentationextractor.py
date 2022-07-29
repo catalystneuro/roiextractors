@@ -52,8 +52,7 @@ class ExtractSegmentationExtractor(ABC):
         with h5py.File(name=file_path, mode="r") as mat_file:
             dataset_version = mat_file["output"]["info"]["version"]
             # dataset_version is an HDF5 dataset of encoded characters
-            version_name = "".join(
-                chr(unicode_int_array[0]) for unicode_int_array in dataset_version)
+            version_name = "".join(chr(unicode_int_array[0]) for unicode_int_array in dataset_version)
 
             return version.Version(version_name) >= version.Version("1.1.0")
 
@@ -69,13 +68,15 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
     installed = HAVE_H5PY  # check at class level if installed or not
     installation_mesg = (
         "To use NewExtractSegmentation install h5py: \n\n pip install h5py \n\n"
-    # error message when not installed
+        # error message when not installed
     )
     is_writable = False
     mode = "file"
 
     def __init__(
-            self, file_path: PathType, output_struct_name: Optional[str] = None,
+        self,
+        file_path: PathType,
+        output_struct_name: Optional[str] = None,
     ):
         """
         Load a SegmentationExtractor from a .mat file containing the output and config structs of the EXTRACT algorithm.
