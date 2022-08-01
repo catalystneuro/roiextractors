@@ -28,6 +28,18 @@ class ExtractSegmentationExtractor(ABC):
     installation_mesg = "To use ExtractSegmentationExtractor install h5py: \n\n pip install h5py \n\n"  # error message when not installed
 
     def __new__(cls, file_path: PathType, output_struct_name: Optional[str] = None):
+        """Abstract class that defines which extractor class to use for a given file.
+        For newer versions of the EXTRACT algorithm, the extractor class redirects to
+        NewExtractSegmentationExtractor. For older versions, the extractor class
+        redirects to LegacyExtractSegmentationExtractor.
+
+        Parameters
+        ----------
+        file_path: str
+            The location of the folder containing the .mat file.
+        output_struct_name: str
+            The name of output struct in the .mat file, default is "output".
+        """
         self = super().__new__(cls)
         self.file_path = file_path
         self.output_struct_name = output_struct_name or "output"
