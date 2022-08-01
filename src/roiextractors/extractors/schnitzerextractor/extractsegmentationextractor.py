@@ -227,6 +227,7 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
     def write_segmentation(segmentation_extractor, save_path, overwrite=False):
         raise NotImplementedError
 
+
 class LegacyExtractSegmentationExtractor(SegmentationExtractor):
     """
     This class inherits from the SegmentationExtractor class, having all
