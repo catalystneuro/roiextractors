@@ -21,7 +21,6 @@ class TestMultiImagingExtractor(TestCase):
         cls.multi_imaging_extractor = MultiImagingExtractor(imaging_extractors=cls.extractors)
 
     def test_get_image_size(self):
-        #assert_get_frames_return_shape(self.multi_imaging_extractor)
         assert self.multi_imaging_extractor.get_image_size() == self.extractors[0].get_image_size()
 
     def test_get_num_frames(self):
