@@ -21,6 +21,7 @@ class TestMultiImagingExtractor(TestCase):
         cls.multi_imaging_extractor = MultiImagingExtractor(imaging_extractors=cls.extractors)
 
     def test_get_image_size(self):
+        #assert_get_frames_return_shape(self.multi_imaging_extractor)
         assert self.multi_imaging_extractor.get_image_size() == self.extractors[0].get_image_size()
 
     def test_get_num_frames(self):
@@ -78,6 +79,12 @@ class TestMultiImagingExtractor(TestCase):
             [self.extractors[i].get_video() for i in range(3)],
             axis=0,
         )
+        assert_array_equal(test_frames, expected_frames)
+
+    def test_get_get_video_single_frame(self):
+        test_frames = self.multi_imaging_extractor.get_video(start_frame=10, end_frame=11)
+        expected_frames = self.extractors[1].get_video(start_frame=0, end_frame=1)
+
         assert_array_equal(test_frames, expected_frames)
 
     def test_set_incorrect_times(self):
