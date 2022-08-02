@@ -88,7 +88,7 @@ class MultiImagingExtractor(ImagingExtractor):
                 frames_for_each_extractor = frames_for_each_extractor[np.newaxis, ...]
             frames_to_concatenate.append(frames_for_each_extractor)
 
-        frames = np.concatenate(frames_to_concatenate, axis=0).squeeze()
+        frames = np.concatenate(frames_to_concatenate, axis=0)
         return frames
 
     def get_video(
