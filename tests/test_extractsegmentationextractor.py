@@ -1,4 +1,5 @@
-from pathlib import Path
+import shutil
+import tempfile
 
 import h5py
 import numpy as np
@@ -89,12 +90,17 @@ class TestNewExtractSegmentationExtractor(TestCase):
         cls.output_struct_name = "output"
         cls.sampling_frequency = 30.0
 
+        cls.test_config_path = tempfile.mkdtemp()
+
     def setUp(self):
         self.extractor = NewExtractSegmentationExtractor(
             file_path=self.file_path,
             output_struct_name=self.output_struct_name,
             sampling_frequency=self.sampling_frequency,
         )
+
+    def tearDown(self):
+        shutil.rmtree(self.test_config_path)
 
     def test_extractor_output_struct_assertion(self):
         """Test that the extractor raises an error if the output struct name is not in the file."""
@@ -155,3 +161,20 @@ class TestNewExtractSegmentationExtractor(TestCase):
             self.extractor.get_rejected_list(),
             list(set(range(20)) - set(accepted_list)),
         )
+
+    def test_extractor_config_dict(self):
+        """Test that the extractor class reads the config struct correctly."""
+
+        with h5py.File(self.test_config_path + "/test_file.mat", "a") as test_config_struct:
+            thresholds = test_config_struct.create_group("thresholds")
+            test_config_struct.create_dataset("S_corr_thresh", data=np.array([0.1]))
+            test_config_struct.create_dataset("max_iter", data=np.array([10.0]))
+            thresholds.create_dataset("S_dup_corr_thresh", data=np.array([0.95]))
+            thresholds.create_dataset("T_dup_corr_thresh", data=np.array([0.95]))
+
+            config = self.extractor._config_struct_to_dict(config_struct=test_config_struct)
+
+        self.assertEqual(config["S_corr_thresh"], [0.1])
+        self.assertEqual(config["max_iter"], [10.0])
+        self.assertEqual(config["thresholds"]["S_dup_corr_thresh"], [0.95])
+        self.assertEqual(config["thresholds"]["T_dup_corr_thresh"], [0.95])
