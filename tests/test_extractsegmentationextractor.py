@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import h5py
 import numpy as np
 from hdmf.testing import TestCase
@@ -17,17 +19,38 @@ from .setup_paths import OPHYS_DATA_PATH
 class TestExtractSegmentationExtractor(TestCase):
     ophys_data_path = OPHYS_DATA_PATH / "segmentation_datasets" / "extract"
 
+    @classmethod
+    def setUpClass(cls):
+        cls.sampling_frequency = 30.0
+        cls.ophys_data_path = OPHYS_DATA_PATH / "segmentation_datasets" / "extract"
+
     def test_extract_segmentation_extractor_file_path_does_not_exist(self):
         """Test that the extractor raises an error if the file does not exist."""
         not_a_mat_file_path = "not_a_mat_file.txt"
         with self.assertRaisesWith(AssertionError, f"File {not_a_mat_file_path} does not exist."):
-            ExtractSegmentationExtractor(file_path=not_a_mat_file_path)
+            ExtractSegmentationExtractor(
+                file_path=not_a_mat_file_path,
+                sampling_frequency=self.sampling_frequency,
+            )
 
     def test_extract_segmentation_extractor_file_path_is_not_a_mat_file(self):
         """Test that the extractor raises an error if the file is not a .mat file."""
         not_a_mat_file_path = OPHYS_DATA_PATH / "segmentation_datasets" / "nwb" / "nwb_test.nwb"
         with self.assertRaisesWith(AssertionError, f"File {not_a_mat_file_path} must be a .mat file."):
-            ExtractSegmentationExtractor(file_path=not_a_mat_file_path)
+            ExtractSegmentationExtractor(
+                file_path=not_a_mat_file_path,
+                sampling_frequency=self.sampling_frequency,
+            )
+
+    def test_extract_segmentation_extractor_with_default_output_struct_name(self):
+        """Test that the extractor returns the NewExtractSegmentationExtractor
+        when the default "output" struct name is used."""
+        extractor = ExtractSegmentationExtractor(
+            file_path=self.ophys_data_path / "extract_public_output.mat",
+            sampling_frequency=self.sampling_frequency,
+        )
+
+        self.assertIsInstance(extractor, NewExtractSegmentationExtractor)
 
     param_list = [
         param(
@@ -36,18 +59,8 @@ class TestExtractSegmentationExtractor(TestCase):
             extractor_class=LegacyExtractSegmentationExtractor,
         ),
         param(
-            file_path=ophys_data_path / "2014_04_01_p203_m19_check01_extractAnalysis.mat",
-            output_struct_name=None,
-            extractor_class=LegacyExtractSegmentationExtractor,
-        ),
-        param(
             file_path=ophys_data_path / "extract_public_output.mat",
             output_struct_name="output",
-            extractor_class=NewExtractSegmentationExtractor,
-        ),
-        param(
-            file_path=ophys_data_path / "extract_public_output.mat",
-            output_struct_name=None,
             extractor_class=NewExtractSegmentationExtractor,
         ),
     ]
@@ -63,6 +76,7 @@ class TestExtractSegmentationExtractor(TestCase):
         extractor = ExtractSegmentationExtractor(
             file_path=file_path,
             output_struct_name=output_struct_name,
+            sampling_frequency=self.sampling_frequency,
         )
 
         self.assertIsInstance(extractor, extractor_class)
@@ -73,11 +87,13 @@ class TestNewExtractSegmentationExtractor(TestCase):
     def setUpClass(cls):
         cls.file_path = OPHYS_DATA_PATH / "segmentation_datasets" / "extract" / "extract_public_output.mat"
         cls.output_struct_name = "output"
+        cls.sampling_frequency = 30.0
 
     def setUp(self):
         self.extractor = NewExtractSegmentationExtractor(
             file_path=self.file_path,
             output_struct_name=self.output_struct_name,
+            sampling_frequency=self.sampling_frequency,
         )
 
     def test_extractor_output_struct_assertion(self):
@@ -86,6 +102,7 @@ class TestNewExtractSegmentationExtractor(TestCase):
             NewExtractSegmentationExtractor(
                 file_path=self.file_path,
                 output_struct_name="not_output",
+                sampling_frequency=self.sampling_frequency,
             )
 
     def test_extractor_data_validity(self):
@@ -102,14 +119,10 @@ class TestNewExtractSegmentationExtractor(TestCase):
 
             self.assertEqual(self.extractor._roi_response_raw, None)
 
-            summary_image = segmentation_file[self.output_struct_name]["info"]["summary_image"][:]
-            self.assertEqual(self.extractor._image_correlation.shape, summary_image.shape)
-
-            runtime = segmentation_file[self.output_struct_name]["info"]["runtime"][:][0, 0]
-            self.assertEqual(self.extractor._sampling_frequency, temporal_weights.shape[1] / runtime)
+            self.assertEqual(self.extractor._sampling_frequency, self.sampling_frequency)
             self.assertIsInstance(self.extractor.get_sampling_frequency(), float)
 
-            assert_array_equal(self.extractor.get_image_size(), summary_image.shape)
+            assert_array_equal(self.extractor.get_image_size(), [50, 50])
 
             num_rois = temporal_weights.shape[0]
             self.assertEqual(self.extractor.get_num_rois(), num_rois)
