@@ -215,10 +215,6 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         """
         return self._image_masks.shape[:-1]
 
-    @staticmethod
-    def write_segmentation(segmentation_extractor, save_path, overwrite=False):
-        raise NotImplementedError
-
 
 class LegacyExtractSegmentationExtractor(SegmentationExtractor):
     """
