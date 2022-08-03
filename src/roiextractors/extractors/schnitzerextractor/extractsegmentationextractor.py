@@ -115,7 +115,7 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         file_path: PathType
             Path to the .mat file containing the structs.
         sampling_frequency: float
-            Sampling frequency in seconds
+            The sampling frequency in units of Hz.
         output_struct_name: str, optional
             The user has control over the names of the variables that return from `extraction(images, config)`.
             The tutorials for EXTRACT follow the naming convention of 'output', which we assume as the default.
