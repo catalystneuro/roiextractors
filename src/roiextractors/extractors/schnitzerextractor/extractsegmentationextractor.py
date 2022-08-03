@@ -129,7 +129,7 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         assert output_struct_name in self._dataset_file, "Output struct not found in file."
         assert "config" in self._dataset_file[output_struct_name], "Config struct not found in file."
         self._output_struct = self._dataset_file[output_struct_name]
-        self._info_struct = self._output_struct["info"] if "info" in self._output_struct else None
+
         config_struct = self._output_struct["config"]
         self.config = self._config_struct_to_dict(config_struct=config_struct)
 
@@ -138,8 +138,6 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
             self._roi_response_dff = traces
         else:
             self._roi_response_raw = traces
-
-        self._image_correlation = self._summary_image_read() if self._info_struct else None
 
         self._sampling_frequency = sampling_frequency
 
@@ -168,11 +166,6 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
     def _trace_extractor_read(self) -> DatasetView:
         """Returns the traces with a shape of number of ROIs and number of frames."""
         return DatasetView(self._output_struct["temporal_weights"])
-
-    def _summary_image_read(self) -> np.ndarray:
-        """Returns the summary image as a numpy array where the first dimension is the
-        height of the frame and the second dimension is the width of the frame."""
-        return self._info_struct["summary_image"][:].transpose()
 
     def get_accepted_list(self) -> list:
         """
