@@ -93,7 +93,8 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
     def __init__(
         self,
         file_path: PathType,
-        output_struct_name: Optional[str] = None,
+        sampling_frequency: float,
+        output_struct_name: str = "output",
     ):
         """
         Load a SegmentationExtractor from a .mat file containing the output and config structs of the EXTRACT algorithm.
@@ -102,14 +103,15 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         ----------
         file_path: PathType
             Path to the .mat file containing the structs.
+        sampling_frequency: float
+            Sampling frequency in seconds
         output_struct_name: str, optional
             The user has control over the names of the variables that return from `extraction(images, config)`.
             The tutorials for EXTRACT follow the naming convention of 'output', which we assume as the default.
         """
-        SegmentationExtractor.__init__(self)
+        super().__init__()
 
-        output_struct_name = output_struct_name or "output"
-
+        self.output_struct_name = output_struct_name
         self.file_path = file_path
 
         self._dataset_file = self._file_extractor_read()
@@ -118,22 +120,21 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         self._output_struct = self._dataset_file[output_struct_name]
         self._info_struct = self._output_struct["info"] if "info" in self._output_struct else None
         config_struct = self._output_struct["config"]
-        self._config = self._config_struct_to_dict(config_struct=config_struct)
+        self.config = self._config_struct_to_dict(config_struct=config_struct)
 
         traces = self._trace_extractor_read()
-        if self._config["preprocess"][0] == 1:
+        if self.config["preprocess"][0] == 1:
             self._roi_response_dff = traces
         else:
             self._roi_response_raw = traces
 
         self._image_correlation = self._summary_image_read() if self._info_struct else None
 
-        runtime = self._runtime_extractor_read()
-        self._sampling_frequency = traces.shape[1] / runtime
+        self._sampling_frequency = sampling_frequency
 
         self._image_masks = self._image_mask_extractor_read()
 
-    def __del__(self):
+    def close(self):
         self._dataset_file.close()
 
     def _file_extractor_read(self):
@@ -160,12 +161,7 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
     def _summary_image_read(self) -> np.ndarray:
         """Returns the summary image as a numpy array where the first dimension is the
         height of the frame and the second dimension is the width of the frame."""
-        return DatasetView(self._info_struct["summary_image"]).lazy_transpose().dsetread()
-
-    def _runtime_extractor_read(self):
-        """Returns the runtime of EXTRACT algorithm in seconds.
-        Can be used to calculate the sampling frequency of the traces."""
-        return np.ravel(self._info_struct["runtime"][:])[0]
+        return self._info_struct["summary_image"][:].transpose()
 
     def get_accepted_list(self) -> list:
         """
@@ -213,7 +209,7 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         image_size: array_like
             2-D array: image height x image width
         """
-        return DatasetView(self._info_struct["summary_image"]).shape
+        return self._info_struct["summary_image"].shape
 
     @staticmethod
     def write_segmentation(segmentation_extractor, save_path, overwrite=False):
@@ -240,7 +236,7 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         file_path: str
             The location of the folder containing dataset.mat file.
         """
-        SegmentationExtractor.__init__(self)
+        super().__init__()
         self.file_path = file_path
         self._dataset_file, self._group0 = self._file_extractor_read()
         self._image_masks = self._image_mask_extractor_read()
@@ -259,7 +255,7 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         return f, _group0
 
     def _image_mask_extractor_read(self):
-        return DatasetView(self._dataset_file[self._group0[0]]["filters"]).lazy_transpose([1, 2, 0]).dsetread()
+        return self._dataset_file[self._group0[0]]["filters"][:].transpose([1, 2, 0])
 
     def _trace_extractor_read(self):
         extracted_signals = DatasetView(self._dataset_file[self._group0[0]]["traces"])
