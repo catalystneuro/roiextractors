@@ -213,7 +213,7 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         image_size: array_like
             2-D array: image height x image width
         """
-        return self._info_struct["summary_image"].shape
+        return self._image_masks.shape[:-1]
 
     @staticmethod
     def write_segmentation(segmentation_extractor, save_path, overwrite=False):
