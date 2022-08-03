@@ -68,8 +68,11 @@ class MultiImagingExtractor(ImagingExtractor):
 
         return times
 
-    @check_get_frames_args
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> NumpyArray:
+        if isinstance(frame_idxs, (int, np.integer)):
+            frame_idxs = [frame_idxs]
+        frame_idxs = np.array(frame_idxs)
+        assert np.all(frame_idxs < self.get_num_frames()), "'frame_idxs' exceed number of frames"
         extractor_indices = np.searchsorted(self._end_frames, frame_idxs, side="right")
         relative_frame_indices = frame_idxs - np.array(self._start_frames)[extractor_indices]
         # Match frame_idxs to imaging extractors
