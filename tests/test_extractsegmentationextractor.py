@@ -21,7 +21,7 @@ class TestExtractSegmentationExtractor(TestCase):
 
     def test_extract_segmentation_extractor_file_path_is_not_a_mat_file(self):
         """Test that the extractor raises an error if the file is not a .mat file."""
-        not_a_mat_file_path = OPHYS_DATA_PATH / "nwb" / "nwb_test.nwb"
+        not_a_mat_file_path = OPHYS_DATA_PATH / "segmentation_datasets" / "nwb" / "nwb_test.nwb"
         with self.assertRaisesWith(AssertionError, f"File {not_a_mat_file_path} must be a .mat file."):
             ExtractSegmentationExtractor(file_path=not_a_mat_file_path)
 
