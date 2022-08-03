@@ -11,7 +11,7 @@ from roiextractors import (
     Hdf5ImagingExtractor,
     SbxImagingExtractor,
     CaimanSegmentationExtractor,
-    ExtractSegmentationExtractor,
+    LegacyExtractSegmentationExtractor,
     Suite2pSegmentationExtractor,
     CnmfeSegmentationExtractor,
 )
@@ -126,7 +126,7 @@ class TestExtractors(TestCase):
             ),
         ),
         param(
-            extractor_class=ExtractSegmentationExtractor,
+            extractor_class=LegacyExtractSegmentationExtractor,
             extractor_kwargs=dict(
                 file_path=str(
                     OPHYS_DATA_PATH
