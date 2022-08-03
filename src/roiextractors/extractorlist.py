@@ -10,6 +10,7 @@ from .extractors.schnitzerextractor import (
     CnmfeSegmentationExtractor,
     LegacyExtractSegmentationExtractor,
     ExtractSegmentationExtractor,
+    NewExtractSegmentationExtractor,
 )
 from .extractors.simaextractor import SimaSegmentationExtractor
 from .extractors.suite2p import Suite2pSegmentationExtractor
@@ -40,6 +41,7 @@ segmentation_extractor_full_list = [
     ExtractSegmentationExtractor,
     SimaSegmentationExtractor,
     CaimanSegmentationExtractor,
+    NewExtractSegmentationExtractor,
 ]
 
 imaging_extractor_dict = {imaging_class.extractor_name: imaging_class for imaging_class in imaging_extractor_full_list}
