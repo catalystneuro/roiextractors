@@ -55,9 +55,10 @@ class ExtractSegmentationExtractor(ABC):
         return LegacyExtractSegmentationExtractor(file_path=file_path)
 
     def _assert_file_is_mat(self):
-        """Check that the file is a .mat file."""
+        """Check that the file exists and is a .mat file."""
         file_path = Path(self.file_path)
-        assert file_path.suffix == ".mat", "File must be a .mat file"
+        assert file_path.exists(), f"File {file_path} does not exist."
+        assert file_path.suffix == ".mat", f"File {file_path} must be a .mat file."
 
     def _check_extract_file_version(self) -> bool:
         """Check the version of the extract file.
