@@ -77,7 +77,7 @@ class ExtractSegmentationExtractor(ABC):
 class NewExtractSegmentationExtractor(SegmentationExtractor):
     """
     This class inherits from the SegmentationExtractor class, having all
-    its funtionality specifically applied to the dataset output from
+    its functionality specifically applied to the dataset output from
     the \'EXTRACT\' ROI segmentation method.
     """
 
@@ -108,8 +108,7 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         """
         SegmentationExtractor.__init__(self)
 
-        if output_struct_name is None:
-            output_struct_name = "output"
+        output_struct_name = output_struct_name or "output"
 
         self.file_path = file_path
 
@@ -178,15 +177,7 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         accepted_list: list
             List of accepted ROIs
         """
-        # for sparse array
-        accepted_list = [roi for roi in self.get_roi_ids() if np.any(self._image_masks[roi])]
-        # find the indices of the accepted ROIs where the spatial_weights is not all zeros
-        # accepted_list = []
-        # for roi in self.get_roi_ids():
-        #     if any(x != 0 for x in np.ravel(self._image_masks[:, :, roi])):
-        #         accepted_list.append(roi)
-
-        return accepted_list
+        return [roi for roi in self.get_roi_ids() if np.any(self._image_masks[roi])]
 
     def get_rejected_list(self) -> list:
         """
@@ -222,7 +213,7 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         image_size: array_like
             2-D array: image height x image width
         """
-        return DatasetView(self._info_struct["max_image"]).dsetread()
+        return DatasetView(self._info_struct["summary_image"]).shape
 
     @staticmethod
     def write_segmentation(segmentation_extractor, save_path, overwrite=False):
