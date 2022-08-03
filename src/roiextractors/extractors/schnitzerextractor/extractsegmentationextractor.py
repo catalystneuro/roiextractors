@@ -27,7 +27,12 @@ class ExtractSegmentationExtractor(ABC):
     installed = HAVE_H5PY  # check at class level if installed or not
     installation_mesg = "To use ExtractSegmentationExtractor install h5py: \n\n pip install h5py \n\n"  # error message when not installed
 
-    def __new__(cls, file_path: PathType, output_struct_name: Optional[str] = None):
+    def __new__(
+            cls,
+            file_path: PathType,
+            sampling_frequency: float,
+            output_struct_name: str = "output",
+    ):
         """Abstract class that defines which extractor class to use for a given file.
         For newer versions of the EXTRACT algorithm, the extractor class redirects to
         NewExtractSegmentationExtractor. For older versions, the extractor class
@@ -37,19 +42,25 @@ class ExtractSegmentationExtractor(ABC):
         ----------
         file_path: str
             The location of the folder containing the .mat file.
+        sampling_frequency: float
+            The sampling frequency in units of Hz.
         output_struct_name: str
             The name of output struct in the .mat file, default is "output".
         """
         self = super().__new__(cls)
         self.file_path = file_path
-        self.output_struct_name = output_struct_name or "output"
+        self.output_struct_name = output_struct_name
         # Check if the file is a .mat file
         cls._assert_file_is_mat(self)
 
         # Check the version of the .mat file
         if cls._check_extract_file_version(self):
             # For newer versions of the .mat file, use the newer extractor
-            return NewExtractSegmentationExtractor(file_path=file_path)
+            return NewExtractSegmentationExtractor(
+                file_path=file_path,
+                sampling_frequency=sampling_frequency,
+                output_struct_name=output_struct_name,
+            )
 
         # For older versions of the .mat file, use the legacy extractor
         return LegacyExtractSegmentationExtractor(file_path=file_path)
