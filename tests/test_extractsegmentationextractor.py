@@ -1,5 +1,5 @@
-import shutil
 import tempfile
+from shutil import rmtree
 
 import h5py
 import numpy as np
@@ -99,8 +99,9 @@ class TestNewExtractSegmentationExtractor(TestCase):
             sampling_frequency=self.sampling_frequency,
         )
 
-    def tearDown(self):
-        shutil.rmtree(self.test_config_path)
+    @classmethod
+    def tearDownClass(cls):
+        rmtree(cls.test_config_path)
 
     def test_extractor_output_struct_assertion(self):
         """Test that the extractor raises an error if the output struct name is not in the file."""
