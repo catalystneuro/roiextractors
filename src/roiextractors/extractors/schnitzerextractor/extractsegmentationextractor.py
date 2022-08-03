@@ -28,10 +28,10 @@ class ExtractSegmentationExtractor(ABC):
     installation_mesg = "To use ExtractSegmentationExtractor install h5py: \n\n pip install h5py \n\n"  # error message when not installed
 
     def __new__(
-            cls,
-            file_path: PathType,
-            sampling_frequency: float,
-            output_struct_name: str = "output",
+        cls,
+        file_path: PathType,
+        sampling_frequency: float,
+        output_struct_name: str = "output",
     ):
         """Abstract class that defines which extractor class to use for a given file.
         For newer versions of the EXTRACT algorithm, the extractor class redirects to
