@@ -141,11 +141,9 @@ class SbxImagingExtractor(ImagingExtractor):
         return np_data
 
     def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> np.array:
-        frames_list = []
-        for frame_no in frame_idxs:
-            frames_list.append(self._data[channel, :, :, 0, frame_no])
-        frame_out = np.stack(frames_list, axis=2).T.squeeze()
-        return np.iinfo("uint16").max - frame_out
+        frame_out = np.iinfo("uint16").max - self._data.transpose(4, 2, 1, 0, 3)[frame_idxs, :, :, channel, 0]
+
+        return frame_out
 
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
 
