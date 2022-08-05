@@ -12,7 +12,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
     An abstract class that contains all the meta-data and output data from
     the ROI segmentation operation when applied to the pre-processed data.
     It also contains methods to read from and write to various data formats
-    ouput from the processing pipelines like SIMA, CaImAn, Suite2p, CNNM-E.
+    output from the processing pipelines like SIMA, CaImAn, Suite2p, CNNM-E.
     All the methods with @abstract decorator have to be defined by the
     format specific classes that inherit from this.
     """
@@ -98,16 +98,14 @@ class SegmentationExtractor(ABC, BaseExtractor):
             roi_location[:, c] = np.array([np.median(temp[0]), np.median(temp[1])]).T
         return roi_location
 
-    @abstractmethod
     def get_roi_ids(self) -> list:
-        """Returns the list of channel ids. If not specified, the range from 0 to num_channels - 1 is returned.
-
+        """Returns the list of ROI ids.
         Returns
         -------
         roi_ids: list
-            List of roi ids.
+            ROI ids list.
         """
-        pass
+        return list(range(self.get_num_rois()))
 
     def get_roi_image_masks(self, roi_ids=None) -> np.array:
         """Returns the image masks extracted from segmentation algorithm.
