@@ -30,8 +30,9 @@ class ExtractSegmentationExtractor(ABC):
     def __new__(
         cls,
         file_path: PathType,
-        sampling_frequency: float,
         output_struct_name: str = "output",
+        sampling_frequency: Optional[float] = None,
+        timestamps: Optional[ArrayType] = None,
     ):
         """Abstract class that defines which extractor class to use for a given file.
         For newer versions of the EXTRACT algorithm, the extractor class redirects to
@@ -42,10 +43,13 @@ class ExtractSegmentationExtractor(ABC):
         ----------
         file_path: str
             The location of the folder containing the .mat file.
-        sampling_frequency: float
-            The sampling frequency in units of Hz.
         output_struct_name: str
             The name of output struct in the .mat file, default is "output".
+        sampling_frequency: float, optional
+            The sampling frequency in units of Hz. Supply if timing is regular.
+        timestamps: ArrayType, optional
+            The timestamps of the movie frames in units of seconds.
+            Supply if timing is irregular.
         """
         self = super().__new__(cls)
         self.file_path = file_path
@@ -58,8 +62,9 @@ class ExtractSegmentationExtractor(ABC):
             # For newer versions of the .mat file, use the newer extractor
             return NewExtractSegmentationExtractor(
                 file_path=file_path,
-                sampling_frequency=sampling_frequency,
                 output_struct_name=output_struct_name,
+                sampling_frequency=sampling_frequency,
+                timestamps=timestamps,
             )
 
         # For older versions of the .mat file, use the legacy extractor
@@ -104,26 +109,40 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
     def __init__(
         self,
         file_path: PathType,
-        sampling_frequency: float,
         output_struct_name: str = "output",
+        sampling_frequency: Optional[float] = None,
+        timestamps: Optional[ArrayType] = None,
     ):
         """
         Load a SegmentationExtractor from a .mat file containing the output and config structs of the EXTRACT algorithm.
+        For regular timing, supply the sampling frequency. For irregular timing, supply the timestamps.
 
         Parameters
         ----------
         file_path: PathType
             Path to the .mat file containing the structs.
-        sampling_frequency: float
-            The sampling frequency in units of Hz.
         output_struct_name: str, optional
             The user has control over the names of the variables that return from `extraction(images, config)`.
             The tutorials for EXTRACT follow the naming convention of 'output', which we assume as the default.
+        sampling_frequency: float, optional
+            The sampling frequency in units of Hz. Supply if timing is regular.
+        timestamps: ArrayType, optional
+            The timestamps of the movie frames. Supply if timing is irregular.
         """
         super().__init__()
 
         self.output_struct_name = output_struct_name
         self.file_path = file_path
+
+        if timestamps is None and sampling_frequency is None:
+            raise AssertionError(
+            "Either sampling_frequency or timestamps must be provided."
+            )
+
+        if timestamps is not None and sampling_frequency is not None:
+            raise AssertionError(
+            "Either sampling_frequency or timestamps must be provided, but not both."
+            )
 
         self._dataset_file = self._file_extractor_read()
         assert output_struct_name in self._dataset_file, "Output struct not found in file."
@@ -140,6 +159,11 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
             self._roi_response_raw = traces
 
         self._sampling_frequency = sampling_frequency
+
+        if timestamps is not None:
+            assert len(timestamps) == self.get_num_frames(), (
+                "The timestamps should have the same length of the number of frames!")
+            self._times = timestamps
 
         self._image_masks = self._image_mask_extractor_read()
 
