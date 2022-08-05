@@ -135,14 +135,10 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         self.file_path = file_path
 
         if timestamps is None and sampling_frequency is None:
-            raise AssertionError(
-            "Either sampling_frequency or timestamps must be provided."
-            )
+            raise AssertionError("Either sampling_frequency or timestamps must be provided.")
 
         if timestamps is not None and sampling_frequency is not None:
-            raise AssertionError(
-            "Either sampling_frequency or timestamps must be provided, but not both."
-            )
+            raise AssertionError("Either sampling_frequency or timestamps must be provided, but not both.")
 
         self._dataset_file = self._file_extractor_read()
         assert output_struct_name in self._dataset_file, "Output struct not found in file."
@@ -161,8 +157,9 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         self._sampling_frequency = sampling_frequency
 
         if timestamps is not None:
-            assert len(timestamps) == self.get_num_frames(), (
-                "The timestamps should have the same length of the number of frames!")
+            assert (
+                len(timestamps) == self.get_num_frames()
+            ), "The timestamps should have the same length of the number of frames!"
             self._times = timestamps
 
         self._image_masks = self._image_mask_extractor_read()
