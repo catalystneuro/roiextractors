@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
+from typing import Union
 
 import numpy as np
 from spikeextractors.baseextractor import BaseExtractor
 
-from .extraction_tools import ArrayType
+from .extraction_tools import ArrayType, IntType, FloatType
 from .extraction_tools import _pixel_mask_extractor
 
 
@@ -103,7 +104,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         Returns
         -------
         roi_ids: list
-            ROI ids list.
+            List of roi ids.
         """
         return list(range(self.get_num_rois()))
 
@@ -268,12 +269,30 @@ class SegmentationExtractor(ABC, BaseExtractor):
     def get_num_planes(self):
         """
         Returns the default number of planes of imaging for the segmentation extractor.
-        Detaults to 1 for all but the MultiSegmentationExtractor
+        Defaults to 1 for all but the MultiSegmentationExtractor
         Returns
         -------
         self._num_planes: int
         """
         return self._num_planes
+
+    def frame_to_time(self, frame_indices: Union[IntType, ArrayType]) -> Union[FloatType, ArrayType]:
+        """Returns the timing of frames in unit of seconds.
+
+        Parameters
+        ----------
+        frame_indices: int or array-like
+            The frame or frames to be converted to times
+
+        Returns
+        -------
+        times: float or array-like
+            The corresponding times in seconds
+        """
+        if self._times is None:
+            return np.round(frame_indices / self.get_sampling_frequency(), 6)
+        else:
+            return self._times[frame_indices]
 
     @staticmethod
     def write_segmentation(segmentation_extractor, save_path, overwrite=False):
