@@ -306,7 +306,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                         self._accepted_list = ps["Accepted"].data[:]
                     if "Rejected" in ps.colnames:
                         self._rejected_list = ps["Rejected"].data[:]
-                    self._roi_idx = np.array(ps.id.data)
                 else:
                     raise Exception("could not find any PlaneSegmentation in nwbfile")
             # Extracting stores images as GrayscaleImages:
@@ -340,9 +339,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     def roi_locations(self):
         if self._roi_locs is not None:
             return self._roi_locs.data[:].T
-
-    def get_roi_ids(self):
-        return list(self._roi_idx)
 
     def get_image_size(self):
         return self._image_masks.shape[:2]
