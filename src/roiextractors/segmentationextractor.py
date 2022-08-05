@@ -233,6 +233,9 @@ class SegmentationExtractor(ABC, BaseExtractor):
         sampling_frequency: float
             Sampling frequency of the recording in Hz.
         """
+        if self._sampling_frequency is not None:
+            return float(self._sampling_frequency)
+
         return self._sampling_frequency
 
     def get_num_rois(self):
