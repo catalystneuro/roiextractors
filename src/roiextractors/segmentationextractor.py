@@ -230,10 +230,10 @@ class SegmentationExtractor(ABC, BaseExtractor):
 
         Returns
         -------
-        samp_freq: float
-            Sampling frequency of the recordings in Hz.
+        sampling_frequency: float
+            Sampling frequency of the recording in Hz.
         """
-        return float(self._sampling_frequency)
+        return self._sampling_frequency
 
     def get_num_rois(self):
         """Returns total number of Regions of Interest in the acquired images.
