@@ -159,9 +159,5 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             params.create_dataset("data/dims", data=segmentation_object.get_image_size())
             f.create_dataset("dims", data=segmentation_object.get_image_size())
 
-    # defining the abstract class enformed methods:
-    def get_roi_ids(self):
-        return list(range(self.get_num_rois()))
-
     def get_image_size(self):
         return self._dataset_file["params"]["data"]["dims"][()]

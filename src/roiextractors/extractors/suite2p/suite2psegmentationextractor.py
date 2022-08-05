@@ -96,10 +96,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     def roi_locations(self):
         return np.array([j["med"] for j in self.stat]).T.astype(int)
 
-    # defining the abstract class enforced methods:
-    def get_roi_ids(self):
-        return list(range(self.get_num_rois()))
-
     def get_roi_image_masks(self, roi_ids=None):
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
