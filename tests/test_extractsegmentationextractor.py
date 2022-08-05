@@ -209,19 +209,33 @@ class TestNewExtractSegmentationExtractor(TestCase):
             list(set(range(20)) - set(accepted_list)),
         )
 
-    def test_extractor_config_dict(self):
-        """Test that the extractor class reads the config struct correctly."""
+    def test_extractor_read_from_dummy_file(self):
+        """Test the extractor with a dummy file."""
 
-        with h5py.File(self.test_config_path + "/test_file.mat", "a") as test_config_struct:
-            thresholds = test_config_struct.create_group("thresholds")
-            test_config_struct.create_dataset("S_corr_thresh", data=np.array([0.1]))
-            test_config_struct.create_dataset("max_iter", data=np.array([10.0]))
+        dummy_temporal_weights = np.zeros((10, 100))
+        dummy_spatial_weights = np.zeros((10, 5, 5))
+        with h5py.File(self.test_config_path + "/test_file.mat", "a") as output_struct:
+            output = output_struct.create_group("output")
+            output.create_dataset("temporal_weights", data=dummy_temporal_weights)
+            output.create_dataset("spatial_weights", data=dummy_spatial_weights)
+            config = output.create_group("config")
+            config.create_dataset("preprocess", data=[0])
+            thresholds = config.create_group("thresholds")
+            config.create_dataset("S_corr_thresh", data=np.array([0.1]))
+            config.create_dataset("max_iter", data=np.array([10.0]))
             thresholds.create_dataset("S_dup_corr_thresh", data=np.array([0.95]))
             thresholds.create_dataset("T_dup_corr_thresh", data=np.array([0.95]))
 
-            config = self.extractor._config_struct_to_dict(config_struct=test_config_struct)
+        self.extractor = NewExtractSegmentationExtractor(
+            file_path=self.test_config_path + "/test_file.mat",
+            sampling_frequency=self.sampling_frequency,
+        )
 
-        self.assertEqual(config["S_corr_thresh"], [0.1])
-        self.assertEqual(config["max_iter"], [10.0])
-        self.assertEqual(config["thresholds"]["S_dup_corr_thresh"], [0.95])
-        self.assertEqual(config["thresholds"]["T_dup_corr_thresh"], [0.95])
+        self.assertEqual(self.extractor.config["S_corr_thresh"], [0.1])
+        self.assertEqual(self.extractor.config["max_iter"], [10.0])
+        self.assertEqual(self.extractor.config["thresholds"]["S_dup_corr_thresh"], [0.95])
+        self.assertEqual(self.extractor.config["thresholds"]["T_dup_corr_thresh"], [0.95])
+        self.assertEqual(self.extractor.config["preprocess"], [0])
+        self.assertEqual(self.extractor._roi_response_dff, None)
+        assert_array_equal(self.extractor._roi_response_raw, dummy_temporal_weights)
+        assert_array_equal(self.extractor._image_masks, dummy_spatial_weights.T)
