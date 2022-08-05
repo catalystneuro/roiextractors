@@ -80,6 +80,12 @@ class TestMultiImagingExtractor(TestCase):
         )
         assert_array_equal(test_frames, expected_frames)
 
+    def test_get_video_single_frame(self):
+        test_frames = self.multi_imaging_extractor.get_video(start_frame=10, end_frame=11)
+        expected_frames = self.extractors[1].get_video(start_frame=0, end_frame=1)
+
+        assert_array_equal(test_frames, expected_frames)
+
     def test_set_incorrect_times(self):
         with self.assertRaisesWith(
             exc_type=AssertionError,
