@@ -99,6 +99,9 @@ class TestNewExtractSegmentationExtractor(TestCase):
             sampling_frequency=self.sampling_frequency,
         )
 
+    def tearDown(self):
+        self.extractor.close()
+
     @classmethod
     def tearDownClass(cls):
         rmtree(cls.test_config_path)
@@ -111,6 +114,49 @@ class TestNewExtractSegmentationExtractor(TestCase):
                 output_struct_name="not_output",
                 sampling_frequency=self.sampling_frequency,
             )
+
+    def test_extractor_no_timestamps_or_sampling_frequency(self):
+        """Test that the extractor raises an error if neither timestamps
+        nor sampling frequency are provided."""
+        with self.assertRaisesWith(exc_type=AssertionError, exc_msg=(
+                "Either sampling_frequency or timestamps must be provided."
+        )):
+            NewExtractSegmentationExtractor(
+                file_path=self.file_path,
+            )
+
+    def test_extractor_timestamps_and_sampling_frequency_provided(self):
+        """Test that the extractor raises an error when both timestamps
+        and sampling frequency are provided."""
+        with self.assertRaisesWith(exc_type=AssertionError, exc_msg=(
+                "Either sampling_frequency or timestamps must be provided, but not both."
+        )):
+            NewExtractSegmentationExtractor(
+                file_path=self.file_path,
+                timestamps=np.arange(0, 2000),
+                sampling_frequency=self.sampling_frequency
+            )
+
+    def test_extractor_length_of_timestamps_does_not_match_number_of_frames(self):
+        """Test that the extractor raises an error if the timestamps does not have the
+        same length as the number of frames."""
+
+        with self.assertRaisesWith(exc_type=AssertionError, exc_msg=(
+                "The timestamps should have the same length of the number of frames!"
+        )):
+            NewExtractSegmentationExtractor(
+                file_path=self.file_path,
+                timestamps=[0, 1, 2, 3],
+            )
+
+    def test_extractor_timestamps_provided(self):
+        timestamps = np.arange(0, 2000)
+        self.extractor = NewExtractSegmentationExtractor(
+            file_path=self.file_path,
+            timestamps=timestamps,
+        )
+
+        assert_array_equal(self.extractor._times, timestamps)
 
     def test_extractor_data_validity(self):
         """Test that the extractor class returns the expected data."""
