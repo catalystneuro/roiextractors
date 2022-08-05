@@ -240,8 +240,8 @@ class SegmentationExtractor(ABC, BaseExtractor):
 
         Returns
         -------
-        no_rois: int
-            integer number of ROIs extracted.
+        num_rois: int
+            The number of ROIs extracted.
         """
         for trace in self.get_traces_dict().values():
             if trace is not None and len(trace.shape) > 0:
