@@ -172,8 +172,7 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
                     data = _decode_h5py_array(data)
                 config_dict[property_name] = data
             elif isinstance(config_struct[property_name], h5py.Group):
-                config_dict[property_name] = self._config_struct_to_dict(
-                    config_struct=config_struct[property_name])
+                config_dict[property_name] = self._config_struct_to_dict(config_struct=config_struct[property_name])
         return config_dict
 
     def _image_mask_extractor_read(self) -> DatasetView:
