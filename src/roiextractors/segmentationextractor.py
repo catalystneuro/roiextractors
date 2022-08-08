@@ -285,9 +285,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
         times: array-like
             The times in seconds for each frame
         """
-        assert len(times) == self.get_num_frames(), (
-            "'times' should have the same length of the number of frames!",
-        )
+        assert len(times) == self.get_num_frames(), ("'times' should have the same length of the number of frames!",)
         self._times = np.array(times).astype("float64")
 
     @staticmethod
