@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import h5py
 import numpy as np
 from hdmf.testing import TestCase
@@ -12,6 +14,7 @@ from roiextractors import (
 )
 
 from .setup_paths import OPHYS_DATA_PATH
+OPHYS_DATA_PATH = Path("tests/")
 
 
 class TestExtractSegmentationExtractor(TestCase):
@@ -185,3 +188,27 @@ class TestNewExtractSegmentationExtractor(TestCase):
             self.extractor.get_rejected_list(),
             list(set(range(20)) - set(accepted_list)),
         )
+
+    def test_extractor_get_images_dict(self):
+        """Test that the extractor class returns the expected images dict."""
+        with h5py.File(self.file_path, "r") as segmentation_file:
+            summary_image = DatasetView(
+                segmentation_file[self.output_struct_name]["info"]["summary_image"],
+            )[:]
+            max_image = DatasetView(
+                segmentation_file[self.output_struct_name]["info"]["max_image"],
+            )[:]
+            f_per_pixel = DatasetView(
+                segmentation_file[self.output_struct_name]["info"]["F_per_pixel"],
+            )[:]
+
+        images_dict = self.extractor.get_images_dict()
+        self.assertEqual(len(images_dict), 3)
+
+        self.assertEqual(images_dict["summary_image"].shape, summary_image.shape)
+        self.assertEqual(images_dict["max_image"].shape, max_image.shape)
+        self.assertEqual(images_dict["f_per_pixel"].shape, f_per_pixel.shape)
+
+        assert_array_equal(images_dict["summary_image"], summary_image)
+        assert_array_equal(images_dict["max_image"], max_image)
+        assert_array_equal(images_dict["f_per_pixel"], f_per_pixel)

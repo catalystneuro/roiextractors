@@ -137,9 +137,9 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
 
         self._dataset_file = self._file_extractor_read()
         assert output_struct_name in self._dataset_file, "Output struct not found in file."
-        assert "config" in self._dataset_file[output_struct_name], "Config struct not found in file."
         self._output_struct = self._dataset_file[output_struct_name]
 
+        assert "config" in self._output_struct, "Config struct not found in file."
         config_struct = self._output_struct["config"]
         self.config = self._config_struct_to_dict(config_struct=config_struct)
 
@@ -152,6 +152,9 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         self._sampling_frequency = sampling_frequency
 
         self._image_masks = self._image_mask_extractor_read()
+
+        assert "info" in self._output_struct, "Info struct not found in file."
+        self._info_struct = self._output_struct["info"]
 
     def close(self):
         self._dataset_file.close()
@@ -228,6 +231,23 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
             2-D array: image height x image width
         """
         return self._image_masks.shape[:-1]
+
+    def get_images_dict(self):
+        """
+        Returns a dictionary with key, values representing different types of Images
+        used in segmentation.
+        Returns
+        -------
+        images_dict: dict
+            dictionary with key, values representing different types of Images
+        """
+        images_dict = dict(
+            summary_image=DatasetView(self._info_struct["summary_image"]),
+            f_per_pixel=DatasetView(self._info_struct["F_per_pixel"]),
+            max_image=DatasetView(self._info_struct["max_image"]),
+        )
+
+        return images_dict
 
 
 class LegacyExtractSegmentationExtractor(SegmentationExtractor):
