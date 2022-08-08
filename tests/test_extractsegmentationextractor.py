@@ -14,6 +14,7 @@ from roiextractors import (
 )
 
 from .setup_paths import OPHYS_DATA_PATH
+
 OPHYS_DATA_PATH = Path("tests/")
 
 
