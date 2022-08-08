@@ -20,6 +20,11 @@ from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
 
 
+def _decode_h5py_array(unicode_int_array: np.ndarray) -> str:
+    """Auxiliary function to decode a numpy array of unicode ints to a string."""
+    return "".join(chr(unicode_int) for unicode_int in unicode_int_array)
+
+
 class ExtractSegmentationExtractor(ABC):
     """Abstract class that defines which extractor class to use for a given file."""
 
@@ -83,9 +88,10 @@ class ExtractSegmentationExtractor(ABC):
         with h5py.File(name=self.file_path, mode="r") as mat_file:
             if self.output_struct_name not in mat_file:
                 return False
-            dataset_version = mat_file[self.output_struct_name]["info"]["version"]
+            dataset_version = mat_file[self.output_struct_name]["info"]["version"][:]
+            dataset_version = np.ravel(dataset_version)
             # dataset_version is an HDF5 dataset of encoded characters
-            version_name = "".join(chr(unicode_int_array[0]) for unicode_int_array in dataset_version)
+            version_name = _decode_h5py_array(dataset_version)
 
             return version.Version(version_name) >= version.Version("1.1.0")
 
@@ -173,11 +179,15 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
     def _config_struct_to_dict(self, config_struct: h5py.Group) -> dict:
         """Flatten the config struct into a dictionary."""
         config_dict = dict()
-        for key in config_struct:
-            if isinstance(config_struct[key], h5py.Dataset):
-                config_dict[key] = np.ravel(config_struct[key][:])
-            elif isinstance(config_struct[key], h5py.Group):
-                config_dict[key] = self._config_struct_to_dict(config_struct[key])
+        for property_name in config_struct:
+            if isinstance(config_struct[property_name], h5py.Dataset):
+                data = np.ravel(config_struct[property_name][:])
+                if property_name in ["trace_output_option", "cellfind_filter_type"]:
+                    data = _decode_h5py_array(data)
+                config_dict[property_name] = data
+            elif isinstance(config_struct[property_name], h5py.Group):
+                config_dict[property_name] = self._config_struct_to_dict(
+                    config_struct=config_struct[property_name])
         return config_dict
 
     def _image_mask_extractor_read(self) -> DatasetView:
