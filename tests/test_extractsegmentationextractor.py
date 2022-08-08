@@ -13,6 +13,7 @@ from roiextractors import (
 
 from .setup_paths import OPHYS_DATA_PATH
 
+
 class TestExtractSegmentationExtractor(TestCase):
     ophys_data_path = OPHYS_DATA_PATH / "segmentation_datasets" / "extract"
 
