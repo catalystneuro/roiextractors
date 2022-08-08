@@ -1,6 +1,3 @@
-import tempfile
-from shutil import rmtree
-
 import h5py
 import numpy as np
 from hdmf.testing import TestCase
@@ -90,8 +87,6 @@ class TestNewExtractSegmentationExtractor(TestCase):
         cls.output_struct_name = "output"
         cls.sampling_frequency = 30.0
 
-        cls.test_config_path = tempfile.mkdtemp()
-
     def setUp(self):
         self.extractor = NewExtractSegmentationExtractor(
             file_path=self.file_path,
@@ -101,10 +96,6 @@ class TestNewExtractSegmentationExtractor(TestCase):
 
     def tearDown(self):
         self.extractor.close()
-
-    @classmethod
-    def tearDownClass(cls):
-        rmtree(cls.test_config_path)
 
     def test_extractor_output_struct_assertion(self):
         """Test that the extractor raises an error if the output struct name is not in the file."""
@@ -119,42 +110,12 @@ class TestNewExtractSegmentationExtractor(TestCase):
         """Test that the extractor raises an error if neither timestamps
         nor sampling frequency are provided."""
         with self.assertRaisesWith(
-            exc_type=AssertionError, exc_msg=("Either sampling_frequency or timestamps must be provided.")
+            exc_type=AssertionError, exc_msg=("The sampling_frequency must be provided.")
         ):
             NewExtractSegmentationExtractor(
                 file_path=self.file_path,
+                sampling_frequency=None
             )
-
-    def test_extractor_timestamps_and_sampling_frequency_provided(self):
-        """Test that the extractor raises an error when both timestamps
-        and sampling frequency are provided."""
-        with self.assertRaisesWith(
-            exc_type=AssertionError, exc_msg=("Either sampling_frequency or timestamps must be provided, but not both.")
-        ):
-            NewExtractSegmentationExtractor(
-                file_path=self.file_path, timestamps=np.arange(0, 2000), sampling_frequency=self.sampling_frequency
-            )
-
-    def test_extractor_length_of_timestamps_does_not_match_number_of_frames(self):
-        """Test that the extractor raises an error if the timestamps does not have the
-        same length as the number of frames."""
-
-        with self.assertRaisesWith(
-            exc_type=AssertionError, exc_msg=("The timestamps should have the same length of the number of frames!")
-        ):
-            NewExtractSegmentationExtractor(
-                file_path=self.file_path,
-                timestamps=[0, 1, 2, 3],
-            )
-
-    def test_extractor_timestamps_provided(self):
-        timestamps = np.arange(0, 2000)
-        self.extractor = NewExtractSegmentationExtractor(
-            file_path=self.file_path,
-            timestamps=timestamps,
-        )
-
-        assert_array_equal(self.extractor._times, timestamps)
 
     def test_extractor_data_validity(self):
         """Test that the extractor class returns the expected data."""
@@ -184,6 +145,24 @@ class TestNewExtractSegmentationExtractor(TestCase):
             self.assertEqual(self.extractor.get_rejected_list(), [])
             self.assertEqual(self.extractor.get_accepted_list(), list(range(num_rois)))
 
+    def test_extractor_config(self):
+        """Test that the extractor class returns the expected config."""
+
+        assert "preprocess" in self.extractor.config
+        self.assertEqual(self.extractor.config["preprocess"], [1])
+
+        assert "S_corr_thresh" in self.extractor.config
+        self.assertEqual(self.extractor.config["S_corr_thresh"], [0.1])
+
+        assert "thresholds" in self.extractor.config
+        self.assertEqual(self.extractor.config["thresholds"]["S_dup_corr_thresh"], [0.95])
+        self.assertEqual(self.extractor.config["thresholds"]["T_dup_corr_thresh"], [0.95])
+
+        assert "trace_output_option" in self.extractor.config
+        self.assertEqual(self.extractor.config["trace_output_option"], "raw")
+        assert "cellfind_filter_type" in self.extractor.config
+        self.assertEqual(self.extractor.config["cellfind_filter_type"], "none")
+
     param_list = [
         param(accepted_list=[4, 6, 12, 18]),
         param(accepted_list=[]),
@@ -206,34 +185,3 @@ class TestNewExtractSegmentationExtractor(TestCase):
             self.extractor.get_rejected_list(),
             list(set(range(20)) - set(accepted_list)),
         )
-
-    def test_extractor_read_from_dummy_file(self):
-        """Test the extractor with a dummy file."""
-
-        dummy_temporal_weights = np.zeros((10, 100))
-        dummy_spatial_weights = np.zeros((10, 5, 5))
-        with h5py.File(self.test_config_path + "/test_file.mat", "a") as output_struct:
-            output = output_struct.create_group("output")
-            output.create_dataset("temporal_weights", data=dummy_temporal_weights)
-            output.create_dataset("spatial_weights", data=dummy_spatial_weights)
-            config = output.create_group("config")
-            config.create_dataset("preprocess", data=[0])
-            thresholds = config.create_group("thresholds")
-            config.create_dataset("S_corr_thresh", data=np.array([0.1]))
-            config.create_dataset("max_iter", data=np.array([10.0]))
-            thresholds.create_dataset("S_dup_corr_thresh", data=np.array([0.95]))
-            thresholds.create_dataset("T_dup_corr_thresh", data=np.array([0.95]))
-
-        self.extractor = NewExtractSegmentationExtractor(
-            file_path=self.test_config_path + "/test_file.mat",
-            sampling_frequency=self.sampling_frequency,
-        )
-
-        self.assertEqual(self.extractor.config["S_corr_thresh"], [0.1])
-        self.assertEqual(self.extractor.config["max_iter"], [10.0])
-        self.assertEqual(self.extractor.config["thresholds"]["S_dup_corr_thresh"], [0.95])
-        self.assertEqual(self.extractor.config["thresholds"]["T_dup_corr_thresh"], [0.95])
-        self.assertEqual(self.extractor.config["preprocess"], [0])
-        self.assertEqual(self.extractor._roi_response_dff, None)
-        assert_array_equal(self.extractor._roi_response_raw, dummy_temporal_weights)
-        assert_array_equal(self.extractor._image_masks, dummy_spatial_weights.T)
