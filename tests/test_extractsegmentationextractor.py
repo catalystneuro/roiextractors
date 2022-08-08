@@ -109,13 +109,8 @@ class TestNewExtractSegmentationExtractor(TestCase):
     def test_extractor_no_timestamps_or_sampling_frequency(self):
         """Test that the extractor raises an error if neither timestamps
         nor sampling frequency are provided."""
-        with self.assertRaisesWith(
-            exc_type=AssertionError, exc_msg=("The sampling_frequency must be provided.")
-        ):
-            NewExtractSegmentationExtractor(
-                file_path=self.file_path,
-                sampling_frequency=None
-            )
+        with self.assertRaisesWith(exc_type=AssertionError, exc_msg=("The sampling_frequency must be provided.")):
+            NewExtractSegmentationExtractor(file_path=self.file_path, sampling_frequency=None)
 
     def test_extractor_data_validity(self):
         """Test that the extractor class returns the expected data."""
