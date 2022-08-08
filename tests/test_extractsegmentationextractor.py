@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import h5py
 import numpy as np
 from hdmf.testing import TestCase
@@ -14,8 +12,6 @@ from roiextractors import (
 )
 
 from .setup_paths import OPHYS_DATA_PATH
-OPHYS_DATA_PATH = Path("tests/")
-
 
 class TestExtractSegmentationExtractor(TestCase):
     ophys_data_path = OPHYS_DATA_PATH / "segmentation_datasets" / "extract"
