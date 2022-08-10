@@ -8,6 +8,7 @@ extractor depending on the version of the file. [PR #170](https://github.com/cat
 
 ### Improvements
 * Add `frame_to_time` to `SegmentationExtractor`, `get_roi_ids` is now a class method. [PR #187](https://github.com/catalystneuro/roiextractors/pull/187)
+* Add `set_times` to `SegmentationExtractor`. [PR #188](https://github.com/catalystneuro/roiextractors/pull/188)
 
 ### Fixes
 

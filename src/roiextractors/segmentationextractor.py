@@ -279,6 +279,17 @@ class SegmentationExtractor(ABC, BaseExtractor):
         """
         return self._num_planes
 
+    def set_times(self, times: ArrayType):
+        """Sets the recording times in seconds for each frame.
+
+        Parameters
+        ----------
+        times: array-like
+            The times in seconds for each frame
+        """
+        assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames!"
+        self._times = np.array(times, dtype=np.float64)
+
     def frame_to_time(self, frame_indices: Union[IntType, ArrayType]) -> Union[FloatType, ArrayType]:
         """Returns the timing of frames in unit of seconds.
 
