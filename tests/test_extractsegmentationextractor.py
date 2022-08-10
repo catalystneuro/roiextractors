@@ -5,8 +5,8 @@ from lazy_ops import DatasetView
 from numpy.testing import assert_array_equal
 from parameterized import parameterized, param
 
-from roiextractors import (
-    ExtractSegmentationExtractor,
+from roiextractors import ExtractSegmentationExtractor
+from roiextractors.extractors.schnitzerextractor import (
     NewExtractSegmentationExtractor,
     LegacyExtractSegmentationExtractor,
 )

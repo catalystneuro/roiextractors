@@ -11,10 +11,11 @@ from roiextractors import (
     Hdf5ImagingExtractor,
     SbxImagingExtractor,
     CaimanSegmentationExtractor,
-    LegacyExtractSegmentationExtractor,
     Suite2pSegmentationExtractor,
     CnmfeSegmentationExtractor,
 )
+from roiextractors.extractors.schnitzerextractor import \
+    LegacyExtractSegmentationExtractor
 from roiextractors.testing import (
     check_imaging_equal,
     check_segmentations_equal,
