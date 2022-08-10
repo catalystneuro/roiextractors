@@ -14,8 +14,7 @@ from roiextractors import (
     Suite2pSegmentationExtractor,
     CnmfeSegmentationExtractor,
 )
-from roiextractors.extractors.schnitzerextractor import \
-    LegacyExtractSegmentationExtractor
+from roiextractors.extractors.schnitzerextractor import LegacyExtractSegmentationExtractor
 from roiextractors.testing import (
     check_imaging_equal,
     check_segmentations_equal,
