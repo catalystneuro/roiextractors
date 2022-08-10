@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple
+from typing import Optional, Union, Tuple
 
 import numpy as np
 from spikeextractors.baseextractor import BaseExtractor
 
-from .extraction_tools import ArrayType
+from .extraction_tools import ArrayType, IntType, FloatType
 from .extraction_tools import _pixel_mask_extractor
 
 
@@ -13,7 +13,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
     An abstract class that contains all the meta-data and output data from
     the ROI segmentation operation when applied to the pre-processed data.
     It also contains methods to read from and write to various data formats
-    ouput from the processing pipelines like SIMA, CaImAn, Suite2p, CNNM-E.
+    output from the processing pipelines like SIMA, CaImAn, Suite2p, CNNM-E.
     All the methods with @abstract decorator have to be defined by the
     format specific classes that inherit from this.
     """
@@ -99,16 +99,14 @@ class SegmentationExtractor(ABC, BaseExtractor):
             roi_location[:, c] = np.array([np.median(temp[0]), np.median(temp[1])]).T
         return roi_location
 
-    @abstractmethod
     def get_roi_ids(self) -> list:
-        """Returns the list of channel ids. If not specified, the range from 0 to num_channels - 1 is returned.
-
+        """Returns the list of ROI ids.
         Returns
         -------
-        channel_ids: list
-            Channel list.
+        roi_ids: list
+            List of roi ids.
         """
-        pass
+        return list(range(self.get_num_rois()))
 
     def get_roi_image_masks(self, roi_ids=None) -> np.array:
         """Returns the image masks extracted from segmentation algorithm.
@@ -143,12 +141,16 @@ class SegmentationExtractor(ABC, BaseExtractor):
 
         Returns
         -------
-        pixel_masks: [list, NoneType]
-            list of length number of rois, each element is a 2-D array os shape (no-pixels, 2)
+        pixel_masks: list
+            List of length number of rois, each element is a 2-D array with shape (number_of_non_zero_pixels, 3).
+            Columns 1 and 2 are the x and y coordinates of the pixel, while the third column represents the weight of
+            the pixel.
         """
+
         if roi_ids is None:
-            return None
-        return _pixel_mask_extractor(self.get_roi_image_masks(roi_ids=roi_ids), range(len(roi_ids)))
+            roi_ids = range(self.get_num_rois())
+
+        return _pixel_mask_extractor(self.get_roi_image_masks(roi_ids=roi_ids), roi_ids)
 
     @abstractmethod
     def get_image_size(self) -> ArrayType:
@@ -228,18 +230,21 @@ class SegmentationExtractor(ABC, BaseExtractor):
 
         Returns
         -------
-        samp_freq: float
-            Sampling frequency of the recordings in Hz.
+        sampling_frequency: float
+            Sampling frequency of the recording in Hz.
         """
-        return float(self._sampling_frequency)
+        if self._sampling_frequency is not None:
+            return float(self._sampling_frequency)
+
+        return self._sampling_frequency
 
     def get_num_rois(self):
         """Returns total number of Regions of Interest in the acquired images.
 
         Returns
         -------
-        no_rois: int
-            integer number of ROIs extracted.
+        num_rois: int
+            The number of ROIs extracted.
         """
         for trace in self.get_traces_dict().values():
             if trace is not None and len(trace.shape) > 0:
@@ -267,7 +272,7 @@ class SegmentationExtractor(ABC, BaseExtractor):
     def get_num_planes(self):
         """
         Returns the default number of planes of imaging for the segmentation extractor.
-        Detaults to 1 for all but the MultiSegmentationExtractor
+        Defaults to 1 for all but the MultiSegmentationExtractor
         Returns
         -------
         self._num_planes: int
@@ -277,6 +282,24 @@ class SegmentationExtractor(ABC, BaseExtractor):
     def frame_slice(self, start_frame, end_frame):
         """Return a new ImagingExtractor ranging from the start_frame to the end_frame."""
         return FrameSliceSegmentationExtractor(parent_imaging=self, start_frame=start_frame, end_frame=end_frame)
+
+    def frame_to_time(self, frame_indices: Union[IntType, ArrayType]) -> Union[FloatType, ArrayType]:
+        """Returns the timing of frames in unit of seconds.
+
+        Parameters
+        ----------
+        frame_indices: int or array-like
+            The frame or frames to be converted to times
+
+        Returns
+        -------
+        times: float or array-like
+            The corresponding times in seconds
+        """
+        if self._times is None:
+            return np.round(frame_indices / self.get_sampling_frequency(), 6)
+        else:
+            return self._times[frame_indices]
 
     @staticmethod
     def write_segmentation(segmentation_extractor, save_path, overwrite=False):

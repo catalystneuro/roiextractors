@@ -68,8 +68,11 @@ class MultiImagingExtractor(ImagingExtractor):
 
         return times
 
-    @check_get_frames_args
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> NumpyArray:
+        if isinstance(frame_idxs, (int, np.integer)):
+            frame_idxs = [frame_idxs]
+        frame_idxs = np.array(frame_idxs)
+        assert np.all(frame_idxs < self.get_num_frames()), "'frame_idxs' exceed number of frames"
         extractor_indices = np.searchsorted(self._end_frames, frame_idxs, side="right")
         relative_frame_indices = frame_idxs - np.array(self._start_frames)[extractor_indices]
         # Match frame_idxs to imaging extractors
@@ -88,8 +91,17 @@ class MultiImagingExtractor(ImagingExtractor):
                 frames_for_each_extractor = frames_for_each_extractor[np.newaxis, ...]
             frames_to_concatenate.append(frames_for_each_extractor)
 
-        frames = np.concatenate(frames_to_concatenate, axis=0).squeeze()
+        frames = np.concatenate(frames_to_concatenate, axis=0)
         return frames
+
+    def get_video(
+        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
+    ) -> np.ndarray:
+        # To-do: implement this without reference to get_frames
+        start = start_frame if start_frame is not None else 0
+        stop = end_frame if end_frame is not None else self.get_num_frames()
+        frame_idxs = range(start, stop)
+        return self.get_frames(frame_idxs=frame_idxs, channel=channel)
 
     def _get_frames_from_an_imaging_extractor(self, extractor_index: int, frame_idxs: ArrayType) -> NumpyArray:
         imaging_extractor = self._imaging_extractors[extractor_index]

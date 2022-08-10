@@ -11,11 +11,17 @@ from roiextractors import (
     Hdf5ImagingExtractor,
     SbxImagingExtractor,
     CaimanSegmentationExtractor,
-    ExtractSegmentationExtractor,
     Suite2pSegmentationExtractor,
     CnmfeSegmentationExtractor,
 )
-from roiextractors.testing import check_imaging_equal, check_segmentations_equal, check_imaging_return_types
+from roiextractors.extractors.schnitzerextractor import LegacyExtractSegmentationExtractor
+from roiextractors.testing import (
+    check_imaging_equal,
+    check_segmentations_equal,
+    assert_get_frames_return_shape,
+    check_imaging_return_types,
+)
+
 
 from .setup_paths import OPHYS_DATA_PATH, OUTPUT_PATH
 
@@ -81,15 +87,25 @@ class TestExtractors(TestCase):
 
     @parameterized.expand(imaging_extractor_list, name_func=custom_name_func)
     def test_imaging_extractors_canonical_shape(self, extractor_class, extractor_kwargs):
+        """Test that get_video and get_frame methods for their shapes and types under different indexing scenarios"""
         extractor = extractor_class(**extractor_kwargs)
         image_size = extractor.get_image_size()
         num_channels = extractor.get_num_channels()
-        video = extractor.get_video()
 
+        # Test canonical shape for get video
+        video = extractor.get_video()
         canonical_video_shape = [extractor.get_num_frames(), image_size[0], image_size[1]]
         if num_channels > 1:
             canonical_video_shape.append(num_channels)
         assert video.shape == tuple(canonical_video_shape)
+
+        # Test spikeinterface-like behavior
+        one_element_video_shape = extractor.get_video(start_frame=0, end_frame=1, channel=0).shape
+        expected_shape = (1, image_size[0], image_size[1])
+        assert one_element_video_shape == expected_shape
+
+        # Test frames behavior
+        assert_get_frames_return_shape(imaging_extractor=extractor)
 
     segmentation_extractor_list = [
         param(
@@ -110,7 +126,7 @@ class TestExtractors(TestCase):
             ),
         ),
         param(
-            extractor_class=ExtractSegmentationExtractor,
+            extractor_class=LegacyExtractSegmentationExtractor,
             extractor_kwargs=dict(
                 file_path=str(
                     OPHYS_DATA_PATH

@@ -75,13 +75,21 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
                 "https://github.com/catalystneuro/roiextractors/issues "
             )
 
-    @check_get_frames_args
     def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> np.ndarray:
+
+        squeeze_data = False
+        if isinstance(frame_idxs, int):
+            squeeze_data = True
+            frame_idxs = [frame_idxs]
+
         if not all(np.diff(frame_idxs) == 1):
             return np.concatenate([self._get_single_frame(idx=idx) for idx in frame_idxs])
         else:
             with ScanImageTiffReader(filename=str(self.file_path)) as io:
-                return io.data(beg=frame_idxs[0], end=frame_idxs[-1] + 1)
+                frames = io.data(beg=frame_idxs[0], end=frame_idxs[-1] + 1)
+                if squeeze_data:
+                    frames = frames.squeeze()
+            return frames
 
     def _get_single_frame(self, idx: int) -> np.ndarray:
         """
@@ -91,6 +99,10 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
         """
         with ScanImageTiffReader(str(self.file_path)) as io:
             return io.data(beg=idx, end=idx + 1)
+
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+        with ScanImageTiffReader(filename=str(self.file_path)) as io:
+            return io.data(beg=start_frame, end=end_frame)
 
     def get_image_size(self) -> Tuple[int, int]:
         return (self._num_rows, self._num_columns)

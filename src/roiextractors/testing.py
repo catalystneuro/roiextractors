@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Tuple
+from typing import Tuple, Optional
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
@@ -7,7 +7,8 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from .segmentationextractor import SegmentationExtractor
 from .imagingextractor import ImagingExtractor
 
-from roiextractors import NumpyImagingExtractor
+from roiextractors import NumpyImagingExtractor, NumpySegmentationExtractor
+
 from roiextractors.extraction_tools import DtypeType
 
 NoneType = type(None)
@@ -48,6 +49,104 @@ def generate_dummy_imaging_extractor(
     )
 
     return imaging_extractor
+
+
+def generate_dummy_segmentation_extractor(
+    num_rois: int = 10,
+    num_frames: int = 30,
+    num_rows: int = 25,
+    num_columns: int = 25,
+    sampling_frequency: float = 30.0,
+    has_summary_images: bool = True,
+    has_raw_signal: bool = True,
+    has_dff_signal: bool = True,
+    has_deconvolved_signal: bool = True,
+    has_neuropil_signal: bool = True,
+    rejected_list: Optional[list] = None,
+) -> SegmentationExtractor:
+
+    """
+    A dummy segmentation extractor for testing. The segmentation extractor is built by feeding random data into the
+    `NumpySegmentationExtractor`.
+
+    Note that this dummy example is meant to be a mock object with the right shape, structure and objects but does not
+    contain meaningful content. That is, the image masks matrices are not plausible image mask for a roi, the raw signal
+    is not a meaningful biological signal and is not related appropriately to the deconvolved signal , etc.
+
+    Parameters
+    ----------
+    num_rois : int, optional
+        number of regions of interest, by default 10.
+    num_frames : int, optional
+        _description_, by default 30
+    num_rows : number of frames used in the hypotethical video from which the data was extracted, optional
+        number of rows in the hypotethical video from which the data was extracted, by default 25.
+    num_columns : int, optional
+        numbe rof columns in the hypotethical video from which the data was extracted, by default 25.
+    sampling_frequency : float, optional
+        sampling frequency of the hypotethical video form which the data was extracted, by default 30.0.
+    has_summary_images : bool, optional
+        whether the dummy segmentation extractor has summary images or not (mean and correlation)
+    has_raw_signal : bool, optional
+        whether a raw fluoresence signal is desired in the object, by default True.
+    has_dff_signal : bool, optional
+        whether a relative (df/f) fluoresence signal is desired in the object, by default True.
+    has_deconvolved_signal : bool, optional
+        whether a deconvolved signal is desired in the object, by default True.
+    has_neuropil_signal : bool, optional
+        whether a neuropil signal is desiredi n the object, by default True.
+    rejected_list: list, optional
+        A list of rejected rois, None by default.
+
+    Returns
+    -------
+    SegmentationExtractor
+        A segmentation extractor with random data fed into `NumpySegmentationExtractor`
+    """
+
+    # Create dummy image masks
+    image_masks = np.random.rand(num_rows, num_columns, num_rois)
+    movie_dims = (num_rows, num_columns)
+
+    # Create signals
+    raw = np.random.rand(num_rois, num_frames) if has_raw_signal else None
+    dff = np.random.rand(num_rois, num_frames) if has_dff_signal else None
+    deconvolved = np.random.rand(num_rois, num_frames) if has_deconvolved_signal else None
+    neuropil = np.random.rand(num_rois, num_frames) if has_neuropil_signal else None
+
+    # Summary images
+    mean_image = np.random.rand(num_rows, num_columns) if has_summary_images else None
+    correlation_image = np.random.rand(num_rows, num_columns) if has_summary_images else None
+
+    # Rois
+    roi_ids = [id for id in range(num_rois)]
+    roi_locations_rows = np.random.randint(low=0, high=num_rows, size=num_rois)
+    roi_locations_columns = np.random.randint(low=0, high=num_columns, size=num_rois)
+    roi_locations = np.vstack((roi_locations_rows, roi_locations_columns))
+
+    rejected_list = rejected_list if rejected_list else None
+
+    accepeted_list = roi_ids
+    if rejected_list is not None:
+        accepeted_list = list(set(accepeted_list).difference(rejected_list))
+
+    dummy_segmentation_extractor = NumpySegmentationExtractor(
+        sampling_frequency=sampling_frequency,
+        image_masks=image_masks,
+        raw=raw,
+        dff=dff,
+        deconvolved=deconvolved,
+        neuropil=neuropil,
+        mean_image=mean_image,
+        correlation_image=correlation_image,
+        roi_ids=roi_ids,
+        roi_locations=roi_locations,
+        accepted_lst=accepeted_list,
+        rejected_list=rejected_list,
+        movie_dims=movie_dims,
+    )
+
+    return dummy_segmentation_extractor
 
 
 def _assert_iterable_shape(iterable, shape):
@@ -110,6 +209,11 @@ def check_segmentations_equal(
     assert_array_equal(segmentation_extractor1.get_roi_locations(), segmentation_extractor2.get_roi_locations())
     assert_array_equal(segmentation_extractor1.get_roi_ids(), segmentation_extractor2.get_roi_ids())
     assert_array_equal(segmentation_extractor1.get_traces(), segmentation_extractor2.get_traces())
+
+    assert_array_equal(
+        segmentation_extractor1.frame_to_time(np.arange(segmentation_extractor1.get_num_frames())),
+        segmentation_extractor2.frame_to_time(np.arange(segmentation_extractor2.get_num_frames())),
+    )
 
 
 def check_segmentation_return_types(seg: SegmentationExtractor):
@@ -197,7 +301,8 @@ def check_imaging_equal(
         assert_array_equal(imaging_extractor1.get_channel_names(), imaging_extractor2.get_channel_names())
 
     assert_array_equal(
-        imaging_extractor1.get_frames(frame_idxs=[0, 1]), imaging_extractor2.get_frames(frame_idxs=[0, 1])
+        imaging_extractor1.get_video(start_frame=0, end_frame=1),
+        imaging_extractor2.get_video(start_frame=0, end_frame=1),
     )
     assert_array_almost_equal(
         imaging_extractor1.frame_to_time(np.arange(imaging_extractor1.get_num_frames())),
@@ -205,7 +310,7 @@ def check_imaging_equal(
     )
 
 
-def assert_get_frames_indexing_with_single_channel(imaging_extractor: ImagingExtractor):
+def assert_get_frames_return_shape(imaging_extractor: ImagingExtractor):
     """Utiliy to check whether an ImagingExtractor get_frames function behaves as expected. We aim for the function to
     behave as numpy slicing and indexing as much as possible
 
@@ -219,19 +324,22 @@ def assert_get_frames_indexing_with_single_channel(imaging_extractor: ImagingExt
 
     frame_idxs = 0
     frames_with_scalar = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
-    assert frames_with_scalar.shape == image_size
+    assert frames_with_scalar.shape == image_size, "get_frames does not work correctly with frame_idxs=0"
 
     frame_idxs = [0]
     frames_with_single_element_list = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
-    assert frames_with_single_element_list.shape == (1, image_size[0], image_size[1])
+    assert_msg = "get_frames does not work correctly with frame_idxs=[0]"
+    assert frames_with_single_element_list.shape == (1, image_size[0], image_size[1]), assert_msg
 
     frame_idxs = [0, 1]
     frames_with_list = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
-    assert frames_with_list.shape == (2, image_size[0], image_size[1])
+    assert_msg = "get_frames does not work correctly with frame_idxs=[0, 1]"
+    assert frames_with_list.shape == (2, image_size[0], image_size[1]), assert_msg
 
     frame_idxs = np.array([0, 1])
     frames_with_array = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
-    assert frames_with_array.shape == (2, image_size[0], image_size[1])
+    assert_msg = "get_frames does not work correctly with frame_idxs=np.arrray([0, 1])"
+    assert frames_with_array.shape == (2, image_size[0], image_size[1]), assert_msg
 
 
 def check_imaging_return_types(img_ex: ImagingExtractor):

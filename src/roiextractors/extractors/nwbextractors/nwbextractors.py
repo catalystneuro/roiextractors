@@ -166,10 +166,12 @@ class NwbImagingExtractor(ImagingExtractor):
             frames = frames.squeeze()
         return frames
 
-    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0):
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
         start_frame = start_frame if start_frame is not None else 0
         end_frame = end_frame if end_frame is not None else self.get_num_frames()
-        video = self.get_frames(frame_idxs=range(start_frame, end_frame), channel=channel)
+
+        video = self.two_photon_series.data
+        video = video[start_frame:end_frame].transpose([0, 2, 1])
         return video
 
     def get_image_size(self):
@@ -304,7 +306,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                         self._accepted_list = ps["Accepted"].data[:]
                     if "Rejected" in ps.colnames:
                         self._rejected_list = ps["Rejected"].data[:]
-                    self._roi_idx = np.array(ps.id.data)
                 else:
                     raise Exception("could not find any PlaneSegmentation in nwbfile")
             # Extracting stores images as GrayscaleImages:
@@ -338,9 +339,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     def roi_locations(self):
         if self._roi_locs is not None:
             return self._roi_locs.data[:].T
-
-    def get_roi_ids(self):
-        return list(self._roi_idx)
 
     def get_image_size(self):
         return self._image_masks.shape[:2]

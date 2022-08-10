@@ -101,7 +101,13 @@ class Hdf5ImagingExtractor(ImagingExtractor):
             slice_stop = self.get_num_frames()
 
         frames = self._video.lazy_slice[slice_start:slice_stop, :, :, channel].dsetread()
+        if isinstance(frame_idxs, int):
+            frames = frames.squeeze()
+
         return frames
+
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+        return self._video.lazy_slice[start_frame:end_frame, :, :, channel].dsetread()
 
     def get_image_size(self) -> Tuple[int, int]:
         return (self._num_rows, self._num_cols)
