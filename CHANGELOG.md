@@ -3,7 +3,7 @@
 ### Features
 * Add support for newer versions of EXTRACT output files.
 The `ExtractSegmentationExtractor` class is now abstract and redirects to the newer or older
-extractor depending on the version of the file. 
+extractor depending on the version of the file.
 The `ExtractSegmentatioExtractor` class `write_segmentation` method has now been deprecated. [PR #170](https://github.com/catalystneuro/roiextractors/pull/170)
 
 ### Improvements
