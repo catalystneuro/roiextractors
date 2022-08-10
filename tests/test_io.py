@@ -11,10 +11,10 @@ from roiextractors import (
     Hdf5ImagingExtractor,
     SbxImagingExtractor,
     CaimanSegmentationExtractor,
-    ExtractSegmentationExtractor,
     Suite2pSegmentationExtractor,
     CnmfeSegmentationExtractor,
 )
+from roiextractors.extractors.schnitzerextractor import LegacyExtractSegmentationExtractor
 from roiextractors.testing import (
     check_imaging_equal,
     check_segmentations_equal,
@@ -126,7 +126,7 @@ class TestExtractors(TestCase):
             ),
         ),
         param(
-            extractor_class=ExtractSegmentationExtractor,
+            extractor_class=LegacyExtractSegmentationExtractor,
             extractor_kwargs=dict(
                 file_path=str(
                     OPHYS_DATA_PATH
