@@ -6,6 +6,7 @@ The `ExtractSegmentationExtractor` class is now abstract and redirects to the ne
 extractor depending on the version of the file. [PR #170](https://github.com/catalystneuro/roiextractors/pull/170)
 
 ### Improvements
+* Add `frame_to_time` to `SegmentationExtractor`, `get_roi_ids` is now a class method. [PR #187](https://github.com/catalystneuro/roiextractors/pull/187)
 
 ### Fixes
 
