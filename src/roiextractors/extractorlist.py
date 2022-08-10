@@ -8,9 +8,7 @@ from .extractors.numpyextractors import (
 from .extractors.nwbextractors import NwbImagingExtractor, NwbSegmentationExtractor
 from .extractors.schnitzerextractor import (
     CnmfeSegmentationExtractor,
-    LegacyExtractSegmentationExtractor,
     ExtractSegmentationExtractor,
-    NewExtractSegmentationExtractor,
 )
 from .extractors.simaextractor import SimaSegmentationExtractor
 from .extractors.suite2p import Suite2pSegmentationExtractor
@@ -37,11 +35,9 @@ segmentation_extractor_full_list = [
     NwbSegmentationExtractor,
     Suite2pSegmentationExtractor,
     CnmfeSegmentationExtractor,
-    LegacyExtractSegmentationExtractor,
     ExtractSegmentationExtractor,
     SimaSegmentationExtractor,
     CaimanSegmentationExtractor,
-    NewExtractSegmentationExtractor,
 ]
 
 imaging_extractor_dict = {imaging_class.extractor_name: imaging_class for imaging_class in imaging_extractor_full_list}
