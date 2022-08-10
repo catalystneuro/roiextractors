@@ -285,8 +285,8 @@ class SegmentationExtractor(ABC, BaseExtractor):
         times: array-like
             The times in seconds for each frame
         """
-        assert len(times) == self.get_num_frames(), ("'times' should have the same length of the number of frames!",)
-        self._times = np.array(times).astype("float64")
+        assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames!"
+        self._times = np.array(times, dtype=np.float64)
 
     @staticmethod
     def write_segmentation(segmentation_extractor, save_path, overwrite=False):
