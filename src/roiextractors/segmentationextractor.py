@@ -279,7 +279,6 @@ class SegmentationExtractor(ABC, BaseExtractor):
         """
         return self._num_planes
 
-
     def set_times(self, times: ArrayType):
         """Sets the recording times in seconds for each frame.
 
@@ -290,7 +289,6 @@ class SegmentationExtractor(ABC, BaseExtractor):
         """
         assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames!"
         self._times = np.array(times, dtype=np.float64)
-
 
     def frame_to_time(self, frame_indices: Union[IntType, ArrayType]) -> Union[FloatType, ArrayType]:
         """Returns the timing of frames in unit of seconds.
@@ -309,7 +307,6 @@ class SegmentationExtractor(ABC, BaseExtractor):
             return np.round(frame_indices / self.get_sampling_frequency(), 6)
         else:
             return self._times[frame_indices]
-
 
     @staticmethod
     def write_segmentation(segmentation_extractor, save_path, overwrite=False):
