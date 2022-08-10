@@ -1,9 +1,14 @@
-import unittest
+import numpy as np
+from hdmf.testing import TestCase
+from numpy.testing import assert_array_equal
 
-from roiextractors.testing import generate_dummy_segmentation_extractor
+from roiextractors.testing import (
+    generate_dummy_segmentation_extractor,
+    _assert_iterable_complete,
+)
 
 
-class TestDummySegmentationExtractor(unittest.TestCase):
+class TestDummySegmentationExtractor(TestCase):
     def setUp(self) -> None:
         self.num_rois = 10
         self.num_frames = 30
@@ -70,3 +75,35 @@ class TestDummySegmentationExtractor(unittest.TestCase):
         assert segmentation_extractor.get_traces(name="dff").shape == (self.num_rois, self.num_frames)
         assert segmentation_extractor.get_traces(name="deconvolved").shape == (self.num_rois, self.num_frames)
         assert segmentation_extractor.get_traces(name="neuropil").shape == (self.num_rois, self.num_frames)
+
+    def test_set_times(self):
+        """Test that set_times sets the times in the expected way."""
+
+        segmentation_extractor = generate_dummy_segmentation_extractor()
+
+        num_frames = segmentation_extractor.get_num_frames()
+        sampling_frequency = segmentation_extractor.get_sampling_frequency()
+
+        # Check that times have not been set yet
+        assert segmentation_extractor._times is None
+
+        # Set times with an array that has the same length as the number of frames
+        times_to_set = np.round(np.arange(num_frames) / sampling_frequency, 6)
+        segmentation_extractor.set_times(times_to_set)
+
+        assert_array_equal(segmentation_extractor._times, times_to_set)
+
+        _assert_iterable_complete(
+            iterable=segmentation_extractor._times,
+            dtypes=np.ndarray,
+            element_dtypes=np.float64,
+            shape=(num_frames,),
+        )
+
+        # Set times with an array that is too short
+        times_to_set = np.round(np.arange(num_frames - 1) / sampling_frequency, 6)
+        with self.assertRaisesWith(
+                exc_type=AssertionError,
+                exc_msg="'times' should have the same length of the number of frames!",
+        ):
+            segmentation_extractor.set_times(times_to_set)
