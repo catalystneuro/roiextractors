@@ -117,9 +117,6 @@ class MultiSegmentationExtractor(SegmentationExtractor):
     def get_roi_image_masks(self, roi_ids=None):
         return lambda x: np.concatenate(x, axis=2)
 
-    def get_roi_ids(self):
-        return self._all_roi_ids
-
     @concatenate_output
     def get_roi_locations(self, roi_ids=None):
         return lambda x: np.concatenate(x, axis=1)
