@@ -1,6 +1,10 @@
 # Upcoming
 
 ### Features
+* Add support for newer versions of EXTRACT output files.
+The `ExtractSegmentationExtractor` class is now abstract and redirects to the newer or older
+extractor depending on the version of the file.
+The `ExtractSegmentatioExtractor` class `write_segmentation` method has now been deprecated. [PR #170](https://github.com/catalystneuro/roiextractors/pull/170)
 
 ### Improvements
 * Add `frame_to_time` to `SegmentationExtractor`, `get_roi_ids` is now a class method. [PR #187](https://github.com/catalystneuro/roiextractors/pull/187)
