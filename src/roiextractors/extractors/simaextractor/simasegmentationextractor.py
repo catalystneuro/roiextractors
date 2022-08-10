@@ -155,9 +155,5 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     def write_segmentation(segmentation_object, savepath):
         raise NotImplementedError
 
-    # defining the abstract class enformed methods:
-    def get_roi_ids(self):
-        return list(range(self.get_num_rois()))
-
     def get_image_size(self):
         return self._image_masks.shape[0:2]

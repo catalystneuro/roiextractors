@@ -79,10 +79,6 @@ class ExtractSegmentationExtractor(SegmentationExtractor):
         ac_set = set(self.get_accepted_list())
         return [a for a in range(self.get_num_rois()) if a not in ac_set]
 
-    # defining the abstract class informed methods:
-    def get_roi_ids(self):
-        return list(range(self.get_num_rois()))
-
     def get_image_size(self):
         return self._image_masks.shape[0:2]
 
