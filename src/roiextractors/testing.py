@@ -203,7 +203,11 @@ def check_segmentations_equal(
     ) == set(
         segmentation_extractor2.get_roi_pixel_masks(roi_ids=segmentation_extractor1.get_roi_ids()[:1])[0].flatten()
     )
-    assert_array_equal(segmentation_extractor1.get_image(), segmentation_extractor2.get_image())
+    for image_name in segmentation_extractor1.get_images_dict().keys():
+        assert_array_equal(
+            segmentation_extractor1.get_image(image_name),
+            segmentation_extractor2.get_image(image_name),
+        )
     assert_array_equal(segmentation_extractor1.get_accepted_list(), segmentation_extractor2.get_accepted_list())
     assert_array_equal(segmentation_extractor1.get_rejected_list(), segmentation_extractor2.get_rejected_list())
     assert_array_equal(segmentation_extractor1.get_roi_locations(), segmentation_extractor2.get_roi_locations())
