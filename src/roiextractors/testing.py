@@ -219,8 +219,8 @@ def check_segmentations_equal(
 
 
 def check_segmentations_images(
-        segmentation_extractor1: SegmentationExtractor,
-        segmentation_extractor2: SegmentationExtractor,
+    segmentation_extractor1: SegmentationExtractor,
+    segmentation_extractor2: SegmentationExtractor,
 ):
     """
     Check that the segmentation images are equal for the given segmentation extractors.
