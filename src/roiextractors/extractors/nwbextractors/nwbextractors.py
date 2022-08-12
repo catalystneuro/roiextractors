@@ -328,9 +328,11 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 return rej_list
 
     def get_images_dict(self):
-        if self._segmentation_images is None:
-            return super().get_images_dict()
-        images_dict = {image_name: image_data[:].T for image_name, image_data in self._segmentation_images.items()}
+        images_dict = super().get_images_dict()
+        if self._segmentation_images is not None:
+            images_dict.update(
+                (image_name, image_data[:].T) for image_name, image_data in self._segmentation_images.items()
+            )
 
         return images_dict
 
