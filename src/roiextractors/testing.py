@@ -231,7 +231,7 @@ def check_segmentations_images(
     assert len(images_in_extractor1) == len(images_in_extractor2)
 
     image_names_are_equal = all(image_name in images_in_extractor1.keys() for image_name in images_in_extractor2.keys())
-    assert image_names_are_equal, "The name of segmentation images in the segmentation extractors are not equal."
+    assert image_names_are_equal, "The names of segmentation images in the segmentation extractors are not the same."
 
     for image_name in images_in_extractor1.keys():
         assert_array_equal(
