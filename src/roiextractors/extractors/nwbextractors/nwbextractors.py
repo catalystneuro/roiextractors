@@ -248,7 +248,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             .nwb file location
         """
         check_nwb_install()
-        SegmentationExtractor.__init__(self)
+        super().__init__()
         file_path = Path(file_path)
         if not file_path.is_file():
             raise Exception("file does not exist")
@@ -260,61 +260,53 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         self._io = NWBHDF5IO(str(file_path), mode="r")
         self.nwbfile = self._io.read()
 
+        assert "ophys" in self.nwbfile.processing, "Ophys processing module is not in nwbfile."
         ophys = self.nwbfile.processing.get("ophys")
-        if ophys is None:
-            raise Exception("could not find ophys processing module in nwbfile")
-        else:
-            # Extract roi_response:
-            fluorescence = None
-            dfof = None
-            any_roi_response_series_found = False
-            if "Fluorescence" in ophys.data_interfaces:
-                fluorescence = ophys.data_interfaces["Fluorescence"]
-            if "DfOverF" in ophys.data_interfaces:
-                dfof = ophys.data_interfaces["DfOverF"]
-            if fluorescence is None and dfof is None:
-                raise Exception("could not find Fluorescence/DfOverF module in nwbfile")
-            for trace_name in ["RoiResponseSeries", "Dff", "Neuropil", "Deconvolved"]:
-                trace_name_segext = "raw" if trace_name == "RoiResponseSeries" else trace_name.lower()
-                container = dfof if trace_name == "Dff" else fluorescence
-                if container is not None and trace_name in container.roi_response_series:
-                    any_roi_response_series_found = True
-                    setattr(
-                        self,
-                        f"_roi_response_{trace_name_segext}",
-                        DatasetView(container.roi_response_series[trace_name].data).lazy_transpose(),
-                    )
-                    if self._sampling_frequency is None:
-                        self._sampling_frequency = container.roi_response_series[trace_name].rate
-            if not any_roi_response_series_found:
-                raise Exception(
-                    "could not find any of 'RoiResponseSeries'/'Dff'/'Neuropil'/'Deconvolved'"
-                    "named RoiResponseSeries in nwbfile"
+
+        # Extract roi_responses:
+        fluorescence = None
+        df_over_f = None
+        any_roi_response_series_found = False
+        if "Fluorescence" in ophys.data_interfaces:
+            fluorescence = ophys.data_interfaces["Fluorescence"]
+        if "DfOverF" in ophys.data_interfaces:
+            df_over_f = ophys.data_interfaces["DfOverF"]
+        if fluorescence is None and df_over_f is None:
+            raise Exception("Could not find Fluorescence/DfOverF module in nwbfile.")
+        for trace_name in self.get_traces_dict().keys():
+            trace_name_segext = "RoiResponseSeries" if trace_name in ["raw", "dff"] else trace_name.capitalize()
+            container = df_over_f if trace_name == "dff" else fluorescence
+            if container is not None and trace_name_segext in container.roi_response_series:
+                any_roi_response_series_found = True
+                setattr(
+                    self,
+                    f"_roi_response_{trace_name}",
+                    DatasetView(container.roi_response_series[trace_name_segext].data).lazy_transpose(),
                 )
-            # Extract image_mask/background:
-            if "ImageSegmentation" in ophys.data_interfaces:
-                image_seg = ophys.data_interfaces["ImageSegmentation"]
-                if "PlaneSegmentation" in image_seg.plane_segmentations:  # this requirement in nwbfile is enforced
-                    ps = image_seg.plane_segmentations["PlaneSegmentation"]
-                    if "image_mask" in ps.colnames:
-                        self._image_masks = DatasetView(ps["image_mask"].data).lazy_transpose([2, 1, 0])
-                    else:
-                        raise Exception("could not find any image_masks in nwbfile")
-                    if "RoiCentroid" in ps.colnames:
-                        self._roi_locs = ps["RoiCentroid"]
-                    if "Accepted" in ps.colnames:
-                        self._accepted_list = ps["Accepted"].data[:]
-                    if "Rejected" in ps.colnames:
-                        self._rejected_list = ps["Rejected"].data[:]
-                else:
-                    raise Exception("could not find any PlaneSegmentation in nwbfile")
-            # Extracting stores images as GrayscaleImages:
-            if "SegmentationImages" in ophys.data_interfaces:
-                images_container = ophys.data_interfaces["SegmentationImages"]
-                if "correlation" in images_container.images:
-                    self._image_correlation = images_container.images["correlation"].data[()].T
-                if "mean" in images_container.images:
-                    self._image_mean = images_container.images["mean"].data[()].T
+                if self._sampling_frequency is None:
+                    self._sampling_frequency = container.roi_response_series[trace_name_segext].rate
+        if not any_roi_response_series_found:
+            raise Exception(
+                "could not find any of 'RoiResponseSeries'/'Dff'/'Neuropil'/'Deconvolved'"
+                "named RoiResponseSeries in nwbfile"
+            )
+        # Extract image_mask/background:
+        if "ImageSegmentation" in ophys.data_interfaces:
+            image_seg = ophys.data_interfaces["ImageSegmentation"]
+        assert len(image_seg.plane_segmentations), "Could not find any PlaneSegmentation in nwbfile."
+        if "PlaneSegmentation" in image_seg.plane_segmentations:  # this requirement in nwbfile is enforced
+            ps = image_seg.plane_segmentations["PlaneSegmentation"]
+            assert "image_mask" in ps.colnames, "Could not find any image_masks in nwbfile."
+            self._image_masks = DatasetView(ps["image_mask"].data).lazy_transpose([2, 1, 0])
+            self._roi_locs = ps["RoiCentroid"] if "RoiCentroid" in ps.colnames else None
+            self._accepted_list = ps["Accepted"].data[:] if "Accepted" in ps.colnames else None
+            self._rejected_list = ps["Rejected"].data[:] if "Rejected" in ps.colnames else None
+
+        # Extracting stored images as GrayscaleImages:
+        self._segmentation_images = None
+        if "SegmentationImages" in ophys.data_interfaces:
+            images_container = ophys.data_interfaces["SegmentationImages"]
+            self._segmentation_images = images_container.images
         # Imaging plane:
         if "ImagingPlane" in self.nwbfile.imaging_planes:
             imaging_plane = self.nwbfile.imaging_planes["ImagingPlane"]
@@ -334,6 +326,13 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             rej_list = np.where(self._rejected_list == 1)[0].tolist()
             if len(rej_list) > 0:
                 return rej_list
+
+    def get_images_dict(self):
+        if self._segmentation_images is None:
+            return super().get_images_dict()
+        images_dict = {image_name: image_data[:].T for image_name, image_data in self._segmentation_images.items()}
+
+        return images_dict
 
     @property
     def roi_locations(self):
