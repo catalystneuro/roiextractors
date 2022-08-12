@@ -252,12 +252,13 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
         element_dtypes=floattype,
         shape_max=(np.prod(seg.get_image_size()), 3),
     )
-    _assert_iterable_complete(
-        seg.get_image(),
-        dtypes=(np.ndarray, NoneType),
-        element_dtypes=floattype,
-        shape_max=(*seg.get_image_size(),),
-    )
+    for image_name in seg.get_images_dict():
+        _assert_iterable_complete(
+            seg.get_image(image_name),
+            dtypes=(np.ndarray, NoneType),
+            element_dtypes=floattype,
+            shape_max=(*seg.get_image_size(),),
+        )
     _assert_iterable_complete(
         seg.get_accepted_list(),
         dtypes=(list, NoneType),
@@ -285,7 +286,6 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
     assert isinstance(seg.get_traces_dict(), dict)
     assert isinstance(seg.get_images_dict(), dict)
     assert {"raw", "dff", "neuropil", "deconvolved"} == set(seg.get_traces_dict().keys())
-    assert {"mean", "correlation"} == set(seg.get_images_dict().keys())
 
 
 def check_imaging_equal(
