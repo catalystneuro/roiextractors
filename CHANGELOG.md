@@ -10,6 +10,9 @@ extractor depending on the version of the file. [PR #170](https://github.com/cat
 * Add `frame_to_time` to `SegmentationExtractor`, `get_roi_ids` is now a class method. [PR #187](https://github.com/catalystneuro/roiextractors/pull/187)
 * Add `set_times` to `SegmentationExtractor`. [PR #188](https://github.com/catalystneuro/roiextractors/pull/188)
 * Updated the test for segmentation images to check all images for the given segmentation extractors. [PR #190](https://github.com/catalystneuro/roiextractors/pull/190)
+* Refactored the `NwbSegmentationExtractor` to be more flexible with segmentation images and keep up
+  with the change in [catalystneuro/neuoroconv#41](https://github.com/catalystneuro/neuroconv/pull/41) 
+  of trace names. [PR #191](https://github.com/catalystneuro/roiextractors/pull/191)
 
 ### Fixes
 
