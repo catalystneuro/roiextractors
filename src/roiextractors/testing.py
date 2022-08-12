@@ -228,6 +228,8 @@ def check_segmentations_images(
     images_in_extractor1 = segmentation_extractor1.get_images_dict()
     images_in_extractor2 = segmentation_extractor2.get_images_dict()
 
+    assert len(images_in_extractor1) == len(images_in_extractor2)
+
     image_names_are_equal = all(image_name in images_in_extractor1.keys() for image_name in images_in_extractor2.keys())
     assert image_names_are_equal, "The name of segmentation images in the segmentation extractors are not equal."
 
