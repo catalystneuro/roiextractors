@@ -1,7 +1,6 @@
 """Extractor for reading the segmentation data that results from calls to EXTRACT."""
 from abc import ABC
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 from lazy_ops import DatasetView
@@ -16,7 +15,6 @@ except ImportError:
 
 
 from ...extraction_tools import PathType, ArrayType
-from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
 
 
