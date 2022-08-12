@@ -1,7 +1,6 @@
 """Extractor for reading the segmentation data that results from calls to EXTRACT."""
 from abc import ABC
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 from lazy_ops import DatasetView
@@ -16,7 +15,6 @@ except ImportError:
 
 
 from ...extraction_tools import PathType, ArrayType
-from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
 
 
@@ -155,6 +153,8 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
 
         assert "info" in self._output_struct, "Info struct not found in file."
         self._info_struct = self._output_struct["info"]
+        extract_version = np.ravel(self._info_struct["version"][:])
+        self.config.update(version=_decode_h5py_array(extract_version))
 
     def close(self):
         self._dataset_file.close()
@@ -172,7 +172,7 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
                     data = _decode_h5py_array(data)
                 config_dict[property_name] = data
             elif isinstance(config_struct[property_name], h5py.Group):
-                config_dict[property_name] = self._config_struct_to_dict(config_struct=config_struct[property_name])
+                config_dict.update(self._config_struct_to_dict(config_struct=config_struct[property_name]))
         return config_dict
 
     def _image_mask_extractor_read(self) -> DatasetView:
@@ -241,9 +241,9 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
             dictionary with key, values representing different types of Images
         """
         images_dict = dict(
-            summary_image=DatasetView(self._info_struct["summary_image"]),
-            f_per_pixel=DatasetView(self._info_struct["F_per_pixel"]),
-            max_image=DatasetView(self._info_struct["max_image"]),
+            summary_image=self._info_struct["summary_image"][:],
+            f_per_pixel=self._info_struct["F_per_pixel"][:],
+            max_image=self._info_struct["max_image"][:],
         )
 
         return images_dict
