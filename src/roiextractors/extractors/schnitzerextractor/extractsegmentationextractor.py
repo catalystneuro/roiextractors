@@ -243,9 +243,9 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
             dictionary with key, values representing different types of Images
         """
         images_dict = dict(
-            summary_image=DatasetView(self._info_struct["summary_image"]),
-            f_per_pixel=DatasetView(self._info_struct["F_per_pixel"]),
-            max_image=DatasetView(self._info_struct["max_image"]),
+            summary_image=self._info_struct["summary_image"][:],
+            f_per_pixel=self._info_struct["F_per_pixel"][:],
+            max_image=self._info_struct["max_image"][:],
         )
 
         return images_dict
