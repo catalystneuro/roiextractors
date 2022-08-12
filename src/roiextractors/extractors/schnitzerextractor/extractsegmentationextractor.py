@@ -153,6 +153,8 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
 
         assert "info" in self._output_struct, "Info struct not found in file."
         self._info_struct = self._output_struct["info"]
+        extract_version = np.ravel(self._info_struct["version"][:])
+        self.config.update(version=_decode_h5py_array(extract_version))
 
     def close(self):
         self._dataset_file.close()
