@@ -240,7 +240,8 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         images_dict: dict
             dictionary with key, values representing different types of Images
         """
-        images_dict = dict(
+        images_dict = super().get_images_dict()
+        images_dict.update(
             summary_image=self._info_struct["summary_image"][:],
             f_per_pixel=self._info_struct["F_per_pixel"][:],
             max_image=self._info_struct["max_image"][:],
