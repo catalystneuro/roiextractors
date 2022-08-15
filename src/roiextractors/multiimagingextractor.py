@@ -31,6 +31,7 @@ class MultiImagingExtractor(ImagingExtractor):
         # Checks that properties are consistent between extractors
         self._check_consistency_between_imaging_extractors()
 
+        self._dtype = self._imaging_extractors[0].get_dtype()
         self._start_frames, self._end_frames = [], []
         num_frames = 0
         for imaging_extractor in self._imaging_extractors:
@@ -68,45 +69,37 @@ class MultiImagingExtractor(ImagingExtractor):
 
         return times
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> NumpyArray:
-        if isinstance(frame_idxs, (int, np.integer)):
-            frame_idxs = [frame_idxs]
-        frame_idxs = np.array(frame_idxs)
-        assert np.all(frame_idxs < self.get_num_frames()), "'frame_idxs' exceed number of frames"
-        extractor_indices = np.searchsorted(self._end_frames, frame_idxs, side="right")
-        relative_frame_indices = frame_idxs - np.array(self._start_frames)[extractor_indices]
-        # Match frame_idxs to imaging extractors
-        extractors_dict = defaultdict(list)
-        for extractor_index, frame_index in zip(extractor_indices, relative_frame_indices):
-            extractors_dict[extractor_index].append(frame_index)
-
-        frames_to_concatenate = []
-        # Extract frames for each extractor and concatenate
-        for extractor_index, frame_indices in extractors_dict.items():
-            frames_for_each_extractor = self._get_frames_from_an_imaging_extractor(
-                extractor_index=extractor_index,
-                frame_idxs=frame_indices,
-            )
-            if len(frame_indices) == 1:
-                frames_for_each_extractor = frames_for_each_extractor[np.newaxis, ...]
-            frames_to_concatenate.append(frames_for_each_extractor)
-
-        frames = np.concatenate(frames_to_concatenate, axis=0)
-        return frames
-
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
     ) -> np.ndarray:
-        # To-do: implement this without reference to get_frames
+        if channel != 0:
+            raise NotImplementedError(
+                f"MultiImagingExtractors for multiple channels have not yet been implemented! (Received '{channel}'."
+            )
+
         start = start_frame if start_frame is not None else 0
         stop = end_frame if end_frame is not None else self.get_num_frames()
-        frame_idxs = range(start, stop)
-        return self.get_frames(frame_idxs=frame_idxs, channel=channel)
+        total_range = list(range(start, stop))
+        extractors_spanned = np.unique(np.searchsorted(self._end_frames, total_range, side="right"))
 
-    def _get_frames_from_an_imaging_extractor(self, extractor_index: int, frame_idxs: ArrayType) -> NumpyArray:
-        imaging_extractor = self._imaging_extractors[extractor_index]
-        frames = imaging_extractor.get_frames(frame_idxs=frame_idxs)
-        return frames
+        video_shape = (stop - start,) + self._imaging_extractors[0].get_image_size()
+        video = np.empty(shape=video_shape, dtype=self._dtype)
+
+        current_frame = 0
+        for extractor_index in extractors_spanned:
+            relative_start = self._start_frames[extractor_index] - start
+            relative_stop = min(self._end_frames[extractor_index], stop) - start
+            relative_span = relative_stop - relative_start
+            total_selection = slice(current_frame, current_frame + relative_span)
+            print(f"relative_start = {relative_start}")
+            print(f"relative_stop = {relative_stop}")
+            print(f"relative_span = {relative_span}")
+            print(f"total_selection = {total_selection}")
+            video[total_selection, ...] = self._imaging_extractors[extractor_index].get_video(
+                start_frame=relative_start, end_frame=relative_stop
+            )
+            current_frame += relative_span
+        return video
 
     def get_image_size(self) -> Tuple:
         return self._imaging_extractors[0].get_image_size()

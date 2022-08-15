@@ -47,10 +47,13 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         self._channel_names = channel_names
 
         self._file = h5py.File(file_path, "r")
-        if "mov" in self._file.keys():
+        if mov_field in self._file.keys():
             self._video = DatasetView(self._file[self._mov_field])
             if sampling_frequency is None:
-                assert "fr" in self._video.attrs, "sampling frequency information is unavailable!"
+                assert "fr" in self._video.attrs, (
+                    "Sampling frequency is unavailable as a dataset attribute! "
+                    "Please set the keyword argument 'sampling_frequency'"
+                )
                 self._sampling_frequency = float(self._video.attrs["fr"])
             else:
                 self._sampling_frequency = sampling_frequency

@@ -67,8 +67,10 @@ class ImagingExtractor(ABC, BaseExtractor):
         pass
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
-
-        return self.get_video()[frame_idxs, ..., channel]  # To-do simplify for contigious frame_idxs case
+        if np.all(np.diff(frame_idxs) == 0):
+            return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1])
+        relative_indices = np.array(frame_idxs) - frame_idxs[0]
+        return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1])[relative_indices, ..., channel]
 
     def frame_to_time(self, frames: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
         """This function converts user-inputted frame indexes to times with units of seconds.
@@ -210,8 +212,13 @@ class FrameSliceImagingExtractor(ImagingExtractor):
         mapped_frame_idxs = np.array(frame_idxs) + self._start_frame
         return self._parent_imaging.get_frames(frame_idxs=mapped_frame_idxs, channel=channel)
 
-    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
-        assert max(end_frame) < self._num_frames, "'end_frame' range beyond number of available frames!"
+    def get_video(
+        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
+    ) -> np.ndarray:
+        assert start_frame >= 0, (
+            f"'start_frame' must be greater than or equal to zero! Received '{start_frame}'.\n"
+            "Negative slicing semantics are not supported."
+        )
         start_frame_shifted = start_frame + self._start_frame
         return self._parent_imaging.get_video(start_frame=start_frame_shifted, end_frame=end_frame, channel=channel)
 
