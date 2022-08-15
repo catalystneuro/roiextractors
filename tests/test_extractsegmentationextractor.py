@@ -199,7 +199,10 @@ class TestNewExtractSegmentationExtractor(TestCase):
             )[:]
 
         images_dict = self.extractor.get_images_dict()
-        self.assertEqual(len(images_dict), 3)
+        self.assertEqual(len(images_dict), 5)
+
+        self.assertEqual(images_dict["correlation"], None)
+        self.assertEqual(images_dict["mean"], None)
 
         self.assertEqual(images_dict["summary_image"].shape, summary_image.shape)
         self.assertEqual(images_dict["max_image"].shape, max_image.shape)
