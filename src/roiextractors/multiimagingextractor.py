@@ -31,7 +31,6 @@ class MultiImagingExtractor(ImagingExtractor):
         # Checks that properties are consistent between extractors
         self._check_consistency_between_imaging_extractors()
 
-        self._dtype = self._imaging_extractors[0].get_dtype()
         self._start_frames, self._end_frames = [], []
         num_frames = 0
         for imaging_extractor in self._imaging_extractors:
@@ -50,9 +49,10 @@ class MultiImagingExtractor(ImagingExtractor):
             get_image_size="The size of a frame",
             get_num_channels="The number of channels",
             get_channel_names="The name of the channels",
+            get_dtype="The data type."
         )
         for method, property_message in properties_to_check.items():
-            values = [getattr(extractor, method, None)() for extractor in self._imaging_extractors]
+            values = [getattr(extractor, method)() for extractor in self._imaging_extractors]
             unique_values = set(tuple(v) if isinstance(v, Iterable) else v for v in values)
             assert (
                 len(unique_values) == 1
@@ -73,6 +73,9 @@ class MultiImagingExtractor(ImagingExtractor):
         imaging_extractor = self._imaging_extractors[extractor_index]
         frames = imaging_extractor.get_frames(frame_idxs=frame_idxs)
         return frames
+    
+    def get_dtype(self):
+        return self._imaging_extractors[0].get_dtype()
     
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> NumpyArray:
         if isinstance(frame_idxs, (int, np.integer)):
@@ -112,38 +115,23 @@ class MultiImagingExtractor(ImagingExtractor):
         stop = end_frame if end_frame is not None else self.get_num_frames()
         total_range = list(range(start, stop))
         extractors_spanned = np.unique(np.searchsorted(self._end_frames, total_range, side="right"))
-
-        print(f"self._start_frames = {self._start_frames}")
-        print(f"self._end_frames = {self._end_frames}")
-        print(f"start = {start}")
-        print(f"stop = {stop}")
-        print(f"extractors_spanned = {extractors_spanned}")
         
         # Early return with simple relative indexing; preserves native return class of that extractor
         if len(extractors_spanned) == 1:
             relative_start = start - self._start_frames[extractors_spanned[0]]
             relative_stop = stop - start + relative_start
-            
-            print(f"relative_start = {relative_start}")
-            print(f"relative_stop = {relative_stop}")
             return self._imaging_extractors[extractors_spanned[0]].get_video(
                 start_frame=relative_start, end_frame=relative_stop
             )
         
         video_shape = (stop - start,) + self._imaging_extractors[0].get_image_size()
-        video = np.empty(shape=video_shape, dtype=self._dtype)
+        video = np.empty(shape=video_shape, dtype=self.get_dtype())
         current_frame = 0
-        
-        print(f"video_shape = {video_shape}")
         
         # Left endpoint; since more than one extractor is spanned, only care about indexing first start frame
         relative_start = start - self._start_frames[extractors_spanned[0]]
         relative_span = self._end_frames[extractors_spanned[0]] - start
         array_frame_slice = slice(current_frame, relative_span)
-        print("Left")
-        print(f"array_frame_slice = {array_frame_slice}")
-        print(f"relative_start = {relative_start}")
-        print(f"relative_span = {relative_span}")
         
         video[array_frame_slice, ...] = self._imaging_extractors[extractors_spanned[0]].get_video(start_frame=relative_start)
         current_frame += relative_span
@@ -152,18 +140,12 @@ class MultiImagingExtractor(ImagingExtractor):
         for extractor_index in extractors_spanned[1:-1]:
             relative_span = self._end_frames[extractor_index] - self._start_frames[extractor_index]
             array_frame_slice = slice(current_frame, current_frame + relative_span)
-            print(f"array_frame_slice = {array_frame_slice}")
-            print(f"extractor_index = {extractor_index}")
-            print(f"relative_span = {relative_span}")
             video[array_frame_slice, ...] = self._imaging_extractors[extractor_index].get_video()
             current_frame += relative_span
         
         # Right endpoint; since more than one extractor is spanned, only care about indexing final end frame
         relative_stop = stop - self._start_frames[extractors_spanned[-1]]
         array_frame_slice = slice(current_frame, None)
-        print("Right")
-        print(f"array_frame_slice = {array_frame_slice}")
-        print(f"relative_stop = {relative_stop}")
         video[array_frame_slice, ...] = self._imaging_extractors[extractors_spanned[-1]].get_video(end_frame=relative_stop)
         return video
 
