@@ -118,18 +118,10 @@ class MultiImagingExtractor(ImagingExtractor):
             range(extractors_range[0], min(extractors_range[-1] + 1, len(self._imaging_extractors)))
         )
 
-        print(f"start = {start}")
-        print(f"stop = {stop}")
-        print(f"extractors_range = {extractors_range}")
-        print(f"extractors_spanned = {extractors_spanned}")
-
         # Early return with simple relative indexing; preserves native return class of that extractor
         if len(extractors_spanned) == 1:
             relative_start = start - self._start_frames[extractors_spanned[0]]
             relative_stop = stop - start + relative_start
-
-            print(f"relative_start = {relative_start}")
-            print(f"relative_stop = {relative_stop}")
 
             return self._imaging_extractors[extractors_spanned[0]].get_video(
                 start_frame=relative_start, end_frame=relative_stop
@@ -143,12 +135,6 @@ class MultiImagingExtractor(ImagingExtractor):
         relative_start = start - self._start_frames[extractors_spanned[0]]
         relative_span = self._end_frames[extractors_spanned[0]] - start
         array_frame_slice = slice(current_frame, relative_span)
-
-        print(f"relative_start = {relative_start}")
-        print(f"relative_span = {relative_span}")
-        print(f"array_frame_slice = {array_frame_slice}")
-        print(f"current_frame = {current_frame}")
-
         video[array_frame_slice, ...] = self._imaging_extractors[extractors_spanned[0]].get_video(
             start_frame=relative_start
         )
@@ -158,18 +144,12 @@ class MultiImagingExtractor(ImagingExtractor):
         for extractor_index in extractors_spanned[1:-1]:
             relative_span = self._end_frames[extractor_index] - self._start_frames[extractor_index]
             array_frame_slice = slice(current_frame, current_frame + relative_span)
-            print(f"extractor_index = {extractor_index}")
-            print(f"relative_span = {relative_span}")
-            print(f"array_frame_slice = {array_frame_slice}")
-            print(f"current_frame = {current_frame}")
             video[array_frame_slice, ...] = self._imaging_extractors[extractor_index].get_video()
             current_frame += relative_span
 
         # Right endpoint; since more than one extractor is spanned, only care about indexing final end frame
         relative_stop = stop - self._start_frames[extractors_spanned[-1]]
         array_frame_slice = slice(current_frame, None)
-        print(f"relative_stop = {relative_stop}")
-        print(f"array_frame_slice = {array_frame_slice}")
         video[array_frame_slice, ...] = self._imaging_extractors[extractors_spanned[-1]].get_video(
             end_frame=relative_stop
         )
