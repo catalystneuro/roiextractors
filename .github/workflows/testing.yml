@@ -55,7 +55,7 @@ jobs:
           aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       - if: steps.cache-ophys-datasets.outputs.cache-hit == false
         name: Download data from S3
-        run: aws s3 cp --recursive ${{ secrets.S3_GIN_BUCKET }}/ophys_testing_data ./ophys_testing_data
+        run: aws s3 cp --recursive s3://${{ secrets.S3_GIN_BUCKET }}//ophys_testing_data ./ophys_testing_data
 
 
 
