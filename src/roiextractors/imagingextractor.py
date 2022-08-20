@@ -20,7 +20,6 @@ class ImagingExtractor(ABC, BaseExtractor):
 
     def __init__(self) -> None:
         BaseExtractor.__init__(self)
-        assert self.installed, self.installation_mesg
         self._memmapped = False
 
     @abstractmethod

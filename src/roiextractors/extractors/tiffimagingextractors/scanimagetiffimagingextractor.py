@@ -5,8 +5,14 @@ from warnings import warn
 
 import numpy as np
 
-from ...extraction_tools import PathType, FloatType, ArrayType
+from ...extraction_tools import PathType, FloatType, ArrayType, get_package
 from ...imagingextractor import ImagingExtractor
+
+
+def _get_scanimage_reader() -> type:
+    return get_package(
+        package_name="ScanImageTiffReader", package_installation_display="scanimage-tiff-reader"
+    ).ScanImageTiffReader
 
 
 class ScanImageTiffImagingExtractor(ImagingExtractor):
@@ -35,17 +41,8 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
         sampling_frequency : float
             The frequency at which the frames were sampled, in Hz.
         """
-        try:
-            from ScanImageTiffReader import ScanImageTiffReader
+        ScanImageTiffReader = _get_scanimage_reader()
 
-            HAVE_SCAN_IMAGE_TIFF = True
-        except ImportError:
-            HAVE_SCAN_IMAGE_TIFF = False
-
-        assert HAVE_SCAN_IMAGE_TIFF, (
-            "To use the ScanImageTiffImagingExtractor install scanimage-tiff-reader: "
-            "\n\n pip install scanimage-tiff-reader\n\n"
-        )
         super().__init__()
         self.file_path = Path(file_path)
         self._sampling_frequency = sampling_frequency
@@ -69,6 +66,7 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
             )
 
     def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> np.ndarray:
+        ScanImageTiffReader = _get_scanimage_reader()
 
         squeeze_data = False
         if isinstance(frame_idxs, int):
@@ -90,10 +88,14 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
 
         Thus, open fresh io in context each time something is needed.
         """
+        ScanImageTiffReader = _get_scanimage_reader()
+
         with ScanImageTiffReader(str(self.file_path)) as io:
             return io.data(beg=idx, end=idx + 1)
 
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+        ScanImageTiffReader = _get_scanimage_reader()
+
         with ScanImageTiffReader(filename=str(self.file_path)) as io:
             return io.data(beg=start_frame, end=end_frame)
 
