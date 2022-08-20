@@ -2,13 +2,12 @@ from abc import ABC, abstractmethod
 from typing import Union
 
 import numpy as np
-from spikeextractors.baseextractor import BaseExtractor
 
 from .extraction_tools import ArrayType, IntType, FloatType
 from .extraction_tools import _pixel_mask_extractor
 
 
-class SegmentationExtractor(ABC, BaseExtractor):
+class SegmentationExtractor(ABC):
     """
     An abstract class that contains all the meta-data and output data from
     the ROI segmentation operation when applied to the pre-processed data.
@@ -18,13 +17,9 @@ class SegmentationExtractor(ABC, BaseExtractor):
     format specific classes that inherit from this.
     """
 
-    installed = True
-    installation_mesg = ""
-
     def __init__(self):
-        assert self.installed, self.installation_mesg
-        BaseExtractor.__init__(self)
         self._sampling_frequency = None
+        self._times = None
         self._channel_names = ["OpticalChannel"]
         self._num_planes = 1
         self._roi_response_raw = None
