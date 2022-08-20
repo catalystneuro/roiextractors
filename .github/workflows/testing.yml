@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.7, 3.8, 3.9]
-        os: [ubuntu-latest, windows-latest] # macos-latest; problems with git-annex and all tests require data here (no minimal/internals)
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: s-weigand/setup-conda@v1
       - uses: actions/checkout@v2
@@ -36,6 +36,8 @@ jobs:
       - name: Install testing requirements (-e needed for codecov report)
         run: pip install -e .[test]
 
+
+
       - name: Get ophys_testing_data current head hash
         id: ophys
         run: echo "::set-output name=HASH_OPHYS_DATASET::$(git ls-remote https://gin.g-node.org/CatalystNeuro/ophys_testing_data.git HEAD | cut -f1)"
@@ -45,20 +47,19 @@ jobs:
         with:
           path: ./ophys_testing_data
           key: ophys-datasets-051822-${{ matrix.os }}-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
-      - if: ${{ steps.cache-ophys-datasets.outputs.cache-hit == false && matrix.os == 'ubuntu-latest' }}
-        name: Get datalad - Linux
-        run: conda install -c conda-forge datalad==0.16.3
-      - if: ${{ steps.cache-ophys-datasets.outputs.cache-hit == false && matrix.os == 'windows-latest' }}
-        name: Get git-annex - Windows
-        uses: crazy-max/ghaction-chocolatey@v1.6.0
+      - if: steps.cache-ophys-datasets.outputs.cache-hit == false
+        name: Download ophys dataset from S3
+        uses: keithweaver/aws-s3-github-action@v1.0.0
         with:
-          args: install git-annex --ignore-checksums
-      - if: ${{ steps.cache-ophys-datasets.outputs.cache-hit == false && matrix.os == 'windows-latest' }}
-        name: Get datalad - Windows and Mac
-        run: pip install datalad==0.16.3
-      - name: "Force GIN: ophys download"
-        if: steps.cache-ophys-datasets.outputs.cache-hit == false
-        run: datalad install -rg https://gin.g-node.org/CatalystNeuro/ophys_testing_data
+          command: cp
+          source: ${{ secrets.S3_GIN_BUCKET }}/ophys_testing_data
+          destination: ./ophys_testing_data
+          flags: --recursive
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws_region: us-east-2
+
+
 
       - name: Run full pytest with coverage
         run: pytest -n auto --dist loadscope --cov=./ --cov-report xml:./codecov.xml
