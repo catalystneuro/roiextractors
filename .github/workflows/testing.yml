@@ -2,7 +2,7 @@ name: Full Tests
 on:
   schedule:
     - cron: "0 0 * * *"  # daily
-  pull_request:
+  push:
 
 jobs:
   run:
