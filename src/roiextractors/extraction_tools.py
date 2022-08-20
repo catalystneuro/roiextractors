@@ -16,12 +16,17 @@ try:
 except ImportError:
     HAVE_H5 = False
 try:
-    from scipy import io as scipy_io
-
-    if hasattr(scipy_io.matlab, "mat_struct"):
-        from scipy_io.matlab import mat_struct
+    if hasattr(scipy.io.matlab, "mat_struct"):
+        from scipy.io.matlab import mat_struct
     else:
-        from scipy_io.matlab.mio5_params import mat_struct
+        from scipy.io.matlab.mio5_params import mat_struct
+
+    HAVE_Scipy = True
+except AttributeError:
+    if hasattr(scipy, "io") and hasattr(scipy.io.matlab, "mat_struct"):
+        from scipy.io import mat_struct
+    else:
+        from scipy.io.matlab.mio5_params import mat_struct
 
     HAVE_Scipy = True
 except ImportError:
