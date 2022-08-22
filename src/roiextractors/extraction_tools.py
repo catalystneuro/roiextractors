@@ -1,14 +1,13 @@
 from functools import wraps
 from pathlib import Path
 from typing import Union, Tuple
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import lazy_ops
 import scipy
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 from tqdm import tqdm
-from spikeextractors.extraction_tools import cast_start_end_frame
 
 try:
     import h5py
@@ -19,6 +18,13 @@ except ImportError:
 try:
     if hasattr(scipy.io.matlab, "mat_struct"):
         from scipy.io.matlab import mat_struct
+    else:
+        from scipy.io.matlab.mio5_params import mat_struct
+
+    HAVE_Scipy = True
+except AttributeError:
+    if hasattr(scipy, "io") and hasattr(scipy.io.matlab, "mat_struct"):
+        from scipy.io import mat_struct
     else:
         from scipy.io.matlab.mio5_params import mat_struct
 
@@ -306,6 +312,25 @@ def check_get_frames_args(func):
     return corrected_args
 
 
+def _cast_start_end_frame(start_frame, end_frame):
+    if isinstance(start_frame, float):
+        start_frame = int(start_frame)
+    elif isinstance(start_frame, (int, np.integer, type(None))):
+        start_frame = start_frame
+    else:
+        raise ValueError("start_frame must be an int, float (not infinity), or None")
+    if isinstance(end_frame, float) and np.isfinite(end_frame):
+        end_frame = int(end_frame)
+    elif isinstance(end_frame, (int, np.integer, type(None))):
+        end_frame = end_frame
+    # else end_frame is infinity (accepted for get_unit_spike_train)
+    if start_frame is not None:
+        start_frame = int(start_frame)
+    if end_frame is not None and np.isfinite(end_frame):
+        end_frame = int(end_frame)
+    return start_frame, end_frame
+
+
 def check_get_videos_args(func):
     @wraps(func)
     def corrected_args(imaging, start_frame=None, end_frame=None, channel=0):
@@ -325,7 +350,7 @@ def check_get_videos_args(func):
             end_frame = imaging.get_num_frames()
         assert end_frame - start_frame > 0, "'start_frame' must be less than 'end_frame'!"
 
-        start_frame, end_frame = cast_start_end_frame(start_frame, end_frame)
+        start_frame, end_frame = _cast_start_end_frame(start_frame, end_frame)
         channel = int(channel)
         get_videos_correct_arg = func(imaging, start_frame=start_frame, end_frame=end_frame, channel=channel)
 

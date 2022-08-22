@@ -1,27 +1,20 @@
 """Base class definitions for all ImagingExtractors."""
 from abc import ABC, abstractmethod
 from typing import Union, Optional, Tuple
-import numpy as np
 from copy import deepcopy
 
-from spikeextractors.baseextractor import BaseExtractor
+import numpy as np
 
-from .extraction_tools import (
-    ArrayType,
-    PathType,
-    DtypeType,
-    FloatType,
-    check_get_videos_args,
-)
+from .extraction_tools import ArrayType, PathType, DtypeType, FloatType
 
 
-class ImagingExtractor(ABC, BaseExtractor):
+class ImagingExtractor(ABC):
     """Abstract class that contains all the meta-data and input data from the imaging data."""
 
-    def __init__(self) -> None:
-        BaseExtractor.__init__(self)
-        assert self.installed, self.installation_mesg
-        self._memmapped = False
+    def __init__(self, *args, **kwargs) -> None:
+        self._args = args
+        self._kwargs = kwargs
+        self._times = None
 
     @abstractmethod
     def get_image_size(self) -> Tuple[int, int]:
@@ -122,12 +115,12 @@ class ImagingExtractor(ABC, BaseExtractor):
         assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames!"
         self._times = np.array(times).astype("float64")
 
-    def copy_times(self, extractor: BaseExtractor) -> None:
+    def copy_times(self, extractor) -> None:
         """This function copies times from another extractor.
 
         Parameters
         ----------
-        extractor: BaseExtractor
+        extractor
             The extractor from which the epochs will be copied
         """
         if extractor._times is not None:
