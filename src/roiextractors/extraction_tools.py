@@ -2,13 +2,17 @@ import sys
 import importlib.util
 from functools import wraps
 from pathlib import Path
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional, Dict, List
+from types import ModuleType
+from dataclasses import dataclass
+from platform import python_version
 
 import lazy_ops
 import scipy
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 from tqdm import tqdm
+from packaging import version
 
 
 try:
@@ -511,8 +515,7 @@ def todict(matobj):
 
 def get_package(
     package_name: str,
-    installation_source: str = "pip",
-    package_installation_display: Optional[str] = None,
+    installation_instructions: Optional[str] = None,
     excluded_platforms_and_python_versions: Optional[Dict[str, List[str]]] = None,
 ) -> ModuleType:
     """
@@ -529,9 +532,11 @@ def get_package(
         Name of the installation source of the package.
         Typically either "pip" or "conda".
         Defaults to "pip".
-    package_installation_display : str, optional
-        Name of the package to be installed via the 'installation_source', in case it differs from the import name.
-        Defaults to 'package_name'.
+    installation_instructions : str, optional
+        String describing the source, options, and alias of package name (if needed) for installation.
+        For example,
+            >>> installation_source = "conda install -c conda-forge my-package-name"
+        Defaults to f"pip install {package_name}".
     excluded_platforms_and_python_versions : dict mapping string platform names to a list of string versions, optional
         In case some combinations of platforms or Python versions are not allowed for the given package, specify
         this dictionary to raise a more specific error to that issue.
@@ -543,7 +548,7 @@ def get_package(
     ------
     ModuleNotFoundError
     """
-    package_installation_display = package_installation_display or package_name
+    installation_instructions = installation_instructions or f"pip install {package_name}"
     excluded_platforms_and_python_versions = excluded_platforms_and_python_versions or dict()
 
     if package_name in sys.modules:
@@ -555,11 +560,11 @@ def get_package(
     for excluded_version in excluded_platforms_and_python_versions.get(sys.platform, list()):
         if version.parse(python_version()).minor == version.parse(excluded_version).minor:
             raise ModuleNotFoundError(
-                f"\nThe package '{package_installation_display}' is not available on the {sys.platform} platform for "
+                f"\nThe package '{package_name}' is not available on the {sys.platform} platform for "
                 f"Python version {excluded_version}!"
             )
 
     raise ModuleNotFoundError(
         f"\nThe required package'{package_name}' is not installed!\n"
-        f"To install this package, please run\n\n\t{installation_source} install {package_installation_display}\n"
+        f"To install this package, please run\n\n\t{installation_instructions}\n"
     )
