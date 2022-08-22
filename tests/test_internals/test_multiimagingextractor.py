@@ -1,4 +1,5 @@
 import unittest
+from typing import Optional, List, Tuple
 
 import numpy as np
 from hdmf.testing import TestCase
@@ -72,13 +73,35 @@ class TestMultiImagingExtractor(TestCase):
 
         assert_array_equal(test_frames, expected_frames)
 
-    def test_get_video(self):
-        test_frames = self.multi_imaging_extractor.get_video()
-        expected_frames = np.concatenate(
-            [self.extractors[i].get_video() for i in range(3)],
+    @parameterized.expand(
+        [
+            param(  # All 3
+                test_start_frame=None,
+                test_end_frame=None,
+                true_video_spans=[(0, None, None), (1, None, None), (2, None, None)],
+            ),
+            param(test_start_frame=11, test_end_frame=17, true_video_spans=[(1, 1, 7)]),  # Only the 2nd
+            param(test_start_frame=11, test_end_frame=27, true_video_spans=[(1, 1, None), (2, None, 7)]),  # 2nd and 3rd
+            param(  # 1st to 3rd
+                test_start_frame=5, test_end_frame=27, true_video_spans=[(0, 5, None), (1, None, None), (2, None, 7)]
+            ),
+        ],
+    )
+    def test_get_video(
+        self,
+        test_start_frame: Optional[int],
+        test_end_frame: Optional[int],
+        true_video_spans: List[Tuple[Optional[int]]],
+    ):
+        test_video = self.multi_imaging_extractor.get_video(start_frame=test_start_frame, end_frame=test_end_frame)
+        expected_video = np.concatenate(
+            [
+                self.extractors[index].get_video(start_frame=start_frame, end_frame=end_frame)
+                for index, start_frame, end_frame in true_video_spans
+            ],
             axis=0,
         )
-        assert_array_equal(test_frames, expected_frames)
+        assert_array_equal(x=test_video, y=expected_video)
 
     def test_get_video_single_frame(self):
         test_frames = self.multi_imaging_extractor.get_video(start_frame=10, end_frame=11)
