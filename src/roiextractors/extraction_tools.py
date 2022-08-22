@@ -528,10 +528,6 @@ def get_package(
     ----------
     package_name : str
         Name of the package to be imported.
-    installation_source : str, optional
-        Name of the installation source of the package.
-        Typically either "pip" or "conda".
-        Defaults to "pip".
     installation_instructions : str, optional
         String describing the source, options, and alias of package name (if needed) for installation.
         For example,

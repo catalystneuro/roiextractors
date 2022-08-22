@@ -11,7 +11,7 @@ from ...imagingextractor import ImagingExtractor
 
 def _get_scanimage_reader() -> type:
     return get_package(
-        package_name="ScanImageTiffReader", package_installation_display="scanimage-tiff-reader"
+        package_name="ScanImageTiffReader", installation_instructions="pip install scanimage-tiff-reader"
     ).ScanImageTiffReader
 
 
