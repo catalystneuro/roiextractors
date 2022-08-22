@@ -29,12 +29,14 @@ jobs:
           git config --global user.email "CI@example.com"
           git config --global user.name "CI Almighty"
           pip install wheel  # needed for scanimage
-      - name: Test minimal installation
-        run: pip install .
-      - name: Test full installation
-        run: pip install .[full]
-      - name: Install testing requirements (-e needed for codecov report)
-        run: pip install -e .[test]
+
+      - name: Install roiextractors with minimal requirements
+        run: pip install .[test]
+      - name: Run minimal tests
+        run: pytest tests/test_internals -n auto --dist loadscope
+
+      - name: Test full installation (-e needed for codecov report)
+        run: pip install -e .[full]
 
 
 
