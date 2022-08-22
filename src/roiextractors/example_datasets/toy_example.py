@@ -1,5 +1,4 @@
 import numpy as np
-import spikeextractors as se
 
 from ..extractors.numpyextractors import (
     NumpyImagingExtractor,
@@ -110,6 +109,8 @@ def toy_example(
         The output segmentation extractor
 
     """
+    import spikeextractors as se
+
     # generate ROIs
     num_rois = int(num_rois)
     roi_pixels, im, means = _generate_rois(
