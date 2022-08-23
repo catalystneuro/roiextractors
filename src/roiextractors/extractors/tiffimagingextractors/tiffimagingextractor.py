@@ -1,40 +1,29 @@
 from pathlib import Path
 from typing import Optional
 from warnings import warn
+from typing import Tuple
 
 import numpy as np
 from tqdm import tqdm
 
+from ...imagingextractor import ImagingExtractor
 from ...extraction_tools import (
     PathType,
-    get_video_shape,
-    check_get_frames_args,
     FloatType,
-    ArrayType,
     raise_multi_channel_or_depth_not_implemented,
+    get_package,
 )
-
-from typing import Tuple
-from ...imagingextractor import ImagingExtractor
-
-try:
-    import tifffile
-
-    HAVE_TIFF = True
-except ImportError:
-    HAVE_TIFF = False
 
 
 class TiffImagingExtractor(ImagingExtractor):
     extractor_name = "TiffImaging"
-    installed = HAVE_TIFF  # check at class level if installed or not
     is_writable = True
     mode = "file"
-    installation_mesg = "To use the TiffImagingExtractor install tifffile: \n\n pip install tifffile\n\n"
 
     def __init__(self, file_path: PathType, sampling_frequency: FloatType):
-        assert HAVE_TIFF, self.installation_mesg
-        ImagingExtractor.__init__(self)
+        tifffile = get_package(package_name="tifffile")
+
+        super().__init__()
         self.file_path = Path(file_path)
         self._sampling_frequency = sampling_frequency
         if self.file_path.suffix not in [".tiff", ".tif", ".TIFF", ".TIF"]:
@@ -91,6 +80,8 @@ class TiffImagingExtractor(ImagingExtractor):
 
     @staticmethod
     def write_imaging(imaging, save_path, overwrite: bool = False, chunk_size=None, verbose=True):
+        tifffile = get_package(package_name="tifffile")
+
         save_path = Path(save_path)
         assert save_path.suffix in [
             ".tiff",
