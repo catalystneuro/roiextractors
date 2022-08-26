@@ -274,11 +274,9 @@ class SegmentationExtractor(ABC):
         """
         return self._num_planes
 
-
     def frame_slice(self, start_frame, end_frame):
         """Return a new ImagingExtractor ranging from the start_frame to the end_frame."""
         return FrameSliceSegmentationExtractor(parent_imaging=self, start_frame=start_frame, end_frame=end_frame)
-
 
     def set_times(self, times: ArrayType):
         """Sets the recording times in seconds for each frame.
