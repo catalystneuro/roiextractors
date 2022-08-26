@@ -143,15 +143,19 @@ class TestNewExtractSegmentationExtractor(TestCase):
     def test_extractor_config(self):
         """Test that the extractor class returns the expected config."""
 
+        # Assert that all keys are extracted without nesting
+        self.assertEqual(len(self.extractor.config), 93)
+        assert "version" in self.extractor.config
+        self.assertEqual(self.extractor.config["version"], "1.1.0")
+
         assert "preprocess" in self.extractor.config
         self.assertEqual(self.extractor.config["preprocess"], [1])
 
         assert "S_corr_thresh" in self.extractor.config
         self.assertEqual(self.extractor.config["S_corr_thresh"], [0.1])
 
-        assert "thresholds" in self.extractor.config
-        self.assertEqual(self.extractor.config["thresholds"]["S_dup_corr_thresh"], [0.95])
-        self.assertEqual(self.extractor.config["thresholds"]["T_dup_corr_thresh"], [0.95])
+        self.assertEqual(self.extractor.config["S_dup_corr_thresh"], [0.95])
+        self.assertEqual(self.extractor.config["T_dup_corr_thresh"], [0.95])
 
         assert "trace_output_option" in self.extractor.config
         self.assertEqual(self.extractor.config["trace_output_option"], "raw")
@@ -195,7 +199,10 @@ class TestNewExtractSegmentationExtractor(TestCase):
             )[:]
 
         images_dict = self.extractor.get_images_dict()
-        self.assertEqual(len(images_dict), 3)
+        self.assertEqual(len(images_dict), 5)
+
+        self.assertEqual(images_dict["correlation"], None)
+        self.assertEqual(images_dict["mean"], None)
 
         self.assertEqual(images_dict["summary_image"].shape, summary_image.shape)
         self.assertEqual(images_dict["max_image"].shape, max_image.shape)

@@ -203,7 +203,9 @@ def check_segmentations_equal(
     ) == set(
         segmentation_extractor2.get_roi_pixel_masks(roi_ids=segmentation_extractor1.get_roi_ids()[:1])[0].flatten()
     )
-    assert_array_equal(segmentation_extractor1.get_image(), segmentation_extractor2.get_image())
+
+    check_segmentations_images(segmentation_extractor1, segmentation_extractor2)
+
     assert_array_equal(segmentation_extractor1.get_accepted_list(), segmentation_extractor2.get_accepted_list())
     assert_array_equal(segmentation_extractor1.get_rejected_list(), segmentation_extractor2.get_rejected_list())
     assert_array_equal(segmentation_extractor1.get_roi_locations(), segmentation_extractor2.get_roi_locations())
@@ -214,6 +216,28 @@ def check_segmentations_equal(
         segmentation_extractor1.frame_to_time(np.arange(segmentation_extractor1.get_num_frames())),
         segmentation_extractor2.frame_to_time(np.arange(segmentation_extractor2.get_num_frames())),
     )
+
+
+def check_segmentations_images(
+    segmentation_extractor1: SegmentationExtractor,
+    segmentation_extractor2: SegmentationExtractor,
+):
+    """
+    Check that the segmentation images are equal for the given segmentation extractors.
+    """
+    images_in_extractor1 = segmentation_extractor1.get_images_dict()
+    images_in_extractor2 = segmentation_extractor2.get_images_dict()
+
+    assert len(images_in_extractor1) == len(images_in_extractor2)
+
+    image_names_are_equal = all(image_name in images_in_extractor1.keys() for image_name in images_in_extractor2.keys())
+    assert image_names_are_equal, "The names of segmentation images in the segmentation extractors are not the same."
+
+    for image_name in images_in_extractor1.keys():
+        assert_array_equal(
+            images_in_extractor1[image_name],
+            images_in_extractor2[image_name],
+        ), f"The segmentation images for {image_name} are not equal."
 
 
 def check_segmentation_return_types(seg: SegmentationExtractor):
@@ -252,12 +276,13 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
         element_dtypes=floattype,
         shape_max=(np.prod(seg.get_image_size()), 3),
     )
-    _assert_iterable_complete(
-        seg.get_image(),
-        dtypes=(np.ndarray, NoneType),
-        element_dtypes=floattype,
-        shape_max=(*seg.get_image_size(),),
-    )
+    for image_name in seg.get_images_dict():
+        _assert_iterable_complete(
+            seg.get_image(image_name),
+            dtypes=(np.ndarray, NoneType),
+            element_dtypes=floattype,
+            shape_max=(*seg.get_image_size(),),
+        )
     _assert_iterable_complete(
         seg.get_accepted_list(),
         dtypes=(list, NoneType),
@@ -285,7 +310,6 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
     assert isinstance(seg.get_traces_dict(), dict)
     assert isinstance(seg.get_images_dict(), dict)
     assert {"raw", "dff", "neuropil", "deconvolved"} == set(seg.get_traces_dict().keys())
-    assert {"mean", "correlation"} == set(seg.get_images_dict().keys())
 
 
 def check_imaging_equal(

@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.7, 3.8, 3.9]
-        os: [ubuntu-latest, windows-latest] # macos-latest; problems with git-annex and all tests require data here (no minimal/internals)
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: s-weigand/setup-conda@v1
       - uses: actions/checkout@v2
@@ -29,12 +29,16 @@ jobs:
           git config --global user.email "CI@example.com"
           git config --global user.name "CI Almighty"
           pip install wheel  # needed for scanimage
-      - name: Test minimal installation
-        run: pip install .
-      - name: Test full installation
-        run: pip install .[full]
-      - name: Install testing requirements (-e needed for codecov report)
-        run: pip install -e .[test]
+
+      - name: Install roiextractors with minimal requirements
+        run: pip install .[test]
+      - name: Run minimal tests
+        run: pytest tests/test_internals -n auto --dist loadscope
+
+      - name: Test full installation (-e needed for codecov report)
+        run: pip install -e .[full]
+
+
 
       - name: Get ophys_testing_data current head hash
         id: ophys
@@ -44,21 +48,18 @@ jobs:
         id: cache-ophys-datasets
         with:
           path: ./ophys_testing_data
-          key: ophys-datasets-051822-${{ matrix.os }}-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
-      - if: ${{ steps.cache-ophys-datasets.outputs.cache-hit == false && matrix.os == 'ubuntu-latest' }}
-        name: Get datalad - Linux
-        run: conda install -c conda-forge datalad==0.16.3
-      - if: ${{ steps.cache-ophys-datasets.outputs.cache-hit == false && matrix.os == 'windows-latest' }}
-        name: Get git-annex - Windows
-        uses: crazy-max/ghaction-chocolatey@v1.6.0
-        with:
-          args: install git-annex --ignore-checksums
-      - if: ${{ steps.cache-ophys-datasets.outputs.cache-hit == false && matrix.os == 'windows-latest' }}
-        name: Get datalad - Windows and Mac
-        run: pip install datalad==0.16.3
-      - name: "Force GIN: ophys download"
-        if: steps.cache-ophys-datasets.outputs.cache-hit == false
-        run: datalad install -rg https://gin.g-node.org/CatalystNeuro/ophys_testing_data
+          key: ophys-datasets-082022-${{ matrix.os }}-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
+      - if: steps.cache-ophys-datasets.outputs.cache-hit == false
+        name: Install and configure AWS CLI
+        run: |
+          pip install awscli==1.25.27
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - if: steps.cache-ophys-datasets.outputs.cache-hit == false
+        name: Download data from S3
+        run: aws s3 cp --recursive s3://${{ secrets.S3_GIN_BUCKET }}//ophys_testing_data ./ophys_testing_data
+
+
 
       - name: Run full pytest with coverage
         run: pytest -n auto --dist loadscope --cov=./ --cov-report xml:./codecov.xml

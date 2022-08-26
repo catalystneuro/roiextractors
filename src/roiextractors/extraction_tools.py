@@ -1,14 +1,19 @@
+import sys
+import importlib.util
 from functools import wraps
 from pathlib import Path
-from typing import Union, Tuple
-from dataclasses import dataclass, field
+from typing import Union, Tuple, Optional, Dict, List
+from types import ModuleType
+from dataclasses import dataclass
+from platform import python_version
 
 import lazy_ops
 import scipy
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 from tqdm import tqdm
-from spikeextractors.extraction_tools import cast_start_end_frame
+from packaging import version
+
 
 try:
     import h5py
@@ -19,6 +24,13 @@ except ImportError:
 try:
     if hasattr(scipy.io.matlab, "mat_struct"):
         from scipy.io.matlab import mat_struct
+    else:
+        from scipy.io.matlab.mio5_params import mat_struct
+
+    HAVE_Scipy = True
+except AttributeError:
+    if hasattr(scipy, "io") and hasattr(scipy.io.matlab, "mat_struct"):
+        from scipy.io import mat_struct
     else:
         from scipy.io.matlab.mio5_params import mat_struct
 
@@ -306,6 +318,25 @@ def check_get_frames_args(func):
     return corrected_args
 
 
+def _cast_start_end_frame(start_frame, end_frame):
+    if isinstance(start_frame, float):
+        start_frame = int(start_frame)
+    elif isinstance(start_frame, (int, np.integer, type(None))):
+        start_frame = start_frame
+    else:
+        raise ValueError("start_frame must be an int, float (not infinity), or None")
+    if isinstance(end_frame, float) and np.isfinite(end_frame):
+        end_frame = int(end_frame)
+    elif isinstance(end_frame, (int, np.integer, type(None))):
+        end_frame = end_frame
+    # else end_frame is infinity (accepted for get_unit_spike_train)
+    if start_frame is not None:
+        start_frame = int(start_frame)
+    if end_frame is not None and np.isfinite(end_frame):
+        end_frame = int(end_frame)
+    return start_frame, end_frame
+
+
 def check_get_videos_args(func):
     @wraps(func)
     def corrected_args(imaging, start_frame=None, end_frame=None, channel=0):
@@ -325,7 +356,7 @@ def check_get_videos_args(func):
             end_frame = imaging.get_num_frames()
         assert end_frame - start_frame > 0, "'start_frame' must be less than 'end_frame'!"
 
-        start_frame, end_frame = cast_start_end_frame(start_frame, end_frame)
+        start_frame, end_frame = _cast_start_end_frame(start_frame, end_frame)
         channel = int(channel)
         get_videos_correct_arg = func(imaging, start_frame=start_frame, end_frame=end_frame, channel=channel)
 
@@ -480,3 +511,56 @@ def todict(matobj):
         else:
             dict[strg] = elem
     return dict
+
+
+def get_package(
+    package_name: str,
+    installation_instructions: Optional[str] = None,
+    excluded_platforms_and_python_versions: Optional[Dict[str, List[str]]] = None,
+) -> ModuleType:
+    """
+    Check if package is installed and return module if so.
+
+    Otherwise, raise informative error describing how to perform the installation.
+    Inspired by https://docs.python.org/3/library/importlib.html#checking-if-a-module-can-be-imported.
+
+    Parameters
+    ----------
+    package_name : str
+        Name of the package to be imported.
+    installation_instructions : str, optional
+        String describing the source, options, and alias of package name (if needed) for installation.
+        For example,
+            >>> installation_source = "conda install -c conda-forge my-package-name"
+        Defaults to f"pip install {package_name}".
+    excluded_platforms_and_python_versions : dict mapping string platform names to a list of string versions, optional
+        In case some combinations of platforms or Python versions are not allowed for the given package, specify
+        this dictionary to raise a more specific error to that issue.
+        For example, `excluded_platforms_and_python_versions = dict(darwin=["3.7"])` will raise an informative error
+        when running on MacOS with Python version 3.7.
+        Allows all platforms and Python versions used by default.
+
+    Raises
+    ------
+    ModuleNotFoundError
+    """
+    installation_instructions = installation_instructions or f"pip install {package_name}"
+    excluded_platforms_and_python_versions = excluded_platforms_and_python_versions or dict()
+
+    if package_name in sys.modules:
+        return sys.modules[package_name]
+
+    if importlib.util.find_spec(package_name) is not None:
+        return importlib.import_module(name=package_name)
+
+    for excluded_version in excluded_platforms_and_python_versions.get(sys.platform, list()):
+        if version.parse(python_version()).minor == version.parse(excluded_version).minor:
+            raise ModuleNotFoundError(
+                f"\nThe package '{package_name}' is not available on the {sys.platform} platform for "
+                f"Python version {excluded_version}!"
+            )
+
+    raise ModuleNotFoundError(
+        f"\nThe required package'{package_name}' is not installed!\n"
+        f"To install this package, please run\n\n\t{installation_instructions}\n"
+    )

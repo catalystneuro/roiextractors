@@ -2,13 +2,12 @@ from abc import ABC, abstractmethod
 from typing import Optional, Union, Tuple
 
 import numpy as np
-from spikeextractors.baseextractor import BaseExtractor
 
 from .extraction_tools import ArrayType, IntType, FloatType
 from .extraction_tools import _pixel_mask_extractor
 
 
-class SegmentationExtractor(ABC, BaseExtractor):
+class SegmentationExtractor(ABC):
     """
     An abstract class that contains all the meta-data and output data from
     the ROI segmentation operation when applied to the pre-processed data.
@@ -18,13 +17,9 @@ class SegmentationExtractor(ABC, BaseExtractor):
     format specific classes that inherit from this.
     """
 
-    installed = True
-    installation_mesg = ""
-
     def __init__(self):
-        assert self.installed, self.installation_mesg
-        BaseExtractor.__init__(self)
         self._sampling_frequency = None
+        self._times = None
         self._channel_names = ["OpticalChannel"]
         self._num_planes = 1
         self._roi_response_raw = None
@@ -279,9 +274,22 @@ class SegmentationExtractor(ABC, BaseExtractor):
         """
         return self._num_planes
 
+
     def frame_slice(self, start_frame, end_frame):
         """Return a new ImagingExtractor ranging from the start_frame to the end_frame."""
         return FrameSliceSegmentationExtractor(parent_imaging=self, start_frame=start_frame, end_frame=end_frame)
+
+
+    def set_times(self, times: ArrayType):
+        """Sets the recording times in seconds for each frame.
+
+        Parameters
+        ----------
+        times: array-like
+            The times in seconds for each frame
+        """
+        assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames!"
+        self._times = np.array(times, dtype=np.float64)
 
     def frame_to_time(self, frame_indices: Union[IntType, ArrayType]) -> Union[FloatType, ArrayType]:
         """Returns the timing of frames in unit of seconds.
