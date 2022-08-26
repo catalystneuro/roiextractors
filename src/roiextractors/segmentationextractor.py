@@ -67,7 +67,7 @@ class SegmentationExtractor(ABC):
             if trace is not None and len(trace.shape) > 0:
                 return trace.shape[1]
 
-    def get_roi_locations(self, roi_ids=None) -> np.array:
+    def get_roi_locations(self, roi_ids=None) -> np.ndarray:
         """
         Returns the locations of the Regions of Interest
 
@@ -103,7 +103,7 @@ class SegmentationExtractor(ABC):
         """
         return list(range(self.get_num_rois()))
 
-    def get_roi_image_masks(self, roi_ids=None) -> np.array:
+    def get_roi_image_masks(self, roi_ids=None) -> np.ndarray:
         """Returns the image masks extracted from segmentation algorithm.
 
         Parameters
@@ -243,7 +243,7 @@ class SegmentationExtractor(ABC):
         """
         for trace in self.get_traces_dict().values():
             if trace is not None and len(trace.shape) > 0:
-                return trace.shape[0]
+                return trace.shape[1]
 
     def get_channel_names(self):
         """
