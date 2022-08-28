@@ -65,8 +65,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         return DatasetView(self._dataset_file[self._group0[0]]["extractedImages"]).lazy_transpose([1, 2, 0])
 
     def _trace_extractor_read(self):
-        extracted_signals = DatasetView(self._dataset_file[self._group0[0]]["extractedSignals"])
-        return extracted_signals.T
+        return self._dataset_file[self._group0[0]]["extractedSignals"]
 
     def _tot_exptime_extractor_read(self):
         return self._dataset_file[self._group0[0]]["time"]["totalTime"][0][0]
