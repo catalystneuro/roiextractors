@@ -66,7 +66,7 @@ class SegmentationExtractor(ABC):
         """
         for trace in self.get_traces_dict().values():
             if trace is not None and len(trace.shape) > 0:
-                return trace.shape[1]
+                return trace.shape[0]
 
     def get_roi_locations(self, roi_ids=None) -> np.ndarray:
         """
@@ -178,10 +178,10 @@ class SegmentationExtractor(ABC):
             roi_idx_ = range(self.get_num_rois())
         else:
             all_ids = self.get_roi_ids()
-            roi_idx_ = [all_ids.index(i) for i in roi_ids]
+            roi_idx_ = [int(all_ids.index(i)) for i in roi_ids]
         traces = self.get_traces_dict().get(name)
         if traces is not None and len(traces.shape) != 0:
-            return np.array([traces[int(i), start_frame:end_frame] for i in roi_idx_])
+            return np.array([traces[start_frame:end_frame, idx] for idx in roi_idx_])
 
     def get_traces_dict(self):
         """
