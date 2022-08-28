@@ -109,10 +109,10 @@ def generate_dummy_segmentation_extractor(
     movie_dims = (num_rows, num_columns)
 
     # Create signals
-    raw = np.random.rand(num_rois, num_frames) if has_raw_signal else None
-    dff = np.random.rand(num_rois, num_frames) if has_dff_signal else None
-    deconvolved = np.random.rand(num_rois, num_frames) if has_deconvolved_signal else None
-    neuropil = np.random.rand(num_rois, num_frames) if has_neuropil_signal else None
+    raw = np.random.rand(num_frames, num_rois) if has_raw_signal else None
+    dff = np.random.rand(num_frames, num_rois) if has_dff_signal else None
+    deconvolved = np.random.rand(num_frames, num_rois) if has_deconvolved_signal else None
+    neuropil = np.random.rand(num_frames, num_rois) if has_neuropil_signal else None
 
     # Summary images
     mean_image = np.random.rand(num_rows, num_columns) if has_summary_images else None

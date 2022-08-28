@@ -181,7 +181,7 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
 
     def _trace_extractor_read(self) -> DatasetView:
         """Returns the traces with a shape of number of ROIs and number of frames."""
-        return DatasetView(self._output_struct["temporal_weights"])
+        return DatasetView(self._output_struct["temporal_weights"]).lazy_transpose()
 
     def get_accepted_list(self) -> list:
         """
@@ -276,7 +276,7 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         self._image_masks = self._image_mask_extractor_read()
         self._roi_response_raw = self._trace_extractor_read()
         self._raw_movie_file_location = self._raw_datafile_read()
-        self._sampling_frequency = self._roi_response_raw.shape[1] / self._tot_exptime_extractor_read()
+        self._sampling_frequency = self._roi_response_raw.shape[0] / self._tot_exptime_extractor_read()
         self._image_correlation = self._summary_image_read()
 
     def __del__(self):
@@ -292,8 +292,7 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         return self._dataset_file[self._group0[0]]["filters"][:].transpose([1, 2, 0])
 
     def _trace_extractor_read(self):
-        extracted_signals = DatasetView(self._dataset_file[self._group0[0]]["traces"])
-        return extracted_signals.T
+        return self._dataset_file[self._group0[0]]["traces"]
 
     def _tot_exptime_extractor_read(self):
         return self._dataset_file[self._group0[0]]["time"]["totalTime"][0][0]
