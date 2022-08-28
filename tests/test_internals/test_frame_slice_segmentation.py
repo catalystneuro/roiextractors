@@ -14,9 +14,7 @@ def test_frame_slicing_segmentation_times():
     times = np.array(range(num_frames)) + timestamp_shift
     start_frame, end_frame = 2, 7
 
-    toy_segmentation_example = generate_dummy_segmentation_extractor(
-        num_frames=num_frames, num_rows=5, num_columns=4, num_channels=1
-    )
+    toy_segmentation_example = generate_dummy_segmentation_extractor(num_frames=num_frames, num_rows=5, num_columns=4)
     toy_segmentation_example.set_times(times=times)
 
     frame_sliced_segmentation = toy_segmentation_example.frame_slice(start_frame=start_frame, end_frame=end_frame)
@@ -29,13 +27,13 @@ def test_frame_slicing_segmentation_times():
 
 
 def segmentation_name_function(testcase_function, param_number, param):
-    return f"{testcase_function.__name__}_{param_number}_{parameterized.to_safe_name(param.kwargs['name'].__name__)}"
+    return f"{testcase_function.__name__}_{param_number}_{parameterized.to_safe_name(param.kwargs['name'])}"
 
 
 class TestFrameSlicesegmentation(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.toy_segmentation_example = generate_dummy_segmentation_extractor(num_frames=10, num_rows=5, num_columns=4)
+        cls.toy_segmentation_example = generate_dummy_segmentation_extractor(num_frames=15, num_rows=5, num_columns=4)
         cls.frame_sliced_segmentation = cls.toy_segmentation_example.frame_slice(start_frame=2, end_frame=7)
 
     def test_get_image_size(self):
@@ -57,7 +55,7 @@ class TestFrameSlicesegmentation(TestCase):
         assert self.frame_sliced_segmentation.get_num_channels() == 1
 
     def test_get_num_rois(self):
-        assert self.frame_sliced_segmentation.get_num_rois() == 30
+        assert self.frame_sliced_segmentation.get_num_rois() == 10
 
     def test_get_accepted_list(self):
         return assert_array_equal(
@@ -65,10 +63,7 @@ class TestFrameSlicesegmentation(TestCase):
         )
 
     def test_get_rejected_list(self):
-        return assert_array_equal(
-            x=self.frame_sliced_segmentation.get_rejected_list(),
-            y=[10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
-        )
+        return assert_array_equal(x=self.frame_sliced_segmentation.get_rejected_list(), y=[])
 
     @parameterized.expand(
         [param(name="raw"), param(name="dff"), param(name="neuropil"), param(name="deconvolved")],
@@ -84,17 +79,19 @@ class TestFrameSlicesegmentation(TestCase):
         true_dict = self.toy_segmentation_example.get_traces_dict()
         for key in true_dict:
             true_dict[key] = true_dict[key][2:7, :]
-        self.assertContainerEqual(container1=self.frame_sliced_segmentation.get_traces_dict(), container2=true_dict)
+        self.assertCountEqual(first=self.frame_sliced_segmentation.get_traces_dict(), second=true_dict)
 
     def test_get_images_dict(self):
-        self.assertContainerEqual(
-            container1=self.frame_sliced_segmentation.get_images_dict(),
-            container2=self.toy_segmentation_example.get_images_dict(),
+        self.assertCountEqual(
+            first=self.frame_sliced_segmentation.get_images_dict(),
+            second=self.toy_segmentation_example.get_images_dict(),
         )
 
     @parameterized.expand([param(name="mean"), param(name="correlation")], name_func=segmentation_name_function)
     def test_get_image(self, name: str):
-        assert self.frame_sliced_segmentation.get_image(name=name) == self.toy_segmentation_example.get_image(name=name)
+        assert_array_equal(
+            x=self.frame_sliced_segmentation.get_image(name=name), y=self.toy_segmentation_example.get_image(name=name)
+        )
 
 
 if __name__ == "__main__":

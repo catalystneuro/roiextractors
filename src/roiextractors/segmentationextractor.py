@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Union, Optional, Tuple
+from typing import Union, Optional, Tuple, Iterable
 
 import numpy as np
-from numpy.typing import ArrayLike
 
 from .extraction_tools import ArrayType, IntType, FloatType
 from .extraction_tools import _pixel_mask_extractor
@@ -160,9 +159,9 @@ class SegmentationExtractor(ABC):
         """
         pass
 
-    def frame_slice(self, start_frame, end_frame):
+    def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
         """Return a new SegmentationExtractor ranging from the start_frame to the end_frame."""
-        return FrameSliceSegmentationExtractor(parent_imaging=self, start_frame=start_frame, end_frame=end_frame)
+        return FrameSliceSegmentationExtractor(parent_segmentation=self, start_frame=start_frame, end_frame=end_frame)
 
     def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="raw"):
         """
@@ -290,7 +289,7 @@ class SegmentationExtractor(ABC):
         assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames!"
         self._times = np.array(times, dtype=np.float64)
 
-    def frame_to_time(self, frame_indices: Union[IntType, ArrayType]) -> Union[FloatType, ArrayType]:
+    def frame_to_time(self, frames: Union[IntType, ArrayType]) -> Union[FloatType, ArrayType]:
         """Returns the timing of frames in unit of seconds.
 
         Parameters
@@ -304,9 +303,9 @@ class SegmentationExtractor(ABC):
             The corresponding times in seconds
         """
         if self._times is None:
-            return np.round(frame_indices / self.get_sampling_frequency(), 6)
+            return np.round(frames / self.get_sampling_frequency(), 6)
         else:
-            return self._times[frame_indices]
+            return self._times[frames]
 
     @staticmethod
     def write_segmentation(segmentation_extractor, save_path, overwrite=False):
@@ -361,6 +360,8 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
         assert end_frame > start_frame, "'start_frame' must be smaller than 'end_frame'!"
 
         super().__init__()
+        if getattr(self._parent_segmentation, "_times") is not None:
+            self._times = self._parent_segmentation._times[start_frame:end_frame]
 
     def get_accepted_list(self) -> list:
         return self._parent_segmentation.get_accepted_list()
@@ -370,14 +371,14 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
 
     def get_traces(
         self,
-        roi_ids: Optional[ArrayLike[int]] = None,
+        roi_ids: Optional[Iterable[int]] = None,
         start_frame: Optional[int] = None,
         end_frame: Optional[int] = None,
         name: str = "raw",
     ) -> np.ndarray:
-        start_frame = min(start_frame, self._num_frames)
-        end_frame = min(end_frame, self._num_frames)
-        return self._parent_segmentation.get_trace(
+        start_frame = min(start_frame or 0, self._num_frames)
+        end_frame = min(end_frame or self._num_frames, self._num_frames)
+        return self._parent_segmentation.get_traces(
             roi_ids=roi_ids,
             start_frame=start_frame + self._start_frame,
             end_frame=end_frame + self._start_frame,
@@ -393,10 +394,10 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
                         "types other than numpy arrays (which includes memory maps)."
                     )
 
-        def _safe_subtrace(trace: Optional[np.ndarray], start_frame: int, end_frame: int):
+        def _safe_subtrace(trace: Optional[np.ndarray], start: int, end: int):
             if trace is None and len(trace.shape) > 0:
                 return None
-            return trace[start_frame:end_frame, :]
+            return trace[start:end, :]
 
         return dict(
             raw=_safe_subtrace(
@@ -414,7 +415,7 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
         )
 
     def get_image_size(self) -> Tuple[int, int]:
-        return tuple(self._parent_imaging.get_image_size())
+        return tuple(self._parent_segmentation.get_image_size())
 
     def get_num_frames(self) -> int:
         return self._num_frames
