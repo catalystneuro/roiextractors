@@ -385,16 +385,18 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
         )
 
     def get_traces_dict(self):
-        if not isinstance(self._parent_segmentation._roi_response_raw, np.ndarray):
-            raise NotImplementedError(
-                "The `get_traces_dict` method for SubFrameSegementations does not yet support underlying trace types "
-                "other than numpy arrays (which includes memory maps)."
-            )
+        for trace in self._parent_segmentation.get_traces_dict().values():
+            if trace is not None and len(trace.shape) > 0:
+                if not isinstance(trace, np.ndarray):
+                    raise NotImplementedError(
+                        "The `get_traces_dict` method for SubFrameSegementations does not yet support underlying trace "
+                        "types other than numpy arrays (which includes memory maps)."
+                    )
 
         def _safe_subtrace(trace: Optional[np.ndarray], start_frame: int, end_frame: int):
-            if trace is None:
+            if trace is None and len(trace.shape) > 0:
                 return None
-            return trace[:, start_frame:end_frame]
+            return trace[start_frame:end_frame, :]
 
         return dict(
             raw=_safe_subtrace(

@@ -83,7 +83,7 @@ class TestFrameSlicesegmentation(TestCase):
     def test_get_traces_dict(self):
         true_dict = self.toy_segmentation_example.get_traces_dict()
         for key in true_dict:
-            true_dict[key] = true_dict[key][:, 2:7]
+            true_dict[key] = true_dict[key][2:7, :]
         self.assertContainerEqual(container1=self.frame_sliced_segmentation.get_traces_dict(), container2=true_dict)
 
     def test_get_images_dict(self):
