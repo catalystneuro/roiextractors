@@ -16,7 +16,7 @@ except ImportError:
 
 import numpy as np
 
-from ...extraction_tools import PathType
+from ...extraction_tools import PathType, get_package
 from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
 
@@ -70,8 +70,10 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         return image_masks
 
     def _trace_extractor_read(self, field):
-        if self._dataset_file["estimates"].get(field):
-            return self._dataset_file["estimates"][field]  # lazy read dataset)
+        lazy_ops = get_package(package_name="lazy_ops")
+
+        if field in self._dataset_file["estimates"]:
+            return lazy_ops.DatasetView(self._dataset_file["estimates"][field]).lazy_transpose()
 
     def _summary_image_read(self):
         if self._dataset_file["estimates"].get("Cn"):

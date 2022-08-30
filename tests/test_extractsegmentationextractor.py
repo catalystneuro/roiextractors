@@ -121,8 +121,7 @@ class TestNewExtractSegmentationExtractor(TestCase):
             ).lazy_transpose()
             self.assertEqual(self.extractor._image_masks.shape, spatial_weights.shape)
 
-            temporal_weights = DatasetView(segmentation_file[self.output_struct_name]["temporal_weights"])
-            self.assertEqual(self.extractor._roi_response_dff.shape, temporal_weights.shape)
+            self.assertEqual(self.extractor._roi_response_dff.shape, (2000, 20))
 
             self.assertEqual(self.extractor._roi_response_raw, None)
 
@@ -131,14 +130,11 @@ class TestNewExtractSegmentationExtractor(TestCase):
 
             assert_array_equal(self.extractor.get_image_size(), [50, 50])
 
-            num_rois = temporal_weights.shape[0]
-            self.assertEqual(self.extractor.get_num_rois(), num_rois)
-
-            num_frames = temporal_weights.shape[1]
-            self.assertEqual(self.extractor.get_num_frames(), num_frames)
+            self.assertEqual(self.extractor.get_num_rois(), 20)
+            self.assertEqual(self.extractor.get_num_frames(), 2000)
 
             self.assertEqual(self.extractor.get_rejected_list(), [])
-            self.assertEqual(self.extractor.get_accepted_list(), list(range(num_rois)))
+            self.assertEqual(self.extractor.get_accepted_list(), list(range(20)))
 
     def test_extractor_config(self):
         """Test that the extractor class returns the expected config."""
