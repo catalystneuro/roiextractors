@@ -30,7 +30,7 @@ def segmentation_name_function(testcase_function, param_number, param):
     return f"{testcase_function.__name__}_{param_number}_{parameterized.to_safe_name(param.kwargs['name'])}"
 
 
-class TestFrameSlicesegmentation(TestCase):
+class BaseTestFrameSlicesegmentation(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.toy_segmentation_example = generate_dummy_segmentation_extractor(num_frames=15, num_rows=5, num_columns=4)
@@ -78,7 +78,7 @@ class TestFrameSlicesegmentation(TestCase):
     def test_get_traces_dict(self):
         true_dict = self.toy_segmentation_example.get_traces_dict()
         for key in true_dict:
-            true_dict[key] = true_dict[key][2:7, :]
+            true_dict[key] = true_dict[key][2:7, :] if true_dict[key] is not None else true_dict[key]
         self.assertCountEqual(first=self.frame_sliced_segmentation.get_traces_dict(), second=true_dict)
 
     def test_get_images_dict(self):
@@ -92,6 +92,15 @@ class TestFrameSlicesegmentation(TestCase):
         assert_array_equal(
             x=self.frame_sliced_segmentation.get_image(name=name), y=self.toy_segmentation_example.get_image(name=name)
         )
+
+
+class TestMissingTraceFrameSlicesegmentation(BaseTestFrameSlicesegmentation):
+    @classmethod
+    def setUpClass(cls):
+        cls.toy_segmentation_example = generate_dummy_segmentation_extractor(
+            num_frames=15, num_rows=5, num_columns=4, has_dff_signal=False
+        )
+        cls.frame_sliced_segmentation = cls.toy_segmentation_example.frame_slice(start_frame=2, end_frame=7)
 
 
 if __name__ == "__main__":

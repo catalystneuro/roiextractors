@@ -386,33 +386,12 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
         )
 
     def get_traces_dict(self):
-        for trace in self._parent_segmentation.get_traces_dict().values():
-            if trace is not None and len(trace.shape) > 0:
-                if not isinstance(trace, np.ndarray):
-                    raise NotImplementedError(
-                        "The `get_traces_dict` method for SubFrameSegementations does not yet support underlying trace "
-                        "types other than numpy arrays (which includes memory maps)."
-                    )
-
-        def _safe_subtrace(trace: Optional[np.ndarray], start: int, end: int):
-            if trace is None and len(trace.shape) > 0:
-                return None
-            return trace[start:end, :]
-
-        return dict(
-            raw=_safe_subtrace(
-                trace=self._parent_segmentation._roi_response_raw, start=self._start_frame, end=self._end_frame
-            ),
-            dff=_safe_subtrace(
-                trace=self._parent_segmentation._roi_response_dff, start=self._start_frame, end=self._end_frame
-            ),
-            neuropil=_safe_subtrace(
-                trace=self._parent_segmentation._roi_response_neuropil, start=self._start_frame, end=self._end_frame
-            ),
-            deconvolved=_safe_subtrace(
-                trace=self._parent_segmentation._roi_response_deconvolved, start=self._start_frame, end=self._end_frame
-            ),
-        )
+        return {
+            trace_name: self._parent_segmentation.get_traces(
+                start_frame=self._start_frame, end_frame=self._end_frame, name=trace_name
+            )
+            for trace_name, trace in self._parent_segmentation.get_traces_dict().items()
+        }
 
     def get_image_size(self) -> Tuple[int, int]:
         return tuple(self._parent_segmentation.get_image_size())
