@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Union
+from typing import Union, Optional, Tuple, Iterable
 
 import numpy as np
 
@@ -159,6 +159,10 @@ class SegmentationExtractor(ABC):
         """
         pass
 
+    def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
+        """Return a new SegmentationExtractor ranging from the start_frame to the end_frame."""
+        return FrameSliceSegmentationExtractor(parent_segmentation=self, start_frame=start_frame, end_frame=end_frame)
+
     def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="raw"):
         """
         Return RoiResponseSeries
@@ -285,7 +289,7 @@ class SegmentationExtractor(ABC):
         assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames!"
         self._times = np.array(times, dtype=np.float64)
 
-    def frame_to_time(self, frame_indices: Union[IntType, ArrayType]) -> Union[FloatType, ArrayType]:
+    def frame_to_time(self, frames: Union[IntType, ArrayType]) -> Union[FloatType, ArrayType]:
         """Returns the timing of frames in unit of seconds.
 
         Parameters
@@ -299,9 +303,9 @@ class SegmentationExtractor(ABC):
             The corresponding times in seconds
         """
         if self._times is None:
-            return np.round(frame_indices / self.get_sampling_frequency(), 6)
+            return np.round(frames / self.get_sampling_frequency(), 6)
         else:
-            return self._times[frame_indices]
+            return self._times[frames]
 
     @staticmethod
     def write_segmentation(segmentation_extractor, save_path, overwrite=False):
@@ -319,3 +323,99 @@ class SegmentationExtractor(ABC):
             If True, the file is overwritten if existing (default False)
         """
         raise NotImplementedError
+
+
+class FrameSliceSegmentationExtractor(SegmentationExtractor):
+    """
+    Class to get a lazy frame slice.
+
+    Do not use this class directly but use `.frame_slice(...)`
+    """
+
+    extractor_name = "FrameSliceSegmentationExtractor"
+    is_writable = True
+
+    def __init__(
+        self,
+        parent_segmentation: SegmentationExtractor,
+        start_frame: Optional[int] = None,
+        end_frame: Optional[int] = None,
+    ):
+        self._parent_segmentation = parent_segmentation
+        self._start_frame = start_frame or 0
+        self._end_frame = end_frame or self._parent_segmentation.get_num_frames()
+        self._num_frames = self._end_frame - self._start_frame
+
+        self._image_masks = self._parent_segmentation._image_masks
+
+        parent_size = self._parent_segmentation.get_num_frames()
+        if start_frame is None:
+            start_frame = 0
+        else:
+            assert 0 <= start_frame < parent_size
+        if end_frame is None:
+            end_frame = parent_size
+        else:
+            assert 0 < end_frame <= parent_size
+        assert end_frame > start_frame, "'start_frame' must be smaller than 'end_frame'!"
+
+        super().__init__()
+        if getattr(self._parent_segmentation, "_times") is not None:
+            self._times = self._parent_segmentation._times[start_frame:end_frame]
+
+    def get_accepted_list(self) -> list:
+        return self._parent_segmentation.get_accepted_list()
+
+    def get_rejected_list(self) -> list:
+        return self._parent_segmentation.get_rejected_list()
+
+    def get_traces(
+        self,
+        roi_ids: Optional[Iterable[int]] = None,
+        start_frame: Optional[int] = None,
+        end_frame: Optional[int] = None,
+        name: str = "raw",
+    ) -> np.ndarray:
+        start_frame = min(start_frame or 0, self._num_frames)
+        end_frame = min(end_frame or self._num_frames, self._num_frames)
+        return self._parent_segmentation.get_traces(
+            roi_ids=roi_ids,
+            start_frame=start_frame + self._start_frame,
+            end_frame=end_frame + self._start_frame,
+            name=name,
+        )
+
+    def get_traces_dict(self):
+        return {
+            trace_name: self._parent_segmentation.get_traces(
+                start_frame=self._start_frame, end_frame=self._end_frame, name=trace_name
+            )
+            for trace_name, trace in self._parent_segmentation.get_traces_dict().items()
+        }
+
+    def get_image_size(self) -> Tuple[int, int]:
+        return tuple(self._parent_segmentation.get_image_size())
+
+    def get_num_frames(self) -> int:
+        return self._num_frames
+
+    def get_num_rois(self):
+        return self._parent_segmentation.get_num_rois()
+
+    def get_images_dict(self) -> dict:
+        return self._parent_segmentation.get_images_dict()
+
+    def get_image(self, name="correlation"):
+        return self._parent_segmentation.get_image(name=name)
+
+    def get_sampling_frequency(self) -> float:
+        return self._parent_segmentation.get_sampling_frequency()
+
+    def get_channel_names(self) -> list:
+        return self._parent_segmentation.get_channel_names()
+
+    def get_num_channels(self) -> int:
+        return self._parent_segmentation.get_num_channels()
+
+    def get_num_planes(self):
+        return self._parent_segmentation.get_num_planes()

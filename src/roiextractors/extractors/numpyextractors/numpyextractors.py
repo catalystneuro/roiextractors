@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 import numpy as np
 
 from ...extraction_tools import PathType, FloatType, ArrayType
-from ...extraction_tools import check_get_frames_args, get_video_shape
+from ...extraction_tools import get_video_shape
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
 

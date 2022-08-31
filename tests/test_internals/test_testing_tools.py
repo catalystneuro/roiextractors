@@ -33,8 +33,8 @@ class TestDummySegmentationExtractor(TestCase):
 
         # Test frame_to_time
         times = np.round(np.arange(self.num_frames) / self.sampling_frequency, 6)
-        assert_array_equal(segmentation_extractor.frame_to_time(frame_indices=np.arange(self.num_frames)), times)
-        self.assertEqual(segmentation_extractor.frame_to_time(frame_indices=8), times[8])
+        assert_array_equal(segmentation_extractor.frame_to_time(frames=np.arange(self.num_frames)), times)
+        self.assertEqual(segmentation_extractor.frame_to_time(frames=8), times[8])
 
         # Test image masks
         assert segmentation_extractor.get_roi_image_masks().shape == (self.num_rows, self.num_columns, self.num_rois)
@@ -118,10 +118,8 @@ class TestDummySegmentationExtractor(TestCase):
         times = np.arange(self.num_frames) / self.sampling_frequency
         segmentation_extractor._times = times
 
-        self.assertEqual(segmentation_extractor.frame_to_time(frame_indices=2), times[2])
+        self.assertEqual(segmentation_extractor.frame_to_time(frames=2), times[2])
         assert_array_equal(
-            segmentation_extractor.frame_to_time(
-                frame_indices=np.arange(self.num_frames),
-            ),
+            segmentation_extractor.frame_to_time(frames=np.arange(self.num_frames)),
             times,
         )
