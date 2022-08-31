@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union, Optional, Iterable
 
 import numpy as np
 from lazy_ops import DatasetView
@@ -281,7 +281,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 setattr(
                     self,
                     f"_roi_response_{trace_name}",
-                    DatasetView(container.roi_response_series[trace_name_segext].data).lazy_transpose(),
+                    DatasetView(container.roi_response_series[trace_name_segext].data),
                 )
                 if self._sampling_frequency is None:
                     self._sampling_frequency = container.roi_response_series[trace_name_segext].rate
@@ -298,7 +298,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             ps = image_seg.plane_segmentations["PlaneSegmentation"]
             assert "image_mask" in ps.colnames, "Could not find any image_masks in nwbfile."
             self._image_masks = DatasetView(ps["image_mask"].data).lazy_transpose([2, 1, 0])
-            self._roi_locs = ps["RoiCentroid"] if "RoiCentroid" in ps.colnames else None
+            self._roi_locs = ps["ROICentroids"] if "ROICentroids" in ps.colnames else None
             self._accepted_list = ps["Accepted"].data[:] if "Accepted" in ps.colnames else None
             self._rejected_list = ps["Rejected"].data[:] if "Rejected" in ps.colnames else None
 
@@ -336,10 +336,14 @@ class NwbSegmentationExtractor(SegmentationExtractor):
 
         return images_dict
 
-    @property
-    def roi_locations(self):
-        if self._roi_locs is not None:
-            return self._roi_locs.data[:].T
+    def get_roi_locations(self, roi_ids: Optional[Iterable[int]] = None) -> np.ndarray:
+        if self._roi_locs is None:
+            return
+        all_ids = self.get_roi_ids()
+        roi_idxs = slice(None) if roi_ids is None else [all_ids.index(i) for i in roi_ids]
+        # ROIExtractors uses height x width x (depth), but NWB uses width x height x depth
+        tranpose_image_convention = (1, 0) if len(self.get_image_size()) == 2 else (1, 0, 2)
+        return np.array(self._roi_locs.data)[roi_idxs, tranpose_image_convention].T  # h5py fancy indexing is slow
 
     def get_image_size(self):
         return self._image_masks.shape[:2]

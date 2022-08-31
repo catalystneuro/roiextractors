@@ -24,6 +24,8 @@ extractor depending on the version of the file. [PR #170](https://github.com/cat
 
 ### Fixes
 * Fixed the reference to the proper `mov_field` in `Hdf5ImagingExtractor`. [PR #195](https://github.com/catalystneuro/neuroconv/pull/195)
+* Updated the name of the ROICentroids column for the `NwbSegmentationExtractor` to be up-to-date with NeuroConv v0.2.0 `write_segmentation`.
+* Updated the trace orientation for the `NwbSegmentationExtractor`.
 
 ### Testing
 
