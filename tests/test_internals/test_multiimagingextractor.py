@@ -85,6 +85,12 @@ class TestMultiImagingExtractor(TestCase):
             param(  # 1st to 3rd
                 test_start_frame=5, test_end_frame=27, true_video_spans=[(0, 5, None), (1, None, None), (2, None, 7)]
             ),
+            param(  # 1st to 2nd, hitting endpoints
+                test_start_frame=9, test_end_frame=20, true_video_spans=[(0, 9, None), (1, None, None)]
+            ),
+            param(  # 1st to 3rd, hitting endpoints
+                test_start_frame=9, test_end_frame=21, true_video_spans=[(0, 9, None), (1, None, None), (2, None, 1)]
+            ),
         ],
     )
     def test_get_video(
