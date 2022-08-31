@@ -168,19 +168,14 @@ class TestExtractors(TestCase):
 
             num_frames = extractor.get_num_frames()
             num_rois = extractor.get_num_rois()
-            for trace in extractor.get_traces_dict().values():
+            for trace_name, trace in extractor.get_traces_dict().items():
                 if trace is None:
                     continue
                 assert trace.shape[0] == num_frames
                 assert trace.shape[1] == num_rois
 
-            rountrip_num_frames = roundtrip_extractor.get_num_frames()
-            rountrip_num_rois = roundtrip_extractor.get_num_rois()
-            for trace in roundtrip_extractor.get_traces_dict().values():
-                if trace is None:
-                    continue
-                assert trace.shape[0] == rountrip_num_frames
-                assert trace.shape[1] == rountrip_num_rois
+                assert extractor.get_traces(name=trace_name).shape[0] == num_frames
+                assert extractor.get_traces(name=trace_name).shape[1] == num_rois
 
         except NotImplementedError:
             return
