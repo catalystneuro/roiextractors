@@ -173,14 +173,13 @@ class SegmentationExtractor(ABC):
         """
         if name not in self.get_traces_dict():
             raise ValueError(f"traces for {name} not found, enter one of {list(self.get_traces_dict().keys())}")
-        if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
-        else:
+        if roi_ids is not None:
             all_ids = self.get_roi_ids()
-            roi_idx_ = [int(all_ids.index(i)) for i in roi_ids]
+            roi_idxs = [all_ids.index(i) for i in roi_ids]
         traces = self.get_traces_dict().get(name)
         if traces is not None and len(traces.shape) != 0:
-            return np.array([traces[start_frame:end_frame, idx] for idx in roi_idx_])
+            idxs = slice(None) if roi_ids is None else roi_idxs
+            return np.array(traces[start_frame:end_frame, :])[:, idxs]  # numpy fancy indexing is quickest
 
     def get_traces_dict(self):
         """

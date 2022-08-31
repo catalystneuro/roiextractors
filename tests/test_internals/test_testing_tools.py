@@ -45,10 +45,10 @@ class TestDummySegmentationExtractor(TestCase):
         assert segmentation_extractor.get_image(name="correlation").shape == (self.num_rows, self.num_columns)
 
         # Test signals
-        assert segmentation_extractor.get_traces(name="raw").shape == (self.num_rois, self.num_frames)
-        assert segmentation_extractor.get_traces(name="dff").shape == (self.num_rois, self.num_frames)
-        assert segmentation_extractor.get_traces(name="deconvolved").shape == (self.num_rois, self.num_frames)
-        assert segmentation_extractor.get_traces(name="neuropil").shape == (self.num_rois, self.num_frames)
+        assert segmentation_extractor.get_traces(name="raw").shape == (self.num_frames, self.num_rois)
+        assert segmentation_extractor.get_traces(name="dff").shape == (self.num_frames, self.num_rois)
+        assert segmentation_extractor.get_traces(name="deconvolved").shape == (self.num_frames, self.num_rois)
+        assert segmentation_extractor.get_traces(name="neuropil").shape == (self.num_frames, self.num_rois)
 
     def test_passing_parameters(self):
 
@@ -73,10 +73,10 @@ class TestDummySegmentationExtractor(TestCase):
         assert segmentation_extractor.get_image(name="correlation").shape == (self.num_rows, self.num_columns)
 
         # Test signals
-        assert segmentation_extractor.get_traces(name="raw").shape == (self.num_rois, self.num_frames)
-        assert segmentation_extractor.get_traces(name="dff").shape == (self.num_rois, self.num_frames)
-        assert segmentation_extractor.get_traces(name="deconvolved").shape == (self.num_rois, self.num_frames)
-        assert segmentation_extractor.get_traces(name="neuropil").shape == (self.num_rois, self.num_frames)
+        assert segmentation_extractor.get_traces(name="raw").shape == (self.num_frames, self.num_rois)
+        assert segmentation_extractor.get_traces(name="dff").shape == (self.num_frames, self.num_rois)
+        assert segmentation_extractor.get_traces(name="deconvolved").shape == (self.num_frames, self.num_rois)
+        assert segmentation_extractor.get_traces(name="neuropil").shape == (self.num_frames, self.num_rois)
 
     def test_set_times(self):
         """Test that set_times sets the times in the expected way."""
