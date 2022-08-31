@@ -158,13 +158,13 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
         # saving traces:
         if segmentation_object.get_traces(name="raw") is not None:
-            np.save(save_path / "F.npy", segmentation_object.get_traces(name="raw"))
+            np.save(save_path / "F.npy", segmentation_object.get_traces(name="raw").T)
         if segmentation_object.get_traces(name="neuropil") is not None:
-            np.save(save_path / "Fneu.npy", segmentation_object.get_traces(name="neuropil"))
+            np.save(save_path / "Fneu.npy", segmentation_object.get_traces(name="neuropil").T)
         if segmentation_object.get_traces(name="deconvolved") is not None:
             np.save(
                 save_path / "spks.npy",
-                segmentation_object.get_traces(name="deconvolved"),
+                segmentation_object.get_traces(name="deconvolved").T,
             )
         # save stat
         stat = np.zeros(segmentation_object.get_num_rois(), "O")

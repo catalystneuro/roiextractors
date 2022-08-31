@@ -166,6 +166,17 @@ class TestExtractors(TestCase):
             roundtrip_extractor = extractor_class(**roundtrip_kwargs)
             check_segmentations_equal(segmentation_extractor1=extractor, segmentation_extractor2=roundtrip_extractor)
 
+            num_frames = extractor.get_num_frames()
+            num_rois = extractor.get_num_rois()
+            for trace_name, trace in extractor.get_traces_dict().items():
+                if trace is None:
+                    continue
+                assert trace.shape[0] == num_frames
+                assert trace.shape[1] == num_rois
+
+                assert extractor.get_traces(name=trace_name).shape[0] == num_frames
+                assert extractor.get_traces(name=trace_name).shape[1] == num_rois
+
         except NotImplementedError:
             return
 
