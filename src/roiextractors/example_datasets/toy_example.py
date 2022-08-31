@@ -109,7 +109,6 @@ def toy_example(
         The output segmentation extractor
 
     """
-    import spikeextractors as se
 
     # generate ROIs
     num_rois = int(num_rois)
@@ -123,6 +122,8 @@ def toy_example(
     )
 
     # generate spike trains
+    import spikeextractors as se
+
     rec, sort = se.example_datasets.toy_example(
         duration=duration,
         K=num_rois,
@@ -131,19 +132,25 @@ def toy_example(
     )
 
     # create decaying response
-    resp_samples = int(decay_time * rec.get_sampling_frequency())
+    resp_samples = int(decay_time * sampling_frequency)
     resp_tau = resp_samples / 5
     tresp = np.arange(resp_samples)
     resp = np.exp(-tresp / resp_tau)
 
+    num_frames = rec.get_num_frames()  # TODO This should be changed to sampling_frequency x duration
+    num_of_units = sort.get_unit_ids()  # TODO This to be changed by num_rois
+
     # convolve response with ROIs
-    raw = np.zeros((len(sort.get_unit_ids()), rec.get_num_frames()))
-    deconvolved = np.zeros((len(sort.get_unit_ids()), rec.get_num_frames()))
-    neuropil = noise_std * np.random.randn(len(sort.get_unit_ids()), rec.get_num_frames())
-    frames = rec.get_num_frames()
-    for u_i, unit in enumerate(sort.get_unit_ids()):
-        for s in sort.get_unit_spike_train(unit):
-            if s < rec.get_num_frames():
+    raw = np.zeros(num_of_units, num_frames)  # TODO Change to new standard formating with time in first axis
+    deconvolved = np.zeros(num_of_units, num_frames)  # TODO Change to new standard formating with time in first axis
+    neuropil = noise_std * np.random.randn(
+        num_of_units, num_frames
+    )  # TODO Change to new standard formating with time in first axis
+    frames = num_frames
+    for u_i, unit in range(num_of_units):
+        unit = u_i + 1  # spikeextractor toy example has unit ids starting at 1
+        for s in sort.get_unit_spike_train(unit):  # TODO build a local function that generates frames with spikes
+            if s < num_frames:
                 if s + len(resp) < frames:
                     raw[u_i, s : s + len(resp)] += resp
                 else:
