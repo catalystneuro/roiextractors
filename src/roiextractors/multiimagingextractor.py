@@ -113,7 +113,7 @@ class MultiImagingExtractor(ImagingExtractor):
 
         start = start_frame if start_frame is not None else 0
         stop = end_frame if end_frame is not None else self.get_num_frames()
-        extractors_range = np.searchsorted(self._end_frames, (start, stop), side="right")
+        extractors_range = np.searchsorted(self._end_frames, (start, stop - 1), side="right")
         extractors_spanned = list(
             range(extractors_range[0], min(extractors_range[-1] + 1, len(self._imaging_extractors)))
         )
