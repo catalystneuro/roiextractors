@@ -154,7 +154,7 @@ def _assert_iterable_shape(iterable, shape):
     ar = iterable if isinstance(iterable, np.ndarray) else np.array(iterable)
     for ar_shape, given_shape in zip(ar.shape, shape):
         if isinstance(given_shape, int):
-            assert ar_shape == given_shape
+            assert ar_shape == given_shape, f"Expected {given_shape}, received {ar_shape}!"
 
 
 def _assert_iterable_shape_max(iterable, shape_max):
