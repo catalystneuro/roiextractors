@@ -52,10 +52,12 @@ class ExtractSegmentationExtractor(ABC):
         """
         self = super().__new__(cls)
         self.file_path = file_path
-        self.output_struct_name = output_struct_name
         # Check if the file is a .mat file
         cls._assert_file_is_mat(self)
 
+        # Check that 'output_struct_name' is in the file
+        cls._assert_output_struct_name_is_in_file(self, output_struct_name=output_struct_name)
+        self.output_struct_name = output_struct_name
         # Check the version of the .mat file
         if cls._check_extract_file_version(self):
             # For newer versions of the .mat file, use the newer extractor
@@ -73,6 +75,13 @@ class ExtractSegmentationExtractor(ABC):
         file_path = Path(self.file_path)
         assert file_path.exists(), f"File {file_path} does not exist."
         assert file_path.suffix == ".mat", f"File {file_path} must be a .mat file."
+
+    def _assert_output_struct_name_is_in_file(self, output_struct_name: str):
+        """Check that 'output_struct_name' is in the file, raises an error if not."""
+        with h5py.File(name=self.file_path, mode="r") as mat_file:
+            assert output_struct_name in mat_file, (
+                f"Output struct name '{output_struct_name}' not found in file."
+            )
 
     def _check_extract_file_version(self) -> bool:
         """Check the version of the extract file.
