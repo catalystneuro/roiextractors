@@ -95,7 +95,7 @@ class ExtractSegmentationExtractor(ABC):
             # dataset_version is an HDF5 dataset of encoded characters
             version_name = _decode_h5py_array(dataset_version)
 
-            return version.Version(version_name) >= version.Version("1.1.0")
+            return version.Version(version_name) >= version.Version("1.0.0")
 
 
 class NewExtractSegmentationExtractor(SegmentationExtractor):
