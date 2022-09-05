@@ -50,6 +50,27 @@ class TestExtractSegmentationExtractor(TestCase):
 
         self.assertIsInstance(extractor, NewExtractSegmentationExtractor)
 
+    def test_extract_segmentation_extractor_default_output_struct_name_not_in_file(self):
+        """Test that the extractor returns the expected error when the default "output"
+        struct name is not in the file."""
+        file_path = self.ophys_data_path / "2014_04_01_p203_m19_check01_extractAnalysis.mat"
+        with self.assertRaisesWith(AssertionError, "Output struct name 'output' not found in file."):
+            ExtractSegmentationExtractor(
+                file_path=file_path,
+                sampling_frequency=self.sampling_frequency,
+            )
+
+    def test_extract_segmentation_extractor_user_given_output_struct_name_not_in_file(self):
+        """Test that the extractor returns the expected error when a user given output
+        struct name is not in the file."""
+        file_path = self.ophys_data_path / "2014_04_01_p203_m19_check01_extractAnalysis.mat"
+        with self.assertRaisesWith(AssertionError, "Output struct name 'not_output' not found in file."):
+            ExtractSegmentationExtractor(
+                file_path=file_path,
+                sampling_frequency=self.sampling_frequency,
+                output_struct_name="not_output",
+            )
+
     param_list = [
         param(
             file_path=ophys_data_path / "2014_04_01_p203_m19_check01_extractAnalysis.mat",
