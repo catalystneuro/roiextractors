@@ -88,8 +88,6 @@ class ExtractSegmentationExtractor(ABC):
         If the file was created with a newer version of the EXTRACT algorithm, the
         function will return True, otherwise it will return False."""
         with h5py.File(name=self.file_path, mode="r") as mat_file:
-            if self.output_struct_name not in mat_file:
-                return False
             dataset_version = mat_file[self.output_struct_name]["info"]["version"][:]
             dataset_version = np.ravel(dataset_version)
             # dataset_version is an HDF5 dataset of encoded characters
