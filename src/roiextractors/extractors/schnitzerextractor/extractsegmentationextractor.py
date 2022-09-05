@@ -189,7 +189,7 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         return DatasetView(self._output_struct["spatial_weights"]).lazy_transpose()
 
     def _trace_extractor_read(self) -> DatasetView:
-        """Returns the traces with a shape of number of ROIs and number of frames."""
+        """Returns the traces with a shape of number of frames and number of ROIs."""
         return DatasetView(self._output_struct["temporal_weights"]).lazy_transpose()
 
     def get_accepted_list(self) -> list:
@@ -202,7 +202,7 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         accepted_list: list
             List of accepted ROIs
         """
-        return [roi for roi in self.get_roi_ids() if np.any(self._image_masks[roi])]
+        return [roi for roi in self.get_roi_ids() if np.any(self._image_masks[..., roi])]
 
     def get_rejected_list(self) -> list:
         """
@@ -243,7 +243,7 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
     def get_images_dict(self):
         """
         Returns a dictionary with key, values representing different types of Images
-        used in segmentation.
+        used in segmentation. The shape of images is height and width.
         Returns
         -------
         images_dict: dict
@@ -251,9 +251,9 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         """
         images_dict = super().get_images_dict()
         images_dict.update(
-            summary_image=self._info_struct["summary_image"][:],
-            f_per_pixel=self._info_struct["F_per_pixel"][:],
-            max_image=self._info_struct["max_image"][:],
+            summary_image=self._info_struct["summary_image"][:].T,
+            f_per_pixel=self._info_struct["F_per_pixel"][:].T,
+            max_image=self._info_struct["max_image"][:].T,
         )
 
         return images_dict
