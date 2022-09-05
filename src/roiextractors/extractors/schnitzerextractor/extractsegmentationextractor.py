@@ -1,6 +1,7 @@
 """Extractor for reading the segmentation data that results from calls to EXTRACT."""
 from abc import ABC
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 from lazy_ops import DatasetView
@@ -34,7 +35,7 @@ class ExtractSegmentationExtractor(ABC):
         cls,
         file_path: PathType,
         sampling_frequency: float,
-        output_struct_name: str = "output",
+        output_struct_name: Optional[str] = None,
     ):
         """Abstract class that defines which extractor class to use for a given file.
         For newer versions of the EXTRACT algorithm, the extractor class redirects to
@@ -45,8 +46,12 @@ class ExtractSegmentationExtractor(ABC):
         ----------
         file_path: str
             The location of the folder containing the .mat file.
-        output_struct_name: str
-            The name of output struct in the .mat file, default is "output".
+        output_struct_name: str, optional
+            The name of output struct in the .mat file.
+            When unspecified, we check if any of the default values can be found in the file.
+            For newer version of extract, the default name is assumed to be "output".
+            For older versions the default is "extractAnalysisOutput". If none of them
+            can be found, it must be supplied.
         sampling_frequency: float
             The sampling frequency in units of Hz.
         """
