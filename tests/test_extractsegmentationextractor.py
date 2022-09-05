@@ -191,8 +191,8 @@ class TestNewExtractSegmentationExtractor(TestCase):
     def test_extractor_accepted_list(self, accepted_list):
         """Test that the extractor class returns the list of accepted and rejected ROIs
         correctly given the list of non-zero ROIs."""
-        dummy_image_mask = np.zeros((20, 50, 50))
-        dummy_image_mask[accepted_list, ...] = 1
+        dummy_image_mask = np.zeros((50, 50, 20))
+        dummy_image_mask[..., accepted_list] = 1
 
         self.extractor._image_masks = dummy_image_mask
 
@@ -207,13 +207,13 @@ class TestNewExtractSegmentationExtractor(TestCase):
         with h5py.File(self.file_path, "r") as segmentation_file:
             summary_image = DatasetView(
                 segmentation_file[self.output_struct_name]["info"]["summary_image"],
-            )[:]
+            )[:].T
             max_image = DatasetView(
                 segmentation_file[self.output_struct_name]["info"]["max_image"],
-            )[:]
+            )[:].T
             f_per_pixel = DatasetView(
                 segmentation_file[self.output_struct_name]["info"]["F_per_pixel"],
-            )[:]
+            )[:].T
 
         images_dict = self.extractor.get_images_dict()
         self.assertEqual(len(images_dict), 5)
