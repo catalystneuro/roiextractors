@@ -60,9 +60,13 @@ class ExtractSegmentationExtractor(ABC):
         # Check if the file is a .mat file
         cls._assert_file_is_mat(self)
 
-        # Check that 'output_struct_name' is in the file
-        cls._assert_output_struct_name_is_in_file(self, output_struct_name=output_struct_name)
-        self.output_struct_name = output_struct_name
+        if output_struct_name is None:
+            self.output_struct_name = cls._get_default_output_struct_name_from_file(self)
+        else:
+            # Check that user-given 'output_struct_name' is in the file
+            self.output_struct_name = output_struct_name
+            cls._assert_output_struct_name_is_in_file(self)
+
         # Check the version of the .mat file
         if cls._check_extract_file_version(self):
             # For newer versions of the .mat file, use the newer extractor
@@ -81,10 +85,27 @@ class ExtractSegmentationExtractor(ABC):
         assert file_path.exists(), f"File {file_path} does not exist."
         assert file_path.suffix == ".mat", f"File {file_path} must be a .mat file."
 
-    def _assert_output_struct_name_is_in_file(self, output_struct_name: str):
+    def _get_default_output_struct_name_from_file(self):
+        """Return the default value for 'output_struct_name' when it is unspecified.
+        For newer version of extract, the default name is assumed to be "output".
+        For older versions the default is "extractAnalysisOutput".
+        If none of them is found, raise an error that 'output_struct_name' must be supplied."""
+        newer_default_output_struct_name = "output"
+        legacy_default_output_struct_name = "extractAnalysisOutput"
+        with h5py.File(name=self.file_path, mode="r") as mat_file:
+            if newer_default_output_struct_name in mat_file.keys():
+                return newer_default_output_struct_name
+            elif legacy_default_output_struct_name in mat_file.keys():
+                return legacy_default_output_struct_name
+            else:
+                raise AssertionError("The 'output_struct_name' must be supplied.")
+
+    def _assert_output_struct_name_is_in_file(self):
         """Check that 'output_struct_name' is in the file, raises an error if not."""
         with h5py.File(name=self.file_path, mode="r") as mat_file:
-            assert output_struct_name in mat_file, f"Output struct name '{output_struct_name}' not found in file."
+            assert self.output_struct_name in mat_file, (
+                f"Output struct name '{self.output_struct_name}' not found in file."
+            )
 
     def _check_extract_file_version(self) -> bool:
         """Check the version of the extract file.
