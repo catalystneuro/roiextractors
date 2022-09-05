@@ -79,9 +79,7 @@ class ExtractSegmentationExtractor(ABC):
     def _assert_output_struct_name_is_in_file(self, output_struct_name: str):
         """Check that 'output_struct_name' is in the file, raises an error if not."""
         with h5py.File(name=self.file_path, mode="r") as mat_file:
-            assert output_struct_name in mat_file, (
-                f"Output struct name '{output_struct_name}' not found in file."
-            )
+            assert output_struct_name in mat_file, f"Output struct name '{output_struct_name}' not found in file."
 
     def _check_extract_file_version(self) -> bool:
         """Check the version of the extract file.
