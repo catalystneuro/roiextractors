@@ -106,9 +106,9 @@ class ExtractSegmentationExtractor(ABC):
     def _assert_output_struct_name_is_in_file(self):
         """Check that 'output_struct_name' is in the file, raises an error if not."""
         with h5py.File(name=self.file_path, mode="r") as mat_file:
-            assert self.output_struct_name in mat_file, (
-                f"Output struct name '{self.output_struct_name}' not found in file."
-            )
+            assert (
+                self.output_struct_name in mat_file
+            ), f"Output struct name '{self.output_struct_name}' not found in file."
 
     def _check_extract_file_version(self) -> bool:
         """Check the version of the extract file.
@@ -298,9 +298,9 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
     installation_mesg = "To use extract install h5py: \n\n pip install h5py \n\n"  # error message when not installed
 
     def __init__(
-            self,
-            file_path: PathType,
-            output_struct_name: str = "extractAnalysisOutput",
+        self,
+        file_path: PathType,
+        output_struct_name: str = "extractAnalysisOutput",
     ):
         """
         Parameters
