@@ -73,11 +73,14 @@ class ExtractSegmentationExtractor(ABC):
             return NewExtractSegmentationExtractor(
                 file_path=file_path,
                 sampling_frequency=sampling_frequency,
-                output_struct_name=output_struct_name,
+                output_struct_name=self.output_struct_name,
             )
 
         # For older versions of the .mat file, use the legacy extractor
-        return LegacyExtractSegmentationExtractor(file_path=file_path)
+        return LegacyExtractSegmentationExtractor(
+            file_path=file_path,
+            output_struct_name=self.output_struct_name,
+        )
 
     def _assert_file_is_mat(self):
         """Check that the file exists and is a .mat file."""
@@ -294,16 +297,24 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
     mode = "file"
     installation_mesg = "To use extract install h5py: \n\n pip install h5py \n\n"  # error message when not installed
 
-    def __init__(self, file_path: PathType):
+    def __init__(
+            self,
+            file_path: PathType,
+            output_struct_name: str = "extractAnalysisOutput",
+    ):
         """
         Parameters
         ----------
         file_path: str
             The location of the folder containing dataset.mat file.
+        output_struct_name: str, optional
+            The user has control over the names of the variables that return from `extraction(images, config)`.
+            When unspecified, the default is 'extractAnalysisOutput'.
         """
         super().__init__()
         self.file_path = file_path
-        self._dataset_file, self._group0 = self._file_extractor_read()
+        self._dataset_file = self._file_extractor_read()
+        self.output_struct_name = output_struct_name
         self._image_masks = self._image_mask_extractor_read()
         self._roi_response_raw = self._trace_extractor_read()
         self._raw_movie_file_location = self._raw_datafile_read()
@@ -314,27 +325,24 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         self._dataset_file.close()
 
     def _file_extractor_read(self):
-        f = h5py.File(self.file_path, "r")
-        _group0_temp = list(f.keys())
-        _group0 = [a for a in _group0_temp if "#" not in a]
-        return f, _group0
+        return h5py.File(self.file_path, "r")
 
     def _image_mask_extractor_read(self):
-        return self._dataset_file[self._group0[0]]["filters"][:].transpose([1, 2, 0])
+        return self._dataset_file[self.output_struct_name]["filters"][:].transpose([1, 2, 0])
 
     def _trace_extractor_read(self):
-        return self._dataset_file[self._group0[0]]["traces"]
+        return self._dataset_file[self.output_struct_name]["traces"]
 
     def _tot_exptime_extractor_read(self):
-        return self._dataset_file[self._group0[0]]["time"]["totalTime"][0][0]
+        return self._dataset_file[self.output_struct_name]["time"]["totalTime"][0][0]
 
     def _summary_image_read(self):
-        summary_image = self._dataset_file[self._group0[0]]["info"]["summary_image"]
+        summary_image = self._dataset_file[self.output_struct_name]["info"]["summary_image"]
         return np.array(summary_image)
 
     def _raw_datafile_read(self):
-        if self._dataset_file[self._group0[0]].get("file"):
-            charlist = [chr(i) for i in np.squeeze(self._dataset_file[self._group0[0]]["file"][:])]
+        if self._dataset_file[self.output_struct_name].get("file"):
+            charlist = [chr(i) for i in np.squeeze(self._dataset_file[self.output_struct_name]["file"][:])]
             return "".join(charlist)
 
     def get_accepted_list(self):
