@@ -192,7 +192,7 @@ def check_segmentations_equal(
     assert segmentation_extractor1.get_num_rois() == segmentation_extractor2.get_num_rois()
     assert segmentation_extractor1.get_num_frames() == segmentation_extractor2.get_num_frames()
     assert segmentation_extractor1.get_num_channels() == segmentation_extractor2.get_num_channels()
-    assert segmentation_extractor1.get_sampling_frequency() == segmentation_extractor2.get_sampling_frequency()
+    assert np.isclose(segmentation_extractor1.get_sampling_frequency(), segmentation_extractor2.get_sampling_frequency())
     assert_array_equal(segmentation_extractor1.get_channel_names(), segmentation_extractor2.get_channel_names())
     assert_array_equal(segmentation_extractor1.get_image_size(), segmentation_extractor2.get_image_size())
     assert_array_equal(
