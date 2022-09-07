@@ -40,25 +40,24 @@ class TestExtractSegmentationExtractor(TestCase):
                 sampling_frequency=self.sampling_frequency,
             )
 
-    def test_extract_segmentation_extractor_with_default_output_struct_name(self):
-        """Test that the extractor returns the NewExtractSegmentationExtractor
-        when the default "output" struct name is used."""
-        extractor = ExtractSegmentationExtractor(
-            file_path=self.ophys_data_path / "extract_public_output.mat",
-            sampling_frequency=self.sampling_frequency,
-        )
-
-        self.assertIsInstance(extractor, NewExtractSegmentationExtractor)
+    def test_extract_segmentation_extractor_user_given_output_struct_name_not_in_file(self):
+        """Test that the extractor returns the expected error when a user given output
+        struct name is not in the file."""
+        file_path = self.ophys_data_path / "2014_04_01_p203_m19_check01_extractAnalysis.mat"
+        with self.assertRaisesWith(AssertionError, "Output struct name 'not_output' not found in file."):
+            ExtractSegmentationExtractor(
+                file_path=file_path,
+                sampling_frequency=self.sampling_frequency,
+                output_struct_name="not_output",
+            )
 
     param_list = [
         param(
             file_path=ophys_data_path / "2014_04_01_p203_m19_check01_extractAnalysis.mat",
-            output_struct_name="extractAnalysisOutput",
             extractor_class=LegacyExtractSegmentationExtractor,
         ),
         param(
             file_path=ophys_data_path / "extract_public_output.mat",
-            output_struct_name="output",
             extractor_class=NewExtractSegmentationExtractor,
         ),
     ]
@@ -66,14 +65,13 @@ class TestExtractSegmentationExtractor(TestCase):
     @parameterized.expand(
         param_list,
     )
-    def test_extract_segmentation_extractor_redirects(self, file_path, output_struct_name, extractor_class):
+    def test_extract_segmentation_extractor_redirects(self, file_path, extractor_class):
         """
         Test that the extractor class redirects to the correct class
         given the version of the .mat file.
         """
         extractor = ExtractSegmentationExtractor(
             file_path=file_path,
-            output_struct_name=output_struct_name,
             sampling_frequency=self.sampling_frequency,
         )
 
@@ -170,8 +168,8 @@ class TestNewExtractSegmentationExtractor(TestCase):
     def test_extractor_accepted_list(self, accepted_list):
         """Test that the extractor class returns the list of accepted and rejected ROIs
         correctly given the list of non-zero ROIs."""
-        dummy_image_mask = np.zeros((20, 50, 50))
-        dummy_image_mask[accepted_list, ...] = 1
+        dummy_image_mask = np.zeros((50, 50, 20))
+        dummy_image_mask[..., accepted_list] = 1
 
         self.extractor._image_masks = dummy_image_mask
 
@@ -186,13 +184,13 @@ class TestNewExtractSegmentationExtractor(TestCase):
         with h5py.File(self.file_path, "r") as segmentation_file:
             summary_image = DatasetView(
                 segmentation_file[self.output_struct_name]["info"]["summary_image"],
-            )[:]
+            )[:].T
             max_image = DatasetView(
                 segmentation_file[self.output_struct_name]["info"]["max_image"],
-            )[:]
+            )[:].T
             f_per_pixel = DatasetView(
                 segmentation_file[self.output_struct_name]["info"]["F_per_pixel"],
-            )[:]
+            )[:].T
 
         images_dict = self.extractor.get_images_dict()
         self.assertEqual(len(images_dict), 5)

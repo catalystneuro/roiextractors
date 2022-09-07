@@ -21,6 +21,10 @@ extractor depending on the version of the file. [PR #170](https://github.com/cat
 * Improved the `MultiImagingExtractor.get_video()` to no longer rely on `get_frames`. [PR #195](https://github.com/catalystneuro/neuroconv/pull/195)
 * Added `dtype` consistency check across `MultiImaging` components as well as a direct override method. [PR #195](https://github.com/catalystneuro/neuroconv/pull/195)
 * Added the `FrameSliceSegmentationExtractor` class and corresponding `Segmentation.frame_slice(...)` method. [PR #201](https://github.com/catalystneuro/neuroconv/pull/201)
+* Changed the `output_struct_name` argument to optional in `ExtractSegmentationExtractor`.
+  to allow more flexible usage for the user and better error message when it cannot be found in the file.
+  For consistency, `output_struct_name` argument has been also added to the legacy extractor.
+  The orientation of segmentation images are transposed for consistency in image orientation (height x width). [PR #210](https://github.com/catalystneuro/roiextractors/pull/210)
 * Relaxed rounding of `ImagingExtractor.frame_to_time(...)` and `SegmentationExtractor.frame_to_time(...)` to be more consistent with SpikeInterface. [PR #212](https://github.com/catalystneuro/roiextractors/pull/212)
 
 ### Fixes
