@@ -215,7 +215,7 @@ def check_segmentations_equal(
     assert_array_equal(segmentation_extractor1.get_roi_ids(), segmentation_extractor2.get_roi_ids())
     assert_array_equal(segmentation_extractor1.get_traces(), segmentation_extractor2.get_traces())
 
-    assert_array_almost_equal(
+    assert_array_equal(
         segmentation_extractor1.frame_to_time(np.arange(segmentation_extractor1.get_num_frames())),
         segmentation_extractor2.frame_to_time(np.arange(segmentation_extractor2.get_num_frames())),
     )
