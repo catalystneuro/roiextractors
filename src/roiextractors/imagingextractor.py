@@ -81,7 +81,7 @@ class ImagingExtractor(ABC):
         """
         # Default implementation
         if self._times is None:
-            return np.round(frames / self.get_sampling_frequency(), 6)
+            return frames / self.get_sampling_frequency()
         else:
             return self._times[frames]
 

@@ -32,7 +32,7 @@ class TestDummySegmentationExtractor(TestCase):
         assert segmentation_extractor.get_roi_locations().shape == (2, self.num_rois)
 
         # Test frame_to_time
-        times = np.round(np.arange(self.num_frames) / self.sampling_frequency, 6)
+        times = np.arange(self.num_frames) / self.sampling_frequency
         assert_array_equal(segmentation_extractor.frame_to_time(frames=np.arange(self.num_frames)), times)
         self.assertEqual(segmentation_extractor.frame_to_time(frames=8), times[8])
 

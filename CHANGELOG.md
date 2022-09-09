@@ -25,6 +25,7 @@ extractor depending on the version of the file. [PR #170](https://github.com/cat
   to allow more flexible usage for the user and better error message when it cannot be found in the file.
   For consistency, `output_struct_name` argument has been also added to the legacy extractor.
   The orientation of segmentation images are transposed for consistency in image orientation (height x width). [PR #210](https://github.com/catalystneuro/roiextractors/pull/210)
+* Relaxed rounding of `ImagingExtractor.frame_to_time(...)` and `SegmentationExtractor.frame_to_time(...)` to be more consistent with SpikeInterface. [PR #212](https://github.com/catalystneuro/roiextractors/pull/212)
 
 ### Fixes
 * Fixed the reference to the proper `mov_field` in `Hdf5ImagingExtractor`. [PR #195](https://github.com/catalystneuro/neuroconv/pull/195)
