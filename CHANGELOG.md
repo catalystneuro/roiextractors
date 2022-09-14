@@ -1,5 +1,9 @@
 # Upcoming
 
+
+
+# v0.5.0
+
 ### Back-compatability break
 * The orientation of traces in all `SegmentationExtractor`s has been standardized to have time (frames) as the first axis, and ROIs as the final axis. [PR #200](https://github.com/catalystneuro/roiextractors/pull/200)
 
@@ -29,10 +33,8 @@ extractor depending on the version of the file. [PR #170](https://github.com/cat
 
 ### Fixes
 * Fixed the reference to the proper `mov_field` in `Hdf5ImagingExtractor`. [PR #195](https://github.com/catalystneuro/neuroconv/pull/195)
-* Updated the name of the ROICentroids column for the `NwbSegmentationExtractor` to be up-to-date with NeuroConv v0.2.0 `write_segmentation`.
-* Updated the trace orientation for the `NwbSegmentationExtractor`.
-
-### Testing
+* Updated the name of the ROICentroids column for the `NwbSegmentationExtractor` to be up-to-date with NeuroConv v0.2.0 `write_segmentation`. [PR #208](https://github.com/catalystneuro/roiextractors/pull/208)
+* Updated the trace orientation for the `NwbSegmentationExtractor`. [PR #208](https://github.com/catalystneuro/roiextractors/pull/208)
 
 
 
