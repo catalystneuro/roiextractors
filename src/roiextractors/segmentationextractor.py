@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Union, Optional, Tuple, Iterable
+from typing import Union, Optional, Tuple, Iterable, List
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 from .extraction_tools import ArrayType, IntType, FloatType
 from .extraction_tools import _pixel_mask_extractor
@@ -345,7 +346,8 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
         self._end_frame = end_frame or self._parent_segmentation.get_num_frames()
         self._num_frames = self._end_frame - self._start_frame
 
-        self._image_masks = self._parent_segmentation._image_masks
+        if hasattr(self._parent_segmentation, "_image_masks"):  # otherwise, do not set attribute at all
+            self._image_masks = self._parent_segmentation._image_masks
 
         parent_size = self._parent_segmentation.get_num_frames()
         if start_frame is None:
@@ -418,3 +420,6 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
 
     def get_num_planes(self):
         return self._parent_segmentation.get_num_planes()
+
+    def get_roi_pixel_masks(self, roi_ids: Optional[ArrayLike] = None) -> List[np.ndarray]:
+        return self._parent_segmentation.get_roi_pixel_masks(roi_ids=roi_ids)
