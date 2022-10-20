@@ -1,4 +1,5 @@
 import unittest
+from types import MethodType
 
 import numpy as np
 from hdmf.testing import TestCase
@@ -101,6 +102,33 @@ class TestMissingTraceFrameSlicesegmentation(BaseTestFrameSlicesegmentation):
             num_frames=15, num_rows=5, num_columns=4, has_dff_signal=False
         )
         cls.frame_sliced_segmentation = cls.toy_segmentation_example.frame_slice(start_frame=2, end_frame=7)
+
+
+def test_frame_slicing_segmentation_missing_image_mask_attribute():
+    """If the parent object does not have a _image_masks attribute, don't try to copy it to the sub extractor."""
+    num_frames = 10
+    start_frame, end_frame = 2, 7
+
+    toy_segmentation_example = generate_dummy_segmentation_extractor(num_frames=num_frames)
+    del toy_segmentation_example._image_masks
+
+    frame_sliced_segmentation = toy_segmentation_example.frame_slice(start_frame=start_frame, end_frame=end_frame)
+    assert not hasattr(frame_sliced_segmentation, "_image_masks")
+
+
+def test_frame_slicing_segmentation_get_roi_pixel_masks_override():
+    """If the parent overrides the base get_roi_pixel_masks() method, ensure this is used by the sub extractor."""
+    num_frames = 10
+    start_frame, end_frame = 2, 7
+
+    def get_roi_pixel_masks_override(self, roi_ids=None) -> np.ndarray:
+        return np.array([1, 2, 3])
+
+    toy_segmentation_example = generate_dummy_segmentation_extractor(num_frames=num_frames)
+    toy_segmentation_example.get_roi_pixel_masks = MethodType(get_roi_pixel_masks_override, toy_segmentation_example)
+
+    frame_sliced_segmentation = toy_segmentation_example.frame_slice(start_frame=start_frame, end_frame=end_frame)
+    np.testing.assert_array_equal(x=frame_sliced_segmentation.get_roi_pixel_masks(), y=np.array([1, 2, 3]))
 
 
 if __name__ == "__main__":
