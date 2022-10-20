@@ -2,7 +2,7 @@
 
 ### Fixes
 
-* Fixed two issue with the `SubFrameSegementation` class: (i) attempting to set the private attribute `_image_masks` even when this was not present in the parent, and (ii) not calling the parent function for `get_pixel_masks` and instead using the base method even in cases where this had been overridden by the parent. [PR #215](https://github.com/catalystneuro/roiextractors/pull/215)
+* Fixed two issues with the `SubFrameSegementation` class: (i) attempting to set the private attribute `_image_masks` even when this was not present in the parent, and (ii) not calling the parent function for `get_pixel_masks` and instead using the base method even in cases where this had been overridden by the parent. [PR #215](https://github.com/catalystneuro/roiextractors/pull/215)
 
 
 
