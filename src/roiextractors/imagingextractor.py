@@ -115,7 +115,7 @@ class ImagingExtractor(ABC):
         assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames!"
         self._times = np.array(times).astype("float64")
 
-    def has_time_vector(self) -> None:
+    def has_time_vector(self) -> bool:
         """Detect if the ImagingExtractor has a time vector set or not."""
         return self._times is not None
 

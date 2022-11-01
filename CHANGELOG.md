@@ -2,7 +2,7 @@
 
 ### Features
 
-* Added a `has_time_vector` function for ImagingExtractors and SegementationExtractors, similar to the SpikeInterface API for detecting if timestamps have been set. [PR #216](https://github.com/catalystneuro/roiextractors/pull/216)
+* Added a `has_time_vector` function for ImagingExtractors and SegmentationExtractors, similar to the SpikeInterface API for detecting if timestamps have been set. [PR #216](https://github.com/catalystneuro/roiextractors/pull/216)
 
 ### Fixes
 
