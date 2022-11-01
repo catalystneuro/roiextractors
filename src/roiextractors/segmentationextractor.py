@@ -289,6 +289,10 @@ class SegmentationExtractor(ABC):
         assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames!"
         self._times = np.array(times, dtype=np.float64)
 
+    def has_time_vector(self) -> bool:
+        """Detect if the SegmentationExtractor has a time vector set or not."""
+        return self._times is not None
+
     def frame_to_time(self, frames: Union[IntType, ArrayType]) -> Union[FloatType, ArrayType]:
         """Returns the timing of frames in unit of seconds.
 
