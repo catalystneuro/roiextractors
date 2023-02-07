@@ -125,7 +125,6 @@ class VideoStructure:
         self.frame_shape = tuple(self.frame_shape)
 
     def _validate_video_structure(self) -> None:
-
         exception_message = (
             "Invalid structure: "
             f"{self.__repr__()}, "

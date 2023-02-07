@@ -53,7 +53,6 @@ class TestNumpyMemmapExtractor(unittest.TestCase):
 
     @parameterized.expand(input=parameterized_list, name_func=custom_name_func)
     def test_roundtrip(self, dtype, num_channels, num_rows, num_columns, buffer_size_in_gb, case_name=""):
-
         permutation = self.rng.choice([0, 1, 2, 3], size=4, replace=False)
         rows_axis, columns_axis, channels_axis, frame_axis = permutation
 

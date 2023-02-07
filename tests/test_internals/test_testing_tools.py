@@ -51,7 +51,6 @@ class TestDummySegmentationExtractor(TestCase):
         assert segmentation_extractor.get_traces(name="neuropil").shape == (self.num_frames, self.num_rois)
 
     def test_passing_parameters(self):
-
         segmentation_extractor = generate_dummy_segmentation_extractor()
 
         # Test basic shape

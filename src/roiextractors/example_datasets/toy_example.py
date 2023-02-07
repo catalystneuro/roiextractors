@@ -159,7 +159,7 @@ def toy_example(
 
     # generate video
     video = np.zeros((frames, size_x, size_y))
-    for (rp, t) in zip(roi_pixels, raw):
+    for rp, t in zip(roi_pixels, raw):
         for r in rp:
             video[:, r[0], r[1]] += t * im[r[0], r[1]]
 
