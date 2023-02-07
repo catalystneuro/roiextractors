@@ -12,7 +12,6 @@ from .memmapextractors import MemmapImagingExtractor
 
 
 class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
-
     extractor_name = "NumpyMemmapImagingExtractor"
 
     def __init__(

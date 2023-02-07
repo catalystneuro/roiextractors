@@ -23,7 +23,6 @@ class TestVideoStructureClass(unittest.TestCase):
         self.num_frames = 20
 
     def test_basic_parameters(self):
-
         expected_frame_shape = (self.num_rows, self.num_columns, self.num_channels)
         expected_pixels_per_frame = self.num_rows * self.num_columns * self.num_channels
         expected_video_shape = (self.num_frames, self.num_rows, self.num_columns, self.num_channels)
@@ -43,7 +42,6 @@ class TestVideoStructureClass(unittest.TestCase):
         assert video_structure.build_video_shape(self.num_frames) == expected_video_shape
 
     def test_axis_permutation_1(self):
-
         self.frame_axis = 3
         self.rows_axis = 2
         self.columns_axis = 1
@@ -68,7 +66,6 @@ class TestVideoStructureClass(unittest.TestCase):
         assert video_structure.build_video_shape(self.num_frames) == expected_video_shape
 
     def test_axis_permutation_2(self):
-
         self.frame_axis = 2
         self.rows_axis = 0
         self.columns_axis = 1
@@ -93,7 +90,6 @@ class TestVideoStructureClass(unittest.TestCase):
         assert video_structure.build_video_shape(self.num_frames) == expected_video_shape
 
     def test_invalid_structure_with_repeated_axis(self):
-
         self.frame_axis = 3
         reg_expression = (
             "^Invalid structure: (.*?) each property axis should be unique value between 0 and 3 (inclusive)?"
@@ -158,7 +154,6 @@ class TestReadNumpyMemmapVideo(unittest.TestCase):
 
     @parameterized.expand(input=parameterized_list, name_func=custom_name_func)
     def test_roundtrip(self, dtype, num_channels, num_rows, num_columns, case_name=""):
-
         permutation = self.rng.choice([0, 1, 2, 3], size=4, replace=False)
         rows_axis, columns_axis, channels_axis, frame_axis = permutation
         # Build a video structure

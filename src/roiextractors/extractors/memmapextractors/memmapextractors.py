@@ -15,7 +15,6 @@ from ...extraction_tools import (
 
 
 class MemmapImagingExtractor(ImagingExtractor):
-
     extractor_name = "MemmapImagingExtractor"
 
     def __init__(
@@ -77,7 +76,6 @@ class MemmapImagingExtractor(ImagingExtractor):
         return self.dtype
 
     def get_video_shape(self) -> Tuple[int, int, int, int]:
-
         return (self._num_frames, self._num_rows, self._num_columns, self._num_channels)
 
     @staticmethod

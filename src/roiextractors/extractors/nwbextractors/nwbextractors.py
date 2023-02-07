@@ -150,7 +150,6 @@ class NwbImagingExtractor(ImagingExtractor):
         )
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0):
-
         # Fancy indexing is non performant for h5.py with long frame lists
         if frame_idxs is not None:
             slice_start = np.min(frame_idxs)

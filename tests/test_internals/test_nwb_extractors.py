@@ -67,7 +67,6 @@ class TestNwbImagingExtractor(unittest.TestCase):
             io.write(self.nwbfile)
 
     def test_basic_setup(self):
-
         nwb_imaging_extractor = NwbImagingExtractor(file_path=self.file_path)
 
         image_size = nwb_imaging_extractor.get_image_size()
@@ -114,7 +113,6 @@ class TestNwbImagingExtractor(unittest.TestCase):
         np.testing.assert_array_almost_equal(video, expected_video)
 
     def test_get_frames_indexing_with_single_channel(self):
-
         nwb_imaging_extractor = NwbImagingExtractor(file_path=self.file_path)
         assert_get_frames_return_shape(imaging_extractor=nwb_imaging_extractor)
 

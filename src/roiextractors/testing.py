@@ -64,7 +64,6 @@ def generate_dummy_segmentation_extractor(
     has_neuropil_signal: bool = True,
     rejected_list: Optional[list] = None,
 ) -> SegmentationExtractor:
-
     """
     A dummy segmentation extractor for testing. The segmentation extractor is built by feeding random data into the
     `NumpySegmentationExtractor`.
