@@ -12,7 +12,11 @@ from .extractors.schnitzerextractor import (
 )
 from .extractors.simaextractor import SimaSegmentationExtractor
 from .extractors.suite2p import Suite2pSegmentationExtractor
-from .extractors.tiffimagingextractors import TiffImagingExtractor, ScanImageTiffImagingExtractor
+from .extractors.tiffimagingextractors import (
+    TiffImagingExtractor,
+    ScanImageTiffImagingExtractor,
+    BrukerTiffImagingExtractor,
+)
 from .extractors.sbximagingextractor import SbxImagingExtractor
 from .extractors.memmapextractors import NumpyMemmapImagingExtractor
 from .extractors.memmapextractors import MemmapImagingExtractor
@@ -24,6 +28,7 @@ imaging_extractor_full_list = [
     Hdf5ImagingExtractor,
     TiffImagingExtractor,
     ScanImageTiffImagingExtractor,
+    BrukerTiffImagingExtractor,
     NwbImagingExtractor,
     SbxImagingExtractor,
     NumpyMemmapImagingExtractor,
