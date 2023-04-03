@@ -26,12 +26,11 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
     is_writable = True
     mode = "folder"
 
-    def __init__(self, folder_path: PathType, sampling_frequency: Optional[FloatType] = None):
+    def __init__(self, folder_path: PathType):
         tifffile = _get_tiff_reader()
 
         super().__init__()
         self.folder_path = Path(folder_path)
-        self._sampling_frequency = sampling_frequency
         self.xml_metadata = self._get_xml_metadata()
         self._file_paths = self._get_files_names()
         assert list(self.folder_path.glob("*.ome.tif")), f"The TIF image files are missing from '{self.folder_path}'."
@@ -42,6 +41,10 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
         with tifffile.TiffFile(self.folder_path / self._file_paths[0], _multifile=False) as tif:
             self._height, self._width = tif.pages.first.shape
             self._dtype = tif.pages.first.dtype
+
+        self._sampling_frequency = 1 / float(self.xml_metadata["framePeriod"])
+        file = self._get_xml_root().find(".//File")
+        self._channel_names = [file.attrib["channelName"]]
 
     def _get_xml_root(self):
         xml_file_path = self.folder_path / f"{self.folder_path.stem}.xml"
@@ -92,13 +95,10 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
         return len(self._file_paths)
 
     def get_sampling_frequency(self) -> float:
-        frame_period = float(self.xml_metadata["framePeriod"])
-        return 1 / frame_period
+        return self._sampling_frequency
 
     def get_channel_names(self) -> list:
-        channel_names = [file.attrib["channelName"] for file in self._get_xml_root().findall(".//File")]
-        unique_channel_names = list(set(channel_names))
-        return unique_channel_names
+        return self._channel_names
 
     def get_num_channels(self) -> int:
         channel_names = self.get_channel_names()
@@ -112,7 +112,7 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
         start_frame: Optional[int] = None,
         end_frame: Optional[int] = None,
     ):
-        tiffile = get_package(package_name="tifffile", installation_instructions="pip install tifffile")
+        tiffile = _get_tiff_reader()
 
         for file in self._file_paths[start_frame:end_frame]:
             yield tiffile.memmap(self.folder_path / file, mode="r", _multifile=False)
@@ -120,6 +120,10 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
     ) -> np.ndarray:
+        if channel != 0:
+            raise NotImplementedError(
+                f"The {self.extractor_name}Extractor does not currently support multiple color channels."
+            )
         frames = list(self._frames_iterator(start_frame=start_frame, end_frame=end_frame))
         video = np.stack(frames, axis=0)
         return video
