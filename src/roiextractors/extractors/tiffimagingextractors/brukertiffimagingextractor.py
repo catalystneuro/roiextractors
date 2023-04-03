@@ -52,10 +52,16 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
         tif_file_paths = list(self.folder_path.glob("*.ome.tif"))
         assert tif_file_paths, f"The TIF image files are missing from '{self.folder_path}'."
         if num_sequences != 1:
-            missing_files = [file_path for file_path in self._file_paths if self.folder_path / file_path not in tif_file_paths]
-            assert not missing_files, f"Some of the TIF image files at '{self.folder_path}' are missing for this plane. The list of files that are missing: {missing_files}"
+            missing_files = [
+                file_path for file_path in self._file_paths if self.folder_path / file_path not in tif_file_paths
+            ]
+            assert (
+                not missing_files
+            ), f"Some of the TIF image files at '{self.folder_path}' are missing for this plane. The list of files that are missing: {missing_files}"
         else:
-            assert len(self._file_paths) == len(tif_file_paths), f"The number of TIF image files at '{self.folder_path}' should be equal to the number of frames ({len(self._file_paths)}) specified in the XML configuration file."
+            assert len(self._file_paths) == len(
+                tif_file_paths
+            ), f"The number of TIF image files at '{self.folder_path}' should be equal to the number of frames ({len(self._file_paths)}) specified in the XML configuration file."
 
         with tifffile.TiffFile(self.folder_path / self._file_paths[0], _multifile=False) as tif:
             self._height, self._width = tif.pages.first.shape
