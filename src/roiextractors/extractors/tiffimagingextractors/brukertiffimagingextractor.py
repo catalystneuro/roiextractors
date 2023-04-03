@@ -7,7 +7,7 @@ from xml.etree import ElementTree
 import numpy as np
 
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import PathType, get_package, DtypeType, FloatType
+from ...extraction_tools import PathType, get_package, DtypeType
 
 
 def filter_read_uic_tag_warnings(record):
@@ -113,6 +113,10 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
         end_frame: Optional[int] = None,
     ):
         tiffile = _get_tiff_reader()
+
+        if start_frame is not None and end_frame is not None:
+            if end_frame == start_frame:
+                yield tiffile.memmap(self.folder_path / self._file_paths[start_frame], mode="r", _multifile=False)
 
         for file in self._file_paths[start_frame:end_frame]:
             yield tiffile.memmap(self.folder_path / file, mode="r", _multifile=False)
