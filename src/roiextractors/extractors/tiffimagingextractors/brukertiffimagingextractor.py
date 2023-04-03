@@ -112,8 +112,10 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
         start_frame: Optional[int] = None,
         end_frame: Optional[int] = None,
     ):
+        tiffile = get_package(package_name="tifffile", installation_instructions="pip install tifffile")
+
         for file in self._file_paths[start_frame:end_frame]:
-            yield _get_tiff_reader().memmap(self.folder_path / file, mode="r", _multifile=False)
+            yield tiffile.memmap(self.folder_path / file, mode="r", _multifile=False)
 
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
