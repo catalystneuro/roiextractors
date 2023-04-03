@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from types import ModuleType
-from typing import Optional, Tuple, Union, List, Iterable
+from typing import Optional, Tuple, Union, List, Iterable, Dict
 from xml.etree import ElementTree
 
 import numpy as np
@@ -83,7 +83,7 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
         tree = ElementTree.parse(xml_file_path)
         return tree.getroot()
 
-    def _get_xml_metadata(self) -> dict[str, Union[str, List[dict[str, str]]]]:
+    def _get_xml_metadata(self) -> Dict[str, Union[str, List[Dict[str, str]]]]:
         """
         Parses the metadata in the root element that are under "PVStateValue" tag into
         a dictionary.
