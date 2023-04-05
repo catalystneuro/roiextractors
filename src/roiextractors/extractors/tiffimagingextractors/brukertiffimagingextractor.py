@@ -40,35 +40,28 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
 
         super().__init__()
         self.folder_path = Path(folder_path)
-        tif_file_paths = list(self.folder_path.glob("*.ome.tif"))
-        assert tif_file_paths, f"The TIF image files are missing from '{self.folder_path}'."
 
-        xml_root = self._get_xml_root()
-        sequences = xml_root.findall("Sequence")
+        sequences = self._get_xml_root().findall("Sequence")
         num_sequences = len(sequences)
-        num_frames_first_sequence = len(sequences[0].findall("./Frame"))
-        # The number of "Sequence" elements in the document determine whether multiple z-planes are present.
-        if num_sequences == 1:
-            self._num_frames = num_frames_first_sequence
-            self._num_z_planes = 1
-        else:
-            # Note: could it happen that for the last sequence we have less frames then for the first one?
-            num_frames_last_sequence = len(sequences[-1].findall("Frame"))
-            if num_frames_first_sequence != num_frames_last_sequence:
-                raise NotImplementedError(
-                    f"Not sure how to handle final stack because it was found with fewer z-planes ({num_frames_last_sequence}, expected: {num_frames_first_sequence}).",
-                )
-            self._num_frames = num_sequences
-            self._num_z_planes = num_frames_first_sequence
+        # TODO: extend it to general plane index, but we need example data for it first
+        self._sequence = sequences[0]
+        self._num_frames = len(self._sequence.findall("./Frame"))
 
-        # The ordered list of files in the XML document
-        files = xml_root.findall(".//File")
+        files = self._sequence.findall(".//File")
         self._file_paths = [file.attrib["filename"] for file in files]
         tif_file_paths = list(self.folder_path.glob("*.ome.tif"))
-
-        assert len(self._file_paths) == len(
-            tif_file_paths
-        ), f"The number of TIF image files at '{self.folder_path}' should be equal to the number of frames ({len(self._file_paths)}) specified in the XML configuration file."
+        assert tif_file_paths, f"The TIF image files are missing from '{self.folder_path}'."
+        if num_sequences != 1:
+            missing_files = [
+                file_path for file_path in self._file_paths if self.folder_path / file_path not in tif_file_paths
+            ]
+            assert (
+                not missing_files
+            ), f"Some of the TIF image files at '{self.folder_path}' are missing for this plane. The list of files that are missing: {missing_files}"
+        else:
+            assert len(self._file_paths) == len(
+                tif_file_paths
+            ), f"The number of TIF image files at '{self.folder_path}' should be equal to the number of frames ({len(self._file_paths)}) specified in the XML configuration file."
 
         with tifffile.TiffFile(self.folder_path / self._file_paths[0], _multifile=False) as tif:
             self._height, self._width = tif.pages.first.shape
@@ -127,8 +120,8 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
                                 )
         return xml_metadata
 
-    def get_image_size(self) -> Tuple[int, int, int]:
-        return self._height, self._width, self._num_z_planes
+    def get_image_size(self) -> Tuple[int, int]:
+        return self._height, self._width
 
     def get_num_frames(self) -> int:
         return self._num_frames
@@ -146,7 +139,7 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
     def get_dtype(self) -> DtypeType:
         return self._dtype
 
-    def _frames_iterator_for_single_z_plane(
+    def _frames_iterator(
         self,
         start_frame: Optional[int] = None,
         end_frame: Optional[int] = None,
@@ -155,30 +148,10 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
 
         if start_frame is not None and end_frame is not None:
             if end_frame == start_frame:
-                for file in self._file_paths[start_frame]:
-                    yield tifffile.memmap(self.folder_path / file, mode="r", _multifile=False)
+                yield tifffile.memmap(self.folder_path / self._file_paths[start_frame], mode="r", _multifile=False)
 
-        files_range = self._file_paths[start_frame:end_frame]
-        for file in files_range:
+        for file in self._file_paths[start_frame:end_frame]:
             yield tifffile.memmap(self.folder_path / file, mode="r", _multifile=False)
-
-    def _get_video_for_multi_z_planes(
-        self,
-        start_frame: Optional[int] = None,
-        end_frame: Optional[int] = None,
-    ) -> np.ndarray:
-        tifffile = _get_tiff_reader()
-
-        image_shape = (end_frame - start_frame, *self.get_image_size())
-        video = np.zeros(shape=image_shape, dtype=self.get_dtype())
-        for frame_ind, frame_num in enumerate(np.arange(start_frame, end_frame)):
-            start_f = frame_num * self._num_z_planes
-            end_f = (frame_num * self._num_z_planes) + self._num_z_planes
-            frames = []
-            for file in self._file_paths[start_f:end_f]:
-                frames.append(tifffile.memmap(self.folder_path / file, mode="r", _multifile=False))
-            video[frame_ind] = np.stack(frames, axis=-1)
-        return video
 
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
@@ -187,12 +160,6 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
             raise NotImplementedError(
                 f"The {self.extractor_name}Extractor does not currently support multiple color channels."
             )
-        if self._num_z_planes == 1:
-            frames = list(self._frames_iterator_for_single_z_plane(start_frame=start_frame, end_frame=end_frame))
-            video = np.stack(frames, axis=0)
-            return video[..., np.newaxis]
-
-        start = start_frame if start_frame is not None else 0
-        stop = end_frame if end_frame is not None else self.get_num_frames()
-        video = self._get_video_for_multi_z_planes(start_frame=start, end_frame=stop)
+        frames = list(self._frames_iterator(start_frame=start_frame, end_frame=end_frame))
+        video = np.stack(frames, axis=0)
         return video
