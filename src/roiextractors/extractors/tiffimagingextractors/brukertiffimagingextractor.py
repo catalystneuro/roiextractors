@@ -67,8 +67,8 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
         tif_file_paths = list(self.folder_path.glob("*.ome.tif"))
 
         assert len(self._file_paths) == len(
-                tif_file_paths
-            ), f"The number of TIF image files at '{self.folder_path}' should be equal to the number of frames ({len(self._file_paths)}) specified in the XML configuration file."
+            tif_file_paths
+        ), f"The number of TIF image files at '{self.folder_path}' should be equal to the number of frames ({len(self._file_paths)}) specified in the XML configuration file."
 
         with tifffile.TiffFile(self.folder_path / self._file_paths[0], _multifile=False) as tif:
             self._height, self._width = tif.pages.first.shape
@@ -163,9 +163,9 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
             yield tifffile.memmap(self.folder_path / file, mode="r", _multifile=False)
 
     def _get_video_for_multi_z_planes(
-            self,
-            start_frame: Optional[int] = None,
-            end_frame: Optional[int] = None,
+        self,
+        start_frame: Optional[int] = None,
+        end_frame: Optional[int] = None,
     ) -> np.ndarray:
         tifffile = _get_tiff_reader()
 
