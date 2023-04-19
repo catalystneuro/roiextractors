@@ -71,4 +71,6 @@ class TestBrukerTiffExtractor(TestCase):
         self.assertEqual(xml_metadata["version"], "5.6.64.400")
         self.assertEqual(xml_metadata["date"], "2/20/2023 3:58:25 PM")
         self.assertEqual(xml_metadata["framePeriod"], "0.032953338")
-        self.assertEqual(xml_metadata["micronsPerPixel"], [{"XAxis": "1.1078125"}, {"YAxis": "1.1078125"}, {"ZAxis": "5"}])
+        self.assertEqual(
+            xml_metadata["micronsPerPixel"], [{"XAxis": "1.1078125"}, {"YAxis": "1.1078125"}, {"ZAxis": "5"}]
+        )
