@@ -147,7 +147,9 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
     ) -> Iterable[np.memmap]:
         if start_frame is not None and end_frame is not None:
             if end_frame == start_frame:
-                yield self._tifffile.memmap(self.folder_path / self._file_paths[start_frame], mode="r", _multifile=False)
+                yield self._tifffile.memmap(
+                    self.folder_path / self._file_paths[start_frame], mode="r", _multifile=False
+                )
 
         for file in self._file_paths[start_frame:end_frame]:
             yield self._tifffile.memmap(self.folder_path / file, mode="r", _multifile=False)
