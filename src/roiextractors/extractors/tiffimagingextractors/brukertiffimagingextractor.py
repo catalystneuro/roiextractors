@@ -36,10 +36,15 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
         folder_path : PathType
             The path to the folder that contains the Bruker TIF image files (.ome.tif) and configuration files (.xml, .env).
         """
-        tifffile = _get_tiff_reader()
+        self._tifffile = _get_tiff_reader()
 
         super().__init__()
         self.folder_path = Path(folder_path)
+        tif_file_paths = list(self.folder_path.glob("*.ome.tif"))
+        assert tif_file_paths, f"The TIF image files are missing from '{self.folder_path}'."
+
+        self._xml_file_path = self.folder_path / f"{self.folder_path.name}.xml"
+        assert self._xml_file_path.is_file(), f"The XML configuration file is not found at '{self.folder_path}'."
 
         sequences = self._get_xml_root().findall("Sequence")
         num_sequences = len(sequences)
@@ -49,8 +54,6 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
 
         files = self._sequence.findall(".//File")
         self._file_paths = [file.attrib["filename"] for file in files]
-        tif_file_paths = list(self.folder_path.glob("*.ome.tif"))
-        assert tif_file_paths, f"The TIF image files are missing from '{self.folder_path}'."
         if num_sequences != 1:
             missing_files = [
                 file_path for file_path in self._file_paths if self.folder_path / file_path not in tif_file_paths
@@ -63,7 +66,7 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
                 tif_file_paths
             ), f"The number of TIF image files at '{self.folder_path}' should be equal to the number of frames ({len(self._file_paths)}) specified in the XML configuration file."
 
-        with tifffile.TiffFile(self.folder_path / self._file_paths[0], _multifile=False) as tif:
+        with self._tifffile.TiffFile(self.folder_path / self._file_paths[0], _multifile=False) as tif:
             self._height, self._width = tif.pages.first.shape
             self._dtype = tif.pages.first.dtype
 
@@ -78,9 +81,7 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
         """
         Parses the XML configuration file into element tree and returns the root of this tree.
         """
-        xml_file_path = self.folder_path / f"{self.folder_path.name}.xml"
-        assert Path(xml_file_path).is_file(), f"The XML configuration file is not found at '{self.folder_path}'."
-        tree = ElementTree.parse(xml_file_path)
+        tree = ElementTree.parse(self._xml_file_path)
         return tree.getroot()
 
     def _get_xml_metadata(self) -> Dict[str, Union[str, List[Dict[str, str]]]]:
@@ -144,14 +145,12 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
         start_frame: Optional[int] = None,
         end_frame: Optional[int] = None,
     ) -> Iterable[np.memmap]:
-        tifffile = _get_tiff_reader()
-
         if start_frame is not None and end_frame is not None:
             if end_frame == start_frame:
-                yield tifffile.memmap(self.folder_path / self._file_paths[start_frame], mode="r", _multifile=False)
+                yield self._tifffile.memmap(self.folder_path / self._file_paths[start_frame], mode="r", _multifile=False)
 
         for file in self._file_paths[start_frame:end_frame]:
-            yield tifffile.memmap(self.folder_path / file, mode="r", _multifile=False)
+            yield self._tifffile.memmap(self.folder_path / file, mode="r", _multifile=False)
 
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
