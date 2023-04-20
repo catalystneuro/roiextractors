@@ -6,14 +6,14 @@ from numpy.testing import assert_array_equal
 from tifffile import tifffile
 
 from roiextractors import BrukerTiffImagingExtractor
-#from tests.setup_paths import OPHYS_DATA_PATH
+from tests.setup_paths import OPHYS_DATA_PATH
 
 
 class TestBrukerTiffExtractor(TestCase):
     @classmethod
     def setUpClass(cls):
         folder_path = str(
-            "/Users/weian/ophys_testing_data/imaging_datasets/BrukerTif/NCCR32_2023_02_20_Into_the_void_t_series_baseline-000"
+            OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif" / "NCCR32_2023_02_20_Into_the_void_t_series_baseline-000"
         )
 
         cls.folder_path = folder_path
