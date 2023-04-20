@@ -6,14 +6,14 @@ from numpy.testing import assert_array_equal
 from tifffile import tifffile
 
 from roiextractors import BrukerTiffImagingExtractor
-from tests.setup_paths import OPHYS_DATA_PATH
+#from tests.setup_paths import OPHYS_DATA_PATH
 
 
 class TestBrukerTiffExtractor(TestCase):
     @classmethod
     def setUpClass(cls):
         folder_path = str(
-            OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif" / "NCCR32_2023_02_20_Into_the_void_t_series_baseline-000"
+            "/Users/weian/ophys_testing_data/imaging_datasets/BrukerTif/NCCR32_2023_02_20_Into_the_void_t_series_baseline-000"
         )
 
         cls.folder_path = folder_path
@@ -59,6 +59,9 @@ class TestBrukerTiffExtractor(TestCase):
 
     def test_brukertiffextractor_get_video(self):
         assert_array_equal(self.extractor.get_video(), self.video)
+
+    def test_brukertiffextractor_get_single_frame(self):
+        assert_array_equal(self.extractor.get_frames(frame_idxs=[0]), self.video[0][np.newaxis, ...])
 
     def test_brukertiffextractor_get_video_multi_channel_assertion(self):
         exc_msg = "The BrukerTiffImagingExtractor does not currently support multiple color channels."
