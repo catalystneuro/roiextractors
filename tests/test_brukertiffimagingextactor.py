@@ -13,7 +13,7 @@ class TestBrukerTiffExtractor(TestCase):
     @classmethod
     def setUpClass(cls):
         folder_path = str(
-            OPHYS_DATA_PATH / "imaging_datasets" / "Brukertif" / "NCCR32_2023_02_20_Into_the_void_t_series_baseline-000"
+            OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif" / "NCCR32_2023_02_20_Into_the_void_t_series_baseline-000"
         )
 
         cls.folder_path = folder_path
@@ -71,4 +71,6 @@ class TestBrukerTiffExtractor(TestCase):
         self.assertEqual(xml_metadata["version"], "5.6.64.400")
         self.assertEqual(xml_metadata["date"], "2/20/2023 3:58:25 PM")
         self.assertEqual(xml_metadata["framePeriod"], "0.032953338")
-        self.assertEqual(xml_metadata["micronsPerPixel"], [{"XAxis": "1.1078125"}, {"YAxis": "1.1078125"}, {"ZAxis": "5"}])
+        self.assertEqual(
+            xml_metadata["micronsPerPixel"], [{"XAxis": "1.1078125"}, {"YAxis": "1.1078125"}, {"ZAxis": "5"}]
+        )
