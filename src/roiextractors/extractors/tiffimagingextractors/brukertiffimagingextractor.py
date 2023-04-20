@@ -67,8 +67,8 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
             ), f"The number of TIF image files at '{self.folder_path}' should be equal to the number of frames ({len(self._file_paths)}) specified in the XML configuration file."
 
         with self._tifffile.TiffFile(self.folder_path / self._file_paths[0], _multifile=False) as tif:
-            self._height, self._width = tif.pages.first.shape
-            self._dtype = tif.pages.first.dtype
+            self._height, self._width = tif.pages[0].shape
+            self._dtype = tif.pages[0].dtype
 
         self.xml_metadata = self._get_xml_metadata()
         self._sampling_frequency = 1 / float(self.xml_metadata["framePeriod"])
