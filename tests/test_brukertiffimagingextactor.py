@@ -34,6 +34,11 @@ class TestBrukerTiffExtractor(TestCase):
         cls.test_dir = test_dir
         shutil.copy(Path(folder_path) / file_paths[0], Path(test_dir) / file_paths[0])
 
+    @classmethod
+    def tearDownClass(cls):
+        # remove the temporary directory and its contents
+        shutil.rmtree(cls.test_dir)
+
     def test_tif_files_are_missing_assertion(self):
         folder_path = "not a tiff path"
         exc_msg = f"The TIF image files are missing from '{folder_path}'."
