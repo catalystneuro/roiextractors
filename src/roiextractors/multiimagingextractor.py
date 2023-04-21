@@ -127,7 +127,7 @@ class MultiImagingExtractor(ImagingExtractor):
                 start_frame=relative_start, end_frame=relative_stop
             )
 
-        video_shape = (stop - start,) + self._imaging_extractors[0].get_image_size()
+        video_shape = (stop - start,) + self.get_image_size()
         video = np.empty(shape=video_shape, dtype=self.get_dtype())
         current_frame = 0
 
