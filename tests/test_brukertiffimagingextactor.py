@@ -1,3 +1,5 @@
+import shutil
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -6,7 +8,7 @@ from numpy.testing import assert_array_equal
 from tifffile import tifffile
 
 from roiextractors import BrukerTiffImagingExtractor
-from tests.setup_paths import OPHYS_DATA_PATH
+from .setup_paths import OPHYS_DATA_PATH
 
 
 class TestBrukerTiffExtractor(TestCase):
@@ -20,11 +22,17 @@ class TestBrukerTiffExtractor(TestCase):
         extractor = BrukerTiffImagingExtractor(folder_path=folder_path)
         cls.extractor = extractor
 
+        file_paths = extractor._file_paths
         frames = []
-        for file in extractor._file_paths:
+        for file in file_paths:
             with tifffile.TiffFile(Path(folder_path) / file, _multifile=False) as tif:
                 frames.append(tif.asarray())
         cls.video = np.stack(frames, axis=0)
+
+        # temporary directory for testing assertion when xml file is missing
+        test_dir = tempfile.mkdtemp()
+        cls.test_dir = test_dir
+        shutil.copy(Path(folder_path) / file_paths[0], Path(test_dir) / file_paths[0])
 
     def test_tif_files_are_missing_assertion(self):
         folder_path = "not a tiff path"
@@ -32,12 +40,11 @@ class TestBrukerTiffExtractor(TestCase):
         with self.assertRaisesWith(AssertionError, exc_msg=exc_msg):
             BrukerTiffImagingExtractor(folder_path=folder_path)
 
-    # TODO: create temporary folder, without xml and test on that folder
-    # def test_xml_configuration_file_is_missing_assertion(self):
-    #     folder_path = "/Volumes/t7-ssd/Pinto/brukertiff/test_no_xml"
-    #     exc_msg = f"The XML configuration file is not found at '{folder_path}'."
-    #     with self.assertRaisesWith(AssertionError, exc_msg=exc_msg):
-    #         BrukerTiffImagingExtractor(folder_path=folder_path)
+    def test_xml_configuration_file_is_missing_assertion(self):
+        folder_path = self.test_dir
+        exc_msg = f"The XML configuration file is not found at '{folder_path}'."
+        with self.assertRaisesWith(AssertionError, exc_msg=exc_msg):
+            BrukerTiffImagingExtractor(folder_path=folder_path)
 
     def test_brukertiffextractor_image_size(self):
         self.assertEqual(self.extractor.get_image_size(), (512, 512))
