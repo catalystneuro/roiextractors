@@ -1,6 +1,8 @@
 import json
+import logging
 import re
 from collections import Counter
+from encodings.utf_8 import decode
 from itertools import islice
 from pathlib import Path
 from types import ModuleType
@@ -16,6 +18,13 @@ from ...multiimagingextractor import MultiImagingExtractor
 
 def _get_tiff_reader() -> ModuleType:
     return get_package(package_name="tifffile", installation_instructions="pip install tifffile")
+
+
+def filter_tiff_tag_warnings(record):
+    return not record.msg.startswith("<tifffile.TiffTag 270 @42054>")
+
+
+logging.getLogger("tifffile.tifffile").addFilter(filter_tiff_tag_warnings)
 
 
 class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
@@ -48,7 +57,11 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
 
         first_tif = self.tifffile.TiffFile(self._ome_tif_files[0])
         # extract metadata from Micro-Manager
-        self.micromanager_metadata = first_tif.micromanager_metadata
+        micromanager_metadata = first_tif.micromanager_metadata
+        if micromanager_metadata is None or "Summary" not in micromanager_metadata:
+            micromanager_metadata = first_tif.pages[0].tags["MicroManagerMetadata"].value
+        assert "Summary" in micromanager_metadata, "The 'Summary' field is not found in Micro-Manager metadata."
+        self.micromanager_metadata = micromanager_metadata
         self._width = self.micromanager_metadata["Summary"]["Width"]
         self._height = self.micromanager_metadata["Summary"]["Height"]
         self._num_channels = self.micromanager_metadata["Summary"]["Channels"]
