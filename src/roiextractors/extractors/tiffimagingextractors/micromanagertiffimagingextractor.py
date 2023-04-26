@@ -4,7 +4,7 @@ from collections import Counter
 from itertools import islice
 from pathlib import Path
 from types import ModuleType
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict
 
 from xml.etree import ElementTree
 import numpy as np
@@ -26,8 +26,9 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
     def __init__(self, folder_path: PathType):
         """
         The imaging extractor for the Micro-Manager TIF image format.
-        This format consists of multiple TIF image files in multipage OME-TIF format (.ome.tif files)
-        and 'DisplaySettings' JSON file.
+        The image file stacks are saved into multipage TIF files in OME-TIFF format (.ome.tif files),
+        each of which are up to around 4GB in size.
+        The 'DisplaySettings' JSON file contains the properties of Micro-Manager.
 
         Parameters
         ----------
@@ -38,24 +39,26 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         self.tifffile = _get_tiff_reader()
         self.folder_path = Path(folder_path)
 
-        ome_tif_files = list(self.folder_path.glob("*.ome.tif"))
-        assert ome_tif_files, f"The TIF image files are missing from '{folder_path}'."
+        self._ome_tif_files = list(self.folder_path.glob("*.ome.tif"))
+        assert self._ome_tif_files, f"The TIF image files are missing from '{folder_path}'."
 
         # load the 'DisplaySettings.json' file that contains the sampling frequency of images
         settings = self._load_settings_json()
-        self._sampling_frequency = float(settings["map"]["PlaybackFPS"]["scalar"])
+        self._sampling_frequency = float(settings["PlaybackFPS"]["scalar"])
 
-        # load the first tif
-        first_tif = self.tifffile.TiffFile(self.folder_path / ome_tif_files[0])
-
+        first_tif = self.tifffile.TiffFile(self._ome_tif_files[0])
         # extract metadata from Micro-Manager
         self.micromanager_metadata = first_tif.micromanager_metadata
         self._width = self.micromanager_metadata["Summary"]["Width"]
         self._height = self.micromanager_metadata["Summary"]["Height"]
         self._num_channels = self.micromanager_metadata["Summary"]["Channels"]
+        if self._num_channels > 1:
+            raise NotImplementedError(
+                f"The {self.extractor_name}Extractor does not currently support multiple color channels."
+            )
         self._channel_names = self.micromanager_metadata["Summary"]["ChNames"]
 
-        # extact metadata from OME XML
+        # extact metadata from OME-XML specification
         self._ome_metadata = first_tif.ome_metadata
         ome_metadata_root = self._get_ome_xml_root()
 
@@ -71,32 +74,49 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
 
         # count the number of occurrences of each file path and their names
         file_counts = Counter(file_names)
+        self._check_missing_files_in_folder(expected_list_of_files=list(file_counts.keys()))
         # Initialize the private imaging extractors with the number of frames for each file
         imaging_extractors = []
-        # TODO make sure Counter returns the right order of image files
         for file_path, num_frames_per_file in file_counts.items():
-            extractor = _SubMicroManagerTiffImagingExtractor(self.folder_path / file_path)
+            extractor = _MicroManagerTiffImagingExtractor(self.folder_path / file_path)
             extractor._num_frames = num_frames_per_file
             extractor._image_size = (self._height, self._width)
             imaging_extractors.append(extractor)
         super().__init__(imaging_extractors=imaging_extractors)
 
-    def _load_settings_json(self):
+    def _load_settings_json(self) -> Dict[str, Dict[str, str]]:
+        """
+        Loads the 'DisplaySettings' JSON file.
+        """
         file_name = "DisplaySettings.json"
         settings_json_file_path = self.folder_path / file_name
         assert settings_json_file_path.exists(), f"'{file_name}' file not found at '{self.folder_path}'."
 
         with open(settings_json_file_path, "r") as f:
             settings = json.load(f)
-        return settings
+        assert "map" in settings, "The Micro-Manager property 'map' key is missing."
+        return settings["map"]
 
-    def _get_ome_xml_root(self):
+    def _get_ome_xml_root(self) -> ElementTree:
         """
         Parses the OME-XML configuration from string format into element tree and returns the root of this tree.
         """
         ome_metadata_element = ElementTree.fromstring(self._ome_metadata)
         tree = ElementTree.ElementTree(ome_metadata_element)
         return tree.getroot()
+
+    def _check_missing_files_in_folder(self, expected_list_of_files):
+        """
+        Checks the presence of each TIF file that is expected to be found in the folder.
+        Raises an error when the files are not found with the name of the missing files.
+        """
+        missing_files = [
+            file_name for file_name in expected_list_of_files if
+            self.folder_path / file_name not in self._ome_tif_files
+        ]
+        assert (
+            not missing_files
+        ), f"Some of the TIF image files at '{self.folder_path}' are missing. The list of files that are missing: {missing_files}"
 
     def _check_consistency_between_imaging_extractors(self):
         """Overrides the parent class method as none of the properties that are checked are from the sub-imaging extractors."""
@@ -121,8 +141,8 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         return self._dtype
 
 
-class _SubMicroManagerTiffImagingExtractor(ImagingExtractor):
-    extractor_name = "_SubMicroManagerTiffImaging"
+class _MicroManagerTiffImagingExtractor(ImagingExtractor):
+    extractor_name = "_MicroManagerTiffImaging"
     is_writable = True
     mode = "file"
 
@@ -132,9 +152,9 @@ class _SubMicroManagerTiffImagingExtractor(ImagingExtractor):
 
     def __init__(self, file_path: PathType):
         """
-        The private imaging extractor for the WideField OME-TIF image format.
+        The private imaging extractor for OME-TIF image format produced by Micro-Manager,
+        which defines the get_video() method to return the requested frames from a given file.
         This extractor is not meant to be used as a standalone ImagingExtractor.
-        TODO: more explanation
 
         Parameters
         ----------
