@@ -1,6 +1,7 @@
 import json
 import re
 from collections import Counter
+from itertools import islice
 from pathlib import Path
 from types import ModuleType
 from typing import Optional, Tuple
@@ -76,6 +77,7 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         for file_path, num_frames_per_file in file_counts.items():
             extractor = _SubMicroManagerTiffImagingExtractor(self.folder_path / file_path)
             extractor._num_frames = num_frames_per_file
+            extractor._image_size = (self._height, self._width)
             imaging_extractors.append(extractor)
         super().__init__(imaging_extractors=imaging_extractors)
 
@@ -124,7 +126,6 @@ class _SubMicroManagerTiffImagingExtractor(ImagingExtractor):
     is_writable = True
     mode = "file"
 
-    IMAGE_SIZE_ERROR = "The {}Extractor does not support retrieving the image size."
     SAMPLING_FREQ_ERROR = "The {}Extractor does not support retrieving the imaging rate."
     CHANNEL_NAMES_ERROR = "The {}Extractor does not support retrieving the name of the channels."
     DATA_TYPE_ERROR = "The {}Extractor does not support retrieving the data type."
@@ -147,6 +148,7 @@ class _SubMicroManagerTiffImagingExtractor(ImagingExtractor):
 
         self.pages = self.tifffile.TiffFile(self.file_path).pages
         self._num_frames = None
+        self._image_size = None
 
     def get_num_frames(self):
         return self._num_frames
@@ -155,7 +157,7 @@ class _SubMicroManagerTiffImagingExtractor(ImagingExtractor):
         return 1
 
     def get_image_size(self):
-        raise NotImplementedError(self.IMAGE_SIZE_ERROR.format(self.extractor_name))
+        return self._image_size
 
     def get_sampling_frequency(self):
         raise NotImplementedError(self.SAMPLING_FREQ_ERROR.format(self.extractor_name))
@@ -174,9 +176,11 @@ class _SubMicroManagerTiffImagingExtractor(ImagingExtractor):
                 f"The {self.extractor_name}Extractor does not currently support multiple color channels."
             )
         if start_frame is not None and end_frame is not None and start_frame == end_frame:
-            page = self.pages[start_frame]
-            return page.asarray()[np.newaxis, ...]
+            return self.pages[start_frame].asarray()
 
-        pages = self.pages[start_frame:end_frame]
-        frames = [page.asarray() for page in pages]
-        return np.stack(frames)
+        end_frame = end_frame or self.get_num_frames()
+        start_frame = start_frame or 0
+        video = np.zeros(shape=(end_frame - start_frame, *self.get_image_size()))
+        for page_ind, page in enumerate(islice(self.pages, start_frame, end_frame)):
+            video[page_ind] = page.asarray()
+        return video
