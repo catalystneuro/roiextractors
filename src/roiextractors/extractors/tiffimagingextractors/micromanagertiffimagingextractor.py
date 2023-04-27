@@ -19,17 +19,8 @@ def _get_tiff_reader() -> ModuleType:
     return get_package(package_name="tifffile", installation_instructions="pip install tifffile")
 
 
-def filter_tiff_tag_warnings(record):
-    return not record.msg.startswith("<tifffile.TiffTag 270 @42054>")
-
-
-logging.getLogger("tifffile.tifffile").addFilter(filter_tiff_tag_warnings)
-
-
 class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
     extractor_name = "MicroManagerTiffImaging"
-    installed = True
-    installation_mesg = ""
 
     def __init__(self, folder_path: PathType):
         """
@@ -102,7 +93,7 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         """
         file_name = "DisplaySettings.json"
         settings_json_file_path = self.folder_path / file_name
-        assert settings_json_file_path.exists(), f"'{file_name}' file not found at '{self.folder_path}'."
+        assert settings_json_file_path.exists(), f"The '{file_name}' file is not found at '{self.folder_path}'."
 
         with open(settings_json_file_path, "r") as f:
             settings = json.load(f)
@@ -202,10 +193,6 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
     ) -> np.ndarray:
-        if channel != 0:
-            raise NotImplementedError(
-                f"The {self.extractor_name}Extractor does not currently support multiple color channels."
-            )
         if start_frame is not None and end_frame is not None and start_frame == end_frame:
             return self.pages[start_frame].asarray()
 
