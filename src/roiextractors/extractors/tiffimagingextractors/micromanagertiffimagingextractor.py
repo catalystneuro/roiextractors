@@ -123,8 +123,7 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         Raises an error when the files are not found with the name of the missing files.
         """
         missing_files = [
-            file_name for file_name in expected_list_of_files if
-            self.folder_path / file_name not in self._ome_tif_files
+            file_name for file_name in expected_list_of_files if self.folder_path / file_name not in self._ome_tif_files
         ]
         assert (
             not missing_files
