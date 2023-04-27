@@ -14,9 +14,7 @@ from tests.setup_paths import OPHYS_DATA_PATH
 class TestMicroManagerTiffExtractor(TestCase):
     @classmethod
     def setUpClass(cls):
-        folder_path = str(
-            OPHYS_DATA_PATH / "imaging_datasets" / "MicroManagerTif" / "TS12_20220407_20hz_noteasy_1"
-        )
+        folder_path = str(OPHYS_DATA_PATH / "imaging_datasets" / "MicroManagerTif" / "TS12_20220407_20hz_noteasy_1")
         cls.folder_path = Path(folder_path)
         file_paths = [
             "TS12_20220407_20hz_noteasy_1_MMStack_Default.ome.tif",
@@ -45,7 +43,7 @@ class TestMicroManagerTiffExtractor(TestCase):
     def tearDownClass(cls):
         pass
         # remove the temporary directory and its contents
-        #shutil.rmtree(cls.test_dir)
+        # shutil.rmtree(cls.test_dir)
 
     def test_tif_files_are_missing_assertion(self):
         folder_path = "not a tiff path"
@@ -81,5 +79,4 @@ class TestMicroManagerTiffExtractor(TestCase):
         assert_array_equal(self.extractor.get_video(), self.video)
 
     def test_brukertiffextractor_get_single_frame(self):
-        assert_array_equal(self.extractor.get_frames(frame_idxs=[0]),
-                           self.video[0][np.newaxis, ...])
+        assert_array_equal(self.extractor.get_frames(frame_idxs=[0]), self.video[0][np.newaxis, ...])
