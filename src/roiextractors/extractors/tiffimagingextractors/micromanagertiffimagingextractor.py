@@ -2,7 +2,6 @@ import json
 import logging
 import re
 from collections import Counter
-from encodings.utf_8 import decode
 from itertools import islice
 from pathlib import Path
 from types import ModuleType
