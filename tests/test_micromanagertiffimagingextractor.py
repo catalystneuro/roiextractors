@@ -28,8 +28,14 @@ class TestMicroManagerTiffExtractor(TestCase):
 
         # temporary directory for testing assertion when xml file is missing
         test_dir = tempfile.mkdtemp()
-        cls.test_dir = test_dir
+        cls.test_dir_1 = test_dir
         shutil.copy(Path(folder_path) / file_paths[0], Path(test_dir) / file_paths[0])
+
+        # temporary directory for testing when some of the files are missing
+        test_dir = tempfile.mkdtemp()
+        cls.test_dir_2 = test_dir
+        shutil.copy(Path(folder_path) / file_paths[0], Path(test_dir) / file_paths[0])
+        shutil.copy(Path(folder_path) / "DisplaySettings.json", Path(test_dir) / "DisplaySettings.json")
 
     @classmethod
     def _get_test_video(cls):
@@ -41,7 +47,8 @@ class TestMicroManagerTiffExtractor(TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        shutil.rmtree(cls.test_dir)
+        shutil.rmtree(cls.test_dir_1)
+        shutil.rmtree(cls.test_dir_2)
 
     def test_tif_files_are_missing_assertion(self):
         folder_path = "not a tiff path"
@@ -50,16 +57,14 @@ class TestMicroManagerTiffExtractor(TestCase):
             MicroManagerTiffImagingExtractor(folder_path=folder_path)
 
     def test_json_file_is_missing_assertion(self):
-        folder_path = self.test_dir
-        exc_msg = f"The 'DisplaySettings.json' file is not found at '{folder_path}'."
+        exc_msg = f"The 'DisplaySettings.json' file is not found at '{self.test_dir_1}'."
         with self.assertRaisesWith(AssertionError, exc_msg=exc_msg):
-            MicroManagerTiffImagingExtractor(folder_path=folder_path)
+            MicroManagerTiffImagingExtractor(folder_path=self.test_dir_1)
 
     def test_list_of_missing_tif_files_assertion(self):
-        shutil.copy(Path(self.folder_path) / "DisplaySettings.json", Path(self.test_dir) / "DisplaySettings.json")
-        exc_msg = f"Some of the TIF image files at '{self.test_dir}' are missing. The list of files that are missing: {self.file_paths[1:]}"
+        exc_msg = f"Some of the TIF image files at '{self.test_dir_2}' are missing. The list of files that are missing: {self.file_paths[1:]}"
         with self.assertRaisesWith(AssertionError, exc_msg=exc_msg):
-            MicroManagerTiffImagingExtractor(folder_path=self.test_dir)
+            MicroManagerTiffImagingExtractor(folder_path=self.test_dir_2)
 
     def test_micromanagertiffextractor_image_size(self):
         self.assertEqual(self.extractor.get_image_size(), (1024, 1024))
