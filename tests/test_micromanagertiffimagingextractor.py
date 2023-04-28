@@ -55,6 +55,12 @@ class TestMicroManagerTiffExtractor(TestCase):
         with self.assertRaisesWith(AssertionError, exc_msg=exc_msg):
             MicroManagerTiffImagingExtractor(folder_path=folder_path)
 
+    def test_list_of_missing_tif_files_assertion(self):
+        shutil.copy(Path(self.folder_path) / "DisplaySettings.json", Path(self.test_dir) / "DisplaySettings.json")
+        exc_msg = f"Some of the TIF image files at '{self.test_dir}' are missing. The list of files that are missing: {self.file_paths[1:]}"
+        with self.assertRaisesWith(AssertionError, exc_msg=exc_msg):
+            MicroManagerTiffImagingExtractor(folder_path=self.test_dir)
+
     def test_micromanagertiffextractor_image_size(self):
         self.assertEqual(self.extractor.get_image_size(), (1024, 1024))
 
