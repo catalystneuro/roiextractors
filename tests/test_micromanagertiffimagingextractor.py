@@ -41,9 +41,7 @@ class TestMicroManagerTiffExtractor(TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        pass
-        # remove the temporary directory and its contents
-        # shutil.rmtree(cls.test_dir)
+        shutil.rmtree(cls.test_dir)
 
     def test_tif_files_are_missing_assertion(self):
         folder_path = "not a tiff path"
@@ -60,23 +58,48 @@ class TestMicroManagerTiffExtractor(TestCase):
     def test_micromanagertiffextractor_image_size(self):
         self.assertEqual(self.extractor.get_image_size(), (1024, 1024))
 
-    def test_brukertiffextractor_num_frames(self):
+    def test_micromanagertiffextractor_num_frames(self):
         self.assertEqual(self.extractor.get_num_frames(), 15)
 
-    def test_brukertiffextractor_sampling_frequency(self):
+    def test_micromanagertiffextractor_sampling_frequency(self):
         self.assertEqual(self.extractor.get_sampling_frequency(), 20.0)
 
-    def test_brukertiffextractor_channel_names(self):
+    def test_micromanagertiffextractor_channel_names(self):
         self.assertEqual(self.extractor.get_channel_names(), ["Default"])
 
-    def test_brukertiffextractor_num_channels(self):
+    def test_micromanagertiffextractor_num_channels(self):
         self.assertEqual(self.extractor.get_num_channels(), 1)
 
-    def test_brukertiffextractor_dtype(self):
+    def test_micromanagertiffextractor_dtype(self):
         self.assertEqual(self.extractor.get_dtype(), np.uint16)
 
-    def test_brukertiffextractor_get_video(self):
+    def test_micromanagertiffextractor_get_video(self):
         assert_array_equal(self.extractor.get_video(), self.video)
 
-    def test_brukertiffextractor_get_single_frame(self):
+    def test_micromanagertiffextractor_get_single_frame(self):
         assert_array_equal(self.extractor.get_frames(frame_idxs=[0]), self.video[0][np.newaxis, ...])
+
+    def test_private_micromanagertiffextractor_num_frames(self):
+        for sub_extractor in self.extractor._imaging_extractors:
+            self.assertEqual(sub_extractor.get_num_frames(), 5)
+
+    def test_private_micromanagertiffextractor_num_channels(self):
+        self.assertEqual(self.extractor._imaging_extractors[0].get_num_channels(), 1)
+
+    def test_private_micromanagertiffextractor_sampling_frequency(self):
+        sub_extractor = self.extractor._imaging_extractors[0]
+        exc_msg = f"The {sub_extractor.extractor_name}Extractor does not support retrieving the imaging rate."
+        with self.assertRaisesWith(NotImplementedError, exc_msg=exc_msg):
+            self.extractor._imaging_extractors[0].get_sampling_frequency()
+
+    def test_private_micromanagertiffextractor_channel_names(self):
+        sub_extractor = self.extractor._imaging_extractors[0]
+        exc_msg = f"The {sub_extractor.extractor_name}Extractor does not support retrieving the name of the channels."
+        with self.assertRaisesWith(NotImplementedError, exc_msg=exc_msg):
+            self.extractor._imaging_extractors[0].get_channel_names()
+
+    def test_private_micromanagertiffextractor_dtype(self):
+        sub_extractor = self.extractor._imaging_extractors[0]
+        exc_msg = f"The {sub_extractor.extractor_name}Extractor does not support retrieving the data type."
+        with self.assertRaisesWith(NotImplementedError, exc_msg=exc_msg):
+            self.extractor._imaging_extractors[0].get_dtype()

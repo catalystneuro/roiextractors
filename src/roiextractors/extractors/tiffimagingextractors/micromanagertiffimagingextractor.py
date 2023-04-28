@@ -48,8 +48,6 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         first_tif = self.tifffile.TiffFile(self._ome_tif_files[0])
         # extract metadata from Micro-Manager
         micromanager_metadata = first_tif.micromanager_metadata
-        if micromanager_metadata is None or "Summary" not in micromanager_metadata:
-            micromanager_metadata = first_tif.pages[0].tags["MicroManagerMetadata"].value
         assert "Summary" in micromanager_metadata, "The 'Summary' field is not found in Micro-Manager metadata."
         self.micromanager_metadata = micromanager_metadata
         self._width = self.micromanager_metadata["Summary"]["Width"]
