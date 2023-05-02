@@ -1,3 +1,4 @@
 from .tiffimagingextractor import TiffImagingExtractor
 from .scanimagetiffimagingextractor import ScanImageTiffImagingExtractor
 from .brukertiffimagingextractor import BrukerTiffImagingExtractor
+from .micromanagertiffimagingextractor import MicroManagerTiffImagingExtractor
