@@ -41,6 +41,7 @@ class TestMicroManagerTiffExtractor(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        Path(cls.folder_path / cls.file_paths[0]).unlink()
         shutil.rmtree(cls.test_dir)
 
     def test_tif_files_are_missing_assertion(self):
