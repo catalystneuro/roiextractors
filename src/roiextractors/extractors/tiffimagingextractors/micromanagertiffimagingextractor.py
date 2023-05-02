@@ -15,6 +15,13 @@ from ...extraction_tools import PathType, get_package, DtypeType
 from ...multiimagingextractor import MultiImagingExtractor
 
 
+def filter_tiff_tag_warnings(record):
+    return not record.msg.startswith("<tifffile.TiffTag 270 @42054>")
+
+
+logging.getLogger("tifffile.tifffile").addFilter(filter_tiff_tag_warnings)
+
+
 def _get_tiff_reader() -> ModuleType:
     return get_package(package_name="tifffile", installation_instructions="pip install tifffile")
 
