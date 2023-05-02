@@ -1,5 +1,6 @@
 import shutil
 import tempfile
+from pathlib import Path
 from warnings import warn
 
 import numpy as np
