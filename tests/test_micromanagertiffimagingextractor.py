@@ -43,11 +43,11 @@ class TestMicroManagerTiffExtractor(TestCase):
     @classmethod
     def tearDownClass(cls):
         try:
-            Path(cls.folder_path / cls.file_paths[0]).unlink()
+            (Path(cls.test_dir) / cls.file_paths[0]).unlink()
             shutil.rmtree(cls.test_dir)
         except PermissionError:  # Windows
             warn(
-                f"Unable to cleanup testing data at {cls.folder_path / cls.file_paths[0]}! Please remove them manually."
+                f"Unable to cleanup testing data at {cls.test_dir / cls.file_paths[0]}! Please remove them manually."
             )
 
     def test_tif_files_are_missing_assertion(self):
