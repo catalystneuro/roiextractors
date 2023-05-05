@@ -75,7 +75,7 @@ class TestMicroManagerTiffExtractor(TestCase):
         self.assertEqual(self.extractor.get_sampling_frequency(), 20.0)
 
     def test_micromanagertiffextractor_channel_names(self):
-        self.assertEqual(self.extractor.get_channel_names(), ["Default"])
+        self.assertEqual(self.extractor.get_channel_names(), ["OpticalChannelDefault"])
 
     def test_micromanagertiffextractor_num_channels(self):
         self.assertEqual(self.extractor.get_num_channels(), 1)

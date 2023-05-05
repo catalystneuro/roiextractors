@@ -64,7 +64,9 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
             raise NotImplementedError(
                 f"The {self.extractor_name}Extractor does not currently support multiple color channels."
             )
-        self._channel_names = self.micromanager_metadata["Summary"]["ChNames"]
+        channel_name = self.micromanager_metadata["Summary"]["ChNames"][0]
+        # adding "OpticalChannel" as Micro-Manager uses "Default" as channel name
+        self._channel_names = ["OpticalChannel" + channel_name]
 
         # extact metadata from OME-XML specification
         self._ome_metadata = first_tif.ome_metadata
