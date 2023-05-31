@@ -3,7 +3,6 @@ import re
 from pathlib import Path
 from typing import Optional, Tuple, List
 
-import cv2
 import numpy as np
 from natsort import natsorted
 
@@ -11,7 +10,7 @@ from neuroconv.datainterfaces.behavior.video.video_utils import VideoCaptureCont
 
 from ...imagingextractor import ImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor
-from ...extraction_tools import PathType, DtypeType
+from ...extraction_tools import PathType, DtypeType, get_package
 
 
 class MiniscopeImagingExtractor(MultiImagingExtractor):
@@ -19,7 +18,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
     is_writable = True
     mode = "folder"
 
-    def __init__(self, folder_path: PathType, configuration_file_name: str = "metaData.json"):
+    def __init__(self, folder_path: PathType):
         """
         The imaging extractor for the Miniscope video (.avi) format.
         This format consists of video (.avi) file(s) and configuration files (.json).
@@ -29,12 +28,11 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         ----------
         folder_path: PathType
            The folder path that contains the Miniscope data.
-        configuration_file_name: str, optional
-            The name of the JSON configuration file, default is 'metaData.json'.
         """
 
         self.folder_path = Path(folder_path)
 
+        configuration_file_name = "metaData.json"
         miniscope_avi_file_paths = natsorted(list(self.folder_path.glob("*/Miniscope/*.avi")))
         assert miniscope_avi_file_paths, f"The Miniscope movies (.avi files) are missing from '{self.folder_path}'."
         miniscope_config_files = natsorted(list(self.folder_path.glob(f"*/Miniscope/{configuration_file_name}")))
@@ -58,6 +56,7 @@ class _MiniscopeImagingExtractor(ImagingExtractor):
     extractor_name = "_MiniscopeImaging"
 
     def __init__(self, file_path: PathType):
+        self._cv2 = get_package(package_name="cv2", installation_instructions="pip install opencv-python-headless")
         self.file_path = file_path
         super().__init__()
 
@@ -84,16 +83,19 @@ class _MiniscopeImagingExtractor(ImagingExtractor):
         return self._dtype
 
     def get_channel_names(self) -> List[str]:
-        # What are the name of the channels here?
-        # this depends on whether these color channels are duplicated or not
-        # TODO: check in minian how they are reading these files
-        # maybe there is a casting rule from uint8 to 16
-        # they are def. not separate optical channels
-        return ["channel_0"]
+        return ["OpticalChannel"]
 
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
     ) -> np.ndarray:
+        """
+        The grayscale conversion is based on minian
+        https://github.com/denisecailab/minian/blob/f64c456ca027200e19cf40a80f0596106918fd09/minian/utilities.py#LL272C12-L272C12
+        """
+        if channel != 0:
+            raise NotImplementedError(
+                f"The {self.extractor_name}Extractor does not currently support multiple color channels."
+            )
 
         end_frame = end_frame or self.get_num_frames()
         start_frame = start_frame or 0
@@ -104,7 +106,6 @@ class _MiniscopeImagingExtractor(ImagingExtractor):
             video_obj.current_frame = start_frame
             for frame_number in range(end_frame - start_frame):
                 frame = next(video_obj)
-                # grayscale conversion is based on minian (todo: add ref)
-                video[frame_number] = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+                video[frame_number] = self._cv2.cvtColor(frame, self._cv2.COLOR_RGB2GRAY)
 
         return video
