@@ -9,12 +9,16 @@ from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
 
 from roiextractors import MiniscopeImagingExtractor
+from .setup_paths import OPHYS_DATA_PATH
 
 
 class TestMiniscopeExtractor(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.folder_path = Path("/Volumes/t7-ssd/Miniscope/test_data/C6-J588_Disc5")
+        # TODO: upload test data (waiting on approval)
+        cls.folder_path = Path(
+            OPHYS_DATA_PATH / "imaging_datasets" / "Miniscope" / "C6-J588_Disc5"
+        )
         cls.file_paths = [
             "15_03_28/Miniscope/0.avi",
             "15_06_28/Miniscope/0.avi",
@@ -69,7 +73,7 @@ class TestMiniscopeExtractor(TestCase):
         self.assertEqual(self.extractor.get_num_channels(), 1)
 
     def test_miniscopeextractor_channel_names(self):
-        self.assertEqual(self.extractor.get_channel_names(), ["channel_0"])
+        self.assertEqual(self.extractor.get_channel_names(), ["OpticalChannel"])
 
     def test_miniscopeextractor_sampling_frequency(self):
         self.assertEqual(self.extractor.get_sampling_frequency(), 15.0)
