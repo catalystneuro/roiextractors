@@ -119,7 +119,7 @@ To update data later, `cd` into the test directory and run `gin get-content`
 
 ## Class descriptions:
 
-*  **SegmentationExtractor:** An abstract class that contains all the meta-data and output data from the ROI segmentation operation when applied to the pre-processed data. It also contains methods to read from and write to various data formats ouput from  the processing pipelines like SIMA, CaImAn, Suite2p, CNNM-E.
+*  **SegmentationExtractor:** An abstract class that contains all the meta-data and output data from the ROI segmentation operation when applied to the pre-processed data. It also contains methods to read from and write to various data formats ouput from  the processing pipelines like SIMA, CaImAn, Suite2p, CNMF-E.
 
 *  **NumpySegmentationExtractor:** Contains all data coming from a file format for which there is currently no support. To construct this, all data must be entered manually as arguments.
 

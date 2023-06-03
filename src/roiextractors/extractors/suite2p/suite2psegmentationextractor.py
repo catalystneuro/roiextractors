@@ -1,6 +1,7 @@
 import shutil
 from pathlib import Path
 from typing import Optional
+import warnings
 
 import numpy as np
 
@@ -22,6 +23,9 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         folder_path: Optional[PathType] = None,
         combined: bool = False,
         plane_no: IntType = 0,
+        search_plane_subdirectory: bool = True,
+        allow_incomplete_import: bool = False,
+        warn_missing_files: bool = True,
         file_path: Optional[PathType] = None,
     ):
         """
@@ -34,6 +38,14 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             if the plane is a combined plane as in the Suite2p pipeline
         plane_no: int
             the plane for which to extract segmentation for.
+        search_plane_subdirectory: bool
+            If True, will search for files in 'folder_path/plane{plane_no}',
+             else will search for files in 'folder_path'.
+        allow_incomplete_import: bool
+            If True, will not raise an error if the file is incomplete.
+        warn_missing_files: bool
+            If True, will raise a warning if a file is incomplete and
+             allow_incomplete_import is True.
         file_path: str or Path [Deprecated]
             ~/suite2p folder location on disk
 
@@ -56,12 +68,27 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self.plane_no = plane_no
         self.folder_path = Path(folder_path)
 
-        self.stat = self._load_npy("stat.npy")
-        self._roi_response_raw = self._load_npy("F.npy", mmap_mode="r").T
-        self._roi_response_neuropil = self._load_npy("Fneu.npy", mmap_mode="r").T
-        self._roi_response_deconvolved = self._load_npy("spks.npy", mmap_mode="r").T
-        self.iscell = self._load_npy("iscell.npy", mmap_mode="r")
-        self.ops = self._load_npy("ops.npy").item()
+        self._search_plane_subdirectory = search_plane_subdirectory
+
+        def try_load_npy(filename, mmap_mode=None, fn_transform=lambda x: x):
+            """
+            This function allows for incomplete import of files.
+            """
+            try:
+                return fn_transform(self._load_npy(filename, mmap_mode=mmap_mode))
+            except FileNotFoundError:
+                if allow_incomplete_import:
+                    warnings.warn(f"File {filename} not found.") if warn_missing_files else None
+                    return None
+                else:
+                    raise FileNotFoundError(f"File {filename} not found.")
+                
+        self.stat = try_load_npy("stat.npy")
+        self._roi_response_raw = try_load_npy("F.npy", mmap_mode="r", fn_transform=lambda x: x.T)
+        self._roi_response_neuropil = try_load_npy("Fneu.npy", mmap_mode="r", fn_transform=lambda x: x.T)
+        self._roi_response_deconvolved = try_load_npy("spks.npy", mmap_mode="r", fn_transform=lambda x: x.T)
+        self.iscell = try_load_npy("iscell.npy", mmap_mode="r")
+        self.ops = try_load_npy("ops.npy", fn_transform=lambda x: x.item())
 
         self._channel_names = [f"OpticalChannel{i}" for i in range(self.ops["nchannels"])]
         self._sampling_frequency = self.ops["fs"] * [2 if self.combined else 1][0]
@@ -70,7 +97,11 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self._image_mean = self._summary_image_read("meanImg")
 
     def _load_npy(self, filename, mmap_mode=None):
-        file_path = self.folder_path / f"plane{self.plane_no}" / filename
+        if self._search_plane_subdirectory:
+            file_path = self.folder_path / f"plane{self.plane_no}" / filename
+        else:
+            file_path = self.folder_path / filename
+        assert file_path.exists(), f"File {file_path} does not exist, but is required for this extractor."
         return np.load(file_path, mmap_mode=mmap_mode, allow_pickle=mmap_mode is None)
 
     def get_accepted_list(self):
@@ -115,7 +146,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             pixel_mask.append(
                 np.vstack(
                     [
-                        self.ops["Ly"] - 1 - self.stat[i]["ypix"],
+                        self.stat[i]["ypix"],
                         self.stat[i]["xpix"],
                         self.stat[i]["lam"],
                     ]
@@ -173,7 +204,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         for no, i in enumerate(stat):
             stat[no] = {
                 "med": roi_locs[no, :].tolist(),
-                "ypix": segmentation_object.get_image_size()[0] - 1 - pixel_masks[no][:, 0],
+                "ypix": pixel_masks[no][:, 0],
                 "xpix": pixel_masks[no][:, 1],
                 "lam": pixel_masks[no][:, 2],
             }
