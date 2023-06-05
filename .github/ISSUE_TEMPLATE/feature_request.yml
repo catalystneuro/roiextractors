@@ -8,32 +8,14 @@ body:
       value: |
         ## Thank you for your suggestion!
 
-        We welcome any ideas about how to make **nwb-conversion-tools** better for the community.
+        We welcome any ideas about how to make **roiextractors** better for the community.
 
         Please keep in mind that new features may not get implemented immediately.
   - type: textarea
     id: summary
     attributes:
-      label: What would you like to see added to nwb-conversion-tools?
-      description: |
-        What are you trying to achieve with **nwb-conversion-tools**?
-
-        Is this a more convenient way to do something that is already possible, or is a workaround currently unfeasible?
-    validations:
-      required: true
-  - type: textarea
-    id: problem
-    attributes:
-      label: Is your feature request related to a problem?
-      description: A clear and concise description of what the problem is.
-  - type: textarea
-    id: solution
-    attributes:
-      label: What solution would you like?
-      description: |
-        A clear and concise description of what you want to happen.
-
-        Describe alternative solutions you have considered.
+      label: What would you like to see added to ROI Extractors?
+      description: Is this a more convenient way to do something that is already possible, or is a workaround currently unfeasible?
     validations:
       required: true
   - type: dropdown

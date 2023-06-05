@@ -34,12 +34,14 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         miniscope_avi_file_paths = natsort.natsorted(list(self.folder_path.glob("*/Miniscope/*.avi")))
         assert miniscope_avi_file_paths, f"The Miniscope movies (.avi files) are missing from '{self.folder_path}'."
         miniscope_config_files = natsort.natsorted(list(self.folder_path.glob(f"*/Miniscope/{configuration_file_name}")))
-        assert miniscope_config_files, f"The configuration files ({configuration_file_name} files) are missing from '{self.folder_path}'."
+        assert (
+            miniscope_config_files
+        ), f"The configuration files ({configuration_file_name} files) are missing from '{self.folder_path}'."
 
         # Set the sampling frequency from the configuration file
         with open(miniscope_config_files[0], newline="") as f:
             self._miniscope_config = json.loads(f.read())
-        self._sampling_frequency = float(re.search(r'\d+', self._miniscope_config["frameRate"]).group())
+        self._sampling_frequency = float(re.search(r"\d+", self._miniscope_config["frameRate"]).group())
 
         imaging_extractors = []
         for file_path in miniscope_avi_file_paths:
