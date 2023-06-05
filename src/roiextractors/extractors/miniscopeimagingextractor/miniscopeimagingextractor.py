@@ -4,9 +4,6 @@ from pathlib import Path
 from typing import Optional, Tuple, List
 
 import numpy as np
-from natsort import natsorted
-
-from neuroconv.datainterfaces.behavior.video.video_utils import VideoCaptureContext
 
 from ...imagingextractor import ImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor
@@ -29,13 +26,14 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         folder_path: PathType
            The folder path that contains the Miniscope data.
         """
+        natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
 
         self.folder_path = Path(folder_path)
 
         configuration_file_name = "metaData.json"
-        miniscope_avi_file_paths = natsorted(list(self.folder_path.glob("*/Miniscope/*.avi")))
+        miniscope_avi_file_paths = natsort.natsorted(list(self.folder_path.glob("*/Miniscope/*.avi")))
         assert miniscope_avi_file_paths, f"The Miniscope movies (.avi files) are missing from '{self.folder_path}'."
-        miniscope_config_files = natsorted(list(self.folder_path.glob(f"*/Miniscope/{configuration_file_name}")))
+        miniscope_config_files = natsort.natsorted(list(self.folder_path.glob(f"*/Miniscope/{configuration_file_name}")))
         assert miniscope_config_files, f"The configuration files ({configuration_file_name} files) are missing from '{self.folder_path}'."
 
         # Set the sampling frequency from the configuration file
@@ -56,11 +54,13 @@ class _MiniscopeImagingExtractor(ImagingExtractor):
     extractor_name = "_MiniscopeImaging"
 
     def __init__(self, file_path: PathType):
+        from neuroconv.datainterfaces.behavior.video.video_utils import VideoCaptureContext
+        self._video_capture = VideoCaptureContext
         self._cv2 = get_package(package_name="cv2", installation_instructions="pip install opencv-python-headless")
         self.file_path = file_path
         super().__init__()
 
-        with VideoCaptureContext(file_path=str(file_path)) as video_obj:
+        with self._video_capture(file_path=str(file_path)) as video_obj:
             self._num_frames = video_obj.get_video_frame_count()
             self._image_size = video_obj.get_frame_shape()
             self._dtype = video_obj.get_video_frame_dtype()
@@ -101,7 +101,7 @@ class _MiniscopeImagingExtractor(ImagingExtractor):
         start_frame = start_frame or 0
 
         video = np.empty(shape=(end_frame - start_frame, *self.get_image_size()))
-        with VideoCaptureContext(file_path=str(self.file_path)) as video_obj:
+        with self._video_capture(file_path=str(self.file_path)) as video_obj:
             # Set the starting frame position
             video_obj.current_frame = start_frame
             for frame_number in range(end_frame - start_frame):
