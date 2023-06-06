@@ -33,7 +33,9 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         configuration_file_name = "metaData.json"
         miniscope_avi_file_paths = natsort.natsorted(list(self.folder_path.glob("*/Miniscope/*.avi")))
         assert miniscope_avi_file_paths, f"The Miniscope movies (.avi files) are missing from '{self.folder_path}'."
-        miniscope_config_files = natsort.natsorted(list(self.folder_path.glob(f"*/Miniscope/{configuration_file_name}")))
+        miniscope_config_files = natsort.natsorted(
+            list(self.folder_path.glob(f"*/Miniscope/{configuration_file_name}"))
+        )
         assert (
             miniscope_config_files
         ), f"The configuration files ({configuration_file_name} files) are missing from '{self.folder_path}'."
@@ -57,6 +59,7 @@ class _MiniscopeImagingExtractor(ImagingExtractor):
 
     def __init__(self, file_path: PathType):
         from neuroconv.datainterfaces.behavior.video.video_utils import VideoCaptureContext
+
         self._video_capture = VideoCaptureContext
         self._cv2 = get_package(package_name="cv2", installation_instructions="pip install opencv-python-headless")
         self.file_path = file_path
