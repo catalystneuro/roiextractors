@@ -98,4 +98,7 @@ class TestMiniscopeExtractor(TestCase):
         assert_array_equal(self.extractor.get_video(start_frame=4, end_frame=11), self.video[4:11])
 
     def test_miniscopeextractor_get_video(self):
-        assert_array_equal(self.extractor.get_video(), self.video)
+        video = self.extractor.get_video()
+        assert_array_equal(video, self.video)
+        self.assertEqual(video.shape, (self.num_frames, *self.image_size))
+        self.assertEqual(video.dtype, self.extractor.get_dtype())

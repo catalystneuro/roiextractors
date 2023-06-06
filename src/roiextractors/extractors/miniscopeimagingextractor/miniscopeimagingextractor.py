@@ -105,7 +105,7 @@ class _MiniscopeImagingExtractor(ImagingExtractor):
         end_frame = end_frame or self.get_num_frames()
         start_frame = start_frame or 0
 
-        video = np.empty(shape=(end_frame - start_frame, *self.get_image_size()))
+        video = np.empty(shape=(end_frame - start_frame, *self.get_image_size()), dtype=self.get_dtype())
         with self._video_capture(file_path=str(self.file_path)) as video_obj:
             # Set the starting frame position
             video_obj.current_frame = start_frame
