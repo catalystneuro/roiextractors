@@ -15,7 +15,6 @@ from .setup_paths import OPHYS_DATA_PATH
 class TestMiniscopeExtractor(TestCase):
     @classmethod
     def setUpClass(cls):
-        # TODO: upload test data (waiting on approval)
         cls.folder_path = Path(OPHYS_DATA_PATH / "imaging_datasets" / "Miniscope" / "C6-J588_Disc5")
         cls.file_paths = [
             "15_03_28/Miniscope/0.avi",
