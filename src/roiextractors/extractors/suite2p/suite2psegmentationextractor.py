@@ -82,7 +82,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
                     return None
                 else:
                     raise FileNotFoundError(f"File {filename} not found.")
-                
+
         self.stat = try_load_npy("stat.npy")
         self._roi_response_raw = try_load_npy("F.npy", mmap_mode="r", fn_transform=lambda x: x.T)
         self._roi_response_neuropil = try_load_npy("Fneu.npy", mmap_mode="r", fn_transform=lambda x: x.T)
