@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union, Optional, Iterable, Literal
+from typing import Union, Optional, Iterable
 
 import numpy as np
 from lazy_ops import DatasetView
