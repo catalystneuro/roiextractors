@@ -77,7 +77,7 @@ class NwbImagingExtractor(ImagingExtractor):
         valid_photon_series_types = [OnePhotonSeries, TwoPhotonSeries]
         assert any(
             [isinstance(self.photon_series, photon_series_type) for photon_series_type in valid_photon_series_types]
-        ), f"The optical series must be of type pynwb.ophys.OnePhotonSeries or pynwb.ophys.TwoPhotonSeries."
+        ), "The optical series must be of type pynwb.ophys.OnePhotonSeries or pynwb.ophys.TwoPhotonSeries."
 
         # TODO if external file --> return another proper extractor (e.g. TiffImagingExtractor)
         assert self.photon_series.external_file is None, "Only 'raw' format is currently supported"
