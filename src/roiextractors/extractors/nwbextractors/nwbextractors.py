@@ -52,15 +52,15 @@ class NwbImagingExtractor(ImagingExtractor):
     def __init__(
         self,
         file_path: PathType,
-        optical_series_name: Literal["TwoPhotonSeries", "OnePhotonSeries"] = "TwoPhotonSeries",
+        optical_series_name: Optional[str] = "TwoPhotonSeries"
     ):
         """
         Parameters
         ----------
         file_path: str
             The location of the folder containing dataset.nwb file
-        optical_series_name: {'TwoPhotonSeries', 'OnePhotonSeries'}, optional
-            The optical series to extract data from.
+        optical_series_name: str (optional)
+            The name of the optical series to extract data from.
         """
         ImagingExtractor.__init__(self)
         self._path = file_path
