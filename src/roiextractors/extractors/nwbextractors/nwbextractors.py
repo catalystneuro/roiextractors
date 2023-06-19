@@ -49,7 +49,11 @@ class NwbImagingExtractor(ImagingExtractor):
     mode = "file"
     installation_mesg = "To use the Nwb Extractor run:\n\n pip install pynwb\n\n"  # error message when not installed
 
-    def __init__(self, file_path: PathType, optical_series_name: Literal["TwoPhotonSeries", "OnePhotonSeries"] = "TwoPhotonSeries"):
+    def __init__(
+        self,
+        file_path: PathType,
+        optical_series_name: Literal["TwoPhotonSeries", "OnePhotonSeries"] = "TwoPhotonSeries",
+    ):
         """
         Parameters
         ----------
