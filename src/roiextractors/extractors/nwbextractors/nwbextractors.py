@@ -55,7 +55,7 @@ class NwbImagingExtractor(ImagingExtractor):
         ----------
         file_path: str
             The location of the folder containing dataset.nwb file
-        optical_series_name: str (optional)
+        optical_series_name: string, optional
             The name of the optical series to extract data from.
         """
         ImagingExtractor.__init__(self)
