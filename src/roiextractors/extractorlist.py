@@ -21,6 +21,7 @@ from .extractors.tiffimagingextractors import (
 from .extractors.sbximagingextractor import SbxImagingExtractor
 from .extractors.memmapextractors import NumpyMemmapImagingExtractor
 from .extractors.memmapextractors import MemmapImagingExtractor
+from .extractors.miniscopeimagingextractor import MiniscopeImagingExtractor
 from .multisegmentationextractor import MultiSegmentationExtractor
 from .multiimagingextractor import MultiImagingExtractor
 
@@ -31,6 +32,7 @@ imaging_extractor_full_list = [
     ScanImageTiffImagingExtractor,
     BrukerTiffImagingExtractor,
     MicroManagerTiffImagingExtractor,
+    MiniscopeImagingExtractor,
     NwbImagingExtractor,
     SbxImagingExtractor,
     NumpyMemmapImagingExtractor,

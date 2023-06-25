@@ -1,44 +1,30 @@
-name: Full Tests
+name: Update testing data
 on:
-  schedule:
-    - cron: "0 0 * * *"  # daily
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   run:
-    name: Full tests on ${{ matrix.os }} with Python ${{ matrix.python-version }}
+    name: Update testing data on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.7, 3.8, 3.9]
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: s-weigand/setup-conda@v1
       - uses: actions/checkout@v2
       - run: git fetch --prune --unshallow --tags
-      - name: Setup Python ${{ matrix.python-version }}
+      - name: Setup Python 3.11
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.11
 
       - name: Global Setup
         run: |
           pip install -U pip
-          pip install pytest-xdist
           git config --global user.email "CI@example.com"
           git config --global user.name "CI Almighty"
           pip install wheel  # needed for scanimage
-
-      - name: Install roiextractors with minimal requirements
-        run: pip install .[test]
-      - name: Run minimal tests
-        run: pytest tests/test_internals -n auto --dist loadscope
-
-      - name: Test full installation (-e needed for codecov report)
-        run: pip install -e .[full]
-
-
 
       - name: Get ophys_testing_data current head hash
         id: ophys
@@ -58,17 +44,3 @@ jobs:
       - if: steps.cache-ophys-datasets.outputs.cache-hit == false
         name: Download data from S3
         run: aws s3 cp --recursive s3://${{ secrets.S3_GIN_BUCKET }}//ophys_testing_data ./ophys_testing_data
-
-
-
-      - name: Run full pytest with coverage
-        run: pytest -n auto --dist loadscope --cov=./ --cov-report xml:./codecov.xml
-      - if: ${{ matrix.python-version == '3.9' && matrix.os == 'ubuntu-latest'}}
-        name: Upload full coverage to Codecov
-        uses: codecov/codecov-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./codecov.xml
-          flags: unittests
-          name: codecov-umbrella
-          yml: ./codecov.yml

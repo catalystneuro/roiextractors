@@ -1,10 +1,17 @@
 # Upcoming
 
+### Features
+
+* Added support for Miniscope AVI files with the `MiniscopeImagingExtractor`. [PR #225](https://github.com/catalystneuro/roiextractors/pull/225)
+
+
+
 # v0.5.2
 
 ### Features
 
 * Added support for MicroManager TIFF files with the `MicroManagerTiffImagingExtractor`. [PR #222](https://github.com/catalystneuro/roiextractors/pull/222)
+
 * Added support for Bruker TIFF files with the `BrukerTiffImagingExtractor`. [PR #220](https://github.com/catalystneuro/roiextractors/pull/220)
 
 
