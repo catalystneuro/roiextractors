@@ -98,7 +98,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
     def _attempt_load_npy(self, filename, mmap_mode=None) -> np.ndarray | None:
     """Attempt to load the filename located in the current `plane_no` subfolder; return None if file is missing."""
-    
+
         if self._search_plane_subdirectory:
             file_path = self.folder_path / f"plane{self.plane_no}" / filename
         else:
