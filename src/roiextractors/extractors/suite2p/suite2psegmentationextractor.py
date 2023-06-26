@@ -96,7 +96,9 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self._image_correlation = self._summary_image_read("Vcorr")
         self._image_mean = self._summary_image_read("meanImg")
 
-    def _load_npy(self, filename, mmap_mode=None):
+    def _attempt_load_npy(self, filename, mmap_mode=None) -> np.ndarray | None:
+    """Attempt to load the filename located in the current `plane_no` subfolder; return None if file is missing."""
+    
         if self._search_plane_subdirectory:
             file_path = self.folder_path / f"plane{self.plane_no}" / filename
         else:
