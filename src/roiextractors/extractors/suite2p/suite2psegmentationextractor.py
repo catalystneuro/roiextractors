@@ -23,7 +23,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         folder_path: Optional[PathType] = None,
         combined: bool = False,
         plane_no: IntType = 0,
-        search_plane_subdirectory: bool = True,
         allow_incomplete_import: bool = False,
         warn_missing_files: bool = True,
         file_path: Optional[PathType] = None,
@@ -38,9 +37,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             if the plane is a combined plane as in the Suite2p pipeline
         plane_no: int
             the plane for which to extract segmentation for.
-        search_plane_subdirectory: bool
-            If True, will search for files in 'folder_path/plane{plane_no}',
-             else will search for files in 'folder_path'.
         allow_incomplete_import: bool
             If True, will not raise an error if the file is incomplete.
         warn_missing_files: bool
@@ -68,7 +64,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self.plane_no = plane_no
         self.folder_path = Path(folder_path)
 
-        self._search_plane_subdirectory = search_plane_subdirectory
 
         def try_load_npy(filename, mmap_mode=None, fn_transform=lambda x: x):
             """
@@ -97,7 +92,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self._image_mean = self._summary_image_read("meanImg")
 
     def _attempt_load_npy(self, filename, mmap_mode=None) -> np.ndarray | None:
-    """Attempt to load the filename located in the current `plane_no` subfolder; return None if file is missing."""
+        """Attempt to load the filename located in the current `plane_no` subfolder; return None if file is missing."""
 
         file_path = self.folder_path / f"plane{self.plane_no}" / filename
         if not file_path.exists():
