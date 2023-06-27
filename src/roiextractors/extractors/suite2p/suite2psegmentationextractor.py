@@ -70,7 +70,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             This function allows for incomplete import of files.
             """
             try:
-                return fn_transform(self._load_npy(filename, mmap_mode=mmap_mode))
+                return fn_transform(self._attempt_load_npy(filename, mmap_mode=mmap_mode))
             except FileNotFoundError:
                 if allow_incomplete_import:
                     warnings.warn(f"File {filename} not found.") if warn_missing_files else None
