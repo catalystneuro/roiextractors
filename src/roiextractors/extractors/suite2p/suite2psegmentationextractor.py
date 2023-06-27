@@ -64,7 +64,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self.plane_no = plane_no
         self.folder_path = Path(folder_path)
 
-
         def try_load_npy(filename, mmap_mode=None, fn_transform=lambda x: x):
             """
             This function allows for incomplete import of files.
