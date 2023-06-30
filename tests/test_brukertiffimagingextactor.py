@@ -12,8 +12,14 @@ from .setup_paths import OPHYS_DATA_PATH
 
 
 def _get_test_video(file_paths):
-    frames = [tifffile.memmap(file, mode="r", _multifile=False,) for file in
-              file_paths]
+    frames = [
+        tifffile.memmap(
+            file,
+            mode="r",
+            _multifile=False,
+        )
+        for file in file_paths
+    ]
     return np.stack(frames, axis=0)
 
 

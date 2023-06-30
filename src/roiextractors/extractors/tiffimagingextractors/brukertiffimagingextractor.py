@@ -26,6 +26,7 @@ def _determine_frame_rate(element: ElementTree.Element) -> Union[float, None]:
     Determines the frame rate from the difference in relative timestamps of the frame elements.
     """
     from neuroconv.utils import calculate_regular_series_rate
+
     frame_elements = element.findall(".//Frame")
     relative_times = [float(frame.attrib["relativeTime"]) for frame in frame_elements]
     frame_rate = calculate_regular_series_rate(np.array(relative_times))
@@ -180,7 +181,6 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
         start_frame: Optional[int] = None,
         end_frame: Optional[int] = None,
     ) -> Iterable[np.memmap]:
-
         files_range = self._file_paths[start_frame:end_frame]
         for file in files_range:
             yield self._tifffile.memmap(self.folder_path / file, mode="r", _multifile=False)
@@ -190,7 +190,6 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
         start_frame: Optional[int] = None,
         end_frame: Optional[int] = None,
     ) -> np.ndarray:
-
         start_frame = start_frame or 0
         end_frame = end_frame or self.get_num_frames()
 
