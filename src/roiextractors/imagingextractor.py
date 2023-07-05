@@ -274,7 +274,9 @@ class DepthSliceImagingExtractor(ImagingExtractor):
         """
         self._parent_imaging = parent_imaging
         parent_image_size = self._parent_imaging.get_image_size()
-        assert len(parent_image_size) == 3, f"{self.extractor_name}Extractor can be only used for volumetric imaging data."
+        assert (
+            len(parent_image_size) == 3
+        ), f"{self.extractor_name}Extractor can be only used for volumetric imaging data."
         parent_num_planes = parent_image_size[-1]
         start_plane = start_plane or 0
         assert 0 <= start_plane < parent_num_planes
@@ -311,7 +313,7 @@ class DepthSliceImagingExtractor(ImagingExtractor):
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
     ) -> np.ndarray:
         video = self._parent_imaging.get_video(start_frame=start_frame, end_frame=end_frame, channel=channel)
-        video = video[..., self._start_plane:self._end_plane]
+        video = video[..., self._start_plane : self._end_plane]
         if self._num_z_planes == 1:
             return video.squeeze(axis=-1)
 

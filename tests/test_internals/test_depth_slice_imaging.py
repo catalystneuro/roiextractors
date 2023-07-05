@@ -27,7 +27,9 @@ class TestDepthSliceImaging(TestCase):
         end_plane = 7
         cls.depth_sliced_planes = end_plane - start_plane
 
-        cls.depth_sliced_imaging = cls.toy_volumetric_imaging_example.depth_slice(start_plane=start_plane, end_plane=end_plane)
+        cls.depth_sliced_imaging = cls.toy_volumetric_imaging_example.depth_slice(
+            start_plane=start_plane, end_plane=end_plane
+        )
 
     def test_frame_slice_image_size(self):
         depth_sliced_image_size = (self.num_rows, self.num_columns, self.depth_sliced_planes)

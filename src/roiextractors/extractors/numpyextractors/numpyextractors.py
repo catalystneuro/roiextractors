@@ -131,9 +131,9 @@ class NumpyVolumetricImagingExtractor(ImagingExtractor):
     installation_mesg = ""  # error message when not installed
 
     def __init__(
-            self,
-            timeseries: np.ndarray,
-            sampling_frequency: FloatType,
+        self,
+        timeseries: np.ndarray,
+        sampling_frequency: FloatType,
     ):
         ImagingExtractor.__init__(self)
 
