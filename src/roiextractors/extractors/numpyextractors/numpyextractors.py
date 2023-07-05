@@ -124,6 +124,53 @@ class NumpyImagingExtractor(ImagingExtractor):
         np.save(save_path, imaging.get_video())
 
 
+class NumpyVolumetricImagingExtractor(ImagingExtractor):
+    extractor_name = "NumpyVolumetricExtractor"
+    installed = True
+    is_writable = True
+    installation_mesg = ""  # error message when not installed
+
+    def __init__(
+            self,
+            timeseries: np.ndarray,
+            sampling_frequency: FloatType,
+    ):
+        ImagingExtractor.__init__(self)
+
+        self._video = timeseries
+        (
+            self._num_frames,
+            self._num_rows,
+            self._num_columns,
+            self._num_z_planes,
+        ) = self._video.shape
+
+        self._sampling_frequency = sampling_frequency
+
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+        if channel != 0:
+            raise NotImplementedError(
+                f"The {self.extractor_name}Extractor does not currently support multiple color channels."
+            )
+
+        return self._video[start_frame:end_frame, ...]
+
+    def get_image_size(self) -> Tuple[int, int, int]:
+        return (self._num_rows, self._num_columns, self._num_z_planes)
+
+    def get_num_frames(self):
+        return self._num_frames
+
+    def get_sampling_frequency(self):
+        return self._sampling_frequency
+
+    def get_channel_names(self):
+        return ["OpticalChannel"]
+
+    def get_num_channels(self):
+        return 1
+
+
 class NumpySegmentationExtractor(SegmentationExtractor):
     """
     NumpySegmentationExtractor objects are built to contain all data coming from

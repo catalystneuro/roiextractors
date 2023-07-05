@@ -1,9 +1,11 @@
 from collections.abc import Iterable
 from typing import Tuple, Optional
+from warnings import warn
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
+from .extractors.numpyextractors.numpyextractors import NumpyVolumetricImagingExtractor
 from .segmentationextractor import SegmentationExtractor
 from .imagingextractor import ImagingExtractor
 
@@ -49,6 +51,26 @@ def generate_dummy_imaging_extractor(
     )
 
     return imaging_extractor
+
+
+def generate_dummy_volumetric_imaging_extractor(
+    num_frames: int = 30,
+    num_rows: int = 10,
+    num_columns: int = 10,
+    num_z_planes: int = 3,
+    sampling_frequency: float = 30,
+    dtype: DtypeType = "uint16",
+):
+    size = (num_frames, num_rows, num_columns, num_z_planes)
+    video = generate_dummy_video(size=size, dtype=dtype)
+
+    if num_z_planes <= 1:
+        raise ValueError("This function should be used for testing volumetric data.")
+
+    return NumpyVolumetricImagingExtractor(
+        timeseries=video,
+        sampling_frequency=sampling_frequency,
+    )
 
 
 def generate_dummy_segmentation_extractor(
