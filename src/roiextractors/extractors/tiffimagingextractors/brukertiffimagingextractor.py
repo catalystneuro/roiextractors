@@ -47,7 +47,7 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
         stream_names = list(set((re.findall(r"[Cc][Hh]\d+", file_name.name)[0] for file_name in file_paths)))
         return stream_names
 
-    def __init__(self, folder_path: PathType):
+    def __init__(self, folder_path: PathType, stream_name: Optional[str] = None):
         """
         The imaging extractor for the Bruker TIF image format.
         This format consists of multiple TIF image files (.ome.tif) and configuration files (.xml, .env).
@@ -56,14 +56,33 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
         ----------
         folder_path : PathType
             The path to the folder that contains the Bruker TIF image files (.ome.tif) and configuration files (.xml, .env).
+        stream_name: str, optional
+            The name of the recording channel (e.g. "Ch2").
         """
         self._tifffile = _get_tiff_reader()
-
-        super().__init__()
 
         self.folder_path = Path(folder_path)
         tif_file_paths = list(self.folder_path.glob("*.ome.tif"))
         assert tif_file_paths, f"The TIF image files are missing from '{self.folder_path}'."
+
+        stream_names = self.get_streams(folder_path=folder_path)
+        if stream_name is None:
+            if len(stream_names) > 1:
+                raise ValueError(
+                    "More than one recording stream is detected! Please specify which stream you wish to load with the `stream_name` argument. "
+                    "To see what streams are available, call `BrukerTiffImagingExtractor.get_stream_names(folder_path=...)`."
+                )
+            stream_name = stream_names[0]
+
+        if stream_name is not None and stream_name not in stream_names:
+            raise ValueError(
+                f"The selected stream '{stream_name}' is not in the available streams '{stream_names}'!"
+            )
+
+        if len(stream_names) > 1:
+            tif_file_paths = [file_path for file_path in tif_file_paths if stream_name in file_path.name]
+
+        super().__init__()
 
         self._xml_file_path = self.folder_path / f"{self.folder_path.name}.xml"
         assert self._xml_file_path.is_file(), f"The XML configuration file is not found at '{self.folder_path}'."
@@ -82,7 +101,7 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
             self._num_frames = num_frames
             self._num_z_planes = 1
 
-        file_elements = xml_root.findall(".//File")
+        file_elements = xml_root.findall(f".//File[@channelName='{stream_name}']")
         self._file_paths = [file.attrib["filename"] for file in file_elements]
         assert len(self._file_paths) == len(
             tif_file_paths
@@ -100,12 +119,7 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
             frame_rate = _determine_frame_rate(element=sequence_elements[0])
         assert frame_rate is not None, "Could not determine the frame rate from the XML file."
         self._sampling_frequency = frame_rate
-
-        channel_names = [file.attrib["channelName"] for file in file_elements]
-        unique_channel_names = list(set(channel_names))
-        # This will be changed soon
-        assert len(unique_channel_names) == 1
-        self._channel_names = unique_channel_names
+        self._channel_names = stream_names
 
     def _get_xml_root(self) -> ElementTree.Element:
         """
@@ -178,8 +192,7 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
         return self._channel_names
 
     def get_num_channels(self) -> int:
-        channel_names = self.get_channel_names()
-        return len(channel_names)
+        return len(self._channel_names)
 
     def get_dtype(self) -> DtypeType:
         return self._dtype

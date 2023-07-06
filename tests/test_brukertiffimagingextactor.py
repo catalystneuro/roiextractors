@@ -51,6 +51,11 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
     def test_stream_names(self):
         self.assertEqual(BrukerTiffImagingExtractor.get_streams(folder_path=self.folder_path), self.stream_names)
 
+    def test_incorrect_stream_name_raises(self):
+        exc_msg = f"The selected stream 'Ch1' is not in the available streams '{self.stream_names}'!"
+        with self.assertRaisesWith(AssertionError, exc_msg=exc_msg):
+            BrukerTiffImagingExtractor(folder_path=self.folder_path, stream_name="Ch1")
+
     def test_tif_files_are_missing_assertion(self):
         folder_path = "not a tiff path"
         exc_msg = f"The TIF image files are missing from '{folder_path}'."
