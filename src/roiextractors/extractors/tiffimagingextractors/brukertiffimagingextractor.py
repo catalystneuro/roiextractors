@@ -40,6 +40,13 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
     is_writable = True
     mode = "folder"
 
+    @classmethod
+    def get_streams(cls, folder_path: PathType) -> List[str]:
+        folder_path = Path(folder_path)
+        file_paths = list(folder_path.glob("*.ome.tif"))
+        stream_names = list(set((re.findall(r"[Cc][Hh]\d+", file_name.name)[0] for file_name in file_paths)))
+        return stream_names
+
     def __init__(self, folder_path: PathType):
         """
         The imaging extractor for the Bruker TIF image format.
@@ -154,13 +161,6 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
                                     {indexed_value.attrib["index"]: subindexed_value.attrib["value"]}
                                 )
         return xml_metadata
-
-    @classmethod
-    def get_streams(cls, folder_path: PathType) -> List[str]:
-        folder_path = Path(folder_path)
-        file_paths = list(folder_path.glob("*.ome.tif"))
-        stream_names = list(set((re.findall(r"[Cc][Hh]\d+", file_name.name)[0] for file_name in file_paths)))
-        return stream_names
 
     def get_image_size(self) -> Union[Tuple[int, int], Tuple[int, int, int]]:
         if self._is_imaging_volumetric:
