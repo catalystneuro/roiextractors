@@ -29,6 +29,7 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
         folder_path = str(
             OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif" / "NCCR32_2023_02_20_Into_the_void_t_series_baseline-000"
         )
+        cls.stream_names = ["Ch2"]
 
         cls.folder_path = folder_path
         extractor = BrukerTiffImagingExtractor(folder_path=folder_path)
@@ -46,6 +47,9 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
     def tearDownClass(cls):
         # remove the temporary directory and its contents
         shutil.rmtree(cls.test_dir)
+
+    def test_stream_names(self):
+        self.assertEqual(BrukerTiffImagingExtractor.get_streams(folder_path=self.folder_path), self.stream_names)
 
     def test_tif_files_are_missing_assertion(self):
         folder_path = "not a tiff path"
@@ -107,11 +111,15 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
             for num in range(5)
         ]
 
+        cls.stream_names = ["Ch2"]
         cls.test_video = np.zeros((5, 512, 512, 2), dtype=np.uint16)
         first_plane_video = _get_test_video(file_paths=first_plane_file_paths)
         cls.test_video[..., 0] = first_plane_video
         second_plane_video = _get_test_video(file_paths=second_plane_file_paths)
         cls.test_video[..., 1] = second_plane_video
+
+    def test_stream_names(self):
+        self.assertEqual(BrukerTiffImagingExtractor.get_streams(folder_path=self.folder_path), self.stream_names)
 
     def test_brukertiffextractor_image_size(self):
         self.assertEqual(self.extractor.get_image_size(), (512, 512, 2))
