@@ -53,7 +53,7 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
 
     def test_incorrect_stream_name_raises(self):
         exc_msg = f"The selected stream 'Ch1' is not in the available streams '{self.stream_names}'!"
-        with self.assertRaisesWith(AssertionError, exc_msg=exc_msg):
+        with self.assertRaisesWith(ValueError, exc_msg=exc_msg):
             BrukerTiffImagingExtractor(folder_path=self.folder_path, stream_name="Ch1")
 
     def test_tif_files_are_missing_assertion(self):
