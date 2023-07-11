@@ -75,9 +75,7 @@ class BrukerTiffImagingExtractor(ImagingExtractor):
             stream_name = stream_names[0]
 
         if stream_name is not None and stream_name not in stream_names:
-            raise ValueError(
-                f"The selected stream '{stream_name}' is not in the available streams '{stream_names}'!"
-            )
+            raise ValueError(f"The selected stream '{stream_name}' is not in the available streams '{stream_names}'!")
 
         if len(stream_names) > 1:
             tif_file_paths = [file_path for file_path in tif_file_paths if stream_name in file_path.name]
