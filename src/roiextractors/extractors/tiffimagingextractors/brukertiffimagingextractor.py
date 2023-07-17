@@ -49,7 +49,9 @@ class BrukerTiffImagingExtractor(MultiImagingExtractor):
 
         folder_path = Path(folder_path)
         file_paths = list(folder_path.glob("*.ome.tif"))
-        stream_names = natsort.natsorted(set((re.findall(r"[Cc][Hh]\d+", file_name.name)[0] for file_name in file_paths)))
+        stream_names = natsort.natsorted(
+            set((re.findall(r"[Cc][Hh]\d+", file_name.name)[0] for file_name in file_paths))
+        )
         return stream_names
 
     def __init__(self, folder_path: PathType, stream_name: Optional[str] = None):
@@ -97,7 +99,7 @@ class BrukerTiffImagingExtractor(MultiImagingExtractor):
         # files that contain stacks of images (multi-page tiffs) will appear repeated (number of repetition is the number of frames in the tif file)
         file_counts = Counter(file_names)
         file_paths_per_cycle = defaultdict(list)  # Use defaultdict to automatically create lists for each cycle
-        pattern = r'_(?P<cycle>Cycle\d+)_'
+        pattern = r"_(?P<cycle>Cycle\d+)_"
         for file_name in file_counts.keys():
             cycle_match = re.search(pattern, file_name)
             file_paths_per_cycle[cycle_match["cycle"]].append(str(Path(folder_path) / file_name))
@@ -134,7 +136,6 @@ class BrukerTiffImagingExtractor(MultiImagingExtractor):
                 imaging_extractors.append(extractor)
 
         else:
-
             for file_name, num_frames in file_counts.items():
                 extractor = _BrukerTiffSinglePlaneImagingExtractor(file_path=str(Path(folder_path) / file_name))
                 extractor._num_frames = num_frames
@@ -330,7 +331,10 @@ class _BrukerTiffMultiPlaneImagingExtractor(ImagingExtractor):
         raise NotImplementedError(self.CHANNEL_NAMES_ERROR.format(self.extractor_name))
 
     def _get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None,) -> np.ndarray:
+        self,
+        start_frame: Optional[int] = None,
+        end_frame: Optional[int] = None,
+    ) -> np.ndarray:
         if start_frame is not None and end_frame is not None and start_frame == end_frame:
             return self.pages[start_frame].asarray()[np.newaxis, ...]
 

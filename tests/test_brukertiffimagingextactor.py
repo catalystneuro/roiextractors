@@ -50,7 +50,9 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
         shutil.rmtree(cls.test_dir)
 
     def test_stream_names(self):
-        self.assertEqual(BrukerTiffImagingExtractor.get_streams(folder_path=self.folder_path), self.available_stream_names)
+        self.assertEqual(
+            BrukerTiffImagingExtractor.get_streams(folder_path=self.folder_path), self.available_stream_names
+        )
 
     def test_incorrect_stream_name_raises(self):
         exc_msg = f"The selected stream 'Ch1' is not in the available streams '{self.available_stream_names}'!"
@@ -123,7 +125,9 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
         cls.test_video[..., 1] = second_plane_video
 
     def test_stream_names(self):
-        self.assertEqual(BrukerTiffImagingExtractor.get_streams(folder_path=self.folder_path), self.available_stream_names)
+        self.assertEqual(
+            BrukerTiffImagingExtractor.get_streams(folder_path=self.folder_path), self.available_stream_names
+        )
 
     def test_brukertiffextractor_image_size(self):
         self.assertEqual(self.extractor.get_image_size(), (512, 512, 2))
@@ -165,14 +169,14 @@ class TestBrukerTiffExtractorDualColorCase(TestCase):
         cls.test_video_ch2 = tifffile.TiffFile(file_paths[1]).asarray()
 
     def test_not_selecting_stream_raises(self):
-        exc_msg = (
-            "More than one recording stream is detected! Please specify which stream you wish to load with the `stream_name` argument. To see what streams are available, call `BrukerTiffImagingExtractor.get_stream_names(folder_path=...)`."
-        )
+        exc_msg = "More than one recording stream is detected! Please specify which stream you wish to load with the `stream_name` argument. To see what streams are available, call `BrukerTiffImagingExtractor.get_stream_names(folder_path=...)`."
         with self.assertRaisesWith(ValueError, exc_msg=exc_msg):
             BrukerTiffImagingExtractor(folder_path=self.folder_path)
 
     def test_stream_names(self):
-        assert_array_equal(BrukerTiffImagingExtractor.get_streams(folder_path=self.folder_path), self.available_stream_names)
+        assert_array_equal(
+            BrukerTiffImagingExtractor.get_streams(folder_path=self.folder_path), self.available_stream_names
+        )
 
     def test_brukertiffextractor_image_size(self):
         self.assertEqual(self.extractor.get_image_size(), (512, 512))
