@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 from hdmf.testing import TestCase
+from natsort import natsorted
 from numpy.testing import assert_array_equal
 from tifffile import tifffile
 
@@ -29,13 +30,13 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
         folder_path = str(
             OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif" / "NCCR32_2023_02_20_Into_the_void_t_series_baseline-000"
         )
-        cls.stream_names = ["Ch2"]
+        cls.available_stream_names = ["Ch2"]
 
         cls.folder_path = folder_path
         extractor = BrukerTiffImagingExtractor(folder_path=folder_path)
         cls.extractor = extractor
 
-        file_paths = [Path(folder_path) / file for file in extractor._file_paths]
+        file_paths = natsorted(Path(folder_path).glob("*.ome.tif"))
         cls.video = _get_test_video(file_paths=file_paths)
 
         # temporary directory for testing assertion when xml file is missing
@@ -49,10 +50,10 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
         shutil.rmtree(cls.test_dir)
 
     def test_stream_names(self):
-        self.assertEqual(BrukerTiffImagingExtractor.get_streams(folder_path=self.folder_path), self.stream_names)
+        self.assertEqual(BrukerTiffImagingExtractor.get_streams(folder_path=self.folder_path), self.available_stream_names)
 
     def test_incorrect_stream_name_raises(self):
-        exc_msg = f"The selected stream 'Ch1' is not in the available streams '{self.stream_names}'!"
+        exc_msg = f"The selected stream 'Ch1' is not in the available streams '{self.available_stream_names}'!"
         with self.assertRaisesWith(ValueError, exc_msg=exc_msg):
             BrukerTiffImagingExtractor(folder_path=self.folder_path, stream_name="Ch1")
 
@@ -87,15 +88,13 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
         self.assertEqual(self.extractor.get_dtype(), np.uint16)
 
     def test_brukertiffextractor_get_video(self):
-        assert_array_equal(self.extractor.get_video(), self.video)
+        video = self.extractor.get_video()
+        assert_array_equal(video, self.video)
+        self.assertEqual(video.dtype, np.uint16)
+        assert_array_equal(self.extractor.get_video(start_frame=0, end_frame=1), self.video[:1])
 
     def test_brukertiffextractor_get_single_frame(self):
-        assert_array_equal(self.extractor.get_frames(frame_idxs=[0]), self.video[0])
-
-    def test_brukertiffextractor_get_video_multi_channel_assertion(self):
-        exc_msg = "The BrukerTiffImagingExtractor does not currently support multiple color channels."
-        with self.assertRaisesWith(NotImplementedError, exc_msg=exc_msg):
-            self.extractor.get_video(channel=1)
+        assert_array_equal(self.extractor.get_frames(frame_idxs=[0]), self.video[0][np.newaxis, ...])
 
 
 class TestBrukerTiffExtractorDualPlaneCase(TestCase):
@@ -116,7 +115,7 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
             for num in range(5)
         ]
 
-        cls.stream_names = ["Ch2"]
+        cls.available_stream_names = ["Ch2"]
         cls.test_video = np.zeros((5, 512, 512, 2), dtype=np.uint16)
         first_plane_video = _get_test_video(file_paths=first_plane_file_paths)
         cls.test_video[..., 0] = first_plane_video
@@ -124,7 +123,7 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
         cls.test_video[..., 1] = second_plane_video
 
     def test_stream_names(self):
-        self.assertEqual(BrukerTiffImagingExtractor.get_streams(folder_path=self.folder_path), self.stream_names)
+        self.assertEqual(BrukerTiffImagingExtractor.get_streams(folder_path=self.folder_path), self.available_stream_names)
 
     def test_brukertiffextractor_image_size(self):
         self.assertEqual(self.extractor.get_image_size(), (512, 512, 2))
@@ -145,5 +144,56 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
         self.assertEqual(self.extractor.get_dtype(), np.uint16)
 
     def test_brukertiffextractor_get_video(self):
-        assert_array_equal(self.extractor.get_video(), self.test_video)
+        video = self.extractor.get_video()
+        assert_array_equal(video, self.test_video)
+        self.assertEqual(video.dtype, np.uint16)
         assert_array_equal(self.extractor.get_video(start_frame=2, end_frame=4), self.test_video[2:4])
+
+
+class TestBrukerTiffExtractorDualColorCase(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        folder_path = str(
+            OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif" / "NCCR62_2023_07_06_IntoTheVoid_t_series_Dual_color-000"
+        )
+        cls.folder_path = folder_path
+        cls.available_stream_names = ["Ch1", "Ch2"]
+        cls.extractor = BrukerTiffImagingExtractor(folder_path=cls.folder_path, stream_name="Ch1")
+
+        file_paths = natsorted(Path(folder_path).glob("*.ome.tif"))
+        cls.test_video_ch1 = tifffile.TiffFile(file_paths[0]).asarray()
+        cls.test_video_ch2 = tifffile.TiffFile(file_paths[1]).asarray()
+
+    def test_not_selecting_stream_raises(self):
+        exc_msg = (
+            "More than one recording stream is detected! Please specify which stream you wish to load with the `stream_name` argument. To see what streams are available, call `BrukerTiffImagingExtractor.get_stream_names(folder_path=...)`."
+        )
+        with self.assertRaisesWith(ValueError, exc_msg=exc_msg):
+            BrukerTiffImagingExtractor(folder_path=self.folder_path)
+
+    def test_stream_names(self):
+        assert_array_equal(BrukerTiffImagingExtractor.get_streams(folder_path=self.folder_path), self.available_stream_names)
+
+    def test_brukertiffextractor_image_size(self):
+        self.assertEqual(self.extractor.get_image_size(), (512, 512))
+
+    def test_brukertiffextractor_channel_names(self):
+        self.assertEqual(self.extractor.get_channel_names(), ["Ch1"])
+
+    def test_brukertiffextractor_dtype(self):
+        self.assertEqual(self.extractor.get_dtype(), np.uint16)
+
+    def test_brukertiffextractor_sampling_frequency(self):
+        self.assertEqual(self.extractor.get_sampling_frequency(), 29.873615189896864)
+
+    def test_brukertiffextractor_get_video(self):
+        assert_array_equal(self.extractor.get_video(start_frame=0, end_frame=1), self.test_video_ch1[:1])
+        video = self.extractor.get_video()
+        assert_array_equal(video, self.test_video_ch1)
+        self.assertEqual(video.dtype, np.uint16)
+
+    def test_brukertiffextractor_second_stream_get_video(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, stream_name=self.available_stream_names[1])
+        video = extractor.get_video()
+        assert_array_equal(extractor.get_video(), self.test_video_ch2)
+        self.assertEqual(video.dtype, np.uint16)
