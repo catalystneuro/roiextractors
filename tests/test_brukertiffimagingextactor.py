@@ -171,9 +171,7 @@ class TestBrukerTiffExtractorDualColorCase(TestCase):
         cls.test_video_ch2 = tifffile.TiffFile(file_paths[1]).asarray()
 
     def test_not_selecting_stream_raises(self):
-        exc_msg = (
-            "More than one recording stream is detected! Please specify which stream you wish to load with the `stream_name` argument. To see what streams are available, call `BrukerTiffImagingExtractor.get_stream_names(folder_path=...)`."
-        )
+        exc_msg = "More than one recording stream is detected! Please specify which stream you wish to load with the `stream_name` argument. To see what streams are available, call `BrukerTiffImagingExtractor.get_stream_names(folder_path=...)`."
         with self.assertRaisesWith(ValueError, exc_msg=exc_msg):
             BrukerTiffImagingExtractor(folder_path=self.folder_path)
 
