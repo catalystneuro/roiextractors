@@ -1,17 +1,19 @@
 import logging
 import re
-from collections import Counter, defaultdict
+from abc import ABC
+from collections import Counter
 from itertools import islice
 from pathlib import Path
 from types import ModuleType
-from typing import Optional, Tuple, Union, List, Dict
+from typing import Optional, Tuple, Union, List, Dict, Literal
+from warnings import warn
 from xml.etree import ElementTree
 
 import numpy as np
 
 from ...multiimagingextractor import MultiImagingExtractor
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import PathType, get_package, DtypeType
+from ...extraction_tools import PathType, get_package, DtypeType, ArrayType
 
 
 def filter_read_uic_tag_warnings(record):
@@ -25,32 +27,232 @@ def _get_tiff_reader() -> ModuleType:
     return get_package(package_name="tifffile", installation_instructions="pip install tifffile")
 
 
-def _determine_frame_rate(element: ElementTree.Element) -> Union[float, None]:
+def _determine_frame_rate(element: ElementTree.Element, file_names: Optional[List[str]] = None) -> Union[float, None]:
     """
     Determines the frame rate from the difference in relative timestamps of the frame elements.
     """
     from neuroconv.utils import calculate_regular_series_rate
 
     frame_elements = element.findall(".//Frame")
+    if file_names:
+        frame_elements = [frame for frame in frame_elements for file in frame.findall("File") if file.attrib["filename"] in file_names]
+
     relative_times = [float(frame.attrib["relativeTime"]) for frame in frame_elements]
     frame_rate = calculate_regular_series_rate(np.array(relative_times))
 
     return frame_rate
 
 
-class BrukerTiffImagingExtractor(MultiImagingExtractor):
+def _parse_xml(folder_path: PathType) -> ElementTree.Element:
+    """
+    Parses the XML configuration file into element tree and returns the root Element.
+    """
+    folder_path = Path(folder_path)
+    xml_file_path = folder_path / f"{folder_path.name}.xml"
+    assert xml_file_path.is_file(), f"The XML configuration file is not found at '{folder_path}'."
+    tree = ElementTree.parse(xml_file_path)
+    return tree.getroot()
+
+
+class BrukerTiffImagingExtractor(ABC):
+    """Abstract class that defines which extractor class to use for a data stream."""
+
     extractor_name = "BrukerTiffImaging"
     is_writable = True
     mode = "folder"
 
     @classmethod
-    def get_streams(cls, folder_path: PathType) -> List[str]:
+    def get_streams(cls, folder_path: PathType) -> dict:
         natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
+        streams = dict()
+
+        xml_root = _parse_xml(folder_path=folder_path)
+        channel_names = [file.attrib["channelName"] for file in xml_root.findall(".//File")]
+        unique_channel_names = natsort.natsorted(set(channel_names))
+        streams["channel_streams"] = unique_channel_names
+        if not cls.check_imaging_is_volumetric(folder_path=folder_path):
+            return streams
+
+        streams["plane_streams"] = dict()
+        for channel_name in unique_channel_names:
+            pattern = rf"(?P<stream_name>{channel_name}_\d+)"
+            plane_stream_names = [
+                re.search(pattern, file.attrib["filename"])["stream_name"] for file in xml_root.findall(f".//File")
+            ]
+            unique_plane_stream_names = natsort.natsorted(set(plane_stream_names))
+            streams["plane_streams"][channel_name] = unique_plane_stream_names
+        return streams
+
+    @classmethod
+    def check_imaging_is_volumetric(cls, folder_path: PathType) -> bool:
+        """
+        Determines whether imaging is volumetric based on 'zDevice' configuration value.
+        The value is expected to be '1' for volumetric and '0' for single plane images.
+        """
+        xml_root = _parse_xml(folder_path=folder_path)
+        z_device_element = xml_root.find(".//PVStateValue[@key='zDevice']")
+        is_volumetric = bool(int(z_device_element.attrib["value"]))
+
+        return is_volumetric
+
+    def __new__(
+        cls,
+        folder_path: PathType,
+        stream_name: Optional[str] = None,
+        plane_separation_type: Optional[Literal["contiguous", "disjoint"]] = None,
+    ):
+        """
+        The imaging extractor for the Bruker TIF image format.
+        This format consists of multiple TIF image files (.ome.tif) and configuration files (.xml, .env).
+
+        Parameters
+        ----------
+        folder_path : PathType
+            The path to the folder that contains the Bruker TIF image files (.ome.tif) and configuration files (.xml, .env).
+        stream_name: str, optional
+            The name of the recording channel (e.g. "Ch2").
+            To see what streams are available, call `BrukerTiffImagingExtractor.get_stream_names(folder_path=...)`.
+        plane_separation_type: {'contiguous', 'disjoint'}
+            Defines how to load volumetric imaging data. The default behavior is to assume the planes are contiguous,
+            and the imaging plane is a volume. Use 'disjoint' to load one plane.
+        """
 
         folder_path = Path(folder_path)
-        file_paths = list(folder_path.glob("*.ome.tif"))
-        stream_names = natsort.natsorted(set((re.findall(r"[Cc][Hh]\d+", file_name.name)[0] for file_name in file_paths)))
-        return stream_names
+        tif_file_paths = list(folder_path.glob("*.ome.tif"))
+        assert tif_file_paths, f"The TIF image files are missing from '{folder_path}'."
+
+        streams = cls.get_streams(folder_path=folder_path)
+
+        if stream_name is None:
+            if len(streams["channel_streams"]) > 1:
+                raise ValueError(
+                    "More than one recording stream is detected! Please specify which stream you wish to load with the `stream_name` argument. "
+                    "To see what streams are available, call `BrukerTiffImagingExtractor.get_stream_names(folder_path=...)`."
+                )
+            stream_name = streams["channel_streams"][0]
+            # load the first plane by default or raise error?
+            if "plane_streams" in streams:
+                stream_name = streams["plane_streams"][stream_name][0]
+
+        if stream_name is not None and stream_name.split("_")[0] not in streams["channel_streams"]:
+            raise ValueError(
+                f"The selected stream '{stream_name}' is not in the available channel_streams '{streams['channel_streams']}'!"
+            )
+
+        if "plane_streams" in streams and plane_separation_type is None:
+            raise ValueError(
+                "For volumetric imaging data the plane separation method must be one of 'disjoint' or 'contiguous'."
+            )
+
+        if "plane_streams" not in streams and plane_separation_type == "contiguous":
+            warn("Loading imaging as a volume is ignored for non-volumetric data.")
+
+        # load plane_streams as volume
+        if "plane_streams" in streams and plane_separation_type == "contiguous":
+            return BrukerTiffMultiPlaneImagingExtractor(
+                folder_path=folder_path,
+                stream_names=streams["plane_streams"][stream_name.split("_")[0]],
+            )
+
+        # load each plane separately
+        elif "plane_streams" in streams and plane_separation_type == "disjoint":
+            if len(streams["plane_streams"]) > 1:
+                raise ValueError(
+                    "More than one recording stream is detected! Please specify which stream you wish to load with the `stream_name` argument. "
+                    "To see what streams are available, call `BrukerTiffImagingExtractor.get_stream_names(folder_path=...)`."
+                )
+            assert stream_name in streams["plane_streams"][stream_name.split("_")[0]]
+            return BrukerTiffSinglePlaneImagingExtractor(
+                folder_path=folder_path,
+                stream_name=stream_name,
+            )
+
+        return BrukerTiffSinglePlaneImagingExtractor(
+            folder_path=folder_path,
+            stream_name=stream_name,
+        )
+
+
+class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
+    extractor_name = "BrukerTiffMultiPlaneImaging"
+    is_writable = True
+    mode = "folder"
+
+    def __init__(self, folder_path: PathType, stream_names: Optional[List[str]] = None):
+        """
+        The imaging extractor for the Bruker TIF image format.
+        This format consists of multiple TIF image files (.ome.tif) and configuration files (.xml, .env).
+
+        Parameters
+        ----------
+        folder_path : PathType
+            The path to the folder that contains the Bruker TIF image files (.ome.tif) and configuration files (.xml, .env).
+        stream_names: list, optional
+            The name of the recording channel (e.g. "Ch2").
+        """
+        self._tifffile = _get_tiff_reader()
+
+        self.folder_path = Path(folder_path)
+        self.stream_names = stream_names
+
+        imaging_extractors = []
+        for stream_name in stream_names:
+            extractor = BrukerTiffSinglePlaneImagingExtractor(folder_path=folder_path, stream_name=stream_name)
+            imaging_extractors.append(extractor)
+
+        super().__init__(imaging_extractors=imaging_extractors)
+
+        self._num_frames = self._imaging_extractors[0].get_num_frames()
+        self._start_frames = [0] * len(stream_names)
+        self._end_frames = [self._num_frames] * len(stream_names)
+
+    def get_image_size(self) -> Tuple[int, int, int]:
+        return *self._imaging_extractors[0].get_image_size(), len(self.stream_names)
+
+    def get_num_frames(self) -> int:
+        return self._imaging_extractors[0].get_num_frames()
+
+    def get_sampling_frequency(self) -> float:
+        return self._imaging_extractors[0].get_sampling_frequency() * len(self.stream_names)
+
+    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
+        if isinstance(frame_idxs, (int, np.integer)):
+            frame_idxs = [frame_idxs]
+        frame_idxs = np.array(frame_idxs)
+        assert np.all(frame_idxs < self.get_num_frames()), "'frame_idxs' exceed number of frames"
+
+        frames_shape = (len(frame_idxs),) + self.get_image_size()
+        frames = np.empty(shape=frames_shape, dtype=self.get_dtype())
+
+        for plane_ind, extractor in enumerate(self._imaging_extractors):
+            frames[..., plane_ind] = extractor.get_frames(frame_idxs)
+
+        return frames
+
+    def get_video(
+        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
+    ) -> np.ndarray:
+        if channel != 0:
+            raise NotImplementedError(
+                f"MultiImagingExtractors for multiple channels have not yet been implemented! (Received '{channel}'."
+            )
+
+        start = start_frame if start_frame is not None else 0
+        stop = end_frame if end_frame is not None else self.get_num_frames()
+
+        video_shape = (stop - start,) + self.get_image_size()
+        video = np.empty(shape=video_shape, dtype=self.get_dtype())
+
+        for plane_ind, extractor in enumerate(self._imaging_extractors):
+            video[..., plane_ind] = extractor.get_video(start_frame=start, end_frame=stop)
+
+        return video
+
+
+class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
+    extractor_name = "BrukerTiffSinglePlaneImaging"
+    is_writable = True
+    mode = "folder"
 
     def __init__(self, folder_path: PathType, stream_name: Optional[str] = None):
         """
@@ -64,106 +266,45 @@ class BrukerTiffImagingExtractor(MultiImagingExtractor):
         stream_name: str, optional
             The name of the recording channel (e.g. "Ch2").
         """
-        natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
         self._tifffile = _get_tiff_reader()
 
-        folder_path = Path(folder_path)
-        tif_file_paths = natsort.natsorted(folder_path.glob("*.ome.tif"))
-        assert tif_file_paths, f"The TIF image files are missing from '{folder_path}'."
+        self.folder_path = Path(folder_path)
+        self.stream_name = stream_name
 
-        stream_names = self.get_streams(folder_path=folder_path)
-        if stream_name is None:
-            if len(stream_names) > 1:
-                raise ValueError(
-                    "More than one recording stream is detected! Please specify which stream you wish to load with the `stream_name` argument. "
-                    "To see what streams are available, call `BrukerTiffImagingExtractor.get_stream_names(folder_path=...)`."
-                )
-            stream_name = stream_names[0]
-
-        if stream_name is not None and stream_name not in stream_names:
-            raise ValueError(f"The selected stream '{stream_name}' is not in the available streams '{stream_names}'!")
-        self._stream_name = stream_name
-
-        if len(stream_names) > 1:
-            tif_file_paths = [file_path for file_path in tif_file_paths if stream_name in file_path.name]
-
-        self._xml_file_path = folder_path / f"{folder_path.name}.xml"
-        assert self._xml_file_path.is_file(), f"The XML configuration file is not found at '{folder_path}'."
-        self._xml_root = self._get_xml_root()
-
-        file_elements = self._xml_root.findall(f".//File[@channelName='{stream_name}']")
+        self._xml_root = _parse_xml(folder_path=folder_path)
+        file_elements = self._xml_root.findall(".//File")
         file_names = [file.attrib["filename"] for file in file_elements]
-        # count the number of occurrences of each file path and their names
-        # files that contain stacks of images (multi-page tiffs) will appear repeated (number of repetition is the number of frames in the tif file)
-        file_counts = Counter(file_names)
-        file_paths_per_cycle = defaultdict(list)  # Use defaultdict to automatically create lists for each cycle
-        pattern = r'_(?P<cycle>Cycle\d+)_'
-        for file_name in file_counts.keys():
-            cycle_match = re.search(pattern, file_name)
-            file_paths_per_cycle[cycle_match["cycle"]].append(str(Path(folder_path) / file_name))
-
-        with self._tifffile.TiffFile(folder_path / tif_file_paths[0], _multifile=False) as tif:
+        file_names_for_stream = [file for file in file_names if stream_name in file]
+        # determine image shape and data type from first file
+        with self._tifffile.TiffFile(folder_path / file_names_for_stream[0], _multifile=False) as tif:
             self._height, self._width = tif.pages[0].shape
             self._dtype = tif.pages[0].dtype
-
-        self.xml_metadata = self._get_xml_metadata()
 
         sequence_elements = self._xml_root.findall("Sequence")
         # determine the true sampling frequency
         # the "framePeriod" in the XML is not trusted (usually higher than the true frame rate)
-        frame_rate = _determine_frame_rate(element=self._xml_root)
+        frame_rate = _determine_frame_rate(element=self._xml_root, file_names=file_names_for_stream)
         if frame_rate is None and len(sequence_elements) > 1:
-            frame_rate = _determine_frame_rate(element=sequence_elements[0])
+            frame_rate = _determine_frame_rate(element=sequence_elements[0], file_names=file_names_for_stream)
         assert frame_rate is not None, "Could not determine the frame rate from the XML file."
         self._sampling_frequency = frame_rate
-        self._channel_names = [stream_name]
+        self._channel_names = [stream_name.split("_")[0]]
+
+        # count the number of occurrences of each file path and their names
+        # files that contain stacks of images (multi-page tiffs) will appear repeated (number of repetition is the number of frames in the tif file)
+        file_counts = Counter(file_names_for_stream)
 
         imaging_extractors = []
-        is_imaging_volumetric = self._check_imaging_is_volumetric()
-        if is_imaging_volumetric:
-            # the number of "Sequence" elements in the XML determine the number of frames for each z plane
-            # the number of "Frame" repetitions within a "Sequence" determines the number of z-planes.
-            num_frames_first_sequence = len(sequence_elements[0].findall("./Frame"))
-            self._num_z_planes = num_frames_first_sequence
+        for file_name, num_frames in file_counts.items():
+            extractor = _BrukerTiffSinglePlaneImagingExtractor(file_path=str(Path(folder_path) / file_name))
+            extractor._num_frames = num_frames
+            extractor._image_size = (self._height, self._width)
+            extractor._dtype = self._dtype
+            imaging_extractors.append(extractor)
 
-            for cycle_num, file_paths in file_paths_per_cycle.items():
-                extractor = _BrukerTiffMultiPlaneImagingExtractor(file_paths=natsort.natsorted(file_paths))
-                extractor._image_size = (self._height, self._width, self._num_z_planes)
-                extractor._num_z_planes = self._num_z_planes
-                extractor._dtype = self._dtype
-                imaging_extractors.append(extractor)
-
-        else:
-
-            for file_name, num_frames in file_counts.items():
-                extractor = _BrukerTiffSinglePlaneImagingExtractor(file_path=str(Path(folder_path) / file_name))
-                extractor._num_frames = num_frames
-                extractor._image_size = (self._height, self._width)
-                extractor._dtype = self._dtype
-                imaging_extractors.append(extractor)
+        self.xml_metadata = self._get_xml_metadata()
 
         super().__init__(imaging_extractors=imaging_extractors)
-
-    def _check_consistency_between_imaging_extractors(self):
-        """Overrides the parent class method as none of the properties that are checked are from the sub-imaging extractors."""
-        return True
-
-    def _get_xml_root(self) -> ElementTree.Element:
-        """
-        Parses the XML configuration file into element tree and returns the root Element.
-        """
-        tree = ElementTree.parse(self._xml_file_path)
-        return tree.getroot()
-
-    def _check_imaging_is_volumetric(self) -> bool:
-        """
-        Determines whether imaging is volumetric based on 'zDevice' configuration value.
-        The value is expected to be '1' for volumetric and '0' for single plane images.
-        """
-        z_device_element = self._xml_root.find(".//PVStateValue[@key='zDevice']")
-        is_volumetric = bool(int(z_device_element.attrib["value"]))
-
-        return is_volumetric
 
     def _get_xml_metadata(self) -> Dict[str, Union[str, List[Dict[str, str]]]]:
         """
@@ -200,6 +341,13 @@ class BrukerTiffImagingExtractor(MultiImagingExtractor):
                                     {indexed_value.attrib["index"]: subindexed_value.attrib["value"]}
                                 )
         return xml_metadata
+
+    def _check_consistency_between_imaging_extractors(self):
+        """Overrides the parent class method as none of the properties that are checked are from the sub-imaging extractors."""
+        return True
+
+    def get_image_size(self) -> Tuple[int, int]:
+        return self._height, self._width
 
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
@@ -239,10 +387,9 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
 
         super().__init__()
 
-        self.pages = self.tifffile.TiffFile(self.file_path).pages
-        self._dtype = None
         self._num_frames = None
         self._image_size = None
+        self._dtype = None
 
     def get_num_frames(self) -> int:
         return self._num_frames
@@ -265,97 +412,19 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
     ) -> np.ndarray:
-        if start_frame is not None and end_frame is not None and start_frame == end_frame:
-            return self.pages[start_frame].asarray()
 
-        end_frame = end_frame or self.get_num_frames()
-        start_frame = start_frame or 0
+        with self.tifffile.TiffFile(self.file_path, _multifile=False) as tif:
+            pages = tif.pages
 
-        image_shape = (end_frame - start_frame, *self.get_image_size())
-        video = np.zeros(shape=image_shape, dtype=self._dtype)
-        for page_ind, page in enumerate(islice(self.pages, start_frame, end_frame)):
-            video[page_ind] = page.asarray()
+            if start_frame is not None and end_frame is not None and start_frame == end_frame:
+                return pages[start_frame].asarray()
 
-        return video
+            end_frame = end_frame or self.get_num_frames()
+            start_frame = start_frame or 0
 
-
-class _BrukerTiffMultiPlaneImagingExtractor(ImagingExtractor):
-    extractor_name = "_BrukerTiffMultiPlaneImaging"
-    is_writable = True
-    mode = "file"
-
-    SAMPLING_FREQ_ERROR = "The {}Extractor does not support retrieving the imaging rate."
-    CHANNEL_NAMES_ERROR = "The {}Extractor does not support retrieving the name of the channels."
-    DATA_TYPE_ERROR = "The {}Extractor does not support retrieving the data type."
-
-    def __init__(self, file_paths: List[PathType]):
-        """
-        The private imaging extractor for OME-TIF image format produced by Bruker,
-        which defines the get_video() method to return the requested frames from a volume.
-        This extractor is not meant to be used as a standalone ImagingExtractor.
-
-        Parameters
-        ----------
-        file_paths : List of PathType
-            The list of file path to the TIF image file (.ome.tif) that belong to the same volume.
-        """
-        self.tifffile = _get_tiff_reader()
-        self.file_paths = file_paths
-
-        self._num_z_planes = None
-        self._image_size = None
-
-        with self.tifffile.TiffFile(file_paths[0]) as tif:
-            self._num_frames = len(tif.pages)
-            self._dtype = tif.pages[0].dtype
-
-        super().__init__()
-
-    def get_image_size(self) -> Tuple[int, int, int]:
-        return self._image_size
-
-    def get_num_channels(self) -> int:
-        return 1
-
-    def get_num_frames(self):
-        return self._num_frames
-
-    def get_dtype(self):
-        return self._dtype
-
-    def get_sampling_frequency(self):
-        raise NotImplementedError(self.SAMPLING_FREQ_ERROR.format(self.extractor_name))
-
-    def get_channel_names(self) -> list:
-        raise NotImplementedError(self.CHANNEL_NAMES_ERROR.format(self.extractor_name))
-
-    def _get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None,) -> np.ndarray:
-        if start_frame is not None and end_frame is not None and start_frame == end_frame:
-            return self.pages[start_frame].asarray()[np.newaxis, ...]
-
-        end_frame = end_frame or self.get_num_frames()
-        start_frame = start_frame or 0
-
-        video = np.zeros(shape=(end_frame - start_frame, *self.pages[0].shape), dtype=self.get_dtype())
-        for page_ind, page in enumerate(islice(self.pages, start_frame, end_frame)):
-            video[page_ind] = page.asarray()
-        return video
-
-    def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
-    ) -> np.ndarray:
-        if start_frame is not None and end_frame is not None and start_frame == end_frame:
-            end_frame = start_frame + 1
-
-        if end_frame is None:
-            end_frame = self.get_num_frames()
-        start_frame = start_frame or 0
-
-        image_shape = (end_frame - start_frame, *self.get_image_size())
-        video = np.zeros(shape=image_shape, dtype=self.get_dtype())
-        for plane_ind in range(self._num_z_planes):
-            self.pages = self.tifffile.TiffFile(self.file_paths[plane_ind]).pages
-            video[..., plane_ind] = self._get_video(start_frame, end_frame)
+            image_shape = (end_frame - start_frame, *self.get_image_size())
+            video = np.zeros(shape=image_shape, dtype=self._dtype)
+            for page_ind, page in enumerate(islice(pages, start_frame, end_frame)):
+                video[page_ind] = page.asarray()
 
         return video
