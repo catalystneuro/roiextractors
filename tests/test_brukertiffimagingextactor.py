@@ -30,7 +30,7 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
         folder_path = str(
             OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif" / "NCCR32_2023_02_20_Into_the_void_t_series_baseline-000"
         )
-        cls.available_streams = dict(channel_streams=['Ch2'])
+        cls.available_streams = dict(channel_streams=["Ch2"])
 
         cls.folder_path = folder_path
         extractor = BrukerTiffImagingExtractor(folder_path=folder_path)
@@ -104,7 +104,9 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
             OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif" / "NCCR32_2022_11_03_IntoTheVoid_t_series-005"
         )
         cls.folder_path = folder_path
-        cls.extractor = BrukerTiffImagingExtractor(folder_path=folder_path, stream_name="Ch2_000001", plane_separation_type="contiguous")
+        cls.extractor = BrukerTiffImagingExtractor(
+            folder_path=folder_path, stream_name="Ch2_000001", plane_separation_type="contiguous"
+        )
 
         first_plane_file_paths = [
             f"{cls.folder_path}/NCCR32_2022_11_03_IntoTheVoid_t_series-005_Cycle0000{num + 1}_Ch2_000001.ome.tif"
@@ -116,8 +118,8 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
         ]
 
         cls.available_streams = dict(
-            channel_streams=['Ch2'],
-            plane_streams=dict(Ch2=['Ch2_000001', 'Ch2_000002']),
+            channel_streams=["Ch2"],
+            plane_streams=dict(Ch2=["Ch2_000001", "Ch2_000002"]),
         )
         cls.test_video = np.zeros((5, 512, 512, 2), dtype=np.uint16)
         first_plane_video = _get_test_video(file_paths=first_plane_file_paths)
@@ -203,8 +205,7 @@ class TestBrukerTiffExtractorDualColorCase(TestCase):
         self.assertEqual(video.dtype, np.uint16)
 
     def test_brukertiffextractor_second_stream_sampling_frequency(self):
-        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path,
-                                               stream_name="Ch2")
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, stream_name="Ch2")
         self.assertEqual(
             self.extractor.get_sampling_frequency(),
             extractor.get_sampling_frequency(),
