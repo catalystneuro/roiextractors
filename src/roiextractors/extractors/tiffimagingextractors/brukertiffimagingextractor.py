@@ -35,7 +35,9 @@ def _determine_frame_rate(element: ElementTree.Element, file_names: Optional[Lis
 
     frame_elements = element.findall(".//Frame")
     if file_names:
-        frame_elements = [frame for frame in frame_elements for file in frame.findall("File") if file.attrib["filename"] in file_names]
+        frame_elements = [
+            frame for frame in frame_elements for file in frame.findall("File") if file.attrib["filename"] in file_names
+        ]
 
     relative_times = [float(frame.attrib["relativeTime"]) for frame in frame_elements]
     frame_rate = calculate_regular_series_rate(np.array(relative_times))
@@ -412,7 +414,6 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
     ) -> np.ndarray:
-
         with self.tifffile.TiffFile(self.file_path, _multifile=False) as tif:
             pages = tif.pages
 
