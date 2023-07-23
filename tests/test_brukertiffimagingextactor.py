@@ -49,6 +49,11 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
         # remove the temporary directory and its contents
         shutil.rmtree(cls.test_dir)
 
+    def test_plane_separation_type_is_ignored_for_non_volumetric_data(self):
+        exc_msg = "Loading imaging data as a volume is ignored for non-volumetric data."
+        with self.assertWarnsWith(UserWarning, exc_msg=exc_msg):
+            BrukerTiffImagingExtractor(folder_path=self.folder_path, plane_separation_type="contiguous")
+
     def test_stream_names(self):
         self.assertEqual(BrukerTiffImagingExtractor.get_streams(folder_path=self.folder_path), self.available_streams)
 
@@ -127,6 +132,11 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
         second_plane_video = _get_test_video(file_paths=second_plane_file_paths)
         cls.test_video[..., 1] = second_plane_video
 
+    def test_plane_separation_type_raises(self):
+        exc_msg = "For volumetric imaging data the plane separation method must be one of 'disjoint' or 'contiguous'."
+        with self.assertRaisesWith(ValueError, exc_msg=exc_msg):
+            BrukerTiffImagingExtractor(folder_path=self.folder_path)
+
     def test_stream_names(self):
         self.assertEqual(BrukerTiffImagingExtractor.get_streams(folder_path=self.folder_path), self.available_streams)
 
@@ -156,6 +166,62 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
 
     def test_brukertiffextractor_get_single_frame(self):
         assert_array_equal(self.extractor.get_frames(frame_idxs=[0]), self.test_video[0][np.newaxis, ...])
+
+
+class TestBrukerTiffExtractorDualPlaneDisjointCase(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        folder_path = str(
+            OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif" / "NCCR32_2022_11_03_IntoTheVoid_t_series-005"
+        )
+        cls.folder_path = folder_path
+        cls.extractor = BrukerTiffImagingExtractor(
+            folder_path=folder_path,
+            stream_name="Ch2_000001",
+            plane_separation_type="disjoint",
+        )
+
+        first_plane_file_paths = [
+            f"{cls.folder_path}/NCCR32_2022_11_03_IntoTheVoid_t_series-005_Cycle0000{num + 1}_Ch2_000001.ome.tif"
+            for num in range(5)
+        ]
+
+        cls.test_video = _get_test_video(file_paths=first_plane_file_paths)
+
+    def test_multiple_plane_stream_with_disjoint_plane_raises(self):
+        exc_msg = "More than one recording stream is detected! Please specify which stream you wish to load with the `stream_name` argument. To see what streams are available, call `BrukerTiffImagingExtractor.get_stream_names(folder_path=...)`."
+        with self.assertRaisesWith(ValueError, exc_msg=exc_msg):
+            BrukerTiffImagingExtractor(folder_path=self.folder_path, plane_separation_type="disjoint")
+
+    def test_incorrect_stream_with_disjoint_plane_raises(self):
+        exc_msg = "The selected stream 'Ch2_000003' is not in the available plane_streams '['Ch2_000001', 'Ch2_000002']'!"
+        with self.assertRaisesWith(ValueError, exc_msg=exc_msg):
+            BrukerTiffImagingExtractor(
+                folder_path=self.folder_path,
+                plane_separation_type="disjoint",
+                stream_name="Ch2_000003",
+            )
+
+    def test_brukertiffextractor_image_size(self):
+        self.assertEqual(self.extractor.get_image_size(), (512, 512))
+
+    def test_brukertiffextractor_sampling_frequency(self):
+        self.assertEqual(self.extractor.get_sampling_frequency(), 10.314757507168189)
+
+    def test_brukertiffextractor_channel_names(self):
+        self.assertEqual(self.extractor.get_channel_names(), ["Ch2"])
+
+    def test_brukertiffextractor_num_channels(self):
+        self.assertEqual(self.extractor.get_num_channels(), 1)
+
+    def test_brukertiffextractor_dtype(self):
+        self.assertEqual(self.extractor.get_dtype(), np.uint16)
+
+    def test_brukertiffextractor_get_video(self):
+        video = self.extractor.get_video()
+        assert_array_equal(video, self.test_video)
+        self.assertEqual(video.dtype, np.uint16)
+        assert_array_equal(self.extractor.get_video(start_frame=2, end_frame=4), self.test_video[2:4])
 
 
 class TestBrukerTiffExtractorDualColorCase(TestCase):
