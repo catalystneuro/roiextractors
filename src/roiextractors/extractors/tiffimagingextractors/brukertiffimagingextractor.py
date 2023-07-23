@@ -132,11 +132,9 @@ class BrukerTiffImagingExtractor(ABC):
                     "To see what streams are available, call `BrukerTiffImagingExtractor.get_stream_names(folder_path=...)`."
                 )
             stream_name = streams["channel_streams"][0]
-            # load the first plane by default or raise error?
-            if "plane_streams" in streams:
-                stream_name = streams["plane_streams"][stream_name][0]
 
-        if stream_name is not None and stream_name.split("_")[0] not in streams["channel_streams"]:
+        channel_stream_name = stream_name.split("_")[0]
+        if stream_name is not None and channel_stream_name not in streams["channel_streams"]:
             raise ValueError(
                 f"The selected stream '{stream_name}' is not in the available channel_streams '{streams['channel_streams']}'!"
             )
@@ -147,23 +145,27 @@ class BrukerTiffImagingExtractor(ABC):
             )
 
         if "plane_streams" not in streams and plane_separation_type == "contiguous":
-            warn("Loading imaging as a volume is ignored for non-volumetric data.")
+            warn("Loading imaging data as a volume is ignored for non-volumetric data.")
 
         # load plane_streams as volume
         if "plane_streams" in streams and plane_separation_type == "contiguous":
             return BrukerTiffMultiPlaneImagingExtractor(
                 folder_path=folder_path,
-                stream_names=streams["plane_streams"][stream_name.split("_")[0]],
+                stream_names=streams["plane_streams"][channel_stream_name],
             )
 
         # load each plane separately
         elif "plane_streams" in streams and plane_separation_type == "disjoint":
-            if len(streams["plane_streams"]) > 1:
+            plane_stream_names = streams["plane_streams"][channel_stream_name]
+            if len(plane_stream_names) > 1 and len(stream_name.split("_")) == 1:
                 raise ValueError(
                     "More than one recording stream is detected! Please specify which stream you wish to load with the `stream_name` argument. "
                     "To see what streams are available, call `BrukerTiffImagingExtractor.get_stream_names(folder_path=...)`."
                 )
-            assert stream_name in streams["plane_streams"][stream_name.split("_")[0]]
+            if stream_name not in plane_stream_names:
+                raise ValueError(
+                    f"The selected stream '{stream_name}' is not in the available plane_streams '{plane_stream_names}'!"
+                )
             return BrukerTiffSinglePlaneImagingExtractor(
                 folder_path=folder_path,
                 stream_name=stream_name,
@@ -205,11 +207,14 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
         super().__init__(imaging_extractors=imaging_extractors)
 
         self._num_frames = self._imaging_extractors[0].get_num_frames()
+        self._image_size = *self._imaging_extractors[0].get_image_size(), len(self.stream_names)
+        self.xml_metadata = self._imaging_extractors[0].xml_metadata
+
         self._start_frames = [0] * len(stream_names)
         self._end_frames = [self._num_frames] * len(stream_names)
 
     def get_image_size(self) -> Tuple[int, int, int]:
-        return *self._imaging_extractors[0].get_image_size(), len(self.stream_names)
+        return self._image_size
 
     def get_num_frames(self) -> int:
         return self._imaging_extractors[0].get_num_frames()
