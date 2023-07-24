@@ -194,7 +194,9 @@ class TestBrukerTiffExtractorDualPlaneDisjointCase(TestCase):
             BrukerTiffImagingExtractor(folder_path=self.folder_path, plane_separation_type="disjoint")
 
     def test_incorrect_stream_with_disjoint_plane_raises(self):
-        exc_msg = "The selected stream 'Ch2_000003' is not in the available plane_streams '['Ch2_000001', 'Ch2_000002']'!"
+        exc_msg = (
+            "The selected stream 'Ch2_000003' is not in the available plane_streams '['Ch2_000001', 'Ch2_000002']'!"
+        )
         with self.assertRaisesWith(ValueError, exc_msg=exc_msg):
             BrukerTiffImagingExtractor(
                 folder_path=self.folder_path,
