@@ -83,7 +83,8 @@ class BrukerTiffImagingExtractor(ABC):
         for channel_id, channel_name in zip(unique_channel_ids, unique_channel_names):
             plane_naming_pattern = rf"(?P<stream_name>Ch{channel_id}_\d+)"
             plane_stream_names = [
-                re.search(plane_naming_pattern, file.attrib["filename"])["stream_name"] for file in xml_root.findall(f".//File")
+                re.search(plane_naming_pattern, file.attrib["filename"])["stream_name"]
+                for file in xml_root.findall(f".//File")
             ]
             unique_plane_stream_names = natsort.natsorted(set(plane_stream_names))
             streams["plane_streams"][channel_name] = unique_plane_stream_names
