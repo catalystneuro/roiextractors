@@ -97,9 +97,9 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
         return streams
 
     def __init__(
-            self,
-            folder_path: PathType,
-            stream_name: Optional[str] = None,
+        self,
+        folder_path: PathType,
+        stream_name: Optional[str] = None,
     ):
         """
         The imaging extractor for the Bruker TIF image format.
@@ -118,8 +118,10 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
         tif_file_paths = list(folder_path.glob("*.ome.tif"))
         assert tif_file_paths, f"The TIF image files are missing from '{folder_path}'."
 
-        assert _determine_imaging_is_volumetric(folder_path=folder_path), f"{self.extractor_name}Extractor is for volumetric imaging. " \
-                                                                          "For single imaging plane data use BrukerTiffSinglePlaneImagingExtractor."
+        assert _determine_imaging_is_volumetric(folder_path=folder_path), (
+            f"{self.extractor_name}Extractor is for volumetric imaging. "
+            "For single imaging plane data use BrukerTiffSinglePlaneImagingExtractor."
+        )
 
         streams = self.get_streams(folder_path=folder_path)
         if stream_name is None:

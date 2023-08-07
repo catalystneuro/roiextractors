@@ -50,7 +50,9 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
         shutil.rmtree(cls.test_dir)
 
     def test_stream_names(self):
-        self.assertEqual(BrukerTiffSinglePlaneImagingExtractor.get_streams(folder_path=self.folder_path), self.available_streams)
+        self.assertEqual(
+            BrukerTiffSinglePlaneImagingExtractor.get_streams(folder_path=self.folder_path), self.available_streams
+        )
 
     def test_incorrect_stream_name_raises(self):
         exc_msg = f"The selected stream 'Ch1' is not in the available channel_streams '['Ch2']'!"
@@ -131,7 +133,9 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
         cls.test_video[..., 1] = second_plane_video
 
     def test_stream_names(self):
-        self.assertEqual(BrukerTiffMultiPlaneImagingExtractor.get_streams(folder_path=self.folder_path), self.available_streams)
+        self.assertEqual(
+            BrukerTiffMultiPlaneImagingExtractor.get_streams(folder_path=self.folder_path), self.available_streams
+        )
 
     def test_brukertiffextractor_image_size(self):
         self.assertEqual(self.extractor.get_image_size(), (512, 512, 2))
@@ -191,7 +195,9 @@ class TestBrukerTiffExtractorDualColorCase(TestCase):
             BrukerTiffSinglePlaneImagingExtractor(folder_path=self.folder_path)
 
     def test_stream_names(self):
-        assert_array_equal(BrukerTiffSinglePlaneImagingExtractor.get_streams(folder_path=self.folder_path), self.available_streams)
+        assert_array_equal(
+            BrukerTiffSinglePlaneImagingExtractor.get_streams(folder_path=self.folder_path), self.available_streams
+        )
 
     def test_brukertiffextractor_image_size(self):
         self.assertEqual(self.extractor.get_image_size(), (512, 512))
