@@ -15,7 +15,8 @@ from .extractors.suite2p import Suite2pSegmentationExtractor
 from .extractors.tiffimagingextractors import (
     TiffImagingExtractor,
     ScanImageTiffImagingExtractor,
-    BrukerTiffImagingExtractor,
+    BrukerTiffMultiPlaneImagingExtractor,
+    BrukerTiffSinglePlaneImagingExtractor,
     MicroManagerTiffImagingExtractor,
 )
 from .extractors.sbximagingextractor import SbxImagingExtractor
@@ -30,7 +31,8 @@ imaging_extractor_full_list = [
     Hdf5ImagingExtractor,
     TiffImagingExtractor,
     ScanImageTiffImagingExtractor,
-    BrukerTiffImagingExtractor,
+    BrukerTiffMultiPlaneImagingExtractor,
+    BrukerTiffSinglePlaneImagingExtractor,
     MicroManagerTiffImagingExtractor,
     MiniscopeImagingExtractor,
     NwbImagingExtractor,
