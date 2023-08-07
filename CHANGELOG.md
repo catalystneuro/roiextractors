@@ -1,5 +1,15 @@
 # Upcoming
 
+# v0.5.4
+
+### Features
+
+* Added volumetric and multi-channel support for Bruker format. [PR #230](https://github.com/catalystneuro/roiextractors/pull/230)
+
+
+
+# v0.5.3
+
 ### Features
 
 * Added support for Miniscope AVI files with the `MiniscopeImagingExtractor`. [PR #225](https://github.com/catalystneuro/roiextractors/pull/225)
