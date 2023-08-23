@@ -191,7 +191,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return [pixel_mask[i] for i in roi_idx_]
 
     def get_image_size(self):
-        """Return the shape of the image (y, x)."""
+        """Return the size of the image (height, width)."""
         return [self.ops["Ly"], self.ops["Lx"]]
 
     @staticmethod
