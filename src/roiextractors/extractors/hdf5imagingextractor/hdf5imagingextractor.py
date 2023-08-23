@@ -1,3 +1,10 @@
+"""An imaging extractor for HDF5.
+
+Classes
+-------
+Hdf5ImagingExtractor
+    An imaging extractor for HDF5.
+"""
 from pathlib import Path
 from typing import Optional, Tuple
 from warnings import warn
@@ -22,6 +29,8 @@ except ImportError:
 
 
 class Hdf5ImagingExtractor(ImagingExtractor):
+    """An imaging extractor for HDF5."""
+
     extractor_name = "Hdf5Imaging"
     installed = HAVE_H5  # check at class level if installed or not
     is_writable = True
@@ -37,6 +46,23 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         metadata: dict = None,
         channel_names: ArrayType = None,
     ):
+        """Create an ImagingExtractor from an HDF5 file.
+
+        Parameters
+        ----------
+        file_path : str or Path
+            Path to the HDF5 file.
+        mov_field : str, optional
+            Name of the dataset in the HDF5 file that contains the imaging data. The default is "mov".
+        sampling_frequency : float, optional
+            Sampling frequency of the video. The default is None.
+        start_time : float, optional
+            Start time of the video. The default is None.
+        metadata : dict, optional
+            Metadata dictionary. The default is None.
+        channel_names : array-like, optional
+            List of channel names. The default is None.
+        """
         ImagingExtractor.__init__(self)
 
         self.filepath = Path(file_path)
@@ -91,9 +117,24 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         }
 
     def __del__(self):
+        """Close the HDF5 file."""
         self._file.close()
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0):
+        """Return frames from the video.
+
+        Parameters
+        ----------
+        frame_idxs : array-like
+            2-element list of starting frame and ending frame (inclusive).
+        channel : int, optional
+            Channel index. The default is 0.
+
+        Returns
+        -------
+        numpy.ndarray
+            Array of frames.
+        """
         # Fancy indexing is non performant for h5.py with long frame lists
         if frame_idxs is not None:
             slice_start = np.min(frame_idxs)
@@ -109,21 +150,42 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         return frames
 
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+        """Return the video frames.
+
+        Parameters
+        ----------
+        start_frame : int, optional
+            Starting frame. The default is None.
+        end_frame : int, optional
+            Ending frame. The default is None.
+        channel : int, optional
+            Channel index. The default is 0.
+
+        Returns
+        -------
+        numpy.ndarray
+            Array of frames.
+        """
         return self._video.lazy_slice[start_frame:end_frame, :, :, channel].dsetread()
 
     def get_image_size(self) -> Tuple[int, int]:
+        """Return the size of the video (num_rows, num_cols)."""
         return (self._num_rows, self._num_cols)
 
     def get_num_frames(self):
+        """Return the number of frames in the video."""
         return self._num_frames
 
     def get_sampling_frequency(self):
+        """Return the sampling frequency of the video."""
         return self._sampling_frequency
 
     def get_channel_names(self):
+        """Return the channel names."""
         return self._channel_names
 
     def get_num_channels(self):
+        """Return the number of channels."""
         return self._num_channels
 
     @staticmethod
@@ -134,6 +196,28 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         mov_field="mov",
         **kwargs,
     ):
+        """Write an imaging extractor to an HDF5 file.
+
+        Parameters
+        ----------
+        imaging : ImagingExtractor
+            The imaging extractor object to be saved.
+        save_path : str or Path
+            Path to save the file.
+        overwrite : bool, optional
+            If True, overwrite the file if it already exists. The default is False.
+        mov_field : str, optional
+            Name of the dataset in the HDF5 file that contains the imaging data. The default is "mov".
+        **kwargs : dict
+            Keyword arguments to be passed to the HDF5 file writer.
+
+        Raises
+        ------
+        AssertionError
+            If the file extension is not .h5 or .hdf5.
+        FileExistsError
+            If the file already exists and overwrite is False.
+        """
         save_path = Path(save_path)
         assert save_path.suffix in [
             ".h5",
