@@ -1,5 +1,14 @@
+"""Imaging and segmentation extractors for NWB files.
+
+Classes
+-------
+NwbImagingExtractor
+    Extracts imaging data from NWB files.
+NwbSegmentationExtractor
+    Extracts segmentation data from NWB files.
+"""
 from pathlib import Path
-from typing import Union, Optional, Iterable
+from typing import Union, Optional, Iterable, Tuple
 
 import numpy as np
 from lazy_ops import DatasetView
@@ -25,6 +34,7 @@ from ...segmentationextractor import SegmentationExtractor
 
 
 def temporary_deprecation_message():
+    """Raise a NotImplementedError with a temporary deprecation message."""
     raise NotImplementedError(
         "ROIExtractors no longer supports direct write to NWB. This method will be removed in a future release.\n\n"
         "Please install nwb-conversion-tools and import the corresponding write method from there.\n\nFor example,\n\n"
@@ -34,11 +44,13 @@ def temporary_deprecation_message():
 
 
 def check_nwb_install():
+    """Check if pynwb is installed."""
     assert HAVE_NWB, "To use the Nwb extractors, install pynwb: \n\n pip install pynwb\n\n"
 
 
 class NwbImagingExtractor(ImagingExtractor):
-    """
+    """An imaging extractor for NWB files.
+
     Class used to extract data from the NWB data format. Also implements a
     static method to write any format specific object to NWB.
     """
@@ -50,7 +62,8 @@ class NwbImagingExtractor(ImagingExtractor):
     installation_mesg = "To use the Nwb Extractor run:\n\n pip install pynwb\n\n"  # error message when not installed
 
     def __init__(self, file_path: PathType, optical_series_name: Optional[str] = "TwoPhotonSeries"):
-        """
+        """Create ImagingExtractor object from NWB file.
+
         Parameters
         ----------
         file_path: str
@@ -120,21 +133,61 @@ class NwbImagingExtractor(ImagingExtractor):
         }
 
     def __del__(self):
+        """Close the NWB file."""
         self.io.close()
 
     def time_to_frame(self, times: Union[FloatType, ArrayType]) -> np.ndarray:
+        """Convert time(s) to frame(s).
+
+        Parameters
+        ----------
+        times: float or array_like
+            Time or array of times to convert to frames.
+
+        Returns
+        -------
+        frames: numpy.ndarray
+            Array of frames corresponding to the input times.
+        """
         if self._times is None:
             return ((times - self._imaging_start_time) * self.get_sampling_frequency()).astype("int64")
         else:
             return super().time_to_frame(times)
 
     def frame_to_time(self, frames: Union[IntType, ArrayType]) -> np.ndarray:
+        """Convert frame(s) to time(s).
+
+        Parameters
+        ----------
+        frames: int or array_like
+            Frame or array of frames to convert to times.
+
+        Returns
+        -------
+        times: numpy.ndarray
+            Array of times corresponding to the input frames.
+        """
         if self._times is None:
             return (frames / self.get_sampling_frequency() + self._imaging_start_time).astype("float")
         else:
             return super().frame_to_time(frames)
 
-    def make_nwb_metadata(self, nwbfile, opts):
+    def make_nwb_metadata(
+        self, nwbfile, opts
+    ):  # TODO: refactor to use two photon series name directly rather than via opts
+        """Create metadata dictionary for NWB file.
+
+        Parameters
+        ----------
+        nwbfile: pynwb.NWBFile
+            The NWBFile object associated with the metadata.
+        opts: object
+            The options object with name of TwoPhotonSeries as an attribute.
+
+        Notes
+        -----
+        Metadata dictionary is stored in the nwb_metadata attribute.
+        """
         # Metadata dictionary - useful for constructing a nwb file
         self.nwb_metadata = dict(
             NWBFile=dict(
@@ -151,6 +204,20 @@ class NwbImagingExtractor(ImagingExtractor):
         )
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0):
+        """Return frames from the video.
+
+        Parameters
+        ----------
+        frame_idxs : array-like
+            2-element list of starting frame and ending frame (inclusive).
+        channel : int, optional
+            Channel index. The default is 0.
+
+        Returns
+        -------
+        numpy.ndarray
+            Array of frames.
+        """
         # Fancy indexing is non performant for h5.py with long frame lists
         if frame_idxs is not None:
             slice_start = np.min(frame_idxs)
@@ -167,6 +234,22 @@ class NwbImagingExtractor(ImagingExtractor):
         return frames
 
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+        """Return the video frames.
+
+        Parameters
+        ----------
+        start_frame : int, optional
+            Starting frame. The default is None.
+        end_frame : int, optional
+            Ending frame. The default is None.
+        channel : int, optional
+            Channel index. The default is 0.
+
+        Returns
+        -------
+        numpy.ndarray
+            Array of frames.
+        """
         start_frame = start_frame if start_frame is not None else 0
         end_frame = end_frame if end_frame is not None else self.get_num_frames()
 
@@ -174,49 +257,44 @@ class NwbImagingExtractor(ImagingExtractor):
         video = video[start_frame:end_frame].transpose([0, 2, 1])
         return video
 
-    def get_image_size(self):
-        return (self._num_rows, self._columns)
+    def get_image_size(self) -> Tuple[int, int]:
+        """Return the size of the video (num_rows, num_cols)."""
+        return (self._num_rows, self._num_cols)
 
     def get_num_frames(self):
+        """Return the number of frames in the video."""
         return self._num_frames
 
     def get_sampling_frequency(self):
+        """Return the sampling frequency of the video."""
         return self._sampling_frequency
 
     def get_channel_names(self):
-        """List of  channels in the recoding.
-
-        Returns
-        -------
-        channel_names: list
-            List of strings of channel names
-        """
+        """Return the channel names."""
         return self._channel_names
 
     def get_num_channels(self):
-        """Total number of active channels in the recording
-
-        Returns
-        -------
-        no_of_channels: int
-            integer count of number of channels
-        """
+        """Return the number of channels."""
         return self._num_channels
 
     @staticmethod
     def add_devices(imaging, nwbfile, metadata):
+        """Add devices to the NWBFile (deprecated)."""
         temporary_deprecation_message()
 
     @staticmethod
     def add_two_photon_series(imaging, nwbfile, metadata, buffer_size=10, use_times=False):
+        """Add TwoPhotonSeries to NWBFile (deprecated)."""
         temporary_deprecation_message()
 
     @staticmethod
     def add_epochs(imaging, nwbfile):
+        """Add epochs to NWBFile (deprecated)."""
         temporary_deprecation_message()
 
     @staticmethod
     def get_nwb_metadata(imgextractor: ImagingExtractor):
+        """Return the metadata dictionary for the NWB file (deprecated)."""
         temporary_deprecation_message()
 
     @staticmethod
@@ -229,10 +307,13 @@ class NwbImagingExtractor(ImagingExtractor):
         buffer_size: int = 10,
         use_times: bool = False,
     ):
+        """Write imaging data to NWB file (deprecated)."""
         temporary_deprecation_message()
 
 
 class NwbSegmentationExtractor(SegmentationExtractor):
+    """An segmentation extractor for NWB files."""
+
     extractor_name = "NwbSegmentationExtractor"
     installed = True  # check at class level if installed or not
     is_writable = False
@@ -240,8 +321,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     installation_mesg = ""  # error message when not installed
 
     def __init__(self, file_path: PathType):
-        """
-        Creating NwbSegmentationExtractor object from nwb file
+        """Create NwbSegmentationExtractor object from nwb file.
+
         Parameters
         ----------
         file_path: PathType
@@ -313,21 +394,32 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             self._channel_names = [i.name for i in imaging_plane.optical_channel]
 
     def __del__(self):
+        """Close the NWB file."""
         self._io.close()
 
     def get_accepted_list(self):
+        """Return the list of accepted ROIs."""
         if self._accepted_list is None:
             return list(range(self.get_num_rois()))
         else:
             return np.where(self._accepted_list == 1)[0].tolist()
 
     def get_rejected_list(self):
+        """Return the list of rejected ROIs."""
         if self._rejected_list is not None:
             rej_list = np.where(self._rejected_list == 1)[0].tolist()
             if len(rej_list) > 0:
                 return rej_list
 
     def get_images_dict(self):
+        """Return traces as a dictionary with key as the name of the ROiResponseSeries.
+
+        Returns
+        -------
+        images_dict: dict
+            dictionary with key, values representing different types of Images used in segmentation:
+            Mean, Correlation image
+        """
         images_dict = super().get_images_dict()
         if self._segmentation_images is not None:
             images_dict.update(
@@ -337,6 +429,19 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         return images_dict
 
     def get_roi_locations(self, roi_ids: Optional[Iterable[int]] = None) -> np.ndarray:
+        """Returnn the locations of the Regions of Interest (ROIs).
+
+        Parameters
+        ----------
+        roi_ids: array_like
+            A list or 1D array of ids of the ROIs. Length is the number of ROIs
+            requested.
+
+        Returns
+        ------
+        roi_locs: numpy.ndarray
+            2-D array: 2 X no_ROIs. The pixel ids (x,y) where the centroid of the ROI is.
+        """
         if self._roi_locs is None:
             return
         all_ids = self.get_roi_ids()
@@ -346,10 +451,12 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         return np.array(self._roi_locs.data)[roi_idxs, tranpose_image_convention].T  # h5py fancy indexing is slow
 
     def get_image_size(self):
+        """Return the size of the image (height, width)."""
         return self._image_masks.shape[:2]
 
     @staticmethod
     def get_nwb_metadata(sgmextractor):
+        """Return the metadata dictionary for the NWB file (deprecated)."""
         temporary_deprecation_message()
 
     @staticmethod
@@ -362,4 +469,5 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         buffer_size: int = 10,
         nwbfile=None,
     ):
+        """Write segmentation data to NWB file (deprecated)."""
         temporary_deprecation_message()
