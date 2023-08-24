@@ -86,7 +86,7 @@ class SegmentationExtractor(ABC):
             A list or 1D array of ids of the ROIs. Length is the number of ROIs requested.
 
         Returns
-        ------
+        -------
         roi_locs: numpy.ndarray
             2-D array: 2 X no_ROIs. The pixel ids (x,y) where the centroid of the ROI is.
         """
@@ -420,10 +420,10 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
         if getattr(self._parent_segmentation, "_times") is not None:
             self._times = self._parent_segmentation._times[start_frame:end_frame]
 
-    def get_accepted_list(self) -> list:  # noqa: D102
+    def get_accepted_list(self) -> list:
         return self._parent_segmentation.get_accepted_list()
 
-    def get_rejected_list(self) -> list:  # noqa: D102
+    def get_rejected_list(self) -> list:
         return self._parent_segmentation.get_rejected_list()
 
     def get_traces(
@@ -432,7 +432,7 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
         start_frame: Optional[int] = None,
         end_frame: Optional[int] = None,
         name: str = "raw",
-    ) -> np.ndarray:  # noqa: D102
+    ) -> np.ndarray:
         start_frame = min(start_frame or 0, self._num_frames)
         end_frame = min(end_frame or self._num_frames, self._num_frames)
         return self._parent_segmentation.get_traces(
@@ -442,7 +442,7 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
             name=name,
         )
 
-    def get_traces_dict(self):  # noqa: D102
+    def get_traces_dict(self):
         return {
             trace_name: self._parent_segmentation.get_traces(
                 start_frame=self._start_frame, end_frame=self._end_frame, name=trace_name
@@ -450,32 +450,32 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
             for trace_name, trace in self._parent_segmentation.get_traces_dict().items()
         }
 
-    def get_image_size(self) -> Tuple[int, int]:  # noqa: D102
+    def get_image_size(self) -> Tuple[int, int]:
         return tuple(self._parent_segmentation.get_image_size())
 
-    def get_num_frames(self) -> int:  # noqa: D102
+    def get_num_frames(self) -> int:
         return self._num_frames
 
-    def get_num_rois(self):  # noqa: D102
+    def get_num_rois(self):
         return self._parent_segmentation.get_num_rois()
 
-    def get_images_dict(self) -> dict:  # noqa: D102
+    def get_images_dict(self) -> dict:
         return self._parent_segmentation.get_images_dict()
 
-    def get_image(self, name="correlation"):  # noqa: D102
+    def get_image(self, name="correlation"):
         return self._parent_segmentation.get_image(name=name)
 
-    def get_sampling_frequency(self) -> float:  # noqa: D102
+    def get_sampling_frequency(self) -> float:
         return self._parent_segmentation.get_sampling_frequency()
 
-    def get_channel_names(self) -> list:  # noqa: D102
+    def get_channel_names(self) -> list:
         return self._parent_segmentation.get_channel_names()
 
-    def get_num_channels(self) -> int:  # noqa: D102
+    def get_num_channels(self) -> int:
         return self._parent_segmentation.get_num_channels()
 
-    def get_num_planes(self):  # noqa: D102
+    def get_num_planes(self):
         return self._parent_segmentation.get_num_planes()
 
-    def get_roi_pixel_masks(self, roi_ids: Optional[ArrayLike] = None) -> List[np.ndarray]:  # noqa: D102
+    def get_roi_pixel_masks(self, roi_ids: Optional[ArrayLike] = None) -> List[np.ndarray]:
         return self._parent_segmentation.get_roi_pixel_masks(roi_ids=roi_ids)
