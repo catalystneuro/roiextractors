@@ -15,4 +15,5 @@ repos:
     hooks:
     -   id: pydocstyle
         args:
-        - --ignore=D102
+        - --convention=numpy
+        - --add-ignore=D1
