@@ -204,7 +204,7 @@ class NwbImagingExtractor(ImagingExtractor):
         return video
 
     def get_image_size(self) -> Tuple[int, int]:
-        return (self._num_rows, self._num_cols)
+        return (self._num_rows, self._columns)  # TODO: change name of _columns to _num_cols for consistency
 
     def get_num_frames(self):
         return self._num_frames
