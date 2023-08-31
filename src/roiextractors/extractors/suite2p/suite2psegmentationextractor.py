@@ -96,11 +96,9 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return np.load(file_path, mmap_mode=mmap_mode, allow_pickle=mmap_mode is None)
 
     def get_accepted_list(self):
-        """Return a list of accepted ROI ids."""
         return list(np.where(self.iscell[:, 0] == 1)[0])
 
     def get_rejected_list(self):
-        """Return a list of rejected ROI ids."""
         return list(np.where(self.iscell[:, 0] == 0)[0])
 
     def _summary_image_read(self, bstr="meanImg"):
@@ -134,18 +132,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return np.array([j["med"] for j in self.stat]).T.astype(int)
 
     def get_roi_image_masks(self, roi_ids=None):
-        """Get image masks for all ROIs specified by roi_ids.
-
-        Parameters
-        ----------
-        roi_ids: list
-            A list of ROI ids to get image masks for. If None, all ROIs are used.
-
-        Returns
-        -------
-        image_masks: numpy.ndarray
-            A 3D numpy array of image masks with shape (y, x, len(roi_ids)).
-        """
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
         else:
@@ -159,18 +145,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         )
 
     def get_roi_pixel_masks(self, roi_ids=None):
-        """Get pixel masks for all ROIs specified by roi_ids.
-
-        Parameters
-        ----------
-        roi_ids: list
-            A list of ROI ids to get pixel masks for. If None, all ROIs are used.
-
-        Returns
-        -------
-        pixel_masks: list
-            A list of pixel masks for each ROI.
-        """
         pixel_mask = []
         for i in range(self.get_num_rois()):
             pixel_mask.append(
@@ -191,7 +165,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return [pixel_mask[i] for i in roi_idx_]
 
     def get_image_size(self):
-        """Return the size of the image (height, width)."""
         return [self.ops["Ly"], self.ops["Lx"]]
 
     @staticmethod
