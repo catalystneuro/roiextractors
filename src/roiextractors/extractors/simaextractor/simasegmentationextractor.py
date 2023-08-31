@@ -160,11 +160,9 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         return np.array(summary_image).T
 
     def get_accepted_list(self):
-        """Return the list of accepted ROIs."""
         return list(range(self.get_num_rois()))
 
     def get_rejected_list(self):
-        """Return the list of rejected ROIs."""
         return [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
 
     @staticmethod
@@ -178,5 +176,4 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         raise NotImplementedError  # TODO: implement write_segmentation
 
     def get_image_size(self):
-        """Return the size of the image (height, width)."""
         return self._image_masks.shape[0:2]

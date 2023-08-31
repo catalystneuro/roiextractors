@@ -139,23 +139,18 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         return self._video.lazy_slice[start_frame:end_frame, :, :, channel].dsetread()
 
     def get_image_size(self) -> Tuple[int, int]:
-        """Return the size of the video (num_rows, num_cols)."""
         return (self._num_rows, self._num_cols)
 
     def get_num_frames(self):
-        """Return the number of frames in the video."""
         return self._num_frames
 
     def get_sampling_frequency(self):
-        """Return the sampling frequency of the video."""
         return self._sampling_frequency
 
     def get_channel_names(self):
-        """Return the channel names."""
         return self._channel_names
 
     def get_num_channels(self):
-        """Return the number of channels."""
         return self._num_channels
 
     @staticmethod
