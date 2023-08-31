@@ -121,20 +121,6 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         self._file.close()
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0):
-        """Return frames from the video.
-
-        Parameters
-        ----------
-        frame_idxs : array-like
-            2-element list of starting frame and ending frame (inclusive).
-        channel : int, optional
-            Channel index. The default is 0.
-
-        Returns
-        -------
-        numpy.ndarray
-            Array of frames.
-        """
         # Fancy indexing is non performant for h5.py with long frame lists
         if frame_idxs is not None:
             slice_start = np.min(frame_idxs)
@@ -150,22 +136,6 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         return frames
 
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
-        """Return the video frames.
-
-        Parameters
-        ----------
-        start_frame : int, optional
-            Starting frame. The default is None.
-        end_frame : int, optional
-            Ending frame. The default is None.
-        channel : int, optional
-            Channel index. The default is 0.
-
-        Returns
-        -------
-        numpy.ndarray
-            Array of frames.
-        """
         return self._video.lazy_slice[start_frame:end_frame, :, :, channel].dsetread()
 
     def get_image_size(self) -> Tuple[int, int]:
