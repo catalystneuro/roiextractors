@@ -25,6 +25,20 @@ def concatenate_output(func):  # TODO: refactor to avoid magical behavior
     """
 
     def _get_from_roi_map(self, roi_ids=None, **kwargs):
+        """Call member function of each SegmentationExtractor specified by func and concatenate the output.
+
+        Parameters
+        ----------
+        roi_ids: list
+            list of roi ids to be used
+        kwargs: dict
+            keyword arguments to be passed to func
+
+        Returns
+        -------
+        out: list
+            list of outputs from each SegmentationExtractor
+        """
         out = []
         if roi_ids is None:
             roi_ids = np.array(self._all_roi_ids)
