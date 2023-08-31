@@ -226,7 +226,7 @@ class SegmentationExtractor(ABC):
         )
 
     def get_images_dict(self):
-        """Get images as a dictionary with key as the name of the ROiResponseSeries.
+        """Get images as a dictionary with key as the name of the ROIResponseSeries.
 
         Returns
         -------
