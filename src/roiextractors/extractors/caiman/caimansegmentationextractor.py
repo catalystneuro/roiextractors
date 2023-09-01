@@ -33,7 +33,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
     This class inherits from the SegmentationExtractor class, having all
     its funtionality specifically applied to the dataset output from
-    the 'CNMF-E' ROI segmentation method.
+    the 'CaImAn' ROI segmentation method.
     """
 
     extractor_name = "CaimanSegmentation"
