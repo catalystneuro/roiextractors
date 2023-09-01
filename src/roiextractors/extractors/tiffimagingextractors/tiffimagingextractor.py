@@ -1,3 +1,10 @@
+"""A TIFF imaging extractor for TIFF files.
+
+Classes
+-------
+TiffImagingExtractor
+    A TIFF imaging extractor for TIFF files.
+"""
 from pathlib import Path
 from typing import Optional
 from warnings import warn
@@ -16,11 +23,22 @@ from ...extraction_tools import (
 
 
 class TiffImagingExtractor(ImagingExtractor):
+    """A ImagingExtractor for TIFF files."""
+
     extractor_name = "TiffImaging"
     is_writable = True
     mode = "file"
 
     def __init__(self, file_path: PathType, sampling_frequency: FloatType):
+        """Create a TiffImagingExtractor instance from a TIFF file.
+
+        Parameters
+        ----------
+        file_path : PathType
+            Path to the TIFF file.
+        sampling_frequency : float
+            The frequency at which the frames were sampled, in Hz.
+        """
         tifffile = get_package(package_name="tifffile")
 
         super().__init__()
@@ -29,7 +47,7 @@ class TiffImagingExtractor(ImagingExtractor):
         if self.file_path.suffix not in [".tiff", ".tif", ".TIFF", ".TIF"]:
             warn(
                 "File suffix ({self.file_path.suffix}) is not one of .tiff, .tif, .TIFF, or .TIF! "
-                "The TiffImagingExtracto may not be appropriate."
+                "The TiffImagingExtractor may not be appropriate."
             )
 
         with tifffile.TiffFile(self.file_path) as tif:
@@ -80,6 +98,22 @@ class TiffImagingExtractor(ImagingExtractor):
 
     @staticmethod
     def write_imaging(imaging, save_path, overwrite: bool = False, chunk_size=None, verbose=True):
+        """Write a TIFF file from an ImagingExtractor.
+
+        Parameters
+        ----------
+        imaging : ImagingExtractor
+            The ImagingExtractor to be written to a TIFF file.
+        save_path : str or PathType
+            The path to save the TIFF file.
+        overwrite : bool
+            If True, will overwrite the file if it exists. Otherwise will raise an error if the file exists.
+        chunk_size : int or None
+            If None, will write the entire video to a single TIFF file. Otherwise will write the video
+            in chunk_size frames at a time.
+        verbose : bool
+            If True, will print progress bar.
+        """
         tifffile = get_package(package_name="tifffile")
 
         save_path = Path(save_path)

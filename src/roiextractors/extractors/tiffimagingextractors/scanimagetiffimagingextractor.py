@@ -1,4 +1,10 @@
-"""Specialized extractor for reading TIFF files produced via ScanImage."""
+"""Specialized extractor for reading TIFF files produced via ScanImage.
+
+Classes
+-------
+ScanImageTiffImagingExtractor
+    Specialized extractor for reading TIFF files produced via ScanImage.
+"""
 from pathlib import Path
 from typing import Optional, Tuple
 from warnings import warn
@@ -27,8 +33,7 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
         file_path: PathType,
         sampling_frequency: FloatType,
     ):
-        """
-        Specialized extractor for reading TIFF files produced via ScanImage.
+        """Create a ScanImageTiffImagingExtractor instance from a TIFF file produced by ScanImage.
 
         This extractor allows for lazy accessing of slices, unlike
         :py:class:`~roiextractors.extractors.tiffimagingextractors.TiffImagingExtractor`.
@@ -82,11 +87,20 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
                     frames = frames.squeeze()
             return frames
 
+    # Data accessed through an open ScanImageTiffReader io gets scrambled if there are multiple calls.
+    # Thus, open fresh io in context each time something is needed.
     def _get_single_frame(self, idx: int) -> np.ndarray:
-        """
-        Data accessed through an open ScanImageTiffReader io gets scrambled if there are multiple calls.
+        """Get a single frame of data from the TIFF file.
 
-        Thus, open fresh io in context each time something is needed.
+        Parameters
+        ----------
+        idx : int
+            The index of the frame to retrieve.
+
+        Returns
+        -------
+        frame: numpy.ndarray
+            The frame of data.
         """
         ScanImageTiffReader = _get_scanimage_reader()
 

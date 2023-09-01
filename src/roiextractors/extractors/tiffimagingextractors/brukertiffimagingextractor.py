@@ -1,3 +1,12 @@
+"""ImagingExtractors for the TIFF image format produced by Bruker.
+
+Classes
+-------
+BrukerTiffSinglePlaneImagingExtractor
+    A ImagingExtractor for TIFF files produced by Bruker with only 1 plane.
+BrukerTiffMultiPlaneImagingExtractor
+    A MultiImagingExtractor for TIFF files produced by Bruker with multiple planes.
+"""
 import logging
 import re
 from collections import Counter
@@ -15,6 +24,7 @@ from ...extraction_tools import PathType, get_package, DtypeType, ArrayType
 
 
 def filter_read_uic_tag_warnings(record):
+    """Filter out the warnings from tifffile.read_uic_tag() that are not relevant to the user."""
     return not record.msg.startswith("<tifffile.read_uic_tag>")
 
 
@@ -22,13 +32,12 @@ logging.getLogger("tifffile.tifffile").addFilter(filter_read_uic_tag_warnings)
 
 
 def _get_tiff_reader() -> ModuleType:
+    """Return the tifffile module."""
     return get_package(package_name="tifffile", installation_instructions="pip install tifffile")
 
 
 def _determine_frame_rate(element: ElementTree.Element, file_names: Optional[List[str]] = None) -> Union[float, None]:
-    """
-    Determines the frame rate from the difference in relative timestamps of the frame elements.
-    """
+    """Determine the frame rate from the difference in relative timestamps of the frame elements."""
     from neuroconv.utils import calculate_regular_series_rate
 
     frame_elements = element.findall(".//Frame")
@@ -44,9 +53,17 @@ def _determine_frame_rate(element: ElementTree.Element, file_names: Optional[Lis
 
 
 def _determine_imaging_is_volumetric(folder_path: PathType) -> bool:
-    """
-    Determines whether imaging is volumetric based on 'zDevice' configuration value.
-    The value is expected to be '1' for volumetric and '0' for single plane images.
+    """Determine whether imaging is volumetric based on 'zDevice' configuration value.
+
+    Parameters
+    ----------
+    folder_path : PathType
+        The path to the folder that contains the Bruker TIF image files (.ome.tif) and configuration files (.xml, .env).
+
+    Returns
+    -------
+    is_volumetric: bool
+        True if the imaging is volumetric (multiplane), False otherwise (single plane).
     """
     xml_root = _parse_xml(folder_path=folder_path)
     z_device_element = xml_root.find(".//PVStateValue[@key='zDevice']")
@@ -56,9 +73,7 @@ def _determine_imaging_is_volumetric(folder_path: PathType) -> bool:
 
 
 def _parse_xml(folder_path: PathType) -> ElementTree.Element:
-    """
-    Parses the XML configuration file into element tree and returns the root Element.
-    """
+    """Parse the XML configuration file into element tree and returns the root Element."""
     folder_path = Path(folder_path)
     xml_file_path = folder_path / f"{folder_path.name}.xml"
     assert xml_file_path.is_file(), f"The XML configuration file is not found at '{folder_path}'."
@@ -67,12 +82,29 @@ def _parse_xml(folder_path: PathType) -> ElementTree.Element:
 
 
 class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
+    """A MultiImagingExtractor for TIFF files produced by Bruke with multiple planes.
+
+    This format consists of multiple TIF image files (.ome.tif) and configuration files (.xml, .env).
+    """
+
     extractor_name = "BrukerTiffMultiPlaneImaging"
     is_writable = True
     mode = "folder"
 
     @classmethod
     def get_streams(cls, folder_path: PathType) -> dict:
+        """Get the available streams from the Bruker TIF image files (.ome.tif) and configuration files (.xml, .env).
+
+        Parameters
+        ----------
+        folder_path : PathType
+            The path to the folder that contains the Bruker TIF image files (.ome.tif) and configuration files (.xml, .env).
+
+        Returns
+        -------
+        streams: dict
+            The dictionary of available streams.
+        """
         natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
 
         xml_root = _parse_xml(folder_path=folder_path)
@@ -101,9 +133,7 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
         folder_path: PathType,
         stream_name: Optional[str] = None,
     ):
-        """
-        The imaging extractor for the Bruker TIF image format.
-        This format consists of multiple TIF image files (.ome.tif) and configuration files (.xml, .env).
+        """Create a BrukerTiffMultiPlaneImagingExtractor instance from a folder path that contains the image files.
 
         Parameters
         ----------
@@ -111,6 +141,17 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
             The path to the folder that contains the Bruker TIF image files (.ome.tif) and configuration files (.xml, .env).
         stream_name: str, optional
             The name of the recording channel (e.g. "Ch2").
+
+        Raises
+        ------
+        ValueError
+            If more than one recording stream is detected.
+        ValueError
+            If the selected stream is not in the available plane_streams.
+        AssertionError
+            If the TIF image files are missing from the folder.
+        AssertionError
+            If the imaging is not volumetric.
         """
         self._tifffile = _get_tiff_reader()
 
@@ -159,6 +200,7 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
         self._start_frames = [0] * self._num_planes_per_channel_stream
         self._end_frames = [self._num_frames] * self._num_planes_per_channel_stream
 
+    # TODO: fix this method so that it is consistent with base multiimagingextractor method (i.e. num_rows, num_columns)
     def get_image_size(self) -> Tuple[int, int, int]:
         return self._image_size
 
@@ -203,12 +245,26 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
 
 
 class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
+    """A MultiImagingExtractor for TIFF files produced by Bruker with only 1 plane."""
+
     extractor_name = "BrukerTiffSinglePlaneImaging"
     is_writable = True
     mode = "folder"
 
     @classmethod
     def get_streams(cls, folder_path: PathType) -> dict:
+        """Get the available streams from the Bruker TIF image files (.ome.tif) and configuration files (.xml, .env).
+
+        Parameters
+        ----------
+        folder_path : PathType
+            The path to the folder that contains the Bruker TIF image files (.ome.tif) and configuration files (.xml, .env).
+
+        Returns
+        -------
+        streams: dict
+            The dictionary of available streams.
+        """
         natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
         xml_root = _parse_xml(folder_path=folder_path)
         channel_names = [file.attrib["channelName"] for file in xml_root.findall(".//File")]
@@ -217,9 +273,7 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         return streams
 
     def __init__(self, folder_path: PathType, stream_name: Optional[str] = None):
-        """
-        The imaging extractor for the Bruker TIF image format.
-        This format consists of multiple TIF image files (.ome.tif) and configuration files (.xml, .env).
+        """Create a BrukerTiffSinglePlaneImagingExtractor instance from a folder path that contains the image files.
 
         Parameters
         ----------
@@ -286,9 +340,12 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         super().__init__(imaging_extractors=imaging_extractors)
 
     def _get_xml_metadata(self) -> Dict[str, Union[str, List[Dict[str, str]]]]:
-        """
-        Parses the metadata in the root element that are under "PVStateValue" tag into
-        a dictionary.
+        """Parse the metadata in the root element that are under "PVStateValue" tag into a dictionary.
+
+        Returns
+        -------
+        xml_metadata: dict
+            The dictionary of metadata extracted from the XML file.
         """
         xml_metadata = dict()
         xml_metadata.update(**self._xml_root.attrib)
@@ -322,7 +379,7 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         return xml_metadata
 
     def _check_consistency_between_imaging_extractors(self):
-        """Overrides the parent class method as none of the properties that are checked are from the sub-imaging extractors."""
+        """Override the parent class method as none of the properties that are checked are from the sub-imaging extractors."""
         return True
 
     def get_image_size(self) -> Tuple[int, int]:
@@ -342,6 +399,13 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
 
 
 class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
+    """A private ImagingExtractor for TIFF files produced by Bruker with only 1 plane.
+
+    The private imaging extractor for OME-TIF image format produced by Bruker,
+    which defines the get_video() method to return the requested frames from a given file.
+    This extractor is not meant to be used as a standalone ImagingExtractor.
+    """
+
     extractor_name = "_BrukerTiffSinglePlaneImaging"
     is_writable = True
     mode = "file"
@@ -351,10 +415,7 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
     DATA_TYPE_ERROR = "The {}Extractor does not support retrieving the data type."
 
     def __init__(self, file_path: PathType):
-        """
-        The private imaging extractor for OME-TIF image format produced by Bruker,
-        which defines the get_video() method to return the requested frames from a given file.
-        This extractor is not meant to be used as a standalone ImagingExtractor.
+        """Create a _BrukerTiffSinglePlaneImagingExtractor instance from a TIFF image file (.ome.tif).
 
         Parameters
         ----------
