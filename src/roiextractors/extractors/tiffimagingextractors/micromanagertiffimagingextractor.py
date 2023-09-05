@@ -24,6 +24,7 @@ from ...multiimagingextractor import MultiImagingExtractor
 
 
 def filter_tiff_tag_warnings(record):
+    """Filter out the warning messages from tifffile package."""
     return not record.msg.startswith("<tifffile.TiffTag 270 @42054>")
 
 
@@ -31,6 +32,7 @@ logging.getLogger("tifffile.tifffile").addFilter(filter_tiff_tag_warnings)
 
 
 def _get_tiff_reader() -> ModuleType:
+    """Import the tifffile package and return the module."""
     return get_package(package_name="tifffile", installation_instructions="pip install tifffile")
 
 
