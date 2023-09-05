@@ -70,14 +70,22 @@ class VideoStructure:
     The role of the data class is to ensure consistency in naming and provide some initial
     consistency checks to ensure the validity of the sturcture.
 
-    Attributes:
-        num_rows (int): The number of rows of each frame as a matrix.
-        num_columns (int): The number of columns of each frame as a matrix.
-        num_channels (int): The number of chanenls (1 for gray, 3 for colors).
-        rows_axis (int): The axis or dimension corresponding to the rows.
-        columns_axis (int):  The axis or dimension corresponding to the columns.
-        channels_axis (int): The axis or dimension corresponding to the channels.
-        frame_axis (int): The axis or dimension corresponding to the frames in the video.
+    Attributes
+    ----------
+    num_rows : int
+        The number of rows of each frame as a matrix.
+    num_columns : int
+        The number of columns of each frame as a matrix.
+    num_channels : int
+        The number of channels (1 for grayscale, 3 for color).
+    rows_axis : int
+        The axis or dimension corresponding to the rows.
+    columns_axis : int
+        The axis or dimension corresponding to the columns.
+    channels_axis : int
+        The axis or dimension corresponding to the channels.
+    frame_axis : int
+        The axis or dimension corresponding to the frames in the video.
 
     As an example if you wanted to build the structure for a video with gray (n_channels=1) frames of 10 x 5
     where the video is to have the following shape (num_frames, num_rows, num_columns, num_channels) you
@@ -112,11 +120,13 @@ class VideoStructure:
     frame_axis: int
 
     def __post_init__(self) -> None:
+        """Validate the structure of the video and initialize the shape of the frame."""
         self._validate_video_structure()
         self._initialize_frame_shape()
         self.number_of_pixels_per_frame = np.prod(self.frame_shape)
 
     def _initialize_frame_shape(self) -> None:
+        """Initialize the shape of the frame."""
         self.frame_shape = [None, None, None, None]
         self.frame_shape[self.rows_axis] = self.num_rows
         self.frame_shape[self.columns_axis] = self.num_columns
@@ -125,6 +135,7 @@ class VideoStructure:
         self.frame_shape = tuple(self.frame_shape)
 
     def _validate_video_structure(self) -> None:
+        """Validate the structure of the video."""
         exception_message = (
             "Invalid structure: "
             f"{self.__repr__()}, "
@@ -141,6 +152,23 @@ class VideoStructure:
             raise ValueError(exception_message)
 
     def build_video_shape(self, n_frames: int) -> Tuple[int, int, int, int]:
+        """Build the shape of the video from class attributes.
+
+        Parameters
+        ----------
+        n_frames : int
+            The number of frames in the video.
+
+        Returns
+        -------
+        Tuple[int, int, int, int]
+            The shape of the video.
+
+        Notes
+        -----
+        The class attributes frame_axis, rows_axis, columns_axis and channels_axis are used to determine the order of the
+        dimensions in the returned tuple.
+        """
         video_shape = [None] * 4
         video_shape[self.frame_axis] = n_frames
         video_shape[self.rows_axis] = self.num_rows
@@ -150,23 +178,21 @@ class VideoStructure:
         return tuple(video_shape)
 
     def transform_video_to_canonical_form(self, video: np.ndarray) -> np.ndarray:
-        """Transform a video with the structure in this class to the canonical internal format of
-        roiextractors (num_frames, num_rows, num_columns, num_channels)
+        """Transform a video to the canonical internal format of roiextractors (num_frames, num_rows, num_columns, num_channels).
 
-        The function supports either
         Parameters
         ----------
-        video : np.ndarray
+        video : numpy.ndarray
             The video to be transformed
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             The reshaped video
 
         Raises
         ------
         KeyError
-
+            If the video is not in a format that can be transformed.
         """
         canonical_shape = (self.frame_axis, self.rows_axis, self.columns_axis, self.channels_axis)
         if isinstance(video, (h5py.Dataset, zarr.core.Array)):
@@ -225,7 +251,6 @@ def read_numpy_memmap_video(
     video_memap: np.array
         A numpy memmap pointing to the video.
     """
-
     file_size_bytes = Path(file_path).stat().st_size
 
     pixels_per_frame = video_structure.number_of_pixels_per_frame
@@ -242,8 +267,17 @@ def read_numpy_memmap_video(
 
 
 def _pixel_mask_extractor(image_mask_, _roi_ids):
-    """An alternative data format for storage of image masks which relies on the sparsity of the images.
+    """Convert image mask to pixel mask.
+
+    Pixel masks are an alternative data format for storage of image masks which relies on the sparsity of the images.
     The location and weight of each non-zero pixel is stored for each mask.
+
+    Parameters
+    ----------
+    image_mask_: numpy.ndarray
+        Dense representation of the ROIs with shape (number_of_rows, number_of_columns, number_of_rois).
+    _roi_ids: list
+        List of roi ids with length number_of_rois.
 
     Returns
     -------
@@ -262,19 +296,21 @@ def _pixel_mask_extractor(image_mask_, _roi_ids):
 
 
 def _image_mask_extractor(pixel_mask, _roi_ids, image_shape):
-    """
-    Converts a pixel mask to image mask
+    """Convert a pixel mask to image mask.
 
     Parameters
     ----------
     pixel_mask: list
         list of pixel masks (no pixels X 3)
     _roi_ids: list
+        list of roi ids with length number_of_rois
     image_shape: array_like
+        shape of the image (number_of_rows, number_of_columns)
 
     Returns
     -------
     image_mask: np.ndarray
+        Dense representation of the ROIs with shape (number_of_rows, number_of_columns, number_of_rois).
     """
     image_mask = np.zeros(list(image_shape) + [len(_roi_ids)])
     for no, rois in enumerate(_roi_ids):
@@ -284,6 +320,18 @@ def _image_mask_extractor(pixel_mask, _roi_ids, image_shape):
 
 
 def get_video_shape(video):
+    """Get the shape of a video (num_channels, num_frames, size_x, size_y).
+
+    Parameters
+    ----------
+    video: numpy.ndarray
+        The video to get the shape of.
+
+    Returns
+    -------
+    video_shape: tuple
+        The shape of the video (num_channels, num_frames, size_x, size_y).
+    """
     if len(video.shape) == 3:
         # 1 channel
         num_channels = 1
@@ -294,9 +342,25 @@ def get_video_shape(video):
 
 
 def check_get_frames_args(func):
-    """
+    """Check the arguments of the get_frames function.
+
     This decorator allows the get_frames function to be queried with either
     an integer, slice or an array and handles a common return. [I think that np.take can be used instead of this]
+
+    Parameters
+    ----------
+    func: function
+        The get_frames function.
+
+    Returns
+    -------
+    corrected_args: function
+        The get_frames function with corrected arguments.
+
+    Raises
+    ------
+    AssertionError
+        If 'frame_idxs' exceed the number of frames.
     """
 
     @wraps(func)
@@ -318,6 +382,29 @@ def check_get_frames_args(func):
 
 
 def _cast_start_end_frame(start_frame, end_frame):
+    """Cast start and end frame to int or None.
+
+    Parameters
+    ----------
+    start_frame: int, float, None
+        The start frame.
+    end_frame: int, float, None
+        The end frame.
+
+    Returns
+    -------
+    start_frame: int, None
+        The start frame.
+    end_frame: int, None
+        The end frame.
+
+    Raises
+    ------
+    ValueError
+        If start_frame is not an int, float or None.
+    ValueError
+        If end_frame is not an int, float or None.
+    """
     if isinstance(start_frame, float):
         start_frame = int(start_frame)
     elif isinstance(start_frame, (int, np.integer, type(None))):
@@ -337,6 +424,31 @@ def _cast_start_end_frame(start_frame, end_frame):
 
 
 def check_get_videos_args(func):
+    """Check the arguments of the get_videos function.
+
+    This decorator allows the get_videos function to be queried with either
+    an integer or slice and handles a common return.
+
+    Parameters
+    ----------
+    func: function
+        The get_videos function.
+
+    Returns
+    -------
+    corrected_args: function
+        The get_videos function with corrected arguments.
+
+    Raises
+    ------
+    AssertionError
+        If 'start_frame' exceeds the number of frames.
+    AssertionError
+        If 'end_frame' exceeds the number of frames.
+    AssertionError
+        If 'start_frame' is greater than 'end_frame'.
+    """
+
     @wraps(func)
     def corrected_args(imaging, start_frame=None, end_frame=None, channel=0):
         if start_frame is not None:
@@ -374,12 +486,12 @@ def write_to_h5_dataset_format(
     chunk_mb=1000,
     verbose=False,
 ):
-    """Saves the video of an imaging extractor in an h5 dataset.
+    """Save the video of an imaging extractor in an h5 dataset.
 
     Parameters
     ----------
     imaging: ImagingExtractor
-        The imaging extractor object to be saved in the .h5 filr
+        The imaging extractor object to be saved in the .h5 file
     dataset_path: str
         Path to dataset in h5 file (e.g. '/dataset')
     save_path: str
@@ -396,6 +508,18 @@ def write_to_h5_dataset_format(
         Chunk size in Mb (default 1000Mb)
     verbose: bool
         If True, output is verbose (when chunks are used)
+
+    Returns
+    -------
+    save_path: str
+        The path to the file.
+
+    Raises
+    ------
+    AssertionError
+        If h5py is not installed.
+    AssertionError
+        If neither 'save_path' nor 'file_handle' are given.
     """
     assert HAVE_H5, "To write to h5 you need to install h5py: pip install h5py"
     assert save_path is not None or file_handle is not None, "Provide 'save_path' or 'file handle'"
@@ -461,6 +585,20 @@ def write_to_h5_dataset_format(
 
 # TODO will be moved eventually, but for now it's very handy :)
 def show_video(imaging, ax=None):
+    """Show video as animation.
+
+    Parameters
+    ----------
+    imaging: ImagingExtractor
+        The imaging extractor object to be saved in the .h5 file
+    ax: matplotlib axis
+        Axis to plot the video. If None, a new axis is created.
+
+    Returns
+    -------
+    anim: matplotlib.animation.FuncAnimation
+        Animation of the video.
+    """
     import matplotlib.pyplot as plt
     import matplotlib.animation as animation
 
@@ -487,9 +625,25 @@ def show_video(imaging, ax=None):
 
 
 def check_keys(dict):
-    """
-    checks if entries in dictionary are mat-objects. If yes
-    todict is called to change them to nested dictionaries
+    """Check keys of dictionary for mat-objects.
+
+    Checks if entries in dictionary are mat-objects. If yes
+    todict is called to change them to nested dictionaries.
+
+    Parameters
+    ----------
+    dict: dict
+        Dictionary to check.
+
+    Returns
+    -------
+    dict: dict
+        Dictionary with mat-objects converted to nested dictionaries.
+
+    Raises
+    ------
+    AssertionError
+        If scipy is not installed.
     """
     assert HAVE_Scipy, "To write to h5 you need to install scipy: pip install scipy"
     for key in dict:
@@ -499,8 +653,17 @@ def check_keys(dict):
 
 
 def todict(matobj):
-    """
-    A recursive function which constructs from matobjects nested dictionaries
+    """Recursively construct nested dictionaries from matobjects.
+
+    Parameters
+    ----------
+    matobj: mat_struct
+        Matlab object to convert to nested dictionary.
+
+    Returns
+    -------
+    dict: dict
+        Dictionary with mat-objects converted to nested dictionaries.
     """
     dict = {}
     for strg in matobj._fieldnames:
@@ -517,8 +680,7 @@ def get_package(
     installation_instructions: Optional[str] = None,
     excluded_platforms_and_python_versions: Optional[Dict[str, List[str]]] = None,
 ) -> ModuleType:
-    """
-    Check if package is installed and return module if so.
+    """Check if package is installed and return module if so.
 
     Otherwise, raise informative error describing how to perform the installation.
     Inspired by https://docs.python.org/3/library/importlib.html#checking-if-a-module-can-be-imported.
@@ -542,6 +704,7 @@ def get_package(
     Raises
     ------
     ModuleNotFoundError
+        If the package is not installed.
     """
     installation_instructions = installation_instructions or f"pip install {package_name}"
     excluded_platforms_and_python_versions = excluded_platforms_and_python_versions or dict()
