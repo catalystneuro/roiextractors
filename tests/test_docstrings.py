@@ -7,14 +7,16 @@ import pytest
 
 def traverse_class(cls, objs):
     """Traverse a class and its methods and append them to objs."""
-    for name, obj in inspect.getmembers(cls, inspect.isfunction or inspect.ismethod):
+    predicate = lambda x: inspect.isfunction(x) or inspect.ismethod(x)
+    for name, obj in inspect.getmembers(cls, predicate=predicate):
         objs.append(obj)
 
 
 def traverse_module(module, objs):
     """Traverse all classes and functions in a module and append them to objs."""
     objs.append(module)
-    for name, obj in inspect.getmembers(module, inspect.isclass or inspect.isfunction or inspect.ismethod):
+    predicate = lambda x: inspect.isclass(x) or inspect.isfunction(x) or inspect.ismethod(x)
+    for name, obj in inspect.getmembers(module, predicate=predicate):
         parent_package = obj.__module__.split(".")[0]
         if parent_package != "roiextractors":  # avoid traversing external dependencies
             continue
@@ -39,7 +41,6 @@ def traverse_package(package, objs):
 
 objs = []
 traverse_package(roiextractors, objs)
-print(objs)
 
 
 @pytest.mark.parametrize("obj", objs)
