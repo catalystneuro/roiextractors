@@ -1,3 +1,4 @@
+"""Testing utilities for the roiextractors package."""
 from collections.abc import Iterable
 from typing import Tuple, Optional
 
