@@ -50,6 +50,8 @@ def test_has_docstring(obj):
         msg = f"{obj.__name__} has no docstring."
     else:
         msg = f"{obj.__module__}.{obj.__qualname__} has no docstring."
+        if "__create_fn__" in msg:
+            return  # skip dataclass functions created by __create_fn__
     assert doc is not None, msg
 
 

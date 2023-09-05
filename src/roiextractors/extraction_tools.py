@@ -1,3 +1,10 @@
+"""Various tools for extraction of ROIs from imaging data.
+
+Classes
+-------
+VideoStructure
+    A data class for specifying the structure of a video.
+"""
 import sys
 import importlib.util
 from functools import wraps
@@ -108,7 +115,6 @@ class VideoStructure:
         channels_axis=channels_axis,
         frame_axis=frame_axis,
     )
-
     """
 
     num_rows: int
