@@ -18,7 +18,9 @@ def _gaussian(x, mu, sigma):
     return 1 / np.sqrt(2 * np.pi * sigma) * np.exp(-((x - mu) ** 2) / sigma)
 
 
-def _generate_rois(num_units=10, size_x=100, size_y=100, roi_size=4, min_dist=5, mode="uniform"):
+def _generate_rois(
+    num_units=10, size_x=100, size_y=100, roi_size=4, min_dist=5, mode="uniform"
+):  # TODO: mode --> literal type
     """Generate ROIs with given parameters.
 
     Parameters
