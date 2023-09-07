@@ -1,3 +1,10 @@
+"""A segmentation extractor for Sima.
+
+Classes
+-------
+SimaSegmentationExtractor
+    A segmentation extractor for Sima.
+"""
 import os
 import pickle
 import re
@@ -18,10 +25,11 @@ except ImportError:
 
 
 class SimaSegmentationExtractor(SegmentationExtractor):
-    """
+    """A segmentation extractor for Sima.
+
     This class inherits from the SegmentationExtractor class, having all
     its functionality specifically applied to the dataset output from
-    the \'SIMA\' ROI segmentation method.
+    the 'SIMA' ROI segmentation method.
     """
 
     extractor_name = "SimaSegmentation"
@@ -32,10 +40,11 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     installation_mesg = "To use the SimaSegmentationExtractor install sima and dill: \n\n pip install sima/dill\n\n"
 
     def __init__(self, file_path: PathType, sima_segmentation_label: str = "auto_ROIs"):
-        """
+        """Create a SegmentationExtractor instance from a sima file.
+
         Parameters
         ----------
-        file_path: str
+        file_path: str or Path
             The location of the folder containing dataset.sima file and the raw
             image file(s) (tiff, h5, .zip)
         sima_segmentation_label: str
@@ -55,13 +64,14 @@ class SimaSegmentationExtractor(SegmentationExtractor):
 
     @staticmethod
     def _convert_sima(old_pkl_loc):
-        """
+        """Convert the sima file to python 3 pickle.
+
         This function is used to convert python 2 pickles to python 3 pickles.
-        Forward compatibility of \'*.sima\' files containing .pkl dataset, rois,
+        Forward compatibility of '*.sima' files containing .pkl dataset, rois,
         sequences, signals, time_averages.
 
         Replaces the pickle file with a python 3 version with the same name. Saves
-        the old Py2 pickle as \'oldpicklename_p2.pkl\''
+        the old Py2 pickle as 'oldpicklename_p2.pkl'
 
         Parameters
         ----------
@@ -96,11 +106,13 @@ class SimaSegmentationExtractor(SegmentationExtractor):
                         pickle.dump(loaded, outfile)
 
     def _file_extractor_read(self):
+        """Read the sima file and return the sima.ImagingDataset object."""
         _img_dataset = sima.ImagingDataset.load(self.file_path)
         _img_dataset._savedir = self.file_path
         return _img_dataset
 
     def _image_mask_extractor_read(self):
+        """Read the image mask from the sima.ImagingDataset object (self._dataset_file)."""
         _sima_rois = self._dataset_file.ROIs
         if len(_sima_rois) > 1:
             if self.sima_segmentation_label in list(_sima_rois.keys()):
@@ -116,6 +128,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         return np.array(image_masks_).T
 
     def _trace_extractor_read(self):
+        """Read the traces from the sima.ImagingDataset object (self._dataset_file)."""
         for channel_now in self._channel_names:
             for labels in self._dataset_file.signals(channel=channel_now):
                 if labels:
@@ -142,6 +155,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         return extracted_signals
 
     def _summary_image_read(self):
+        """Read the summary image from the sima.ImagingDataset object (self._dataset_file)."""
         summary_image = np.squeeze(self._dataset_file.time_averages[0]).T
         return np.array(summary_image).T
 
@@ -153,7 +167,13 @@ class SimaSegmentationExtractor(SegmentationExtractor):
 
     @staticmethod
     def write_segmentation(segmentation_object, savepath):
-        raise NotImplementedError
+        """Write a segmentation object to a file.
+
+        Notes
+        -----
+        This function is not implemented for this extractor.
+        """
+        raise NotImplementedError  # TODO: implement write_segmentation
 
     def get_image_size(self):
         return self._image_masks.shape[0:2]

@@ -1,3 +1,10 @@
+"""Imaging Extractors for Scanbox files.
+
+Classes
+-------
+SbxImagingExtractor
+    An ImagingExtractor for Scanbox Image files.
+"""
 from multiprocessing.sharedctypes import Value
 import os
 from pathlib import Path
@@ -18,6 +25,8 @@ except ImportError:
 
 
 class SbxImagingExtractor(ImagingExtractor):
+    """Imaging extractor for the Scanbox image format."""
+
     extractor_name = "SbxImaging"
     installed = HAVE_Scipy  # check at class level if installed or not
     is_writable = True
@@ -25,7 +34,7 @@ class SbxImagingExtractor(ImagingExtractor):
     installation_mesg = "To use the Sbx Extractor run:\n\n pip install scipy\n\n"  # error message when not installed
 
     def __init__(self, file_path: PathType, sampling_frequency: Optional[float] = None):
-        """Imaging extractor for the Scanbox image format
+        """Create a SbxImagingExtractor from .mat or .sbx files.
 
         Parameters
         ----------
@@ -59,6 +68,20 @@ class SbxImagingExtractor(ImagingExtractor):
 
     @staticmethod
     def _return_mat_and_sbx_filepaths(file_path):
+        """Return the `.mat` and `.sbx` file paths from a given file path pointing to either of them.
+
+        Parameters
+        ----------
+        file_path : str or python Path objects
+            The file path pointing to a file in either `.mat` or `.sbx` format.
+
+        Returns
+        -------
+        mat_file_path : str or python Path object
+            The file path pointing to the `.mat` file.
+        sbx_file_path : str or python Path object
+            The file path pointing to the `.sbx` file.
+        """
         file_path = Path(file_path)
         if file_path.suffix not in [".mat", ".sbx"]:
             assertion_msg = "File path not pointing to a `.sbx` or `.mat` file"
@@ -69,7 +92,8 @@ class SbxImagingExtractor(ImagingExtractor):
         return mat_file_path, sbx_file_path
 
     def _loadmat(self):
-        """
+        """Load matlab .mat file.
+
         this function should be called instead of direct spio.loadmat
         as it cures the problem of not properly recovering python dictionaries
         from mat files. It calls the function check keys to cure all entries
@@ -127,6 +151,13 @@ class SbxImagingExtractor(ImagingExtractor):
         return info
 
     def _sbx_read(self):
+        """Read the `.sbx` file and return a numpy array.
+
+        Returns
+        -------
+        np_data : np.ndarray
+            The numpy array containing the data from the `.sbx` file.
+        """
         nrows = self._info["recordsPerBuffer"]
         ncols = self._info["sz"][1]
         nchannels = self._info["nChan"]
@@ -166,4 +197,19 @@ class SbxImagingExtractor(ImagingExtractor):
 
     @staticmethod
     def write_imaging(imaging, save_path: PathType, overwrite: bool = False):
+        """Write a SbxImagingExtractor to a `.mat` file.
+
+        Parameters
+        ----------
+        imaging : SbxImagingExtractor
+            The imaging extractor object to be written to a `.mat` file.
+        save_path : str or python Path object
+            The path to the `.mat` file to be written.
+        overwrite : bool, optional
+            If True, the `.mat` file will be overwritten if it already exists.
+
+        Notes
+        -----
+        This function is not implemented yet.
+        """
         raise NotImplementedError

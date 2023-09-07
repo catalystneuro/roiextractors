@@ -1,3 +1,10 @@
+"""A segmentation extractor for Suite2p.
+
+Classes
+-------
+Suite2pSegmentationExtractor
+    A segmentation extractor for Suite2p.
+"""
 import shutil
 from pathlib import Path
 from typing import Optional
@@ -11,6 +18,8 @@ from ...segmentationextractor import SegmentationExtractor
 
 
 class Suite2pSegmentationExtractor(SegmentationExtractor):
+    """A segmentation extractor for Suite2p."""
+
     extractor_name = "Suite2pSegmentationExtractor"
     installed = True  # check at class level if installed or not
     is_writable = False
@@ -24,8 +33,8 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         plane_no: IntType = 0,
         file_path: Optional[PathType] = None,
     ):
-        """
-        Creating SegmentationExtractor object out of suite 2p data type.
+        """Create SegmentationExtractor object out of suite 2p data type.
+
         Parameters
         ----------
         folder_path: str or Path
@@ -70,6 +79,19 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self._image_mean = self._summary_image_read("meanImg")
 
     def _load_npy(self, filename, mmap_mode=None):
+        """Load a .npy file with specified filename.
+
+        Parameters
+        ----------
+        filename: str
+            The name of the .npy file to load.
+        mmap_mode: str
+            The mode to use for memory mapping. See numpy.load for details.
+
+        Returns
+        -------
+        The loaded .npy file.
+        """
         file_path = self.folder_path / f"plane{self.plane_no}" / filename
         return np.load(file_path, mmap_mode=mmap_mode, allow_pickle=mmap_mode is None)
 
@@ -80,6 +102,18 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return list(np.where(self.iscell[:, 0] == 0)[0])
 
     def _summary_image_read(self, bstr="meanImg"):
+        """Read summary image from ops (settings) dict.
+
+        Parameters
+        ----------
+        bstr: str
+            The name of the summary image to read.
+
+        Returns
+        -------
+        img : numpy.ndarray | None
+            The summary image if bstr is in ops, else None.
+        """
         img = None
         if bstr in self.ops:
             if bstr == "Vcorr" or bstr == "max_proj":
@@ -94,6 +128,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
     @property
     def roi_locations(self):
+        """Returns the center locations (x, y) of each ROI."""
         return np.array([j["med"] for j in self.stat]).T.astype(int)
 
     def get_roi_image_masks(self, roi_ids=None):
@@ -134,6 +169,36 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite=True):
+        """Write a SegmentationExtractor to a folder specified by save_path.
+
+        Parameters
+        ----------
+        segmentation_object: SegmentationExtractor
+            The SegmentationExtractor object to be written.
+        save_path: str or Path
+            The folder path where to write the segmentation.
+        overwrite: bool
+            If True, overwrite the folder if it already exists.
+
+        Raises
+        ------
+        AssertionError
+            If save_path is not a folder.
+        FileExistsError
+            If the folder already exists and overwrite is False.
+
+        Notes
+        -----
+        The folder structure is as follows:
+        save_path
+        └── plane<plane_num>
+            ├── F.npy
+            ├── Fneu.npy
+            ├── spks.npy
+            ├── stat.npy
+            ├── iscell.npy
+            └── ops.npy
+        """
         save_path = Path(save_path)
         assert not save_path.is_file(), "'save_path' must be a folder"
 
