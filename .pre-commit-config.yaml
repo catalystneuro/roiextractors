@@ -17,3 +17,7 @@ repos:
         args:
         - --convention=numpy
         - --add-ignore=D1
+- repo: https://github.com/numpy/numpydoc
+  rev: v1.5.0
+  hooks:
+    - id: numpydoc-validation
