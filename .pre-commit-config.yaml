@@ -18,6 +18,6 @@ repos:
         - --convention=numpy
         - --add-ignore=D1
 - repo: https://github.com/numpy/numpydoc
-  rev: v1.5.0
+  rev: 881c0abf0a75c1b517c23a819f9365fbfc9cded7
   hooks:
     - id: numpydoc-validation
