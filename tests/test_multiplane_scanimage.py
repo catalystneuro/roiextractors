@@ -1,12 +1,12 @@
 from roiextractors.extractors.tiffimagingextractors.scanimagetiffimagingextractor import (
-    ScanImageTiffMultiPlaneImagingExtractor,
+    ScanImageTiffImagingExtractor,
 )
 import matplotlib.pyplot as plt
 
 
 def main():
     file_path = "/Volumes/T7/CatalystNeuro/NWB/MouseV1/raw-tiffs/2ret/20230119_w57_1_2ret_00001.tif"
-    extractor = ScanImageTiffMultiPlaneImagingExtractor(file_path=file_path)
+    extractor = ScanImageTiffImagingExtractor(file_path=file_path)
     print(f"num_frames: {extractor.get_num_frames()}")
     print(f"num_planes: {extractor.get_num_planes()}")
     print(f"num_channels: {extractor.get_num_channels()}")
