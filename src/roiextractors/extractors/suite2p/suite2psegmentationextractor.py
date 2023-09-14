@@ -62,7 +62,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             The name of the stream to load, to determine which streams are available use Suite2pSegmentationExtractor.get_streams(folder_path).
 
         """
-
         if combined:
             warning_string = "Keyword argument 'combined' is deprecated and will be removed on or after Nov, 2023. "
             warn(
@@ -158,7 +157,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
     def _correlation_image_read(self):
         """Read correlation image from ops (settings) dict.
-
 
         Returns
         -------
