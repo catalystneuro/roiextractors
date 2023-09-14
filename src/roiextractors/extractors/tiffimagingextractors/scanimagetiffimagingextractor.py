@@ -11,8 +11,6 @@ from warnings import warn
 import numpy as np
 from pprint import pprint
 
-from neuroconv.datainterfaces.ophys.scanimage.scanimageimaginginterface import extract_extra_metadata
-
 from ...extraction_tools import PathType, FloatType, ArrayType, get_package
 from ...imagingextractor import ImagingExtractor
 
@@ -22,6 +20,22 @@ def _get_scanimage_reader() -> type:
     return get_package(
         package_name="ScanImageTiffReader", installation_instructions="pip install scanimage-tiff-reader"
     ).ScanImageTiffReader
+
+
+def extract_extra_metadata(
+    file_path,
+) -> dict:  # TODO: Refactor neuroconv to reference this implementation to avoid duplication
+    ScanImageTiffReader = _get_scanimage_reader()
+    io = ScanImageTiffReader(str(file_path))
+    extra_metadata = {}
+    for metadata_string in (io.description(iframe=0), io.metadata()):
+        metadata_dict = {
+            x.split("=")[0].strip(): x.split("=")[1].strip()
+            for x in metadata_string.replace("\n", "\r").split("\r")
+            if "=" in x
+        }
+        extra_metadata = dict(**extra_metadata, **metadata_dict)
+    return extra_metadata
 
 
 class ScanImageTiffMultiPlaneImagingExtractor(
