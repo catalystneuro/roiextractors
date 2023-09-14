@@ -17,7 +17,7 @@ class TestSuite2pSegmentationExtractor(TestCase):
 
         cls.folder_path = folder_path
 
-        extractor = Suite2pSegmentationExtractor(folder_path=folder_path, stream_name="chan1_plane2")
+        extractor = Suite2pSegmentationExtractor(folder_path=folder_path, stream_name="chan1_plane1")
         cls.extractor = extractor
 
     def test_stream_names(self):
