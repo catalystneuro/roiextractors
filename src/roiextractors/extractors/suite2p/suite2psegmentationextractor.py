@@ -122,11 +122,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self._roi_response_deconvolved = self._load_npy(file_name="spks.npy", mmap_mode="r").T
         self.iscell = self._load_npy("iscell.npy", mmap_mode="r")
 
-        channel_name = (
-            "OpticalChannel"
-            if len(streams["channel_streams"]) == 1
-            else channel_stream_name.capitalize()
-        )
+        channel_name = "OpticalChannel" if len(streams["channel_streams"]) == 1 else channel_stream_name.capitalize()
         self._channel_names = [channel_name]
 
         self._image_correlation = self._correlation_image_read()

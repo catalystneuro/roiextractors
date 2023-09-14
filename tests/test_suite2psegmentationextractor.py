@@ -10,7 +10,9 @@ class TestSuite2pSegmentationExtractor(TestCase):
         folder_path = str(OPHYS_DATA_PATH / "segmentation_datasets" / "suite2p")
         cls.available_streams = dict(
             channel_streams=["chan1", "chan2"],
-            plane_streams=dict(chan1=["chan1_plane0", "chan1_plane1", "chan1_combined"], chan2=["chan2_plane0", "chan2_plane1"])
+            plane_streams=dict(
+                chan1=["chan1_plane0", "chan1_plane1", "chan1_combined"], chan2=["chan2_plane0", "chan2_plane1"]
+            ),
         )
 
         cls.folder_path = folder_path
@@ -31,15 +33,11 @@ class TestSuite2pSegmentationExtractor(TestCase):
             Suite2pSegmentationExtractor(folder_path=self.folder_path)
 
     def test_invalid_stream_raises(self):
-        exc_msg = (
-            "The selected stream 'plane0' is not a valid stream name. To see what streams are available, call `Suite2pSegmentationExtractor.get_streams(folder_path=...)`."
-        )
+        exc_msg = "The selected stream 'plane0' is not a valid stream name. To see what streams are available, call `Suite2pSegmentationExtractor.get_streams(folder_path=...)`."
         with self.assertRaisesWith(exc_type=ValueError, exc_msg=exc_msg):
             Suite2pSegmentationExtractor(folder_path=self.folder_path, stream_name="plane0")
 
     def test_incorrect_stream_raises(self):
-        exc_msg = (
-            "The selected stream 'chan1_plane2' is not in the available plane_streams '['chan1_plane0', 'chan1_plane1', 'chan1_combined']'!"
-        )
+        exc_msg = "The selected stream 'chan1_plane2' is not in the available plane_streams '['chan1_plane0', 'chan1_plane1', 'chan1_combined']'!"
         with self.assertRaisesWith(exc_type=ValueError, exc_msg=exc_msg):
             Suite2pSegmentationExtractor(folder_path=self.folder_path, stream_name="chan1_plane2")
