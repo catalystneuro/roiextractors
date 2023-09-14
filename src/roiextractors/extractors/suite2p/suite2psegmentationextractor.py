@@ -1,10 +1,11 @@
 import shutil
 from pathlib import Path
 from typing import Optional
+from warnings import warn
 
 import numpy as np
 
-from ...extraction_tools import PathType, IntType
+from ...extraction_tools import PathType
 from ...extraction_tools import _image_mask_extractor
 from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
@@ -14,64 +15,122 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     extractor_name = "Suite2pSegmentationExtractor"
     installed = True  # check at class level if installed or not
     is_writable = False
-    mode = "file"
+    mode = "folder"
     installation_mesg = ""  # error message when not installed
+
+    @classmethod
+    def get_streams(cls, folder_path: PathType):
+        folder_path = Path(folder_path)
+        stream_paths = [f for f in folder_path.iterdir() if f.is_dir()]
+        chan_1_streams = [f"chan1_{stream_path.stem}" for stream_path in stream_paths]
+        streams = dict(channel_streams=["chan1"], plane_streams=dict(chan1=chan_1_streams))
+
+        chan_2_streams = []
+        for stream_path in stream_paths:
+            if list(stream_path.glob("F_chan2.npy")):
+                chan_2_streams.append(f"chan2_{stream_path.stem}")
+
+        if chan_2_streams:
+            streams["channel_streams"].append("chan2")
+            streams["plane_streams"].update(chan2=chan_2_streams)
+
+        return streams
 
     def __init__(
         self,
-        folder_path: Optional[PathType] = None,
-        combined: bool = False,
-        plane_no: IntType = 0,
-        file_path: Optional[PathType] = None,
+        folder_path: PathType,
+        stream_name: Optional[str] = None,
+        combined: Optional[bool] = None,  # TODO: to be removed
+        plane_no: Optional[int] = None,  # TODO: to be removed
     ):
         """
-        Creating SegmentationExtractor object out of suite 2p data type.
+        The SegmentationExtractor for the suite2p format.
+
         Parameters
         ----------
         folder_path: str or Path
-            ~/suite2p folder location on disk
-        combined: bool
-            if the plane is a combined plane as in the Suite2p pipeline
-        plane_no: int
-            the plane for which to extract segmentation for.
-        file_path: str or Path [Deprecated]
-            ~/suite2p folder location on disk
-
+            The path to the 'suite2p' folder.
+        stream_name: str, optional
+            The name of the stream to load, to determine which streams are available use Suite2pSegmentationExtractor.get_streams(folder_path).
         """
-        from warnings import warn
 
-        if file_path is not None:
+        if combined:
+            warning_string = "Keyword argument 'combined' is deprecated and will be removed on or after Nov, 2023. "
+            warn(
+                message=warning_string,
+                category=DeprecationWarning,
+            )
+        if plane_no:
             warning_string = (
-                "The keyword argument 'file_path' is being deprecated on or after August, 2022 in favor of 'folder_path'. "
-                "'folder_path' takes precence over 'file_path'."
+                "Keyword argument 'plane_no' is deprecated and will be removed on or after Nov, 2023 in favor of 'stream_name'."
+                "Specify which stream you wish to load with the 'stream_name' keyword argument."
             )
             warn(
                 message=warning_string,
                 category=DeprecationWarning,
             )
-            folder_path = file_path if folder_path is None else folder_path
 
-        SegmentationExtractor.__init__(self)
-        self.combined = combined
-        self.plane_no = plane_no
+        streams = self.get_streams(folder_path=folder_path)
+        if stream_name is None:
+            if len(streams["channel_streams"]) > 1:
+                raise ValueError(
+                    "More than one channel is detected! Please specify which stream you wish to load with the `stream_name` argument. "
+                    "To see what streams are available, call `Suite2pSegmentationExtractor.get_streams(folder_path=...)`."
+                )
+            channel_stream_name = streams["channel_streams"][0]
+            stream_name = streams["plane_streams"][channel_stream_name][0]
+
+        channel_stream_name = stream_name.split("_")[0]
+        if channel_stream_name not in streams["channel_streams"]:
+            raise ValueError(
+                f"The selected stream '{channel_stream_name}' is not a valid stream name. To see what streams are available, "
+                f"call `Suite2pSegmentationExtractor.get_streams(folder_path=...)`."
+            )
+
+        plane_stream_names = streams["plane_streams"][channel_stream_name]
+        if stream_name is not None and stream_name not in plane_stream_names:
+            raise ValueError(
+                f"The selected stream '{stream_name}' is not in the available plane_streams '{plane_stream_names}'!"
+            )
+        self.stream_name = stream_name
+
+        super().__init__()
+
         self.folder_path = Path(folder_path)
 
-        self.stat = self._load_npy("stat.npy")
-        self._roi_response_raw = self._load_npy("F.npy", mmap_mode="r").T
-        self._roi_response_neuropil = self._load_npy("Fneu.npy", mmap_mode="r").T
-        self._roi_response_deconvolved = self._load_npy("spks.npy", mmap_mode="r").T
+        self._options = self._load_npy(file_name="ops.npy").item()
+
+        fluorescence_traces_file_name = "F.npy" if channel_stream_name == "chan1" else "F_chan2.npy"
+        neuropil_traces_file_name = "Fneu.npy" if channel_stream_name == "chan1" else "Fneu_chan2.npy"
+
+        self._sampling_frequency = self._options["fs"]
+        self._num_frames = self._options["nframes"]
+        self._image_size = (self._options["Ly"], self._options["Lx"])
+
+        self.stat = self._load_npy(file_name="stat.npy")
+        self._roi_response_raw = self._load_npy(file_name=fluorescence_traces_file_name, mmap_mode="r").T
+        self._roi_response_neuropil = self._load_npy(file_name=neuropil_traces_file_name, mmap_mode="r").T
+        self._roi_response_deconvolved = self._load_npy(file_name="spks.npy", mmap_mode="r").T
         self.iscell = self._load_npy("iscell.npy", mmap_mode="r")
-        self.ops = self._load_npy("ops.npy").item()
 
-        self._channel_names = [f"OpticalChannel{i}" for i in range(self.ops["nchannels"])]
-        self._sampling_frequency = self.ops["fs"] * [2 if self.combined else 1][0]
-        self._raw_movie_file_location = self.ops.get("filelist", [None])[0]
-        self._image_correlation = self._summary_image_read("Vcorr")
-        self._image_mean = self._summary_image_read("meanImg")
+        channel_name = (
+            "OpticalChannel"
+            if len(streams["channel_streams"]) == 1
+            else channel_stream_name.capitalize()
+        )
+        self._channel_names = [channel_name]
 
-    def _load_npy(self, filename, mmap_mode=None):
-        file_path = self.folder_path / f"plane{self.plane_no}" / filename
+        self._image_correlation = self._correlation_image_read()
+        image_mean_name = "meanImg" if channel_stream_name == "chan1" else f"meanImg_chan2"
+        self._image_mean = self._options[image_mean_name]
+
+    def _load_npy(self, file_name: str, mmap_mode=None):
+        plane_stream_name = self.stream_name.split("_")[-1]
+        file_path = self.folder_path / plane_stream_name / file_name
         return np.load(file_path, mmap_mode=mmap_mode, allow_pickle=mmap_mode is None)
+
+    def get_num_frames(self) -> int:
+        return self._num_frames
 
     def get_accepted_list(self):
         return list(np.where(self.iscell[:, 0] == 1)[0])
@@ -79,17 +138,17 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     def get_rejected_list(self):
         return list(np.where(self.iscell[:, 0] == 0)[0])
 
-    def _summary_image_read(self, bstr="meanImg"):
-        img = None
-        if bstr in self.ops:
-            if bstr == "Vcorr" or bstr == "max_proj":
-                img = np.zeros((self.ops["Ly"], self.ops["Lx"]), np.float32)
-                img[
-                    (self.ops["Ly"] - self.ops["yrange"][-1]) : (self.ops["Ly"] - self.ops["yrange"][0]),
-                    self.ops["xrange"][0] : self.ops["xrange"][-1],
-                ] = self.ops[bstr]
-            else:
-                img = self.ops[bstr]
+    def _correlation_image_read(self):
+        correlation_image = self._options["Vcorr"]
+        if (self._options["yrange"][-1], self._options["xrange"][-1]) == self._image_size:
+            return correlation_image
+
+        img = np.zeros(self._image_size, correlation_image.dtype)
+        img[
+            (self._options["Ly"] - self._options["yrange"][-1]) : (self._options["Ly"] - self._options["yrange"][0]),
+            self._options["xrange"][0] : self._options["xrange"][-1],
+        ] = correlation_image
+
         return img
 
     @property
@@ -115,7 +174,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             pixel_mask.append(
                 np.vstack(
                     [
-                        self.ops["Ly"] - 1 - self.stat[i]["ypix"],
+                        self._options["Ly"] - 1 - self.stat[i]["ypix"],
                         self.stat[i]["xpix"],
                         self.stat[i]["lam"],
                     ]
@@ -130,7 +189,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return [pixel_mask[i] for i in roi_idx_]
 
     def get_image_size(self):
-        return [self.ops["Ly"], self.ops["Lx"]]
+        return self._image_size
 
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite=True):
