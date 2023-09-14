@@ -1,3 +1,10 @@
+"""Toy example ImagingExtractor and SegmentationExtractor for testing.
+
+Functions
+---------
+toy_example
+    Create a toy example of an ImagingExtractor and a SegmentationExtractor.
+"""
 import numpy as np
 
 from ..extractors.numpyextractors import (
@@ -7,10 +14,41 @@ from ..extractors.numpyextractors import (
 
 
 def _gaussian(x, mu, sigma):
+    """Compute classical gaussian with parameters x, mu, sigma."""
     return 1 / np.sqrt(2 * np.pi * sigma) * np.exp(-((x - mu) ** 2) / sigma)
 
 
-def _generate_rois(num_units=10, size_x=100, size_y=100, roi_size=4, min_dist=5, mode="uniform"):
+def _generate_rois(
+    num_units=10, size_x=100, size_y=100, roi_size=4, min_dist=5, mode="uniform"
+):  # TODO: mode --> literal type
+    """Generate ROIs with given parameters.
+
+    Parameters
+    ----------
+    num_units: int
+        Number of ROIs
+    size_x: int
+        Size of x dimension (pixels)
+    size_y: int
+        Size of y dimension (pixels)
+    roi_size: int
+        Siz of ROI in x and y dimension (pixels)
+    min_dist: int
+        Minimum distance between ROI centers (pixels)
+    mode: str
+        'uniform' or 'gaussian'.
+        If 'uniform', ROI values are uniform and equal to 1.
+        If 'gaussian', ROI values are gaussian modulated
+
+    Returns
+    -------
+    roi_pixels: list
+        List of pixel coordinates for each ROI
+    image: np.ndarray
+        Image with ROIs
+    means: list
+        List of mean coordinates for each ROI
+    """
     image = np.zeros((size_x, size_y))
     max_iter = 1000
 
@@ -73,8 +111,7 @@ def toy_example(
     decay_time=0.5,
     noise_std=0.05,
 ):
-    """
-    Create a toy example of an ImagingExtractor and a SegmentationExtractor.
+    """Create a toy example of an ImagingExtractor and a SegmentationExtractor.
 
     Parameters
     ----------
@@ -87,7 +124,7 @@ def toy_example(
     size_y: int
         Size of y dimension (pixels)
     roi_size: int
-        Siz of ROI in x and y dimension (pixels)
+        Size of ROI in x and y dimension (pixels)
     min_dist: int
         Minimum distance between ROI centers (pixels)
     mode: str
@@ -107,9 +144,7 @@ def toy_example(
         The output imaging extractor
     seg: NumpySegmentationExtractor
         The output segmentation extractor
-
     """
-
     # generate ROIs
     num_rois = int(num_rois)
     roi_pixels, im, means = _generate_rois(

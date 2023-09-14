@@ -1,3 +1,12 @@
+"""Imaging and Segmenation Extractors for .npy files.
+
+Classes
+-------
+NumpyImagingExtractor
+    An ImagingExtractor specified by timeseries .npy file, sampling frequency, and channel names.
+NumpySegmentationExtractor
+    A Segmentation extractor specified by image masks and traces .npy files.
+"""
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -10,6 +19,8 @@ from ...segmentationextractor import SegmentationExtractor
 
 
 class NumpyImagingExtractor(ImagingExtractor):
+    """An ImagingExtractor specified by timeseries .npy file, sampling frequency, and channel names."""
+
     extractor_name = "NumpyImagingExtractor"
     installed = True
     is_writable = True
@@ -21,6 +32,17 @@ class NumpyImagingExtractor(ImagingExtractor):
         sampling_frequency: FloatType,
         channel_names: ArrayType = None,
     ):
+        """Create a NumpyImagingExtractor from a .npy file.
+
+        Parameters
+        ----------
+        timeseries: PathType
+            Path to .npy file.
+        sampling_frequency: FloatType
+            Sampling frequency of the video in Hz.
+        channel_names: ArrayType
+            List of channel names.
+        """
         ImagingExtractor.__init__(self)
 
         if isinstance(timeseries, (str, Path)):
@@ -34,7 +56,7 @@ class NumpyImagingExtractor(ImagingExtractor):
                     "sampling_frequency": sampling_frequency,
                 }
             else:
-                raise ValueError("'timeeseries' is does not exist")
+                raise ValueError("'timeseries' is does not exist")
         elif isinstance(timeseries, np.ndarray):
             self.is_dumpable = False
             self._video = timeseries
@@ -91,27 +113,24 @@ class NumpyImagingExtractor(ImagingExtractor):
         return self._sampling_frequency
 
     def get_channel_names(self):
-        """List of  channels in the recoding.
-
-        Returns
-        -------
-        channel_names: list
-            List of strings of channel names
-        """
         return self._channel_names
 
     def get_num_channels(self):
-        """Total number of active channels in the recording
-
-        Returns
-        -------
-        no_of_channels: int
-            integer count of number of channels
-        """
         return self._num_channels
 
     @staticmethod
     def write_imaging(imaging, save_path, overwrite: bool = False):
+        """Write a NumpyImagingExtractor to a .npy file.
+
+        Parameters
+        ----------
+        imaging: NumpyImagingExtractor
+            The imaging extractor object to be written to file.
+        save_path: str or PathType
+            Path to .npy file.
+        overwrite: bool
+            If True, overwrite file if it already exists.
+        """
         save_path = Path(save_path)
         assert save_path.suffix == ".npy", "'save_path' should have a .npy extension"
 
@@ -125,7 +144,8 @@ class NumpyImagingExtractor(ImagingExtractor):
 
 
 class NumpySegmentationExtractor(SegmentationExtractor):
-    """
+    """A Segmentation extractor specified by image masks and traces .npy files.
+
     NumpySegmentationExtractor objects are built to contain all data coming from
     a file format for which there is currently no support. To construct this,
     all data must be entered manually as arguments.
@@ -154,8 +174,9 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         channel_names=None,
         movie_dims=None,
     ):
-        """
-        Parameters:
+        """Create a NumpySegmentationExtractor from a .npy file.
+
+        Parameters
         ----------
         image_masks: np.ndarray
             Binary image for each of the regions of interest
@@ -283,6 +304,13 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     @property
     def image_dims(self):
+        """Return the dimensions of the image.
+
+        Returns
+        -------
+        image_dims: list
+            The dimensions of the image (num_rois, num_rows, num_columns).
+        """
         return list(self._image_masks.shape[0:2])
 
     def get_accepted_list(self):
@@ -299,6 +327,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     @property
     def roi_locations(self):
+        """Returns the center locations (x, y) of each ROI."""
         if self._roi_locs is None:
             num_ROIs = self.get_num_rois()
             raw_images = self._image_masks
@@ -312,6 +341,19 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     @staticmethod
     def write_segmentation(segmentation_object, save_path):
+        """Write a NumpySegmentationExtractor to a .npy file.
+
+        Parameters
+        ----------
+        segmentation_object: NumpySegmentationExtractor
+            The segmentation extractor object to be written to file.
+        save_path: str or PathType
+            Path to .npy file.
+
+        Notes
+        -----
+        This method is not implemented yet.
+        """
         raise NotImplementedError
 
     # defining the abstract class informed methods:

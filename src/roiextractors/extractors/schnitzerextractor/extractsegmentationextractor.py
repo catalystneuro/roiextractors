@@ -1,4 +1,14 @@
-"""Extractor for reading the segmentation data that results from calls to EXTRACT."""
+"""Extractor for reading the segmentation data that results from calls to EXTRACT.
+
+Classes
+-------
+ExtractSegmentationExtractor
+    Abstract class that defines which extractor class to use for a given file.
+NewExtractSegmentationExtractor
+    Extractor for reading the segmentation data that results from calls to newer versions of EXTRACT.
+LegacyExtractSegmentationExtractor
+    Extractor for reading the segmentation data that results from calls to older versions of EXTRACT.
+"""
 from abc import ABC
 from pathlib import Path
 from typing import Optional
@@ -38,6 +48,7 @@ class ExtractSegmentationExtractor(ABC):
         output_struct_name: Optional[str] = None,
     ):
         """Abstract class that defines which extractor class to use for a given file.
+
         For newer versions of the EXTRACT algorithm, the extractor class redirects to
         NewExtractSegmentationExtractor. For older versions, the extractor class
         redirects to LegacyExtractSegmentationExtractor.
@@ -90,9 +101,18 @@ class ExtractSegmentationExtractor(ABC):
 
     def _get_default_output_struct_name_from_file(self):
         """Return the default value for 'output_struct_name' when it is unspecified.
+
+        Returns
+        -------
+        output_struct_name: str
+            The name of output struct in the .mat file.
+
+        Notes
+        -----
         For newer version of extract, the default name is assumed to be "output".
         For older versions the default is "extractAnalysisOutput".
-        If none of them is found, raise an error that 'output_struct_name' must be supplied."""
+        If none of them is found, raise an error that 'output_struct_name' must be supplied.
+        """
         newer_default_output_struct_name = "output"
         legacy_default_output_struct_name = "extractAnalysisOutput"
         with h5py.File(name=self.file_path, mode="r") as mat_file:
@@ -104,7 +124,7 @@ class ExtractSegmentationExtractor(ABC):
                 raise AssertionError("The 'output_struct_name' must be supplied.")
 
     def _assert_output_struct_name_is_in_file(self):
-        """Check that 'output_struct_name' is in the file, raises an error if not."""
+        """Check that 'output_struct_name' is in the file, raise an error if not."""
         with h5py.File(name=self.file_path, mode="r") as mat_file:
             assert (
                 self.output_struct_name in mat_file
@@ -112,8 +132,12 @@ class ExtractSegmentationExtractor(ABC):
 
     def _check_extract_file_version(self) -> bool:
         """Check the version of the extract file.
-        If the file was created with a newer version of the EXTRACT algorithm, the
-        function will return True, otherwise it will return False."""
+
+        Returns
+        -------
+        True if the file was created with a newer version of the EXTRACT algorithm,
+        False otherwise.
+        """
         with h5py.File(name=self.file_path, mode="r") as mat_file:
             dataset_version = mat_file[self.output_struct_name]["info"]["version"][:]
             dataset_version = np.ravel(dataset_version)
@@ -123,11 +147,14 @@ class ExtractSegmentationExtractor(ABC):
             return version.Version(version_name) >= version.Version("1.0.0")
 
 
-class NewExtractSegmentationExtractor(SegmentationExtractor):
-    """
+class NewExtractSegmentationExtractor(
+    SegmentationExtractor
+):  # TODO: refactor to inherit from LegacyExtractSegmentationExtractor
+    """Extractor for reading the segmentation data that results from calls to newer versions of EXTRACT.
+
     This class inherits from the SegmentationExtractor class, having all
     its functionality specifically applied to the dataset output from
-    the \'EXTRACT\' ROI segmentation method.
+    the 'EXTRACT' ROI segmentation method.
     """
 
     extractor_name = "NewExtractSegmentation"
@@ -145,9 +172,7 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         sampling_frequency: float,
         output_struct_name: str = "output",
     ):
-        """
-        Load a SegmentationExtractor from a .mat file containing the output and config structs of the EXTRACT algorithm.
-        For regular timing, supply the sampling frequency. For irregular timing, supply the timestamps.
+        """Load a SegmentationExtractor from a .mat file containing the output and config structs of the EXTRACT algorithm.
 
         Parameters
         ----------
@@ -158,6 +183,10 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         output_struct_name: str, optional
             The user has control over the names of the variables that return from `extraction(images, config)`.
             The tutorials for EXTRACT follow the naming convention of 'output', which we assume as the default.
+
+        Notes
+        -----
+        For regular timing, supply the sampling frequency. For irregular timing, supply the timestamps.
         """
         super().__init__()
 
@@ -191,9 +220,11 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         self.config.update(version=_decode_h5py_array(extract_version))
 
     def close(self):
+        """Close the file when the object is deleted."""
         self._dataset_file.close()
 
     def _file_extractor_read(self):
+        """Read the .mat file and return the file object."""
         return h5py.File(self.file_path, "r")
 
     def _config_struct_to_dict(self, config_struct: h5py.Group) -> dict:
@@ -210,70 +241,41 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
         return config_dict
 
     def _image_mask_extractor_read(self) -> DatasetView:
-        """Returns the image masks with a shape of height, width, number of ROIs."""
+        """Read the image masks from the .mat file and return the image masks.
+
+        Returns
+        -------
+        image_masks : DatasetView
+            3-D array: height x width x number of ROIs
+        """
         return DatasetView(self._output_struct["spatial_weights"]).lazy_transpose()
 
     def _trace_extractor_read(self) -> DatasetView:
-        """Returns the traces with a shape of number of frames and number of ROIs."""
+        """Read the traces from the .mat file and return the traces.
+
+        Returns
+        -------
+        traces : DatasetView
+            2-D array: number of frames x number of ROIs
+        """
         return DatasetView(self._output_struct["temporal_weights"]).lazy_transpose()
 
     def get_accepted_list(self) -> list:
-        """
-        The ids of the ROIs which are accepted after manual verification of
-        ROIs.
-
-        Returns
-        -------
-        accepted_list: list
-            List of accepted ROIs
-        """
         return [roi for roi in self.get_roi_ids() if np.any(self._image_masks[..., roi])]
 
     def get_rejected_list(self) -> list:
-        """
-        The ids of the ROIs which are rejected after manual verification of
-        ROIs.
-
-        Returns
-        -------
-        rejected_list: list
-            List of rejected ROIs
-        """
         accepted_list = self.get_accepted_list()
         rejected_list = list(set(self.get_roi_ids()) - set(accepted_list))
 
         return rejected_list
 
     def get_roi_ids(self) -> list:
-        """Returns the list of ROI ids.
-
-        Returns
-        -------
-        roi_ids: list
-            ROI ids list.
-        """
         return list(range(self.get_num_rois()))
 
     def get_image_size(self) -> ArrayType:
-        """
-        Frame size of movie (height and width of image).
-
-        Returns
-        -------
-        image_size: array_like
-            2-D array: image height x image width
-        """
         return self._image_masks.shape[:-1]
 
     def get_images_dict(self):
-        """
-        Returns a dictionary with key, values representing different types of Images
-        used in segmentation. The shape of images is height and width.
-        Returns
-        -------
-        images_dict: dict
-            dictionary with key, values representing different types of Images
-        """
         images_dict = super().get_images_dict()
         images_dict.update(
             summary_image=self._info_struct["summary_image"][:].T,
@@ -285,10 +287,11 @@ class NewExtractSegmentationExtractor(SegmentationExtractor):
 
 
 class LegacyExtractSegmentationExtractor(SegmentationExtractor):
-    """
+    """Extractor for reading the segmentation data that results from calls to older versions of EXTRACT.
+
     This class inherits from the SegmentationExtractor class, having all
     its funtionality specifically applied to the dataset output from
-    the \'EXTRACT\' ROI segmentation method.
+    the 'EXTRACT' ROI segmentation method.
     """
 
     extractor_name = "LegacyExtractSegmentation"
@@ -302,7 +305,8 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         file_path: PathType,
         output_struct_name: str = "extractAnalysisOutput",
     ):
-        """
+        """Create a LegacyExtractSegmentationExtractor from a .mat file.
+
         Parameters
         ----------
         file_path: str
@@ -322,25 +326,62 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         self._image_correlation = self._summary_image_read()
 
     def __del__(self):
+        """Close the file when the object is deleted."""
         self._dataset_file.close()
 
     def _file_extractor_read(self):
+        """Read the .mat file and return the file object."""
         return h5py.File(self.file_path, "r")
 
     def _image_mask_extractor_read(self):
+        """Read the image masks from the .mat file and return the image masks.
+
+        Returns
+        -------
+        image_masks : DatasetView
+            3-D array: height x width x number of ROIs
+        """
         return self._dataset_file[self.output_struct_name]["filters"][:].transpose([1, 2, 0])
 
     def _trace_extractor_read(self):
+        """Read the traces from the .mat file and return the traces.
+
+        Returns
+        -------
+        traces : DatasetView
+            2-D array: number of frames x number of ROIs
+        """
         return self._dataset_file[self.output_struct_name]["traces"]
 
     def _tot_exptime_extractor_read(self):
+        """Read the total experiment time from the .mat file and return the total experiment time.
+
+        Returns
+        -------
+        tot_exptime : float
+            The total experiment time in units of seconds.
+        """
         return self._dataset_file[self.output_struct_name]["time"]["totalTime"][0][0]
 
     def _summary_image_read(self):
+        """Read the summary image from the .mat file and return the summary image.
+
+        Returns
+        -------
+        summary_image : numpy.ndarray
+            The summary image.
+        """
         summary_image = self._dataset_file[self.output_struct_name]["info"]["summary_image"]
         return np.array(summary_image)
 
     def _raw_datafile_read(self):
+        """Read the raw data file location from the .mat file and return the raw data file location.
+
+        Returns
+        -------
+        raw_datafile : str
+            The raw data file location.
+        """
         if self._dataset_file[self.output_struct_name].get("file"):
             charlist = [chr(i) for i in np.squeeze(self._dataset_file[self.output_struct_name]["file"][:])]
             return "".join(charlist)

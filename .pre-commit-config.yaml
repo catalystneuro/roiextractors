@@ -10,3 +10,10 @@ repos:
     hooks:
     -   id: black
         exclude: ^docs/
+-   repo: https://github.com/pycqa/pydocstyle
+    rev: 6.3.0
+    hooks:
+    -   id: pydocstyle
+        args:
+        - --convention=numpy
+        - --add-ignore=D1

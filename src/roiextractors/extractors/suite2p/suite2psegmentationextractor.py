@@ -1,3 +1,10 @@
+"""A segmentation extractor for Suite2p.
+
+Classes
+-------
+Suite2pSegmentationExtractor
+    A segmentation extractor for Suite2p.
+"""
 import shutil
 from pathlib import Path
 from typing import Optional
@@ -12,6 +19,8 @@ from ...segmentationextractor import SegmentationExtractor
 
 
 class Suite2pSegmentationExtractor(SegmentationExtractor):
+    """A segmentation extractor for Suite2p."""
+
     extractor_name = "Suite2pSegmentationExtractor"
     installed = True  # check at class level if installed or not
     is_writable = False
@@ -43,8 +52,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         combined: Optional[bool] = None,  # TODO: to be removed
         plane_no: Optional[int] = None,  # TODO: to be removed
     ):
-        """
-        The SegmentationExtractor for the suite2p format.
+        """Create SegmentationExtractor object out of suite 2p data type.
 
         Parameters
         ----------
@@ -52,6 +60,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             The path to the 'suite2p' folder.
         stream_name: str, optional
             The name of the stream to load, to determine which streams are available use Suite2pSegmentationExtractor.get_streams(folder_path).
+
         """
 
         if combined:
@@ -125,6 +134,19 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self._image_mean = self._options[image_mean_name]
 
     def _load_npy(self, file_name: str, mmap_mode=None):
+        """Load a .npy file with specified filename.
+
+        Parameters
+        ----------
+        filename: str
+            The name of the .npy file to load.
+        mmap_mode: str
+            The mode to use for memory mapping. See numpy.load for details.
+
+        Returns
+        -------
+            The loaded .npy file.
+        """
         plane_stream_name = self.stream_name.split("_")[-1]
         file_path = self.folder_path / plane_stream_name / file_name
         return np.load(file_path, mmap_mode=mmap_mode, allow_pickle=mmap_mode is None)
@@ -139,6 +161,14 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return list(np.where(self.iscell[:, 0] == 0)[0])
 
     def _correlation_image_read(self):
+        """Read correlation image from ops (settings) dict.
+
+
+        Returns
+        -------
+        img : numpy.ndarray | None
+            The correlation image.
+        """
         correlation_image = self._options["Vcorr"]
         if (self._options["yrange"][-1], self._options["xrange"][-1]) == self._image_size:
             return correlation_image
@@ -153,6 +183,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
     @property
     def roi_locations(self):
+        """Returns the center locations (x, y) of each ROI."""
         return np.array([j["med"] for j in self.stat]).T.astype(int)
 
     def get_roi_image_masks(self, roi_ids=None):
@@ -193,6 +224,36 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite=True):
+        """Write a SegmentationExtractor to a folder specified by save_path.
+
+        Parameters
+        ----------
+        segmentation_object: SegmentationExtractor
+            The SegmentationExtractor object to be written.
+        save_path: str or Path
+            The folder path where to write the segmentation.
+        overwrite: bool
+            If True, overwrite the folder if it already exists.
+
+        Raises
+        ------
+        AssertionError
+            If save_path is not a folder.
+        FileExistsError
+            If the folder already exists and overwrite is False.
+
+        Notes
+        -----
+        The folder structure is as follows:
+        save_path
+        └── plane<plane_num>
+            ├── F.npy
+            ├── Fneu.npy
+            ├── spks.npy
+            ├── stat.npy
+            ├── iscell.npy
+            └── ops.npy
+        """
         save_path = Path(save_path)
         assert not save_path.is_file(), "'save_path' must be a folder"
 
