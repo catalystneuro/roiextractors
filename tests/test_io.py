@@ -139,8 +139,7 @@ class TestExtractors(TestCase):
         param(
             extractor_class=Suite2pSegmentationExtractor,
             extractor_kwargs=dict(
-                folder_path=str(OPHYS_DATA_PATH / "segmentation_datasets" / "suite2p"),
-                stream_name="chan1_plane0"
+                folder_path=str(OPHYS_DATA_PATH / "segmentation_datasets" / "suite2p"), stream_name="chan1_plane0"
             ),
         ),
     ]
