@@ -109,6 +109,25 @@ class ImagingExtractor(ABC):
         -------
         video: numpy.ndarray
             The video frames.
+            
+        Notes:
+        ------
+        This is the central extraction function for the ImagingExtractor instances.
+        It should fetch the requested frames from the instance format. 
+        
+        Importantly, we follow the convention that the dimensions of the array are returned in their matrix order,
+        More specifically:
+        
+        (frames or time, height or rows, width or columns, depth or volume)
+        
+        Note that this does not match the cartesian convention:
+        
+        (t, x, y, z)
+        
+        Where x is the columns width or and y is the rows or height.
+        
+        It is important to check for each format what is the convention used and to transpose the data to the
+        roi convention if needed.
         """
         pass
 
