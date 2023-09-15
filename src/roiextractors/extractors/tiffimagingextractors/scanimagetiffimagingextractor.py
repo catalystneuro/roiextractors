@@ -38,6 +38,30 @@ def extract_extra_metadata(
     return extra_metadata
 
 
+def parse_metadata(metadata):
+    """Parse metadata dictionary to extract relevant information.
+
+    Notes
+    -----
+    SI.hChannels.channelsActive = '[1;2;...;N]' where N is the number of active channels.
+    SI.hChannels.channelName = "{'channel_name_1' 'channel_name_2' ... 'channel_name_M'}"
+        where M is the number of channels (active or not).
+    """
+    sampling_frequency = float(metadata["SI.hRoiManager.scanVolumeRate"])
+    num_channels = len(metadata["SI.hChannels.channelsActive"].split(";"))
+    num_planes = int(metadata["SI.hStackManager.numSlices"])
+    frames_per_slice = int(metadata["SI.hStackManager.framesPerSlice"])
+    channel_names = metadata["SI.hChannels.channelName"].split("'")[1::2][:num_channels]
+    metadata_parsed = dict(
+        sampling_frequency=sampling_frequency,
+        num_channels=num_channels,
+        num_planes=num_planes,
+        frames_per_slice=frames_per_slice,
+        channel_names=channel_names,
+    )
+    return metadata_parsed
+
+
 class ScanImageTiffImagingExtractor(ImagingExtractor):
     """Specialized extractor for reading TIFF files produced via ScanImage."""
 
@@ -45,7 +69,15 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
     is_writable = True
     mode = "file"
 
-    def __init__(self, file_path: PathType) -> None:
+    def __init__(
+        self,
+        file_path: PathType,
+        sampling_frequency: float,
+        num_channels: Optional[int] = 1,
+        num_planes: Optional[int] = 1,
+        frames_per_slice: Optional[int] = 1,
+        channel_names: Optional[list] = None,
+    ) -> None:
         """Create a ScanImageTiffImagingExtractor instance from a TIFF file produced by ScanImage.
 
         The underlying data is stored in a round-robin format collapsed into 3 dimensions (frames, rows, columns).
@@ -62,24 +94,29 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
         ----------
         file_path : PathType
             Path to the TIFF file.
+        sampling_frequency : float
+            Sampling frequency of each plane (scanVolumeRate) in Hz.
+        num_channels : int, optional
+            Number of active channels that were acquired (default=1).
+        num_planes : int, optional
+            Number of depth planes that were acquired (default=1).
+        frames_per_slice : int, optional
+            Number of frames per depth plane that were acquired (default=1).
+        channel_names : list, optional
+            Names of the channels that were acquired (default=None).
         """
         super().__init__()
         self.file_path = Path(file_path)
-        ScanImageTiffReader = _get_scanimage_reader()
-        extra_metadata = extract_extra_metadata(file_path)
-        # SI.hChannels.channelsActive = '[1;2;...;N]' where N is the number of active channels
-        self._num_channels = len(extra_metadata["SI.hChannels.channelsActive"].split(";"))
-        self._num_planes = int(extra_metadata["SI.hStackManager.numSlices"])
-        frames_per_slice = int(extra_metadata["SI.hStackManager.framesPerSlice"])
+        self._sampling_frequency = sampling_frequency
+        self.metadata = extract_extra_metadata(file_path)
+        self._num_channels = num_channels
+        self._num_planes = num_planes
         if frames_per_slice != 1:
             raise NotImplementedError(
                 "Extractor cannot handle multiple frames per slice. Please raise an issue to request this feature: "
                 "https://github.com/catalystneuro/roiextractors/issues "
             )
-        self._sampling_frequency = float(extra_metadata["SI.hRoiManager.scanVolumeRate"])
-        # SI.hChannels.channelName = "{'channel_name_1' 'channel_name_2' ... 'channel_name_N'}"
-        #   where N is the number of channels (active or not)
-        self._channel_names = extra_metadata["SI.hChannels.channelName"].split("'")[1::2][: self._num_channels]
+        self._channel_names = channel_names
 
         valid_suffixes = [".tiff", ".tif", ".TIFF", ".TIF"]
         if self.file_path.suffix not in valid_suffixes:
@@ -88,6 +125,7 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
                 f"Suffix ({self.file_path.suffix}) is not of type {suffix_string}! "
                 f"The {self.extractor_name}Extractor may not be appropriate for the file."
             )
+        ScanImageTiffReader = _get_scanimage_reader()
         with ScanImageTiffReader(str(self.file_path)) as io:
             shape = io.shape()  # [frames, rows, columns]
         if len(shape) == 3:
