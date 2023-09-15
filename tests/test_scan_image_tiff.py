@@ -17,9 +17,11 @@ class TestScanImageTiffExtractor(TestCase):
     def setUpClass(cls):
         cls.file_path = OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "sample_scanimage.tiff"
         cls.tmpdir = Path(mkdtemp())
-        with ScanImageTiffReader(filename=str(cls.imaging_extractor.file_path)) as io:
+        with ScanImageTiffReader(filename=str(cls.file_path)) as io:
             cls.data = io.data()
         cls.imaging_extractor = ScanImageTiffImagingExtractor(file_path=cls.file_path)
+        with ScanImageTiffReader(filename=str(cls.imaging_extractor.file_path)) as io:
+            cls.data = io.data()
 
     @classmethod
     def tearDownClass(cls):
