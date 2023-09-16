@@ -29,8 +29,10 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
     @classmethod
     def get_streams(cls, folder_path: PathType):
+        from natsort import natsorted
+
         folder_path = Path(folder_path)
-        stream_paths = [f for f in folder_path.iterdir() if f.is_dir()]
+        stream_paths = natsorted([f for f in folder_path.iterdir() if f.is_dir()])
         chan_1_streams = [f"chan1_{stream_path.stem}" for stream_path in stream_paths]
         streams = dict(channel_streams=["chan1"], plane_streams=dict(chan1=chan_1_streams))
 
