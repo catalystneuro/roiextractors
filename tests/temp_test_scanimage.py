@@ -3,6 +3,7 @@ from roiextractors import ScanImageTiffImagingExtractor
 from roiextractors.extractors.tiffimagingextractors.scanimagetiffimagingextractor import (
     extract_extra_metadata,
     parse_metadata,
+    ScanImageTiffMultiPlaneImagingExtractor,
 )
 
 
@@ -18,7 +19,7 @@ def main():
 
     metadata = extract_extra_metadata(example_holo)
     metadata_parsed = parse_metadata(metadata)
-    extractor = ScanImageTiffImagingExtractor(file_path=example_holo, **metadata_parsed)
+    extractor = ScanImageTiffMultiPlaneImagingExtractor(file_path=example_holo, **metadata_parsed)
     print("Example holographic file loads!")
 
     metadata = extract_extra_metadata(example_single)
