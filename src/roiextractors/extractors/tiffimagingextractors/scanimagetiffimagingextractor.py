@@ -119,6 +119,7 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
         self._num_channels = num_channels
         self.plane = plane
         self._num_planes = num_planes
+        self._channel_names = channel_names
         if channel >= num_channels:
             raise ValueError(f"Channel index ({channel}) exceeds number of channels ({num_channels}).")
         if plane >= num_planes:
