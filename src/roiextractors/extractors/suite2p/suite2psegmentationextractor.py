@@ -108,19 +108,20 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
         self.folder_path = Path(folder_path)
 
-        self._options = self._load_npy(file_name="ops.npy").item()
+        options = self._load_npy(file_name="ops.npy")
+        self.options = options.item() if options is not None else options
+        self._sampling_frequency = self.options["fs"]
+        self._num_frames = self.options["nframes"]
+        self._image_size = (self.options["Ly"], self.options["Lx"])
+
+        self.stat = self._load_npy(file_name="stat.npy")
 
         fluorescence_traces_file_name = "F.npy" if channel_stream_name == "chan1" else "F_chan2.npy"
         neuropil_traces_file_name = "Fneu.npy" if channel_stream_name == "chan1" else "Fneu_chan2.npy"
+        self._roi_response_raw = self._load_npy(file_name=fluorescence_traces_file_name, mmap_mode="r", transpose=True)
+        self._roi_response_neuropil = self._load_npy(file_name=neuropil_traces_file_name, mmap_mode="r", transpose=True)
+        self._roi_response_deconvolved = self._load_npy(file_name="spks.npy", mmap_mode="r", transpose=True)
 
-        self._sampling_frequency = self._options["fs"]
-        self._num_frames = self._options["nframes"]
-        self._image_size = (self._options["Ly"], self._options["Lx"])
-
-        self.stat = self._load_npy(file_name="stat.npy")
-        self._roi_response_raw = self._load_npy(file_name=fluorescence_traces_file_name, mmap_mode="r").T
-        self._roi_response_neuropil = self._load_npy(file_name=neuropil_traces_file_name, mmap_mode="r").T
-        self._roi_response_deconvolved = self._load_npy(file_name="spks.npy", mmap_mode="r").T
         self.iscell = self._load_npy("iscell.npy", mmap_mode="r")
 
         channel_name = "OpticalChannel" if len(streams["channel_streams"]) == 1 else channel_stream_name.capitalize()
@@ -128,17 +129,19 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
         self._image_correlation = self._correlation_image_read()
         image_mean_name = "meanImg" if channel_stream_name == "chan1" else f"meanImg_chan2"
-        self._image_mean = self._options[image_mean_name]
+        self._image_mean = self.options[image_mean_name] if image_mean_name in self.options else None
 
-    def _load_npy(self, file_name: str, mmap_mode=None):
-        """Load a .npy file with specified filename.
+    def _load_npy(self, file_name: str, mmap_mode=None, transpose: bool = False):
+        """Load a .npy file with specified filename. Returns None if file is missing.
 
         Parameters
         ----------
-        filename: str
+        file_name: str
             The name of the .npy file to load.
         mmap_mode: str
             The mode to use for memory mapping. See numpy.load for details.
+        transpose: bool, optional
+            Whether to transpose the loaded array.
 
         Returns
         -------
@@ -146,7 +149,14 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         """
         plane_stream_name = self.stream_name.split("_")[-1]
         file_path = self.folder_path / plane_stream_name / file_name
-        return np.load(file_path, mmap_mode=mmap_mode, allow_pickle=mmap_mode is None)
+        if not file_path.exists():
+            return
+
+        data = np.load(file_path, mmap_mode=mmap_mode, allow_pickle=mmap_mode is None)
+        if transpose:
+            return data.T
+
+        return data
 
     def get_num_frames(self) -> int:
         return self._num_frames
@@ -165,14 +175,17 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         img : numpy.ndarray | None
             The correlation image.
         """
-        correlation_image = self._options["Vcorr"]
-        if (self._options["yrange"][-1], self._options["xrange"][-1]) == self._image_size:
+        if "Vcorr" not in self.options:
+            return None
+
+        correlation_image = self.options["Vcorr"]
+        if (self.options["yrange"][-1], self.options["xrange"][-1]) == self._image_size:
             return correlation_image
 
         img = np.zeros(self._image_size, correlation_image.dtype)
         img[
-            (self._options["Ly"] - self._options["yrange"][-1]) : (self._options["Ly"] - self._options["yrange"][0]),
-            self._options["xrange"][0] : self._options["xrange"][-1],
+            (self.options["Ly"] - self.options["yrange"][-1]) : (self.options["Ly"] - self.options["yrange"][0]),
+            self.options["xrange"][0] : self.options["xrange"][-1],
         ] = correlation_image
 
         return img
@@ -201,7 +214,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             pixel_mask.append(
                 np.vstack(
                     [
-                        self._options["Ly"] - 1 - self.stat[i]["ypix"],
+                        self.stat[i]["ypix"],
                         self.stat[i]["xpix"],
                         self.stat[i]["lam"],
                     ]
@@ -289,7 +302,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         for no, i in enumerate(stat):
             stat[no] = {
                 "med": roi_locs[no, :].tolist(),
-                "ypix": segmentation_object.get_image_size()[0] - 1 - pixel_masks[no][:, 0],
+                "ypix": pixel_masks[no][:, 0],
                 "xpix": pixel_masks[no][:, 1],
                 "lam": pixel_masks[no][:, 2],
             }
