@@ -27,6 +27,18 @@ def _get_scanimage_reader() -> type:
 def extract_extra_metadata(
     file_path,
 ) -> dict:  # TODO: Refactor neuroconv to reference this implementation to avoid duplication
+    """Extract metadata from a ScanImage TIFF file.
+
+    Parameters
+    ----------
+    file_path : PathType
+        Path to the TIFF file.
+
+    Returns
+    -------
+    extra_metadata: dict
+        Dictionary of metadata extracted from the TIFF file.
+    """
     ScanImageTiffReader = _get_scanimage_reader()
     io = ScanImageTiffReader(str(file_path))
     extra_metadata = {}
@@ -41,7 +53,24 @@ def extract_extra_metadata(
 
 
 def parse_metadata(metadata):
-    """Parse metadata dictionary to extract relevant information.
+    """Parse metadata dictionary to extract relevant information and store it standard keys for ImagingExtractors.
+
+    Currently supports
+    - sampling_frequency
+    - num_channels
+    - num_planes
+    - frames_per_slice
+    - channel_names
+
+    Parameters
+    ----------
+    metadata : dict
+        Dictionary of metadata extracted from the TIFF file.
+
+    Returns
+    -------
+    metadata_parsed: dict
+        Dictionary of parsed metadata.
 
     Notes
     -----
