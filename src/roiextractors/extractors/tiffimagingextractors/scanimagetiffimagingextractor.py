@@ -278,21 +278,10 @@ class ScanImageTiffMultiPlaneImagingExtractor(MultiPlaneImagingExtractor):
         channel: Optional[int] = 0,
     ) -> None:
         self.file_path = Path(file_path)
+        self.channel = channel
         self.metadata = extract_extra_metadata(file_path)
         parsed_metadata = parse_metadata(self.metadata)
-        sampling_frequency = parsed_metadata["sampling_frequency"]
-        num_channels = parsed_metadata["num_channels"]
         num_planes = parsed_metadata["num_planes"]
-        frames_per_slice = parsed_metadata["frames_per_slice"]
-        channel_names = parsed_metadata["channel_names"]
-        self.channel = channel
-        if channel >= num_channels:
-            raise ValueError(f"Channel index ({channel}) exceeds number of channels ({num_channels}).")
-        if frames_per_slice != 1:
-            raise NotImplementedError(
-                "Extractor cannot handle multiple frames per slice. Please raise an issue to request this feature: "
-                "https://github.com/catalystneuro/roiextractors/issues "
-            )
         imaging_extractors = []
         for plane in range(num_planes):
             imaging_extractor = ScanImageTiffSinglePlaneImagingExtractor(
