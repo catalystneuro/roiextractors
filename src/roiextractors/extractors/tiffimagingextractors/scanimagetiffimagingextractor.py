@@ -475,7 +475,11 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
 
 
 class ScanImageTiffImagingExtractor(ImagingExtractor):
-    """Specialized extractor for reading TIFF files produced via ScanImage."""
+    """Specialized extractor for reading TIFF files produced via ScanImage.
+
+    This implementation is for legacy purposes and is not recommended for use.
+    Please use ScanImageTiffSinglePlaneImagingExtractor or ScanImageTiffMultiPlaneImagingExtractor instead.
+    """
 
     extractor_name = "ScanImageTiffImaging"
     is_writable = True
