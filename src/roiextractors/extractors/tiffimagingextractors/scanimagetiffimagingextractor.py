@@ -93,6 +93,35 @@ def parse_metadata(metadata):
     return metadata_parsed
 
 
+def parse_metadata_v3_8(metadata):
+    """Parse metadata dictionary to extract relevant information and store it standard keys for ImagingExtractors.
+
+    Requires old version of metadata (v3.8).
+    Currently supports
+    - sampling frequency
+    - num_channels
+    - num_planes
+
+    Parameters
+    ----------
+    metadata : dict
+        Dictionary of metadata extracted from the TIFF file.
+
+    Returns
+    -------
+    metadata_parsed: dict
+        Dictionary of parsed metadata.
+    """
+    sampling_frequency = float(metadata["state.acq.frameRate"])
+    num_channels = int(metadata["state.acq.numberOfChannelsSave"])
+    num_planes = int(metadata["state.acq.numberOfZSlices"])
+    metadata_parsed = dict(
+        sampling_frequency=sampling_frequency,
+        num_channels=num_channels,
+        num_planes=num_planes,
+    )
+
+
 class MultiPlaneImagingExtractor(ImagingExtractor):
     """Class to combine multiple ImagingExtractor objects by depth plane."""
 
