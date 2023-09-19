@@ -136,13 +136,15 @@ class MultiPlaneImagingExtractor(ImagingExtractor):
             - number of channels
             - channel names
             - data type
+            - num_frames
         """
         properties_to_check = dict(
             get_sampling_frequency="The sampling frequency",
             get_image_size="The size of a frame",
             get_num_channels="The number of channels",
             get_channel_names="The name of the channels",
-            get_dtype="The data type.",
+            get_dtype="The data type",
+            get_num_frames="The number of frames",
         )
         for method, property_message in properties_to_check.items():
             values = [getattr(extractor, method)() for extractor in imaging_extractors]
@@ -211,7 +213,7 @@ class MultiPlaneImagingExtractor(ImagingExtractor):
         return self._num_planes
 
     def get_num_frames(self) -> int:
-        return self._num_frames
+        return self._imaging_extractors[0].get_num_frames()
 
     def get_sampling_frequency(self) -> float:
         return self._imaging_extractors[0].get_sampling_frequency()
@@ -426,8 +428,8 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
         raw_end = np.min([raw_end, self._total_num_frames])
         with ScanImageTiffReader(filename=str(self.file_path)) as io:
             raw_video = io.data(beg=raw_start, end=raw_end)
-        video = raw_video[self.channel :: self._num_channels]
-        video = video[self.plane :: self._num_planes]
+        video = raw_video[:: self._num_channels]
+        video = video[:: self._num_planes]
         return video
 
     def get_image_size(self) -> Tuple[int, int]:
