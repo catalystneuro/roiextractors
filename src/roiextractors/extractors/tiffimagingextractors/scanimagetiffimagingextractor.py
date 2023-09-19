@@ -171,7 +171,7 @@ class MultiPlaneImagingExtractor(ImagingExtractor):
         start_frame = start_frame if start_frame is not None else 0
         end_frame = end_frame if end_frame is not None else self.get_num_frames()
 
-        video = np.zeros((end_frame - start_frame, *self.get_image_size(), self.get_num_planes()), self.get_dtype())
+        video = np.zeros((end_frame - start_frame, *self.get_image_size()), self.get_dtype())
         for i, imaging_extractor in enumerate(self._imaging_extractors):
             video[..., i] = imaging_extractor.get_video(start_frame, end_frame)
         return video
@@ -193,14 +193,22 @@ class MultiPlaneImagingExtractor(ImagingExtractor):
             frame_idxs = [frame_idxs]
 
         if not all(np.diff(frame_idxs) == 1):
-            frames = np.zeros((len(frame_idxs), *self.get_image_size(), self.get_num_planes()), self.get_dtype())
+            frames = np.zeros((len(frame_idxs), *self.get_image_size()), self.get_dtype())
             for i, imaging_extractor in enumerate(self._imaging_extractors):
                 frames[..., i] = imaging_extractor.get_frames(frame_idxs)
         else:
             return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)
 
     def get_image_size(self) -> Tuple:
-        return self._imaging_extractors[0].get_image_size()
+        """Get the size of a single frame.
+
+        Returns
+        -------
+        image_size: tuple
+            The size of a single frame (num_rows, num_columns, num_planes).
+        """
+        image_size = (*self._imaging_extractors[0].get_image_size(), self.get_num_planes())
+        return image_size
 
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
