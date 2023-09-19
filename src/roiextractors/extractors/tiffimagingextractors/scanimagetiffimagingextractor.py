@@ -305,7 +305,7 @@ class ScanImageTiffMultiPlaneImagingExtractor(MultiPlaneImagingExtractor):
         ), "All imaging extractors must have the same number of planes."
 
 
-class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
+class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):  # TODO: Remove this extractor on/after December 2023
     """Specialized extractor for reading TIFF files produced via ScanImage."""
 
     extractor_name = "ScanImageTiffImaging"
@@ -338,6 +338,12 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         plane : int, optional
             Index of the depth plane for this extractor (default=0).
         """
+        deprecation_message = """
+        This extractor is being deprecated on or after December 2023 in favor of
+        ScanImageTiffMultiPlaneImagingExtractor or ScanImageTiffSinglePlaneImagingExtractor.  Please use one of these
+        extractors instead.
+        """
+        warn(deprecation_message, category=FutureWarning)
         super().__init__()
         self.file_path = Path(file_path)
         self.channel = channel
