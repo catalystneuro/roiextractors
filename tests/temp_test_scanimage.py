@@ -31,6 +31,16 @@ def main():
     video = extractor.get_video()
     print("Video shape:", video.shape)
 
+    extractor = ScanImageTiffMultiPlaneImagingExtractor(file_path=example_volume)
+    print("Example volume file loads!")
+    video = extractor.get_video()
+    print("Video shape:", video.shape)
+
+    extractor = ScanImageTiffMultiPlaneImagingExtractor(file_path=example_multivolume)
+    print("Example multi-volume file loads!")
+    video = extractor.get_video()
+    print("Video shape:", video.shape)
+
 
 if __name__ == "__main__":
     main()

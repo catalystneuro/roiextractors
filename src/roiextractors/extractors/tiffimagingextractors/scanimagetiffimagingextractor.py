@@ -343,8 +343,9 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         if plane >= self._num_planes:
             raise ValueError(f"Plane index ({plane}) exceeds number of planes ({self._num_planes}).")
         if self._frames_per_slice != 1:
-            raise NotImplementedError(
-                "Extractor cannot handle multiple frames per slice. Please raise an issue to request this feature: "
+            warn(
+                "Multiple frames per slice have not been tested and may produce incorrect output. "
+                "Please raise an issue to request this feature: "
                 "https://github.com/catalystneuro/roiextractors/issues "
             )
 
