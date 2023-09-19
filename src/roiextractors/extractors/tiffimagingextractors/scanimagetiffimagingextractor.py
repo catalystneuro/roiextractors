@@ -305,7 +305,7 @@ class ScanImageTiffMultiPlaneImagingExtractor(MultiPlaneImagingExtractor):
         ), "All imaging extractors must have the same number of planes."
 
 
-class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):  # TODO: Remove this extractor on/after December 2023
+class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
     """Specialized extractor for reading TIFF files produced via ScanImage."""
 
     extractor_name = "ScanImageTiffImaging"
@@ -338,12 +338,6 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):  # TODO: Remov
         plane : int, optional
             Index of the depth plane for this extractor (default=0).
         """
-        deprecation_message = """
-        This extractor is being deprecated on or after December 2023 in favor of
-        ScanImageTiffMultiPlaneImagingExtractor or ScanImageTiffSinglePlaneImagingExtractor.  Please use one of these
-        extractors instead.
-        """
-        warn(deprecation_message, category=FutureWarning)
         super().__init__()
         self.file_path = Path(file_path)
         self.channel = channel
@@ -356,9 +350,9 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):  # TODO: Remov
         self._frames_per_slice = parsed_metadata["frames_per_slice"]
         self._channel_names = parsed_metadata["channel_names"]
         if channel >= self._num_channels:
-            raise ValueError(f"Channel index ({channel}) exceeds number of channels ({num_channels}).")
+            raise ValueError(f"Channel index ({channel}) exceeds number of channels ({self._num_channels}).")
         if plane >= self._num_planes:
-            raise ValueError(f"Plane index ({plane}) exceeds number of planes ({num_planes}).")
+            raise ValueError(f"Plane index ({plane}) exceeds number of planes ({self._num_planes}).")
         if self._frames_per_slice != 1:
             raise NotImplementedError(
                 "Extractor cannot handle multiple frames per slice. Please raise an issue to request this feature: "
@@ -509,7 +503,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):  # TODO: Remov
         return raw_index
 
 
-class ScanImageTiffImagingExtractor(ImagingExtractor):
+class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extractor on/after December 2023
     """Specialized extractor for reading TIFF files produced via ScanImage.
 
     This implementation is for legacy purposes and is not recommended for use.
@@ -538,6 +532,12 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
         sampling_frequency : float
             The frequency at which the frames were sampled, in Hz.
         """
+        deprecation_message = """
+        This extractor is being deprecated on or after December 2023 in favor of
+        ScanImageTiffMultiPlaneImagingExtractor or ScanImageTiffSinglePlaneImagingExtractor.  Please use one of these
+        extractors instead.
+        """
+        warn(deprecation_message, category=FutureWarning)
         ScanImageTiffReader = _get_scanimage_reader()
 
         super().__init__()
