@@ -246,15 +246,16 @@ class ScanImageTiffMultiPlaneImagingExtractor(MultiPlaneImagingExtractor):
     def __init__(
         self,
         file_path: PathType,
-        sampling_frequency: float,
         channel: Optional[int] = 0,
-        num_channels: Optional[int] = 1,
-        num_planes: Optional[int] = 1,
-        frames_per_slice: Optional[int] = 1,
-        channel_names: Optional[list] = None,
     ) -> None:
         self.file_path = Path(file_path)
         self.metadata = extract_extra_metadata(file_path)
+        parsed_metadata = parse_metadata(self.metadata)
+        sampling_frequency = parsed_metadata["sampling_frequency"]
+        num_channels = parsed_metadata["num_channels"]
+        num_planes = parsed_metadata["num_planes"]
+        frames_per_slice = parsed_metadata["frames_per_slice"]
+        channel_names = parsed_metadata["channel_names"]
         self.channel = channel
         if channel >= num_channels:
             raise ValueError(f"Channel index ({channel}) exceeds number of channels ({num_channels}).")
@@ -265,14 +266,8 @@ class ScanImageTiffMultiPlaneImagingExtractor(MultiPlaneImagingExtractor):
             )
         imaging_extractors = []
         for plane in range(num_planes):
-            imaging_extractor = ScanImageTiffImagingExtractor(
-                file_path=file_path,
-                sampling_frequency=sampling_frequency,
-                channel=channel,
-                num_channels=num_channels,
-                plane=plane,
-                num_planes=num_planes,
-                channel_names=channel_names,
+            imaging_extractor = ScanImageTiffSinglePlaneImagingExtractor(
+                file_path=file_path, channel=channel, plane=plane
             )
             imaging_extractors.append(imaging_extractor)
         super().__init__(imaging_extractors=imaging_extractors)
@@ -281,7 +276,7 @@ class ScanImageTiffMultiPlaneImagingExtractor(MultiPlaneImagingExtractor):
         ), "All imaging extractors must have the same number of planes."
 
 
-class ScanImageTiffImagingExtractor(ImagingExtractor):
+class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
     """Specialized extractor for reading TIFF files produced via ScanImage."""
 
     extractor_name = "ScanImageTiffImaging"
@@ -291,13 +286,8 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
     def __init__(
         self,
         file_path: PathType,
-        sampling_frequency: float,
         channel: Optional[int] = 0,
-        num_channels: Optional[int] = 1,
         plane: Optional[int] = 0,
-        num_planes: Optional[int] = 1,
-        frames_per_slice: Optional[int] = 1,
-        channel_names: Optional[list] = None,
     ) -> None:
         """Create a ScanImageTiffImagingExtractor instance from a TIFF file produced by ScanImage.
 
@@ -314,35 +304,27 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
         ----------
         file_path : PathType
             Path to the TIFF file.
-        sampling_frequency : float
-            Sampling frequency of each plane (scanVolumeRate) in Hz.
         channel : int, optional
             Index of the optical channel for this extractor (default=0).
-        num_channels : int, optional
-            Number of active channels that were acquired (default=1).
         plane : int, optional
             Index of the depth plane for this extractor (default=0).
-        num_planes : int, optional
-            Number of depth planes that were acquired (default=1).
-        frames_per_slice : int, optional
-            Number of frames per depth plane that were acquired (default=1).
-        channel_names : list, optional
-            Names of the channels (default=None).
         """
         super().__init__()
         self.file_path = Path(file_path)
-        self._sampling_frequency = sampling_frequency
-        self.metadata = extract_extra_metadata(file_path)
         self.channel = channel
-        self._num_channels = num_channels
         self.plane = plane
-        self._num_planes = num_planes
-        self._channel_names = channel_names
-        if channel >= num_channels:
+        self.metadata = extract_extra_metadata(file_path)
+        parsed_metadata = parse_metadata(self.metadata)
+        self._sampling_frequency = parsed_metadata["sampling_frequency"]
+        self._num_channels = parsed_metadata["num_channels"]
+        self._num_planes = parsed_metadata["num_planes"]
+        self._frames_per_slice = parsed_metadata["frames_per_slice"]
+        self._channel_names = parsed_metadata["channel_names"]
+        if channel >= self._num_channels:
             raise ValueError(f"Channel index ({channel}) exceeds number of channels ({num_channels}).")
-        if plane >= num_planes:
+        if plane >= self._num_planes:
             raise ValueError(f"Plane index ({plane}) exceeds number of planes ({num_planes}).")
-        if frames_per_slice != 1:
+        if self._frames_per_slice != 1:
             raise NotImplementedError(
                 "Extractor cannot handle multiple frames per slice. Please raise an issue to request this feature: "
                 "https://github.com/catalystneuro/roiextractors/issues "
@@ -490,3 +472,111 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):
         """
         raw_index = (frame * self._num_planes * self._num_channels) + (self.plane * self._num_channels) + self.channel
         return raw_index
+
+
+class ScanImageTiffImagingExtractor(ImagingExtractor):
+    """Specialized extractor for reading TIFF files produced via ScanImage."""
+
+    extractor_name = "ScanImageTiffImaging"
+    is_writable = True
+    mode = "file"
+
+    def __init__(
+        self,
+        file_path: PathType,
+        sampling_frequency: FloatType,
+    ):
+        """Create a ScanImageTiffImagingExtractor instance from a TIFF file produced by ScanImage.
+
+        This extractor allows for lazy accessing of slices, unlike
+        :py:class:`~roiextractors.extractors.tiffimagingextractors.TiffImagingExtractor`.
+        However, direct slicing of the underlying data structure is not equivalent to a numpy memory map.
+
+        Parameters
+        ----------
+        file_path : PathType
+            Path to the TIFF file.
+        sampling_frequency : float
+            The frequency at which the frames were sampled, in Hz.
+        """
+        ScanImageTiffReader = _get_scanimage_reader()
+
+        super().__init__()
+        self.file_path = Path(file_path)
+        self._sampling_frequency = sampling_frequency
+        valid_suffixes = [".tiff", ".tif", ".TIFF", ".TIF"]
+        if self.file_path.suffix not in valid_suffixes:
+            suffix_string = ", ".join(valid_suffixes[:-1]) + f", or {valid_suffixes[-1]}"
+            warn(
+                f"Suffix ({self.file_path.suffix}) is not of type {suffix_string}! "
+                f"The {self.extractor_name}Extractor may not be appropriate for the file."
+            )
+
+        with ScanImageTiffReader(str(self.file_path)) as io:
+            shape = io.shape()  # [frames, rows, columns]
+        if len(shape) == 3:
+            self._num_frames, self._num_rows, self._num_columns = shape
+            self._num_channels = 1
+        else:  # no example file for multiple color channels or depths
+            raise NotImplementedError(
+                "Extractor cannot handle 4D TIFF data. Please raise an issue to request this feature: "
+                "https://github.com/catalystneuro/roiextractors/issues "
+            )
+
+    def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> np.ndarray:
+        ScanImageTiffReader = _get_scanimage_reader()
+
+        squeeze_data = False
+        if isinstance(frame_idxs, int):
+            squeeze_data = True
+            frame_idxs = [frame_idxs]
+
+        if not all(np.diff(frame_idxs) == 1):
+            return np.concatenate([self._get_single_frame(idx=idx) for idx in frame_idxs])
+        else:
+            with ScanImageTiffReader(filename=str(self.file_path)) as io:
+                frames = io.data(beg=frame_idxs[0], end=frame_idxs[-1] + 1)
+                if squeeze_data:
+                    frames = frames.squeeze()
+            return frames
+
+    # Data accessed through an open ScanImageTiffReader io gets scrambled if there are multiple calls.
+    # Thus, open fresh io in context each time something is needed.
+    def _get_single_frame(self, idx: int) -> np.ndarray:
+        """Get a single frame of data from the TIFF file.
+
+        Parameters
+        ----------
+        idx : int
+            The index of the frame to retrieve.
+
+        Returns
+        -------
+        frame: numpy.ndarray
+            The frame of data.
+        """
+        ScanImageTiffReader = _get_scanimage_reader()
+
+        with ScanImageTiffReader(str(self.file_path)) as io:
+            return io.data(beg=idx, end=idx + 1)
+
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+        ScanImageTiffReader = _get_scanimage_reader()
+
+        with ScanImageTiffReader(filename=str(self.file_path)) as io:
+            return io.data(beg=start_frame, end=end_frame)
+
+    def get_image_size(self) -> Tuple[int, int]:
+        return (self._num_rows, self._num_columns)
+
+    def get_num_frames(self) -> int:
+        return self._num_frames
+
+    def get_sampling_frequency(self) -> float:
+        return self._sampling_frequency
+
+    def get_num_channels(self) -> int:
+        return self._num_channels
+
+    def get_channel_names(self) -> list:
+        pass
