@@ -38,6 +38,10 @@ def extract_extra_metadata(
     -------
     extra_metadata: dict
         Dictionary of metadata extracted from the TIFF file.
+
+    Notes
+    -----
+    Known to work on SI versions v3.8.0, v2019bR0, and v2022.0.0.
     """
     ScanImageTiffReader = _get_scanimage_reader()
     io = ScanImageTiffReader(str(file_path))
@@ -74,7 +78,7 @@ def parse_metadata(metadata):
 
     Notes
     -----
-    Known to work on SI version v2019bR0 and v2022.0.0.
+    Known to work on SI versions v2019bR0 and v2022.0.0.
     SI.hChannels.channelsActive = '[1;2;...;N]' where N is the number of active channels.
     SI.hChannels.channelName = "{'channel_name_1' 'channel_name_2' ... 'channel_name_M'}"
         where M is the number of channels (active or not).
