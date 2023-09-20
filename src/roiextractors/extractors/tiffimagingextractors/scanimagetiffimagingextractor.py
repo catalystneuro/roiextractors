@@ -281,17 +281,19 @@ class ScanImageTiffMultiPlaneImagingExtractor(MultiPlaneImagingExtractor):
     def __init__(
         self,
         file_path: PathType,
-        channel: Optional[int] = 0,
+        channel_name: Optional[str] = None,
     ) -> None:
         self.file_path = Path(file_path)
-        self.channel = channel
         self.metadata = extract_extra_metadata(file_path)
         parsed_metadata = parse_metadata(self.metadata)
         num_planes = parsed_metadata["num_planes"]
+        channel_names = parsed_metadata["channel_names"]
+        if channel_name is None:
+            channel_name = channel_names[0]
         imaging_extractors = []
         for plane in range(num_planes):
             imaging_extractor = ScanImageTiffSinglePlaneImagingExtractor(
-                file_path=file_path, channel=channel, plane=plane
+                file_path=file_path, channel_name=channel_name, plane=plane
             )
             imaging_extractors.append(imaging_extractor)
         super().__init__(imaging_extractors=imaging_extractors)
@@ -310,7 +312,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
     def __init__(
         self,
         file_path: PathType,
-        channel: Optional[int] = 0,
+        channel_name: Optional[str] = None,
         plane: Optional[int] = 0,
     ) -> None:
         """Create a ScanImageTiffImagingExtractor instance from a TIFF file produced by ScanImage.
@@ -328,14 +330,13 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         ----------
         file_path : PathType
             Path to the TIFF file.
-        channel : int, optional
-            Index of the optical channel for this extractor (default=0).
+        channel_name : str, optional
+            Name of the channel for this extractor (default=None).
         plane : int, optional
             Index of the depth plane for this extractor (default=0).
         """
         super().__init__()
         self.file_path = Path(file_path)
-        self.channel = channel
         self.plane = plane
         self.metadata = extract_extra_metadata(file_path)
         parsed_metadata = parse_metadata(self.metadata)
@@ -344,8 +345,12 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         self._num_planes = parsed_metadata["num_planes"]
         self._frames_per_slice = parsed_metadata["frames_per_slice"]
         self._channel_names = parsed_metadata["channel_names"]
-        if channel >= self._num_channels:
-            raise ValueError(f"Channel index ({channel}) exceeds number of channels ({self._num_channels}).")
+        if channel_name is None:
+            channel_name = self._channel_names[0]
+        self.channel_name = channel_name
+        if channel_name not in self._channel_names:
+            raise ValueError(f"Channel name ({channel_name}) not found in channel names ({self._channel_names}).")
+        self.channel = self._channel_names.index(channel_name)
         if plane >= self._num_planes:
             raise ValueError(f"Plane index ({plane}) exceeds number of planes ({self._num_planes}).")
         if self._frames_per_slice != 1:

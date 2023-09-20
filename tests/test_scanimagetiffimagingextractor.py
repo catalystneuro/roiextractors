@@ -40,12 +40,12 @@ def scan_image_tiff_single_plane_imaging_extractor(request):
 @pytest.fixture(
     scope="module",
     params=[
-        dict(channel=0, plane=0),
-        dict(channel=0, plane=1),
-        dict(channel=0, plane=2),
-        dict(channel=1, plane=0),
-        dict(channel=1, plane=1),
-        dict(channel=1, plane=2),
+        dict(channel_name="Channel 1", plane=0),
+        dict(channel_name="Channel 1", plane=1),
+        dict(channel_name="Channel 1", plane=2),
+        dict(channel_name="Channel 2", plane=0),
+        dict(channel_name="Channel 2", plane=1),
+        dict(channel_name="Channel 2", plane=2),
     ],
 )  # Only the adesnik file has many (>2) frames per plane and multiple (2) channels.
 def scan_image_tiff_single_plane_imaging_extractor_adesnik(request):
