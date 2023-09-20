@@ -120,6 +120,7 @@ def parse_metadata_v3_8(metadata):
         num_channels=num_channels,
         num_planes=num_planes,
     )
+    return metadata_parsed
 
 
 class MultiPlaneImagingExtractor(ImagingExtractor):
