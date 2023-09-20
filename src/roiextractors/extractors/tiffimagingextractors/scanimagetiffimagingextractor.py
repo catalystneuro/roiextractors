@@ -313,7 +313,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         self,
         file_path: PathType,
         channel_name: Optional[str] = None,
-        plane: Optional[int] = 0,
+        plane: int = 0,
     ) -> None:
         """Create a ScanImageTiffImagingExtractor instance from a TIFF file produced by ScanImage.
 
