@@ -34,18 +34,18 @@ def metadata_string_to_dict(metadata_string):
 
 @pytest.fixture(scope="module", params=file_paths)
 def scan_image_tiff_single_plane_imaging_extractor(request):
-    return ScanImageTiffSinglePlaneImagingExtractor(file_path=request.param)
+    return ScanImageTiffSinglePlaneImagingExtractor(file_path=request.param, channel_name="Channel 1", plane_name="0")
 
 
 @pytest.fixture(
     scope="module",
     params=[
-        dict(channel_name="Channel 1", plane=0),
-        dict(channel_name="Channel 1", plane=1),
-        dict(channel_name="Channel 1", plane=2),
-        dict(channel_name="Channel 2", plane=0),
-        dict(channel_name="Channel 2", plane=1),
-        dict(channel_name="Channel 2", plane=2),
+        dict(channel_name="Channel 1", plane_name="0"),
+        dict(channel_name="Channel 1", plane_name="1"),
+        dict(channel_name="Channel 1", plane_name="2"),
+        dict(channel_name="Channel 2", plane_name="0"),
+        dict(channel_name="Channel 2", plane_name="1"),
+        dict(channel_name="Channel 2", plane_name="2"),
     ],
 )  # Only the adesnik file has many (>2) frames per plane and multiple (2) channels.
 def scan_image_tiff_single_plane_imaging_extractor_adesnik(request):

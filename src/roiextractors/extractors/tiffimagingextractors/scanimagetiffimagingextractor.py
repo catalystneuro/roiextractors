@@ -293,7 +293,7 @@ class ScanImageTiffMultiPlaneImagingExtractor(MultiPlaneImagingExtractor):
         imaging_extractors = []
         for plane in range(num_planes):
             imaging_extractor = ScanImageTiffSinglePlaneImagingExtractor(
-                file_path=file_path, channel_name=channel_name, plane=plane
+                file_path=file_path, channel_name=channel_name, plane_name=str(plane)
             )
             imaging_extractors.append(imaging_extractor)
         super().__init__(imaging_extractors=imaging_extractors)
@@ -309,11 +309,50 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
     is_writable = True
     mode = "file"
 
+    @classmethod
+    def get_channel_names(cls, file_path):
+        """Get the channel names from a TIFF file produced by ScanImage.
+
+        Parameters
+        ----------
+        file_path : PathType
+            Path to the TIFF file.
+
+        Returns
+        -------
+        channel_names: list
+            List of channel names.
+        """
+        metadata = extract_extra_metadata(file_path)
+        parsed_metadata = parse_metadata(metadata)
+        channel_names = parsed_metadata["channel_names"]
+        return channel_names
+
+    @classmethod
+    def get_plane_names(cls, file_path):
+        """Get the plane names from a TIFF file produced by ScanImage.
+
+        Parameters
+        ----------
+        file_path : PathType
+            Path to the TIFF file.
+
+        Returns
+        -------
+        plane_names: list
+            List of plane names.
+        """
+        metadata = extract_extra_metadata(file_path)
+        parsed_metadata = parse_metadata(metadata)
+        num_planes = parsed_metadata["num_planes"]
+        plane_names = [f"{i}" for i in range(num_planes)]
+        return plane_names
+
     def __init__(
         self,
         file_path: PathType,
-        channel_name: Optional[str] = None,
-        plane: int = 0,
+        channel_name: str,
+        plane_name: str,
     ) -> None:
         """Create a ScanImageTiffImagingExtractor instance from a TIFF file produced by ScanImage.
 
@@ -330,14 +369,13 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         ----------
         file_path : PathType
             Path to the TIFF file.
-        channel_name : str, optional
+        channel_name : str
             Name of the channel for this extractor (default=None).
-        plane : int, optional
-            Index of the depth plane for this extractor (default=0).
+        plane_name : str
+            Name of the plane for this extractor (default=None).
         """
         super().__init__()
         self.file_path = Path(file_path)
-        self.plane = plane
         self.metadata = extract_extra_metadata(file_path)
         parsed_metadata = parse_metadata(self.metadata)
         self._sampling_frequency = parsed_metadata["sampling_frequency"]
@@ -345,14 +383,15 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         self._num_planes = parsed_metadata["num_planes"]
         self._frames_per_slice = parsed_metadata["frames_per_slice"]
         self._channel_names = parsed_metadata["channel_names"]
-        if channel_name is None:
-            channel_name = self._channel_names[0]
+        self._plane_names = [f"{i}" for i in range(self._num_planes)]
         self.channel_name = channel_name
+        self.plane_name = plane_name
         if channel_name not in self._channel_names:
             raise ValueError(f"Channel name ({channel_name}) not found in channel names ({self._channel_names}).")
         self.channel = self._channel_names.index(channel_name)
-        if plane >= self._num_planes:
-            raise ValueError(f"Plane index ({plane}) exceeds number of planes ({self._num_planes}).")
+        if plane_name not in self._plane_names:
+            raise ValueError(f"Plane name ({plane_name}) not found in plane names ({self._plane_names}).")
+        self.plane = self._plane_names.index(plane_name)
         if self._frames_per_slice != 1:
             warn(
                 "Multiple frames per slice have not been tested and may produce incorrect output. "
