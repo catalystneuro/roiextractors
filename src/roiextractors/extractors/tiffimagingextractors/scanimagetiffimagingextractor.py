@@ -481,6 +481,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         if end_frame is None:
             end_frame = self._num_frames
         self.check_frame_inputs(end_frame - 1)
+        self.check_frame_inputs(start_frame)
         ScanImageTiffReader = _get_scanimage_reader()
         raw_start = self.frame_to_raw_index(start_frame)
         raw_end = self.frame_to_raw_index(end_frame)
@@ -515,6 +516,8 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
     def check_frame_inputs(self, frame) -> None:
         if frame >= self._num_frames:
             raise ValueError(f"Frame index ({frame}) exceeds number of frames ({self._num_frames}).")
+        if frame < 0:
+            raise ValueError(f"Frame index ({frame}) must be greater than or equal to 0.")
 
     def frame_to_raw_index(self, frame):
         """Convert a frame index to the raw index in the TIFF file.
