@@ -88,7 +88,7 @@ def test_get_frames_adesnik(
         assert_array_equal(frames, io.data()[raw_idxs])
 
 
-def test__get_single_frame(scan_image_tiff_single_plane_imaging_extractor):
+def test_get_single_frame(scan_image_tiff_single_plane_imaging_extractor):
     frame = scan_image_tiff_single_plane_imaging_extractor._get_single_frame(frame=0)
     file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
     with ScanImageTiffReader(file_path) as io:
