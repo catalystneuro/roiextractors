@@ -56,15 +56,51 @@ def extract_extra_metadata(
     return extra_metadata
 
 
+def parse_matlab_vector(matlab_vector: str) -> list:
+    """Parse a MATLAB vector string into a list of integer values.
+
+    Parameters
+    ----------
+    matlab_vector : str
+        MATLAB vector string.
+
+    Returns
+    -------
+    vector: list of int
+        List of integer values.
+
+    Raises
+    ------
+    ValueError
+        If the MATLAB vector string cannot be parsed.
+
+    Notes
+    -----
+    MATLAB vector string is of the form "[1 2 3 ... N]" or "[1,2,3,...,N]" or "[1;2;3;...;N]".
+    There may or may not be whitespace between the values. Ex. "[1, 2, 3]" or "[1,2,3]".
+    """
+    vector = matlab_vector.strip("[]")
+    if ";" in vector:
+        vector = vector.split(";")
+    elif "," in vector:
+        vector = vector.split(",")
+    elif " " in vector:
+        vector = vector.split(" ")
+    else:
+        raise ValueError(f"Could not parse vector from {matlab_vector}.")
+    vector = [int(x.strip()) for x in vector if x != ""]
+    return vector
+
+
 def parse_metadata(metadata):
     """Parse metadata dictionary to extract relevant information and store it standard keys for ImagingExtractors.
 
     Currently supports
     - sampling_frequency
-    - num_channels
     - num_planes
     - frames_per_slice
     - channel_names
+    - num_channels
 
     Parameters
     ----------
@@ -84,10 +120,13 @@ def parse_metadata(metadata):
         where M is the number of channels (active or not).
     """
     sampling_frequency = float(metadata["SI.hRoiManager.scanVolumeRate"])
-    num_channels = len(metadata["SI.hChannels.channelsActive"].split(";"))
     num_planes = int(metadata["SI.hStackManager.numSlices"])
     frames_per_slice = int(metadata["SI.hStackManager.framesPerSlice"])
-    channel_names = metadata["SI.hChannels.channelName"].split("'")[1::2][:num_channels]
+    active_channels = parse_matlab_vector(metadata["SI.hChannels.channelsActive"])
+    channel_indices = np.array(active_channels) - 1  # Account for MATLAB indexing
+    channel_names = np.array(metadata["SI.hChannels.channelName"].split("'")[1::2])
+    channel_names = channel_names[channel_indices].tolist()
+    num_channels = len(channel_names)
     metadata_parsed = dict(
         sampling_frequency=sampling_frequency,
         num_channels=num_channels,
@@ -150,6 +189,7 @@ class MultiPlaneImagingExtractor(ImagingExtractor):
         self._imaging_extractors = imaging_extractors
         self._num_planes = len(imaging_extractors)
 
+    # TODO: Add consistency check for channel_names when API is standardized
     def _check_consistency_between_imaging_extractors(self, imaging_extractors: List[ImagingExtractor]):
         """Check that essential properties are consistent between extractors so that they can be combined appropriately.
 
@@ -177,7 +217,6 @@ class MultiPlaneImagingExtractor(ImagingExtractor):
             get_sampling_frequency="The sampling frequency",
             get_image_size="The size of a frame",
             get_num_channels="The number of channels",
-            get_channel_names="The name of the channels",
             get_dtype="The data type",
             get_num_frames="The number of frames",
         )
