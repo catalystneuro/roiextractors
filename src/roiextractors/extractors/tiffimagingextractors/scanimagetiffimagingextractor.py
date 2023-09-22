@@ -504,9 +504,6 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
     def get_num_channels(self) -> int:
         return self._num_channels
 
-    def get_channel_names(self) -> list:
-        return self._channel_names
-
     def get_num_planes(self) -> int:
         return self._num_planes
 
