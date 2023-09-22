@@ -56,7 +56,6 @@ def test_get_frames(volumetric_imaging_extractor, frame_idxs):
     frames = volumetric_imaging_extractor.get_frames(frame_idxs=frame_idxs)
     expected_frames = []
     for extractor in volumetric_imaging_extractor._imaging_extractors:
-        gotten_frames = extractor.get_frames(frame_idxs=frame_idxs)
         expected_frames.append(extractor.get_frames(frame_idxs=frame_idxs))
     expected_frames = np.array(expected_frames)
     expected_frames = np.moveaxis(expected_frames, 0, -1)
