@@ -115,7 +115,7 @@ def parse_metadata(metadata):
     Notes
     -----
     Known to work on SI versions v2019bR0 and v2022.0.0.
-    SI.hChannels.channelsActive = '[1;2;...;N]' where N is the number of active channels.
+    SI.hChannels.channelsActive = string of MATLAB-style vector with channel integers (see parse_matlab_vector).
     SI.hChannels.channelName = "{'channel_name_1' 'channel_name_2' ... 'channel_name_M'}"
         where M is the number of channels (active or not).
     """
