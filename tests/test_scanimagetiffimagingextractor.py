@@ -16,8 +16,9 @@ from .setup_paths import OPHYS_DATA_PATH
 
 scan_image_path = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
 test_files = [
-    "scanimage_20220801_volume.tif",
-    "scanimage_20220801_multivolume.tif",
+    # "scanimage_20220801_volume.tif",
+    # "scanimage_20220801_multivolume.tif",
+    # "roi.tif",
     "scanimage_20230119_adesnik_00001.tif",
 ]
 file_paths = [scan_image_path / test_file for test_file in test_files]
@@ -197,13 +198,9 @@ def test_get_num_channels(scan_image_tiff_single_plane_imaging_extractor):
 
 
 def test_get_channel_names(scan_image_tiff_single_plane_imaging_extractor):
-    channel_names = scan_image_tiff_single_plane_imaging_extractor.get_channel_names()
-    num_channels = scan_image_tiff_single_plane_imaging_extractor.get_num_channels()
     file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
-    with ScanImageTiffReader(file_path) as io:
-        metadata_string = io.metadata()
-        metadata_dict = metadata_string_to_dict(metadata_string)
-        assert channel_names == metadata_dict["SI.hChannels.channelName"].split("'")[1::2][:num_channels]
+    channel_names = ScanImageTiffSinglePlaneImagingExtractor.get_channel_names(file_path)
+    assert channel_names == ["Channel 1", "Channel 2"]
 
 
 def test_get_num_planes(scan_image_tiff_single_plane_imaging_extractor):

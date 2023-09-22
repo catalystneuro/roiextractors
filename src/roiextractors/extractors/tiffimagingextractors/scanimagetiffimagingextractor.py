@@ -86,6 +86,8 @@ def parse_matlab_vector(matlab_vector: str) -> list:
         vector = vector.split(",")
     elif " " in vector:
         vector = vector.split(" ")
+    elif len(vector) == 1:
+        pass
     else:
         raise ValueError(f"Could not parse vector from {matlab_vector}.")
     vector = [int(x.strip()) for x in vector if x != ""]
@@ -398,10 +400,15 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         The underlying data is stored in a round-robin format collapsed into 3 dimensions (frames, rows, columns).
         I.e. the first frame of each channel and each plane is stored, and then the second frame of each channel and
         each plane, etc.
-        Ex. for 2 channels and 2 planes:
-        [channel_1_plane_1_frame_1, channel_2_plane_1_frame_1, channel_1_plane_2_frame_1, channel_2_plane_2_frame_1,
-        channel_1_plane_1_frame_2, channel_2_plane_1_frame_2, channel_1_plane_2_frame_2, channel_2_plane_2_frame_2, ...
-        channel_1_plane_1_frame_N, channel_2_plane_1_frame_N, channel_1_plane_2_frame_N, channel_2_plane_2_frame_N]
+        If framesPerSlice > 1, then multiple frames are acquired per slice before moving to the next slice.
+        Ex. for 2 channels, 2 planes, and 2 framesPerSlice:
+        ```
+        [channel_1_plane_1_frame_1, channel_2_plane_1_frame_1, channel_1_plane_1_frame_2, channel_2_plane_1_frame_2,
+         channel_1_plane_2_frame_1, channel_2_plane_2_frame_1, channel_1_plane_2_frame_2, channel_2_plane_2_frame_2,
+         channel_1_plane_1_frame_3, channel_2_plane_1_frame_3, channel_1_plane_1_frame_4, channel_2_plane_1_frame_4,
+         channel_1_plane_2_frame_3, channel_2_plane_2_frame_3, channel_1_plane_2_frame_4, channel_2_plane_2_frame_4, ...
+         channel_1_plane_1_frame_N, channel_2_plane_1_frame_N, channel_1_plane_2_frame_N, channel_2_plane_2_frame_N]
+        ```
         This file structured is accessed by ScanImageTiffImagingExtractor for a single channel and plane.
 
         Parameters
@@ -431,12 +438,6 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         if plane_name not in self._plane_names:
             raise ValueError(f"Plane name ({plane_name}) not found in plane names ({self._plane_names}).")
         self.plane = self._plane_names.index(plane_name)
-        if self._frames_per_slice != 1:
-            warn(
-                "Multiple frames per slice have not been tested and may produce incorrect output. "
-                "Please raise an issue to request this feature: "
-                "https://github.com/catalystneuro/roiextractors/issues "
-            )
 
         valid_suffixes = [".tiff", ".tif", ".TIFF", ".TIF"]
         if self.file_path.suffix not in valid_suffixes:
@@ -450,10 +451,13 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
             shape = io.shape()  # [frames, rows, columns]
         if len(shape) == 3:
             self._total_num_frames, self._num_rows, self._num_columns = shape
+            self._num_raw_per_plane = self._frames_per_slice * self._num_channels
+            self._num_raw_per_cycle = self._num_raw_per_plane * self._num_planes
             self._num_frames = self._total_num_frames // (self._num_planes * self._num_channels)
+            self._num_cycles = self._total_num_frames // self._num_raw_per_cycle
         else:
             raise NotImplementedError(
-                "Extractor cannot handle 4D TIFF data. Please raise an issue to request this feature: "
+                "Extractor cannot handle 4D ScanImageTiff data. Please raise an issue to request this feature: "
                 "https://github.com/catalystneuro/roiextractors/issues "
             )
 
@@ -527,8 +531,13 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         raw_end = np.min([raw_end, self._total_num_frames])
         with ScanImageTiffReader(filename=str(self.file_path)) as io:
             raw_video = io.data(beg=raw_start, end=raw_end)
-        video = raw_video[:: self._num_channels]
-        video = video[:: self._num_planes]
+        start_cycle = raw_start // self._num_raw_per_cycle
+        end_cycle = raw_end // self._num_raw_per_cycle
+        index = []
+        for i in range(end_cycle - start_cycle):
+            for j in range(self._frames_per_slice):
+                index.append(i * self._num_raw_per_cycle + j * self._num_channels)
+        video = raw_video[index]
         return video
 
     def get_image_size(self) -> Tuple[int, int]:
@@ -573,12 +582,24 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         The underlying data is stored in a round-robin format collapsed into 3 dimensions (frames, rows, columns).
         I.e. the first frame of each channel and each plane is stored, and then the second frame of each channel and
         each plane, etc.
-        Ex. for 2 channels and 2 planes:
-        [channel_1_plane_1_frame_1, channel_2_plane_1_frame_1, channel_1_plane_2_frame_1, channel_2_plane_2_frame_1,
-        channel_1_plane_1_frame_2, channel_2_plane_1_frame_2, channel_1_plane_2_frame_2, channel_2_plane_2_frame_2, ...
-        channel_1_plane_1_frame_N, channel_2_plane_1_frame_N, channel_1_plane_2_frame_N, channel_2_plane_2_frame_N]
+        If framesPerSlice > 1, then multiple frames are acquired per slice before moving to the next slice.
+        Ex. for 2 channels, 2 planes, and 2 framesPerSlice:
+        ```
+        [channel_1_plane_1_frame_1, channel_2_plane_1_frame_1, channel_1_plane_1_frame_2, channel_2_plane_1_frame_2,
+         channel_1_plane_2_frame_1, channel_2_plane_2_frame_1, channel_1_plane_2_frame_2, channel_2_plane_2_frame_2,
+         channel_1_plane_1_frame_3, channel_2_plane_1_frame_3, channel_1_plane_1_frame_4, channel_2_plane_1_frame_4,
+         channel_1_plane_2_frame_3, channel_2_plane_2_frame_3, channel_1_plane_2_frame_4, channel_2_plane_2_frame_4, ...
+         channel_1_plane_1_frame_N, channel_2_plane_1_frame_N, channel_1_plane_2_frame_N, channel_2_plane_2_frame_N]
+        ```
         """
-        raw_index = (frame * self._num_planes * self._num_channels) + (self.plane * self._num_channels) + self.channel
+        cycle = frame // self._frames_per_slice
+        frame_in_cycle = frame % self._frames_per_slice
+        raw_index = (
+            cycle * self._num_raw_per_cycle
+            + self.plane * self._num_raw_per_plane
+            + frame_in_cycle * self._num_channels
+            + self.channel
+        )
         return raw_index
 
 
