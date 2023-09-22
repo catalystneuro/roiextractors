@@ -80,8 +80,22 @@ class VolumetricImagingExtractor(ImagingExtractor):
         video: numpy.ndarray
             The 3D video frames (num_rows, num_columns, num_planes).
         """
-        start_frame = start_frame if start_frame is not None else 0
-        end_frame = end_frame if end_frame is not None else self.get_num_frames()
+        if start_frame is None:
+            start_frame = 0
+        elif start_frame < 0:
+            start_frame = self.get_num_frames() + start_frame
+        elif start_frame >= self.get_num_frames():
+            raise ValueError(
+                f"start_frame {start_frame} is greater than or equal to the number of frames {self.get_num_frames()}"
+            )
+        if end_frame is None:
+            end_frame = self.get_num_frames()
+        elif end_frame < 0:
+            end_frame = self.get_num_frames() + end_frame
+        elif end_frame > self.get_num_frames():
+            raise ValueError(f"end_frame {end_frame} is greater than the number of frames {self.get_num_frames()}")
+        if end_frame <= start_frame:
+            raise ValueError(f"end_frame {end_frame} is less than or equal to start_frame {start_frame}")
 
         video = np.zeros((end_frame - start_frame, *self.get_image_size()), self.get_dtype())
         for i, imaging_extractor in enumerate(self._imaging_extractors):
@@ -101,13 +115,22 @@ class VolumetricImagingExtractor(ImagingExtractor):
         frames: numpy.ndarray
             The 3D video frames (num_rows, num_columns, num_planes).
         """
+        squeeze_data = False
         if isinstance(frame_idxs, int):
             frame_idxs = [frame_idxs]
+            squeeze_data = True
+        for frame_idx in frame_idxs:
+            if frame_idx < -1 * self.get_num_frames() or frame_idx >= self.get_num_frames():
+                raise ValueError(f"frame_idx {frame_idx} is out of bounds")
 
         if not all(np.diff(frame_idxs) == 1):
             frames = np.zeros((len(frame_idxs), *self.get_image_size()), self.get_dtype())
             for i, imaging_extractor in enumerate(self._imaging_extractors):
                 frames[..., i] = imaging_extractor.get_frames(frame_idxs)
+            if squeeze_data:
+                return frames.squeeze()
+            else:
+                return frames
         else:
             return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)
 
