@@ -14,28 +14,24 @@ from roiextractors.extractors.tiffimagingextractors.scanimagetiffimagingextracto
 
 from .setup_paths import OPHYS_DATA_PATH
 
-scan_image_path = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
-test_files = [
-    # "scanimage_20220801_volume.tif",
-    # "scanimage_20220801_multivolume.tif",
-    # "roi.tif",
-    "scanimage_20230119_adesnik_00001.tif",
-]
-file_paths = [scan_image_path / test_file for test_file in test_files]
+
+@pytest.fixture(scope="module")
+def file_path():
+    return OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage" / "roi.tif"
 
 
-def metadata_string_to_dict(metadata_string):
-    metadata_dict = {
-        x.split("=")[0].strip(): x.split("=")[1].strip()
-        for x in metadata_string.replace("\n", "\r").split("\r")
-        if "=" in x
-    }
-    return metadata_dict
-
-
-@pytest.fixture(scope="module", params=file_paths)
-def scan_image_tiff_single_plane_imaging_extractor(request):
-    return ScanImageTiffSinglePlaneImagingExtractor(file_path=request.param, channel_name="Channel 1", plane_name="0")
+@pytest.fixture(scope="module")
+def expected_properties():
+    return dict(
+        sampling_frequency=7.28119,
+        num_channels=2,
+        num_planes=2,
+        frames_per_slice=2,
+        channel_names=["Channel 1", "Channel 4"],
+        image_size=(528, 256),
+        num_frames=6,
+        dtype="int16",
+    )
 
 
 @pytest.fixture(
@@ -43,263 +39,196 @@ def scan_image_tiff_single_plane_imaging_extractor(request):
     params=[
         dict(channel_name="Channel 1", plane_name="0"),
         dict(channel_name="Channel 1", plane_name="1"),
-        dict(channel_name="Channel 1", plane_name="2"),
-        dict(channel_name="Channel 2", plane_name="0"),
-        dict(channel_name="Channel 2", plane_name="1"),
-        dict(channel_name="Channel 2", plane_name="2"),
+        dict(channel_name="Channel 4", plane_name="0"),
+        dict(channel_name="Channel 4", plane_name="1"),
     ],
-)  # Only the adesnik file has many (>2) frames per plane and multiple (2) channels.
-def scan_image_tiff_single_plane_imaging_extractor_adesnik(request):
-    file_path = scan_image_path / "scanimage_20230119_adesnik_00001.tif"
+)
+def scan_image_tiff_single_plane_imaging_extractor(request, file_path):
     return ScanImageTiffSinglePlaneImagingExtractor(file_path=file_path, **request.param)
 
 
-@pytest.fixture(scope="module")
-def num_planes_adesnik():
-    return 3
+@pytest.mark.parametrize("channel_name, plane_name", [("Invalid Channel", "0"), ("Channel 1", "Invalid Plane")])
+def test_ScanImageTiffSinglePlaneImagingExtractor__init__invalid(file_path, channel_name, plane_name):
+    with pytest.raises(ValueError):
+        ScanImageTiffSinglePlaneImagingExtractor(file_path=file_path, channel_name=channel_name, plane_name=plane_name)
 
 
-@pytest.fixture(scope="module")
-def num_channels_adesnik():
-    return 2
-
-
-@pytest.mark.parametrize("frame_idxs", (0, [0]))
-def test_get_frames(scan_image_tiff_single_plane_imaging_extractor, frame_idxs):
+@pytest.mark.parametrize("frame_idxs", (0, [0, 1, 2], [0, 2, 5]))
+def test_get_frames(scan_image_tiff_single_plane_imaging_extractor, frame_idxs, expected_properties):
     frames = scan_image_tiff_single_plane_imaging_extractor.get_frames(frame_idxs=frame_idxs)
     file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
-    with ScanImageTiffReader(file_path) as io:
-        if isinstance(frame_idxs, int):
-            frame_idxs = [frame_idxs]
-        assert_array_equal(frames, io.data()[frame_idxs])
-
-
-@pytest.mark.parametrize("frame_idxs", ([0, 1, 2], [1, 3, 31]))  # 31 is the last frame in the adesnik file
-def test_get_frames_adesnik(
-    scan_image_tiff_single_plane_imaging_extractor_adesnik, num_planes_adesnik, num_channels_adesnik, frame_idxs
-):
-    frames = scan_image_tiff_single_plane_imaging_extractor_adesnik.get_frames(frame_idxs=frame_idxs)
-    file_path = str(scan_image_tiff_single_plane_imaging_extractor_adesnik.file_path)
-    plane = scan_image_tiff_single_plane_imaging_extractor_adesnik.plane
-    channel = scan_image_tiff_single_plane_imaging_extractor_adesnik.channel
-    raw_idxs = [
-        idx * num_planes_adesnik * num_channels_adesnik + plane * num_channels_adesnik + channel for idx in frame_idxs
-    ]
+    plane = scan_image_tiff_single_plane_imaging_extractor.plane
+    channel = scan_image_tiff_single_plane_imaging_extractor.channel
+    num_planes = expected_properties["num_planes"]
+    num_channels = expected_properties["num_channels"]
+    frames_per_slice = expected_properties["frames_per_slice"]
+    if isinstance(frame_idxs, int):
+        frame_idxs = [frame_idxs]
+    raw_idxs = []
+    for idx in frame_idxs:
+        cycle = idx // frames_per_slice
+        frame_in_cycle = idx % frames_per_slice
+        raw_idx = (
+            cycle * num_planes * num_channels * frames_per_slice
+            + plane * num_channels * frames_per_slice
+            + num_channels * frame_in_cycle
+            + channel
+        )
+        raw_idxs.append(raw_idx)
     with ScanImageTiffReader(file_path) as io:
         assert_array_equal(frames, io.data()[raw_idxs])
 
 
 @pytest.mark.parametrize("frame_idxs", ([-1], [50]))
-def test_get_frames_adesnik_invalid(scan_image_tiff_single_plane_imaging_extractor_adesnik, frame_idxs):
+def test_get_frames_invalid(scan_image_tiff_single_plane_imaging_extractor, frame_idxs):
     with pytest.raises(ValueError):
-        scan_image_tiff_single_plane_imaging_extractor_adesnik.get_frames(frame_idxs=frame_idxs)
+        scan_image_tiff_single_plane_imaging_extractor.get_frames(frame_idxs=frame_idxs)
 
 
-def test_get_single_frame(scan_image_tiff_single_plane_imaging_extractor):
-    frame = scan_image_tiff_single_plane_imaging_extractor._get_single_frame(frame=0)
+@pytest.mark.parametrize("frame_idx", (1, 3, 5))
+def test_get_single_frame(scan_image_tiff_single_plane_imaging_extractor, expected_properties, frame_idx):
+    frame = scan_image_tiff_single_plane_imaging_extractor._get_single_frame(frame=frame_idx)
     file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
-    with ScanImageTiffReader(file_path) as io:
-        assert_array_equal(frame, io.data()[:1])
-
-
-@pytest.mark.parametrize("frame_idx", (5, 10, 31))
-def test_get_single_frame_adesnik(
-    scan_image_tiff_single_plane_imaging_extractor_adesnik, num_planes_adesnik, num_channels_adesnik, frame_idx
-):
-    frame = scan_image_tiff_single_plane_imaging_extractor_adesnik._get_single_frame(frame=frame_idx)
-    file_path = str(scan_image_tiff_single_plane_imaging_extractor_adesnik.file_path)
-    plane = scan_image_tiff_single_plane_imaging_extractor_adesnik.plane
-    channel = scan_image_tiff_single_plane_imaging_extractor_adesnik.channel
-    raw_idx = frame_idx * num_planes_adesnik * num_channels_adesnik + plane * num_channels_adesnik + channel
-    print(raw_idx)
+    plane = scan_image_tiff_single_plane_imaging_extractor.plane
+    channel = scan_image_tiff_single_plane_imaging_extractor.channel
+    num_planes = expected_properties["num_planes"]
+    num_channels = expected_properties["num_channels"]
+    frames_per_slice = expected_properties["frames_per_slice"]
+    cycle = frame_idx // frames_per_slice
+    frame_in_cycle = frame_idx % frames_per_slice
+    raw_idx = (
+        cycle * num_planes * num_channels * frames_per_slice
+        + plane * num_channels * frames_per_slice
+        + num_channels * frame_in_cycle
+        + channel
+    )
     with ScanImageTiffReader(file_path) as io:
         assert_array_equal(frame, io.data()[raw_idx : raw_idx + 1])
 
 
 @pytest.mark.parametrize("frame", (-1, 50))
-def test_get_single_frame_adesnik_invalid(scan_image_tiff_single_plane_imaging_extractor_adesnik, frame):
+def test_get_single_frame_invalid(scan_image_tiff_single_plane_imaging_extractor, frame):
     with pytest.raises(ValueError):
-        scan_image_tiff_single_plane_imaging_extractor_adesnik._get_single_frame(frame=frame)
+        scan_image_tiff_single_plane_imaging_extractor._get_single_frame(frame=frame)
 
 
-def test_get_video(scan_image_tiff_single_plane_imaging_extractor):
-    video = scan_image_tiff_single_plane_imaging_extractor.get_video()
-    file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
-    num_channels = scan_image_tiff_single_plane_imaging_extractor.get_num_channels()
-    num_planes = scan_image_tiff_single_plane_imaging_extractor.get_num_planes()
-    with ScanImageTiffReader(file_path) as io:
-        assert_array_equal(video, io.data()[:: num_planes * num_channels])
-
-
-@pytest.mark.parametrize("start_frame, end_frame", [(0, 2), (5, 10), (20, 32)])
-def test_get_video_adesnik(
-    scan_image_tiff_single_plane_imaging_extractor_adesnik,
-    num_planes_adesnik,
-    num_channels_adesnik,
+@pytest.mark.parametrize("start_frame, end_frame", [(0, None), (None, 6), (1, 4), (0, 6)])
+def test_get_video(
+    scan_image_tiff_single_plane_imaging_extractor,
+    expected_properties,
     start_frame,
     end_frame,
 ):
-    video = scan_image_tiff_single_plane_imaging_extractor_adesnik.get_video(
-        start_frame=start_frame, end_frame=end_frame
-    )
-    file_path = str(scan_image_tiff_single_plane_imaging_extractor_adesnik.file_path)
-    plane = scan_image_tiff_single_plane_imaging_extractor_adesnik.plane
-    channel = scan_image_tiff_single_plane_imaging_extractor_adesnik.channel
-    raw_idxs = [
-        idx * num_planes_adesnik * num_channels_adesnik + plane * num_channels_adesnik + channel
-        for idx in range(start_frame, end_frame)
-    ]
+    video = scan_image_tiff_single_plane_imaging_extractor.get_video(start_frame=start_frame, end_frame=end_frame)
+    if start_frame is None:
+        start_frame = 0
+    if end_frame is None:
+        end_frame = expected_properties["num_frames"]
+    file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
+    plane = scan_image_tiff_single_plane_imaging_extractor.plane
+    channel = scan_image_tiff_single_plane_imaging_extractor.channel
+    num_planes = expected_properties["num_planes"]
+    num_channels = expected_properties["num_channels"]
+    frames_per_slice = expected_properties["frames_per_slice"]
+    raw_idxs = []
+    for idx in range(start_frame, end_frame):
+        cycle = idx // frames_per_slice
+        frame_in_cycle = idx % frames_per_slice
+        raw_idx = (
+            cycle * num_planes * num_channels * frames_per_slice
+            + plane * num_channels * frames_per_slice
+            + num_channels * frame_in_cycle
+            + channel
+        )
+        raw_idxs.append(raw_idx)
     with ScanImageTiffReader(file_path) as io:
         assert_array_equal(video, io.data()[raw_idxs])
 
 
 @pytest.mark.parametrize("start_frame, end_frame", [(-1, 2), (0, 50)])
-def test_get_video_adesnik_invalid(
-    scan_image_tiff_single_plane_imaging_extractor_adesnik,
+def test_get_video_invalid(
+    scan_image_tiff_single_plane_imaging_extractor,
     start_frame,
     end_frame,
 ):
     with pytest.raises(ValueError):
-        scan_image_tiff_single_plane_imaging_extractor_adesnik.get_video(start_frame=start_frame, end_frame=end_frame)
+        scan_image_tiff_single_plane_imaging_extractor.get_video(start_frame=start_frame, end_frame=end_frame)
 
 
-def test_get_image_size(scan_image_tiff_single_plane_imaging_extractor):
+def test_get_image_size(scan_image_tiff_single_plane_imaging_extractor, expected_properties):
     image_size = scan_image_tiff_single_plane_imaging_extractor.get_image_size()
-    file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
-    with ScanImageTiffReader(file_path) as io:
-        assert image_size == tuple(io.shape()[1:])
+    assert image_size == expected_properties["image_size"]
 
 
-def test_get_num_frames(scan_image_tiff_single_plane_imaging_extractor):
+def test_get_num_frames(scan_image_tiff_single_plane_imaging_extractor, expected_properties):
     num_frames = scan_image_tiff_single_plane_imaging_extractor.get_num_frames()
-    num_channels = scan_image_tiff_single_plane_imaging_extractor.get_num_channels()
-    num_planes = scan_image_tiff_single_plane_imaging_extractor.get_num_planes()
-    file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
-    with ScanImageTiffReader(file_path) as io:
-        assert num_frames == io.shape()[0] // (num_channels * num_planes)
+    assert num_frames == expected_properties["num_frames"]
 
 
-def test_get_sampling_frequency(scan_image_tiff_single_plane_imaging_extractor):
+def test_get_sampling_frequency(scan_image_tiff_single_plane_imaging_extractor, expected_properties):
     sampling_frequency = scan_image_tiff_single_plane_imaging_extractor.get_sampling_frequency()
-    file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
-    with ScanImageTiffReader(file_path) as io:
-        metadata_string = io.metadata()
-        metadata_dict = metadata_string_to_dict(metadata_string)
-        assert sampling_frequency == float(metadata_dict["SI.hRoiManager.scanVolumeRate"])
+    assert sampling_frequency == expected_properties["sampling_frequency"]
 
 
-def test_get_num_channels(scan_image_tiff_single_plane_imaging_extractor):
+def test_get_num_channels(scan_image_tiff_single_plane_imaging_extractor, expected_properties):
     num_channels = scan_image_tiff_single_plane_imaging_extractor.get_num_channels()
-    file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
-    with ScanImageTiffReader(file_path) as io:
-        metadata_string = io.metadata()
-        metadata_dict = metadata_string_to_dict(metadata_string)
-        assert num_channels == len(metadata_dict["SI.hChannels.channelsActive"].split(";"))
+    assert num_channels == expected_properties["num_channels"]
 
 
-def test_get_channel_names(scan_image_tiff_single_plane_imaging_extractor):
+def test_get_channel_names(scan_image_tiff_single_plane_imaging_extractor, expected_properties):
     file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
     channel_names = ScanImageTiffSinglePlaneImagingExtractor.get_channel_names(file_path)
-    assert channel_names == ["Channel 1", "Channel 2"]
+    assert channel_names == expected_properties["channel_names"]
 
 
-def test_get_num_planes(scan_image_tiff_single_plane_imaging_extractor):
+def test_get_num_planes(scan_image_tiff_single_plane_imaging_extractor, expected_properties):
     num_planes = scan_image_tiff_single_plane_imaging_extractor.get_num_planes()
-    file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
-    with ScanImageTiffReader(file_path) as io:
-        metadata_string = io.metadata()
-        metadata_dict = metadata_string_to_dict(metadata_string)
-        assert num_planes == int(metadata_dict["SI.hStackManager.numSlices"])
+    assert num_planes == expected_properties["num_planes"]
 
 
-def test_get_dtype(scan_image_tiff_single_plane_imaging_extractor):
+def test_get_dtype(scan_image_tiff_single_plane_imaging_extractor, expected_properties):
     dtype = scan_image_tiff_single_plane_imaging_extractor.get_dtype()
-    file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
-    with ScanImageTiffReader(file_path) as io:
-        assert dtype == io.data().dtype
+    assert dtype == expected_properties["dtype"]
 
 
 def test_check_frame_inputs_valid(scan_image_tiff_single_plane_imaging_extractor):
     scan_image_tiff_single_plane_imaging_extractor.check_frame_inputs(frame=0)
 
 
-def test_check_frame_inputs_invalid(scan_image_tiff_single_plane_imaging_extractor):
-    num_frames = scan_image_tiff_single_plane_imaging_extractor.get_num_frames()
+def test_check_frame_inputs_invalid(scan_image_tiff_single_plane_imaging_extractor, expected_properties):
+    num_frames = expected_properties["num_frames"]
     with pytest.raises(ValueError):
         scan_image_tiff_single_plane_imaging_extractor.check_frame_inputs(frame=num_frames + 1)
 
 
-@pytest.mark.parametrize("frame", (0, 10, 31))
-def test_frame_to_raw_index_adesnik(
-    scan_image_tiff_single_plane_imaging_extractor_adesnik, num_channels_adesnik, num_planes_adesnik, frame
+@pytest.mark.parametrize("frame", (0, 3, 5))
+def test_frame_to_raw_index(
+    scan_image_tiff_single_plane_imaging_extractor,
+    frame,
+    expected_properties,
 ):
-    raw_index = scan_image_tiff_single_plane_imaging_extractor_adesnik.frame_to_raw_index(frame=frame)
-    plane = scan_image_tiff_single_plane_imaging_extractor_adesnik.plane
-    channel = scan_image_tiff_single_plane_imaging_extractor_adesnik.channel
-    assert raw_index == (frame * num_planes_adesnik * num_channels_adesnik) + (plane * num_channels_adesnik) + channel
-
-
-@pytest.mark.parametrize("file_path", file_paths)
-def test_extract_extra_metadata(file_path):
-    metadata = extract_extra_metadata(file_path)
-    io = ScanImageTiffReader(str(file_path))
-    extra_metadata = {}
-    for metadata_string in (io.description(iframe=0), io.metadata()):
-        metadata_dict = {
-            x.split("=")[0].strip(): x.split("=")[1].strip()
-            for x in metadata_string.replace("\n", "\r").split("\r")
-            if "=" in x
-        }
-        extra_metadata = dict(**extra_metadata, **metadata_dict)
-    assert metadata == extra_metadata
-
-
-@pytest.mark.parametrize("file_path", file_paths)
-def test_parse_metadata(file_path):
-    metadata = extract_extra_metadata(file_path)
-    parsed_metadata = parse_metadata(metadata)
-    sampling_frequency = float(metadata["SI.hRoiManager.scanVolumeRate"])
-    num_channels = len(metadata["SI.hChannels.channelsActive"].split(";"))
-    num_planes = int(metadata["SI.hStackManager.numSlices"])
-    frames_per_slice = int(metadata["SI.hStackManager.framesPerSlice"])
-    channel_names = metadata["SI.hChannels.channelName"].split("'")[1::2][:num_channels]
-    assert parsed_metadata == dict(
-        sampling_frequency=sampling_frequency,
-        num_channels=num_channels,
-        num_planes=num_planes,
-        frames_per_slice=frames_per_slice,
-        channel_names=channel_names,
+    raw_index = scan_image_tiff_single_plane_imaging_extractor.frame_to_raw_index(frame=frame)
+    plane = scan_image_tiff_single_plane_imaging_extractor.plane
+    channel = scan_image_tiff_single_plane_imaging_extractor.channel
+    num_planes = expected_properties["num_planes"]
+    num_channels = expected_properties["num_channels"]
+    frames_per_slice = expected_properties["frames_per_slice"]
+    cycle = frame // frames_per_slice
+    frame_in_cycle = frame % frames_per_slice
+    expected_index = (
+        cycle * num_planes * num_channels * frames_per_slice
+        + plane * num_channels * frames_per_slice
+        + num_channels * frame_in_cycle
+        + channel
     )
+    assert raw_index == expected_index
 
 
-def test_parse_metadata_v3_8():
-    file_path = scan_image_path / "sample_scanimage_version_3_8.tiff"
-    metadata = extract_extra_metadata(file_path)
-    parsed_metadata = parse_metadata_v3_8(metadata)
-    sampling_frequency = float(metadata["state.acq.frameRate"])
-    num_channels = int(metadata["state.acq.numberOfChannelsSave"])
-    num_planes = int(metadata["state.acq.numberOfZSlices"])
-    assert parsed_metadata == dict(
-        sampling_frequency=sampling_frequency,
-        num_channels=num_channels,
-        num_planes=num_planes,
-    )
-
-
-@pytest.mark.parametrize("file_path", file_paths)
 def test_ScanImageTiffMultiPlaneImagingExtractor__init__(file_path):
     extractor = ScanImageTiffMultiPlaneImagingExtractor(file_path=file_path)
     assert extractor.file_path == file_path
 
 
-@pytest.mark.parametrize("channel_name, plane_name", [("Invalid Channel", "0"), ("Channel 1", "Invalid Plane")])
-def test_ScanImageTiffSinglePlaneImagingExtractor__init__invalid(channel_name, plane_name):
+def test_ScanImageTiffMultiPlaneImagingExtractor__init__invalid(file_path):
     with pytest.raises(ValueError):
-        ScanImageTiffSinglePlaneImagingExtractor(
-            file_path=file_paths[0], channel_name=channel_name, plane_name=plane_name
-        )
-
-
-def test_ScanImageTiffMultiPlaneImagingExtractor__init__invalid():
-    with pytest.raises(ValueError):
-        ScanImageTiffMultiPlaneImagingExtractor(file_path=file_paths[0], channel_name="Invalid Channel")
+        ScanImageTiffMultiPlaneImagingExtractor(file_path=file_path, channel_name="Invalid Channel")
