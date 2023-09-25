@@ -526,29 +526,24 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         end_frame_inclusive = end_frame - 1
         self.check_frame_inputs(end_frame_inclusive)
         self.check_frame_inputs(start_frame)
-        start_cycle = start_frame // self._frames_per_slice
-        end_cycle = end_frame // self._frames_per_slice
-        # raw_start = self.frame_to_raw_index(start_cycle * self._frames_per_slice)
-        # raw_start = start_cycle * self._num_raw_per_cycle
         raw_start = self.frame_to_raw_index(start_frame)
-        raw_end = self.frame_to_raw_index(end_frame_inclusive)
-        raw_end += 1  # ScanImageTiffReader is exclusive of the end index
+        raw_end_inclusive = self.frame_to_raw_index(end_frame_inclusive)  # frame_to_raw_index requires inclusive frame
+        raw_end = raw_end_inclusive + 1
+
+        ScanImageTiffReader = _get_scanimage_reader()
+        with ScanImageTiffReader(filename=str(self.file_path)) as io:
+            raw_video = io.data(beg=raw_start, end=raw_end)
+
+        start_cycle = np.ceil(start_frame / self._frames_per_slice).astype("int")
+        end_cycle = end_frame // self._frames_per_slice
+        num_cycles = end_cycle - start_cycle
         start_frame_in_cycle = start_frame % self._frames_per_slice
         end_frame_in_cycle = end_frame % self._frames_per_slice
         start_left_in_cycle = (self._frames_per_slice - start_frame_in_cycle) % self._frames_per_slice
         end_left_in_cycle = (self._frames_per_slice - end_frame_in_cycle) % self._frames_per_slice
-        print(f"raw_start: {raw_start}")
-        print(f"raw_end: {raw_end}")
-        print(f"start_frame_in_cycle: {start_frame_in_cycle}")
-        print(f"end_frame_in_cycle: {end_frame_in_cycle}")
-        ScanImageTiffReader = _get_scanimage_reader()
-        with ScanImageTiffReader(filename=str(self.file_path)) as io:
-            raw_video = io.data(beg=raw_start, end=raw_end)
-        num_cycles = end_cycle - np.ceil(start_frame / self._frames_per_slice).astype("int")
         index = []
         for j in range(start_left_in_cycle):  # Add remaining frames from first (incomplete) cycle
-            idx = j * self._num_channels
-            index.append(idx)
+            index.append(j * self._num_channels)
         for i in range(num_cycles):
             for j in range(self._frames_per_slice):
                 index.append(
@@ -556,9 +551,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
                     + (i + bool(start_left_in_cycle)) * self._num_raw_per_cycle
                 )
         for j in range(end_left_in_cycle):  # Add remaining frames from last (incomplete) cycle
-            idx = (j - start_frame_in_cycle) * self._num_channels + num_cycles * self._num_raw_per_cycle
-            index.append(idx)
-        print(f"index: {index}")
+            index.append(j - start_frame_in_cycle) * self._num_channels + num_cycles * self._num_raw_per_cycle
         video = raw_video[index]
         return video
 
