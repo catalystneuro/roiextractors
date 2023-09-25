@@ -550,8 +550,8 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
                     (j - start_frame_in_cycle) * self._num_channels
                     + (i + bool(start_left_in_cycle)) * self._num_raw_per_cycle
                 )
-        for j in range(end_left_in_cycle):  # Add remaining frames from last (incomplete) cycle
-            index.append(j - start_frame_in_cycle) * self._num_channels + num_cycles * self._num_raw_per_cycle
+        for j in range(end_left_in_cycle):  # Add remaining frames from last (incomplete) cycle)
+            index.append((j - start_frame_in_cycle) * self._num_channels + num_cycles * self._num_raw_per_cycle)
         video = raw_video[index]
         return video
 
