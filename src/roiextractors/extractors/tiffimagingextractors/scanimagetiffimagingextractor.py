@@ -529,7 +529,8 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         start_cycle = start_frame // self._frames_per_slice
         end_cycle = end_frame // self._frames_per_slice
         # raw_start = self.frame_to_raw_index(start_cycle * self._frames_per_slice)
-        raw_start = start_cycle * self._num_raw_per_cycle
+        # raw_start = start_cycle * self._num_raw_per_cycle
+        raw_start = self.frame_to_raw_index(start_frame)
         raw_end = self.frame_to_raw_index(end_frame_inclusive)
         raw_end += 1  # ScanImageTiffReader is exclusive of the end index
         start_frame_in_cycle = start_frame % self._frames_per_slice
@@ -546,24 +547,16 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         num_cycles = end_cycle - np.ceil(start_frame / self._frames_per_slice).astype("int")
         index = []
         for j in range(start_left_in_cycle):  # Add remaining frames from first (incomplete) cycle
-            idx = self.channel + (j + start_frame_in_cycle) * self._num_channels + self.plane * self._num_raw_per_plane
+            idx = j * self._num_channels
             index.append(idx)
         for i in range(num_cycles):
             for j in range(self._frames_per_slice):
-                idx = (
-                    self.channel
-                    + j * self._num_channels
-                    + self.plane * self._num_raw_per_plane
+                index.append(
+                    (j - start_frame_in_cycle) * self._num_channels
                     + (i + bool(start_left_in_cycle)) * self._num_raw_per_cycle
                 )
-                index.append(idx)
         for j in range(end_left_in_cycle):  # Add remaining frames from last (incomplete) cycle
-            idx = (
-                self.channel
-                + j * self._num_channels
-                + self.plane * self._num_raw_per_plane
-                + num_cycles * self._num_raw_per_cycle
-            )
+            idx = (j - start_frame_in_cycle) * self._num_channels + num_cycles * self._num_raw_per_cycle
             index.append(idx)
         print(f"index: {index}")
         video = raw_video[index]
