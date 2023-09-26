@@ -17,7 +17,7 @@ from .setup_paths import OPHYS_DATA_PATH
 
 @pytest.fixture(scope="module")
 def file_path():
-    return OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage" / "roi.tif"
+    return OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage" / "scanimage_20220923_roi.tif"
 
 
 @pytest.fixture(scope="module")
