@@ -121,7 +121,7 @@ def parse_metadata(metadata):
     SI.hChannels.channelName = "{'channel_name_1' 'channel_name_2' ... 'channel_name_M'}"
         where M is the number of channels (active or not).
     """
-    sampling_frequency = float(metadata["SI.hRoiManager.scanVolumeRate"])
+    sampling_frequency = float(metadata["SI.hRoiManager.scanFrameRate"])
     num_planes = int(metadata["SI.hStackManager.numSlices"])
     frames_per_slice = int(metadata["SI.hStackManager.framesPerSlice"])
     active_channels = parse_matlab_vector(metadata["SI.hChannels.channelsActive"])
