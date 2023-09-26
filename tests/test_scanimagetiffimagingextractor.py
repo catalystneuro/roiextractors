@@ -1,16 +1,7 @@
 import pytest
-from pathlib import Path
-from tempfile import mkdtemp
-from shutil import rmtree, copy
 from numpy.testing import assert_array_equal
-
 from ScanImageTiffReader import ScanImageTiffReader
 from roiextractors import ScanImageTiffSinglePlaneImagingExtractor, ScanImageTiffMultiPlaneImagingExtractor
-from roiextractors.extractors.tiffimagingextractors.scanimagetiffimagingextractor import (
-    extract_extra_metadata,
-    parse_metadata,
-    parse_metadata_v3_8,
-)
 
 from .setup_paths import OPHYS_DATA_PATH
 
@@ -23,7 +14,7 @@ def file_path():
 @pytest.fixture(scope="module")
 def expected_properties():
     return dict(
-        sampling_frequency=7.28119,
+        sampling_frequency=29.1248,
         num_channels=2,
         num_planes=2,
         frames_per_slice=2,
