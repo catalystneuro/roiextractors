@@ -27,7 +27,7 @@ def extract_extra_metadata(
 
     Notes
     -----
-    Known to work on SI versions v3.8.0, v2019bR0, and v2022.0.0.
+    Known to work on SI versions v3.8.0, v2019bR0, v2022.0.0, and v2023.0.0
     """
     ScanImageTiffReader = _get_scanimage_reader()
     io = ScanImageTiffReader(str(file_path))
@@ -102,7 +102,7 @@ def parse_metadata(metadata: dict) -> dict:
 
     Notes
     -----
-    Known to work on SI versions v2019bR0 and v2022.0.0.
+    Known to work on SI versions v2019bR0, v2022.0.0, and v2023.0.0. Fails on v3.8.0.
     SI.hChannels.channelsActive = string of MATLAB-style vector with channel integers (see parse_matlab_vector).
     SI.hChannels.channelName = "{'channel_name_1' 'channel_name_2' ... 'channel_name_M'}"
         where M is the number of channels (active or not).
@@ -167,9 +167,19 @@ def extract_timestamps_from_file(file_path: PathType) -> np.ndarray:
     -------
     timestamps : numpy.ndarray
         Array of frame timestamps in seconds.
+
+    Raises
+    ------
+    AssertionError
+        If the frame timestamps are not found in the TIFF file.
+
+    Notes
+    -----
+    Known to work on SI versions v2019bR0, v2022.0.0, and v2023.0.0. Fails on v3.8.0.
     """
     ScanImageTiffReader = _get_scanimage_reader()
     io = ScanImageTiffReader(str(file_path))
+    assert "frameTimestamps_sec" in io.description(iframe=0), "frameTimestamps_sec not found in TIFF file"
     num_frames = io.shape()[0]
     timestamps = np.zeros(num_frames)
     for iframe in range(num_frames):
@@ -179,4 +189,5 @@ def extract_timestamps_from_file(file_path: PathType) -> np.ndarray:
             if "frameTimestamps_sec" in line:
                 timestamps[iframe] = float(line.split("=")[1].strip())
                 break
+
     return timestamps
