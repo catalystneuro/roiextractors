@@ -169,6 +169,33 @@ def parse_metadata_v3_8(metadata):
     return metadata_parsed
 
 
+def extract_timestamps_from_file(file_path):
+    """Extract the frame timestamps from a ScanImage TIFF file.
+
+    Parameters
+    ----------
+    file_path : PathType
+        Path to the TIFF file.
+
+    Returns
+    -------
+    timestamps : numpy.ndarray
+        Array of frame timestamps in seconds.
+    """
+    ScanImageTiffReader = _get_scanimage_reader()
+    io = ScanImageTiffReader(str(file_path))
+    num_frames = io.shape()[0]
+    timestamps = np.zeros(num_frames)
+    for iframe in range(num_frames):
+        description = io.description(iframe=iframe)
+        description_lines = description.split("\n")
+        for line in description_lines:
+            if "frameTimestamps_sec" in line:
+                timestamps[iframe] = float(line.split("=")[1].strip())
+                break
+    return timestamps
+
+
 class MultiPlaneImagingExtractor(ImagingExtractor):
     """Class to combine multiple ImagingExtractor objects by depth plane."""
 
@@ -420,7 +447,6 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         plane_name : str
             Name of the plane for this extractor (default=None).
         """
-        super().__init__()
         self.file_path = Path(file_path)
         self.metadata = extract_extra_metadata(file_path)
         parsed_metadata = parse_metadata(self.metadata)
@@ -460,6 +486,9 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
                 "Extractor cannot handle 4D ScanImageTiff data. Please raise an issue to request this feature: "
                 "https://github.com/catalystneuro/roiextractors/issues "
             )
+        timestamps = extract_timestamps_from_file(file_path)
+        index = [self.frame_to_raw_index(iframe) for iframe in range(self._num_frames)]
+        self._times = timestamps[index]
 
     def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
         """Get specific video frames from indices (not necessarily continuous).
