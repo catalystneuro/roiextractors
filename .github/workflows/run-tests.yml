@@ -4,10 +4,6 @@ on:
     - cron: "0 0 * * *"  # daily
   pull_request:
   workflow_dispatch:
-  workflow_run:
-    workflows: ["Update testing data"]
-    types:
-      - completed
 
 jobs:
   run:
