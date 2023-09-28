@@ -12,7 +12,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     if: ${{ github.event.workflow_run.conclusion == 'failure' }}
     steps:
-      - run: echo 'The triggering workflow failed.'
+      - run: |
+           echo 'The triggering workflow failed.'
+           0
   on-success:
     name: Full tests on ${{ matrix.os }} with Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
