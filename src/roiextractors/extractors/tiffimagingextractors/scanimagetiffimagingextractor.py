@@ -60,8 +60,8 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
     mode = "file"
 
     @classmethod
-    def get_channel_names(cls, file_path):
-        """Get the channel names from a TIFF file produced by ScanImage.
+    def get_available_channels(cls, file_path):
+        """Get the available channel names from a TIFF file produced by ScanImage.
 
         Parameters
         ----------
@@ -79,8 +79,8 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         return channel_names
 
     @classmethod
-    def get_plane_names(cls, file_path):
-        """Get the plane names from a TIFF file produced by ScanImage.
+    def get_available_planes(cls, file_path):
+        """Get the available plane names from a TIFF file produced by ScanImage.
 
         Parameters
         ----------
@@ -274,6 +274,9 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
 
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
+
+    def get_channel_names(self) -> list:
+        return self._channel_names
 
     def get_num_channels(self) -> int:
         return self._num_channels

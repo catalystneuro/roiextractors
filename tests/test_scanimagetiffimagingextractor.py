@@ -166,9 +166,9 @@ def test_get_num_channels(scan_image_tiff_single_plane_imaging_extractor, expect
     assert num_channels == expected_properties["num_channels"]
 
 
-def test_get_channel_names(scan_image_tiff_single_plane_imaging_extractor, expected_properties):
+def test_get_available_channels(scan_image_tiff_single_plane_imaging_extractor, expected_properties):
     file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
-    channel_names = ScanImageTiffSinglePlaneImagingExtractor.get_channel_names(file_path)
+    channel_names = ScanImageTiffSinglePlaneImagingExtractor.get_available_channels(file_path)
     assert channel_names == expected_properties["channel_names"]
 
 
