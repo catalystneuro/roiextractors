@@ -115,22 +115,18 @@ class VolumetricImagingExtractor(ImagingExtractor):
         frames: numpy.ndarray
             The 3D video frames (num_rows, num_columns, num_planes).
         """
-        squeeze_data = False
         if isinstance(frame_idxs, int):
             frame_idxs = [frame_idxs]
-            squeeze_data = True
         for frame_idx in frame_idxs:
             if frame_idx < -1 * self.get_num_frames() or frame_idx >= self.get_num_frames():
                 raise ValueError(f"frame_idx {frame_idx} is out of bounds")
 
+        # Note np.all([]) returns True so not all(np.diff(frame_idxs) == 1) returns False if frame_idxs is a single int
         if not all(np.diff(frame_idxs) == 1):
             frames = np.zeros((len(frame_idxs), *self.get_image_size()), self.get_dtype())
             for i, imaging_extractor in enumerate(self._imaging_extractors):
                 frames[..., i] = imaging_extractor.get_frames(frame_idxs)
-            if squeeze_data:
-                return frames.squeeze()
-            else:
-                return frames
+            return frames
         else:
             return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)
 
