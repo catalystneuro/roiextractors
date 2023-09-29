@@ -147,13 +147,6 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
             raise ValueError(f"Plane name ({plane_name}) not found in plane names ({self._plane_names}).")
         self.plane = self._plane_names.index(plane_name)
 
-        valid_suffixes = [".tiff", ".tif", ".TIFF", ".TIF"]
-        if self.file_path.suffix not in valid_suffixes:
-            suffix_string = ", ".join(valid_suffixes[:-1]) + f", or {valid_suffixes[-1]}"
-            warn(
-                f"Suffix ({self.file_path.suffix}) is not of type {suffix_string}! "
-                f"The {self.extractor_name}Extractor may not be appropriate for the file."
-            )
         ScanImageTiffReader = _get_scanimage_reader()
         with ScanImageTiffReader(str(self.file_path)) as io:
             shape = io.shape()  # [frames, rows, columns]
