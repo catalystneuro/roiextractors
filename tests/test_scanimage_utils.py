@@ -47,6 +47,11 @@ def test_parse_matlab_vector(matlab_vector, expected_vector):
     assert vector == expected_vector
 
 
+def test_parse_matlab_vector_invalid():
+    with pytest.raises(ValueError):
+        parse_matlab_vector("Invalid vector")
+
+
 @pytest.mark.parametrize(
     "filename, expected_metadata",
     [
