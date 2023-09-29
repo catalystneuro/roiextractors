@@ -44,6 +44,7 @@ imaging_extractor_full_list = [
     SbxImagingExtractor,
     NumpyMemmapImagingExtractor,
     MemmapImagingExtractor,
+    VolumetricImagingExtractor,
 ]
 
 segmentation_extractor_full_list = [
