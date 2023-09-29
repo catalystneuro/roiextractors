@@ -19,6 +19,7 @@ def expected_properties():
         num_planes=2,
         frames_per_slice=2,
         channel_names=["Channel 1", "Channel 4"],
+        plane_names=["0", "1"],
         image_size=(528, 256),
         num_frames=6,
         dtype="int16",
@@ -164,6 +165,12 @@ def test_get_sampling_frequency(scan_image_tiff_single_plane_imaging_extractor, 
 def test_get_num_channels(scan_image_tiff_single_plane_imaging_extractor, expected_properties):
     num_channels = scan_image_tiff_single_plane_imaging_extractor.get_num_channels()
     assert num_channels == expected_properties["num_channels"]
+
+
+def test_get_available_planes(scan_image_tiff_single_plane_imaging_extractor, expected_properties):
+    file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
+    plane_names = ScanImageTiffSinglePlaneImagingExtractor.get_available_planes(file_path)
+    assert plane_names == expected_properties["plane_names"]
 
 
 def test_get_available_channels(scan_image_tiff_single_plane_imaging_extractor, expected_properties):
