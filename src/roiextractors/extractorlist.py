@@ -27,6 +27,7 @@ from .extractors.memmapextractors import MemmapImagingExtractor
 from .extractors.miniscopeimagingextractor import MiniscopeImagingExtractor
 from .multisegmentationextractor import MultiSegmentationExtractor
 from .multiimagingextractor import MultiImagingExtractor
+from .volumetricimagingextractor import VolumetricImagingExtractor
 
 imaging_extractor_full_list = [
     NumpyImagingExtractor,
