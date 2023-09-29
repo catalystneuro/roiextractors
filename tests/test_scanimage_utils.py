@@ -49,7 +49,7 @@ def test_parse_matlab_vector(matlab_vector, expected_vector):
 
 def test_parse_matlab_vector_invalid():
     with pytest.raises(ValueError):
-        parse_matlab_vector("Invalid vector")
+        parse_matlab_vector("Invalid")
 
 
 @pytest.mark.parametrize(
