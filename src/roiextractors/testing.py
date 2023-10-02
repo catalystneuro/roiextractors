@@ -61,17 +61,17 @@ def generate_dummy_imaging_extractor(
     Parameters
     ----------
     num_frames : int, optional
-        number of frames in the video, by default 30.
+        Number of frames in the video, by default 30.
     num_rows : int, optional
-        number of rows in the video, by default 10.
+        Number of rows in the video, by default 10.
     num_columns : int, optional
-        number of columns in the video, by default 10.
+        Number of columns in the video, by default 10.
     num_channels : int, optional
-        number of channels in the video, by default 1.
+        Number of channels in the video, by default 1.
     sampling_frequency : float, optional
-        sampling frequency of the video, by default 30.
+        Sampling frequency of the video, by default 30.
     dtype : DtypeType, optional
-        dtype of the video, by default "uint16".
+        Dtype of the video, by default "uint16".
 
     Returns
     -------
@@ -111,25 +111,25 @@ def generate_dummy_segmentation_extractor(
     Parameters
     ----------
     num_rois : int, optional
-        number of regions of interest, by default 10.
+        Number of regions of interest, by default 10.
     num_frames : int, optional
-        _description_, by default 30
-    num_rows : number of frames used in the hypotethical video from which the data was extracted, optional
-        number of rows in the hypotethical video from which the data was extracted, by default 25.
+        Number of frames in the video, by default 30.
+    num_rows : int, optional
+        Number of rows in the video, by default 25.
     num_columns : int, optional
-        numbe rof columns in the hypotethical video from which the data was extracted, by default 25.
+        Number of columns in the video, by default 25.
     sampling_frequency : float, optional
-        sampling frequency of the hypotethical video form which the data was extracted, by default 30.0.
+        Sampling frequency of the video, by default 30.0.
     has_summary_images : bool, optional
-        whether the dummy segmentation extractor has summary images or not (mean and correlation)
+        Whether the dummy segmentation extractor has summary images or not (mean and correlation).
     has_raw_signal : bool, optional
-        whether a raw fluoresence signal is desired in the object, by default True.
+        Whether a raw fluorescence signal is desired in the object, by default True.
     has_dff_signal : bool, optional
-        whether a relative (df/f) fluoresence signal is desired in the object, by default True.
+        Whether a relative (df/f) fluorescence signal is desired in the object, by default True.
     has_deconvolved_signal : bool, optional
-        whether a deconvolved signal is desired in the object, by default True.
+        Whether a deconvolved signal is desired in the object, by default True.
     has_neuropil_signal : bool, optional
-        whether a neuropil signal is desiredi n the object, by default True.
+        Whether a neuropil signal is desired in the object, by default True.
     rejected_list: list, optional
         A list of rejected rois, None by default.
 
@@ -416,12 +416,3 @@ def check_imaging_return_types(img_ex: ImagingExtractor):
         shape_max=(img_ex.get_num_channels(),),
     )
     _assert_iterable_complete(iterable=img_ex.get_image_size(), dtypes=Iterable, element_dtypes=inttype, shape=(2,))
-
-    # This needs a method for getting frame shape not image size. It only works for n_channel==1
-    # two_first_frames = img_ex.get_frames(frame_idxs=[0, 1])
-    # _assert_iterable_complete(
-    #     iterable=two_first_frames,
-    #     dtypes=(np.ndarray,),
-    #     element_dtypes=inttype + floattype,
-    #     shape=(2, *img_ex.get_image_size()),
-    # )
