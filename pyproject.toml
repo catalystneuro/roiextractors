@@ -23,15 +23,15 @@ extend-exclude = '''
 [tool.numpydoc_validation]
 checks = [
     "all",   # report on all checks, except the below
-    "GL08",
-    "EX01",
-    "SA01",
-    "ES01",
+    "GL08", # Missing docstring
+    "EX01", # Missing Example section
+    "SA01", # Missing See Also section
+    "ES01", # Missing Extended Summary section
 ]
 exclude = [  # don't report on objects that match any of these regex
   'test_',
   'check_',
-  'assert_'
+  'assert_',
 ]
 override_SS05 = [  # override SS05 to allow docstrings starting with these words
 ]
