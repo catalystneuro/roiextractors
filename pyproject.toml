@@ -19,3 +19,9 @@ extend-exclude = '''
   | dist
 )/
 '''
+
+[tool.numpydoc.validation]
+checks = [
+  "all",
+  "GL08",
+]
