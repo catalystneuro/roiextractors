@@ -17,7 +17,7 @@ floattype = (float, np.floating)
 inttype = (int, np.integer)
 
 
-def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16"):
+def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16") -> np.ndarray:
     """Generate a dummy video of a given size and dtype.
 
     Parameters
@@ -29,7 +29,7 @@ def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16"):
 
     Returns
     -------
-    video : np.ndarray
+    np.ndarray
         A dummy video of the given size and dtype.
     """
     dtype = np.dtype(dtype)
@@ -53,7 +53,7 @@ def generate_dummy_imaging_extractor(
     num_channels: int = 1,
     sampling_frequency: float = 30,
     dtype: DtypeType = "uint16",
-):
+) -> ImagingExtractor:
     """Generate a dummy imaging extractor for testing.
 
     The imaging extractor is built by feeding random data into the `NumpyImagingExtractor`.
@@ -130,7 +130,7 @@ def generate_dummy_segmentation_extractor(
         Whether a deconvolved signal is desired in the object, by default True.
     has_neuropil_signal : bool, optional
         Whether a neuropil signal is desired in the object, by default True.
-    rejected_list: list, optional
+    rejected_list: Optional[list], optional
         A list of rejected rois, None by default.
 
     Returns
