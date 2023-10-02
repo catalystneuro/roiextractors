@@ -136,7 +136,7 @@ def generate_dummy_segmentation_extractor(
     Returns
     -------
     SegmentationExtractor
-        A segmentation extractor with random data fed into `NumpySegmentationExtractor`
+        A segmentation extractor with random data fed into `NumpySegmentationExtractor`.
 
     Notes
     -----
