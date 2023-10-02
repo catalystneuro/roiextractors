@@ -29,6 +29,9 @@ checks = [
     "ES01",
 ]
 exclude = [  # don't report on objects that match any of these regex
+  'test_',
+  'check_',
+  'assert_'
 ]
 override_SS05 = [  # override SS05 to allow docstrings starting with these words
 ]
