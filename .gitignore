@@ -148,3 +148,6 @@ fabric.properties
 # Repo specific items
 tests/gin_test_config.json
 .pre-commit-config.yaml
+
+# Aider coding assistant
+.aider*
