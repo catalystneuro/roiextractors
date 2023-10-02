@@ -9,7 +9,7 @@ import shutil
 from pathlib import Path
 from typing import Optional
 from warnings import warn
-import os 
+import os
 import numpy as np
 
 from ...extraction_tools import PathType
@@ -49,7 +49,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             channel_names.append("chan2")
 
         return channel_names
-    
+
     @classmethod
     def get_available_planes(cls, folder_path: PathType):
         """Get the available plane names from the folder produced by Suite2p.
@@ -64,10 +64,10 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         """
 
         folder_path = Path(folder_path)
-        prefix = 'plane'
+        prefix = "plane"
         plane_names = []
         for item in os.listdir(folder_path):
-            if item.startswith(prefix):   
+            if item.startswith(prefix):
                 plane_names.append(item)
 
         return plane_names
