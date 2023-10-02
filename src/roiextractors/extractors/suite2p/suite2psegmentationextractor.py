@@ -9,7 +9,7 @@ import shutil
 from pathlib import Path
 from typing import Optional
 from warnings import warn
-
+import os 
 import numpy as np
 
 from ...extraction_tools import PathType
@@ -28,29 +28,55 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     installation_mesg = ""  # error message when not installed
 
     @classmethod
-    def get_streams(cls, folder_path: PathType):
-        from natsort import natsorted
+    def get_available_channels(cls, folder_path: PathType):
+        """Get the available channel names from the folder paths produced by Suite2p.
+        outputs
+        ----------
+        file_path : PathType
+            Path to Suite2p output path.
+        Returns
+        -------
+        channel_names: list
+            List of channel names.
+        """
+
+        plane_names = cls.get_available_planes(folder_path=folder_path)
+
+        channel_names = ["chan1"]
+        file_path = folder_path / plane_names[0] / "F_chan2.npy"
+
+        if os.path.isfile(file_path):
+            channel_names.append("chan2")
+
+        return channel_names
+    
+    @classmethod
+    def get_available_planes(cls, folder_path: PathType):
+        """Get the available plane names from the folder produced by Suite2p.
+        outputs
+        ----------
+        file_path : PathType
+            Path to Suite2p output path.
+        Returns
+        -------
+        plane_names: list
+            List of plane names.
+        """
 
         folder_path = Path(folder_path)
-        stream_paths = natsorted([f for f in folder_path.iterdir() if f.is_dir()])
-        chan_1_streams = [f"chan1_{stream_path.stem}" for stream_path in stream_paths]
-        streams = dict(channel_streams=["chan1"], plane_streams=dict(chan1=chan_1_streams))
+        prefix = 'plane'
+        plane_names = []
+        for item in os.listdir(folder_path):
+            if item.startswith(prefix):   
+                plane_names.append(item)
 
-        chan_2_streams = []
-        for stream_path in stream_paths:
-            if list(stream_path.glob("F_chan2.npy")):
-                chan_2_streams.append(f"chan2_{stream_path.stem}")
-
-        if chan_2_streams:
-            streams["channel_streams"].append("chan2")
-            streams["plane_streams"].update(chan2=chan_2_streams)
-
-        return streams
+        return plane_names
 
     def __init__(
         self,
         folder_path: PathType,
-        stream_name: Optional[str] = None,
+        channel_name: Optional[str] = None,
+        plane_name: Optional[str] = None,
         combined: Optional[bool] = None,  # TODO: to be removed
         plane_no: Optional[int] = None,  # TODO: to be removed
     ):
@@ -60,7 +86,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         ----------
         folder_path: str or Path
             The path to the 'suite2p' folder.
-        stream_name: str, optional
+        plane_name: str, optional
             The name of the stream to load, to determine which streams are available use Suite2pSegmentationExtractor.get_streams(folder_path).
 
         """
@@ -72,37 +98,35 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             )
         if plane_no:
             warning_string = (
-                "Keyword argument 'plane_no' is deprecated and will be removed on or after Nov, 2023 in favor of 'stream_name'."
-                "Specify which stream you wish to load with the 'stream_name' keyword argument."
+                "Keyword argument 'plane_no' is deprecated and will be removed on or after Nov, 2023 in favor of 'plane_name'."
+                "Specify which stream you wish to load with the 'plane_name' keyword argument."
             )
             warn(
                 message=warning_string,
                 category=DeprecationWarning,
             )
 
-        streams = self.get_streams(folder_path=folder_path)
-        if stream_name is None:
-            if len(streams["channel_streams"]) > 1:
+        channel_names = self.get_available_channels(folder_path=folder_path)
+        if channel_name is None:
+            if len(channel_names) > 1:
                 raise ValueError(
-                    "More than one channel is detected! Please specify which stream you wish to load with the `stream_name` argument. "
-                    "To see what streams are available, call `Suite2pSegmentationExtractor.get_streams(folder_path=...)`."
+                    "More than one channel is detected! Please specify which channel you wish to load with the `channel_name` argument. "
+                    "To see what streams are available, call `Suite2pSegmentationExtractor.get_channel_names(folder_path=...)`."
                 )
-            channel_stream_name = streams["channel_streams"][0]
-            stream_name = streams["plane_streams"][channel_stream_name][0]
+            channel_name = channel_names["channel_streams"][0]
 
-        channel_stream_name = stream_name.split("_")[0]
-        if channel_stream_name not in streams["channel_streams"]:
+        if channel_name not in channel_names["channel_streams"]:
             raise ValueError(
-                f"The selected stream '{channel_stream_name}' is not a valid stream name. To see what streams are available, "
-                f"call `Suite2pSegmentationExtractor.get_streams(folder_path=...)`."
+                f"The selected channel '{channel_name}' is not a valid stream name. To see what channels are available, "
+                f"call `Suite2pSegmentationExtractor.get_channel_names(folder_path=...)`."
             )
 
-        plane_stream_names = streams["plane_streams"][channel_stream_name]
-        if stream_name is not None and stream_name not in plane_stream_names:
+        plane_names = self.get_available_planes(folder_path=folder_path)
+        if plane_name is not None and plane_name not in plane_names:
             raise ValueError(
-                f"The selected stream '{stream_name}' is not in the available plane_streams '{plane_stream_names}'!"
+                f"The selected plane '{plane_name}' is not in the available plane_streams '{plane_names['plane_streams']}'!"
             )
-        self.stream_name = stream_name
+        self.plane_name = plane_name
 
         super().__init__()
 
@@ -116,19 +140,19 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
         self.stat = self._load_npy(file_name="stat.npy")
 
-        fluorescence_traces_file_name = "F.npy" if channel_stream_name == "chan1" else "F_chan2.npy"
-        neuropil_traces_file_name = "Fneu.npy" if channel_stream_name == "chan1" else "Fneu_chan2.npy"
+        fluorescence_traces_file_name = "F.npy" if channel_name == "chan1" else "F_chan2.npy"
+        neuropil_traces_file_name = "Fneu.npy" if channel_name == "chan1" else "Fneu_chan2.npy"
         self._roi_response_raw = self._load_npy(file_name=fluorescence_traces_file_name, mmap_mode="r", transpose=True)
         self._roi_response_neuropil = self._load_npy(file_name=neuropil_traces_file_name, mmap_mode="r", transpose=True)
         self._roi_response_deconvolved = self._load_npy(file_name="spks.npy", mmap_mode="r", transpose=True)
 
         self.iscell = self._load_npy("iscell.npy", mmap_mode="r")
 
-        channel_name = "OpticalChannel" if len(streams["channel_streams"]) == 1 else channel_stream_name.capitalize()
+        channel_name = "OpticalChannel" if len(channel_names["channel_streams"]) == 1 else channel_name.capitalize()
         self._channel_names = [channel_name]
 
         self._image_correlation = self._correlation_image_read()
-        image_mean_name = "meanImg" if channel_stream_name == "chan1" else f"meanImg_chan2"
+        image_mean_name = "meanImg" if channel_name == "chan1" else f"meanImg_chan2"
         self._image_mean = self.options[image_mean_name] if image_mean_name in self.options else None
 
     def _load_npy(self, file_name: str, mmap_mode=None, transpose: bool = False):
@@ -147,8 +171,8 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         -------
             The loaded .npy file.
         """
-        plane_stream_name = self.stream_name.split("_")[-1]
-        file_path = self.folder_path / plane_stream_name / file_name
+        plane_name = self.plane_name
+        file_path = self.folder_path / plane_name / file_name
         if not file_path.exists():
             return
 
