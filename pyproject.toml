@@ -20,8 +20,15 @@ extend-exclude = '''
 )/
 '''
 
-[tool.numpydoc.validation]
+[tool.numpydoc_validation]
 checks = [
-  "all",
-  "GL08",
+    "all",   # report on all checks, except the below
+    "GL08",
+    "EX01",
+    "SA01",
+    "ES01",
+]
+exclude = [  # don't report on objects that match any of these regex
+]
+override_SS05 = [  # override SS05 to allow docstrings starting with these words
 ]
