@@ -17,9 +17,8 @@ floattype = (float, np.floating)
 inttype = (int, np.integer)
 
 
-def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16") -> np.ndarray:
-    """
-    Generate a dummy video of a given size and dtype.
+def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16"):
+    """Generate a dummy video of a given size and dtype.
 
     Parameters
     ----------
@@ -30,7 +29,7 @@ def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16") -> np.nd
 
     Returns
     -------
-    np.ndarray
+    video : np.ndarray
         A dummy video of the given size and dtype.
     """
     dtype = np.dtype(dtype)
@@ -54,26 +53,25 @@ def generate_dummy_imaging_extractor(
     num_channels: int = 1,
     sampling_frequency: float = 30,
     dtype: DtypeType = "uint16",
-) -> ImagingExtractor:
-    """
-    Generate a dummy imaging extractor for testing.
+):
+    """Generate a dummy imaging extractor for testing.
 
     The imaging extractor is built by feeding random data into the `NumpyImagingExtractor`.
 
     Parameters
     ----------
     num_frames : int, optional
-        Number of frames in the video, by default 30.
+        number of frames in the video, by default 30.
     num_rows : int, optional
-        Number of rows in the video, by default 10.
+        number of rows in the video, by default 10.
     num_columns : int, optional
-        Number of columns in the video, by default 10.
+        number of columns in the video, by default 10.
     num_channels : int, optional
-        Number of channels in the video, by default 1.
+        number of channels in the video, by default 1.
     sampling_frequency : float, optional
-        Sampling frequency of the video, by default 30.
+        sampling frequency of the video, by default 30.
     dtype : DtypeType, optional
-        Dtype of the video, by default "uint16".
+        dtype of the video, by default "uint16".
 
     Returns
     -------
@@ -105,8 +103,7 @@ def generate_dummy_segmentation_extractor(
     has_neuropil_signal: bool = True,
     rejected_list: Optional[list] = None,
 ) -> SegmentationExtractor:
-    """
-    Generate a dummy segmentation extractor for testing.
+    """Generate a dummy segmentation extractor for testing.
 
     The segmentation extractor is built by feeding random data into the
     `NumpySegmentationExtractor`.
@@ -114,32 +111,32 @@ def generate_dummy_segmentation_extractor(
     Parameters
     ----------
     num_rois : int, optional
-        Number of regions of interest, by default 10.
+        number of regions of interest, by default 10.
     num_frames : int, optional
-        Number of frames in the hypothetical video from which the data was extracted, by default 30.
-    num_rows : int, optional
-        Number of rows in the hypothetical video from which the data was extracted, by default 25.
+        _description_, by default 30
+    num_rows : number of frames used in the hypotethical video from which the data was extracted, optional
+        number of rows in the hypotethical video from which the data was extracted, by default 25.
     num_columns : int, optional
-        Number of columns in the hypothetical video from which the data was extracted, by default 25.
+        numbe rof columns in the hypotethical video from which the data was extracted, by default 25.
     sampling_frequency : float, optional
-        Sampling frequency of the hypothetical video from which the data was extracted, by default 30.0.
+        sampling frequency of the hypotethical video form which the data was extracted, by default 30.0.
     has_summary_images : bool, optional
-        Whether the dummy segmentation extractor has summary images or not (mean and correlation).
+        whether the dummy segmentation extractor has summary images or not (mean and correlation)
     has_raw_signal : bool, optional
-        Whether a raw fluorescence signal is desired in the object, by default True.
+        whether a raw fluoresence signal is desired in the object, by default True.
     has_dff_signal : bool, optional
-        Whether a relative (df/f) fluorescence signal is desired in the object, by default True.
+        whether a relative (df/f) fluoresence signal is desired in the object, by default True.
     has_deconvolved_signal : bool, optional
-        Whether a deconvolved signal is desired in the object, by default True.
+        whether a deconvolved signal is desired in the object, by default True.
     has_neuropil_signal : bool, optional
-        Whether a neuropil signal is desired in the object, by default True.
-    rejected_list : list, optional
+        whether a neuropil signal is desiredi n the object, by default True.
+    rejected_list: list, optional
         A list of rejected rois, None by default.
 
     Returns
     -------
     SegmentationExtractor
-        A segmentation extractor with random data fed into `NumpySegmentationExtractor`.
+        A segmentation extractor with random data fed into `NumpySegmentationExtractor`
 
     Notes
     -----
@@ -419,3 +416,12 @@ def check_imaging_return_types(img_ex: ImagingExtractor):
         shape_max=(img_ex.get_num_channels(),),
     )
     _assert_iterable_complete(iterable=img_ex.get_image_size(), dtypes=Iterable, element_dtypes=inttype, shape=(2,))
+
+    # This needs a method for getting frame shape not image size. It only works for n_channel==1
+    # two_first_frames = img_ex.get_frames(frame_idxs=[0, 1])
+    # _assert_iterable_complete(
+    #     iterable=two_first_frames,
+    #     dtypes=(np.ndarray,),
+    #     element_dtypes=inttype + floattype,
+    #     shape=(2, *img_ex.get_image_size()),
+    # )
