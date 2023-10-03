@@ -159,7 +159,9 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         neuropil_traces_file_name = "Fneu.npy" if channel_name == "chan1" else "Fneu_chan2.npy"
         self._roi_response_raw = self._load_npy(file_name=fluorescence_traces_file_name, mmap_mode="r", transpose=True)
         self._roi_response_neuropil = self._load_npy(file_name=neuropil_traces_file_name, mmap_mode="r", transpose=True)
-        self._roi_response_deconvolved = self._load_npy(file_name="spks.npy", mmap_mode="r", transpose=True) if channel_name == "chan1" else None
+        self._roi_response_deconvolved = (
+            self._load_npy(file_name="spks.npy", mmap_mode="r", transpose=True) if channel_name == "chan1" else None
+        )
 
         self.iscell = self._load_npy("iscell.npy", mmap_mode="r")
 
