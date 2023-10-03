@@ -55,7 +55,8 @@ def generate_dummy_imaging_extractor(
     sampling_frequency: float = 30,
     dtype: DtypeType = "uint16",
 ) -> ImagingExtractor:
-    """Generate a dummy imaging extractor for testing.
+    """
+    Generate a dummy imaging extractor for testing.
 
     The imaging extractor is built by feeding random data into the `NumpyImagingExtractor`.
 
@@ -104,7 +105,8 @@ def generate_dummy_segmentation_extractor(
     has_neuropil_signal: bool = True,
     rejected_list: Optional[list] = None,
 ) -> SegmentationExtractor:
-    """Generate a dummy segmentation extractor for testing.
+    """
+    Generate a dummy segmentation extractor for testing.
 
     The segmentation extractor is built by feeding random data into the
     `NumpySegmentationExtractor`.
