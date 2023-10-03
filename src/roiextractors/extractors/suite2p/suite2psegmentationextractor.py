@@ -35,12 +35,12 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         ----------
         file_path : PathType
             Path to Suite2p output path.
+
         Returns
         -------
         channel_names: list
             List of channel names.
         """
-
         plane_names = cls.get_available_planes(folder_path=folder_path)
 
         channel_names = ["chan1"]
@@ -59,12 +59,12 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         ----------
         file_path : PathType
             Path to Suite2p output path.
+
         Returns
         -------
         plane_names: list
             List of plane names.
         """
-
         folder_path = Path(folder_path)
         prefix = "plane"
         plane_names = []
