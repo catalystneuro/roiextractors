@@ -133,13 +133,13 @@ def generate_dummy_segmentation_extractor(
         Whether a deconvolved signal is desired in the object, by default True.
     has_neuropil_signal : bool, optional
         Whether a neuropil signal is desired in the object, by default True.
-    rejected_list: list, optional
+    rejected_list : list, optional
         A list of rejected rois, None by default.
 
     Returns
     -------
     SegmentationExtractor
-        A segmentation extractor with random data fed into `NumpySegmentationExtractor`
+        A segmentation extractor with random data fed into `NumpySegmentationExtractor`.
 
     Notes
     -----
