@@ -113,23 +113,23 @@ def generate_dummy_segmentation_extractor(
     num_rois : int, optional
         Number of regions of interest, by default 10.
     num_frames : int, optional
-        Number of frames in the hypotethical video from which the data was extracted, by default 30.
+        Number of frames in the hypothetical video from which the data was extracted, by default 30.
     num_rows : int, optional
-        Number of rows in the hypotethical video from which the data was extracted, by default 25.
+        Number of rows in the hypothetical video from which the data was extracted, by default 25.
     num_columns : int, optional
-        Number of columns in the hypotethical video from which the data was extracted, by default 25.
+        Number of columns in the hypothetical video from which the data was extracted, by default 25.
     sampling_frequency : float, optional
-        Sampling frequency of the hypotethical video form which the data was extracted, by default 30.0.
+        Sampling frequency of the hypothetical video from which the data was extracted, by default 30.0.
     has_summary_images : bool, optional
         Whether the dummy segmentation extractor has summary images or not (mean and correlation).
     has_raw_signal : bool, optional
-        Whether a raw fluoresence signal is desired in the object, by default True.
+        Whether a raw fluorescence signal is desired in the object, by default True.
     has_dff_signal : bool, optional
-        Whether a relative (df/f) fluoresence signal is desired in the object, by default True.
+        Whether a relative (df/f) fluorescence signal is desired in the object, by default True.
     has_deconvolved_signal : bool, optional
         Whether a deconvolved signal is desired in the object, by default True.
     has_neuropil_signal : bool, optional
-        Whether a neuropil signal is desiredi n the object, by default True.
+        Whether a neuropil signal is desired in the object, by default True.
     rejected_list: list, optional
         A list of rejected rois, None by default.
 
