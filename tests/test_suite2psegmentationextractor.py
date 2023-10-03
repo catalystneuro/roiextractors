@@ -33,10 +33,14 @@ class TestSuite2pSegmentationExtractor(TestCase):
         shutil.rmtree(cls.test_dir)
 
     def test_channel_names(self):
-        self.assertEqual(Suite2pSegmentationExtractor.get_available_channels(folder_path=self.folder_path), self.channel_names)
+        self.assertEqual(
+            Suite2pSegmentationExtractor.get_available_channels(folder_path=self.folder_path), self.channel_names
+        )
 
     def test_plane_names(self):
-        self.assertEqual(Suite2pSegmentationExtractor.get_available_planes(folder_path=self.folder_path), self.plane_names)
+        self.assertEqual(
+            Suite2pSegmentationExtractor.get_available_planes(folder_path=self.folder_path), self.plane_names
+        )
 
     def test_multi_channel_warns(self):
         exc_msg = "More than one channel is detected! Please specify which channel you wish to load with the `channel_name` argument. To see what channels are available, call `Suite2pSegmentationExtractor.get_available_channels(folder_path=...)`."
@@ -63,7 +67,10 @@ class TestSuite2pSegmentationExtractor(TestCase):
         # temporary directory for testing assertion when some of the files are missing
         files_to_copy = ["stat.npy", "ops.npy", "iscell.npy", "Fneu.npy"]
         (self.test_dir / "plane0").mkdir(exist_ok=True)
-        [shutil.copy(Path(self.folder_path) / "plane0" / file, self.test_dir / "plane0" / file) for file in files_to_copy]
+        [
+            shutil.copy(Path(self.folder_path) / "plane0" / file, self.test_dir / "plane0" / file)
+            for file in files_to_copy
+        ]
 
         extractor = Suite2pSegmentationExtractor(folder_path=self.test_dir)
         traces_dict = extractor.get_traces_dict()
