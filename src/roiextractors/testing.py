@@ -18,7 +18,8 @@ inttype = (int, np.integer)
 
 
 def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16") -> np.ndarray:
-    """Generate a dummy video of a given size and dtype.
+    """
+    Generate a dummy video of a given size and dtype.
 
     Parameters
     ----------
