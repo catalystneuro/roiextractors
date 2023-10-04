@@ -27,6 +27,8 @@ checks = [
     "EX01", # Missing Example section
     "SA01", # Missing See Also section
     "ES01", # Missing Extended Summary section
+    "GL01", # Missing newline at beginning of docstring
+    "RT02", # Return should only specify type NOT name
 ]
 exclude = [  # don't report on objects that match any of these regex
   'test_',
