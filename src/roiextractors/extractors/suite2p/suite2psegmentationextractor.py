@@ -44,10 +44,10 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         plane_names = cls.get_available_planes(folder_path=folder_path)
 
         channel_names = ["chan1"]
-        file_path = Path(folder_path) / plane_names[0] / "F_chan2.npy"
-
-        if os.path.isfile(file_path):
-            channel_names.append("chan2")
+        second_channel_paths = list((Path(folder_path) / plane_names[0]).glob("F_chan2.npy"))
+        if not second_channel_paths:
+            return channel_names
+        channel_names.append("chan2")
 
         return channel_names
 
@@ -65,13 +65,13 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         plane_names: list
             List of plane names.
         """
+        from natsort import natsorted
+
         folder_path = Path(folder_path)
         prefix = "plane"
-        plane_names = []
-        for item in os.listdir(folder_path):
-            if item.startswith(prefix):
-                plane_names.append(item)
-
+        plane_paths = natsorted(folder_path.glob(pattern=prefix + "*"))
+        assert len(plane_paths), f"No planes found in '{folder_path}'."
+        plane_names = [plane_path.stem for plane_path in plane_paths]
         return plane_names
 
     def __init__(
