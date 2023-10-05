@@ -30,46 +30,48 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     @classmethod
     def get_available_channels(cls, folder_path: PathType):
         """Get the available channel names from the folder paths produced by Suite2p.
-        outputs
+
+        Parameters
         ----------
         file_path : PathType
             Path to Suite2p output path.
+
         Returns
         -------
         channel_names: list
             List of channel names.
         """
-
         plane_names = cls.get_available_planes(folder_path=folder_path)
 
         channel_names = ["chan1"]
-        file_path = folder_path / plane_names[0] / "F_chan2.npy"
-
-        if os.path.isfile(file_path):
-            channel_names.append("chan2")
+        second_channel_paths = list((Path(folder_path) / plane_names[0]).glob("F_chan2.npy"))
+        if not second_channel_paths:
+            return channel_names
+        channel_names.append("chan2")
 
         return channel_names
 
     @classmethod
     def get_available_planes(cls, folder_path: PathType):
         """Get the available plane names from the folder produced by Suite2p.
-        outputs
+
+        Parameters
         ----------
         file_path : PathType
             Path to Suite2p output path.
+
         Returns
         -------
         plane_names: list
             List of plane names.
         """
+        from natsort import natsorted
 
         folder_path = Path(folder_path)
         prefix = "plane"
-        plane_names = []
-        for item in os.listdir(folder_path):
-            if item.startswith(prefix):
-                plane_names.append(item)
-
+        plane_paths = natsorted(folder_path.glob(pattern=prefix + "*"))
+        assert len(plane_paths), f"No planes found in '{folder_path}'."
+        plane_names = [plane_path.stem for plane_path in plane_paths]
         return plane_names
 
     def __init__(
@@ -109,22 +111,35 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         channel_names = self.get_available_channels(folder_path=folder_path)
         if channel_name is None:
             if len(channel_names) > 1:
-                raise ValueError(
+                # For backward compatibility maybe it is better to warn first
+                warn(
                     "More than one channel is detected! Please specify which channel you wish to load with the `channel_name` argument. "
-                    "To see what streams are available, call `Suite2pSegmentationExtractor.get_channel_names(folder_path=...)`."
+                    "To see what channels are available, call `Suite2pSegmentationExtractor.get_available_channels(folder_path=...)`.",
+                    UserWarning,
                 )
-            channel_name = channel_names["channel_streams"][0]
+            channel_name = channel_names[0]
 
-        if channel_name not in channel_names["channel_streams"]:
+        if channel_name not in channel_names:
             raise ValueError(
-                f"The selected channel '{channel_name}' is not a valid stream name. To see what channels are available, "
-                f"call `Suite2pSegmentationExtractor.get_channel_names(folder_path=...)`."
+                f"The selected channel '{channel_name}' is not a valid channel name. To see what channels are available, "
+                f"call `Suite2pSegmentationExtractor.get_available_channels(folder_path=...)`."
             )
 
         plane_names = self.get_available_planes(folder_path=folder_path)
-        if plane_name is not None and plane_name not in plane_names:
+        if plane_name is None:
+            if len(plane_names) > 1:
+                # For backward compatibility maybe it is better to warn first
+                warn(
+                    "More than one plane is detected! Please specify which plane you wish to load with the `plane_name` argument. "
+                    "To see what planes are available, call `Suite2pSegmentationExtractor.get_available_planes(folder_path=...)`.",
+                    UserWarning,
+                )
+            plane_name = plane_names[0]
+
+        if plane_name not in plane_names:
             raise ValueError(
-                f"The selected plane '{plane_name}' is not in the available plane_streams '{plane_names['plane_streams']}'!"
+                f"The selected plane '{plane_name}' is not a valid plane name. To see what planes are available, "
+                f"call `Suite2pSegmentationExtractor.get_available_planes(folder_path=...)`."
             )
         self.plane_name = plane_name
 
@@ -144,11 +159,13 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         neuropil_traces_file_name = "Fneu.npy" if channel_name == "chan1" else "Fneu_chan2.npy"
         self._roi_response_raw = self._load_npy(file_name=fluorescence_traces_file_name, mmap_mode="r", transpose=True)
         self._roi_response_neuropil = self._load_npy(file_name=neuropil_traces_file_name, mmap_mode="r", transpose=True)
-        self._roi_response_deconvolved = self._load_npy(file_name="spks.npy", mmap_mode="r", transpose=True)
+        self._roi_response_deconvolved = (
+            self._load_npy(file_name="spks.npy", mmap_mode="r", transpose=True) if channel_name == "chan1" else None
+        )
 
         self.iscell = self._load_npy("iscell.npy", mmap_mode="r")
 
-        channel_name = "OpticalChannel" if len(channel_names["channel_streams"]) == 1 else channel_name.capitalize()
+        channel_name = "OpticalChannel" if len(channel_names) == 1 else channel_name.capitalize()
         self._channel_names = [channel_name]
 
         self._image_correlation = self._correlation_image_read()
@@ -171,8 +188,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         -------
             The loaded .npy file.
         """
-        plane_name = self.plane_name
-        file_path = self.folder_path / plane_name / file_name
+        file_path = self.folder_path / self.plane_name / file_name
         if not file_path.exists():
             return
 
