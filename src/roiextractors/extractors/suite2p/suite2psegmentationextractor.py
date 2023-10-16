@@ -88,8 +88,10 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         ----------
         folder_path: str or Path
             The path to the 'suite2p' folder.
+        channel_name: str, optional
+            The name of the channel to load, to determine what channels are available use Suite2pSegmentationExtractor.get_available_channels(folder_path).
         plane_name: str, optional
-            The name of the stream to load, to determine which streams are available use Suite2pSegmentationExtractor.get_streams(folder_path).
+            The name of the plane to load, to determine what planes are available use Suite2pSegmentationExtractor.get_available_planes(folder_path).
 
         """
         if combined:
