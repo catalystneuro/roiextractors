@@ -121,7 +121,8 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
                 )
             channel_name = channel_names[0]
 
-        if channel_name not in channel_names:
+        self.channel_name = channel_name
+        if self.channel_name not in channel_names:
             raise ValueError(
                 f"The selected channel '{channel_name}' is not a valid channel name. To see what channels are available, "
                 f"call `Suite2pSegmentationExtractor.get_available_channels(folder_path=...)`."
