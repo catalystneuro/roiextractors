@@ -1,8 +1,6 @@
 import inspect
-import os
-import importlib
 from types import ModuleType, FunctionType
-from typing import List, Iterable
+from typing import List
 import pytest
 import roiextractors
 
