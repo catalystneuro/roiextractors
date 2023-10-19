@@ -109,6 +109,20 @@ class ImagingExtractor(ABC):
         -------
         video: numpy.ndarray
             The video frames.
+
+        Notes
+        -----
+        Importantly, we follow the convention that the dimensions of the array are returned in their matrix order,
+        More specifically:
+        (time, height, width)
+
+        Which is equivalent to:
+        (samples, rows, columns)
+
+        Note that this does not match the cartesian convention:
+        (t, x, y)
+
+        Where x is the columns width or and y is the rows or height.
         """
         pass
 
