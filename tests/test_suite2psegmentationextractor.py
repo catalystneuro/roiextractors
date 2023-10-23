@@ -7,6 +7,7 @@ from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
 
 from roiextractors import Suite2pSegmentationExtractor
+from roiextractors.extraction_tools import _image_mask_extractor
 from tests.setup_paths import OPHYS_DATA_PATH
 
 
@@ -26,6 +27,16 @@ class TestSuite2pSegmentationExtractor(TestCase):
 
         cls.first_channel_raw_traces = np.load(cls.folder_path / "plane0" / "F.npy").T
         cls.second_channel_raw_traces = np.load(cls.folder_path / "plane0" / "F_chan2.npy").T
+
+        cls.image_size = (128, 128)
+        cls.num_rois = 15
+
+        pixel_masks = cls.extractor.get_roi_pixel_masks()
+        image_masks = np.zeros(shape=(*cls.image_size, cls.num_rois))
+        for roi_ind, pixel_mask in enumerate(pixel_masks):
+            for y, x, wt in pixel_mask:
+                image_masks[int(y), int(x), roi_ind] = wt
+        cls.image_masks = image_masks
 
     @classmethod
     def tearDownClass(cls):
@@ -79,7 +90,7 @@ class TestSuite2pSegmentationExtractor(TestCase):
         self.assertEqual(traces_dict["deconvolved"], None)
 
     def test_image_size(self):
-        self.assertEqual(self.extractor.get_image_size(), (128, 128))
+        self.assertEqual(self.extractor.get_image_size(), self.image_size)
 
     def test_num_frames(self):
         self.assertEqual(self.extractor.get_num_frames(), 250)
@@ -94,7 +105,7 @@ class TestSuite2pSegmentationExtractor(TestCase):
         self.assertEqual(self.extractor.get_num_channels(), 1)
 
     def test_num_rois(self):
-        self.assertEqual(self.extractor.get_num_rois(), 15)
+        self.assertEqual(self.extractor.get_num_rois(), self.num_rois)
 
     def test_extractor_first_channel_raw_traces(self):
         assert_array_equal(self.extractor.get_traces(name="raw"), self.first_channel_raw_traces)
@@ -105,3 +116,12 @@ class TestSuite2pSegmentationExtractor(TestCase):
         traces = extractor.get_traces_dict()
         self.assertEqual(traces["deconvolved"], None)
         assert_array_equal(traces["raw"], self.second_channel_raw_traces)
+
+    def test_extractor_image_masks(self):
+        """Test that the image masks are correctly extracted."""
+        assert_array_equal(self.extractor.get_roi_image_masks(), self.image_masks)
+
+    def test_extractor_image_masks_selected_rois(self):
+        """Test that the image masks are correctly extracted for a subset of ROIs."""
+        roi_indices = list(range(5))
+        assert_array_equal(self.extractor.get_roi_image_masks(roi_ids=roi_indices), self.image_masks[..., roi_indices])

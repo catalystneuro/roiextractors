@@ -174,6 +174,12 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self._image_correlation = self._correlation_image_read()
         image_mean_name = "meanImg" if channel_name == "chan1" else f"meanImg_chan2"
         self._image_mean = self.options[image_mean_name] if image_mean_name in self.options else None
+        roi_indices = list(range(self.get_num_rois()))
+        self._image_masks = _image_mask_extractor(
+            self.get_roi_pixel_masks(),
+            roi_indices,
+            self.get_image_size(),
+        )
 
     def _load_npy(self, file_name: str, mmap_mode=None, transpose: bool = False):
         """Load a .npy file with specified filename. Returns None if file is missing.
