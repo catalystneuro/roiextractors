@@ -244,19 +244,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         """Returns the center locations (x, y) of each ROI."""
         return np.array([j["med"] for j in self.stat]).T.astype(int)
 
-    def get_roi_image_masks(self, roi_ids=None):
-        if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
-        else:
-            roi_idx = [np.where(np.array(i) == self.get_roi_ids())[0] for i in roi_ids]
-            ele = [i for i, j in enumerate(roi_idx) if j.size == 0]
-            roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
-        return _image_mask_extractor(
-            self.get_roi_pixel_masks(roi_ids=roi_idx_),
-            list(range(len(roi_idx_))),
-            self.get_image_size(),
-        )
-
     def get_roi_pixel_masks(self, roi_ids=None):
         pixel_mask = []
         for i in range(self.get_num_rois()):
