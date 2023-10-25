@@ -1,3 +1,5 @@
+"""Base class definition for volumetric imaging extractors."""
+
 from typing import Tuple, List, Iterable, Optional
 import numpy as np
 
@@ -78,7 +80,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
         Returns
         -------
         video: numpy.ndarray
-            The 3D video frames (num_rows, num_columns, num_planes).
+            The 3D video frames (num_frames, num_rows, num_columns, num_planes).
         """
         if start_frame is None:
             start_frame = 0
