@@ -53,6 +53,7 @@ def generate_dummy_imaging_extractor(
     num_channels: int = 1,
     sampling_frequency: float = 30,
     dtype: DtypeType = "uint16",
+    channel_names: Optional[list] = None,
 ):
     """Generate a dummy imaging extractor for testing.
 
@@ -78,7 +79,8 @@ def generate_dummy_imaging_extractor(
     ImagingExtractor
         An imaging extractor with random data fed into `NumpyImagingExtractor`.
     """
-    channel_names = [f"channel_num_{num}" for num in range(num_channels)]
+    if channel_names is None:
+        channel_names = [f"channel_num_{num}" for num in range(num_channels)]
 
     size = (num_frames, num_rows, num_columns, num_channels)
     video = generate_dummy_video(size=size, dtype=dtype)
