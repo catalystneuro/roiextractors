@@ -275,12 +275,31 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         return self._num_channels
 
     def get_num_planes(self) -> int:
+        """Get the number of depth planes.
+
+        Returns
+        -------
+        _num_planes: int
+            The number of depth planes.
+        """
         return self._num_planes
 
     def get_dtype(self) -> DtypeType:
         return self.get_frames(0).dtype
 
     def check_frame_inputs(self, frame) -> None:
+        """Check that the frame index is valid. Raise ValueError if not.
+
+        Parameters
+        ----------
+        frame : int
+            The index of the frame to retrieve.
+
+        Raises
+        ------
+        ValueError
+            If the frame index is invalid.
+        """
         if frame >= self._num_frames:
             raise ValueError(f"Frame index ({frame}) exceeds number of frames ({self._num_frames}).")
         if frame < 0:
