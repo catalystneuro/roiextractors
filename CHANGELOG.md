@@ -1,5 +1,11 @@
 # Upcoming
 
+### Features
+
+* Updated `Suite2pSegmentationExtractor` to support multi channel and multi plane data. [PR #242](https://github.com/catalystneuro/roiextractors/pull/242)
+
+
+
 # v0.5.4
 
 ### Features
