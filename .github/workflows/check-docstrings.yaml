@@ -1,0 +1,12 @@
+name: Check Docstrings
+on:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  check-docstrings:
+    uses: catalystneuro/.github/.github/workflows/check_docstrings.yaml@main
+    with:
+      python-version: '3.10'
+      repository: 'catalystneuro/roiextractors'
+      package-name: 'roiextractors'
