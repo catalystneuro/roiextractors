@@ -100,6 +100,7 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         imaging_extractors = []
         for file_path, num_frames_per_file in file_counts.items():
             extractor = _MicroManagerTiffImagingExtractor(self.folder_path / file_path)
+            extractor._dtype = self._dtype
             extractor._num_frames = num_frames_per_file
             extractor._image_size = (self._height, self._width)
             imaging_extractors.append(extractor)
@@ -207,6 +208,7 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
         super().__init__()
 
         self.pages = self.tifffile.TiffFile(self.file_path).pages
+        self._dtype = None
         self._num_frames = None
         self._image_size = None
 
@@ -226,7 +228,7 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
         raise NotImplementedError(self.CHANNEL_NAMES_ERROR.format(self.extractor_name))
 
     def get_dtype(self):
-        raise NotImplementedError(self.DATA_TYPE_ERROR.format(self.extractor_name))
+        return self._dtype
 
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
@@ -236,7 +238,7 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
 
         end_frame = end_frame or self.get_num_frames()
         start_frame = start_frame or 0
-        video = np.zeros(shape=(end_frame - start_frame, *self.get_image_size()))
+        video = np.zeros(shape=(end_frame - start_frame, *self.get_image_size()), dtype=self.get_dtype())
         for page_ind, page in enumerate(islice(self.pages, start_frame, end_frame)):
             video[page_ind] = page.asarray()
         return video
