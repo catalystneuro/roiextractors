@@ -32,7 +32,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
     """A SegmentationExtractor for CaImAn.
 
     This class inherits from the SegmentationExtractor class, having all
-    its funtionality specifically applied to the dataset output from
+    its functionality specifically applied to the dataset output from
     the 'CaImAn' ROI segmentation method.
     """
 
