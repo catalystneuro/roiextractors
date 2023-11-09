@@ -49,7 +49,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         Parameters
         ----------
         file_path: str
-            The location of the folder containing caiman *.hdmf output file.
+            The location of the folder containing caiman *.hdf5 output file.
         """
         SegmentationExtractor.__init__(self)
         self.file_path = file_path
