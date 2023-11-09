@@ -109,7 +109,13 @@ class TestMicroManagerTiffExtractor(TestCase):
             self.extractor._imaging_extractors[0].get_channel_names()
 
     def test_private_micromanagertiffextractor_dtype(self):
+        """Test that the dtype of the private extractor is the same as the dtype of the main extractor."""
         sub_extractor = self.extractor._imaging_extractors[0]
-        exc_msg = f"The {sub_extractor.extractor_name}Extractor does not support retrieving the data type."
-        with self.assertRaisesWith(NotImplementedError, exc_msg=exc_msg):
-            self.extractor._imaging_extractors[0].get_dtype()
+        self.assertEqual(self.extractor.get_dtype(), sub_extractor.get_dtype())
+
+    def test_private_micromanagertiffextractor_get_video(self):
+        """Test that the dtype of the video is uint16."""
+        sub_extractor = self.extractor._imaging_extractors[0]
+        expected_dtype = np.uint16
+        sub_extractor_video_dtype = sub_extractor.get_video().dtype
+        self.assertEqual(sub_extractor_video_dtype, expected_dtype)
