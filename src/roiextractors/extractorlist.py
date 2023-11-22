@@ -15,7 +15,10 @@ from .extractors.suite2p import Suite2pSegmentationExtractor
 from .extractors.tiffimagingextractors import (
     TiffImagingExtractor,
     ScanImageTiffImagingExtractor,
-    BrukerTiffImagingExtractor,
+    ScanImageTiffSinglePlaneImagingExtractor,
+    ScanImageTiffMultiPlaneImagingExtractor,
+    BrukerTiffMultiPlaneImagingExtractor,
+    BrukerTiffSinglePlaneImagingExtractor,
     MicroManagerTiffImagingExtractor,
 )
 from .extractors.sbximagingextractor import SbxImagingExtractor
@@ -24,19 +27,24 @@ from .extractors.memmapextractors import MemmapImagingExtractor
 from .extractors.miniscopeimagingextractor import MiniscopeImagingExtractor
 from .multisegmentationextractor import MultiSegmentationExtractor
 from .multiimagingextractor import MultiImagingExtractor
+from .volumetricimagingextractor import VolumetricImagingExtractor
 
 imaging_extractor_full_list = [
     NumpyImagingExtractor,
     Hdf5ImagingExtractor,
     TiffImagingExtractor,
     ScanImageTiffImagingExtractor,
-    BrukerTiffImagingExtractor,
+    ScanImageTiffSinglePlaneImagingExtractor,
+    ScanImageTiffMultiPlaneImagingExtractor,
+    BrukerTiffMultiPlaneImagingExtractor,
+    BrukerTiffSinglePlaneImagingExtractor,
     MicroManagerTiffImagingExtractor,
     MiniscopeImagingExtractor,
     NwbImagingExtractor,
     SbxImagingExtractor,
     NumpyMemmapImagingExtractor,
     MemmapImagingExtractor,
+    VolumetricImagingExtractor,
 ]
 
 segmentation_extractor_full_list = [

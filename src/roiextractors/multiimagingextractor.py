@@ -1,3 +1,10 @@
+"""Defines the MultiImagingExtractor class.
+
+Classes
+-------
+MultiImagingExtractor
+    This class is used to combine multiple ImagingExtractor objects by frames.
+"""
 from collections import defaultdict
 from typing import Tuple, List, Iterable, Optional
 
@@ -8,16 +15,15 @@ from .imagingextractor import ImagingExtractor
 
 
 class MultiImagingExtractor(ImagingExtractor):
-    """
-    This class is used to combine multiple ImagingExtractor objects by frames.
-    """
+    """Class to combine multiple ImagingExtractor objects by frames."""
 
     extractor_name = "MultiImagingExtractor"
     installed = True
     installation_mesg = ""
 
     def __init__(self, imaging_extractors: List[ImagingExtractor]):
-        """
+        """Initialize a MultiImagingExtractor object from a list of ImagingExtractors.
+
         Parameters
         ----------
         imaging_extractors: list of ImagingExtractor
@@ -25,7 +31,7 @@ class MultiImagingExtractor(ImagingExtractor):
         """
         super().__init__()
         assert isinstance(imaging_extractors, list), "Enter a list of ImagingExtractor objects as argument"
-        assert all(isinstance(IX, ImagingExtractor) for IX in imaging_extractors)
+        assert all(isinstance(imaging_extractor, ImagingExtractor) for imaging_extractor in imaging_extractors)
         self._imaging_extractors = imaging_extractors
 
         # Checks that properties are consistent between extractors
@@ -44,6 +50,22 @@ class MultiImagingExtractor(ImagingExtractor):
             self.set_times(times=times)
 
     def _check_consistency_between_imaging_extractors(self):
+        """Check that essential properties are consistent between extractors so that they can be combined appropriately.
+
+        Raises
+        ------
+        AssertionError
+            If any of the properties are not consistent between extractors.
+
+        Notes
+        -----
+        This method checks the following properties:
+            - sampling frequency
+            - image size
+            - number of channels
+            - channel names
+            - data type
+        """
         properties_to_check = dict(
             get_sampling_frequency="The sampling frequency",
             get_image_size="The size of a frame",
@@ -59,6 +81,13 @@ class MultiImagingExtractor(ImagingExtractor):
             ), f"{property_message} is not consistent over the files (found {unique_values})."
 
     def _get_times(self):
+        """Get all the times from the imaging extractors and combine them into a single array.
+
+        Returns
+        -------
+        times: numpy.ndarray
+            Array of times.
+        """
         frame_indices = np.array([*range(self._start_frames[0], self._end_frames[-1])])
         times = self.frame_to_time(frames=frame_indices)
 
@@ -70,6 +99,20 @@ class MultiImagingExtractor(ImagingExtractor):
         return times
 
     def _get_frames_from_an_imaging_extractor(self, extractor_index: int, frame_idxs: ArrayType) -> NumpyArray:
+        """Get frames from a single imaging extractor.
+
+        Parameters
+        ----------
+        extractor_index: int
+            Index of the imaging extractor to use.
+        frame_idxs: array_like
+            Indices of the frames to get.
+
+        Returns
+        -------
+        frames: numpy.ndarray
+            Array of frames.
+        """
         imaging_extractor = self._imaging_extractors[extractor_index]
         frames = imaging_extractor.get_frames(frame_idxs=frame_idxs)
         return frames

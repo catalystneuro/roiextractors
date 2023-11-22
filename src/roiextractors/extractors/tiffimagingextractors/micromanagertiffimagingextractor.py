@@ -1,3 +1,11 @@
+"""A ImagingExtractor for TIFF files produced by Micro-Manager.
+
+Classes
+-------
+MicroManagerTiffImagingExtractor
+    A ImagingExtractor for TIFF files produced by Micro-Manager.
+"""
+
 import json
 import logging
 import re
@@ -16,6 +24,7 @@ from ...multiimagingextractor import MultiImagingExtractor
 
 
 def filter_tiff_tag_warnings(record):
+    """Filter out the warning messages from tifffile package."""
     return not record.msg.startswith("<tifffile.TiffTag 270 @42054>")
 
 
@@ -23,18 +32,22 @@ logging.getLogger("tifffile.tifffile").addFilter(filter_tiff_tag_warnings)
 
 
 def _get_tiff_reader() -> ModuleType:
+    """Import the tifffile package and return the module."""
     return get_package(package_name="tifffile", installation_instructions="pip install tifffile")
 
 
 class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
+    """Specialized extractor for reading TIFF files produced via Micro-Manager.
+
+    The image file stacks are saved into multipage TIF files in OME-TIFF format (.ome.tif files),
+    each of which are up to around 4GB in size.
+    The 'DisplaySettings' JSON file contains the properties of Micro-Manager.
+    """
+
     extractor_name = "MicroManagerTiffImaging"
 
     def __init__(self, folder_path: PathType):
-        """
-        The imaging extractor for the Micro-Manager TIF image format.
-        The image file stacks are saved into multipage TIF files in OME-TIFF format (.ome.tif files),
-        each of which are up to around 4GB in size.
-        The 'DisplaySettings' JSON file contains the properties of Micro-Manager.
+        """Create a MicroManagerTiffImagingExtractor instance from a folder path that contains the image files.
 
         Parameters
         ----------
@@ -87,14 +100,19 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         imaging_extractors = []
         for file_path, num_frames_per_file in file_counts.items():
             extractor = _MicroManagerTiffImagingExtractor(self.folder_path / file_path)
+            extractor._dtype = self._dtype
             extractor._num_frames = num_frames_per_file
             extractor._image_size = (self._height, self._width)
             imaging_extractors.append(extractor)
         super().__init__(imaging_extractors=imaging_extractors)
 
     def _load_settings_json(self) -> Dict[str, Dict[str, str]]:
-        """
-        Loads the 'DisplaySettings' JSON file.
+        """Load the 'DisplaySettings' JSON file.
+
+        Returns
+        -------
+        settings: Dict[str, Dict[str, str]]
+            The dictionary that contains the properties of Micro-Manager.
         """
         file_name = "DisplaySettings.json"
         settings_json_file_path = self.folder_path / file_name
@@ -106,17 +124,29 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         return settings["map"]
 
     def _get_ome_xml_root(self) -> ElementTree:
-        """
-        Parses the OME-XML configuration from string format into element tree and returns the root of this tree.
+        """Parse the OME-XML configuration from string format into element tree and returns the root of this tree.
+
+        Returns
+        -------
+        root: ElementTree
+            The root of the element tree that contains the OME-XML configuration.
         """
         ome_metadata_element = ElementTree.fromstring(self._ome_metadata)
         tree = ElementTree.ElementTree(ome_metadata_element)
         return tree.getroot()
 
     def _check_missing_files_in_folder(self, expected_list_of_files):
-        """
-        Checks the presence of each TIF file that is expected to be found in the folder.
-        Raises an error when the files are not found with the name of the missing files.
+        """Check the presence of each TIF file that is expected to be found in the folder.
+
+        Parameters
+        ----------
+        expected_list_of_files: list
+            The list of file names that are expected to be found in the folder.
+
+        Raises
+        ------
+        AssertionError
+            Raises an error when the files are not found with the name of the missing files.
         """
         missing_files = [
             file_name for file_name in expected_list_of_files if self.folder_path / file_name not in self._ome_tif_files
@@ -126,7 +156,7 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         ), f"Some of the TIF image files at '{self.folder_path}' are missing. The list of files that are missing: {missing_files}"
 
     def _check_consistency_between_imaging_extractors(self):
-        """Overrides the parent class method as none of the properties that are checked are from the sub-imaging extractors."""
+        """Override the parent class method as none of the properties that are checked are from the sub-imaging extractors."""
         return True
 
     def get_image_size(self) -> Tuple[int, int]:
@@ -149,6 +179,13 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
 
 
 class _MicroManagerTiffImagingExtractor(ImagingExtractor):
+    """Private imaging extractor for OME-TIF image format produced by Micro-Manager.
+
+    The private imaging extractor for OME-TIF image format produced by Micro-Manager,
+    which defines the get_video() method to return the requested frames from a given file.
+    This extractor is not meant to be used as a standalone ImagingExtractor.
+    """
+
     extractor_name = "_MicroManagerTiffImaging"
     is_writable = True
     mode = "file"
@@ -158,10 +195,7 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
     DATA_TYPE_ERROR = "The {}Extractor does not support retrieving the data type."
 
     def __init__(self, file_path: PathType):
-        """
-        The private imaging extractor for OME-TIF image format produced by Micro-Manager,
-        which defines the get_video() method to return the requested frames from a given file.
-        This extractor is not meant to be used as a standalone ImagingExtractor.
+        """Create a _MicroManagerTiffImagingExtractor instance from a TIFF image file (.ome.tif).
 
         Parameters
         ----------
@@ -174,6 +208,7 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
         super().__init__()
 
         self.pages = self.tifffile.TiffFile(self.file_path).pages
+        self._dtype = None
         self._num_frames = None
         self._image_size = None
 
@@ -193,7 +228,7 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
         raise NotImplementedError(self.CHANNEL_NAMES_ERROR.format(self.extractor_name))
 
     def get_dtype(self):
-        raise NotImplementedError(self.DATA_TYPE_ERROR.format(self.extractor_name))
+        return self._dtype
 
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
@@ -203,7 +238,7 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
 
         end_frame = end_frame or self.get_num_frames()
         start_frame = start_frame or 0
-        video = np.zeros(shape=(end_frame - start_frame, *self.get_image_size()))
+        video = np.zeros(shape=(end_frame - start_frame, *self.get_image_size()), dtype=self.get_dtype())
         for page_ind, page in enumerate(islice(self.pages, start_frame, end_frame)):
             video[page_ind] = page.asarray()
         return video

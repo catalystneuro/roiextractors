@@ -1,10 +1,44 @@
+"""Defines the MultiSegmentationExtractor class.
+
+Classes
+-------
+MultiSegmentationExtractor
+    This class is used to combine multiple SegmentationExtractor objects by frames.
+"""
 import numpy as np
 
 from .segmentationextractor import SegmentationExtractor
 
 
-def concatenate_output(func):
+def concatenate_output(func):  # TODO: refactor to avoid magical behavior
+    """Concatenate output of single SegmentationExtractor methods.
+
+    Parameters
+    ----------
+    func: function
+        function to be decorated
+
+    Returns
+    -------
+    _get_from_roi_map: function
+        decorated function
+    """
+
     def _get_from_roi_map(self, roi_ids=None, **kwargs):
+        """Call member function of each SegmentationExtractor specified by func and concatenate the output.
+
+        Parameters
+        ----------
+        roi_ids: list
+            list of roi ids to be used
+        kwargs: dict
+            keyword arguments to be passed to func
+
+        Returns
+        -------
+        out: list
+            list of outputs from each SegmentationExtractor
+        """
         out = []
         if roi_ids is None:
             roi_ids = np.array(self._all_roi_ids)
@@ -21,10 +55,7 @@ def concatenate_output(func):
 
 
 class MultiSegmentationExtractor(SegmentationExtractor):
-    """
-    This class is used to concatenate multi-plane recordings from the same device and session
-    of experiment.
-    """
+    """Class is used to concatenate multi-plane recordings from the same device and session of experiment."""
 
     extractor_name = "MultiSegmentationExtractor"
     installed = True  # check at class level if installed or not
@@ -32,12 +63,13 @@ class MultiSegmentationExtractor(SegmentationExtractor):
     mode = "file"
     installation_mesg = ""  # error message when not installed
 
-    def __init__(self, segmentatation_extractors_list, plane_names=None):
-        """
+    def __init__(self, segmentatation_extractors_list, plane_names=None):  # TODO: Hungarian notation --> type hints
+        """Initialize a MultiSegmentationExtractor object from a list of SegmentationExtractors.
+
         Parameters
         ----------
         segmentatation_extractors_list: list of SegmentationExtractor
-            list of segmentation extractor objects for every plane
+            list of segmentation extractor objects (one for each plane)
         plane_names: list
             list of strings of names for the plane. Defaults to 'Plane0', 'Plane1' ...
         """
@@ -72,10 +104,24 @@ class MultiSegmentationExtractor(SegmentationExtractor):
 
     @property
     def no_planes(self):
+        """Number of planes in the recording.
+
+        Returns
+        -------
+        no_planes: int
+            number of planes in the recording
+        """
         return self._no_planes
 
     @property
     def segmentations(self):
+        """List of segmentation extractors (one for each plane).
+
+        Returns
+        -------
+        segmentations: list
+            list of segmentation extractors (one for each plane)
+        """
         return self._segmentations
 
     def get_num_channels(self):
@@ -84,7 +130,19 @@ class MultiSegmentationExtractor(SegmentationExtractor):
     def get_num_rois(self):
         return len(self._all_roi_ids)
 
-    def get_images(self, name="correlation_plane0"):
+    def get_images(self, name="correlation_plane0"):  # TODO: add get_images to base SegmentationExtractor class
+        """Get images from the imaging extractors.
+
+        Parameters
+        ----------
+        name: str
+            name of the image to get
+
+        Returns
+        -------
+        images: numpy.ndarray
+            Array of images.
+        """
         plane_no = int(name[-1])
         return self._segmentations[plane_no].get_images(name=name.split("_")[0])
 
