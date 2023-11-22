@@ -168,8 +168,9 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
         self.iscell = self._load_npy("iscell.npy", mmap_mode="r")
 
-        channel_name = "OpticalChannel" if len(channel_names) == 1 else channel_name.capitalize()
-        self._channel_names = [channel_name]
+        # The name of the OpticalChannel object is "OpticalChannel" if there is only one channel, otherwise it is
+        # "Chan1" or "Chan2".
+        self._channel_names = ["OpticalChannel" if len(channel_names) == 1 else channel_name.capitalize()]
 
         self._image_correlation = self._correlation_image_read()
         image_mean_name = "meanImg" if channel_name == "chan1" else f"meanImg_chan2"
