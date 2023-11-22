@@ -28,6 +28,10 @@ class TestSuite2pSegmentationExtractor(TestCase):
         cls.first_channel_raw_traces = np.load(cls.folder_path / "plane0" / "F.npy").T
         cls.second_channel_raw_traces = np.load(cls.folder_path / "plane0" / "F_chan2.npy").T
 
+        options = np.load(cls.folder_path / "plane0" / "ops.npy", allow_pickle=True).item()
+        cls.first_channel_mean_image = options["meanImg"]
+        cls.second_channel_mean_image = options["meanImg_chan2"]
+
         cls.image_size = (128, 128)
         cls.num_rois = 15
 
@@ -43,7 +47,7 @@ class TestSuite2pSegmentationExtractor(TestCase):
         # remove the temporary directory and its contents
         shutil.rmtree(cls.test_dir)
 
-    def test_channel_names(self):
+    def test_available_channel_names(self):
         self.assertEqual(
             Suite2pSegmentationExtractor.get_available_channels(folder_path=self.folder_path), self.channel_names
         )
@@ -98,7 +102,7 @@ class TestSuite2pSegmentationExtractor(TestCase):
     def test_sampling_frequency(self):
         self.assertEqual(self.extractor.get_sampling_frequency(), 10.0)
 
-    def test_channel_names(self):
+    def test_optical_channel_names(self):
         self.assertEqual(self.extractor.get_channel_names(), ["Chan1"])
 
     def test_num_channels(self):
@@ -125,3 +129,14 @@ class TestSuite2pSegmentationExtractor(TestCase):
         """Test that the image masks are correctly extracted for a subset of ROIs."""
         roi_indices = list(range(5))
         assert_array_equal(self.extractor.get_roi_image_masks(roi_ids=roi_indices), self.image_masks[..., roi_indices])
+
+    def test_first_channel_mean_image(self):
+        """Test that the mean image is correctly loaded from the extractor."""
+        images_dict = self.extractor.get_images_dict()
+        assert_array_equal(images_dict["mean"], self.first_channel_mean_image)
+
+    def test_second_channel_mean_image(self):
+        """Test that the mean image for the second channel is correctly loaded from the extractor."""
+        extractor = Suite2pSegmentationExtractor(folder_path=self.folder_path, channel_name="chan2")
+        images_dict = extractor.get_images_dict()
+        assert_array_equal(images_dict["mean"], self.second_channel_mean_image)
