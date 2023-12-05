@@ -134,8 +134,8 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
 
     def test_stream_names(self):
         found_streams = BrukerTiffMultiPlaneImagingExtractor.get_streams(folder_path=self.folder_path)
-        expected_streams =  self.available_streams
-        self.assertEqual(found_streams, expected_streams)        
+        expected_streams = self.available_streams
+        self.assertEqual(found_streams, expected_streams)
 
     def test_brukertiffextractor_image_size(self):
         self.assertEqual(self.extractor.get_image_size(), (512, 512, 2))
