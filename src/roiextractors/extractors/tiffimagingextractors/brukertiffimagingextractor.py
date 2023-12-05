@@ -70,11 +70,10 @@ def _determine_imaging_is_volumetric(folder_path: PathType) -> bool:
     assert xml_file_path.is_file(), f"The XML configuration file is not found at '{xml_file_path}'."
 
     is_volumetric = False
-    with open(xml_file_path, "r") as xml_file:
-        for event, elem in ElementTree.iterparse(xml_file, events=("start",)):
-            if elem.tag == "PVStateValue" and elem.attrib.get("key") == "zDevice":
-                is_volumetric = bool(int(elem.attrib["value"]))
-                break  # Stop parsing as we've found the required element
+    for event, elem in ElementTree.iterparse(xml_file_path, events=("start",)):
+        if elem.tag == "PVStateValue" and elem.attrib.get("key") == "zDevice":
+            is_volumetric = bool(int(elem.attrib["value"]))
+            break  # Stop parsing as we've found the required element
 
     return is_volumetric
 
@@ -124,25 +123,24 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
 
         # Parse the XML file iteratively to find the first Sequence element
         first_sequence_element = None
-        with open(xml_file_path, "r") as xml_file:
-            for _, elem in ElementTree.iterparse(xml_file, events=("end",)):
-                if elem.tag == "Sequence":
-                    first_sequence_element = elem
-                    break
+        for _, elem in ElementTree.iterparse(xml_file_path, events=("end",)):
+            if elem.tag == "Sequence":
+                first_sequence_element = elem
+                break
 
-            if first_sequence_element is None:
-                raise ValueError("No Sequence element found in the XML configuration file. Can't get streams")
+        if first_sequence_element is None:
+            raise ValueError("No Sequence element found in the XML configuration file. Can't get streams")
 
-            # Then in the first Sequence we find all the Frame elements
-            if first_sequence_element is not None:
-                # Iterate over all Frame elements within the first Sequence
-                frame_elements = first_sequence_element.findall(".//Frame")
-                for frame_elemenet in frame_elements:
-                    # Iterate over all File elements within each Frame
-                    for file_elem in frame_elemenet.findall("File"):
-                        channel_names.add(file_elem.attrib["channelName"])
-                        channel_ids.add(file_elem.attrib["channel"])
-                        file_names.append(file_elem.attrib["filename"])
+        # Then in the first Sequence we find all the Frame elements
+        if first_sequence_element is not None:
+            # Iterate over all Frame elements within the first Sequence
+            frame_elements = first_sequence_element.findall(".//Frame")
+            for frame_elemenet in frame_elements:
+                # Iterate over all File elements within each Frame
+                for file_elem in frame_elemenet.findall("File"):
+                    channel_names.add(file_elem.attrib["channelName"])
+                    channel_ids.add(file_elem.attrib["channel"])
+                    file_names.append(file_elem.attrib["filename"])
 
         unique_channel_names = natsort.natsorted(channel_names)
         unique_channel_ids = natsort.natsorted(channel_ids)
