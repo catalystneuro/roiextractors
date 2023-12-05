@@ -162,7 +162,7 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
         streams = self.get_streams(folder_path=folder_path)
         plane_streams = streams["plane_streams"]
 
-        assert  len(plane_streams) == 0 (
+        assert len(plane_streams) == 0(
             f"{self.extractor_name}Extractor is for volumetric imaging. "
             "For single imaging plane data use BrukerTiffSinglePlaneImagingExtractor."
         )
