@@ -133,9 +133,9 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
         cls.test_video[..., 1] = second_plane_video
 
     def test_stream_names(self):
-        self.assertEqual(
-            BrukerTiffMultiPlaneImagingExtractor.get_streams(folder_path=self.folder_path), self.available_streams
-        )
+        found_streams = BrukerTiffMultiPlaneImagingExtractor.get_streams(folder_path=self.folder_path)
+        expected_streams = self.available_streams
+        self.assertEqual(found_streams, expected_streams)
 
     def test_brukertiffextractor_image_size(self):
         self.assertEqual(self.extractor.get_image_size(), (512, 512, 2))

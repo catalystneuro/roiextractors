@@ -1,5 +1,8 @@
 # Upcoming
 
+### Improvements
+* Improved xml parsing with Bruker [PR #267](https://github.com/catalystneuro/roiextractors/pull/267)
+
 
 # v0.5.5
 
