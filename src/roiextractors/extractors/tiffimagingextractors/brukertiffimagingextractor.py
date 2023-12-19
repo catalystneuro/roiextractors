@@ -192,17 +192,20 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
         tif_file_paths = list(folder_path.glob("*.ome.tif"))
         assert tif_file_paths, f"The TIF image files are missing from '{folder_path}'."
 
-        assert _determine_imaging_is_volumetric(folder_path=folder_path), (
+        streams = self.get_streams(folder_path=folder_path)
+        plane_streams = streams["plane_streams"]
+
+        assert len(plane_streams) > 0, (
             f"{self.extractor_name}Extractor is for volumetric imaging. "
             "For single imaging plane data use BrukerTiffSinglePlaneImagingExtractor."
         )
 
-        streams = self.get_streams(folder_path=folder_path)
         if stream_name is None:
             if len(streams["channel_streams"]) > 1:
                 raise ValueError(
                     "More than one recording stream is detected! Please specify which stream you wish to load with the `stream_name` argument. "
-                    "To see what streams are available, call `BrukerTiffMultiPlaneImagingExtractor.get_stream_names(folder_path=...)`."
+                    "The following channel streams are available:  \n"
+                    f"{streams['channel_streams']}"
                 )
             channel_stream_name = streams["channel_streams"][0]
             stream_name = streams["plane_streams"][channel_stream_name][0]
