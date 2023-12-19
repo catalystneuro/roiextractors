@@ -167,12 +167,11 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         )
 
         # rois segmented from the iamging acquired with second channel (red/anatomical) that match the first channel segmentation
-        redcell=self._load_npy(file_name="redcell.npy", mmap_mode="r")
-        if channel_name=="chan2" and redcell is not None:
+        redcell = self._load_npy(file_name="redcell.npy", mmap_mode="r")
+        if channel_name == "chan2" and redcell is not None:
             self.iscell = redcell
         else:
             self.iscell = self._load_npy("iscell.npy", mmap_mode="r")
-
 
         # The name of the OpticalChannel object is "OpticalChannel" if there is only one channel, otherwise it is
         # "Chan1" or "Chan2".
