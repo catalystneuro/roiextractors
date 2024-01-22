@@ -42,9 +42,10 @@ def extract_extra_metadata(
         extra_metadata = dict(**extra_metadata, **metadata_dict)
     return extra_metadata
 
+
 def extract_rois_metadata(
     file_path: PathType,
-) -> dict:  
+) -> dict:
     """Extract ROIs metadata from a ScanImage TIFF file.
 
     Parameters
@@ -69,6 +70,7 @@ def extract_rois_metadata(
     extra_metadata = json.loads(extra_metadata_string)
     rois_metadata = extra_metadata["RoiGroups"]
     return rois_metadata
+
 
 def parse_matlab_vector(matlab_vector: str) -> list:
     """Parse a MATLAB vector string into a list of integer values.
