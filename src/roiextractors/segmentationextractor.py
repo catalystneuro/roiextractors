@@ -341,7 +341,7 @@ class SegmentationExtractor(ABC):
 
         Parameters
         ----------
-        frame_indices: int or array-like
+        frames: int or array-like
             The frame or frames to be converted to times
 
         Returns

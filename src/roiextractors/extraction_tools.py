@@ -148,7 +148,7 @@ class VideoStructure:
             "each property axis should be unique value between 0 and 3 (inclusive)"
         )
 
-        axis_values = set((self.rows_axis, self.columns_axis, self.channels_axis, self.frame_axis))
+        axis_values = {self.rows_axis, self.columns_axis, self.channels_axis, self.frame_axis}
         axis_values_are_not_unique = len(axis_values) != 4
         if axis_values_are_not_unique:
             raise ValueError(exception_message)

@@ -95,7 +95,7 @@ class TestVideoStructureClass(unittest.TestCase):
             "^Invalid structure: (.*?) each property axis should be unique value between 0 and 3 (inclusive)?"
         )
         with self.assertRaisesRegex(ValueError, reg_expression):
-            video_structure = VideoStructure(
+            VideoStructure(
                 num_rows=self.num_rows,
                 num_columns=self.num_columns,
                 num_channels=self.num_channels,
