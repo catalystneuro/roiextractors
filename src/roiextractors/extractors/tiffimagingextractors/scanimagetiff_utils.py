@@ -1,5 +1,6 @@
 """Utility functions for ScanImage TIFF Extractors."""
 import numpy as np
+import json
 from ...extraction_tools import PathType, get_package
 
 
@@ -41,6 +42,33 @@ def extract_extra_metadata(
         extra_metadata = dict(**extra_metadata, **metadata_dict)
     return extra_metadata
 
+def extract_rois_metadata(
+    file_path: PathType,
+) -> dict:  
+    """Extract ROIs metadata from a ScanImage TIFF file.
+
+    Parameters
+    ----------
+    file_path : PathType
+        Path to the TIFF file.
+
+    Returns
+    -------
+    rois_metadata: dict
+        Dictionary of ROIs metadata extracted from the TIFF file.
+
+    Notes
+    -----
+    Known to work on SI versions v3.8.0, v2019bR0, v2022.0.0, and v2023.0.0
+    """
+    ScanImageTiffReader = _get_scanimage_reader()
+    io = ScanImageTiffReader(str(file_path))
+    metadata_string = io.metadata()
+    system_metadata_string = metadata_string.split("\n\n")[0]
+    extra_metadata_string = metadata_string.split("\n\n")[1]
+    extra_metadata = json.loads(extra_metadata_string)
+    rois_metadata = extra_metadata["RoiGroups"]
+    return rois_metadata
 
 def parse_matlab_vector(matlab_vector: str) -> list:
     """Parse a MATLAB vector string into a list of integer values.
