@@ -10,7 +10,7 @@ from typing import Tuple, List, Iterable, Optional
 
 import numpy as np
 
-from .extraction_tools import ArrayType, NumpyArray, check_get_frames_args
+from .extraction_tools import ArrayType, NumpyArray
 from .imagingextractor import ImagingExtractor
 
 
@@ -80,7 +80,7 @@ class MultiImagingExtractor(ImagingExtractor):
                 len(unique_values) == 1
             ), f"{property_message} is not consistent over the files (found {unique_values})."
 
-    def _get_times(self):
+    def _get_times(self) -> np.ndarray:
         """Get all the times from the imaging extractors and combine them into a single array.
 
         Returns
@@ -199,7 +199,7 @@ class MultiImagingExtractor(ImagingExtractor):
 
         return video
 
-    def get_image_size(self) -> Tuple:
+    def get_image_size(self) -> Tuple[int, int]:
         return self._imaging_extractors[0].get_image_size()
 
     def get_num_frames(self) -> int:

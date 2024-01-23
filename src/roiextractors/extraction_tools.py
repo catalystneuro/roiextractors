@@ -272,7 +272,7 @@ def read_numpy_memmap_video(
     return video_memap
 
 
-def _pixel_mask_extractor(image_mask_, _roi_ids):
+def _pixel_mask_extractor(image_mask_, _roi_ids) -> list:
     """Convert image mask to pixel mask.
 
     Pixel masks are an alternative data format for storage of image masks which relies on the sparsity of the images.
@@ -301,7 +301,7 @@ def _pixel_mask_extractor(image_mask_, _roi_ids):
     return pixel_mask_list
 
 
-def _image_mask_extractor(pixel_mask, _roi_ids, image_shape):
+def _image_mask_extractor(pixel_mask, _roi_ids, image_shape) -> np.ndarray:
     """Convert a pixel mask to image mask.
 
     Parameters
@@ -325,7 +325,7 @@ def _image_mask_extractor(pixel_mask, _roi_ids, image_shape):
     return image_mask
 
 
-def get_video_shape(video):
+def get_video_shape(video) -> Tuple[int, int, int, int]:
     """Get the shape of a video (num_channels, num_frames, size_x, size_y).
 
     Parameters
