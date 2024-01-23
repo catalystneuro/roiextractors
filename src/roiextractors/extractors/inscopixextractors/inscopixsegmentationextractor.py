@@ -1,4 +1,7 @@
-from typing import Optional
+"""
+Inscopix Segmentation Extractor
+"""
+
 import numpy as np
 
 from ...extraction_tools import PathType, ArrayType
