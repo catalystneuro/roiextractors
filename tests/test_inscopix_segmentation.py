@@ -7,7 +7,7 @@ from .setup_paths import OPHYS_DATA_PATH
 
 
 def test_inscopix_segmentation_extractor():
-    file_path = OPHYS_DATA_PATH / "segmentation_data" / "inscopix" / "cellset.isxd"
+    file_path = OPHYS_DATA_PATH / "segmentation_datasets" / "inscopix" / "cellset.isxd"
     extractor = InscopixSegmentationExtractor(file_path=file_path)
 
     assert extractor.get_num_rois() == 4
@@ -25,7 +25,7 @@ def test_inscopix_segmentation_extractor():
 
 
 def test_inscopix_segmentation_extractor_part1():
-    file_path = OPHYS_DATA_PATH / "segmentation_data" / "inscopix" / "cellset_series_part1.isxd"
+    file_path = OPHYS_DATA_PATH / "segmentation_datasets" / "inscopix" / "cellset_series_part1.isxd"
     extractor = InscopixSegmentationExtractor(file_path=file_path)
 
     assert extractor.get_num_rois() == 6
@@ -43,7 +43,7 @@ def test_inscopix_segmentation_extractor_part1():
 
 
 def test_inscopix_segmentation_extractor_empty():
-    file_path = OPHYS_DATA_PATH / "segmentation_data" / "inscopix" / "empty_cellset.isxd"
+    file_path = OPHYS_DATA_PATH / "segmentation_datasets" / "inscopix" / "empty_cellset.isxd"
     extractor = InscopixSegmentationExtractor(file_path=file_path)
 
     assert extractor.get_num_rois() == 0
