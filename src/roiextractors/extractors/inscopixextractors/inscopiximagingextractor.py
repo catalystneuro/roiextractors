@@ -9,6 +9,7 @@ from ...extraction_tools import PathType
 
 class InscopixImagingExtractor(ImagingExtractor):
     """Extracts imaging data from Inscopix recordings."""
+
     extractor_name = "InscopixImaging"
 
     def __init__(self, file_path: PathType):
