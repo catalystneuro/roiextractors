@@ -12,10 +12,7 @@ from warnings import warn
 import numpy as np
 
 from ...extraction_tools import PathType, FloatType, ArrayType
-from ...extraction_tools import (
-    get_video_shape,
-    write_to_h5_dataset_format,
-)
+from ...extraction_tools import write_to_h5_dataset_format
 from ...imagingextractor import ImagingExtractor
 from lazy_ops import DatasetView
 
