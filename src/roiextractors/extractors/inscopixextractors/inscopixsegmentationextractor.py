@@ -14,7 +14,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
     mode = "file"
     installation_mesg = ""  # error message when not installed
 
-    def __init__(self, file_path: PathType, sampling_frequency: Optional[float] = None):
+    def __init__(self, file_path: PathType):
         """Initialize a InscopixSegmentationExtractor instance.
 
         Parameters
@@ -26,7 +26,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
         SegmentationExtractor.__init__(self)
         self.file_path = file_path
-        self.cell_set = isx.CellSet.read("cellset.isxd")
+        self.cell_set = isx.CellSet.read(file_path)
 
     def get_num_rois(self):
         return self.cell_set.num_cells
@@ -40,17 +40,17 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         return np.hstack([self.cell_set.get_cell_image_data(roi_id) for roi_id in roi_idx_])
 
     def get_roi_ids(self) -> list:
-        return [self.cell_set.get_cell_name(x) for x in self.get_num_rois()]
+        return [self.cell_set.get_cell_name(x) for x in range(self.get_num_rois())]
 
     def get_image_size(self) -> ArrayType:
         num_pixels = self.cell_set.footer["spacingInfo"]["numPixels"]
         return num_pixels["x"], num_pixels["y"]
 
     def get_accepted_list(self) -> list:
-        return [x for x in self.get_num_rois() if self.cell_set.get_cell_status(x) == "accepted"]
+        return [id for x, id in enumerate(self.get_roi_ids()) if self.cell_set.get_cell_status(x) == "accepted"]
 
     def get_rejected_list(self) -> list:
-        return [x for x in self.get_num_rois() if self.cell_set.get_cell_status(x) == "rejected"]
+        return [id for x, id in enumerate(self.get_roi_ids()) if self.cell_set.get_cell_status(x) == "rejected"]
 
     def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="raw") -> ArrayType:
         if roi_ids is None:
@@ -58,14 +58,10 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         else:
             all_ids = self.get_roi_ids()
             roi_idx_ = [all_ids.index(i) for i in roi_ids]
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self.cell_set.get_cell_num_frames(0)
-        return np.hstack([self.cell_set.get_cell_trace_data(roi_id)[start_frame, end_frame] for roi_id in roi_idx_])
+        return np.vstack([self.cell_set.get_cell_trace_data(roi_id)[start_frame:end_frame] for roi_id in roi_idx_])
 
     def get_num_frames(self) -> int:
         return self.cell_set.footer["timingInfo"]["numTimes"]
 
-    def get_sampling_frequency(self):
+    def get_sampling_frequency(self) -> float:
         return 1 / self.cell_set.timing.period.secs_float
