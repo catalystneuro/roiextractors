@@ -8,11 +8,9 @@ from ...extraction_tools import PathType
 
 
 class InscopixImagingExtractor(ImagingExtractor):
-
     extractor_name = "InscopixImaging"
 
     def __init__(self, file_path: PathType):
-
         import isx
 
         super().__init__(file_path=file_path)
@@ -36,8 +34,9 @@ class InscopixImagingExtractor(ImagingExtractor):
         warnings.warn("isx only supports single channel videos.")
         return 1
 
-    def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None,
-                  channel: int = 0) -> np.ndarray:
+    def get_video(
+        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
+    ) -> np.ndarray:
         start_frame = start_frame or 0
         end_frame = end_frame or self.get_num_frames()
         return np.array([self.movie.get_frame_data(i) for i in range(start_frame, end_frame)])
