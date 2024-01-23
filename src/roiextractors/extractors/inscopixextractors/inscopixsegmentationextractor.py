@@ -26,7 +26,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
         SegmentationExtractor.__init__(self)
         self.file_path = file_path
-        self.cell_set = isx.CellSet.read(file_path)
+        self.cell_set = isx.CellSet.read(str(file_path))
 
     def get_num_rois(self):
         return self.cell_set.num_cells
