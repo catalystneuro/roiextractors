@@ -14,7 +14,7 @@ class InscopixImagingExtractor(ImagingExtractor):
         import isx
 
         super().__init__(file_path=file_path)
-        self.movie = isx.Movie.read(file_path)
+        self.movie = isx.Movie.read(str(file_path))
 
     def get_image_size(self) -> Tuple[int, int]:
         num_pixels = self.movie.spacing.num_pixels

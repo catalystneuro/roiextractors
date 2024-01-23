@@ -9,7 +9,7 @@ from .setup_paths import OPHYS_DATA_PATH
 
 def test_inscopiximagingextractor_movie_128x128x100_part1():
     file_path = OPHYS_DATA_PATH / "imaging_data" / "inscopix" / "movie_128x128x100_part1.isxd"
-    extractor = InscopixImagingExtractor(file_path=str(file_path))
+    extractor = InscopixImagingExtractor(file_path=file_path)
 
     assert extractor.get_num_frames() == 100
     assert extractor.get_image_size() == (128, 128)
@@ -22,7 +22,7 @@ def test_inscopiximagingextractor_movie_128x128x100_part1():
 
 def test_inscopiximagingextractor_movie_longer_than_3_min():
     file_path = OPHYS_DATA_PATH / "imaging_data" / "inscopix" / "movie_longer_than_3_min.isxd"
-    extractor = InscopixImagingExtractor(file_path=str(file_path))
+    extractor = InscopixImagingExtractor(file_path=file_path)
 
     assert extractor.get_num_frames() == 1248
     assert extractor.get_image_size() == (33, 29)
@@ -35,7 +35,7 @@ def test_inscopiximagingextractor_movie_longer_than_3_min():
 
 def test_inscopiximagingextractor_movie_u8():
     file_path = OPHYS_DATA_PATH / "imaging_data" / "inscopix" / "movie_u8.isxd"
-    extractor = InscopixImagingExtractor(file_path=str(file_path))
+    extractor = InscopixImagingExtractor(file_path=file_path)
 
     assert extractor.get_num_frames() == 5
     assert extractor.get_image_size() == (3, 4)
