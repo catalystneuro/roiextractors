@@ -1,3 +1,7 @@
+"""
+Inscopix Imaging Extractor
+"""
+
 import warnings
 from typing import Optional, Tuple
 
