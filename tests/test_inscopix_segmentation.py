@@ -18,7 +18,7 @@ def test_inscopix_segmentation_extractor():
     assert extractor.get_num_frames() == 5444
     img = extractor.get_roi_image_masks(["C1"])
     assert img.shape == (366, 398)
-    assert np.testing.assert_allclose(extractor.get_sampling_frequency(), 9.998700168978033)
+    np.testing.assert_allclose(extractor.get_sampling_frequency(), 9.998700168978033)
     assert extractor.get_traces().shape == (4, 5444)
     assert extractor.get_traces(start_frame=10, end_frame=20).shape == (4, 10)
     assert extractor.get_traces(start_frame=10, end_frame=20, roi_ids=["C1"]).shape == (1, 10)
