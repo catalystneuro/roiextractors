@@ -11,9 +11,9 @@ def test_inscopix_segmentation_extractor():
     extractor = InscopixSegmentationExtractor(file_path=file_path)
 
     assert extractor.get_num_rois() == 4
-    assert extractor.get_roi_ids() == ['C0', 'C1', 'C2', 'C3']
-    assert extractor.get_accepted_list() == ['C0', 'C1', 'C2']
-    assert extractor.get_rejected_list() == ['C3']
+    assert extractor.get_roi_ids() == ["C0", "C1", "C2", "C3"]
+    assert extractor.get_accepted_list() == ["C0", "C1", "C2"]
+    assert extractor.get_rejected_list() == ["C3"]
     assert extractor.get_image_size() == (398, 366)
     assert extractor.get_num_frames() == 5444
     img = extractor.get_roi_image_masks(["C1"])
@@ -29,7 +29,7 @@ def test_inscopix_segmentation_extractor_part1():
     extractor = InscopixSegmentationExtractor(file_path=file_path)
 
     assert extractor.get_num_rois() == 6
-    assert extractor.get_roi_ids() == ['C0', 'C1', 'C2', 'C3', 'C4', 'C5']
+    assert extractor.get_roi_ids() == ["C0", "C1", "C2", "C3", "C4", "C5"]
     assert extractor.get_accepted_list() == []
     assert extractor.get_rejected_list() == []
     assert extractor.get_image_size() == (21, 21)
