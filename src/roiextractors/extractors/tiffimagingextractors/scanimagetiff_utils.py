@@ -34,43 +34,17 @@ def extract_extra_metadata(
     io = ScanImageTiffReader(str(file_path))
     extra_metadata = {}
     for metadata_string in (io.description(iframe=0), io.metadata()):
-        metadata_dict = {
+        system_metadata_dict = {
             x.split("=")[0].strip(): x.split("=")[1].strip()
             for x in metadata_string.replace("\n", "\r").split("\r")
             if "=" in x
         }
-        extra_metadata = dict(**extra_metadata, **metadata_dict)
+        extra_metadata = dict(**extra_metadata, **system_metadata_dict)
+
+    additional_metadata_string = io.metadata().split("\n\n")[1]
+    additional_metadata = json.loads(additional_metadata_string)
+    extra_metadata = dict(**extra_metadata, **additional_metadata)
     return extra_metadata
-
-
-def extract_rois_metadata(
-    file_path: PathType,
-) -> dict:
-    """Extract ROIs metadata from a ScanImage TIFF file.
-
-    Parameters
-    ----------
-    file_path : PathType
-        Path to the TIFF file.
-
-    Returns
-    -------
-    rois_metadata: dict
-        Dictionary of ROIs metadata extracted from the TIFF file.
-
-    Notes
-    -----
-    Known to work on SI versions v3.8.0, v2019bR0, v2022.0.0, and v2023.0.0
-    """
-    ScanImageTiffReader = _get_scanimage_reader()
-    io = ScanImageTiffReader(str(file_path))
-    metadata_string = io.metadata()
-    system_metadata_string = metadata_string.split("\n\n")[0]
-    extra_metadata_string = metadata_string.split("\n\n")[1]
-    extra_metadata = json.loads(extra_metadata_string)
-    rois_metadata = extra_metadata["RoiGroups"]
-    return rois_metadata
-
 
 def parse_matlab_vector(matlab_vector: str) -> list:
     """Parse a MATLAB vector string into a list of integer values.
@@ -145,12 +119,17 @@ def parse_metadata(metadata: dict) -> dict:
     channel_names = np.array(metadata["SI.hChannels.channelName"].split("'")[1::2])
     channel_names = channel_names[channel_indices].tolist()
     num_channels = len(channel_names)
+    if "RoiGroups" in metadata.keys():
+        roi_metadata = metadata["RoiGroups"]
+    else:
+        roi_metadata = None
     metadata_parsed = dict(
         sampling_frequency=sampling_frequency,
         num_channels=num_channels,
         num_planes=num_planes,
         frames_per_slice=frames_per_slice,
         channel_names=channel_names,
+        roi_metadata=roi_metadata,
     )
     return metadata_parsed
 
