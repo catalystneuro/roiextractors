@@ -1,5 +1,6 @@
 """Utility functions for ScanImage TIFF Extractors."""
 import numpy as np
+import json
 from ...extraction_tools import PathType, get_package
 
 
@@ -33,12 +34,16 @@ def extract_extra_metadata(
     io = ScanImageTiffReader(str(file_path))
     extra_metadata = {}
     for metadata_string in (io.description(iframe=0), io.metadata()):
-        metadata_dict = {
+        system_metadata_dict = {
             x.split("=")[0].strip(): x.split("=")[1].strip()
             for x in metadata_string.replace("\n", "\r").split("\r")
             if "=" in x
         }
-        extra_metadata = dict(**extra_metadata, **metadata_dict)
+        extra_metadata = dict(**extra_metadata, **system_metadata_dict)
+    if "\n\n" in io.metadata():
+        additional_metadata_string = io.metadata().split("\n\n")[1]
+        additional_metadata = json.loads(additional_metadata_string)
+        extra_metadata = dict(**extra_metadata, **additional_metadata)
     return extra_metadata
 
 
@@ -115,12 +120,17 @@ def parse_metadata(metadata: dict) -> dict:
     channel_names = np.array(metadata["SI.hChannels.channelName"].split("'")[1::2])
     channel_names = channel_names[channel_indices].tolist()
     num_channels = len(channel_names)
+    if "RoiGroups" in metadata.keys():
+        roi_metadata = metadata["RoiGroups"]
+    else:
+        roi_metadata = None
     metadata_parsed = dict(
         sampling_frequency=sampling_frequency,
         num_channels=num_channels,
         num_planes=num_planes,
         frames_per_slice=frames_per_slice,
         channel_names=channel_names,
+        roi_metadata=roi_metadata,
     )
     return metadata_parsed
 
