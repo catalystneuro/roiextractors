@@ -40,10 +40,10 @@ def extract_extra_metadata(
             if "=" in x
         }
         extra_metadata = dict(**extra_metadata, **system_metadata_dict)
-
-    additional_metadata_string = io.metadata().split("\n\n")[1]
-    additional_metadata = json.loads(additional_metadata_string)
-    extra_metadata = dict(**extra_metadata, **additional_metadata)
+    if "\n\n" in metadata_string:
+        additional_metadata_string = io.metadata().split("\n\n")[1]
+        additional_metadata = json.loads(additional_metadata_string)
+        extra_metadata = dict(**extra_metadata, **additional_metadata)
     return extra_metadata
 
 
