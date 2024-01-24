@@ -46,6 +46,7 @@ def extract_extra_metadata(
     extra_metadata = dict(**extra_metadata, **additional_metadata)
     return extra_metadata
 
+
 def parse_matlab_vector(matlab_vector: str) -> list:
     """Parse a MATLAB vector string into a list of integer values.
 
