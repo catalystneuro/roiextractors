@@ -10,4 +10,5 @@ Classes
 CaimanSegmentationExtractor
     A class for extracting segmentation from Caiman output.
 """
+
 from .caimansegmentationextractor import CaimanSegmentationExtractor
