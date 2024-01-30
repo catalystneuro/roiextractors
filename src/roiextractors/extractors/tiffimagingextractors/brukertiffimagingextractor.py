@@ -7,6 +7,7 @@ BrukerTiffSinglePlaneImagingExtractor
 BrukerTiffMultiPlaneImagingExtractor
     A MultiImagingExtractor for TIFF files produced by Bruker with multiple planes.
 """
+
 import logging
 import re
 from collections import Counter

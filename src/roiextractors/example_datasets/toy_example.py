@@ -5,6 +5,7 @@ Functions
 toy_example
     Create a toy example of an ImagingExtractor and a SegmentationExtractor.
 """
+
 import numpy as np
 
 from ..extractors.numpyextractors import (

@@ -7,6 +7,7 @@ NwbImagingExtractor
 NwbSegmentationExtractor
     Extracts segmentation data from NWB files.
 """
+
 from pathlib import Path
 from typing import Union, Optional, Iterable, Tuple
 

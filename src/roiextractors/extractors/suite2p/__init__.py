@@ -10,4 +10,5 @@ Classes
 Suite2pSegmentationExtractor
     A segmentation extractor for Suite2p.
 """
+
 from .suite2psegmentationextractor import Suite2pSegmentationExtractor
