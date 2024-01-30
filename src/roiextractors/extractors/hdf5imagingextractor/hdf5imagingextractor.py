@@ -1,3 +1,11 @@
+"""An imaging extractor for HDF5.
+
+Classes
+-------
+Hdf5ImagingExtractor
+    An imaging extractor for HDF5.
+"""
+
 from pathlib import Path
 from typing import Optional, Tuple
 from warnings import warn
@@ -22,6 +30,8 @@ except ImportError:
 
 
 class Hdf5ImagingExtractor(ImagingExtractor):
+    """An imaging extractor for HDF5."""
+
     extractor_name = "Hdf5Imaging"
     installed = HAVE_H5  # check at class level if installed or not
     is_writable = True
@@ -37,6 +47,23 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         metadata: dict = None,
         channel_names: ArrayType = None,
     ):
+        """Create an ImagingExtractor from an HDF5 file.
+
+        Parameters
+        ----------
+        file_path : str or Path
+            Path to the HDF5 file.
+        mov_field : str, optional
+            Name of the dataset in the HDF5 file that contains the imaging data. The default is "mov".
+        sampling_frequency : float, optional
+            Sampling frequency of the video. The default is None.
+        start_time : float, optional
+            Start time of the video. The default is None.
+        metadata : dict, optional
+            Metadata dictionary. The default is None.
+        channel_names : array-like, optional
+            List of channel names. The default is None.
+        """
         ImagingExtractor.__init__(self)
 
         self.filepath = Path(file_path)
@@ -47,10 +74,13 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         self._channel_names = channel_names
 
         self._file = h5py.File(file_path, "r")
-        if "mov" in self._file.keys():
+        if mov_field in self._file.keys():
             self._video = DatasetView(self._file[self._mov_field])
             if sampling_frequency is None:
-                assert "fr" in self._video.attrs, "sampling frequency information is unavailable!"
+                assert "fr" in self._video.attrs, (
+                    "Sampling frequency is unavailable as a dataset attribute! "
+                    "Please set the keyword argument 'sampling_frequency'"
+                )
                 self._sampling_frequency = float(self._video.attrs["fr"])
             else:
                 self._sampling_frequency = sampling_frequency
@@ -88,15 +118,11 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         }
 
     def __del__(self):
+        """Close the HDF5 file."""
         self._file.close()
 
-    def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
-    ) -> np.ndarray:
-        return self._video[start_frame:end_frame, :, :, channel]
-
-    def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> np.ndarray:
-        return self._video[frame_idxs, :, :, channel]
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+        return self._video.lazy_slice[start_frame:end_frame, :, :, channel].dsetread()
 
     def get_image_size(self) -> Tuple[int, int]:
         return self._num_rows, self._num_cols
@@ -121,6 +147,28 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         mov_field="mov",
         **kwargs,
     ):
+        """Write an imaging extractor to an HDF5 file.
+
+        Parameters
+        ----------
+        imaging : ImagingExtractor
+            The imaging extractor object to be saved.
+        save_path : str or Path
+            Path to save the file.
+        overwrite : bool, optional
+            If True, overwrite the file if it already exists. The default is False.
+        mov_field : str, optional
+            Name of the dataset in the HDF5 file that contains the imaging data. The default is "mov".
+        **kwargs : dict
+            Keyword arguments to be passed to the HDF5 file writer.
+
+        Raises
+        ------
+        AssertionError
+            If the file extension is not .h5 or .hdf5.
+        FileExistsError
+            If the file already exists and overwrite is False.
+        """
         save_path = Path(save_path)
         assert save_path.suffix in [
             ".h5",

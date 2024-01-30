@@ -1,15 +1,27 @@
+"""Imaging and Segmenation Extractors for .npy files.
+
+Classes
+-------
+NumpyImagingExtractor
+    An ImagingExtractor specified by timeseries .npy file, sampling frequency, and channel names.
+NumpySegmentationExtractor
+    A Segmentation extractor specified by image masks and traces .npy files.
+"""
+
 from pathlib import Path
 from typing import Optional, Tuple
 
 import numpy as np
 
 from ...extraction_tools import PathType, FloatType, ArrayType
-from ...extraction_tools import check_get_frames_args, get_video_shape
+from ...extraction_tools import get_video_shape
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
 
 
 class NumpyImagingExtractor(ImagingExtractor):
+    """An ImagingExtractor specified by timeseries .npy file, sampling frequency, and channel names."""
+
     extractor_name = "NumpyImagingExtractor"
     installed = True
     is_writable = True
@@ -21,6 +33,17 @@ class NumpyImagingExtractor(ImagingExtractor):
         sampling_frequency: FloatType,
         channel_names: ArrayType = None,
     ):
+        """Create a NumpyImagingExtractor from a .npy file.
+
+        Parameters
+        ----------
+        timeseries: PathType
+            Path to .npy file.
+        sampling_frequency: FloatType
+            Sampling frequency of the video in Hz.
+        channel_names: ArrayType
+            List of channel names.
+        """
         ImagingExtractor.__init__(self)
 
         if isinstance(timeseries, (str, Path)):
@@ -34,7 +57,7 @@ class NumpyImagingExtractor(ImagingExtractor):
                     "sampling_frequency": sampling_frequency,
                 }
             else:
-                raise ValueError("'timeeseries' is does not exist")
+                raise ValueError("'timeseries' is does not exist")
         elif isinstance(timeseries, np.ndarray):
             self.is_dumpable = False
             self._video = timeseries
@@ -74,9 +97,12 @@ class NumpyImagingExtractor(ImagingExtractor):
 
         frames = self._video.take(indices=frame_idxs, axis=0)
         if channel is not None:
-            frames = frames[:, :, :, channel].squeeze()
+            frames = frames[..., channel].squeeze()
 
         return frames
+
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+        return self._video[start_frame:end_frame, ..., channel]
 
     def get_image_size(self) -> Tuple[int, int]:
         return (self._num_rows, self._num_columns)
@@ -88,27 +114,24 @@ class NumpyImagingExtractor(ImagingExtractor):
         return self._sampling_frequency
 
     def get_channel_names(self):
-        """List of  channels in the recoding.
-
-        Returns
-        -------
-        channel_names: list
-            List of strings of channel names
-        """
         return self._channel_names
 
     def get_num_channels(self):
-        """Total number of active channels in the recording
-
-        Returns
-        -------
-        no_of_channels: int
-            integer count of number of channels
-        """
         return self._num_channels
 
     @staticmethod
     def write_imaging(imaging, save_path, overwrite: bool = False):
+        """Write a NumpyImagingExtractor to a .npy file.
+
+        Parameters
+        ----------
+        imaging: NumpyImagingExtractor
+            The imaging extractor object to be written to file.
+        save_path: str or PathType
+            Path to .npy file.
+        overwrite: bool
+            If True, overwrite file if it already exists.
+        """
         save_path = Path(save_path)
         assert save_path.suffix == ".npy", "'save_path' should have a .npy extension"
 
@@ -122,7 +145,8 @@ class NumpyImagingExtractor(ImagingExtractor):
 
 
 class NumpySegmentationExtractor(SegmentationExtractor):
-    """
+    """A Segmentation extractor specified by image masks and traces .npy files.
+
     NumpySegmentationExtractor objects are built to contain all data coming from
     a file format for which there is currently no support. To construct this,
     all data must be entered manually as arguments.
@@ -151,8 +175,9 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         channel_names=None,
         movie_dims=None,
     ):
-        """
-        Parameters:
+        """Create a NumpySegmentationExtractor from a .npy file.
+
+        Parameters
         ----------
         image_masks: np.ndarray
             Binary image for each of the regions of interest
@@ -178,7 +203,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             list of ROI ids that are rejected manually or via automated rejection
         channel_names: list
             list of strings representing channel names
-        movie_dims: list
+        movie_dims: tuple
             height x width of the movie
         """
         SegmentationExtractor.__init__(self)
@@ -222,38 +247,38 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                 raise ValueError("'timeeseries' is does not exist")
         elif isinstance(image_masks, np.ndarray):
             NoneType = type(None)
-            assert isinstance(raw, np.ndarray)
+            assert isinstance(raw, (np.ndarray, NoneType))
             assert isinstance(dff, (np.ndarray, NoneType))
             assert isinstance(neuropil, (np.ndarray, NoneType))
             assert isinstance(deconvolved, (np.ndarray, NoneType))
             self.is_dumpable = False
             self._image_masks = image_masks
             self._roi_response_raw = raw
-            assert self._image_masks.shape[2] == len(self._roi_response_raw), (
+            assert self._image_masks.shape[-1] == self._roi_response_raw.shape[-1], (
                 "Inconsistency between image masks and raw traces. "
                 "Image masks must be (px, py, num_rois), "
-                "traces must be (num_rois, num_frames)"
+                "traces must be (num_frames, num_rois)"
             )
             self._roi_response_dff = dff
             if self._roi_response_dff is not None:
-                assert self._image_masks.shape[2] == len(self._roi_response_dff), (
+                assert self._image_masks.shape[-1] == self._roi_response_dff.shape[-1], (
                     "Inconsistency between image masks and raw traces. "
                     "Image masks must be (px, py, num_rois), "
-                    "traces must be (num_rois, num_frames)"
+                    "traces must be (num_frames, num_rois)"
                 )
             self._roi_response_neuropil = neuropil
             if self._roi_response_neuropil is not None:
-                assert self._image_masks.shape[2] == len(self._roi_response_neuropil), (
+                assert self._image_masks.shape[-1] == self._roi_response_neuropil.shape[-1], (
                     "Inconsistency between image masks and raw traces. "
                     "Image masks must be (px, py, num_rois), "
-                    "traces must be (num_rois, num_frames)"
+                    "traces must be (num_frames, num_rois)"
                 )
             self._roi_response_deconvolved = deconvolved
             if self._roi_response_deconvolved is not None:
-                assert self._image_masks.shape[2] == len(self._roi_response_deconvolved), (
+                assert self._image_masks.shape[-1] == self._roi_response_deconvolved.shape[-1], (
                     "Inconsistency between image masks and raw traces. "
                     "Image masks must be (px, py, num_rois), "
-                    "traces must be (num_rois, num_frames)"
+                    "traces must be (num_frames, num_rois)"
                 )
             self._kwargs = {
                 "image_masks": image_masks,
@@ -280,6 +305,13 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     @property
     def image_dims(self):
+        """Return the dimensions of the image.
+
+        Returns
+        -------
+        image_dims: list
+            The dimensions of the image (num_rois, num_rows, num_columns).
+        """
         return list(self._image_masks.shape[0:2])
 
     def get_accepted_list(self):
@@ -296,6 +328,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     @property
     def roi_locations(self):
+        """Returns the center locations (x, y) of each ROI."""
         if self._roi_locs is None:
             num_ROIs = self.get_num_rois()
             raw_images = self._image_masks
@@ -309,6 +342,19 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     @staticmethod
     def write_segmentation(segmentation_object, save_path):
+        """Write a NumpySegmentationExtractor to a .npy file.
+
+        Parameters
+        ----------
+        segmentation_object: NumpySegmentationExtractor
+            The segmentation extractor object to be written to file.
+        save_path: str or PathType
+            Path to .npy file.
+
+        Notes
+        -----
+        This method is not implemented yet.
+        """
         raise NotImplementedError
 
     # defining the abstract class informed methods:

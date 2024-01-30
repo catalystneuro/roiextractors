@@ -1,45 +1,54 @@
+"""A TIFF imaging extractor for TIFF files.
+
+Classes
+-------
+TiffImagingExtractor
+    A TIFF imaging extractor for TIFF files.
+"""
+
 from pathlib import Path
+from typing import Optional
 from warnings import warn
+from typing import Tuple
 
 import numpy as np
 from tqdm import tqdm
 
+from ...imagingextractor import ImagingExtractor
 from ...extraction_tools import (
     PathType,
-    get_video_shape,
-    check_get_frames_args,
     FloatType,
-    ArrayType,
     raise_multi_channel_or_depth_not_implemented,
+    get_package,
 )
-
-from typing import Tuple
-from ...imagingextractor import ImagingExtractor
-
-try:
-    import tifffile
-
-    HAVE_TIFF = True
-except ImportError:
-    HAVE_TIFF = False
 
 
 class TiffImagingExtractor(ImagingExtractor):
+    """A ImagingExtractor for TIFF files."""
+
     extractor_name = "TiffImaging"
-    installed = HAVE_TIFF  # check at class level if installed or not
     is_writable = True
     mode = "file"
-    installation_mesg = "To use the TiffImagingExtractor install tifffile: \n\n pip install tifffile\n\n"
 
     def __init__(self, file_path: PathType, sampling_frequency: FloatType):
-        assert HAVE_TIFF, self.installation_mesg
-        ImagingExtractor.__init__(self)
+        """Create a TiffImagingExtractor instance from a TIFF file.
+
+        Parameters
+        ----------
+        file_path : PathType
+            Path to the TIFF file.
+        sampling_frequency : float
+            The frequency at which the frames were sampled, in Hz.
+        """
+        tifffile = get_package(package_name="tifffile")
+
+        super().__init__()
         self.file_path = Path(file_path)
         self._sampling_frequency = sampling_frequency
         if self.file_path.suffix not in [".tiff", ".tif", ".TIFF", ".TIF"]:
             warn(
                 "File suffix ({self.file_path.suffix}) is not one of .tiff, .tif, .TIFF, or .TIF! "
-                "The TiffImagingExtracto may not be appropriate."
+                "The TiffImagingExtractor may not be appropriate."
             )
 
         with tifffile.TiffFile(self.file_path) as tif:
@@ -67,9 +76,11 @@ class TiffImagingExtractor(ImagingExtractor):
             "sampling_frequency": sampling_frequency,
         }
 
-    @check_get_frames_args
     def get_frames(self, frame_idxs, channel: int = 0):
         return self._video[frame_idxs, ...]
+
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+        return self._video[start_frame:end_frame, ...]
 
     def get_image_size(self) -> Tuple[int, int]:
         return (self._num_rows, self._num_columns)
@@ -88,6 +99,24 @@ class TiffImagingExtractor(ImagingExtractor):
 
     @staticmethod
     def write_imaging(imaging, save_path, overwrite: bool = False, chunk_size=None, verbose=True):
+        """Write a TIFF file from an ImagingExtractor.
+
+        Parameters
+        ----------
+        imaging : ImagingExtractor
+            The ImagingExtractor to be written to a TIFF file.
+        save_path : str or PathType
+            The path to save the TIFF file.
+        overwrite : bool
+            If True, will overwrite the file if it exists. Otherwise will raise an error if the file exists.
+        chunk_size : int or None
+            If None, will write the entire video to a single TIFF file. Otherwise will write the video
+            in chunk_size frames at a time.
+        verbose : bool
+            If True, will print progress bar.
+        """
+        tifffile = get_package(package_name="tifffile")
+
         save_path = Path(save_path)
         assert save_path.suffix in [
             ".tiff",

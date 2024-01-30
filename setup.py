@@ -1,6 +1,5 @@
 from pathlib import Path
 from setuptools import setup, find_packages
-from copy import copy
 from shutil import copy as copy_file
 
 
@@ -11,9 +10,8 @@ with open(root / "requirements-minimal.txt") as f:
     install_requires = f.readlines()
 with open(root / "requirements-full.txt") as f:
     full_dependencies = f.readlines()
-testing_dependencies = copy(full_dependencies)
 with open(root / "requirements-testing.txt") as f:
-    testing_dependencies.extend(f.readlines())
+    testing_dependencies = f.readlines()
 extras_require = dict(full=full_dependencies, test=testing_dependencies)
 
 # Create a local copy for the gin test configuration file based on the master file `base_gin_test_config.json`
@@ -24,8 +22,8 @@ if not gin_config_file_local.exists():
 
 setup(
     name="roiextractors",
-    version="0.4.17",
-    author="Heberto Mayorquin, Cody Baker, Ben Dichter, Alessio Buccino",
+    version="0.5.6",
+    author="Heberto Mayorquin, Szonja Weigl, Cody Baker, Ben Dichter, Alessio Buccino",
     author_email="ben.dichter@gmail.com",
     description="Python module for extracting optical physiology ROIs and traces for various file types and formats",
     url="https://github.com/catalystneuro/roiextractors",

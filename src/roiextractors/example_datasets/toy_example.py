@@ -1,5 +1,12 @@
+"""Toy example ImagingExtractor and SegmentationExtractor for testing.
+
+Functions
+---------
+toy_example
+    Create a toy example of an ImagingExtractor and a SegmentationExtractor.
+"""
+
 import numpy as np
-import spikeextractors as se
 
 from ..extractors.numpyextractors import (
     NumpyImagingExtractor,
@@ -8,10 +15,41 @@ from ..extractors.numpyextractors import (
 
 
 def _gaussian(x, mu, sigma):
+    """Compute classical gaussian with parameters x, mu, sigma."""
     return 1 / np.sqrt(2 * np.pi * sigma) * np.exp(-((x - mu) ** 2) / sigma)
 
 
-def _generate_rois(num_units=10, size_x=100, size_y=100, roi_size=4, min_dist=5, mode="uniform"):
+def _generate_rois(
+    num_units=10, size_x=100, size_y=100, roi_size=4, min_dist=5, mode="uniform"
+):  # TODO: mode --> literal type
+    """Generate ROIs with given parameters.
+
+    Parameters
+    ----------
+    num_units: int
+        Number of ROIs
+    size_x: int
+        Size of x dimension (pixels)
+    size_y: int
+        Size of y dimension (pixels)
+    roi_size: int
+        Siz of ROI in x and y dimension (pixels)
+    min_dist: int
+        Minimum distance between ROI centers (pixels)
+    mode: str
+        'uniform' or 'gaussian'.
+        If 'uniform', ROI values are uniform and equal to 1.
+        If 'gaussian', ROI values are gaussian modulated
+
+    Returns
+    -------
+    roi_pixels: list
+        List of pixel coordinates for each ROI
+    image: np.ndarray
+        Image with ROIs
+    means: list
+        List of mean coordinates for each ROI
+    """
     image = np.zeros((size_x, size_y))
     max_iter = 1000
 
@@ -74,8 +112,7 @@ def toy_example(
     decay_time=0.5,
     noise_std=0.05,
 ):
-    """
-    Create a toy example of an ImagingExtractor and a SegmentationExtractor.
+    """Create a toy example of an ImagingExtractor and a SegmentationExtractor.
 
     Parameters
     ----------
@@ -88,7 +125,7 @@ def toy_example(
     size_y: int
         Size of y dimension (pixels)
     roi_size: int
-        Siz of ROI in x and y dimension (pixels)
+        Size of ROI in x and y dimension (pixels)
     min_dist: int
         Minimum distance between ROI centers (pixels)
     mode: str
@@ -108,7 +145,6 @@ def toy_example(
         The output imaging extractor
     seg: NumpySegmentationExtractor
         The output segmentation extractor
-
     """
     # generate ROIs
     num_rois = int(num_rois)
@@ -122,6 +158,8 @@ def toy_example(
     )
 
     # generate spike trains
+    import spikeextractors as se
+
     rec, sort = se.example_datasets.toy_example(
         duration=duration,
         K=num_rois,
@@ -130,19 +168,25 @@ def toy_example(
     )
 
     # create decaying response
-    resp_samples = int(decay_time * rec.get_sampling_frequency())
+    resp_samples = int(decay_time * sampling_frequency)
     resp_tau = resp_samples / 5
     tresp = np.arange(resp_samples)
     resp = np.exp(-tresp / resp_tau)
 
+    num_frames = rec.get_num_frames()  # TODO This should be changed to sampling_frequency x duration
+    num_of_units = sort.get_unit_ids()  # TODO This to be changed by num_rois
+
     # convolve response with ROIs
-    raw = np.zeros((len(sort.get_unit_ids()), rec.get_num_frames()))
-    deconvolved = np.zeros((len(sort.get_unit_ids()), rec.get_num_frames()))
-    neuropil = noise_std * np.random.randn(len(sort.get_unit_ids()), rec.get_num_frames())
-    frames = rec.get_num_frames()
-    for u_i, unit in enumerate(sort.get_unit_ids()):
-        for s in sort.get_unit_spike_train(unit):
-            if s < rec.get_num_frames():
+    raw = np.zeros(num_of_units, num_frames)  # TODO Change to new standard formating with time in first axis
+    deconvolved = np.zeros(num_of_units, num_frames)  # TODO Change to new standard formating with time in first axis
+    neuropil = noise_std * np.random.randn(
+        num_of_units, num_frames
+    )  # TODO Change to new standard formating with time in first axis
+    frames = num_frames
+    for u_i, unit in range(num_of_units):
+        unit = u_i + 1  # spikeextractor toy example has unit ids starting at 1
+        for s in sort.get_unit_spike_train(unit):  # TODO build a local function that generates frames with spikes
+            if s < num_frames:
                 if s + len(resp) < frames:
                     raw[u_i, s : s + len(resp)] += resp
                 else:
@@ -151,7 +195,7 @@ def toy_example(
 
     # generate video
     video = np.zeros((frames, size_x, size_y))
-    for (rp, t) in zip(roi_pixels, raw):
+    for rp, t in zip(roi_pixels, raw):
         for r in rp:
             video[:, r[0], r[1]] += t * im[r[0], r[1]]
 

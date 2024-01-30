@@ -1,3 +1,11 @@
+"""A SegmentationExtractor for CaImAn.
+
+Classes
+-------
+CaimanSegmentationExtractor
+    A class for extracting segmentation from CaImAn output.
+"""
+
 from pathlib import Path
 
 try:
@@ -16,16 +24,17 @@ except ImportError:
 
 import numpy as np
 
-from ...extraction_tools import PathType
+from ...extraction_tools import PathType, get_package
 from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
 
 
 class CaimanSegmentationExtractor(SegmentationExtractor):
-    """
+    """A SegmentationExtractor for CaImAn.
+
     This class inherits from the SegmentationExtractor class, having all
-    its funtionality specifically applied to the dataset output from
-    the \'CNMF-E\' ROI segmentation method.
+    its functionality specifically applied to the dataset output from
+    the 'CaImAn' ROI segmentation method.
     """
 
     extractor_name = "CaimanSegmentation"
@@ -36,11 +45,12 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
     installation_mesg = "To use the CaimanSegmentationExtractor install h5py and scipy: \n\n pip install scipy/h5py\n\n"
 
     def __init__(self, file_path: PathType):
-        """
+        """Initialize a CaimanSegmentationExtractor instance.
+
         Parameters
         ----------
         file_path: str
-            The location of the folder containing caiman *.hdmf output file.
+            The location of the folder containing caiman *.hdf5 output file.
         """
         SegmentationExtractor.__init__(self)
         self.file_path = file_path
@@ -52,13 +62,28 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self._sampling_frequency = self._dataset_file["params"]["data"]["fr"][()]
         self._image_masks = self._image_mask_sparse_read()
 
-    def __del__(self):
+    def __del__(self):  # TODO: refactor segmentation extractors who use __del__ together into a base class
+        """Close the h5py file when the object is deleted."""
         self._dataset_file.close()
 
     def _file_extractor_read(self):
+        """Read the h5py file.
+
+        Returns
+        -------
+        h5py.File
+            The h5py file object specified by self.file_path.
+        """
         return h5py.File(self.file_path, "r")
 
     def _image_mask_sparse_read(self):
+        """Read the image masks from the h5py file.
+
+        Returns
+        -------
+        image_masks: numpy.ndarray
+            The image masks for each ROI.
+        """
         roi_ids = self._dataset_file["estimates"]["A"]["indices"]
         masks = self._dataset_file["estimates"]["A"]["data"]
         ids = self._dataset_file["estimates"]["A"]["indptr"]
@@ -70,10 +95,25 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         return image_masks
 
     def _trace_extractor_read(self, field):
-        if self._dataset_file["estimates"].get(field):
-            return self._dataset_file["estimates"][field]  # lazy read dataset)
+        """Read the traces specified by the field from the estimates dataset of the h5py file.
+
+        Parameters
+        ----------
+        field: str
+            The field to read from the estimates object.
+
+        Returns
+        -------
+        lazy_ops.DatasetView
+            The traces specified by the field.
+        """
+        lazy_ops = get_package(package_name="lazy_ops")
+
+        if field in self._dataset_file["estimates"]:
+            return lazy_ops.DatasetView(self._dataset_file["estimates"][field]).lazy_transpose()
 
     def _summary_image_read(self):
+        """Read the summary image (Cn) from the estimates dataset of the h5py file."""
         if self._dataset_file["estimates"].get("Cn"):
             return np.array(self._dataset_file["estimates"]["Cn"])
 
@@ -95,6 +135,22 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
     @staticmethod
     def write_segmentation(segmentation_object, save_path, overwrite=True):
+        """Write a segmentation object to a *.hdf5 or *.h5 file specified by save_path.
+
+        Parameters
+        ----------
+        segmentation_object: SegmentationExtractor
+            The segmentation object to be written to file.
+        save_path: str
+            The path to the file to be written.
+        overwrite: bool
+            If True, overwrite the file if it already exists.
+
+        Raises
+        ------
+        FileExistsError
+            If the file already exists and overwrite is False.
+        """
         save_path = Path(save_path)
         assert save_path.suffix in [
             ".hdf5",
@@ -158,10 +214,6 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             params.create_dataset("data/fr", data=segmentation_object.get_sampling_frequency())
             params.create_dataset("data/dims", data=segmentation_object.get_image_size())
             f.create_dataset("dims", data=segmentation_object.get_image_size())
-
-    # defining the abstract class enformed methods:
-    def get_roi_ids(self):
-        return list(range(self.get_num_rois()))
 
     def get_image_size(self):
         return self._dataset_file["params"]["data"]["dims"][()]

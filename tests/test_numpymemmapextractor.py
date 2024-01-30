@@ -8,7 +8,7 @@ import numpy as np
 from parameterized import parameterized, param
 
 from roiextractors.extraction_tools import VideoStructure
-from roiextractors.testing import check_imaging_equal, assert_get_frames_indexing_with_single_channel
+from roiextractors.testing import check_imaging_equal, assert_get_frames_return_shape
 from roiextractors import NumpyMemmapImagingExtractor
 
 
@@ -53,7 +53,6 @@ class TestNumpyMemmapExtractor(unittest.TestCase):
 
     @parameterized.expand(input=parameterized_list, name_func=custom_name_func)
     def test_roundtrip(self, dtype, num_channels, num_rows, num_columns, buffer_size_in_gb, case_name=""):
-
         permutation = self.rng.choice([0, 1, 2, 3], size=4, replace=False)
         rows_axis, columns_axis, channels_axis, frame_axis = permutation
 
@@ -145,7 +144,11 @@ class TestNumpyMemmapExtractor(unittest.TestCase):
             file_path=file_path, video_structure=video_structure, sampling_frequency=1, dtype=dtype, offset=self.offset
         )
 
-        assert_get_frames_indexing_with_single_channel(imaging_extractor=extractor)
+        assert_get_frames_return_shape(imaging_extractor=extractor)
+
+        one_element_video_shape = extractor.get_video(start_frame=0, end_frame=1, channel=0).shape
+        expected_shape = (1, num_rows, num_columns)
+        assert one_element_video_shape == expected_shape
 
 
 if __name__ == "__main__":

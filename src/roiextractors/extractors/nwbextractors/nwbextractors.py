@@ -1,12 +1,22 @@
+"""Imaging and segmentation extractors for NWB files.
+
+Classes
+-------
+NwbImagingExtractor
+    Extracts imaging data from NWB files.
+NwbSegmentationExtractor
+    Extracts segmentation data from NWB files.
+"""
+
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union, Optional, Iterable, Tuple
 
 import numpy as np
 from lazy_ops import DatasetView
 
 try:
     from pynwb import NWBHDF5IO
-    from pynwb.ophys import TwoPhotonSeries
+    from pynwb.ophys import TwoPhotonSeries, OnePhotonSeries
 
     HAVE_NWB = True
 except ImportError:
@@ -25,6 +35,7 @@ from ...segmentationextractor import SegmentationExtractor
 
 
 def temporary_deprecation_message():
+    """Raise a NotImplementedError with a temporary deprecation message."""
     raise NotImplementedError(
         "ROIExtractors no longer supports direct write to NWB. This method will be removed in a future release.\n\n"
         "Please install nwb-conversion-tools and import the corresponding write method from there.\n\nFor example,\n\n"
@@ -34,11 +45,13 @@ def temporary_deprecation_message():
 
 
 def check_nwb_install():
+    """Check if pynwb is installed."""
     assert HAVE_NWB, "To use the Nwb extractors, install pynwb: \n\n pip install pynwb\n\n"
 
 
 class NwbImagingExtractor(ImagingExtractor):
-    """
+    """An imaging extractor for NWB files.
+
     Class used to extract data from the NWB data format. Also implements a
     static method to write any format specific object to NWB.
     """
@@ -50,13 +63,14 @@ class NwbImagingExtractor(ImagingExtractor):
     installation_mesg = "To use the Nwb Extractor run:\n\n pip install pynwb\n\n"  # error message when not installed
 
     def __init__(self, file_path: PathType, optical_series_name: Optional[str] = "TwoPhotonSeries"):
-        """
+        """Create ImagingExtractor object from NWB file.
+
         Parameters
         ----------
         file_path: str
             The location of the folder containing dataset.nwb file
-        optical_series_name: str (optional)
-            optical series to extract data from
+        optical_series_name: string, optional
+            The name of the optical series to extract data from.
         """
         ImagingExtractor.__init__(self)
         self._path = file_path
@@ -73,33 +87,34 @@ class NwbImagingExtractor(ImagingExtractor):
                 raise ValueError("No acquisitions found in the .nwb file.")
             self._optical_series_name = a_names[0]
 
-        self.two_photon_series = self.nwbfile.acquisition[self._optical_series_name]
-        assert isinstance(
-            self.two_photon_series, TwoPhotonSeries
-        ), "The optical series must be of type pynwb.TwoPhotonSeries"
+        self.photon_series = self.nwbfile.acquisition[self._optical_series_name]
+        valid_photon_series_types = [OnePhotonSeries, TwoPhotonSeries]
+        assert any(
+            [isinstance(self.photon_series, photon_series_type) for photon_series_type in valid_photon_series_types]
+        ), "The optical series must be of type pynwb.ophys.OnePhotonSeries or pynwb.ophys.TwoPhotonSeries."
 
         # TODO if external file --> return another proper extractor (e.g. TiffImagingExtractor)
-        assert self.two_photon_series.external_file is None, "Only 'raw' format is currently supported"
+        assert self.photon_series.external_file is None, "Only 'raw' format is currently supported"
 
         # Load the two video structures that TwoPhotonSeries supports.
         self._data_has_channels_axis = True
-        if len(self.two_photon_series.data.shape) == 3:
+        if len(self.photon_series.data.shape) == 3:
             self._num_channels = 1
-            self._num_frames, self._columns, self._num_rows = self.two_photon_series.data.shape
+            self._num_frames, self._columns, self._num_rows = self.photon_series.data.shape
         else:
             raise_multi_channel_or_depth_not_implemented(extractor_name=self.extractor_name)
 
         # Set channel names (This should disambiguate which optical channel)
-        self._channel_names = [i.name for i in self.two_photon_series.imaging_plane.optical_channel]
+        self._channel_names = [i.name for i in self.photon_series.imaging_plane.optical_channel]
 
         # Set sampling frequency
-        if hasattr(self.two_photon_series, "timestamps") and self.two_photon_series.timestamps:
-            self._sampling_frequency = 1.0 / np.median(np.diff(self.two_photon_series.timestamps))
-            self._imaging_start_time = self.two_photon_series.timestamps[0]
-            self.set_times(np.array(self.two_photon_series.timestamps))
+        if hasattr(self.photon_series, "timestamps") and self.photon_series.timestamps:
+            self._sampling_frequency = 1.0 / np.median(np.diff(self.photon_series.timestamps))
+            self._imaging_start_time = self.photon_series.timestamps[0]
+            self.set_times(np.array(self.photon_series.timestamps))
         else:
-            self._sampling_frequency = self.two_photon_series.rate
-            self._imaging_start_time = self.two_photon_series.fields.get("starting_time", 0.0)
+            self._sampling_frequency = self.photon_series.rate
+            self._imaging_start_time = self.photon_series.fields.get("starting_time", 0.0)
 
         # Fill epochs dictionary
         self._epochs = {}
@@ -119,6 +134,7 @@ class NwbImagingExtractor(ImagingExtractor):
         }
 
     def __del__(self):
+        """Close the NWB file."""
         self.io.close()
 
     def time_to_frame(self, times: Union[FloatType, ArrayType]) -> np.ndarray:
@@ -133,7 +149,22 @@ class NwbImagingExtractor(ImagingExtractor):
         else:
             return super().frame_to_time(frames)
 
-    def make_nwb_metadata(self, nwbfile, opts):
+    def make_nwb_metadata(
+        self, nwbfile, opts
+    ):  # TODO: refactor to use two photon series name directly rather than via opts
+        """Create metadata dictionary for NWB file.
+
+        Parameters
+        ----------
+        nwbfile: pynwb.NWBFile
+            The NWBFile object associated with the metadata.
+        opts: object
+            The options object with name of TwoPhotonSeries as an attribute.
+
+        Notes
+        -----
+        Metadata dictionary is stored in the nwb_metadata attribute.
+        """
         # Metadata dictionary - useful for constructing a nwb file
         self.nwb_metadata = dict(
             NWBFile=dict(
@@ -150,7 +181,6 @@ class NwbImagingExtractor(ImagingExtractor):
         )
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0):
-
         # Fancy indexing is non performant for h5.py with long frame lists
         if frame_idxs is not None:
             slice_start = np.min(frame_idxs)
@@ -159,21 +189,23 @@ class NwbImagingExtractor(ImagingExtractor):
             slice_start = 0
             slice_stop = self.get_num_frames()
 
-        data = self.two_photon_series.data
+        data = self.photon_series.data
         frames = data[slice_start:slice_stop, ...].transpose([0, 2, 1])
 
         if isinstance(frame_idxs, int):
             frames = frames.squeeze()
         return frames
 
-    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0):
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
         start_frame = start_frame if start_frame is not None else 0
         end_frame = end_frame if end_frame is not None else self.get_num_frames()
-        video = self.get_frames(frame_idxs=range(start_frame, end_frame), channel=channel)
+
+        video = self.photon_series.data
+        video = video[start_frame:end_frame].transpose([0, 2, 1])
         return video
 
-    def get_image_size(self):
-        return (self._num_rows, self._columns)
+    def get_image_size(self) -> Tuple[int, int]:
+        return (self._num_rows, self._columns)  # TODO: change name of _columns to _num_cols for consistency
 
     def get_num_frames(self):
         return self._num_frames
@@ -182,39 +214,29 @@ class NwbImagingExtractor(ImagingExtractor):
         return self._sampling_frequency
 
     def get_channel_names(self):
-        """List of  channels in the recoding.
-
-        Returns
-        -------
-        channel_names: list
-            List of strings of channel names
-        """
         return self._channel_names
 
     def get_num_channels(self):
-        """Total number of active channels in the recording
-
-        Returns
-        -------
-        no_of_channels: int
-            integer count of number of channels
-        """
         return self._num_channels
 
     @staticmethod
     def add_devices(imaging, nwbfile, metadata):
+        """Add devices to the NWBFile (deprecated)."""
         temporary_deprecation_message()
 
     @staticmethod
     def add_two_photon_series(imaging, nwbfile, metadata, buffer_size=10, use_times=False):
+        """Add TwoPhotonSeries to NWBFile (deprecated)."""
         temporary_deprecation_message()
 
     @staticmethod
     def add_epochs(imaging, nwbfile):
+        """Add epochs to NWBFile (deprecated)."""
         temporary_deprecation_message()
 
     @staticmethod
     def get_nwb_metadata(imgextractor: ImagingExtractor):
+        """Return the metadata dictionary for the NWB file (deprecated)."""
         temporary_deprecation_message()
 
     @staticmethod
@@ -227,10 +249,13 @@ class NwbImagingExtractor(ImagingExtractor):
         buffer_size: int = 10,
         use_times: bool = False,
     ):
+        """Write imaging data to NWB file (deprecated)."""
         temporary_deprecation_message()
 
 
 class NwbSegmentationExtractor(SegmentationExtractor):
+    """An segmentation extractor for NWB files."""
+
     extractor_name = "NwbSegmentationExtractor"
     installed = True  # check at class level if installed or not
     is_writable = False
@@ -238,15 +263,15 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     installation_mesg = ""  # error message when not installed
 
     def __init__(self, file_path: PathType):
-        """
-        Creating NwbSegmentationExtractor object from nwb file
+        """Create NwbSegmentationExtractor object from nwb file.
+
         Parameters
         ----------
         file_path: PathType
             .nwb file location
         """
         check_nwb_install()
-        SegmentationExtractor.__init__(self)
+        super().__init__()
         file_path = Path(file_path)
         if not file_path.is_file():
             raise Exception("file does not exist")
@@ -258,68 +283,60 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         self._io = NWBHDF5IO(str(file_path), mode="r")
         self.nwbfile = self._io.read()
 
+        assert "ophys" in self.nwbfile.processing, "Ophys processing module is not in nwbfile."
         ophys = self.nwbfile.processing.get("ophys")
-        if ophys is None:
-            raise Exception("could not find ophys processing module in nwbfile")
-        else:
-            # Extract roi_response:
-            fluorescence = None
-            dfof = None
-            any_roi_response_series_found = False
-            if "Fluorescence" in ophys.data_interfaces:
-                fluorescence = ophys.data_interfaces["Fluorescence"]
-            if "DfOverF" in ophys.data_interfaces:
-                dfof = ophys.data_interfaces["DfOverF"]
-            if fluorescence is None and dfof is None:
-                raise Exception("could not find Fluorescence/DfOverF module in nwbfile")
-            for trace_name in ["RoiResponseSeries", "Dff", "Neuropil", "Deconvolved"]:
-                trace_name_segext = "raw" if trace_name == "RoiResponseSeries" else trace_name.lower()
-                container = dfof if trace_name == "Dff" else fluorescence
-                if container is not None and trace_name in container.roi_response_series:
-                    any_roi_response_series_found = True
-                    setattr(
-                        self,
-                        f"_roi_response_{trace_name_segext}",
-                        DatasetView(container.roi_response_series[trace_name].data).lazy_transpose(),
-                    )
-                    if self._sampling_frequency is None:
-                        self._sampling_frequency = container.roi_response_series[trace_name].rate
-            if not any_roi_response_series_found:
-                raise Exception(
-                    "could not find any of 'RoiResponseSeries'/'Dff'/'Neuropil'/'Deconvolved'"
-                    "named RoiResponseSeries in nwbfile"
+
+        # Extract roi_responses:
+        fluorescence = None
+        df_over_f = None
+        any_roi_response_series_found = False
+        if "Fluorescence" in ophys.data_interfaces:
+            fluorescence = ophys.data_interfaces["Fluorescence"]
+        if "DfOverF" in ophys.data_interfaces:
+            df_over_f = ophys.data_interfaces["DfOverF"]
+        if fluorescence is None and df_over_f is None:
+            raise Exception("Could not find Fluorescence/DfOverF module in nwbfile.")
+        for trace_name in self.get_traces_dict().keys():
+            trace_name_segext = "RoiResponseSeries" if trace_name in ["raw", "dff"] else trace_name.capitalize()
+            container = df_over_f if trace_name == "dff" else fluorescence
+            if container is not None and trace_name_segext in container.roi_response_series:
+                any_roi_response_series_found = True
+                setattr(
+                    self,
+                    f"_roi_response_{trace_name}",
+                    DatasetView(container.roi_response_series[trace_name_segext].data),
                 )
-            # Extract image_mask/background:
-            if "ImageSegmentation" in ophys.data_interfaces:
-                image_seg = ophys.data_interfaces["ImageSegmentation"]
-                if "PlaneSegmentation" in image_seg.plane_segmentations:  # this requirement in nwbfile is enforced
-                    ps = image_seg.plane_segmentations["PlaneSegmentation"]
-                    if "image_mask" in ps.colnames:
-                        self._image_masks = DatasetView(ps["image_mask"].data).lazy_transpose([2, 1, 0])
-                    else:
-                        raise Exception("could not find any image_masks in nwbfile")
-                    if "RoiCentroid" in ps.colnames:
-                        self._roi_locs = ps["RoiCentroid"]
-                    if "Accepted" in ps.colnames:
-                        self._accepted_list = ps["Accepted"].data[:]
-                    if "Rejected" in ps.colnames:
-                        self._rejected_list = ps["Rejected"].data[:]
-                    self._roi_idx = np.array(ps.id.data)
-                else:
-                    raise Exception("could not find any PlaneSegmentation in nwbfile")
-            # Extracting stores images as GrayscaleImages:
-            if "SegmentationImages" in ophys.data_interfaces:
-                images_container = ophys.data_interfaces["SegmentationImages"]
-                if "correlation" in images_container.images:
-                    self._image_correlation = images_container.images["correlation"].data[()].T
-                if "mean" in images_container.images:
-                    self._image_mean = images_container.images["mean"].data[()].T
+                if self._sampling_frequency is None:
+                    self._sampling_frequency = container.roi_response_series[trace_name_segext].rate
+        if not any_roi_response_series_found:
+            raise Exception(
+                "could not find any of 'RoiResponseSeries'/'Dff'/'Neuropil'/'Deconvolved'"
+                "named RoiResponseSeries in nwbfile"
+            )
+        # Extract image_mask/background:
+        if "ImageSegmentation" in ophys.data_interfaces:
+            image_seg = ophys.data_interfaces["ImageSegmentation"]
+        assert len(image_seg.plane_segmentations), "Could not find any PlaneSegmentation in nwbfile."
+        if "PlaneSegmentation" in image_seg.plane_segmentations:  # this requirement in nwbfile is enforced
+            ps = image_seg.plane_segmentations["PlaneSegmentation"]
+            assert "image_mask" in ps.colnames, "Could not find any image_masks in nwbfile."
+            self._image_masks = DatasetView(ps["image_mask"].data).lazy_transpose([2, 1, 0])
+            self._roi_locs = ps["ROICentroids"] if "ROICentroids" in ps.colnames else None
+            self._accepted_list = ps["Accepted"].data[:] if "Accepted" in ps.colnames else None
+            self._rejected_list = ps["Rejected"].data[:] if "Rejected" in ps.colnames else None
+
+        # Extracting stored images as GrayscaleImages:
+        self._segmentation_images = None
+        if "SegmentationImages" in ophys.data_interfaces:
+            images_container = ophys.data_interfaces["SegmentationImages"]
+            self._segmentation_images = images_container.images
         # Imaging plane:
         if "ImagingPlane" in self.nwbfile.imaging_planes:
             imaging_plane = self.nwbfile.imaging_planes["ImagingPlane"]
             self._channel_names = [i.name for i in imaging_plane.optical_channel]
 
     def __del__(self):
+        """Close the NWB file."""
         self._io.close()
 
     def get_accepted_list(self):
@@ -334,19 +351,51 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             if len(rej_list) > 0:
                 return rej_list
 
-    @property
-    def roi_locations(self):
-        if self._roi_locs is not None:
-            return self._roi_locs.data[:].T
+    def get_images_dict(self):
+        """Return traces as a dictionary with key as the name of the ROIResponseSeries.
 
-    def get_roi_ids(self):
-        return list(self._roi_idx)
+        Returns
+        -------
+        images_dict: dict
+            dictionary with key, values representing different types of Images used in segmentation:
+            Mean, Correlation image
+        """
+        images_dict = super().get_images_dict()
+        if self._segmentation_images is not None:
+            images_dict.update(
+                (image_name, image_data[:].T) for image_name, image_data in self._segmentation_images.items()
+            )
+
+        return images_dict
+
+    def get_roi_locations(self, roi_ids: Optional[Iterable[int]] = None) -> np.ndarray:
+        """Return the locations of the Regions of Interest (ROIs).
+
+        Parameters
+        ----------
+        roi_ids: array_like
+            A list or 1D array of ids of the ROIs. Length is the number of ROIs
+            requested.
+
+        Returns
+        -------
+        roi_locs: numpy.ndarray
+            2-D array: 2 X no_ROIs. The pixel ids (x,y) where the centroid of the ROI is.
+        """
+        if self._roi_locs is None:
+            return
+        all_ids = self.get_roi_ids()
+        roi_idxs = slice(None) if roi_ids is None else [all_ids.index(i) for i in roi_ids]
+        # ROIExtractors uses height x width x (depth), but NWB uses width x height x depth
+        tranpose_image_convention = (1, 0) if len(self.get_image_size()) == 2 else (1, 0, 2)
+        return np.array(self._roi_locs.data)[roi_idxs, tranpose_image_convention].T  # h5py fancy indexing is slow
 
     def get_image_size(self):
         return self._image_masks.shape[:2]
 
     @staticmethod
     def get_nwb_metadata(sgmextractor):
+        """Return the metadata dictionary for the NWB file (deprecated)."""
         temporary_deprecation_message()
 
     @staticmethod
@@ -359,4 +408,5 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         buffer_size: int = 10,
         nwbfile=None,
     ):
+        """Write segmentation data to NWB file (deprecated)."""
         temporary_deprecation_message()

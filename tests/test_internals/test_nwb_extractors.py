@@ -5,13 +5,11 @@ from pathlib import Path
 
 import numpy as np
 
-from pynwb import NWBFile, TimeSeries, NWBHDF5IO
-from pynwb.image import ImageSeries
-from pynwb.ophys import TwoPhotonSeries, OpticalChannel, ImageSegmentation
+from pynwb import NWBFile, NWBHDF5IO
+from pynwb.ophys import TwoPhotonSeries, OpticalChannel
 
 from roiextractors import NwbImagingExtractor
-from roiextractors.testing import generate_dummy_video, assert_get_frames_indexing_with_single_channel
-from roiextractors.extraction_tools import PathType, ArrayType
+from roiextractors.testing import generate_dummy_video, assert_get_frames_return_shape
 
 
 class TestNwbImagingExtractor(unittest.TestCase):
@@ -69,7 +67,6 @@ class TestNwbImagingExtractor(unittest.TestCase):
             io.write(self.nwbfile)
 
     def test_basic_setup(self):
-
         nwb_imaging_extractor = NwbImagingExtractor(file_path=self.file_path)
 
         image_size = nwb_imaging_extractor.get_image_size()
@@ -84,6 +81,7 @@ class TestNwbImagingExtractor(unittest.TestCase):
         assert num_frames == expected_num_frames
         assert num_channels == expected_num_channels
 
+        # Test numpy like behavior for frame_idxs
         frame_idxs = 0
         frames_with_scalar = nwb_imaging_extractor.get_frames(frame_idxs)
         expected_frames = self.video[frame_idxs, ...]
@@ -104,15 +102,19 @@ class TestNwbImagingExtractor(unittest.TestCase):
         expected_frames = self.video[frame_idxs, ...]
         np.testing.assert_array_almost_equal(frames_with_array, expected_frames)
 
+        # Test spikeinterface-like behavior for get_video
+        one_element_video_shape = nwb_imaging_extractor.get_video(start_frame=0, end_frame=1, channel=0).shape
+        expected_shape = (1, image_size[0], image_size[1])
+        assert one_element_video_shape == expected_shape
+
         video = nwb_imaging_extractor.get_video()
         expected_video = self.video
 
         np.testing.assert_array_almost_equal(video, expected_video)
 
     def test_get_frames_indexing_with_single_channel(self):
-
         nwb_imaging_extractor = NwbImagingExtractor(file_path=self.file_path)
-        assert_get_frames_indexing_with_single_channel(imaging_extractor=nwb_imaging_extractor)
+        assert_get_frames_return_shape(imaging_extractor=nwb_imaging_extractor)
 
 
 if __name__ == "__main__":

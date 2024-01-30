@@ -1,3 +1,11 @@
+"""NumpyMemmapImagingExtractor class.
+
+Classes
+-------
+NumpyMemmapImagingExtractor
+    The class for reading optical imaging data stored in a binary format with numpy.memmap.
+"""
+
 import os
 from pathlib import Path
 from typing import Tuple, Dict
@@ -12,6 +20,7 @@ from .memmapextractors import MemmapImagingExtractor
 
 
 class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
+    """An ImagingExtractor class for reading optical imaging data stored in a binary format with numpy.memmap."""
 
     extractor_name = "NumpyMemmapImagingExtractor"
 
@@ -23,8 +32,7 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
         dtype: DtypeType,
         offset: int = 0,
     ):
-        """Class for reading optical imaging data stored in a binary format with np.memmap
-
+        """Create an instance of NumpyMemmapImagingExtractor.
 
         Parameters
         ----------
@@ -64,7 +72,6 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
         offset : int, optional
             The offset in bytes. Usually corresponds to the number of bytes occupied by the header. 0 by default.
         """
-
         self.installed = True
 
         self.file_path = Path(file_path)
