@@ -144,11 +144,15 @@ class ImagingExtractor(ABC):
         """
         if isinstance(frame_idxs, int):
             frame_idxs = [frame_idxs]
+            squeeze = True
         assert max(frame_idxs) <= self.get_num_frames(), "'frame_idxs' exceed number of frames"
         if np.all(np.diff(frame_idxs) == 0):
             return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1])
         relative_indices = np.array(frame_idxs) - frame_idxs[0]
-        return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)[relative_indices, ..., channel]
+        frames = self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)[relative_indices, ..., channel]
+        if squeeze:
+            frames = frames.squeeze()
+        return frames
 
     def frame_to_time(self, frames: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
         """Convert user-inputted frame indices to times with units of seconds.
