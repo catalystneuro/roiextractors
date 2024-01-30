@@ -142,6 +142,8 @@ class ImagingExtractor(ABC):
         frames: numpy.ndarray
             The video frames.
         """
+        if isinstance(frame_idxs, int):
+            frame_idxs = [frame_idxs]
         assert max(frame_idxs) <= self.get_num_frames(), "'frame_idxs' exceed number of frames"
         if np.all(np.diff(frame_idxs) == 0):
             return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1])
