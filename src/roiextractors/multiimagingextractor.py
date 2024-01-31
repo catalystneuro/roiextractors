@@ -122,10 +122,8 @@ class MultiImagingExtractor(ImagingExtractor):
         return self._imaging_extractors[0].get_dtype()
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> NumpyArray:
-        squeeze = False
         if isinstance(frame_idxs, (int, np.integer)):
             frame_idxs = [frame_idxs]
-            squeeze = True
         frame_idxs = np.array(frame_idxs)
         assert np.all(frame_idxs < self.get_num_frames()), "'frame_idxs' exceed number of frames"
         extractor_indices = np.searchsorted(self._end_frames, frame_idxs, side="right")
@@ -147,8 +145,6 @@ class MultiImagingExtractor(ImagingExtractor):
             frames_to_concatenate.append(frames_for_each_extractor)
 
         frames = np.concatenate(frames_to_concatenate, axis=0)
-        if squeeze:
-            frames = np.squeeze(frames, axis=0)
         return frames
 
     def get_video(
