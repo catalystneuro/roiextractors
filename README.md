@@ -21,20 +21,23 @@ See [documentation](https://roiextractors.readthedocs.io/en/latest/) for details
 ### Supported file types:
 #### Imaging
 1. HDF5
-2. TIFF
-3. STK
-4. FLI
-5. SBX
+2. Miniscope
+3. NWB
+4. SBX
+5. Micromanager
+6. Bruker
+7. ScanImage
 
 #### Segmentation
 1. [calciumImagingAnalysis](https://github.com/bahanonu/calciumImagingAnalysis) (CNMF-E, EXTRACT)
 2. [SIMA](http://www.losonczylab.org/sima/1.3.2/)
 3. [NWB](https://pynwb.readthedocs.io/en/stable/)
 4. [suite2p](https://github.com/MouseLand/suite2p)
-45. Numpy (a data format for manual input of optical physiology data as various numpy datasets)
+5. Numpy (a data format for manual input of optical physiology data as various numpy datasets)
+6. [CaImAn](https://github.com/flatironinstitute/CaImAn)
 
 #### Functionality:
-This package provides a common API for various optical imaging and segmentation formats streamline conversion and data analysis.
+This package provides a common API for various optical imaging and segmentation formats to streamline conversion and data analysis.
 
 ## Example Datasets:
 Example datasets are maintained at https://gin.g-node.org/CatalystNeuro/ophys_testing_data.
