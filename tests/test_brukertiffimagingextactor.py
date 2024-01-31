@@ -101,7 +101,7 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
         assert_array_equal(self.extractor.get_video(start_frame=0, end_frame=1), self.video[:1])
 
     def test_brukertiffextractor_get_single_frame(self):
-        assert_array_equal(self.extractor.get_frames(frame_idxs=[0]), self.video[0][np.newaxis, ...])
+        assert_array_equal(self.extractor.get_frames(frame_idxs=[0]), self.video[0])
 
 
 class TestBrukerTiffExtractorDualPlaneCase(TestCase):
@@ -172,7 +172,7 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
         assert_array_equal(self.extractor.get_video(start_frame=2, end_frame=4), self.test_video[2:4])
 
     def test_brukertiffextractor_get_single_frame(self):
-        assert_array_equal(self.extractor.get_frames(frame_idxs=[0]), self.test_video[0][np.newaxis, ...])
+        assert_array_equal(self.extractor.get_frames(frame_idxs=[0]), self.test_video[0])
 
 
 class TestBrukerTiffExtractorDualColorCase(TestCase):
