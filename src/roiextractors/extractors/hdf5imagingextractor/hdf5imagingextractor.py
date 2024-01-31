@@ -121,6 +121,18 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         """Close the HDF5 file."""
         self._file.close()
 
+    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0):
+        squeeze_data = False
+        if isinstance(frame_idxs, int):
+            squeeze_data = True
+            frame_idxs = [frame_idxs]
+        elif isinstance(frame_idxs, np.ndarray):
+            frame_idxs = frame_idxs.tolist()
+        frames = self._video.lazy_slice[frame_idxs, :, :, channel].dsetread()
+        if squeeze_data:
+            frames = frames.squeeze()
+        return frames
+
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
         return self._video.lazy_slice[start_frame:end_frame, :, :, channel].dsetread()
 
