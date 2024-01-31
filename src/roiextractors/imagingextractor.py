@@ -147,10 +147,12 @@ class ImagingExtractor(ABC):
             frame_idxs = [frame_idxs]
             squeeze = True
         assert max(frame_idxs) <= self.get_num_frames(), "'frame_idxs' exceed number of frames"
-        if np.all(np.diff(frame_idxs) == 0):
-            return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1])
-        relative_indices = np.array(frame_idxs) - frame_idxs[0]
-        frames = self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)[relative_indices, ..., channel]
+        if not all(np.diff(frame_idxs) == 1):
+            relative_indices = np.array(frame_idxs) - frame_idxs[0]
+            return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)[
+                relative_indices, ..., channel
+            ]
+        frames = self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)
         if squeeze:
             frames = frames.squeeze(axis=0)
         return frames

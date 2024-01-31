@@ -386,9 +386,11 @@ def assert_get_frames_return_shape(imaging_extractor: ImagingExtractor):
     We aim for the function to behave as numpy slicing and indexing as much as possible.
     """
     image_size = imaging_extractor.get_image_size()
+    print(f"Image size: {image_size}")
 
     frame_idxs = 0
     frames_with_scalar = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
+    print(f"Frames with scalar.shape: {frames_with_scalar.shape}")
     assert frames_with_scalar.shape == image_size, "get_frames does not work correctly with frame_idxs=0"
 
     frame_idxs = [0]
