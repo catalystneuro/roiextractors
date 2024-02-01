@@ -406,6 +406,11 @@ def assert_get_frames_return_shape(imaging_extractor: ImagingExtractor):
     assert_msg = "get_frames does not work correctly with frame_idxs=np.arrray([0, 1])"
     assert frames_with_array.shape == (2, image_size[0], image_size[1]), assert_msg
 
+    frame_idxs = [0, 2]
+    frames_with_array = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
+    assert_msg = "get_frames does not work correctly with frame_idxs=[0, 2]"
+    assert frames_with_array.shape == (2, image_size[0], image_size[1]), assert_msg
+
 
 def check_imaging_return_types(img_ex: ImagingExtractor):
     """Check that the return types of the imaging extractor are correct."""
