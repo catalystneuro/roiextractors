@@ -59,32 +59,6 @@ pip install git+https://github.com/catalystneuro/roiextractors.git@main
 ## Documentation
 See our [ReadTheDocs page](https://roiextractors.readthedocs.io/en/latest/) for full documentation, including a gallery of all supported formats.
 
-## Developer Guide
-
-### Example Datasets
-Example datasets are maintained at https://gin.g-node.org/CatalystNeuro/ophys_testing_data.
-
-To download test data on your machine,
-
-1. Install the gin client (instructions [here](https://gin.g-node.org/G-Node/Info/wiki/GIN+CLI+Setup#linux))
-2. Use gin to download data.
-```shell
-gin get CatalystNeuro/ophys_testing_data
-cd ophys_testing_data
-gin get-content
-```
-
-3. Change the file at `roiextractors/tests/gin_test_config.json` to point to the path of this test data
-
-To update data later, `cd` into the test directory and run `gin get-content`
-
-### Troubleshooting
-##### Installing SIMA with python>=3.7:
-Will need a manual installation for package dependency **SIMA** since it does not currently support python 3.7:
-1.   Download SIMA wheels distribution [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#sima).
-2.  `pip install <download-path-to-wheels.whl>`
-3.  `pip install roiextractors`
-
 ## Funding
 ROIExtractors is funded by
 * Stanford University as part of the Ripple U19 project (U19NS104590).
