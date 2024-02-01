@@ -21,6 +21,7 @@
 - [Installation](#installation)
 - [Documentation](#documentation)
 - [Funding](#funding)
+- [License](#license)
 
 ## About
 
