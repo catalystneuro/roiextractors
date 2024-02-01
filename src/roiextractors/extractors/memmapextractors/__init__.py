@@ -14,5 +14,6 @@ MemmapImagingExtractor
 NumpyMemmapImagingExtractor
     The class for reading optical imaging data stored in a binary format with numpy.memmap.
 """
+
 from .memmapextractors import MemmapImagingExtractor
 from .numpymemampextractor import NumpyMemmapImagingExtractor
