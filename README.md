@@ -5,41 +5,62 @@
 [![documentation](https://readthedocs.org/projects/roiextractors/badge/?version=latest)](https://roiextractors.readthedocs.io/en/latest/)
 [![License](https://img.shields.io/pypi/l/pynwb.svg)](https://github.com/catalystneuro/roiextractors/license.txt)
 
-# ROI Extractors
-Python-based module for extracting from, converting between, and handling recorded and optical imaging data from several file formats. Inspired by [SpikeExtractors](https://github.com/SpikeInterface/spikeextractors).
+# ROIExtractors
+<p align="center">
+  <h3 align="center">Automatically read optical imaging/segmentation data into a common API</h3>
+</p>
+<p align="center">
+   <a href="roiextractors.readthedocs.io"><strong>Explore our documentation »</strong></a>
+</p>
 
-Developed by [CatalystNeuro](http://catalystneuro.com/).
+<!-- TABLE OF CONTENTS -->
 
-## Getting Started:
-#### Installation:
-`pip install roiextractors`
+## Table of Contents
 
-## Usage:
+- [About](#about)
+- [Installation](#installation)
+- [Documentation](#documentation)
+- [Funding](#funding)
 
-See [documentation](https://roiextractors.readthedocs.io/en/latest/) for details.
+## About
 
-### Supported file types:
-#### Imaging
-1. HDF5
-2. Miniscope
-3. NWB
-4. SBX
-5. Micromanager
-6. Bruker
-7. ScanImage
+ROIExtractors provides a common API for various optical imaging and segmentation formats to streamline conversion and data analysis. ROI stands for Region Of Interest, which is the region in a set of acquired fluorescence images which the segmentation software has determined as a neuron.
 
-#### Segmentation
-1. [calciumImagingAnalysis](https://github.com/bahanonu/calciumImagingAnalysis) (CNMF-E, EXTRACT)
-2. [SIMA](http://www.losonczylab.org/sima/1.3.2/)
-3. [NWB](https://pynwb.readthedocs.io/en/stable/)
-4. [suite2p](https://github.com/MouseLand/suite2p)
-5. Numpy (a data format for manual input of optical physiology data as various numpy datasets)
-6. [CaImAn](https://github.com/flatironinstitute/CaImAn)
+Features:
 
-#### Functionality:
-This package provides a common API for various optical imaging and segmentation formats to streamline conversion and data analysis.
+* Reads data from 10+ popular optical imaging and segmentation data formats into a common API.
+* Extracts relevant metadata from each format.
+* Provides a handy set of methods to analyze data such as `get_roi_locations()`
 
-## Example Datasets:
+## Installation
+
+To install the latest stable release of **roiextractors** though PyPI, type:
+```shell
+pip install roiextractors
+```
+
+For more flexibility we recommend installing the latest version directly from GitHub. The following commands create an environment with all the required dependencies and the latest updates:
+
+```shell
+git clone https://github.com/catalystneuro/roiextractors
+cd roiextractors
+conda env create roiextractors_env
+conda activate roiextractors_env
+pip install -e .
+```
+Note that this will install the package in [editable mode](https://pip.pypa.io/en/stable/cli/pip_install/#editable-installs).
+
+Finally, if you prefer to avoid `conda` altogether, the following commands provide a clean installation within the current environment:
+```shell
+pip install git+https://github.com/catalystneuro/roiextractors.git@main
+```
+
+## Documentation
+See our [ReadTheDocs page](https://roiextractors.readthedocs.io/en/latest/) for full documentation, including a gallery of all supported formats.
+
+## Developer Guide
+
+### Example Datasets
 Example datasets are maintained at https://gin.g-node.org/CatalystNeuro/ophys_testing_data.
 
 To download test data on your machine,
@@ -56,13 +77,17 @@ gin get-content
 
 To update data later, `cd` into the test directory and run `gin get-content`
 
-## Troubleshooting
+### Troubleshooting
 ##### Installing SIMA with python>=3.7:
 Will need a manual installation for package dependency **SIMA** since it does not currently support python 3.7:
 1.   Download SIMA wheels distribution [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#sima).
 2.  `pip install <download-path-to-wheels.whl>`
 3.  `pip install roiextractors`
 
-### Funded by
+## Funding
+ROIExtractors is funded by
 * Stanford University as part of the Ripple U19 project (U19NS104590).
 * LBNL as part of the NWB U24 (U24NS120057).
+
+## License
+ROIExtractors is distributed under the BSD3 License. See [LICENSE](https://github.com/catalystneuro/roiextractors/blob/main/LICENSE.txt) for more information.
