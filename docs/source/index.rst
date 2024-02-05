@@ -31,6 +31,7 @@ With this package, a user can:
    contribute
    licence
    contact
+   api
 
 Indices and tables
 ==================
