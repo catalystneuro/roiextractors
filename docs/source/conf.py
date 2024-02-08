@@ -1,65 +1,72 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# This file only contains a selection of the most common options. For a full
-# list see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
-
-# -- Path setup --------------------------------------------------------------
-
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
-import os
 import sys
+from pathlib import Path
 
-sys.path.insert(0, os.path.abspath("."))
-
-
-# -- Project information -----------------------------------------------------
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 project = "RoiExtractors"
 copyright = "2021, Saksham Sharda"
 author = "Saksham Sharda"
 
-# The full version, including alpha/beta/rc tags
-release = "0.2.1"
-
-
-# -- General configuration ---------------------------------------------------
-
-# Add any Sphinx extension module names here, as strings. They can be
-# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
-# ones.
-extensions = []
-
-# Add any paths that contain templates here, relative to this directory.
-templates_path = ["_templates"]
-
-# List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
-# This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
-
-nbsphinx_execute_arguments = [
-    "--InlineBackend.figure_formats={'svg', 'pdf'}",
-    "--InlineBackend.rc={'figure.dpi': 96}",
+extensions = [
+    "sphinx.ext.napoleon",  # Support for NumPy and Google style docstrings
+    "sphinx.ext.autodoc",  # Includes documentation from docstrings in docs/api
+    "sphinx.ext.autosummary",  # Not clear. Please add if you know
+    "sphinx.ext.intersphinx",  # Allows links to other sphinx project documentation sites
+    "sphinx_search.extension",  # Allows for auto search function the documentation
+    "sphinx.ext.viewcode",  # Shows source code in the documentation
+    "sphinx.ext.extlinks",  # Allows to use shorter external links defined in the extlinks variable.
 ]
-# -- Options for HTML output -------------------------------------------------
 
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-#
-try:
-    import sphinx_rtd_theme
-
-    html_theme = "sphinx_rtd_theme"
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-except ImportError:
-    print("RTD theme not installed, using default")
-    html_theme = "alabaster"
-
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
+templates_path = ["_templates"]
+master_doc = "index"
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
+
+html_context = {
+    # "github_url": "https://github.com", # or your GitHub Enterprise site
+    "github_user": "catalystneuro",
+    "github_repo": "roiextractors",
+    "github_version": "main",
+    "doc_path": "docs",
+}
+
+linkcheck_anchors = False
+
+# --------------------------------------------------
+# Extension configuration
+# --------------------------------------------------
+
+# Napoleon
+napoleon_google_docstring = False
+napoleon_numpy_docstring = True
+napoleon_use_param = False
+napoleon_use_ivar = True
+napoleon_include_init_with_doc = False
+napoleon_include_private_with_doc = True
+napoleon_include_special_with_doc = True
+
+# Autodoc
+autoclass_content = "both"  # Concatenates docstring of the class with that of its __init__
+autodoc_member_order = "bysource"  # Displays classes and methods by their order in source code
+autodata_content = "both"
+autodoc_default_options = {
+    "members": True,
+    "member-order": "bysource",
+    "private-members": True,
+    "show-inheritance": False,
+    "toctree": True,
+}
+add_module_names = False
+
+# Intersphinx
+intersphinx_mapping = {
+    "hdmf": ("https://hdmf.readthedocs.io/en/stable/", None),
+    "pynwb": ("https://pynwb.readthedocs.io/en/stable/", None),
+    "spikeinterface": ("https://spikeinterface.readthedocs.io/en/latest/", None),
+}
+
+# To shorten external links
+extlinks = {
+    "nwbinspector": ("https://nwbinspector.readthedocs.io/en/dev/%s", ""),
+}

@@ -10,7 +10,7 @@ Welcome to RoiExtractors's documentation!
 Roiextractors is a library that helps in analyzing, visualizing and interacting with optical physiology data acquired from various acquisition systems.
 
 **ROI**
-   Stands for Region Of Interest, which is the region in a set of acquired fluorescence images which the segmentation software has determined as a neuron.
+   Stands for Region Of Interest, which is the set of pixels from acquired fluorescence images which the segmentation software has determined to follow a particular cellular structure.
 
 With this package, a user can:
 
@@ -20,9 +20,7 @@ With this package, a user can:
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
-   :glob:
-   :numbered:
+   :caption: Contents
 
    gettingstarted
    compatible
@@ -31,10 +29,3 @@ With this package, a user can:
    contribute
    licence
    contact
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
