@@ -14,9 +14,13 @@ Roiextractors is a library that helps in analyzing, visualizing and interacting 
 
 With this package, a user can:
 
-- Work with imaging data in formats like: TIFF, HDF5, STK, FLI.
+- Work with imaging data in formats like: ScanImage TIFF, HDF5, Miniscope, Scanbox and more.
 - Work with post-processed data (after application of cell extraction/segmentation) output from various commonly used cell extraction/segmentation packages like Suite2p, CNMF-E, Caiman, SIMA.
-- Save all this data into NWB format and share it with the community!
+- Leverage a common API to streamline analysis and visualization of data from different acquisition systems and cell extraction/segmentation pipelines.
+
+.. seealso::
+
+   If you want to write data to NWB, you can check out our primary dependent: `NeuroConv <https://neuroconv.readthedocs.io/en/main/index.html>`_.
 
 .. toctree::
    :maxdepth: 2

@@ -1,4 +1,4 @@
-Contribute:
+Contribute
 ===========
 
 Example Datasets
