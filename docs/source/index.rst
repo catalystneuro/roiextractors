@@ -20,9 +20,7 @@ With this package, a user can:
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
-   :glob:
-   :numbered:
+   :caption: Contents
 
    gettingstarted
    compatible
@@ -31,10 +29,3 @@ With this package, a user can:
    contribute
    licence
    contact
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
