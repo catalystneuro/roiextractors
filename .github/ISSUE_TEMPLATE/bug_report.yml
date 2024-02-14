@@ -88,9 +88,9 @@ body:
     validations:
       required: true
   - type: dropdown
-    id: redundant_issue_check
+    id: duplicated_issue_check
     attributes:
-      label: Redundant Issue Check
+      label: Duplicated Issue Check
       description: Have you ensured this bug was not already [reported](https://github.com/catalystneuro/roiextractors/issues)?
       options:
         - "No"
