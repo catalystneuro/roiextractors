@@ -10,4 +10,5 @@ Classes
 SimaSegmentationExtractor
     A segmentation extractor for Sima.
 """
+
 from .simasegmentationextractor import SimaSegmentationExtractor
