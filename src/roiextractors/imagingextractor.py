@@ -7,6 +7,7 @@ ImagingExtractor
 FrameSliceImagingExtractor
     Class to get a lazy frame slice.
 """
+
 from abc import ABC, abstractmethod
 from typing import Union, Optional, Tuple
 from copy import deepcopy

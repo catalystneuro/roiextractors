@@ -5,6 +5,7 @@ Classes
 VideoStructure
     A data class for specifying the structure of a video.
 """
+
 import sys
 import importlib.util
 from functools import wraps

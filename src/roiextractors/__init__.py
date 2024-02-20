@@ -1,4 +1,5 @@
 """Python-based module for extracting from, converting between, and handling recorded and optical imaging data from several file formats."""
+
 # Keeping __version__ accessible only to maintain backcompatability.
 # Modern approach (Python >= 3.8) is to use importlib
 try:

@@ -12,4 +12,5 @@ NumpyImagingExtractor
 NumpySegmentationExtractor
     A Segmentation extractor specified by image masks and traces .npy files.
 """
+
 from .numpyextractors import NumpyImagingExtractor, NumpySegmentationExtractor

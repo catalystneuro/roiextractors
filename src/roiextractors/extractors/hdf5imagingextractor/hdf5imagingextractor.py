@@ -5,6 +5,7 @@ Classes
 Hdf5ImagingExtractor
     An imaging extractor for HDF5.
 """
+
 from pathlib import Path
 from typing import Optional, Tuple
 from warnings import warn
@@ -118,25 +119,22 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         self._file.close()
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0):
-        # Fancy indexing is non performant for h5.py with long frame lists
-        if frame_idxs is not None:
-            slice_start = np.min(frame_idxs)
-            slice_stop = min(np.max(frame_idxs) + 1, self.get_num_frames())
-        else:
-            slice_start = 0
-            slice_stop = self.get_num_frames()
-
-        frames = self._video.lazy_slice[slice_start:slice_stop, :, :, channel].dsetread()
+        squeeze_data = False
         if isinstance(frame_idxs, int):
+            squeeze_data = True
+            frame_idxs = [frame_idxs]
+        elif isinstance(frame_idxs, np.ndarray):
+            frame_idxs = frame_idxs.tolist()
+        frames = self._video.lazy_slice[frame_idxs, :, :, channel].dsetread()
+        if squeeze_data:
             frames = frames.squeeze()
-
         return frames
 
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
         return self._video.lazy_slice[start_frame:end_frame, :, :, channel].dsetread()
 
     def get_image_size(self) -> Tuple[int, int]:
-        return (self._num_rows, self._num_cols)
+        return self._num_rows, self._num_cols
 
     def get_num_frames(self):
         return self._num_frames

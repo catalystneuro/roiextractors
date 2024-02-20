@@ -18,6 +18,7 @@ NewExtractSegmentationExtractor
 LegacyExtractSegmentationExtractor
     Extractor for reading the segmentation data that results from calls to older versions of EXTRACT.
 """
+
 from .cnmfesegmentationextractor import CnmfeSegmentationExtractor
 from .extractsegmentationextractor import (
     LegacyExtractSegmentationExtractor,

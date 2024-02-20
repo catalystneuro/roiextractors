@@ -1,4 +1,5 @@
 """Listing of available formats for extraction."""
+
 from .extractors.caiman import CaimanSegmentationExtractor
 from .extractors.hdf5imagingextractor import Hdf5ImagingExtractor
 from .extractors.numpyextractors import (

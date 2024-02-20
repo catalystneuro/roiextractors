@@ -9,6 +9,7 @@ SegmentationExtractor
 FrameSliceSegmentationExtractor
     Class to get a lazy frame slice.
 """
+
 from abc import ABC, abstractmethod
 from typing import Union, Optional, Tuple, Iterable, List
 

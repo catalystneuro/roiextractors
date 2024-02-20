@@ -7,6 +7,7 @@ NwbImagingExtractor
 NwbSegmentationExtractor
     Extracts segmentation data from NWB files.
 """
+
 from pathlib import Path
 from typing import Union, Optional, Iterable, Tuple
 
@@ -178,18 +179,14 @@ class NwbImagingExtractor(ImagingExtractor):
         )
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0):
-        # Fancy indexing is non performant for h5.py with long frame lists
-        if frame_idxs is not None:
-            slice_start = np.min(frame_idxs)
-            slice_stop = min(np.max(frame_idxs) + 1, self.get_num_frames())
-        else:
-            slice_start = 0
-            slice_stop = self.get_num_frames()
-
-        data = self.photon_series.data
-        frames = data[slice_start:slice_stop, ...].transpose([0, 2, 1])
-
+        squeeze_data = False
         if isinstance(frame_idxs, int):
+            squeeze_data = True
+            frame_idxs = [frame_idxs]
+        elif isinstance(frame_idxs, np.ndarray):
+            frame_idxs = frame_idxs.tolist()
+        frames = self.photon_series.data[frame_idxs].transpose([0, 2, 1])
+        if squeeze_data:
             frames = frames.squeeze()
         return frames
 

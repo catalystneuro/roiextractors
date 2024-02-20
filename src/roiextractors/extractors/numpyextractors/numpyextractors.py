@@ -7,6 +7,7 @@ NumpyImagingExtractor
 NumpySegmentationExtractor
     A Segmentation extractor specified by image masks and traces .npy files.
 """
+
 from pathlib import Path
 from typing import Optional, Tuple
 
