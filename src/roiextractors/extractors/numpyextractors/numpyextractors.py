@@ -103,7 +103,7 @@ class NumpyImagingExtractor(ImagingExtractor):
         return self._video[start_frame:end_frame, ..., channel]
 
     def get_video_shape(video) -> Tuple[int, int, int, int]:
-        """Get the shape of a video (num_channels, num_frames, size_x, size_y).
+        """Get the shape of a video (num_frames, num_rows, num_columns, num_channels).
 
         Parameters
         ----------
@@ -113,15 +113,15 @@ class NumpyImagingExtractor(ImagingExtractor):
         Returns
         -------
         video_shape: tuple
-            The shape of the video (num_channels, num_frames, size_x, size_y).
+            The shape of the video (num_frames, num_rows, num_columns, num_channels).
         """
         if len(video.shape) == 3:
             # 1 channel
             num_channels = 1
-            num_frames, size_x, size_y = video.shape
+            num_frames, num_rows, num_columns = video.shape
         else:
-            num_channels, num_frames, size_x, size_y = video.shape
-        return num_channels, num_frames, size_x, size_y
+            num_frames, num_rows, num_columns, num_channels = video.shape
+        return num_frames, num_rows, num_columns, num_channels
 
     def get_image_size(self) -> Tuple[int, int]:
         return (self._num_rows, self._num_columns)
