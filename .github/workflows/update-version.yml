@@ -27,7 +27,7 @@ jobs:
           new_patch_version=`expr $old_patch_version + 1`
           new_version="$old_major_version.$old_minor_version.$new_patch_version"
           echo "New Version: $new_version"
-          sed -i -e "s/version = \"$old_version\"/version = \"$new_version\"/g" setup.py
+          sed -i -e "s/version=\"$old_version\"/version=\"$new_version\"/g" setup.py
       - name: Commit Changes and Create Pull Request
         run: |
           git config --global user.email 41898282+github-actions[bot]@users.noreply.github.com
