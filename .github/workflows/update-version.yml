@@ -16,7 +16,7 @@ jobs:
           git checkout -b update_dev_version
       - name: Update dev version
         run: |
-          old_version=${{ github.event.release.tag_name }}
+          old_version=${{  github.ref_name }}
           echo "Old Version: $old_version"
           old_major_version=${old_version:0:1}
           old_minor_version=${old_version:2:1}
