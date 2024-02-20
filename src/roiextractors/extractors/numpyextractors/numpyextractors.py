@@ -13,7 +13,6 @@ from typing import Optional, Tuple
 import numpy as np
 
 from ...extraction_tools import PathType, FloatType, ArrayType
-from ...extraction_tools import get_video_shape
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
 
@@ -77,7 +76,7 @@ class NumpyImagingExtractor(ImagingExtractor):
             self._num_rows,
             self._num_columns,
             self._num_channels,
-        ) = get_video_shape(self._video)
+        ) = self.get_video_shape(self._video)
 
         if len(self._video.shape) == 3:
             # check if this converts to np.ndarray
@@ -102,6 +101,27 @@ class NumpyImagingExtractor(ImagingExtractor):
 
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
         return self._video[start_frame:end_frame, ..., channel]
+
+    def get_video_shape(video) -> Tuple[int, int, int, int]:
+        """Get the shape of a video (num_channels, num_frames, size_x, size_y).
+
+        Parameters
+        ----------
+        video: numpy.ndarray
+            The video to get the shape of.
+
+        Returns
+        -------
+        video_shape: tuple
+            The shape of the video (num_channels, num_frames, size_x, size_y).
+        """
+        if len(video.shape) == 3:
+            # 1 channel
+            num_channels = 1
+            num_frames, size_x, size_y = video.shape
+        else:
+            num_channels, num_frames, size_x, size_y = video.shape
+        return num_channels, num_frames, size_x, size_y
 
     def get_image_size(self) -> Tuple[int, int]:
         return (self._num_rows, self._num_columns)

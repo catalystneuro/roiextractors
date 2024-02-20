@@ -325,28 +325,6 @@ def _image_mask_extractor(pixel_mask, _roi_ids, image_shape) -> np.ndarray:
     return image_mask
 
 
-def get_video_shape(video) -> Tuple[int, int, int, int]:
-    """Get the shape of a video (num_channels, num_frames, size_x, size_y).
-
-    Parameters
-    ----------
-    video: numpy.ndarray
-        The video to get the shape of.
-
-    Returns
-    -------
-    video_shape: tuple
-        The shape of the video (num_channels, num_frames, size_x, size_y).
-    """
-    if len(video.shape) == 3:
-        # 1 channel
-        num_channels = 1
-        num_frames, size_x, size_y = video.shape
-    else:
-        num_channels, num_frames, size_x, size_y = video.shape
-    return num_channels, num_frames, size_x, size_y
-
-
 def check_get_frames_args(func):
     """Check the arguments of the get_frames function.
 
