@@ -16,6 +16,7 @@ jobs:
           git checkout -b update_dev_version
       - name: Update dev version
         run: |
+          git fetch --prune --unshallow --tags
           echo $(git tag --list)
           tags="$(git tag --list)"
           echo "Tags: $tags"
