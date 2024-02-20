@@ -9,7 +9,6 @@ SbxImagingExtractor
 from multiprocessing.sharedctypes import Value
 import os
 from pathlib import Path
-from warnings import warn
 from typing import Tuple, Optional
 
 import numpy as np

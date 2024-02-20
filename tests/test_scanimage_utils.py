@@ -1,6 +1,5 @@
 import pytest
 from numpy.testing import assert_array_equal
-from ScanImageTiffReader import ScanImageTiffReader
 from roiextractors.extractors.tiffimagingextractors.scanimagetiff_utils import (
     _get_scanimage_reader,
     extract_extra_metadata,

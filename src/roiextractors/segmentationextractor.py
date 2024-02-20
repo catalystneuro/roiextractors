@@ -181,7 +181,13 @@ class SegmentationExtractor(ABC):
         """
         return FrameSliceSegmentationExtractor(parent_segmentation=self, start_frame=start_frame, end_frame=end_frame)
 
-    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="raw"):
+    def get_traces(
+        self,
+        roi_ids: ArrayType = None,
+        start_frame: Optional[int] = None,
+        end_frame: Optional[int] = None,
+        name: str = "raw",
+    ):
         """Get the traces of each ROI specified by roi_ids.
 
         Parameters
@@ -237,7 +243,7 @@ class SegmentationExtractor(ABC):
         """
         return dict(mean=self._image_mean, correlation=self._image_correlation)
 
-    def get_image(self, name="correlation"):
+    def get_image(self, name: str = "correlation") -> ArrayType:
         """Get specific images: mean or correlation.
 
         Parameters
@@ -253,7 +259,7 @@ class SegmentationExtractor(ABC):
             raise ValueError(f"could not find {name} image, enter one of {list(self.get_images_dict().keys())}")
         return self.get_images_dict().get(name)
 
-    def get_sampling_frequency(self):
+    def get_sampling_frequency(self) -> float:
         """Get the sampling frequency in Hz.
 
         Returns
@@ -266,7 +272,7 @@ class SegmentationExtractor(ABC):
 
         return self._sampling_frequency
 
-    def get_num_rois(self):
+    def get_num_rois(self) -> int:
         """Get total number of Regions of Interest (ROIs) in the acquired images.
 
         Returns
@@ -278,7 +284,7 @@ class SegmentationExtractor(ABC):
             if trace is not None and len(trace.shape) > 0:
                 return trace.shape[1]
 
-    def get_channel_names(self):
+    def get_channel_names(self) -> List[str]:
         """Get names of channels in the pipeline.
 
         Returns
@@ -288,7 +294,7 @@ class SegmentationExtractor(ABC):
         """
         return self._channel_names
 
-    def get_num_channels(self):
+    def get_num_channels(self) -> int:
         """Get number of channels in the pipeline.
 
         Returns
@@ -342,7 +348,7 @@ class SegmentationExtractor(ABC):
 
         Parameters
         ----------
-        frame_indices: int or array-like
+        frames: int or array-like
             The frame or frames to be converted to times
 
         Returns
