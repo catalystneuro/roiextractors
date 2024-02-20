@@ -90,19 +90,7 @@ class NumpyImagingExtractor(ImagingExtractor):
         else:
             self._channel_names = [f"channel_{ch}" for ch in range(self._num_channels)]
 
-    def get_frames(self, frame_idxs=None, channel: Optional[int] = 0) -> np.ndarray:
-        if frame_idxs is None:
-            frame_idxs = [frame for frame in range(self.get_num_frames())]
-
-        frames = self._video.take(indices=frame_idxs, axis=0)
-        if channel is not None:
-            frames = frames[..., channel].squeeze()
-
-        return frames
-
-    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
-        return self._video[start_frame:end_frame, ..., channel]
-
+    @staticmethod
     def get_video_shape(video) -> Tuple[int, int, int, int]:
         """Get the shape of a video (num_frames, num_rows, num_columns, num_channels).
 
@@ -123,6 +111,19 @@ class NumpyImagingExtractor(ImagingExtractor):
         else:
             num_frames, num_rows, num_columns, num_channels = video.shape
         return num_frames, num_rows, num_columns, num_channels
+
+    def get_frames(self, frame_idxs=None, channel: Optional[int] = 0) -> np.ndarray:
+        if frame_idxs is None:
+            frame_idxs = [frame for frame in range(self.get_num_frames())]
+
+        frames = self._video.take(indices=frame_idxs, axis=0)
+        if channel is not None:
+            frames = frames[..., channel].squeeze()
+
+        return frames
+
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+        return self._video[start_frame:end_frame, ..., channel]
 
     def get_image_size(self) -> Tuple[int, int]:
         return (self._num_rows, self._num_columns)
