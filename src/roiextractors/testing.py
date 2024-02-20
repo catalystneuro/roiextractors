@@ -74,6 +74,8 @@ def generate_dummy_imaging_extractor(
         sampling frequency of the video, by default 30.
     dtype : DtypeType, optional
         dtype of the video, by default "uint16".
+    channel_names : list, optional
+        list of channel names.
 
     Returns
     -------
