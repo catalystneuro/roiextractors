@@ -17,11 +17,13 @@ jobs:
       - name: Update dev version
         run: |
           old_version=${{ github.event.release.tag_name }}
+          echo "Old Version: $old_version"
           old_major_version=${old_version:0:1}
           old_minor_version=${old_version:2:1}
           old_patch_version=${old_version:4:1}
           new_patch_version=`expr $old_patch_version + 1`
           new_version="$old_major_version.$old_minor_version.$new_patch_version"
+          echo "New Version: $new_version"
           sed -i -e "s/version = \"$old_version\"/version = \"$new_version\"/g" setup.py
       - name: Commit Changes and Create Pull Request
         run: |
