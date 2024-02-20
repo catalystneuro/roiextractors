@@ -16,7 +16,8 @@ jobs:
           git checkout -b update_dev_version
       - name: Update dev version
         run: |
-          tags=$(git tag --list)
+          git tag --list
+          tags="$(git tag --list)"
           echo "Tags: $tags"
           latest_tag=${tags: -6 : 6}
           echo "Latest Tag: $latest_tag"
