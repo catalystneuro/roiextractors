@@ -40,6 +40,7 @@ class SegmentationExtractor(ABC):
         self._roi_response_raw = None
         self._roi_response_dff = None
         self._roi_response_neuropil = None
+        self._roi_response_denoised = None
         self._roi_response_deconvolved = None
         self._image_correlation = None
         self._image_mean = None
@@ -223,13 +224,14 @@ class SegmentationExtractor(ABC):
         -------
         _roi_response_dict: dict
             dictionary with key, values representing different types of RoiResponseSeries:
-                Fluorescence, Neuropil, Deconvolved, Background, etc.
+                Raw Fluorescence, DeltaFOverF, Denoised, Neuropil, Deconvolved, Background, etc.
         """
         return dict(
             raw=self._roi_response_raw,
             dff=self._roi_response_dff,
             neuropil=self._roi_response_neuropil,
             deconvolved=self._roi_response_deconvolved,
+            denoised=self._roi_response_denoised,
         )
 
     def get_images_dict(self):

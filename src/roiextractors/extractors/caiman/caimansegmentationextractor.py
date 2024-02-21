@@ -56,7 +56,8 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self.file_path = file_path
         self._dataset_file = self._file_extractor_read()
         self._roi_response_dff = self._trace_extractor_read("F_dff")
-        self._roi_response_neuropil = self._trace_extractor_read("C")
+        self._roi_response_denoised = self._trace_extractor_read("C")
+        self._roi_response_neuropil = self._trace_extractor_read("b")
         self._roi_response_deconvolved = self._trace_extractor_read("S")
         self._image_correlation = self._summary_image_read()
         self._sampling_frequency = self._dataset_file["params"]["data"]["fr"][()]
@@ -177,8 +178,10 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             estimates = f.create_group("estimates")
             params = f.create_group("params")
             # adding to estimates:
+            if segmentation_object.get_traces(name="denoised") is not None:
+                estimates.create_dataset("C", data=segmentation_object.get_traces(name="denoised"))
             if segmentation_object.get_traces(name="neuropil") is not None:
-                estimates.create_dataset("C", data=segmentation_object.get_traces(name="neuropil"))
+                estimates.create_dataset("b", data=segmentation_object.get_traces(name="neuropil"))
             if segmentation_object.get_traces(name="dff") is not None:
                 estimates.create_dataset("F_dff", data=segmentation_object.get_traces(name="dff"))
             if segmentation_object.get_traces(name="deconvolved") is not None:
