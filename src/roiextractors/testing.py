@@ -356,7 +356,7 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
     )
     assert isinstance(seg.get_traces_dict(), dict)
     assert isinstance(seg.get_images_dict(), dict)
-    assert {"raw", "dff", "neuropil", "deconvolved"} == set(seg.get_traces_dict().keys())
+    assert {"raw", "dff", "neuropil", "deconvolved", "deconvolved"} == set(seg.get_traces_dict().keys())
 
 
 def check_imaging_equal(
