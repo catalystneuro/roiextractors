@@ -55,6 +55,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         SegmentationExtractor.__init__(self)
         self.file_path = file_path
         self._dataset_file = self._file_extractor_read()
+        self._roi_response_raw = self._trace_extractor_read("C") + self._trace_extractor_read("Yr")
         self._roi_response_dff = self._trace_extractor_read("F_dff")
         self._roi_response_denoised = self._trace_extractor_read("C")
         self._roi_response_neuropil = self._trace_extractor_read("f")
