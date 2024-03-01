@@ -5,7 +5,7 @@ Classes
 SegmentationExtractor
     Abstract class that contains all the meta-data and output data from the ROI segmentation operation when applied to
     the pre-processed data. It also contains methods to read from and write to various data formats output from the
-    processing pipelines like SIMA, CaImAn, Suite2p, CNNM-E.
+    processing pipelines like SIMA, CaImAn, Suite2p, CNMF-E.
 FrameSliceSegmentationExtractor
     Class to get a lazy frame slice.
 """
@@ -26,7 +26,7 @@ class SegmentationExtractor(ABC):
     An abstract class that contains all the meta-data and output data from
     the ROI segmentation operation when applied to the pre-processed data.
     It also contains methods to read from and write to various data formats
-    output from the processing pipelines like SIMA, CaImAn, Suite2p, CNNM-E.
+    output from the processing pipelines like SIMA, CaImAn, Suite2p, CNMF-E.
     All the methods with @abstract decorator have to be defined by the
     format specific classes that inherit from this.
     """
