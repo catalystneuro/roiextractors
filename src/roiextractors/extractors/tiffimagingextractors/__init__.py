@@ -28,6 +28,7 @@ BrukerTiffSinglePlaneImagingExtractor
 MicroManagerTiffImagingExtractor
     Specialized extractor for reading TIFF files produced via Micro-Manager.
 """
+
 from .tiffimagingextractor import TiffImagingExtractor
 from .scanimagetiffimagingextractor import (
     ScanImageTiffImagingExtractor,

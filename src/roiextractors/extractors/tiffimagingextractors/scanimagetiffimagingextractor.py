@@ -5,6 +5,7 @@ Classes
 ScanImageTiffImagingExtractor
     Specialized extractor for reading TIFF files produced via ScanImage.
 """
+
 from pathlib import Path
 from typing import Optional, Tuple, List, Iterable
 from warnings import warn

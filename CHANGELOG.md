@@ -30,6 +30,11 @@
 
 * Added support for Miniscope AVI files with the `MiniscopeImagingExtractor`. [PR #225](https://github.com/catalystneuro/roiextractors/pull/225)
 
+* Added support for incomplete file ingestion for the `Suite2pSegmentationExtractor`. [PR #227](https://github.com/catalystneuro/roiextractors/pull/227)
+
+* Bug fix for the `CaimanSegmentationExtractor`: Change reshaping from 'C' to 'F' (Fortran). [PR #227](https://github.com/catalystneuro/roiextractors/pull/227)
+
+* Bug fix for the `CaimanSegmentationExtractor`: Added importing of `self._image_correlation` and changed how `self._image_mean` to import the background component image. [PR #227](https://github.com/catalystneuro/roiextractors/pull/227)
 
 
 # v0.5.2

@@ -5,11 +5,11 @@ Classes
 Suite2pSegmentationExtractor
     A segmentation extractor for Suite2p.
 """
+
 import shutil
 from pathlib import Path
 from typing import Optional
 from warnings import warn
-import os
 import numpy as np
 
 from ...extraction_tools import PathType
@@ -33,7 +33,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
         Parameters
         ----------
-        file_path : PathType
+        folder_path : PathType
             Path to Suite2p output path.
 
         Returns
