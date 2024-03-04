@@ -7,7 +7,6 @@ from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
 
 from roiextractors import Suite2pSegmentationExtractor
-from roiextractors.extraction_tools import _image_mask_extractor
 from tests.setup_paths import OPHYS_DATA_PATH
 
 

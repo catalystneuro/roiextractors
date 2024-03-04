@@ -26,8 +26,6 @@ from ...extraction_tools import (
     FloatType,
     IntType,
     ArrayType,
-    check_get_frames_args,
-    check_get_videos_args,
     raise_multi_channel_or_depth_not_implemented,
 )
 from ...imagingextractor import ImagingExtractor
