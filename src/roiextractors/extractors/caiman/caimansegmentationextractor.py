@@ -114,10 +114,12 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             return lazy_ops.DatasetView(self._dataset_file["estimates"][field]).lazy_transpose()
 
     def _correlation_image_read(self):
+        """Read correlation image Cn."""
         if self._dataset_file["estimates"].get("Cn"):
             return np.array(self._dataset_file["estimates"]["Cn"])
 
     def _summary_image_read(self):
+        """Read summary image mean."""
         if self._dataset_file["estimates"].get("b"):
             FOV_shape = self._dataset_file["params"]["data"]["dims"][()]
             b_sum = self._dataset_file["estimates"]["b"][:].sum(axis=1)
