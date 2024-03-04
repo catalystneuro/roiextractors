@@ -7,13 +7,13 @@ NumpyImagingExtractor
 NumpySegmentationExtractor
     A Segmentation extractor specified by image masks and traces .npy files.
 """
+
 from pathlib import Path
 from typing import Optional, Tuple
 
 import numpy as np
 
 from ...extraction_tools import PathType, FloatType, ArrayType
-from ...extraction_tools import get_video_shape
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
 
@@ -77,7 +77,7 @@ class NumpyImagingExtractor(ImagingExtractor):
             self._num_rows,
             self._num_columns,
             self._num_channels,
-        ) = get_video_shape(self._video)
+        ) = self.get_video_shape(self._video)
 
         if len(self._video.shape) == 3:
             # check if this converts to np.ndarray
@@ -89,6 +89,28 @@ class NumpyImagingExtractor(ImagingExtractor):
             )
         else:
             self._channel_names = [f"channel_{ch}" for ch in range(self._num_channels)]
+
+    @staticmethod
+    def get_video_shape(video) -> Tuple[int, int, int, int]:
+        """Get the shape of a video (num_frames, num_rows, num_columns, num_channels).
+
+        Parameters
+        ----------
+        video: numpy.ndarray
+            The video to get the shape of.
+
+        Returns
+        -------
+        video_shape: tuple
+            The shape of the video (num_frames, num_rows, num_columns, num_channels).
+        """
+        if len(video.shape) == 3:
+            # 1 channel
+            num_channels = 1
+            num_frames, num_rows, num_columns = video.shape
+        else:
+            num_frames, num_rows, num_columns, num_channels = video.shape
+        return num_frames, num_rows, num_columns, num_channels
 
     def get_frames(self, frame_idxs=None, channel: Optional[int] = 0) -> np.ndarray:
         if frame_idxs is None:

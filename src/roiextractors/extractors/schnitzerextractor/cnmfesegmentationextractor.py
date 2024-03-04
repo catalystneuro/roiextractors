@@ -5,6 +5,7 @@ Classes
 CnmfeSegmentationExtractor
     A segmentation extractor for CNMF-E ROI segmentation method.
 """
+
 from pathlib import Path
 
 try:

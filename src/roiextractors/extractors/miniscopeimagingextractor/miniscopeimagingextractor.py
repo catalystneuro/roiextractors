@@ -5,6 +5,7 @@ Classes
 MiniscopeImagingExtractor
     An ImagingExtractor for the Miniscope video (.avi) format.
 """
+
 import json
 import re
 from pathlib import Path

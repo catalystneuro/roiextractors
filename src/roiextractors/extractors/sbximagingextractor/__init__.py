@@ -10,4 +10,5 @@ Classes
 SbxImagingExtractor
     An ImagingExtractor for Scanbox Image files.
 """
+
 from .sbximagingextractor import SbxImagingExtractor
