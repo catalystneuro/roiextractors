@@ -1,3 +1,11 @@
+"""MiniscopeImagingExtractor class.
+
+Classes
+-------
+MiniscopeImagingExtractor
+    An ImagingExtractor for the Miniscope video (.avi) format.
+"""
+
 import json
 import re
 from pathlib import Path
@@ -10,16 +18,19 @@ from ...multiimagingextractor import MultiImagingExtractor
 from ...extraction_tools import PathType, DtypeType, get_package
 
 
-class MiniscopeImagingExtractor(MultiImagingExtractor):
+class MiniscopeImagingExtractor(MultiImagingExtractor):  # TODO: rename to MiniscopeMultiImagingExtractor
+    """An ImagingExtractor for the Miniscope video (.avi) format.
+
+    This format consists of video (.avi) file(s) and configuration files (.json).
+    One _MiniscopeImagingExtractor is created for each video file and then combined into the MiniscopeImagingExtractor.
+    """
+
     extractor_name = "MiniscopeImaging"
     is_writable = True
     mode = "folder"
 
     def __init__(self, folder_path: PathType):
-        """
-        The imaging extractor for the Miniscope video (.avi) format.
-        This format consists of video (.avi) file(s) and configuration files (.json).
-
+        """Create a MiniscopeImagingExtractor instance from a folder path.
 
         Parameters
         ----------
@@ -55,9 +66,22 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
 
 
 class _MiniscopeImagingExtractor(ImagingExtractor):
+    """An ImagingExtractor for the Miniscope video (.avi) format.
+
+    This format consists of a single video (.avi) file and configuration file (.json).
+    Multiple _MiniscopeImagingExtractor are combined into the MiniscopeImagingExtractor for public access.
+    """
+
     extractor_name = "_MiniscopeImaging"
 
     def __init__(self, file_path: PathType):
+        """Create a _MiniscopeImagingExtractor instance from a file path.
+
+        Parameters
+        ----------
+        file_path: PathType
+           The file path to the Miniscope video (.avi) file.
+        """
         from neuroconv.datainterfaces.behavior.video.video_utils import VideoCaptureContext
 
         self._video_capture = VideoCaptureContext
@@ -93,7 +117,24 @@ class _MiniscopeImagingExtractor(ImagingExtractor):
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
     ) -> np.ndarray:
-        """
+        """Get the video frames.
+
+        Parameters
+        ----------
+        start_frame: int, optional
+            Start frame index (inclusive).
+        end_frame: int, optional
+            End frame index (exclusive).
+        channel: int, optional
+            Channel index.
+
+        Returns
+        -------
+        video: numpy.ndarray
+            The video frames.
+
+        Notes
+        -----
         The grayscale conversion is based on minian
         https://github.com/denisecailab/minian/blob/f64c456ca027200e19cf40a80f0596106918fd09/minian/utilities.py#LL272C12-L272C12
         """

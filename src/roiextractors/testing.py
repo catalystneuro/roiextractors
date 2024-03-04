@@ -1,3 +1,5 @@
+"""Testing utilities for the roiextractors package."""
+
 from collections.abc import Iterable
 from typing import Tuple, Optional
 
@@ -17,6 +19,20 @@ inttype = (int, np.integer)
 
 
 def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16"):
+    """Generate a dummy video of a given size and dtype.
+
+    Parameters
+    ----------
+    size : Tuple[int]
+        Size of the video to generate.
+    dtype : DtypeType, optional
+        Dtype of the video to generate, by default "uint16".
+
+    Returns
+    -------
+    video : np.ndarray
+        A dummy video of the given size and dtype.
+    """
     dtype = np.dtype(dtype)
     number_of_bytes = dtype.itemsize
 
@@ -38,8 +54,36 @@ def generate_dummy_imaging_extractor(
     num_channels: int = 1,
     sampling_frequency: float = 30,
     dtype: DtypeType = "uint16",
+    channel_names: Optional[list] = None,
 ):
-    channel_names = [f"channel_num_{num}" for num in range(num_channels)]
+    """Generate a dummy imaging extractor for testing.
+
+    The imaging extractor is built by feeding random data into the `NumpyImagingExtractor`.
+
+    Parameters
+    ----------
+    num_frames : int, optional
+        number of frames in the video, by default 30.
+    num_rows : int, optional
+        number of rows in the video, by default 10.
+    num_columns : int, optional
+        number of columns in the video, by default 10.
+    num_channels : int, optional
+        number of channels in the video, by default 1.
+    sampling_frequency : float, optional
+        sampling frequency of the video, by default 30.
+    dtype : DtypeType, optional
+        dtype of the video, by default "uint16".
+    channel_names : list, optional
+        list of channel names.
+
+    Returns
+    -------
+    ImagingExtractor
+        An imaging extractor with random data fed into `NumpyImagingExtractor`.
+    """
+    if channel_names is None:
+        channel_names = [f"channel_num_{num}" for num in range(num_channels)]
 
     size = (num_frames, num_rows, num_columns, num_channels)
     video = generate_dummy_video(size=size, dtype=dtype)
@@ -64,13 +108,10 @@ def generate_dummy_segmentation_extractor(
     has_neuropil_signal: bool = True,
     rejected_list: Optional[list] = None,
 ) -> SegmentationExtractor:
-    """
-    A dummy segmentation extractor for testing. The segmentation extractor is built by feeding random data into the
-    `NumpySegmentationExtractor`.
+    """Generate a dummy segmentation extractor for testing.
 
-    Note that this dummy example is meant to be a mock object with the right shape, structure and objects but does not
-    contain meaningful content. That is, the image masks matrices are not plausible image mask for a roi, the raw signal
-    is not a meaningful biological signal and is not related appropriately to the deconvolved signal , etc.
+    The segmentation extractor is built by feeding random data into the
+    `NumpySegmentationExtractor`.
 
     Parameters
     ----------
@@ -101,8 +142,13 @@ def generate_dummy_segmentation_extractor(
     -------
     SegmentationExtractor
         A segmentation extractor with random data fed into `NumpySegmentationExtractor`
-    """
 
+    Notes
+    -----
+    Note that this dummy example is meant to be a mock object with the right shape, structure and objects but does not
+    contain meaningful content. That is, the image masks matrices are not plausible image mask for a roi, the raw signal
+    is not a meaningful biological signal and is not related appropriately to the deconvolved signal , etc.
+    """
     # Create dummy image masks
     image_masks = np.random.rand(num_rows, num_columns, num_rois)
     movie_dims = (num_rows, num_columns)
@@ -150,6 +196,7 @@ def generate_dummy_segmentation_extractor(
 
 
 def _assert_iterable_shape(iterable, shape):
+    """Assert that the iterable has the given shape. If the iterable is a numpy array, the shape is checked directly."""
     ar = iterable if isinstance(iterable, np.ndarray) else np.array(iterable)
     for ar_shape, given_shape in zip(ar.shape, shape):
         if isinstance(given_shape, int):
@@ -157,6 +204,7 @@ def _assert_iterable_shape(iterable, shape):
 
 
 def _assert_iterable_shape_max(iterable, shape_max):
+    """Assert that the iterable has a shape less than or equal to the given maximum shape."""
     ar = iterable if isinstance(iterable, np.ndarray) else np.array(iterable)
     for ar_shape, given_shape in zip(ar.shape, shape_max):
         if isinstance(given_shape, int):
@@ -164,6 +212,7 @@ def _assert_iterable_shape_max(iterable, shape_max):
 
 
 def _assert_iterable_element_dtypes(iterable, dtypes):
+    """Assert that the iterable has elements of the given dtypes."""
     if isinstance(iterable, Iterable) and not isinstance(iterable, str):
         for iter in iterable:
             _assert_iterable_element_dtypes(iter, dtypes)
@@ -172,6 +221,7 @@ def _assert_iterable_element_dtypes(iterable, dtypes):
 
 
 def _assert_iterable_complete(iterable, dtypes=None, element_dtypes=None, shape=None, shape_max=None):
+    """Assert that the iterable is complete, i.e. it is not None and has the given dtypes, element_dtypes, shape and shape_max."""
     assert isinstance(iterable, dtypes), f"iterable {type(iterable)} is none of the types {dtypes}"
     if not isinstance(iterable, NoneType):
         if shape is not None:
@@ -185,6 +235,7 @@ def _assert_iterable_complete(iterable, dtypes=None, element_dtypes=None, shape=
 def check_segmentations_equal(
     segmentation_extractor1: SegmentationExtractor, segmentation_extractor2: SegmentationExtractor
 ):
+    """Check that two segmentation extractors have equal fields."""
     check_segmentation_return_types(segmentation_extractor1)
     check_segmentation_return_types(segmentation_extractor2)
     # assert equality:
@@ -224,9 +275,7 @@ def check_segmentations_images(
     segmentation_extractor1: SegmentationExtractor,
     segmentation_extractor2: SegmentationExtractor,
 ):
-    """
-    Check that the segmentation images are equal for the given segmentation extractors.
-    """
+    """Check that the segmentation images are equal for the given segmentation extractors."""
     images_in_extractor1 = segmentation_extractor1.get_images_dict()
     images_in_extractor2 = segmentation_extractor2.get_images_dict()
 
@@ -243,11 +292,7 @@ def check_segmentations_images(
 
 
 def check_segmentation_return_types(seg: SegmentationExtractor):
-    """
-    Parameters
-    ----------
-    seg:SegmentationExtractor
-    """
+    """Check that the return types of the segmentation extractor are correct."""
     assert isinstance(seg.get_num_rois(), int)
     assert isinstance(seg.get_num_frames(), int)
     assert isinstance(seg.get_num_channels(), int)
@@ -317,6 +362,7 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
 def check_imaging_equal(
     imaging_extractor1: ImagingExtractor, imaging_extractor2: ImagingExtractor, exclude_channel_comparison: bool = False
 ):
+    """Check that two imaging extractors have equal fields."""
     # assert equality:
     assert imaging_extractor1.get_num_frames() == imaging_extractor2.get_num_frames()
     assert imaging_extractor1.get_num_channels() == imaging_extractor2.get_num_channels()
@@ -337,15 +383,10 @@ def check_imaging_equal(
 
 
 def assert_get_frames_return_shape(imaging_extractor: ImagingExtractor):
-    """Utiliy to check whether an ImagingExtractor get_frames function behaves as expected. We aim for the function to
-    behave as numpy slicing and indexing as much as possible
+    """Check whether an ImagingExtractor get_frames function behaves as expected.
 
-    Parameters
-    ----------
-    imaging_extractor : ImagingExtractor
-    An image extractor
+    We aim for the function to behave as numpy slicing and indexing as much as possible.
     """
-
     image_size = imaging_extractor.get_image_size()
 
     frame_idxs = 0
@@ -367,13 +408,14 @@ def assert_get_frames_return_shape(imaging_extractor: ImagingExtractor):
     assert_msg = "get_frames does not work correctly with frame_idxs=np.arrray([0, 1])"
     assert frames_with_array.shape == (2, image_size[0], image_size[1]), assert_msg
 
+    frame_idxs = [0, 2]
+    frames_with_array = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
+    assert_msg = "get_frames does not work correctly with frame_idxs=[0, 2]"
+    assert frames_with_array.shape == (2, image_size[0], image_size[1]), assert_msg
+
 
 def check_imaging_return_types(img_ex: ImagingExtractor):
-    """
-    Parameters
-    ----------
-    img_ex:ImagingExtractor
-    """
+    """Check that the return types of the imaging extractor are correct."""
     assert isinstance(img_ex.get_num_frames(), inttype)
     assert isinstance(img_ex.get_num_channels(), inttype)
     assert isinstance(img_ex.get_sampling_frequency(), floattype)

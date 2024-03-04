@@ -1,3 +1,11 @@
+"""Defines the base class for memmapable imaging extractors.
+
+Classes
+-------
+MemmapImagingExtractor
+    The base class for memmapable imaging extractors.
+"""
+
 from pathlib import Path
 
 import numpy as np
@@ -5,24 +13,26 @@ import psutil
 from tqdm import tqdm
 
 from ...imagingextractor import ImagingExtractor
-from typing import Tuple, Dict, Optional
+from typing import Tuple, Optional
 
-from ...extraction_tools import (
-    PathType,
-    DtypeType,
-    NumpyArray,
-)
+from ...extraction_tools import PathType, DtypeType
 
 
 class MemmapImagingExtractor(ImagingExtractor):
+    """Abstract class for memmapable imaging extractors."""
+
     extractor_name = "MemmapImagingExtractor"
 
     def __init__(
         self,
         video,
     ) -> None:
-        """
-        Abstract class for memmapable imaging extractors.
+        """Create a MemmapImagingExtractor instance.
+
+        Parameters
+        ----------
+        video: numpy.ndarray
+            The video data.
         """
         self._video = video
         super().__init__()
@@ -53,29 +63,22 @@ class MemmapImagingExtractor(ImagingExtractor):
         return self._sampling_frequency
 
     def get_channel_names(self):
-        """List of  channels in the recoding.
-
-        Returns
-        -------
-        channel_names: list
-            List of strings of channel names
-        """
         pass
 
     def get_num_channels(self) -> int:
-        """Total number of active channels in the recording
-
-        Returns
-        -------
-        no_of_channels: int
-            integer count of number of channels
-        """
         return self._num_channels
 
     def get_dtype(self) -> DtypeType:
         return self.dtype
 
     def get_video_shape(self) -> Tuple[int, int, int, int]:
+        """Return the shape of the video data.
+
+        Returns
+        -------
+        video_shape: Tuple[int, int, int, int]
+            The shape of the video data (num_frames, num_rows, num_columns, num_channels).
+        """
         return (self._num_frames, self._num_rows, self._num_columns, self._num_channels)
 
     @staticmethod
@@ -85,12 +88,12 @@ class MemmapImagingExtractor(ImagingExtractor):
         verbose: bool = False,
         buffer_size_in_gb: Optional[float] = None,
     ) -> None:
-        """
-        Static method to write imaging.
+        """Write imaging by flushing to disk.
 
         Parameters
         ----------
-        imaging: An ImagingExtractor object that inherited from MemmapImagingExtractor
+        imaging_extractor: ImagingExtractor
+            An ImagingExtractor object that inherited from MemmapImagingExtractor
         save_path: str
             path to save the native format to.
         verbose: bool
@@ -98,7 +101,6 @@ class MemmapImagingExtractor(ImagingExtractor):
         buffer_size_in_gb: float
             The size of the buffer in Gigabytes. The default of None results in buffering over one frame at a time.
         """
-
         # The base and default case is to load one image at a time.
         if buffer_size_in_gb is None:
             buffer_size_in_gb = 0
