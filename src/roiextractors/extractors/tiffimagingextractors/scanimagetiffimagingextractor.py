@@ -153,6 +153,10 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
             shape = io.shape()  # [frames, rows, columns]
         if len(shape) == 3:
             self._total_num_frames, self._num_rows, self._num_columns = shape
+            if self._frames_per_slice >= self._total_num_frames:
+                self._frames_per_slice = (
+                    1  # For single plane data, framesPerSlice sometimes is set to total number of frames
+                )
             self._num_raw_per_plane = self._frames_per_slice * self._num_channels
             self._num_raw_per_cycle = self._num_raw_per_plane * self._num_planes
             self._num_frames = self._total_num_frames // (self._num_planes * self._num_channels)
