@@ -23,6 +23,7 @@ from .extractors.tiffimagingextractors import (
     MicroManagerTiffImagingExtractor,
 )
 from .extractors.sbximagingextractor import SbxImagingExtractor
+from .extractors.inscopixextractors import InscopixImagingExtractor
 from .extractors.memmapextractors import NumpyMemmapImagingExtractor
 from .extractors.memmapextractors import MemmapImagingExtractor
 from .extractors.miniscopeimagingextractor import MiniscopeImagingExtractor
@@ -46,6 +47,7 @@ imaging_extractor_full_list = [
     NumpyMemmapImagingExtractor,
     MemmapImagingExtractor,
     VolumetricImagingExtractor,
+    InscopixImagingExtractor,
 ]
 
 segmentation_extractor_full_list = [
