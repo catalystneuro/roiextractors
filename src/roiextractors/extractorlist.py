@@ -22,6 +22,7 @@ from .extractors.tiffimagingextractors import (
     BrukerTiffSinglePlaneImagingExtractor,
     MicroManagerTiffImagingExtractor,
 )
+from .extractors.inscopixextractors import InscopixSegmentationExtractor
 from .extractors.sbximagingextractor import SbxImagingExtractor
 from .extractors.memmapextractors import NumpyMemmapImagingExtractor
 from .extractors.memmapextractors import MemmapImagingExtractor
@@ -56,6 +57,7 @@ segmentation_extractor_full_list = [
     ExtractSegmentationExtractor,
     SimaSegmentationExtractor,
     CaimanSegmentationExtractor,
+    InscopixSegmentationExtractor,
 ]
 
 imaging_extractor_dict = {imaging_class.extractor_name: imaging_class for imaging_class in imaging_extractor_full_list}
