@@ -23,6 +23,36 @@ from .scanimagetiff_utils import (
 )
 
 
+class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
+    """Specialized extractor for reading multi-file (buffered) TIFF files produced via ScanImage."""
+
+    extractor_name = "ScanImageTiffMultiPlaneMultiFileImaging"
+    is_writable = True
+    mode = "folder"
+
+    def __init__(self, folder_path: PathType, file_pattern: str, channel_name: str) -> None:
+        """Create a ScanImageTiffMultiPlaneMultiFileImagingExtractor instance from a folder of TIFF files produced by ScanImage.
+
+        Parameters
+        ----------
+        folder_path : PathType
+            Path to the folder containing the TIFF files.
+        file_pattern : str
+            Pattern for the TIFF files to read -- see pathlib.Path.glob for details.
+        channel_name : str
+            Channel name for this extractor.
+        """
+        self.folder_path = Path(folder_path)
+        file_paths = sorted(self.folder_path.glob(file_pattern))
+        if len(file_paths) == 0:
+            raise ValueError(f"No files found in folder with pattern: {file_pattern}")
+        imaging_extractors = []
+        for file_path in file_paths:
+            imaging_extractor = ScanImageTiffMultiPlaneImagingExtractor(file_path=file_path, channel_name=channel_name)
+            imaging_extractors.append(imaging_extractor)
+        super().__init__(imaging_extractors=imaging_extractors)
+
+
 class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
     """Specialized extractor for reading multi-file (buffered) TIFF files produced via ScanImage."""
 
