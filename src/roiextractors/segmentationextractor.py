@@ -154,6 +154,56 @@ class SegmentationExtractor(ABC):
 
         return _pixel_mask_extractor(self.get_roi_image_masks(roi_ids=roi_ids), roi_ids)
 
+    def get_background_ids(self) -> list:
+        """Get the list of background components ids.
+
+        Returns
+        -------
+        background_components_ids: list
+            List of background components ids.
+        """
+        return list(range(self.get_num_background_components()))
+
+    def get_background_image_masks(self, background_ids=None) -> np.ndarray:
+        """Get the background image masks extracted from segmentation algorithm.
+
+        Parameters
+        ----------
+        background_ids: array_like
+            A list or 1D array of ids of the background components. Length is the number of background components requested.
+
+        Returns
+        -------
+        background_image_masks: numpy.ndarray
+            3-D array(val 0 or 1): image_height X image_width X length(background_ids)
+        """
+        if background_ids is None:
+            background_ids_ = range(self.get_num_background_components())
+        else:
+            all_ids = self.get_background_ids()
+            background_ids_ = [all_ids.index(i) for i in background_ids]
+        return np.stack([self._background_image_masks[:, :, k] for k in background_ids_], 2)
+
+    def get_background_pixel_masks(self, background_ids=None) -> np.array:
+        """Get the weights applied to each of the pixels of the mask.
+
+        Parameters
+        ----------
+        roi_ids: array_like
+            A list or 1D array of ids of the ROIs. Length is the number of ROIs requested.
+
+        Returns
+        -------
+        pixel_masks: list
+            List of length number of rois, each element is a 2-D array with shape (number_of_non_zero_pixels, 3).
+            Columns 1 and 2 are the x and y coordinates of the pixel, while the third column represents the weight of
+            the pixel.
+        """
+        if background_ids is None:
+            background_ids = range(self.get_num_background_components())
+
+        return _pixel_mask_extractor(self.get_background_image_masks(background_ids=background_ids), background_ids)
+
     @abstractmethod
     def get_image_size(self) -> ArrayType:
         """Get frame size of movie (height, width).
@@ -286,6 +336,17 @@ class SegmentationExtractor(ABC):
             if trace is not None and len(trace.shape) > 0:
                 return trace.shape[1]
 
+    def get_num_background_components(self) -> int:
+        """Get total number of background components in the acquired images.
+
+        Returns
+        -------
+        num_background_components: int
+            The number of background components extracted.
+        """
+        if self._roi_response_neuropil is not None and len(self._roi_response_neuropil.shape) > 0:
+            return self._roi_response_neuropil.shape[1]
+        
     def get_channel_names(self) -> List[str]:
         """Get names of channels in the pipeline.
 

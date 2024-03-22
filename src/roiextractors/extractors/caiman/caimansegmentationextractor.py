@@ -63,6 +63,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self._image_correlation = self._summary_image_read()
         self._sampling_frequency = self._dataset_file["params"]["data"]["fr"][()]
         self._image_masks = self._image_mask_sparse_read()
+        self._background_image_masks = self._background_image_mask_read()
 
     def __del__(self):  # TODO: refactor segmentation extractors who use __del__ together into a base class
         """Close the h5py file when the object is deleted."""
@@ -95,6 +96,19 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         ).toarray()
         image_masks = np.reshape(image_mask_in, (*self.get_image_size(), -1), order="F")
         return image_masks
+
+    def _background_image_mask_read(self):
+        """Read the image masks from the h5py file.
+
+        Returns
+        -------
+        image_masks: numpy.ndarray
+            The image masks for each background components.
+        """
+
+        background_image_mask_in = self._dataset_file["estimates"]["b"]
+        background_image_masks = np.reshape(background_image_mask_in, (*self.get_image_size(), -1), order="F")
+        return background_image_masks
 
     def _trace_extractor_read(self, field):
         """Read the traces specified by the field from the estimates dataset of the h5py file.
