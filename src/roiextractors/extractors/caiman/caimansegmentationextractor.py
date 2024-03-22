@@ -55,7 +55,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         SegmentationExtractor.__init__(self)
         self.file_path = file_path
         self._dataset_file = self._file_extractor_read()
-        self._roi_response_raw = self._trace_extractor_read("C") + self._trace_extractor_read("Yr")
+        self._roi_response_raw = self._raw_trace_extractor_read()
         self._roi_response_dff = self._trace_extractor_read("F_dff")
         self._roi_response_denoised = self._trace_extractor_read("C")
         self._roi_response_neuropil = self._trace_extractor_read("f")
@@ -128,6 +128,10 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         if field in self._dataset_file["estimates"]:
             return lazy_ops.DatasetView(self._dataset_file["estimates"][field]).lazy_transpose()
 
+    def _raw_trace_extractor_read(self):
+        roi_response_raw = self._dataset_file["estimates"]["C"][:] + self._dataset_file["estimates"]["YrA"][:]
+        return roi_response_raw.T
+    
     def _summary_image_read(self):
         """Read the summary image (Cn) from the estimates dataset of the h5py file."""
         if self._dataset_file["estimates"].get("Cn"):
