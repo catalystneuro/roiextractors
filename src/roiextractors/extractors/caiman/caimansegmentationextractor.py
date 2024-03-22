@@ -128,7 +128,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
         if field in self._dataset_file["estimates"]:
             return lazy_ops.DatasetView(self._dataset_file["estimates"][field]).lazy_transpose()
-        
+
     def _raw_trace_extractor_read(self):
         roi_response_raw = self._dataset_file["estimates"]["C"][:] + self._dataset_file["estimates"]["YrA"][:]
         return np.array(roi_response_raw.T)

@@ -346,7 +346,7 @@ class SegmentationExtractor(ABC):
         """
         if self._roi_response_neuropil is not None and len(self._roi_response_neuropil.shape) > 0:
             return self._roi_response_neuropil.shape[1]
-        
+
     def get_channel_names(self) -> List[str]:
         """Get names of channels in the pipeline.
 
