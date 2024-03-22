@@ -168,7 +168,7 @@ class TestExtractors(TestCase):
 
             num_frames = extractor.get_num_frames()
             num_rois = extractor.get_num_rois()
-            num_background_compontents = extractor.get_num_background_compontents()
+            num_background_components = extractor.get_num_background_components()
             for trace_name, trace in extractor.get_traces_dict().items():
                 if trace is None:
                     continue
@@ -176,8 +176,8 @@ class TestExtractors(TestCase):
                 assert extractor.get_traces(name=trace_name).shape[0] == num_frames
 
                 if trace_name == "neuropil":
-                    assert trace.shape[1] == num_background_compontents
-                    assert extractor.get_traces(name=trace_name).shape[1] == num_background_compontents
+                    assert trace.shape[1] == num_background_components
+                    assert extractor.get_traces(name=trace_name).shape[1] == num_background_components
                 else:
                     assert trace.shape[1] == num_rois
                     assert extractor.get_traces(name=trace_name).shape[1] == num_rois
