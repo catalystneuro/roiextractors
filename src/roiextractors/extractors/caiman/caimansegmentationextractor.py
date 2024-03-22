@@ -130,6 +130,13 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             return lazy_ops.DatasetView(self._dataset_file["estimates"][field]).lazy_transpose()
 
     def _raw_trace_extractor_read(self):
+        """Read the denoised trace and the residual trace from the h5py file and sum them to obtain the raw roi response trace.
+
+        Returns
+        -------
+        roi_response_raw: numpy.ndarray
+            The raw roi response trace.
+        """
         roi_response_raw = self._dataset_file["estimates"]["C"][:] + self._dataset_file["estimates"]["YrA"][:]
         return np.array(roi_response_raw.T)
 
