@@ -60,7 +60,8 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self._roi_response_denoised = self._trace_extractor_read("C")
         self._roi_response_neuropil = self._trace_extractor_read("f")
         self._roi_response_deconvolved = self._trace_extractor_read("S")
-        self._image_correlation = self._summary_image_read()
+        self._image_correlation = self._correlation_image_read()
+        self._image_mean = self._summary_image_read()
         self._sampling_frequency = self._dataset_file["params"]["data"]["fr"][()]
         self._image_masks = self._image_mask_sparse_read()
         self._background_image_masks = self._background_image_mask_read()
@@ -105,10 +106,10 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         image_masks: numpy.ndarray
             The image masks for each background components.
         """
-
-        background_image_mask_in = self._dataset_file["estimates"]["b"]
-        background_image_masks = np.reshape(background_image_mask_in, (*self.get_image_size(), -1), order="F")
-        return background_image_masks
+        if self._dataset_file["estimates"].get("b"):
+            background_image_mask_in = self._dataset_file["estimates"]["b"]
+            background_image_masks = np.reshape(background_image_mask_in, (*self.get_image_size(), -1), order="F")
+            return background_image_masks
 
     def _trace_extractor_read(self, field):
         """Read the traces specified by the field from the estimates dataset of the h5py file.
@@ -127,15 +128,22 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
         if field in self._dataset_file["estimates"]:
             return lazy_ops.DatasetView(self._dataset_file["estimates"][field]).lazy_transpose()
-
+        
     def _raw_trace_extractor_read(self):
         roi_response_raw = self._dataset_file["estimates"]["C"][:] + self._dataset_file["estimates"]["YrA"][:]
-        return roi_response_raw.T
-    
-    def _summary_image_read(self):
-        """Read the summary image (Cn) from the estimates dataset of the h5py file."""
+        return np.array(roi_response_raw.T)
+
+    def _correlation_image_read(self):
+        """Read correlation image Cn."""
         if self._dataset_file["estimates"].get("Cn"):
             return np.array(self._dataset_file["estimates"]["Cn"])
+
+    def _summary_image_read(self):
+        """Read summary image mean."""
+        if self._dataset_file["estimates"].get("b"):
+            FOV_shape = self._dataset_file["params"]["data"]["dims"][()]
+            b_sum = self._dataset_file["estimates"]["b"][:].sum(axis=1)
+            return np.array(b_sum).reshape(FOV_shape, order="F")
 
     def get_accepted_list(self):
         accepted = self._dataset_file["estimates"]["idx_components"]
