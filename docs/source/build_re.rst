@@ -25,6 +25,7 @@ To build a custom SegmentationExtractor that interfaces with the output of a cus
             self._roi_response_raw = self._load_traces()# define a method to extract Flourescence traces
             self._roi_response_dff = self._load_traces()# define a method to extract dF/F traces if any else None
             self._roi_response_neuropil = self._load_traces()# define a method to extract neuropil info if any else None
+            self._roi_response_denoised = self._load_traces() # define a method to extract denoised traces if any else None
             self._roi_response_deconvolved = self._load_traces() # define a method to extract deconvolved traces if any else None
             self._image_correlation = self._load_summary_images()# define method to extract a correlation image else None
             self._image_mean = self._load_summary_images() # define method to extract a mean image else None
