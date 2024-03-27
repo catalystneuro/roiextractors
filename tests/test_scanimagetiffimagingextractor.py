@@ -265,3 +265,21 @@ def test_ScanImageTiffSinglePlaneMultiFileImagingExtractor__init__invalid(scanim
             channel_name="Channel 1",
             plane_name="0",
         )
+
+
+def test_ScanImageTiffMultiPlaneMultiFileImagingExtractor__init__(scanimage_folder_path, multifile_file_pattern):
+    extractor = ScanImageTiffMultiPlaneMultiFileImagingExtractor(
+        folder_path=scanimage_folder_path,
+        file_pattern=multifile_file_pattern,
+        channel_name="Channel 1",
+    )
+    assert extractor.folder_path == scanimage_folder_path
+
+
+def test_ScanImageTiffMultiPlaneMultiFileImagingExtractor__init__invalid(scanimage_folder_path):
+    with pytest.raises(ValueError):
+        ScanImageTiffMultiPlaneMultiFileImagingExtractor(
+            folder_path=scanimage_folder_path,
+            file_pattern="invalid_pattern",
+            channel_name="Channel 1",
+        )
