@@ -14,12 +14,111 @@ import numpy as np
 from ...extraction_tools import PathType, FloatType, ArrayType, DtypeType, get_package
 from ...imagingextractor import ImagingExtractor
 from ...volumetricimagingextractor import VolumetricImagingExtractor
+from ...multiimagingextractor import MultiImagingExtractor
 from .scanimagetiff_utils import (
     extract_extra_metadata,
     parse_metadata,
     extract_timestamps_from_file,
     _get_scanimage_reader,
 )
+
+
+class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
+    """Specialized extractor for reading multi-file (buffered) TIFF files produced via ScanImage."""
+
+    extractor_name = "ScanImageTiffMultiPlaneMultiFileImaging"
+    is_writable = True
+    mode = "folder"
+
+    def __init__(
+        self, folder_path: PathType, file_pattern: str, channel_name: str, extract_all_metadata: bool = True
+    ) -> None:
+        """Create a ScanImageTiffMultiPlaneMultiFileImagingExtractor instance from a folder of TIFF files produced by ScanImage.
+
+        Parameters
+        ----------
+        folder_path : PathType
+            Path to the folder containing the TIFF files.
+        file_pattern : str
+            Pattern for the TIFF files to read -- see pathlib.Path.glob for details.
+        channel_name : str
+            Channel name for this extractor.
+        extract_all_metadata : bool
+            If True, extract metadata from every file in the folder. If False, only extract metadata from the first
+            file in the folder.
+        """
+        self.folder_path = Path(folder_path)
+        from natsort import natsorted
+
+        file_paths = natsorted(self.folder_path.glob(file_pattern))
+        if len(file_paths) == 0:
+            raise ValueError(f"No files found in folder with pattern: {file_pattern}")
+        if not extract_all_metadata:
+            metadata = extract_extra_metadata(file_paths[0])
+        else:
+            metadata = None
+        imaging_extractors = []
+        for file_path in file_paths:
+            imaging_extractor = ScanImageTiffMultiPlaneImagingExtractor(
+                file_path=file_path,
+                channel_name=channel_name,
+                metadata=metadata,
+            )
+            imaging_extractors.append(imaging_extractor)
+        super().__init__(imaging_extractors=imaging_extractors)
+
+
+class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
+    """Specialized extractor for reading multi-file (buffered) TIFF files produced via ScanImage."""
+
+    extractor_name = "ScanImageTiffSinglePlaneMultiFileImaging"
+    is_writable = True
+    mode = "folder"
+
+    def __init__(
+        self,
+        folder_path: PathType,
+        file_pattern: str,
+        channel_name: str,
+        plane_name: str,
+        extract_all_metadata: bool = True,
+    ) -> None:
+        """Create a ScanImageTiffSinglePlaneMultiFileImagingExtractor instance from a folder of TIFF files produced by ScanImage.
+
+        Parameters
+        ----------
+        folder_path : PathType
+            Path to the folder containing the TIFF files.
+        file_pattern : str
+            Pattern for the TIFF files to read -- see pathlib.Path.glob for details.
+        channel_name : str
+            Name of the channel for this extractor.
+        plane_name : str
+            Name of the plane for this extractor.
+        extract_all_metadata : bool
+            If True, extract metadata from every file in the folder. If False, only extract metadata from the first
+            file in the folder.
+        """
+        self.folder_path = Path(folder_path)
+        from natsort import natsorted
+
+        file_paths = natsorted(self.folder_path.glob(file_pattern))
+        if len(file_paths) == 0:
+            raise ValueError(f"No files found in folder with pattern: {file_pattern}")
+        if not extract_all_metadata:
+            metadata = extract_extra_metadata(file_paths[0])
+        else:
+            metadata = None
+        imaging_extractors = []
+        for file_path in file_paths:
+            imaging_extractor = ScanImageTiffSinglePlaneImagingExtractor(
+                file_path=file_path,
+                channel_name=channel_name,
+                plane_name=plane_name,
+                metadata=metadata,
+            )
+            imaging_extractors.append(imaging_extractor)
+        super().__init__(imaging_extractors=imaging_extractors)
 
 
 class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
@@ -33,9 +132,13 @@ class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
         self,
         file_path: PathType,
         channel_name: Optional[str] = None,
+        metadata: Optional[dict] = None,
     ) -> None:
         self.file_path = Path(file_path)
-        self.metadata = extract_extra_metadata(file_path)
+        if metadata is None:
+            self.metadata = extract_extra_metadata(file_path)
+        else:
+            self.metadata = metadata
         parsed_metadata = parse_metadata(self.metadata)
         num_planes = parsed_metadata["num_planes"]
         channel_names = parsed_metadata["channel_names"]
@@ -104,6 +207,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         file_path: PathType,
         channel_name: str,
         plane_name: str,
+        metadata: Optional[dict] = None,
     ) -> None:
         """Create a ScanImageTiffImagingExtractor instance from a TIFF file produced by ScanImage.
 
@@ -129,9 +233,19 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
             Name of the channel for this extractor (default=None).
         plane_name : str
             Name of the plane for this extractor (default=None).
+        metadata : dict, optional
+            Metadata dictionary. If None, metadata will be extracted from the TIFF file.
+
+        Notes
+        -----
+            If metadata is provided, it MUST be in the form outputted by extract_extra_metadata in order to be parsed
+            correctly.
         """
         self.file_path = Path(file_path)
-        self.metadata = extract_extra_metadata(file_path)
+        if metadata is None:
+            self.metadata = extract_extra_metadata(file_path)
+        else:
+            self.metadata = metadata
         parsed_metadata = parse_metadata(self.metadata)
         self._sampling_frequency = parsed_metadata["sampling_frequency"]
         self._num_channels = parsed_metadata["num_channels"]
@@ -153,10 +267,10 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
             shape = io.shape()  # [frames, rows, columns]
         if len(shape) == 3:
             self._total_num_frames, self._num_rows, self._num_columns = shape
-            if self._frames_per_slice >= self._total_num_frames:
-                self._frames_per_slice = (
-                    1  # For single plane data, framesPerSlice sometimes is set to total number of frames
-                )
+            if (
+                self._num_planes == 1
+            ):  # For single plane data, framesPerSlice sometimes is set to total number of frames
+                self._frames_per_slice = 1
             self._num_raw_per_plane = self._frames_per_slice * self._num_channels
             self._num_raw_per_cycle = self._num_raw_per_plane * self._num_planes
             self._num_frames = self._total_num_frames // (self._num_planes * self._num_channels)
