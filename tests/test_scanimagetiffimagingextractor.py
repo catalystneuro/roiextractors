@@ -1,7 +1,12 @@
 import pytest
 from numpy.testing import assert_array_equal
 from ScanImageTiffReader import ScanImageTiffReader
-from roiextractors import ScanImageTiffSinglePlaneImagingExtractor, ScanImageTiffMultiPlaneImagingExtractor
+from roiextractors import (
+    ScanImageTiffSinglePlaneImagingExtractor,
+    ScanImageTiffMultiPlaneImagingExtractor,
+    ScanImageTiffSinglePlaneMultiFileImagingExtractor,
+    ScanImageTiffMultiPlaneMultiFileImagingExtractor,
+)
 
 from .setup_paths import OPHYS_DATA_PATH
 
@@ -230,3 +235,33 @@ def test_ScanImageTiffMultiPlaneImagingExtractor__init__(file_path):
 def test_ScanImageTiffMultiPlaneImagingExtractor__init__invalid(file_path):
     with pytest.raises(ValueError):
         ScanImageTiffMultiPlaneImagingExtractor(file_path=file_path, channel_name="Invalid Channel")
+
+
+@pytest.fixture(scope="module")
+def scanimage_folder_path():
+    return OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
+
+
+@pytest.fixture(scope="module")
+def multifile_file_pattern():
+    return "scanimage_20240320_multifile_*.tif"
+
+
+def test_ScanImageTiffSinglePlaneMultiFileImagingExtractor__init__(scanimage_folder_path, multifile_file_pattern):
+    extractor = ScanImageTiffSinglePlaneMultiFileImagingExtractor(
+        folder_path=scanimage_folder_path,
+        file_pattern=multifile_file_pattern,
+        channel_name="Channel 1",
+        plane_name="0",
+    )
+    assert extractor.folder_path == scanimage_folder_path
+
+
+def test_ScanImageTiffSinglePlaneMultiFileImagingExtractor__init__invalid(scanimage_folder_path):
+    with pytest.raises(ValueError):
+        ScanImageTiffSinglePlaneMultiFileImagingExtractor(
+            folder_path=scanimage_folder_path,
+            file_pattern="invalid_pattern",
+            channel_name="Channel 1",
+            plane_name="0",
+        )
