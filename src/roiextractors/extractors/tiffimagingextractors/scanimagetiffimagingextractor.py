@@ -44,6 +44,9 @@ class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
             Pattern for the TIFF files to read -- see pathlib.Path.glob for details.
         channel_name : str
             Channel name for this extractor.
+        extract_all_metadata : bool
+            If True, extract metadata from every file in the folder. If False, only extract metadata from the first
+            file in the folder.
         """
         self.folder_path = Path(folder_path)
         file_paths = natsorted(self.folder_path.glob(file_pattern))
@@ -91,6 +94,9 @@ class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
             Name of the channel for this extractor.
         plane_name : str
             Name of the plane for this extractor.
+        extract_all_metadata : bool
+            If True, extract metadata from every file in the folder. If False, only extract metadata from the first
+            file in the folder.
         """
         self.folder_path = Path(folder_path)
         file_paths = natsorted(self.folder_path.glob(file_pattern))
@@ -226,6 +232,11 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
             Name of the plane for this extractor (default=None).
         metadata : dict, optional
             Metadata dictionary. If None, metadata will be extracted from the TIFF file.
+
+        Notes
+        -----
+            If metadata is provided, it MUST be in the form outputted by extract_extra_metadata in order to be parsed
+            correctly.
         """
         self.file_path = Path(file_path)
         if metadata is None:
