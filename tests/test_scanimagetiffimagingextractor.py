@@ -247,14 +247,26 @@ def multifile_file_pattern():
     return "scanimage_20240320_multifile_*.tif"
 
 
-def test_ScanImageTiffSinglePlaneMultiFileImagingExtractor__init__(scanimage_folder_path, multifile_file_pattern):
+@pytest.fixture(scope="module")
+def expected_file_names():
+    return [
+        "scanimage_20240320_multifile_00001.tif",
+        "scanimage_20240320_multifile_00002.tif",
+        "scanimage_20240320_multifile_00003.tif",
+    ]
+
+
+def test_ScanImageTiffSinglePlaneMultiFileImagingExtractor__init__(
+    scanimage_folder_path, multifile_file_pattern, expected_file_names
+):
     extractor = ScanImageTiffSinglePlaneMultiFileImagingExtractor(
         folder_path=scanimage_folder_path,
         file_pattern=multifile_file_pattern,
         channel_name="Channel 1",
         plane_name="0",
     )
-    assert extractor.folder_path == scanimage_folder_path
+    file_names = [imaging_extractor.file_path.name for imaging_extractor in extractor._imaging_extractors]
+    assert file_names == expected_file_names
 
 
 def test_ScanImageTiffSinglePlaneMultiFileImagingExtractor__init__invalid(scanimage_folder_path):
@@ -267,13 +279,16 @@ def test_ScanImageTiffSinglePlaneMultiFileImagingExtractor__init__invalid(scanim
         )
 
 
-def test_ScanImageTiffMultiPlaneMultiFileImagingExtractor__init__(scanimage_folder_path, multifile_file_pattern):
+def test_ScanImageTiffMultiPlaneMultiFileImagingExtractor__init__(
+    scanimage_folder_path, multifile_file_pattern, expected_file_names
+):
     extractor = ScanImageTiffMultiPlaneMultiFileImagingExtractor(
         folder_path=scanimage_folder_path,
         file_pattern=multifile_file_pattern,
         channel_name="Channel 1",
     )
-    assert extractor.folder_path == scanimage_folder_path
+    file_names = [imaging_extractor.file_path.name for imaging_extractor in extractor._imaging_extractors]
+    assert file_names == expected_file_names
 
 
 def test_ScanImageTiffMultiPlaneMultiFileImagingExtractor__init__invalid(scanimage_folder_path):
