@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Optional, Tuple, List, Iterable
 from warnings import warn
 import numpy as np
-from natsort import natsorted
 
 from ...extraction_tools import PathType, FloatType, ArrayType, DtypeType, get_package
 from ...imagingextractor import ImagingExtractor
@@ -49,6 +48,8 @@ class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
             file in the folder.
         """
         self.folder_path = Path(folder_path)
+        from natsort import natsorted
+
         file_paths = natsorted(self.folder_path.glob(file_pattern))
         if len(file_paths) == 0:
             raise ValueError(f"No files found in folder with pattern: {file_pattern}")
@@ -99,6 +100,8 @@ class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
             file in the folder.
         """
         self.folder_path = Path(folder_path)
+        from natsort import natsorted
+
         file_paths = natsorted(self.folder_path.glob(file_pattern))
         if len(file_paths) == 0:
             raise ValueError(f"No files found in folder with pattern: {file_pattern}")
