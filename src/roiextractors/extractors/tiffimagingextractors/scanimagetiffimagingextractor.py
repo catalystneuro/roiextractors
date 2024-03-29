@@ -45,7 +45,7 @@ class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
             Channel name for this extractor.
         extract_all_metadata : bool
             If True, extract metadata from every file in the folder. If False, only extract metadata from the first
-            file in the folder.
+            file in the folder. The default is True.
         """
         self.folder_path = Path(folder_path)
         from natsort import natsorted
@@ -99,7 +99,7 @@ class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
             Name of the plane for this extractor.
         extract_all_metadata : bool
             If True, extract metadata from every file in the folder. If False, only extract metadata from the first
-            file in the folder.
+            file in the folder. The default is True.
         """
         self.folder_path = Path(folder_path)
         from natsort import natsorted
@@ -139,6 +139,24 @@ class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
         metadata: Optional[dict] = None,
         parsed_metadata: Optional[dict] = None,
     ) -> None:
+        """Create a ScanImageTiffMultPlaneImagingExtractor instance from a volumetric TIFF file produced by ScanImage.
+
+        Parameters
+        ----------
+        file_path : PathType
+            Path to the TIFF file.
+        channel_name : str, optional
+            Name of the channel for this extractor. If None, the first channel will be used.
+        metadata : dict, optional
+            Metadata dictionary. If None, metadata will be extracted from the TIFF file.
+        parsed_metadata : dict, optional
+            Parsed metadata dictionary. If None, metadata must also be None.
+
+        Notes
+        -----
+            If metadata is provided, it MUST be in the form outputted by extract_extra_metadata in order to be parsed
+            correctly.
+        """
         self.file_path = Path(file_path)
         if metadata is None:
             self.metadata = extract_extra_metadata(file_path)
@@ -247,6 +265,8 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
             Name of the plane for this extractor (default=None).
         metadata : dict, optional
             Metadata dictionary. If None, metadata will be extracted from the TIFF file.
+        parsed_metadata : dict, optional
+            Parsed metadata dictionary. If None, metadata must also be None.
 
         Notes
         -----
