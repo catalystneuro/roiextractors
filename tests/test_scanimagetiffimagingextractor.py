@@ -312,14 +312,16 @@ def expected_file_names():
     ]
 
 
+@pytest.mark.parametrize("extract_all_metadata", [True, False])
 def test_ScanImageTiffSinglePlaneMultiFileImagingExtractor__init__(
-    scanimage_folder_path, multifile_file_pattern, expected_file_names
+    scanimage_folder_path, multifile_file_pattern, expected_file_names, extract_all_metadata
 ):
     extractor = ScanImageTiffSinglePlaneMultiFileImagingExtractor(
         folder_path=scanimage_folder_path,
         file_pattern=multifile_file_pattern,
         channel_name="Channel 1",
         plane_name="0",
+        extract_all_metadata=extract_all_metadata,
     )
     file_names = [imaging_extractor.file_path.name for imaging_extractor in extractor._imaging_extractors]
     assert file_names == expected_file_names
@@ -335,13 +337,15 @@ def test_ScanImageTiffSinglePlaneMultiFileImagingExtractor__init__invalid(scanim
         )
 
 
+@pytest.mark.parametrize("extract_all_metadata", [True, False])
 def test_ScanImageTiffMultiPlaneMultiFileImagingExtractor__init__(
-    scanimage_folder_path, multifile_file_pattern, expected_file_names
+    scanimage_folder_path, multifile_file_pattern, expected_file_names, extract_all_metadata
 ):
     extractor = ScanImageTiffMultiPlaneMultiFileImagingExtractor(
         folder_path=scanimage_folder_path,
         file_pattern=multifile_file_pattern,
         channel_name="Channel 1",
+        extract_all_metadata=extract_all_metadata,
     )
     file_names = [imaging_extractor.file_path.name for imaging_extractor in extractor._imaging_extractors]
     assert file_names == expected_file_names
