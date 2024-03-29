@@ -55,14 +55,16 @@ class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
             raise ValueError(f"No files found in folder with pattern: {file_pattern}")
         if not extract_all_metadata:
             metadata = extract_extra_metadata(file_paths[0])
+            parsed_metadata = parse_metadata(metadata)
         else:
-            metadata = None
+            metadata, parsed_metadata = None, None
         imaging_extractors = []
         for file_path in file_paths:
             imaging_extractor = ScanImageTiffMultiPlaneImagingExtractor(
                 file_path=file_path,
                 channel_name=channel_name,
                 metadata=metadata,
+                parsed_metadata=parsed_metadata,
             )
             imaging_extractors.append(imaging_extractor)
         super().__init__(imaging_extractors=imaging_extractors)
@@ -107,8 +109,9 @@ class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
             raise ValueError(f"No files found in folder with pattern: {file_pattern}")
         if not extract_all_metadata:
             metadata = extract_extra_metadata(file_paths[0])
+            parsed_metadata = parse_metadata(metadata)
         else:
-            metadata = None
+            metadata, parsed_metadata = None, None
         imaging_extractors = []
         for file_path in file_paths:
             imaging_extractor = ScanImageTiffSinglePlaneImagingExtractor(
@@ -116,6 +119,7 @@ class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
                 channel_name=channel_name,
                 plane_name=plane_name,
                 metadata=metadata,
+                parsed_metadata=parsed_metadata,
             )
             imaging_extractors.append(imaging_extractor)
         super().__init__(imaging_extractors=imaging_extractors)
@@ -133,21 +137,28 @@ class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
         file_path: PathType,
         channel_name: Optional[str] = None,
         metadata: Optional[dict] = None,
+        parsed_metadata: Optional[dict] = None,
     ) -> None:
         self.file_path = Path(file_path)
         if metadata is None:
             self.metadata = extract_extra_metadata(file_path)
+            self.parsed_metadata = parse_metadata(self.metadata)
         else:
             self.metadata = metadata
-        parsed_metadata = parse_metadata(self.metadata)
-        num_planes = parsed_metadata["num_planes"]
-        channel_names = parsed_metadata["channel_names"]
+            assert parsed_metadata is not None, "If metadata is provided, parsed_metadata must also be provided."
+            self.parsed_metadata = parsed_metadata
+        num_planes = self.parsed_metadata["num_planes"]
+        channel_names = self.parsed_metadata["channel_names"]
         if channel_name is None:
             channel_name = channel_names[0]
         imaging_extractors = []
         for plane in range(num_planes):
             imaging_extractor = ScanImageTiffSinglePlaneImagingExtractor(
-                file_path=file_path, channel_name=channel_name, plane_name=str(plane)
+                file_path=file_path,
+                channel_name=channel_name,
+                plane_name=str(plane),
+                metadata=self.metadata,
+                parsed_metadata=self.parsed_metadata,
             )
             imaging_extractors.append(imaging_extractor)
         super().__init__(imaging_extractors=imaging_extractors)
@@ -208,6 +219,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         channel_name: str,
         plane_name: str,
         metadata: Optional[dict] = None,
+        parsed_metadata: Optional[dict] = None,
     ) -> None:
         """Create a ScanImageTiffImagingExtractor instance from a TIFF file produced by ScanImage.
 
@@ -244,14 +256,16 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         self.file_path = Path(file_path)
         if metadata is None:
             self.metadata = extract_extra_metadata(file_path)
+            self.parsed_metadata = parse_metadata(self.metadata)
         else:
             self.metadata = metadata
-        parsed_metadata = parse_metadata(self.metadata)
-        self._sampling_frequency = parsed_metadata["sampling_frequency"]
-        self._num_channels = parsed_metadata["num_channels"]
-        self._num_planes = parsed_metadata["num_planes"]
-        self._frames_per_slice = parsed_metadata["frames_per_slice"]
-        self._channel_names = parsed_metadata["channel_names"]
+            assert parsed_metadata is not None, "If metadata is provided, parsed_metadata must also be provided."
+            self.parsed_metadata = parsed_metadata
+        self._sampling_frequency = self.parsed_metadata["sampling_frequency"]
+        self._num_channels = self.parsed_metadata["num_channels"]
+        self._num_planes = self.parsed_metadata["num_planes"]
+        self._frames_per_slice = self.parsed_metadata["frames_per_slice"]
+        self._channel_names = self.parsed_metadata["channel_names"]
         self._plane_names = [f"{i}" for i in range(self._num_planes)]
         self.channel_name = channel_name
         self.plane_name = plane_name

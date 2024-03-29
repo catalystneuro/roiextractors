@@ -7,7 +7,7 @@ from roiextractors import (
     ScanImageTiffSinglePlaneMultiFileImagingExtractor,
     ScanImageTiffMultiPlaneMultiFileImagingExtractor,
 )
-from roiextractors.extractors.tiffimagingextractors.scanimagetiff_utils import extract_extra_metadata
+from roiextractors.extractors.tiffimagingextractors.scanimagetiff_utils import extract_extra_metadata, parse_metadata
 
 from .setup_paths import OPHYS_DATA_PATH
 
@@ -53,17 +53,39 @@ def test_ScanImageTiffSinglePlaneImagingExtractor__init__invalid(file_path, chan
 
 def test_ScanImageTiffSinglePlaneImagingExtractor__init__metadata_provided(file_path):
     metadata = extract_extra_metadata(file_path)
+    parsed_metadata = parse_metadata(metadata)
     extractor = ScanImageTiffSinglePlaneImagingExtractor(
-        file_path=file_path, channel_name="Channel 1", plane_name="0", metadata=metadata
+        file_path=file_path,
+        channel_name="Channel 1",
+        plane_name="0",
+        metadata=metadata,
+        parsed_metadata=parsed_metadata,
     )
     assert extractor.metadata == metadata
+    assert extractor.parsed_metadata == parsed_metadata
 
 
 def test_ScanImageTiffSinglePlaneImagingExtractor__init__invalid_metadata_provided(file_path):
     metadata = {"invalid_key": "invalid_value"}
+    parsed_metadata = {"invalid_key": "invalid_value"}
     with pytest.raises(KeyError):
         ScanImageTiffSinglePlaneImagingExtractor(
-            file_path=file_path, channel_name="Channel 1", plane_name="0", metadata=metadata
+            file_path=file_path,
+            channel_name="Channel 1",
+            plane_name="0",
+            metadata=metadata,
+            parsed_metadata=parsed_metadata,
+        )
+
+
+def test_ScanImageTiffSinglePlaneImagingExtractor__init__parsed_metadata_not_provided(file_path):
+    metadata = extract_extra_metadata(file_path)
+    with pytest.raises(AssertionError):
+        ScanImageTiffSinglePlaneImagingExtractor(
+            file_path=file_path,
+            channel_name="Channel 1",
+            plane_name="0",
+            metadata=metadata,
         )
 
 
@@ -256,14 +278,19 @@ def test_ScanImageTiffMultiPlaneImagingExtractor__init__invalid(file_path):
 
 def test_ScanImageTiffMultiPlaneImagingExtractor__init__metadata_provided(file_path):
     metadata = extract_extra_metadata(file_path)
-    extractor = ScanImageTiffMultiPlaneImagingExtractor(file_path=file_path, metadata=metadata)
+    parsed_metadata = parse_metadata(metadata)
+    extractor = ScanImageTiffMultiPlaneImagingExtractor(
+        file_path=file_path, metadata=metadata, parsed_metadata=parsed_metadata
+    )
     assert extractor.metadata == metadata
+    assert extractor.parsed_metadata == parsed_metadata
 
 
 def test_ScanImageTiffMultiPlaneImagingExtractor__init__invalid_metadata_provided(file_path):
     metadata = {"invalid_key": "invalid_value"}
+    parsed_metadata = {"invalid_key": "invalid_value"}
     with pytest.raises(KeyError):
-        ScanImageTiffMultiPlaneImagingExtractor(file_path=file_path, metadata=metadata)
+        ScanImageTiffMultiPlaneImagingExtractor(file_path=file_path, metadata=metadata, parsed_metadata=parsed_metadata)
 
 
 @pytest.fixture(scope="module")
