@@ -3,6 +3,12 @@
 ### Improvements
 * Improved xml parsing with Bruker [PR #267](https://github.com/catalystneuro/roiextractors/pull/267)
 
+### Features
+* Add support to get background components: add `get_background_ids()`, `get_background_image_masks()`, `get_background_pixel_masks()` to `SegmentationExtractor`. [PR #291](https://github.com/catalystneuro/roiextractors/pull/291)
+
+* Add distinction for raw roi response and denoised roi response in `CaimanSegmentationExtractor`: [PR #291](https://github.com/catalystneuro/roiextractors/pull/291)
+
+* Bug fix for the `CaimanSegmentationExtractor`: correctly extract temporal and spatial background components [PR #291](https://github.com/catalystneuro/roiextractors/pull/291)
 
 # v0.5.5
 
