@@ -3,7 +3,7 @@ name: Update Dev Version on Release
 on:
     workflow_dispatch:
     workflow_run:
-        workflows: [auto-publish]
+        workflows: [Upload Package to PyPI]
         types: [completed]
 
 jobs:
