@@ -1,14 +1,40 @@
 # Upcoming
 
-### Improvements
-* Improved xml parsing with Bruker [PR #267](https://github.com/catalystneuro/roiextractors/pull/267)
+### Features
+
+### Fixes
+
+# v0.5.7
 
 ### Features
+
 * Add support to get background components: add `get_background_ids()`, `get_background_image_masks()`, `get_background_pixel_masks()` to `SegmentationExtractor`. [PR #291](https://github.com/catalystneuro/roiextractors/pull/291)
 
 * Add distinction for raw roi response and denoised roi response in `CaimanSegmentationExtractor`: [PR #291](https://github.com/catalystneuro/roiextractors/pull/291)
 
 * Bug fix for the `CaimanSegmentationExtractor`: correctly extract temporal and spatial background components [PR #291](https://github.com/catalystneuro/roiextractors/pull/291)
+
+* Added automatic version update workflow file that will run after publishing a new release to pypi: [PR #290](https://github.com/catalystneuro/roiextractors/pull/290)
+
+* Added `ScanImageTiffSinglePlaneMultiFileImagingExtractor` and `ScanImageTiffMultiPlaneMultiFileImagingExtractor`: [PR #297](https://github.com/catalystneuro/roiextractors/pull/297/files)
+
+* Added automatic changelog checking in the test workflow: [PR #302](https://github.com/catalystneuro/roiextractors/pull/302)
+
+### Fixes
+
+* Improved xml parsing with Bruker [PR #267](https://github.com/catalystneuro/roiextractors/pull/267)
+
+* Fixed a bug with `ScanImageTiffSinglePlaneImagingExtractor` in which `frames_per_slice` would be set to `_num_frames`: [PR #294](https://github.com/catalystneuro/roiextractors/pull/294)
+
+# v0.5.6
+
+### Features
+
+* Added support for red channel (anatomical) ROIs from suite2p in Suite2pSegmentationExtractor: [PR #270](https://github.com/catalystneuro/roiextractors/pull/270)
+
+* Added support for RoiGroup metadata in the `extract_extra_metadata` function for ScanImageTiff files: [PR #272](https://github.com/catalystneuro/roiextractors/pull/272)
+
+* Updated documentation and Readme PRs: [#283](https://github.com/catalystneuro/roiextractors/pull/283) [#282](https://github.com/catalystneuro/roiextractors/pull/282) [#280](https://github.com/catalystneuro/roiextractors/pull/280)
 
 # v0.5.5
 
