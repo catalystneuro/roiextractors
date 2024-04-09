@@ -22,7 +22,7 @@ if not gin_config_file_local.exists():
 
 setup(
     name="roiextractors",
-    version="0.5.7",
+    version="0.5.8",
     author="Heberto Mayorquin, Szonja Weigl, Cody Baker, Ben Dichter, Alessio Buccino, Paul Adkisson",
     author_email="ben.dichter@gmail.com",
     description="Python module for extracting optical physiology ROIs and traces for various file types and formats",
