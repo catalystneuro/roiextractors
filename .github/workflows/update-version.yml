@@ -38,4 +38,4 @@ jobs:
           git push origin update_dev_version
           gh pr create --title "[Github.CI] Update dev version from $old_version to $new_version" --body "version: $old_version --> $new_version"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAULS_PAT }}
