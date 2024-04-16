@@ -4,6 +4,8 @@
 
 ### Fixes
 
+* The triggering workflow name for update version was incorrectly set to `auto-publish` (the name of the yaml file).  It has been renamed to `Upload Package to PyPI` (the name field of the workflow): [PR #304](https://github.com/catalystneuro/roiextractors/pull/304).
+
 # v0.5.7
 
 ### Features
