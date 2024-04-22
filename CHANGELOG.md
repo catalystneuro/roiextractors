@@ -4,9 +4,15 @@
 
 ### Fixes
 
+# v0.5.8
+
+### Fixes
+
 * The triggering workflow name for update version was incorrectly set to `auto-publish` (the name of the yaml file).  It has been renamed to `Upload Package to PyPI` (the name field of the workflow): [PR #304](https://github.com/catalystneuro/roiextractors/pull/304).
 
 * Fixed bug with automatic changelog test that was causing it to fail for daily tests: [PR #310](https://github.com/catalystneuro/roiextractors/pull/310)
+
+* Updated zenodo to get a DOI on each release: No PR
 
 # v0.5.7
 
