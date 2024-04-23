@@ -4,6 +4,8 @@
 
 ### Fixes
 
+* Remove unecessary scipy import error handling [#315]((https://github.com/catalystneuro/roiextractors/pull/315)
+
 # v0.5.8
 
 ### Fixes
@@ -13,6 +15,7 @@
 * Fixed bug with automatic changelog test that was causing it to fail for daily tests: [PR #310](https://github.com/catalystneuro/roiextractors/pull/310)
 
 * Updated zenodo to get a DOI on each release: No PR
+
 
 # v0.5.7
 

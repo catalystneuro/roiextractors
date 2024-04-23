@@ -16,7 +16,6 @@ from dataclasses import dataclass
 from platform import python_version
 
 import lazy_ops
-import scipy
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 from tqdm import tqdm
@@ -29,22 +28,7 @@ try:
     HAVE_H5 = True
 except ImportError:
     HAVE_H5 = False
-try:
-    if hasattr(scipy.io.matlab, "mat_struct"):
-        from scipy.io.matlab import mat_struct
-    else:
-        from scipy.io.matlab.mio5_params import mat_struct
 
-    HAVE_Scipy = True
-except AttributeError:
-    if hasattr(scipy, "io") and hasattr(scipy.io.matlab, "mat_struct"):
-        from scipy.io import mat_struct
-    else:
-        from scipy.io.matlab.mio5_params import mat_struct
-
-    HAVE_Scipy = True
-except ImportError:
-    HAVE_Scipy = False
 
 try:
     import zarr
@@ -630,7 +614,8 @@ def check_keys(dict):
     AssertionError
         If scipy is not installed.
     """
-    assert HAVE_Scipy, "To write to h5 you need to install scipy: pip install scipy"
+    from scipy.io.matlab.mio5_params import mat_struct
+
     for key in dict:
         if isinstance(dict[key], mat_struct):
             dict[key] = todict(dict[key])
@@ -650,7 +635,11 @@ def todict(matobj):
     dict: dict
         Dictionary with mat-objects converted to nested dictionaries.
     """
+    from scipy.io.matlab.mio5_params import mat_struct
+
     dict = {}
+    from scipy.io.matlab.mio5_params import mat_struct
+
     for strg in matobj._fieldnames:
         elem = matobj.__dict__[strg]
         if isinstance(elem, mat_struct):
