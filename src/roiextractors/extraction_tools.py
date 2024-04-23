@@ -31,7 +31,6 @@ try:
 except ImportError:
     HAVE_H5 = False
 
-
     HAVE_Scipy = True
 except AttributeError:
     if hasattr(scipy, "io") and hasattr(scipy.io.matlab, "mat_struct"):
