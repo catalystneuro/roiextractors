@@ -615,7 +615,6 @@ def check_keys(dict):
     AssertionError
         If scipy is not installed.
     """
-    assert HAVE_Scipy, "To write to h5 you need to install scipy: pip install scipy"
     from scipy.io.matlab.mio5_params import mat_struct
 
     for key in dict:
