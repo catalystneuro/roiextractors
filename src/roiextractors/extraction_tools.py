@@ -21,6 +21,7 @@ import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 from tqdm import tqdm
 from packaging import version
+from scipy.io.matlab.mio5_params import mat_struct
 
 
 try:
@@ -29,11 +30,7 @@ try:
     HAVE_H5 = True
 except ImportError:
     HAVE_H5 = False
-try:
-    if hasattr(scipy.io.matlab, "mat_struct"):
-        from scipy.io.matlab import mat_struct
-    else:
-        from scipy.io.matlab.mio5_params import mat_struct
+
 
     HAVE_Scipy = True
 except AttributeError:
