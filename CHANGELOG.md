@@ -14,6 +14,8 @@
 
 * Updated zenodo to get a DOI on each release: No PR
 
+* Remove unecessary scipy import error handling [#315]((https://github.com/catalystneuro/roiextractors/pull/315)
+
 # v0.5.7
 
 ### Features
