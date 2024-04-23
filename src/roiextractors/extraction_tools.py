@@ -30,7 +30,6 @@ except ImportError:
     HAVE_H5 = False
 
 
-
 try:
     import zarr
 
@@ -640,6 +639,7 @@ def todict(matobj):
 
     dict = {}
     from scipy.io.matlab.mio5_params import mat_struct
+
     for strg in matobj._fieldnames:
         elem = matobj.__dict__[strg]
         if isinstance(elem, mat_struct):
