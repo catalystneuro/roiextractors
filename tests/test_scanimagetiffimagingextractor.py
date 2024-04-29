@@ -1,7 +1,13 @@
 import pytest
 from numpy.testing import assert_array_equal
 from ScanImageTiffReader import ScanImageTiffReader
-from roiextractors import ScanImageTiffSinglePlaneImagingExtractor, ScanImageTiffMultiPlaneImagingExtractor
+from roiextractors import (
+    ScanImageTiffSinglePlaneImagingExtractor,
+    ScanImageTiffMultiPlaneImagingExtractor,
+    ScanImageTiffSinglePlaneMultiFileImagingExtractor,
+    ScanImageTiffMultiPlaneMultiFileImagingExtractor,
+)
+from roiextractors.extractors.tiffimagingextractors.scanimagetiff_utils import extract_extra_metadata, parse_metadata
 
 from .setup_paths import OPHYS_DATA_PATH
 
@@ -43,6 +49,44 @@ def scan_image_tiff_single_plane_imaging_extractor(request, file_path):
 def test_ScanImageTiffSinglePlaneImagingExtractor__init__invalid(file_path, channel_name, plane_name):
     with pytest.raises(ValueError):
         ScanImageTiffSinglePlaneImagingExtractor(file_path=file_path, channel_name=channel_name, plane_name=plane_name)
+
+
+def test_ScanImageTiffSinglePlaneImagingExtractor__init__metadata_provided(file_path):
+    metadata = extract_extra_metadata(file_path)
+    parsed_metadata = parse_metadata(metadata)
+    extractor = ScanImageTiffSinglePlaneImagingExtractor(
+        file_path=file_path,
+        channel_name="Channel 1",
+        plane_name="0",
+        metadata=metadata,
+        parsed_metadata=parsed_metadata,
+    )
+    assert extractor.metadata == metadata
+    assert extractor.parsed_metadata == parsed_metadata
+
+
+def test_ScanImageTiffSinglePlaneImagingExtractor__init__invalid_metadata_provided(file_path):
+    metadata = {"invalid_key": "invalid_value"}
+    parsed_metadata = {"invalid_key": "invalid_value"}
+    with pytest.raises(KeyError):
+        ScanImageTiffSinglePlaneImagingExtractor(
+            file_path=file_path,
+            channel_name="Channel 1",
+            plane_name="0",
+            metadata=metadata,
+            parsed_metadata=parsed_metadata,
+        )
+
+
+def test_ScanImageTiffSinglePlaneImagingExtractor__init__parsed_metadata_not_provided(file_path):
+    metadata = extract_extra_metadata(file_path)
+    with pytest.raises(AssertionError):
+        ScanImageTiffSinglePlaneImagingExtractor(
+            file_path=file_path,
+            channel_name="Channel 1",
+            plane_name="0",
+            metadata=metadata,
+        )
 
 
 @pytest.mark.parametrize("frame_idxs", (0, [0, 1, 2], [0, 2, 5]))
@@ -230,3 +274,87 @@ def test_ScanImageTiffMultiPlaneImagingExtractor__init__(file_path):
 def test_ScanImageTiffMultiPlaneImagingExtractor__init__invalid(file_path):
     with pytest.raises(ValueError):
         ScanImageTiffMultiPlaneImagingExtractor(file_path=file_path, channel_name="Invalid Channel")
+
+
+def test_ScanImageTiffMultiPlaneImagingExtractor__init__metadata_provided(file_path):
+    metadata = extract_extra_metadata(file_path)
+    parsed_metadata = parse_metadata(metadata)
+    extractor = ScanImageTiffMultiPlaneImagingExtractor(
+        file_path=file_path, metadata=metadata, parsed_metadata=parsed_metadata
+    )
+    assert extractor.metadata == metadata
+    assert extractor.parsed_metadata == parsed_metadata
+
+
+def test_ScanImageTiffMultiPlaneImagingExtractor__init__invalid_metadata_provided(file_path):
+    metadata = {"invalid_key": "invalid_value"}
+    parsed_metadata = {"invalid_key": "invalid_value"}
+    with pytest.raises(KeyError):
+        ScanImageTiffMultiPlaneImagingExtractor(file_path=file_path, metadata=metadata, parsed_metadata=parsed_metadata)
+
+
+@pytest.fixture(scope="module")
+def scanimage_folder_path():
+    return OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
+
+
+@pytest.fixture(scope="module")
+def multifile_file_pattern():
+    return "scanimage_20240320_multifile_*.tif"
+
+
+@pytest.fixture(scope="module")
+def expected_file_names():
+    return [
+        "scanimage_20240320_multifile_00001.tif",
+        "scanimage_20240320_multifile_00002.tif",
+        "scanimage_20240320_multifile_00003.tif",
+    ]
+
+
+@pytest.mark.parametrize("extract_all_metadata", [True, False])
+def test_ScanImageTiffSinglePlaneMultiFileImagingExtractor__init__(
+    scanimage_folder_path, multifile_file_pattern, expected_file_names, extract_all_metadata
+):
+    extractor = ScanImageTiffSinglePlaneMultiFileImagingExtractor(
+        folder_path=scanimage_folder_path,
+        file_pattern=multifile_file_pattern,
+        channel_name="Channel 1",
+        plane_name="0",
+        extract_all_metadata=extract_all_metadata,
+    )
+    file_names = [imaging_extractor.file_path.name for imaging_extractor in extractor._imaging_extractors]
+    assert file_names == expected_file_names
+
+
+def test_ScanImageTiffSinglePlaneMultiFileImagingExtractor__init__invalid(scanimage_folder_path):
+    with pytest.raises(ValueError):
+        ScanImageTiffSinglePlaneMultiFileImagingExtractor(
+            folder_path=scanimage_folder_path,
+            file_pattern="invalid_pattern",
+            channel_name="Channel 1",
+            plane_name="0",
+        )
+
+
+@pytest.mark.parametrize("extract_all_metadata", [True, False])
+def test_ScanImageTiffMultiPlaneMultiFileImagingExtractor__init__(
+    scanimage_folder_path, multifile_file_pattern, expected_file_names, extract_all_metadata
+):
+    extractor = ScanImageTiffMultiPlaneMultiFileImagingExtractor(
+        folder_path=scanimage_folder_path,
+        file_pattern=multifile_file_pattern,
+        channel_name="Channel 1",
+        extract_all_metadata=extract_all_metadata,
+    )
+    file_names = [imaging_extractor.file_path.name for imaging_extractor in extractor._imaging_extractors]
+    assert file_names == expected_file_names
+
+
+def test_ScanImageTiffMultiPlaneMultiFileImagingExtractor__init__invalid(scanimage_folder_path):
+    with pytest.raises(ValueError):
+        ScanImageTiffMultiPlaneMultiFileImagingExtractor(
+            folder_path=scanimage_folder_path,
+            file_pattern="invalid_pattern",
+            channel_name="Channel 1",
+        )
