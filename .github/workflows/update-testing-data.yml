@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest, macos-13] # macos-13 is the latest version of macOS with Intel chip
+        os: [ubuntu-latest, windows-latest, macos-13] # macos-13 is the latest version of macOS with Intel chip
     steps:
       - uses: actions/checkout@v2
       - run: git fetch --prune --unshallow --tags
