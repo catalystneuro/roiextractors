@@ -16,6 +16,8 @@ class InscopixImagingExtractor(ImagingExtractor):
 
     def __init__(self, file_path: PathType):
         """
+        Create an InscopixImagingExtractor instance from a single .isx file.
+
         Parameters
         ----------
         file_path : PathType
