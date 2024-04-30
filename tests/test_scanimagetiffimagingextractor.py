@@ -1,6 +1,11 @@
 import pytest
 from numpy.testing import assert_array_equal
-from ScanImageTiffReader import ScanImageTiffReader
+import platform
+
+if (
+    platform.processor() != "arm"
+):  # Remove this check once scanimage tiff reader is available on ARM -- see https://gitlab.com/vidriotech/scanimagetiffreader-python/-/issues/31
+    from ScanImageTiffReader import ScanImageTiffReader
 from roiextractors import (
     ScanImageTiffSinglePlaneImagingExtractor,
     ScanImageTiffMultiPlaneImagingExtractor,
