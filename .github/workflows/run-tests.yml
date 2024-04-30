@@ -38,7 +38,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-        os: [ubuntu-latest, windows-latest, macos-13] # macos-13 is the latest version of macOS with Intel chip
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-13] # macos-13 is the latest version of macOS with Intel chip
     steps:
       - uses: actions/checkout@v2
       - run: git fetch --prune --unshallow --tags
@@ -74,7 +74,11 @@ jobs:
           path: ./ophys_testing_data
           key: ophys-datasets-042023-${{ matrix.os }}-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
 
-      - name: Run full pytest with coverage
+      - name: Run full pytest with coverage (macos-latest)
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: pytest -n auto --dist loadscope --cov=./ --cov-report xml:./codecov.xml --ignore=tests/tests_scan_image_tiff.py,test_scanimage_utils.py,test_scanimagetiffimagingextractor.py
+      - name: Run full pytest with coverage (ubuntu-latest, windows-latest, macos-13)
+        if: ${{ matrix.os != 'macos-latest' }}
         run: pytest -n auto --dist loadscope --cov=./ --cov-report xml:./codecov.xml
       - if: ${{ matrix.python-version == '3.9' && matrix.os == 'ubuntu-latest'}}
         name: Upload full coverage to Codecov
