@@ -28,7 +28,9 @@ jobs:
             pip install wheel==0.41.2  # needed for scanimage
 
       - name: Install full requirements
-        run: pip install --no-cache-dir .[full,test]
+        run: |
+            pip install .[test]
+            pip install .[full]
 
       - name: Clone and Install NeuroConv
         run: |
