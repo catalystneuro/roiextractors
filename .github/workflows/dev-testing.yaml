@@ -1,0 +1,53 @@
+name: Dev Testing
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  run:
+    name: Ubuntu tests with Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - run: git fetch --prune --unshallow --tags
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Global Setup
+        run: |
+            pip install -U pip
+            pip install pytest-xdist<=3.5.0
+            git config --global user.email "CI@example.com"
+            git config --global user.name "CI Almighty"
+            pip install wheel==0.41.2  # needed for scanimage
+
+      - name: Install full requirements
+        run: pip install --no-cache-dir .[full,test]
+
+      - name: Clone and Install NeuroConv
+        run: |
+            git clone https://github.com/catalystneuro/neuroconv.git
+            cd neuroconv
+            pip install --no-cache-dir .[full,test]
+            cd ../
+      - name: Get ophys_testing_data current head hash
+        id: ophys
+        run: echo "::set-output name=HASH_OPHYS_DATASET::$(git ls-remote https://gin.g-node.org/CatalystNeuro/ophys_testing_data.git HEAD | cut -f1)"
+      - name: Cache ophys dataset - ${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
+        uses: actions/cache@v2
+        id: cache-ophys-datasets
+        with:
+          path: ./ophys_testing_data
+          key: ophys-datasets-042023-ubuntu-latest-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
+
+      - name: Run NeuroConv tests
+        run: |
+            pytest -n auto --dist loadscope neuroconv/tests/test_ophys
+            pytest -n auto --dist loadscope neuroconv/tests/test_on_data/test_imaging_interfaces.py
+            pytest -n auto --dist loadscope neuroconv/tests/test_on_data/test_segmentation_interfaces.py
