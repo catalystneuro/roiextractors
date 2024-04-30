@@ -7,10 +7,14 @@ from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
 import platform
 
-if (
-    platform.processor() != "arm"
-):  # Remove this check once scanimage tiff reader is available on ARM -- see https://gitlab.com/vidriotech/scanimagetiffreader-python/-/issues/31
+# if (
+#     platform.processor() != "arm"
+# ):  # Remove this check once scanimage tiff reader is available on ARM -- see https://gitlab.com/vidriotech/scanimagetiffreader-python/-/issues/31
+#     from ScanImageTiffReader import ScanImageTiffReader
+try:
     from ScanImageTiffReader import ScanImageTiffReader
+except OSError:
+    pass
 
 from roiextractors import TiffImagingExtractor, ScanImageTiffImagingExtractor
 
