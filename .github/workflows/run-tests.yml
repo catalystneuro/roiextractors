@@ -76,7 +76,7 @@ jobs:
 
       - name: Run full pytest with coverage (macos-latest)
         if: ${{ matrix.os == 'macos-latest' }}
-        run: pytest -n auto --dist loadscope --cov=./ --cov-report xml:./codecov.xml --ignore=tests/tests_scan_image_tiff.py --ignore=tests/test_scanimage_utils.py --ignore=tests/test_scanimagetiffimagingextractor.py
+        run: pytest -n auto --dist loadscope --cov=./ --cov-report xml:./codecov.xml --ignore=tests/test_scan_image_tiff.py --ignore=tests/test_scanimage_utils.py --ignore=tests/test_scanimagetiffimagingextractor.py --ignore=tests/test_io.py
       - name: Run full pytest with coverage (ubuntu-latest, windows-latest, macos-13)
         if: ${{ matrix.os != 'macos-latest' }}
         run: pytest -n auto --dist loadscope --cov=./ --cov-report xml:./codecov.xml
