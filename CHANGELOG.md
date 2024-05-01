@@ -2,9 +2,11 @@
 
 ### Features
 
+* Add InscopixSegmentationExtractor [#276](https://github.com/catalystneuro/roiextractors/pull/276)
+
 ### Fixes
 
-* Remove unecessary scipy import error handling [#315]((https://github.com/catalystneuro/roiextractors/pull/315)
+* Remove unecessary scipy import error handling [#315](https://github.com/catalystneuro/roiextractors/pull/315)
 
 # v0.5.8
 
