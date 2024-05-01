@@ -6,6 +6,10 @@ on:
     workflows: [update-testing-data]
     types: [completed]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   on-failure:
     name: Notify on failure
@@ -37,10 +41,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.8, 3.9, "3.10", 3.11]
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-13] # macos-13 is the latest version of macOS with Intel chip
     steps:
-      - uses: s-weigand/setup-conda@v1
       - uses: actions/checkout@v2
       - run: git fetch --prune --unshallow --tags
       - name: Setup Python ${{ matrix.python-version }}
@@ -79,7 +82,7 @@ jobs:
         run: pytest -n auto --dist loadscope --cov=./ --cov-report xml:./codecov.xml
       - if: ${{ matrix.python-version == '3.9' && matrix.os == 'ubuntu-latest'}}
         name: Upload full coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ./codecov.xml
