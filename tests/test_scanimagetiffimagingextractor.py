@@ -16,7 +16,7 @@ from .setup_paths import OPHYS_DATA_PATH
 
 import platform
 
-is_m_series_mac = platform.system() == "Darwin" and platform.machine() == "arm64"
+is_m_series_mac = platform.system() == "darwin" and platform.machine() == "arm64"
 if (
     is_m_series_mac
 ):  # Remove this check once scanimage tiff reader is available on ARM -- see https://gitlab.com/vidriotech/scanimagetiffreader-python/-/issues/31
