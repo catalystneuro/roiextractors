@@ -17,6 +17,7 @@ from .setup_paths import OPHYS_DATA_PATH
 IS_ARM64_MAC = sys.platform == "darwin" and platform.processor() == "arm"
 pytestmark = pytest.mark.skipif(IS_ARM64_MAC)
 
+
 @pytest.fixture(scope="module")
 def file_path():
     return OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage" / "scanimage_20220923_roi.tif"
@@ -49,10 +50,12 @@ def expected_properties():
 def scan_image_tiff_single_plane_imaging_extractor(request, file_path):
     return ScanImageTiffSinglePlaneImagingExtractor(file_path=file_path, **request.param)
 
+
 @pytest.mark.parametrize("channel_name, plane_name", [("Invalid Channel", "0"), ("Channel 1", "Invalid Plane")])
 def test_ScanImageTiffSinglePlaneImagingExtractor__init__invalid(file_path, channel_name, plane_name):
     with pytest.raises(ValueError):
         ScanImageTiffSinglePlaneImagingExtractor(file_path=file_path, channel_name=channel_name, plane_name=plane_name)
+
 
 def test_ScanImageTiffSinglePlaneImagingExtractor__init__metadata_provided(file_path):
     metadata = extract_extra_metadata(file_path)
@@ -67,6 +70,7 @@ def test_ScanImageTiffSinglePlaneImagingExtractor__init__metadata_provided(file_
     assert extractor.metadata == metadata
     assert extractor.parsed_metadata == parsed_metadata
 
+
 def test_ScanImageTiffSinglePlaneImagingExtractor__init__invalid_metadata_provided(file_path):
     metadata = {"invalid_key": "invalid_value"}
     parsed_metadata = {"invalid_key": "invalid_value"}
@@ -79,6 +83,7 @@ def test_ScanImageTiffSinglePlaneImagingExtractor__init__invalid_metadata_provid
             parsed_metadata=parsed_metadata,
         )
 
+
 def test_ScanImageTiffSinglePlaneImagingExtractor__init__parsed_metadata_not_provided(file_path):
     metadata = extract_extra_metadata(file_path)
     with pytest.raises(AssertionError):
@@ -89,10 +94,11 @@ def test_ScanImageTiffSinglePlaneImagingExtractor__init__parsed_metadata_not_pro
             metadata=metadata,
         )
 
+
 @pytest.mark.parametrize("frame_idxs", (0, [0, 1, 2], [0, 2, 5]))
 def test_get_frames(scan_image_tiff_single_plane_imaging_extractor, frame_idxs, expected_properties):
     from ScanImageTiffReader import ScanImageTiffReader
-    
+
     frames = scan_image_tiff_single_plane_imaging_extractor.get_frames(frame_idxs=frame_idxs)
     file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
     plane = scan_image_tiff_single_plane_imaging_extractor.plane
@@ -102,7 +108,7 @@ def test_get_frames(scan_image_tiff_single_plane_imaging_extractor, frame_idxs, 
     frames_per_slice = expected_properties["frames_per_slice"]
     if isinstance(frame_idxs, int):
         frame_idxs = [frame_idxs]
-        
+
     raw_idxs = []
     for idx in frame_idxs:
         cycle = idx // frames_per_slice
@@ -114,19 +120,21 @@ def test_get_frames(scan_image_tiff_single_plane_imaging_extractor, frame_idxs, 
             + channel
         )
         raw_idxs.append(raw_idx)
-        
+
     with ScanImageTiffReader(file_path) as io:
         assert_array_equal(frames, io.data()[raw_idxs])
+
 
 @pytest.mark.parametrize("frame_idxs", ([-1], [50]))
 def test_get_frames_invalid(scan_image_tiff_single_plane_imaging_extractor, frame_idxs):
     with pytest.raises(ValueError):
         scan_image_tiff_single_plane_imaging_extractor.get_frames(frame_idxs=frame_idxs)
 
+
 @pytest.mark.parametrize("frame_idx", (1, 3, 5))
 def test_get_single_frame(scan_image_tiff_single_plane_imaging_extractor, expected_properties, frame_idx):
     from ScanImageTiffReader import ScanImageTiffReader
-    
+
     frame = scan_image_tiff_single_plane_imaging_extractor._get_single_frame(frame=frame_idx)
     file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
     plane = scan_image_tiff_single_plane_imaging_extractor.plane
@@ -160,7 +168,7 @@ def test_get_video(
     end_frame,
 ):
     from ScanImageTiffReader import ScanImageTiffReader
-    
+
     video = scan_image_tiff_single_plane_imaging_extractor.get_video(start_frame=start_frame, end_frame=end_frame)
     if start_frame is None:
         start_frame = 0
@@ -172,7 +180,7 @@ def test_get_video(
     num_planes = expected_properties["num_planes"]
     num_channels = expected_properties["num_channels"]
     frames_per_slice = expected_properties["frames_per_slice"]
-    
+
     raw_idxs = []
     for idx in range(start_frame, end_frame):
         cycle = idx // frames_per_slice
@@ -184,7 +192,7 @@ def test_get_video(
             + channel
         )
         raw_idxs.append(raw_idx)
-        
+
     with ScanImageTiffReader(file_path) as io:
         assert_array_equal(video, io.data()[raw_idxs])
 
