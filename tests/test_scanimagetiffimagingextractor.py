@@ -1,6 +1,3 @@
-import sys
-import platform
-
 import pytest
 from numpy.testing import assert_array_equal
 
@@ -10,12 +7,20 @@ from roiextractors import (
     ScanImageTiffSinglePlaneMultiFileImagingExtractor,
     ScanImageTiffMultiPlaneMultiFileImagingExtractor,
 )
-from roiextractors.extractors.tiffimagingextractors.scanimagetiff_utils import extract_extra_metadata, parse_metadata
-
+from roiextractors.extractors.tiffimagingextractors.scanimagetiff_utils import (
+    extract_extra_metadata,
+    parse_metadata,
+    _get_scanimage_reader,
+)
 from .setup_paths import OPHYS_DATA_PATH
 
-IS_ARM64_MAC = platform.processor() == "arm" and sys.platform == "darwin"
-pytestmark = pytest.mark.skipif(IS_ARM64_MAC, reason="ScanImage does not yet support ARM64 Mac.")
+import platform
+
+is_m_series_mac = platform.system() == "Darwin" and platform.machine() == "arm64"
+if (
+    is_m_series_mac
+):  # Remove this check once scanimage tiff reader is available on ARM -- see https://gitlab.com/vidriotech/scanimagetiffreader-python/-/issues/31
+    pytest.skip("ScanImageTiffReader does not support M-series Macs", allow_module_level=True)
 
 
 @pytest.fixture(scope="module")
@@ -97,7 +102,7 @@ def test_ScanImageTiffSinglePlaneImagingExtractor__init__parsed_metadata_not_pro
 
 @pytest.mark.parametrize("frame_idxs", (0, [0, 1, 2], [0, 2, 5]))
 def test_get_frames(scan_image_tiff_single_plane_imaging_extractor, frame_idxs, expected_properties):
-    from ScanImageTiffReader import ScanImageTiffReader
+    ScanImageTiffReader = _get_scanimage_reader()
 
     frames = scan_image_tiff_single_plane_imaging_extractor.get_frames(frame_idxs=frame_idxs)
     file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
@@ -133,7 +138,7 @@ def test_get_frames_invalid(scan_image_tiff_single_plane_imaging_extractor, fram
 
 @pytest.mark.parametrize("frame_idx", (1, 3, 5))
 def test_get_single_frame(scan_image_tiff_single_plane_imaging_extractor, expected_properties, frame_idx):
-    from ScanImageTiffReader import ScanImageTiffReader
+    ScanImageTiffReader = _get_scanimage_reader()
 
     frame = scan_image_tiff_single_plane_imaging_extractor._get_single_frame(frame=frame_idx)
     file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
@@ -167,7 +172,7 @@ def test_get_video(
     start_frame,
     end_frame,
 ):
-    from ScanImageTiffReader import ScanImageTiffReader
+    ScanImageTiffReader = _get_scanimage_reader()
 
     video = scan_image_tiff_single_plane_imaging_extractor.get_video(start_frame=start_frame, end_frame=end_frame)
     if start_frame is None:
