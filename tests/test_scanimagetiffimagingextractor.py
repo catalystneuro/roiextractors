@@ -14,8 +14,8 @@ from roiextractors.extractors.tiffimagingextractors.scanimagetiff_utils import e
 
 from .setup_paths import OPHYS_DATA_PATH
 
-IS_ARM64_MAC = sys.platform == "darwin" and platform.processor() == "arm"
-pytestmark = pytest.mark.skipif(IS_ARM64_MAC)
+IS_ARM64_MAC = platform.processor() == "arm" and sys.platform == "darwin"
+pytestmark = pytest.mark.skipif(IS_ARM64_MAC, reason="ScanImage does not yet support ARM64 Mac.")
 
 
 @pytest.fixture(scope="module")
