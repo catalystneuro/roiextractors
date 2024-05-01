@@ -11,6 +11,14 @@ from roiextractors.extractors.tiffimagingextractors.scanimagetiff_utils import (
 
 from .setup_paths import OPHYS_DATA_PATH
 
+import platform
+
+is_m_series_mac = platform.system() == "Darwin" and platform.machine() == "arm64"
+if (
+    is_m_series_mac
+):  # Remove this check once scanimage tiff reader is available on ARM -- see https://gitlab.com/vidriotech/scanimagetiffreader-python/-/issues/31
+    pytest.skip("ScanImageTiffReader does not support M-series Macs", allow_module_level=True)
+
 
 def test_get_scanimage_reader():
     ScanImageTiffReader = _get_scanimage_reader()
