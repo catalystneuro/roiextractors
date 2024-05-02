@@ -2,14 +2,21 @@ import unittest
 from pathlib import Path
 from tempfile import mkdtemp
 from shutil import rmtree, copy
-
 from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
-from ScanImageTiffReader import ScanImageTiffReader
+import pytest
 
 from roiextractors import TiffImagingExtractor, ScanImageTiffImagingExtractor
-
+from roiextractors.extractors.tiffimagingextractors.scanimagetiff_utils import _get_scanimage_reader
 from .setup_paths import OPHYS_DATA_PATH
+
+import platform
+
+is_m_series_mac = platform.system() == "Darwin" and platform.machine() == "arm64"
+if (
+    is_m_series_mac
+):  # Remove this check once scanimage tiff reader is available on ARM -- see https://gitlab.com/vidriotech/scanimagetiffreader-python/-/issues/31
+    pytest.skip("ScanImageTiffReader does not support M-series Macs", allow_module_level=True)
 
 
 class TestScanImageTiffExtractor(TestCase):
@@ -18,6 +25,7 @@ class TestScanImageTiffExtractor(TestCase):
         cls.file_path = OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "sample_scanimage.tiff"
         cls.tmpdir = Path(mkdtemp())
         cls.imaging_extractor = ScanImageTiffImagingExtractor(file_path=cls.file_path, sampling_frequency=30.0)
+        ScanImageTiffReader = _get_scanimage_reader()
         with ScanImageTiffReader(filename=str(cls.imaging_extractor.file_path)) as io:
             cls.data = io.data()
 
