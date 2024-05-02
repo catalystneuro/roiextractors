@@ -2,7 +2,7 @@
 
 ### Features
 
-* Add InscopixSegmentationExtractor [#276](https://github.com/catalystneuro/roiextractors/pull/276)
+* Add InscopixImagingExtractor [#276](https://github.com/catalystneuro/roiextractors/pull/276)
 
 ### Fixes
 
