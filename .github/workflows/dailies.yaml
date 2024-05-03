@@ -1,0 +1,30 @@
+name: Daily Workflows
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 14 * * *"  # Daily at 10am EST
+
+jobs:
+    update-testing-data:
+        uses: ./.github/workflows/update-testing-data.yml
+
+    run-tests:
+        needs: update-testing-data
+        uses: ./.github/workflows/run-tests.yml
+
+    notify:
+        runs-on: ubuntu-latest
+        needs: [update-testing-data, run-tests]
+        if: ${{ always() && contains(needs.*.result, 'failure') }}
+        steps:
+        - uses: dawidd6/action-send-mail@v3
+          with:
+            server_address: smtp.gmail.com
+            server_port: 465  # TSL
+            username: ${{ secrets.MAIL_USERNAME }}
+            password: ${{ secrets.MAIL_PASSWORD }}
+            subject: ROIExtractors Daily Failure
+            to: ${{ secrets.DAILY_FAILURE_EMAIL_LIST }}  # add more with commas, no separation
+            from: NWB Inspector
+            body: "The daily workflow for ROIExtractors failed: please check status at https://github.com/catalystneuro/roiextractors/actions/workflows/dailies.yml"
