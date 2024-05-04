@@ -9,6 +9,7 @@ NewExtractSegmentationExtractor
 LegacyExtractSegmentationExtractor
     Extractor for reading the segmentation data that results from calls to older versions of EXTRACT.
 """
+
 from abc import ABC
 from pathlib import Path
 from typing import Optional

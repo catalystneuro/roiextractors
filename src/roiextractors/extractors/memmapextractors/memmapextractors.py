@@ -5,6 +5,7 @@ Classes
 MemmapImagingExtractor
     The base class for memmapable imaging extractors.
 """
+
 from pathlib import Path
 
 import numpy as np
@@ -12,13 +13,9 @@ import psutil
 from tqdm import tqdm
 
 from ...imagingextractor import ImagingExtractor
-from typing import Tuple, Dict, Optional
+from typing import Tuple, Optional
 
-from ...extraction_tools import (
-    PathType,
-    DtypeType,
-    NumpyArray,
-)
+from ...extraction_tools import PathType, DtypeType
 
 
 class MemmapImagingExtractor(ImagingExtractor):

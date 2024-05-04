@@ -1,8 +1,63 @@
 # Upcoming
 
-### Improvements
+### Features
+
+* Add InscopixImagingExtractor [#276](https://github.com/catalystneuro/roiextractors/pull/276)
+
+### Fixes
+
+* Remove unecessary scipy import error handling [#315](https://github.com/catalystneuro/roiextractors/pull/315)
+
+### Testing
+
+* Updated testing workflows to include python 3.12, m1/intel macos, and dev tests to check neuroconv: [PR #317](https://github.com/catalystneuro/roiextractors/pull/317)
+
+
+
+* Added daily testing workflow and fixed bug with python 3.12 by upgrading scanimage-tiff-reader version: [PR #321](https://github.com/catalystneuro/roiextractors/pull/321)
+
+# v0.5.8
+
+### Fixes
+
+* The triggering workflow name for update version was incorrectly set to `auto-publish` (the name of the yaml file).  It has been renamed to `Upload Package to PyPI` (the name field of the workflow): [PR #304](https://github.com/catalystneuro/roiextractors/pull/304).
+
+* Fixed bug with automatic changelog test that was causing it to fail for daily tests: [PR #310](https://github.com/catalystneuro/roiextractors/pull/310)
+
+* Updated zenodo to get a DOI on each release: No PR
+
+
+# v0.5.7
+
+### Features
+
+* Add support to get background components: add `get_background_ids()`, `get_background_image_masks()`, `get_background_pixel_masks()` to `SegmentationExtractor`. [PR #291](https://github.com/catalystneuro/roiextractors/pull/291)
+
+* Add distinction for raw roi response and denoised roi response in `CaimanSegmentationExtractor`: [PR #291](https://github.com/catalystneuro/roiextractors/pull/291)
+
+* Bug fix for the `CaimanSegmentationExtractor`: correctly extract temporal and spatial background components [PR #291](https://github.com/catalystneuro/roiextractors/pull/291)
+
+* Added automatic version update workflow file that will run after publishing a new release to pypi: [PR #290](https://github.com/catalystneuro/roiextractors/pull/290)
+
+* Added `ScanImageTiffSinglePlaneMultiFileImagingExtractor` and `ScanImageTiffMultiPlaneMultiFileImagingExtractor`: [PR #297](https://github.com/catalystneuro/roiextractors/pull/297/files)
+
+* Added automatic changelog checking in the test workflow: [PR #302](https://github.com/catalystneuro/roiextractors/pull/302)
+
+### Fixes
+
 * Improved xml parsing with Bruker [PR #267](https://github.com/catalystneuro/roiextractors/pull/267)
 
+* Fixed a bug with `ScanImageTiffSinglePlaneImagingExtractor` in which `frames_per_slice` would be set to `_num_frames`: [PR #294](https://github.com/catalystneuro/roiextractors/pull/294)
+
+# v0.5.6
+
+### Features
+
+* Added support for red channel (anatomical) ROIs from suite2p in Suite2pSegmentationExtractor: [PR #270](https://github.com/catalystneuro/roiextractors/pull/270)
+
+* Added support for RoiGroup metadata in the `extract_extra_metadata` function for ScanImageTiff files: [PR #272](https://github.com/catalystneuro/roiextractors/pull/272)
+
+* Updated documentation and Readme PRs: [#283](https://github.com/catalystneuro/roiextractors/pull/283) [#282](https://github.com/catalystneuro/roiextractors/pull/282) [#280](https://github.com/catalystneuro/roiextractors/pull/280)
 
 # v0.5.5
 
@@ -30,6 +85,11 @@
 
 * Added support for Miniscope AVI files with the `MiniscopeImagingExtractor`. [PR #225](https://github.com/catalystneuro/roiextractors/pull/225)
 
+* Added support for incomplete file ingestion for the `Suite2pSegmentationExtractor`. [PR #227](https://github.com/catalystneuro/roiextractors/pull/227)
+
+* Bug fix for the `CaimanSegmentationExtractor`: Change reshaping from 'C' to 'F' (Fortran). [PR #227](https://github.com/catalystneuro/roiextractors/pull/227)
+
+* Bug fix for the `CaimanSegmentationExtractor`: Added importing of `self._image_correlation` and changed how `self._image_mean` to import the background component image. [PR #227](https://github.com/catalystneuro/roiextractors/pull/227)
 
 
 # v0.5.2

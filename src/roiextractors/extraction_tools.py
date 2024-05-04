@@ -5,6 +5,7 @@ Classes
 VideoStructure
     A data class for specifying the structure of a video.
 """
+
 import sys
 import importlib.util
 from functools import wraps
@@ -15,7 +16,6 @@ from dataclasses import dataclass
 from platform import python_version
 
 import lazy_ops
-import scipy
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 from tqdm import tqdm
@@ -28,22 +28,7 @@ try:
     HAVE_H5 = True
 except ImportError:
     HAVE_H5 = False
-try:
-    if hasattr(scipy.io.matlab, "mat_struct"):
-        from scipy.io.matlab import mat_struct
-    else:
-        from scipy.io.matlab.mio5_params import mat_struct
 
-    HAVE_Scipy = True
-except AttributeError:
-    if hasattr(scipy, "io") and hasattr(scipy.io.matlab, "mat_struct"):
-        from scipy.io import mat_struct
-    else:
-        from scipy.io.matlab.mio5_params import mat_struct
-
-    HAVE_Scipy = True
-except ImportError:
-    HAVE_Scipy = False
 
 try:
     import zarr
@@ -148,7 +133,7 @@ class VideoStructure:
             "each property axis should be unique value between 0 and 3 (inclusive)"
         )
 
-        axis_values = set((self.rows_axis, self.columns_axis, self.channels_axis, self.frame_axis))
+        axis_values = {self.rows_axis, self.columns_axis, self.channels_axis, self.frame_axis}
         axis_values_are_not_unique = len(axis_values) != 4
         if axis_values_are_not_unique:
             raise ValueError(exception_message)
@@ -272,7 +257,7 @@ def read_numpy_memmap_video(
     return video_memap
 
 
-def _pixel_mask_extractor(image_mask_, _roi_ids):
+def _pixel_mask_extractor(image_mask_, _roi_ids) -> list:
     """Convert image mask to pixel mask.
 
     Pixel masks are an alternative data format for storage of image masks which relies on the sparsity of the images.
@@ -301,7 +286,7 @@ def _pixel_mask_extractor(image_mask_, _roi_ids):
     return pixel_mask_list
 
 
-def _image_mask_extractor(pixel_mask, _roi_ids, image_shape):
+def _image_mask_extractor(pixel_mask, _roi_ids, image_shape) -> np.ndarray:
     """Convert a pixel mask to image mask.
 
     Parameters
@@ -323,28 +308,6 @@ def _image_mask_extractor(pixel_mask, _roi_ids, image_shape):
         for y, x, wt in pixel_mask[rois]:
             image_mask[int(y), int(x), no] = wt
     return image_mask
-
-
-def get_video_shape(video):
-    """Get the shape of a video (num_channels, num_frames, size_x, size_y).
-
-    Parameters
-    ----------
-    video: numpy.ndarray
-        The video to get the shape of.
-
-    Returns
-    -------
-    video_shape: tuple
-        The shape of the video (num_channels, num_frames, size_x, size_y).
-    """
-    if len(video.shape) == 3:
-        # 1 channel
-        num_channels = 1
-        num_frames, size_x, size_y = video.shape
-    else:
-        num_channels, num_frames, size_x, size_y = video.shape
-    return num_channels, num_frames, size_x, size_y
 
 
 def check_get_frames_args(func):
@@ -651,7 +614,8 @@ def check_keys(dict):
     AssertionError
         If scipy is not installed.
     """
-    assert HAVE_Scipy, "To write to h5 you need to install scipy: pip install scipy"
+    from scipy.io.matlab.mio5_params import mat_struct
+
     for key in dict:
         if isinstance(dict[key], mat_struct):
             dict[key] = todict(dict[key])
@@ -671,7 +635,11 @@ def todict(matobj):
     dict: dict
         Dictionary with mat-objects converted to nested dictionaries.
     """
+    from scipy.io.matlab.mio5_params import mat_struct
+
     dict = {}
+    from scipy.io.matlab.mio5_params import mat_struct
+
     for strg in matobj._fieldnames:
         elem = matobj.__dict__[strg]
         if isinstance(elem, mat_struct):

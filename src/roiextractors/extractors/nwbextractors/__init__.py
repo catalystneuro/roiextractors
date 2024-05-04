@@ -12,4 +12,5 @@ NwbImagingExtractor
 NwbSegmentationExtractor
     Extracts segmentation data from NWB files.
 """
+
 from .nwbextractors import NwbImagingExtractor, NwbSegmentationExtractor

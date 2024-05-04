@@ -21,6 +21,10 @@ ScanImageTiffSinglePlaneImagingExtractor
     Specialized extractor for reading single-plane TIFF files produced via ScanImage.
 ScanImageTiffMultiPlaneImagingExtractor
     Specialized extractor for reading multi-plane TIFF files produced via ScanImage.
+ScanImageTiffSinglePlaneMultiFileImagingExtractor
+    Specialized extractor for reading single-plane multi-file TIFF files produced via ScanImage.
+ScanImageTiffMultiPlaneMultiFileImagingExtractor
+    Specialized extractor for reading multi-plane multi-file TIFF files produced via ScanImage.
 BrukerTiffMultiPlaneImagingExtractor
     Specialized extractor for reading TIFF files produced via Bruker.
 BrukerTiffSinglePlaneImagingExtractor
@@ -28,11 +32,14 @@ BrukerTiffSinglePlaneImagingExtractor
 MicroManagerTiffImagingExtractor
     Specialized extractor for reading TIFF files produced via Micro-Manager.
 """
+
 from .tiffimagingextractor import TiffImagingExtractor
 from .scanimagetiffimagingextractor import (
     ScanImageTiffImagingExtractor,
     ScanImageTiffMultiPlaneImagingExtractor,
     ScanImageTiffSinglePlaneImagingExtractor,
+    ScanImageTiffSinglePlaneMultiFileImagingExtractor,
+    ScanImageTiffMultiPlaneMultiFileImagingExtractor,
 )
 from .brukertiffimagingextractor import BrukerTiffMultiPlaneImagingExtractor, BrukerTiffSinglePlaneImagingExtractor
 from .micromanagertiffimagingextractor import MicroManagerTiffImagingExtractor

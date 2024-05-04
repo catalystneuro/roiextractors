@@ -1,4 +1,5 @@
 """Listing of available formats for extraction."""
+
 from .extractors.caiman import CaimanSegmentationExtractor
 from .extractors.hdf5imagingextractor import Hdf5ImagingExtractor
 from .extractors.numpyextractors import (
@@ -17,6 +18,8 @@ from .extractors.tiffimagingextractors import (
     ScanImageTiffImagingExtractor,
     ScanImageTiffSinglePlaneImagingExtractor,
     ScanImageTiffMultiPlaneImagingExtractor,
+    ScanImageTiffSinglePlaneMultiFileImagingExtractor,
+    ScanImageTiffMultiPlaneMultiFileImagingExtractor,
     BrukerTiffMultiPlaneImagingExtractor,
     BrukerTiffSinglePlaneImagingExtractor,
     MicroManagerTiffImagingExtractor,
@@ -37,6 +40,8 @@ imaging_extractor_full_list = [
     ScanImageTiffImagingExtractor,
     ScanImageTiffSinglePlaneImagingExtractor,
     ScanImageTiffMultiPlaneImagingExtractor,
+    ScanImageTiffSinglePlaneMultiFileImagingExtractor,
+    ScanImageTiffMultiPlaneMultiFileImagingExtractor,
     BrukerTiffMultiPlaneImagingExtractor,
     BrukerTiffSinglePlaneImagingExtractor,
     MicroManagerTiffImagingExtractor,
