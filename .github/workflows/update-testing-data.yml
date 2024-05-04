@@ -1,6 +1,7 @@
 name: update-testing-data
 on:
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   run:
