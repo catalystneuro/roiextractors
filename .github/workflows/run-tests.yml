@@ -2,23 +2,13 @@ name: Full Tests
 on:
   pull_request:
   workflow_dispatch:
-  workflow_run:
-    workflows: [update-testing-data]
-    types: [completed]
+  workflow_call:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  on-failure:
-    name: Notify on failure
-    runs-on: ${{ matrix.os }}
-    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
-    steps:
-      - run: |
-          echo 'The triggering workflow failed.'
-          0
   assess-file-changes:
     uses: ./.github/workflows/assess-file-changes.yml
 
@@ -35,7 +25,7 @@ jobs:
           echo "CHANGELOG.md has not been updated."
           0
 
-  on-success:
+  run:
     name: Full tests on ${{ matrix.os }} with Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -44,10 +34,10 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         os: [ubuntu-latest, windows-latest, macos-latest, macos-13]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - run: git fetch --prune --unshallow --tags
       - name: Setup Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 

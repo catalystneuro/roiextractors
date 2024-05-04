@@ -14,6 +14,8 @@
 
 
 
+* Added daily testing workflow and fixed bug with python 3.12 by upgrading scanimage-tiff-reader version: [PR #321](https://github.com/catalystneuro/roiextractors/pull/321)
+
 # v0.5.8
 
 ### Fixes
