@@ -31,7 +31,7 @@ def test_inscopiximagingextractor_movie_longer_than_3_min():
 
     assert extractor.get_num_frames() == 1248
     assert extractor.get_image_size() == (33, 29)
-    assert extractor.get_dtype() == dtype("int16")
+    assert extractor.get_dtype() == dtype("uint16")
     np.testing.assert_almost_equal(extractor.get_sampling_frequency(), 5.5563890139076415)
     assert extractor.get_channel_names() == ["channel_0"]
     assert extractor.get_num_channels() == 1
