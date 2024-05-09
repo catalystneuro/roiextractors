@@ -8,7 +8,7 @@ import numpy as np
 from PIL import Image
 from parse import parse
 
-from roiextractors.imagingextractor import ImagingExtractor
+from ...imagingextractor import ImagingExtractor
 from ...extraction_tools import PathType
 
 
