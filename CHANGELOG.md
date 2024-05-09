@@ -1,8 +1,9 @@
-# Upcoming
+# Upcoming (v0.6.0)
 
 ### Features
 
 * Updated testing workflows to include python 3.12, m1/intel macos, and dev tests to check neuroconv: [PR #317](https://github.com/catalystneuro/roiextractors/pull/317)
+* Added `ThorImagingExtractor`: [PR #322](https://github.com/catalystneuro/roiextractors/pull/322)
 
 ### Fixes
 
