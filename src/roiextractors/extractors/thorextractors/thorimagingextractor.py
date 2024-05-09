@@ -49,15 +49,15 @@ def extract_experiment_details(xml_file_path: str):
     root = tree.getroot()
 
     # Extract frameRate from the LSM element
-    lsm_element = root.find('.//LSM')
-    if lsm_element is not None and 'frameRate' in lsm_element.attrib:
-        details['frameRate'] = float(lsm_element.attrib['frameRate'])
+    lsm_element = root.find(".//LSM")
+    if lsm_element is not None and "frameRate" in lsm_element.attrib:
+        details["frameRate"] = float(lsm_element.attrib["frameRate"])
 
     # Extract startTime from the Date element
-    date_element = root.find('.//Date')
-    if date_element is not None and 'date' in date_element.attrib:
-        date_str = date_element.attrib['date']
-        details['startTime'] = datetime.strptime(date_str, "%m/%d/%Y %H:%M:%S")
+    date_element = root.find(".//Date")
+    if date_element is not None and "date" in date_element.attrib:
+        date_str = date_element.attrib["date"]
+        details["startTime"] = datetime.strptime(date_str, "%m/%d/%Y %H:%M:%S")
 
     return details
 

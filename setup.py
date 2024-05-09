@@ -12,7 +12,7 @@ with open(root / "requirements-full.txt") as f:
     full_dependencies = f.readlines()
 with open(root / "requirements-testing.txt") as f:
     testing_dependencies = f.readlines()
-with open(root/"src"/"roiextractors"/"extractors"/"thorextractors"/"requirements.txt") as f:
+with open(root / "src" / "roiextractors" / "extractors" / "thorextractors" / "requirements.txt") as f:
     thor_dependencies = f.readlines()
 
 extras_require = dict(full=full_dependencies, test=testing_dependencies, thor=thor_dependencies)
