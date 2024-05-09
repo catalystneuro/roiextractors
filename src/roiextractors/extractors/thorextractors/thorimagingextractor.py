@@ -69,14 +69,14 @@ class ThorTiffImagingExtractor(ImagingExtractor):
     is_writable = False
 
     def __init__(self, folder_path: PathType, pattern="{channel}_001_001_001_{frame:d}.tif"):
-        """Create a ThorTiffImagingExtractor instance from a TIFF file.
+        """
+        Create a ThorTiffImagingExtractor instance from a TIFF file.
 
         Parameters
         ----------
         folder_path : str
             Folder that contains the TIFF files and the Experiment.xml file.
         """
-
         super().__init__()
         self.folder_path = folder_path
 
