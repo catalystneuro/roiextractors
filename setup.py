@@ -12,7 +12,10 @@ with open(root / "requirements-full.txt") as f:
     full_dependencies = f.readlines()
 with open(root / "requirements-testing.txt") as f:
     testing_dependencies = f.readlines()
-extras_require = dict(full=full_dependencies, test=testing_dependencies)
+with open(root/"src"/"roiextractors"/"extractors"/"thorextractors"/"requirements.txt") as f:
+    thor_dependencies = f.readlines()
+
+extras_require = dict(full=full_dependencies, test=testing_dependencies, thor=thor_dependencies)
 
 # Create a local copy for the gin test configuration file based on the master file `base_gin_test_config.json`
 gin_config_file_base = root / "base_gin_test_config.json"
