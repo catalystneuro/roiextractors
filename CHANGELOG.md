@@ -1,4 +1,4 @@
-# Upcoming
+# Upcoming (v0.6.0)
 
 ### Features
 
