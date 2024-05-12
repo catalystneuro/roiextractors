@@ -10,7 +10,7 @@
 
 ### Fixes
 
-* Remove unecessary scipy import error handling [#315]((https://github.com/catalystneuro/roiextractors/pull/315)
+* Remove unecessary scipy import error handling [#315](https://github.com/catalystneuro/roiextractors/pull/315)
 
 * Added daily testing workflow and fixed bug with python 3.12 by upgrading scanimage-tiff-reader version: [PR #321](https://github.com/catalystneuro/roiextractors/pull/321)
 
