@@ -40,7 +40,6 @@ def test_inscopiximagingextractor_movie_longer_than_3_min():
     assert extractor.get_frames(frame_idxs=[0], channel=0).dtype == extractor.get_dtype()
 
 
-@pytest.mark.skipif(sys.version_info <= (3, 8), reason="Requires Python 3.9 or higher")
 def test_inscopiximagingextractor_movie_u8():
     file_path = OPHYS_DATA_PATH / "imaging_datasets" / "inscopix" / "movie_u8.isxd"
     extractor = InscopixImagingExtractor(file_path=file_path)
