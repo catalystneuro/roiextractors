@@ -8,7 +8,7 @@ build:
 python:
   version: 3.9
   install:
-    - requirements: docs/requirements_doc.txt
+    - requirements: requirements-rtd.txt
 
 sphinx:
   configuration: docs/source/conf.py
