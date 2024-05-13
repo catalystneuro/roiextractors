@@ -1,8 +1,7 @@
 name: update-testing-data
 on:
-  schedule:
-    - cron: "0 0 * * *"  # daily
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   run:
@@ -11,9 +10,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-13] # macos-13 is the latest version of macOS with Intel chip
     steps:
-      - uses: s-weigand/setup-conda@v1
       - uses: actions/checkout@v2
       - run: git fetch --prune --unshallow --tags
       - name: Setup Python 3.11

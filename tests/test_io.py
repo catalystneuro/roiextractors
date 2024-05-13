@@ -25,6 +25,11 @@ from roiextractors.testing import (
 
 from .setup_paths import OPHYS_DATA_PATH, OUTPUT_PATH
 
+import platform
+
+# Remove this check once scanimage tiff reader is available on ARM -- see https://gitlab.com/vidriotech/scanimagetiffreader-python/-/issues/31
+is_m_series_mac = platform.system() == "Darwin" and platform.machine() == "arm64"
+
 
 def custom_name_func(testcase_func, param_num, param):
     return (
@@ -68,6 +73,9 @@ class TestExtractors(TestCase):
 
     @parameterized.expand(imaging_extractor_list, name_func=custom_name_func)
     def test_imaging_extractors(self, extractor_class, extractor_kwargs):
+        if extractor_class == ScanImageTiffImagingExtractor and is_m_series_mac:
+            return
+
         extractor = extractor_class(**extractor_kwargs)
         check_imaging_return_types(extractor)
 
@@ -88,6 +96,9 @@ class TestExtractors(TestCase):
     @parameterized.expand(imaging_extractor_list, name_func=custom_name_func)
     def test_imaging_extractors_canonical_shape(self, extractor_class, extractor_kwargs):
         """Test that get_video and get_frame methods for their shapes and types under different indexing scenarios"""
+        if extractor_class == ScanImageTiffImagingExtractor and is_m_series_mac:
+            return
+
         extractor = extractor_class(**extractor_kwargs)
         image_size = extractor.get_image_size()
         num_channels = extractor.get_num_channels()
@@ -168,14 +179,19 @@ class TestExtractors(TestCase):
 
             num_frames = extractor.get_num_frames()
             num_rois = extractor.get_num_rois()
+            num_background_components = extractor.get_num_background_components()
             for trace_name, trace in extractor.get_traces_dict().items():
                 if trace is None:
                     continue
                 assert trace.shape[0] == num_frames
-                assert trace.shape[1] == num_rois
-
                 assert extractor.get_traces(name=trace_name).shape[0] == num_frames
-                assert extractor.get_traces(name=trace_name).shape[1] == num_rois
+
+                if trace_name == "neuropil":
+                    assert trace.shape[1] == num_background_components
+                    assert extractor.get_traces(name=trace_name).shape[1] == num_background_components
+                else:
+                    assert trace.shape[1] == num_rois
+                    assert extractor.get_traces(name=trace_name).shape[1] == num_rois
 
         except NotImplementedError:
             return
