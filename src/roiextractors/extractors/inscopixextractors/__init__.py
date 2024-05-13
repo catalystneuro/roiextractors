@@ -1,5 +1,3 @@
-"""
-Extractors for Inscopix data.
-"""
+"""Extractors for Inscopix data."""
 
 from .inscopixsegmentationextractor import InscopixSegmentationExtractor

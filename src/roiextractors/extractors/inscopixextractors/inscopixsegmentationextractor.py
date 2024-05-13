@@ -1,6 +1,4 @@
-"""
-Inscopix Segmentation Extractor
-"""
+"""Inscopix Segmentation Extractor."""
 
 import numpy as np
 
