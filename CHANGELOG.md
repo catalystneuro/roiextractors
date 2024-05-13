@@ -1,4 +1,8 @@
-# Upcoming
+# Upcoming (v0.6.0)
+
+### Back-compatibility break
+
+* Remove support for Python 3.8 [PR #325](https://github.com/catalystneuro/roiextractors/pull/325)
 
 ### Features
 
@@ -6,7 +10,7 @@
 
 ### Fixes
 
-* Remove unecessary scipy import error handling [#315]((https://github.com/catalystneuro/roiextractors/pull/315)
+* Remove unecessary scipy import error handling [#315](https://github.com/catalystneuro/roiextractors/pull/315)
 
 * Added daily testing workflow and fixed bug with python 3.12 by upgrading scanimage-tiff-reader version: [PR #321](https://github.com/catalystneuro/roiextractors/pull/321)
 
