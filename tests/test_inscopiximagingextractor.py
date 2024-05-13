@@ -1,7 +1,4 @@
-import sys
-
 import numpy as np
-import pytest
 from numpy import dtype
 from numpy.testing import assert_array_equal
 
@@ -10,7 +7,6 @@ from roiextractors import InscopixImagingExtractor
 from tests.setup_paths import OPHYS_DATA_PATH
 
 
-@pytest.mark.skipif(sys.version_info <= (3, 8), reason="Requires Python 3.9 or higher")
 def test_inscopiximagingextractor_movie_128x128x100_part1():
     file_path = OPHYS_DATA_PATH / "imaging_datasets" / "inscopix" / "movie_128x128x100_part1.isxd"
     extractor = InscopixImagingExtractor(file_path=file_path)
@@ -25,7 +21,6 @@ def test_inscopiximagingextractor_movie_128x128x100_part1():
     assert extractor.get_frames(frame_idxs=[0], channel=0).dtype == extractor.get_dtype()
 
 
-@pytest.mark.skipif(sys.version_info <= (3, 8), reason="Requires Python 3.9 or higher")
 def test_inscopiximagingextractor_movie_longer_than_3_min():
     file_path = OPHYS_DATA_PATH / "imaging_datasets" / "inscopix" / "movie_longer_than_3_min.isxd"
     extractor = InscopixImagingExtractor(file_path=file_path)
