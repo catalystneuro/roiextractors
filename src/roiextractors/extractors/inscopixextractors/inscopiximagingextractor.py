@@ -54,4 +54,4 @@ class InscopixImagingExtractor(ImagingExtractor):
         return np.array([self.movie.get_frame_data(i) for i in range(start_frame, end_frame)])
 
     def get_dtype(self):
-        return self.movie.data_type
+        return np.dtype(self.movie.data_type)
