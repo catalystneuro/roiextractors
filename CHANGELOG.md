@@ -1,8 +1,13 @@
-# Upcoming
+# Upcoming (v0.6.0)
+
+### Back-compatibility break
+
+* Remove support for Python 3.8 [PR #325](https://github.com/catalystneuro/roiextractors/pull/325)
 
 ### Features
 
 * Add InscopixImagingExtractor [#276](https://github.com/catalystneuro/roiextractors/pull/276)
+* Updated testing workflows to include python 3.12, m1/intel macos, and dev tests to check neuroconv: [PR #317](https://github.com/catalystneuro/roiextractors/pull/317)
 
 ### Fixes
 
@@ -11,9 +16,6 @@
 ### Testing
 
 * Updated testing workflows to include python 3.12, m1/intel macos, and dev tests to check neuroconv: [PR #317](https://github.com/catalystneuro/roiextractors/pull/317)
-
-
-
 * Added daily testing workflow and fixed bug with python 3.12 by upgrading scanimage-tiff-reader version: [PR #321](https://github.com/catalystneuro/roiextractors/pull/321)
 
 # v0.5.8
