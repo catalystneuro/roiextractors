@@ -7,7 +7,7 @@
 ### Features
 
 * Updated testing workflows to include python 3.12, m1/intel macos, and dev tests to check neuroconv: [PR #317](https://github.com/catalystneuro/roiextractors/pull/317)
-* Added InscopixSegmentationExtractor [PR #275](https://github.com/catalystneuro/roiextractors/pull/275)
+* Added `InscopixSegmentationExtractor` [PR #275](https://github.com/catalystneuro/roiextractors/pull/275)
 
 ### Fixes
 
