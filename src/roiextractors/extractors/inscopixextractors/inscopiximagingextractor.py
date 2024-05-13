@@ -38,7 +38,7 @@ class InscopixImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self) -> float:
         return 1 / self.movie.timing.period.secs_float
 
-    def get_channel_names(self) -> list:
+    def get_channel_names(self) -> list[str]:
         warnings.warn("isx only supports single channel videos.")
         return ["channel_0"]
 
