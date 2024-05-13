@@ -7,7 +7,7 @@ from numpy.testing import assert_array_equal
 
 from roiextractors import InscopixImagingExtractor
 
-from .setup_paths import OPHYS_DATA_PATH
+from tests.setup_paths import OPHYS_DATA_PATH
 
 
 @pytest.mark.skipif(sys.version_info <= (3, 8), reason="Requires Python 3.9 or higher")
@@ -22,6 +22,7 @@ def test_inscopiximagingextractor_movie_128x128x100_part1():
     assert extractor.get_channel_names() == ["channel_0"]
     assert extractor.get_num_channels() == 1
     assert extractor.get_video().shape == (100, 128, 128)
+    assert extractor.get_frames(frame_idxs=[0], channel=0).dtype == extractor.get_dtype()
 
 
 @pytest.mark.skipif(sys.version_info <= (3, 8), reason="Requires Python 3.9 or higher")
@@ -36,6 +37,7 @@ def test_inscopiximagingextractor_movie_longer_than_3_min():
     assert extractor.get_channel_names() == ["channel_0"]
     assert extractor.get_num_channels() == 1
     assert extractor.get_video().shape == (1248, 33, 29)
+    assert extractor.get_frames(frame_idxs=[0], channel=0).dtype == extractor.get_dtype()
 
 
 @pytest.mark.skipif(sys.version_info <= (3, 8), reason="Requires Python 3.9 or higher")
@@ -50,3 +52,4 @@ def test_inscopiximagingextractor_movie_u8():
     assert extractor.get_channel_names() == ["channel_0"]
     assert extractor.get_num_channels() == 1
     assert extractor.get_video().shape == (5, 3, 4)
+    assert extractor.get_frames(frame_idxs=[0], channel=0).dtype == extractor.get_dtype()
