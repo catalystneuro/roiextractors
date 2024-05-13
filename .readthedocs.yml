@@ -6,7 +6,6 @@ build:
     python: "3.10"
 
 python:
-  version: 3.9
   install:
     - requirements: requirements-rtd.txt
 
