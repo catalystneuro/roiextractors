@@ -9,4 +9,3 @@ from .imagingextractor import ImagingExtractor
 from .segmentationextractor import SegmentationExtractor
 
 __version__ = version("roiextractors")
-
