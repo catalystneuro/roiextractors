@@ -78,7 +78,7 @@ class SegmentationExtractor(ABC):
             2-D array: image height x image width
         """
         pass
-    
+
     def get_num_frames(self) -> int:
         """Get the number of frames in the recording (duration of recording).
 
