@@ -53,7 +53,9 @@ class MultiTiffMultiPageImagingExtractor(ImagingExtractor):
 
     def get_video(self, start_frame: int = None, end_frame: int = None, channel: Optional[int] = 0) -> np.ndarray:
         frame_idxs = np.arange(start_frame or 0, end_frame or self._num_frames)
-        file_idxs = np.searchsorted(self.page_tracker, frame_idxs, side="right") - 1  # index of the file that contains the frame
+        file_idxs = (
+            np.searchsorted(self.page_tracker, frame_idxs, side="right") - 1
+        )  # index of the file that contains the frame
         print(f"{file_idxs=}")
         file_start_idxs = self.page_tracker[file_idxs]  # index of the first frame in the file
         frame_offset_idxs = frame_idxs - file_start_idxs  # index of the frame in the file

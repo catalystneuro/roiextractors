@@ -5,8 +5,9 @@ from tests.setup_paths import OPHYS_DATA_PATH
 
 def test_init_multitiff_multipage_imaging_extractor():
     extractor = MultiTiffMultiPageImagingExtractor(
-        folder_path=OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "splits", pattern="split_{split:d}.tif",
-        sampling_frequency=1.0
+        folder_path=OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "splits",
+        pattern="split_{split:d}.tif",
+        sampling_frequency=1.0,
     )
 
     assert extractor.get_num_channels() == 1
