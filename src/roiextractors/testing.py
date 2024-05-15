@@ -1,7 +1,7 @@
 """Testing utilities for the roiextractors package."""
 
 from collections.abc import Iterable
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
@@ -52,9 +52,9 @@ def generate_dummy_imaging_extractor(
     num_rows: int = 10,
     num_columns: int = 10,
     num_channels: int = 1,
-    sampling_frequency: float = 30,
+    sampling_frequency: float = 30.0,
     dtype: DtypeType = "uint16",
-    channel_names: Optional[list] = None,
+    channel_names: Optional[List[str]] = None,
 ):
     """Generate a dummy imaging extractor for testing.
 
