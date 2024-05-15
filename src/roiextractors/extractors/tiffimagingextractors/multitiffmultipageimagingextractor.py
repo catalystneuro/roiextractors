@@ -1,11 +1,10 @@
 from typing import Optional, Tuple
 
 import numpy as np
-from roiextractors import ImagingExtractor
-from roiextractors.extraction_tools import PathType
 from tifffile import TiffFile
 from tqdm import tqdm
 
+from ... import ImagingExtractor
 from ...utils import match_paths
 
 
@@ -15,7 +14,7 @@ class MultiTiffMultiPageImagingExtractor(ImagingExtractor):
     extractor_name = "multi-tiff multi-page Imaging Extractor"
     is_writable = False
 
-    def __init__(self, folder_path: PathType, pattern: str, sampling_frequency: float):
+    def __init__(self, folder_path: str, pattern: str, sampling_frequency: float):
         """Create a MultiTiffMultiPageImagingExtractor instance.
 
         Parameters
@@ -51,7 +50,6 @@ class MultiTiffMultiPageImagingExtractor(ImagingExtractor):
         self._kwargs = {"folder_path": folder_path}
 
     def get_video(self, start_frame: int = None, end_frame: int = None, channel: Optional[int] = 0) -> np.ndarray:
-
         frame_idxs = np.arange(start_frame or 0, end_frame or self._num_frames)
         file_idxs = np.searchsorted(self.page_tracker, frame_idxs)  # index of the file that contains the frame
         file_start_idxs = self.page_tracker[file_idxs]  # index of the first frame in the file

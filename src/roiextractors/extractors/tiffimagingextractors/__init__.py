@@ -43,3 +43,4 @@ from .scanimagetiffimagingextractor import (
 )
 from .brukertiffimagingextractor import BrukerTiffMultiPlaneImagingExtractor, BrukerTiffSinglePlaneImagingExtractor
 from .micromanagertiffimagingextractor import MicroManagerTiffImagingExtractor
+from .multitiffmultipageimagingextractor import MultiTiffMultiPageImagingExtractor
