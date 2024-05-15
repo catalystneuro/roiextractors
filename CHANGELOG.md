@@ -1,6 +1,6 @@
-# Upcoming (v0.6.0)
+# Upcoming (v0.5.9)
 
-### Back-compatibility break
+### Depreciations
 
 * Remove support for Python 3.8: [PR #325](https://github.com/catalystneuro/roiextractors/pull/325)
 
