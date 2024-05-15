@@ -1,10 +1,10 @@
 from typing import Optional, Tuple
 
 import numpy as np
-from tifffile import TiffFile
 from tqdm import tqdm
 
 from ... import ImagingExtractor
+from ...extraction_tools import get_package
 from ...utils import match_paths
 
 
@@ -31,11 +31,12 @@ class MultiTiffMultiPageImagingExtractor(ImagingExtractor):
         self.folder_path = folder_path
 
         self.tif_paths = match_paths(folder_path, pattern)
+        self._tifffile = get_package(package_name="tifffile", installation_instructions="pip install tifffile")
 
         self.page_tracker = []
         page_counter = 0
         for file_path in tqdm(self.tif_paths, "extracting page lengths"):
-            with TiffFile(file_path) as tif:
+            with self._tifffile.TiffFile(file_path) as tif:
                 self.page_tracker.append(page_counter)
                 page_counter += len(tif.pages)
 
@@ -59,7 +60,7 @@ class MultiTiffMultiPageImagingExtractor(ImagingExtractor):
 
         data = []
         for file_idx, frame_offset_idxs in index_dict.items():
-            with TiffFile(self.tif_paths[file_idx]) as tif:
+            with self._tifffile.TiffFile(self.tif_paths[file_idx]) as tif:
                 for frame_offset_idx in frame_offset_idxs:
                     page = tif.pages[frame_offset_idx]
                     data.append(page.asarray())
