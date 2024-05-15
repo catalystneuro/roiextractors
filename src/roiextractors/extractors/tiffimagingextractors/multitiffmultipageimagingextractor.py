@@ -56,7 +56,6 @@ class MultiTiffMultiPageImagingExtractor(ImagingExtractor):
         file_idxs = (
             np.searchsorted(self.page_tracker, frame_idxs, side="right") - 1
         )  # index of the file that contains the frame
-        print(f"{file_idxs=}")
         file_start_idxs = self.page_tracker[file_idxs]  # index of the first frame in the file
         frame_offset_idxs = frame_idxs - file_start_idxs  # index of the frame in the file
         # dict of file_idx: frame_offset_idxs
