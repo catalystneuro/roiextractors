@@ -26,6 +26,6 @@ class MultiTiffMultiPageImagingExtractor(MultiImagingExtractor):
 
         self.folder_path = folder_path
         self.tif_paths = match_paths(folder_path, pattern)
-        imaging_extractors = [TiffImagingExtractor(x, sampling_frequency) for x in self.tif_paths]
+        imaging_extractors = [TiffImagingExtractor(file_path=x, sampling_frequency=sampling_frequency) for x in self.tif_paths]
         super().__init__(imaging_extractors=imaging_extractors)
         self._kwargs.update({"folder_path": folder_path})
