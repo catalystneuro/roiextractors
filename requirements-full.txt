@@ -4,4 +4,3 @@ neuroconv[video]>=0.4.6  # Uses the VideoCaptureContext class
 natsort>=8.3.1
 isx>=1.0.4
 parse>=1.20.0
-
