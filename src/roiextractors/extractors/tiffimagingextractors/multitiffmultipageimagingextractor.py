@@ -1,9 +1,7 @@
-from typing import Optional, Tuple
+"""MultiTiffMultiPageImagingExtractor class."""
 
-import numpy as np
-
-from ...multiimagingextractor import MultiImagingExtractor
 from .tiffimagingextractor import TiffImagingExtractor
+from ...multiimagingextractor import MultiImagingExtractor
 from ...utils import match_paths
 
 
