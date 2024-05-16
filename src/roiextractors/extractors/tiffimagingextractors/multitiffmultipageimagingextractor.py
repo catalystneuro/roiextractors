@@ -26,6 +26,8 @@ class MultiTiffMultiPageImagingExtractor(MultiImagingExtractor):
 
         self.folder_path = folder_path
         self.tif_paths = match_paths(folder_path, pattern)
+        if len(self.tif_paths) == 0:
+            raise ValueError("No TIFF files found in the folder_path with the given pattern.")
         imaging_extractors = [
             TiffImagingExtractor(file_path=x, sampling_frequency=sampling_frequency) for x in self.tif_paths
         ]
