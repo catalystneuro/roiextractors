@@ -1,3 +1,5 @@
+"""Utility functions for the ROIExtractors package."""
+
 import glob
 import os
 from typing import Dict, Any
