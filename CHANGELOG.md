@@ -8,6 +8,7 @@
 
 * Add InscopixImagingExtractor [#276](https://github.com/catalystneuro/roiextractors/pull/276)
 * Updated testing workflows to include python 3.12, m1/intel macos, and dev tests to check neuroconv: [PR #317](https://github.com/catalystneuro/roiextractors/pull/317)
+* Updated  `parse_metadata()` from `scaimagetiff_utils` to include `scan_line_rate`, `grid_spacing`, `grid_spacing_unit`,`origin_coords`, `origin_coords_unit`
 
 ### Fixes
 

@@ -95,6 +95,12 @@ def parse_metadata(metadata: dict) -> dict:
     - frames_per_slice
     - channel_names
     - num_channels
+    - scan_line_rate,
+    - grid_spacing,
+    - grid_spacing_unit,
+    - origin_coords,
+    - origin_coords_unit,
+    - roi_metadata,
 
     Parameters
     ----------
