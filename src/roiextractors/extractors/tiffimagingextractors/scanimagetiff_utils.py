@@ -119,18 +119,38 @@ def parse_metadata(metadata: dict) -> dict:
     active_channels = parse_matlab_vector(metadata["SI.hChannels.channelsActive"])
     channel_indices = np.array(active_channels) - 1  # Account for MATLAB indexing
     channel_names = np.array(metadata["SI.hChannels.channelName"].split("'")[1::2])
+    scan_line_rate = 1 / float(metadata["SI.hRoiManager.linePeriod"])
     channel_names = channel_names[channel_indices].tolist()
     num_channels = len(channel_names)
-    if "RoiGroups" in metadata.keys():
-        roi_metadata = metadata["RoiGroups"]
-    else:
-        roi_metadata = None
+    roi_metadata = metadata["RoiGroups"]
+    grid_spacing = None
+    grid_spacing_unit = "n.a"
+    origin_coords = None
+    origin_coords_unit = "n.a"
+    try:
+        # Attempt to access the nested dictionary keys
+        scanfields = roi_metadata["imagingRoiGroup"]["rois"]["scanfields"]
+        fov_size_in_um = np.array(scanfields["sizeXY"])
+        frame_dimension = np.array(scanfields["pixelResolutionXY"])
+        grid_spacing = fov_size_in_um / frame_dimension
+        grid_spacing_unit = "micrometers"
+        origin_coords = scanfields["centerXY"]
+        origin_coords_unit = "micrometers"
+
+    except (KeyError, Exception):
+        pass
+
     metadata_parsed = dict(
         sampling_frequency=sampling_frequency,
         num_channels=num_channels,
         num_planes=num_planes,
         frames_per_slice=frames_per_slice,
         channel_names=channel_names,
+        scan_line_rate=scan_line_rate,
+        grid_spacing=grid_spacing,
+        grid_spacing_unit=grid_spacing_unit,
+        origin_coords=origin_coords,
+        origin_coords_unit=origin_coords_unit,
         roi_metadata=roi_metadata,
     )
     return metadata_parsed
