@@ -33,7 +33,7 @@ MicroManagerTiffImagingExtractor
     Specialized extractor for reading TIFF files produced via Micro-Manager.
 """
 
-from .tiffimagingextractor import TiffImagingExtractor, MultiTiffMultiPageImagingExtractor
+from .tiffimagingextractor import TiffImagingExtractor, MultiTiffImagingExtractor, FolderTiffImagingExtractor
 from .scanimagetiffimagingextractor import (
     ScanImageTiffImagingExtractor,
     ScanImageTiffMultiPlaneImagingExtractor,

@@ -22,6 +22,7 @@ from ...extraction_tools import (
     raise_multi_channel_or_depth_not_implemented,
     get_package,
 )
+from ...utils import match_paths
 
 
 class TiffImagingExtractor(ImagingExtractor):
@@ -154,31 +155,53 @@ class TiffImagingExtractor(ImagingExtractor):
                     tif.save(chunk_frames, contiguous=True, metadata=None)
 
 
-class MultiTiffMultiPageImagingExtractor(MultiImagingExtractor):
+class MultiTiffImagingExtractor(MultiImagingExtractor):
     """A ImagingExtractor for multiple TIFF files that each have multiple pages."""
 
     extractor_name = "multi-tiff multi-page Imaging Extractor"
     is_writable = False
 
-    def __init__(self, folder_path: str, pattern: str, sampling_frequency: float):
-        """Create a MultiTiffMultiPageImagingExtractor instance.
+    def __init__(self, file_paths: list[str], sampling_frequency: float):
+        """Create a MultiTiffImagingExtractor instance.
 
         Parameters
         ----------
-        folder_path : str
-            List of path to each TIFF file.
-        pattern : str
-            F-string-style pattern to match the TIFF files.
+        file_paths: list of str
+            List of paths to the TIFF files.
         sampling_frequency : float
             The frequency at which the frames were sampled, in Hz.
         """
-
-        self.folder_path = folder_path
-        self.tif_paths = match_paths(folder_path, pattern)
-        if len(self.tif_paths) == 0:
-            raise ValueError("No TIFF files found in the folder_path with the given pattern.")
+        self.file_paths = file_paths
         imaging_extractors = [
-            TiffImagingExtractor(file_path=x, sampling_frequency=sampling_frequency) for x in self.tif_paths
+            TiffImagingExtractor(file_path=x, sampling_frequency=sampling_frequency) for x in self.file_paths
         ]
         super().__init__(imaging_extractors=imaging_extractors)
-        self._kwargs.update({"folder_path": folder_path})
+        self._kwargs.update({"file_paths": file_paths})
+
+
+class FolderTiffImagingExtractor(MultiTiffImagingExtractor):
+    """A ImagingExtractor for multiple TIFF files in a folder that each have multiple pages."""
+
+    extractor_name = "folder-tiff multi-page Imaging Extractor"
+    is_writable = False
+
+    def __init__(self, folder_path: PathType, pattern: str, sampling_frequency: float):
+        """Create a FolderTiffImagingExtractor instance.
+
+        Parameters
+        ----------
+        folder_path: PathType
+            Path to the folder containing the TIFF files.
+        pattern : str
+            The f-string pattern to match the TIFF files in the folder.
+        sampling_frequency : float
+            The frequency at which the frames were sampled, in Hz.
+        """
+        folder_path = Path(folder_path)
+        file_paths = match_paths(str(folder_path), pattern)
+        super().__init__(file_paths=file_paths, sampling_frequency=sampling_frequency)
+        self._kwargs.update({
+            "folder_path": str(folder_path.absolute()),
+            "pattern": pattern,
+        })
+
