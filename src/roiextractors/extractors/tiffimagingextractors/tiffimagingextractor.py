@@ -200,8 +200,9 @@ class FolderTiffImagingExtractor(MultiTiffImagingExtractor):
         folder_path = Path(folder_path)
         file_paths = match_paths(str(folder_path), pattern)
         super().__init__(file_paths=file_paths, sampling_frequency=sampling_frequency)
-        self._kwargs.update({
-            "folder_path": str(folder_path.absolute()),
-            "pattern": pattern,
-        })
-
+        self._kwargs.update(
+            {
+                "folder_path": str(folder_path.absolute()),
+                "pattern": pattern,
+            }
+        )

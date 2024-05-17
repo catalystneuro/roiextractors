@@ -36,10 +36,7 @@ def test_init_folder_tiff_imaging_extractor_multi_page():
 
 def test_init_multitiff_imaging_extractor_multi_page():
     extractor = MultiTiffImagingExtractor(
-        file_paths=[
-            OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "splits" / f"split_{i}.tif"
-            for i in range(1, 11)
-        ],
+        file_paths=[OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "splits" / f"split_{i}.tif" for i in range(1, 11)],
         sampling_frequency=1.0,
     )
 
