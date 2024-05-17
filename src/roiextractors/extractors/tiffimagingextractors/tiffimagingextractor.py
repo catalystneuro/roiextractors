@@ -14,7 +14,7 @@ from typing import Tuple
 import numpy as np
 from tqdm import tqdm
 
-from ... import MultiImagingExtractor
+from ...multiimagingextractor import MultiImagingExtractor
 from ...imagingextractor import ImagingExtractor
 from ...extraction_tools import (
     PathType,
