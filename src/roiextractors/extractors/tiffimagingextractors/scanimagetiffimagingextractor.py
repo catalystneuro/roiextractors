@@ -458,7 +458,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         if frame < 0:
             raise ValueError(f"Frame index ({frame}) must be greater than or equal to 0.")
 
-    def frame_to_raw_index(self, frame):
+    def frame_to_raw_index(self, frame) -> int:
         """Convert a frame index to the raw index in the TIFF file.
 
         Parameters

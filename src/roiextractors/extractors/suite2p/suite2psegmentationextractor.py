@@ -28,7 +28,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     installation_mesg = ""  # error message when not installed
 
     @classmethod
-    def get_available_channels(cls, folder_path: PathType):
+    def get_available_channels(cls, folder_path: PathType) -> list[str]:
         """Get the available channel names from the folder paths produced by Suite2p.
 
         Parameters
@@ -52,7 +52,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return channel_names
 
     @classmethod
-    def get_available_planes(cls, folder_path: PathType):
+    def get_available_planes(cls, folder_path: PathType) -> list[str]:
         """Get the available plane names from the folder produced by Suite2p.
 
         Parameters
@@ -216,13 +216,13 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     def get_num_frames(self) -> int:
         return self._num_frames
 
-    def get_accepted_list(self):
+    def get_accepted_list(self) -> list[int]:
         return list(np.where(self.iscell[:, 0] == 1)[0])
 
-    def get_rejected_list(self):
+    def get_rejected_list(self) -> list[int]:
         return list(np.where(self.iscell[:, 0] == 0)[0])
 
-    def _correlation_image_read(self):
+    def _correlation_image_read(self) -> Optional[np.ndarray]:
         """Read correlation image from ops (settings) dict.
 
         Returns
@@ -246,11 +246,11 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return img
 
     @property
-    def roi_locations(self):
+    def roi_locations(self) -> np.ndarray:
         """Returns the center locations (x, y) of each ROI."""
         return np.array([j["med"] for j in self.stat]).T.astype(int)
 
-    def get_roi_pixel_masks(self, roi_ids=None):
+    def get_roi_pixel_masks(self, roi_ids=None) -> list[np.ndarray]:
         pixel_mask = []
         for i in range(self.get_num_rois()):
             pixel_mask.append(
@@ -270,7 +270,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
         return [pixel_mask[i] for i in roi_idx_]
 
-    def get_image_size(self):
+    def get_image_size(self) -> tuple[int, int]:
         return self._image_size
 
     @staticmethod
