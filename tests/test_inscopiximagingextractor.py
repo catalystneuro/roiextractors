@@ -13,12 +13,13 @@ def test_inscopiximagingextractor_movie_128x128x100_part1():
 
     assert extractor.get_num_frames() == 100
     assert extractor.get_image_size() == (128, 128)
-    assert extractor.get_dtype() == dtype("float32")
+    assert extractor.get_dtype() is dtype("float32")
     assert extractor.get_sampling_frequency() == 10.0
     assert extractor.get_channel_names() == ["channel_0"]
     assert extractor.get_num_channels() == 1
     assert extractor.get_video().shape == (100, 128, 128)
-    assert extractor.get_frames(frame_idxs=[0], channel=0).dtype == extractor.get_dtype()
+    assert extractor.get_frames(frame_idxs=[0], channel=0).dtype is extractor.get_dtype()
+    assert extractor.get_dtype().itemsize
 
 
 def test_inscopiximagingextractor_movie_longer_than_3_min():
@@ -27,12 +28,13 @@ def test_inscopiximagingextractor_movie_longer_than_3_min():
 
     assert extractor.get_num_frames() == 1248
     assert extractor.get_image_size() == (33, 29)
-    assert extractor.get_dtype() == dtype("uint16")
+    assert extractor.get_dtype() is dtype("uint16")
     np.testing.assert_almost_equal(extractor.get_sampling_frequency(), 5.5563890139076415)
     assert extractor.get_channel_names() == ["channel_0"]
     assert extractor.get_num_channels() == 1
     assert extractor.get_video().shape == (1248, 33, 29)
-    assert extractor.get_frames(frame_idxs=[0], channel=0).dtype == extractor.get_dtype()
+    assert extractor.get_frames(frame_idxs=[0], channel=0).dtype is extractor.get_dtype()
+    assert extractor.get_dtype().itemsize
 
 
 def test_inscopiximagingextractor_movie_u8():
@@ -41,9 +43,10 @@ def test_inscopiximagingextractor_movie_u8():
 
     assert extractor.get_num_frames() == 5
     assert extractor.get_image_size() == (3, 4)
-    assert extractor.get_dtype() == dtype("uint8")
+    assert extractor.get_dtype() is dtype("uint8")
     np.testing.assert_almost_equal(extractor.get_sampling_frequency(), 20.0)
     assert extractor.get_channel_names() == ["channel_0"]
     assert extractor.get_num_channels() == 1
     assert extractor.get_video().shape == (5, 3, 4)
-    assert extractor.get_frames(frame_idxs=[0], channel=0).dtype == extractor.get_dtype()
+    assert extractor.get_frames(frame_idxs=[0], channel=0).dtype is extractor.get_dtype()
+    assert extractor.get_dtype().itemsize
