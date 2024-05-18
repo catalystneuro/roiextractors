@@ -57,7 +57,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
         Parameters
         ----------
-        file_path : PathType
+        folder_path : PathType
             Path to Suite2p output path.
 
         Returns
