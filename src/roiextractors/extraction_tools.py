@@ -593,7 +593,7 @@ def show_video(imaging, ax=None):
     return anim
 
 
-def check_keys(dict_) -> dict:
+def check_keys(dict_: dict) -> dict:
     """Check keys of dictionary for mat-objects.
 
     Checks if entries in dictionary are mat-objects. If yes
