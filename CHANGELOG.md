@@ -1,6 +1,6 @@
 # Upcoming (v0.5.9)
 
-### Depreciations
+### Deprecations
 
 * Remove support for Python 3.8: [PR #325](https://github.com/catalystneuro/roiextractors/pull/325)
 
@@ -10,11 +10,10 @@
 * Updated testing workflows to include python 3.12, m1/intel macos, and dev tests to check neuroconv: [PR #317](https://github.com/catalystneuro/roiextractors/pull/317)
 
 ### Fixes
-
 * Remove unnecessary `scipy` import error handling: [#315](https://github.com/catalystneuro/roiextractors/pull/315)
 
 ### Improvements
-
+* The `Suite2PSegmentationExtractor` now produces an error when a required sub-file is missin: [#330](https://github.com/catalystneuro/roiextractors/pull/330)
 * Added `_image_mask` initialization in `BaseSegmentationExtractor`; combined `abstractmethod`s into top of file: [#327](https://github.com/catalystneuro/roiextractors/pull/327)
 
 ### Testing
@@ -33,6 +32,7 @@
 * Fixed bug with automatic changelog test that was causing it to fail for daily tests: [PR #310](https://github.com/catalystneuro/roiextractors/pull/310)
 
 * Updated zenodo to get a DOI on each release: No PR
+
 
 
 # v0.5.7
@@ -57,6 +57,8 @@
 
 * Fixed a bug with `ScanImageTiffSinglePlaneImagingExtractor` in which `frames_per_slice` would be set to `_num_frames`: [PR #294](https://github.com/catalystneuro/roiextractors/pull/294)
 
+
+
 # v0.5.6
 
 ### Features
@@ -66,6 +68,8 @@
 * Added support for RoiGroup metadata in the `extract_extra_metadata` function for ScanImageTiff files: [PR #272](https://github.com/catalystneuro/roiextractors/pull/272)
 
 * Updated documentation and Readme PRs: [#283](https://github.com/catalystneuro/roiextractors/pull/283) [#282](https://github.com/catalystneuro/roiextractors/pull/282) [#280](https://github.com/catalystneuro/roiextractors/pull/280)
+
+
 
 # v0.5.5
 
@@ -77,6 +81,7 @@
 
 * Fixed `MicroManagerTiffImagingExtractor` private extractor's dtype to not override the parent's dtype. [PR #257](https://github.com/catalystneuro/roiextractors/pull/257)
 * Fixed override of `channel_name` in `Suite2pSegmentationExtractor`. [PR #263](https://github.com/catalystneuro/roiextractors/pull/263)
+
 
 
 # v0.5.4
