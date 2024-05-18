@@ -29,7 +29,8 @@ class VolumetricImagingExtractor(ImagingExtractor):
         self._imaging_extractors = imaging_extractors
         self._num_planes = len(imaging_extractors)
 
-    def _check_consistency_between_imaging_extractors(self, imaging_extractors: List[ImagingExtractor]):
+    @staticmethod
+    def _check_consistency_between_imaging_extractors(imaging_extractors: List[ImagingExtractor]):
         """Check that essential properties are consistent between extractors so that they can be combined appropriately.
 
         Parameters
