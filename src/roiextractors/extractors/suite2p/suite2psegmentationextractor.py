@@ -57,7 +57,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
         Parameters
         ----------
-        file_path : PathType
+        folder_path : PathType
             Path to Suite2p output path.
 
         Returns
@@ -150,13 +150,13 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
         self.folder_path = Path(folder_path)
 
-        options = self._load_npy(file_name="ops.npy")
-        self.options = options.item() if options is not None else options
+        options = self._load_npy(file_name="ops.npy", require=True)
+        self.options = options.item()
         self._sampling_frequency = self.options["fs"]
         self._num_frames = self.options["nframes"]
         self._image_size = (self.options["Ly"], self.options["Lx"])
 
-        self.stat = self._load_npy(file_name="stat.npy")
+        self.stat = self._load_npy(file_name="stat.npy", require=True)
 
         fluorescence_traces_file_name = "F.npy" if channel_name == "chan1" else "F_chan2.npy"
         neuropil_traces_file_name = "Fneu.npy" if channel_name == "chan1" else "Fneu_chan2.npy"
@@ -187,7 +187,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             self.get_image_size(),
         )
 
-    def _load_npy(self, file_name: str, mmap_mode=None, transpose: bool = False):
+    def _load_npy(self, file_name: str, mmap_mode=None, transpose: bool = False, require: bool = False):
         """Load a .npy file with specified filename. Returns None if file is missing.
 
         Parameters
@@ -198,6 +198,8 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             The mode to use for memory mapping. See numpy.load for details.
         transpose: bool, optional
             Whether to transpose the loaded array.
+        require: bool, optional
+            Whether to raise an error if the file is missing.
 
         Returns
         -------
@@ -205,6 +207,8 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         """
         file_path = self.folder_path / self.plane_name / file_name
         if not file_path.exists():
+            if require:
+                raise FileNotFoundError(f"File {file_path} not found.")
             return
 
         data = np.load(file_path, mmap_mode=mmap_mode, allow_pickle=mmap_mode is None)
