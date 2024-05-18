@@ -593,7 +593,7 @@ def show_video(imaging, ax=None):
     return anim
 
 
-def check_keys(dict) -> dict:
+def check_keys(dict_: dict) -> dict:
     """Check keys of dictionary for mat-objects.
 
     Checks if entries in dictionary are mat-objects. If yes
@@ -601,7 +601,7 @@ def check_keys(dict) -> dict:
 
     Parameters
     ----------
-    dict: dict
+    dict_: dict
         Dictionary to check.
 
     Returns
@@ -616,10 +616,10 @@ def check_keys(dict) -> dict:
     """
     from scipy.io.matlab.mio5_params import mat_struct
 
-    for key in dict:
-        if isinstance(dict[key], mat_struct):
-            dict[key] = todict(dict[key])
-    return dict
+    for key in dict_:
+        if isinstance(dict_[key], mat_struct):
+            dict_[key] = todict(dict_[key])
+    return dict_
 
 
 def todict(matobj):
@@ -637,16 +637,16 @@ def todict(matobj):
     """
     from scipy.io.matlab.mio5_params import mat_struct
 
-    dict = {}
+    dict_ = {}
     from scipy.io.matlab.mio5_params import mat_struct
 
     for strg in matobj._fieldnames:
         elem = matobj.__dict__[strg]
         if isinstance(elem, mat_struct):
-            dict[strg] = todict(elem)
+            dict_[strg] = todict(elem)
         else:
-            dict[strg] = elem
-    return dict
+            dict_[strg] = elem
+    return dict_
 
 
 def get_package(
