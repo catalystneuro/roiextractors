@@ -13,9 +13,11 @@
 ### Fixes
 
 * Remove unecessary scipy import error handling: [#315](https://github.com/catalystneuro/roiextractors/pull/315)
+* Fixed the typing returned by the `InscopixImagingExtractor.get_dtype` method: [#326](https://github.com/catalystneuro/roiextractors/pull/326)
 
 ### Improvements
-- The `Suite2PSegmentationExtractor` now produces an error when a required sub-file is missin: [#330](https://github.com/catalystneuro/roiextractors/pull/330)
+
+* The `Suite2PSegmentationExtractor` now produces an error when a required sub-file is missin: [#330](https://github.com/catalystneuro/roiextractors/pull/330)
 
 ### Testing
 
