@@ -201,7 +201,7 @@ class SegmentationExtractor(ABC):
 
         Parameters
         ----------
-        roi_ids: array_like
+        background_ids: array_like
             A list or 1D array of ids of the ROIs. Length is the number of ROIs requested.
 
         Returns
