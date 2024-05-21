@@ -32,7 +32,7 @@ class SegmentationExtractor(ABC):
     """
 
     def __init__(self):
-        """Create a new SegmentationExtractor from specified data type (unique to each child SegmentationExtractor)."""
+        """Create a new SegmentationExtractor for a specific data format (unique to each child SegmentationExtractor)."""
         self._sampling_frequency = None
         self._times = None
         self._channel_names = ["OpticalChannel"]
@@ -44,6 +44,7 @@ class SegmentationExtractor(ABC):
         self._roi_response_deconvolved = None
         self._image_correlation = None
         self._image_mean = None
+        self._image_mask = None
 
     @abstractmethod
     def get_accepted_list(self) -> list:
@@ -64,6 +65,17 @@ class SegmentationExtractor(ABC):
         -------
         rejected_list: list
             List of rejected ROI ids.
+        """
+        pass
+
+    @abstractmethod
+    def get_image_size(self) -> ArrayType:
+        """Get frame size of movie (height, width).
+
+        Returns
+        -------
+        no_rois: array_like
+            2-D array: image height x image width
         """
         pass
 
@@ -189,7 +201,7 @@ class SegmentationExtractor(ABC):
 
         Parameters
         ----------
-        roi_ids: array_like
+        background_ids: array_like
             A list or 1D array of ids of the ROIs. Length is the number of ROIs requested.
 
         Returns
@@ -203,17 +215,6 @@ class SegmentationExtractor(ABC):
             background_ids = range(self.get_num_background_components())
 
         return _pixel_mask_extractor(self.get_background_image_masks(background_ids=background_ids), background_ids)
-
-    @abstractmethod
-    def get_image_size(self) -> ArrayType:
-        """Get frame size of movie (height, width).
-
-        Returns
-        -------
-        no_rois: array_like
-            2-D array: image height x image width
-        """
-        pass
 
     def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
         """Return a new SegmentationExtractor ranging from the start_frame to the end_frame.
