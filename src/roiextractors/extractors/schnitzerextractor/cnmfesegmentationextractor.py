@@ -142,7 +142,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         return [a for a in range(self.get_num_rois()) if a not in ac_set]
 
     @staticmethod
-    def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite=True):
+    def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite: bool = True):
         """Write a segmentation object to a .mat file.
 
         Parameters
