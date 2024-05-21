@@ -169,7 +169,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         return rejected
 
     @staticmethod
-    def write_segmentation(segmentation_object, save_path, overwrite=True):
+    def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite: bool = True):
         """Write a segmentation object to a *.hdf5 or *.h5 file specified by save_path.
 
         Parameters
