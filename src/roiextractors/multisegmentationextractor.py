@@ -104,7 +104,7 @@ class MultiSegmentationExtractor(SegmentationExtractor):
         _ = [self._channel_names.extend(self._segmentations[i].get_channel_names()) for i in range(self._no_planes)]
 
     @property
-    def no_planes(self):
+    def no_planes(self) -> int:
         """Number of planes in the recording.
 
         Returns
@@ -115,7 +115,7 @@ class MultiSegmentationExtractor(SegmentationExtractor):
         return self._no_planes
 
     @property
-    def segmentations(self):
+    def segmentations(self) -> list[SegmentationExtractor]:
         """List of segmentation extractors (one for each plane).
 
         Returns
@@ -128,7 +128,7 @@ class MultiSegmentationExtractor(SegmentationExtractor):
     def get_num_channels(self):
         return np.sum([self._segmentations[i].get_num_channels() for i in range(self._no_planes)])
 
-    def get_num_rois(self):
+    def get_num_rois(self) -> int:
         return len(self._all_roi_ids)
 
     def get_images(self, name="correlation_plane0"):  # TODO: add get_images to base SegmentationExtractor class
@@ -147,21 +147,21 @@ class MultiSegmentationExtractor(SegmentationExtractor):
         plane_no = int(name[-1])
         return self._segmentations[plane_no].get_images(name=name.split("_")[0])
 
-    def get_images_dict(self):
+    def get_images_dict(self) -> dict:
         return_dict = dict()
         for i in range(self._no_planes):
             for image_name, image in self._segmentations[i].get_images_dict().items():
                 return_dict.update({f"{image_name}_Plane{i}": image})
         return return_dict
 
-    def get_traces_dict(self):
+    def get_traces_dict(self) -> dict:
         return_dict = dict()
         for i in range(self._no_planes):
             for trace_name, trace in self._segmentations[i].get_traces_dict().items():
                 return_dict.update({f"{trace_name}_Plane{i}": trace})
         return return_dict
 
-    def get_image_size(self):
+    def get_image_size(self) -> tuple[int, int]:
         return self._segmentations[0].get_image_size()
 
     @concatenate_output
@@ -183,14 +183,14 @@ class MultiSegmentationExtractor(SegmentationExtractor):
     def get_num_frames(self):
         return np.sum([self._segmentations[i].get_num_frames() for i in range(self._no_planes)])
 
-    def get_accepted_list(self):
+    def get_accepted_list(self) -> list[int]:
         accepted_list_all = []
         for i in range(self._no_planes):
             ids_loop = self._segmentations[i].get_accepted_list()
             accepted_list_all.extend([j for j in self._all_roi_ids if self._roi_map[j]["roi_id"] in ids_loop])
         return accepted_list_all
 
-    def get_rejected_list(self):
+    def get_rejected_list(self) -> list[int]:
         rejected_list_all = []
         for i in range(self._no_planes):
             ids_loop = self._segmentations[i].get_rejected_list()

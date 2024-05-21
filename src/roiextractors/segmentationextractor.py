@@ -239,7 +239,7 @@ class SegmentationExtractor(ABC):
         start_frame: Optional[int] = None,
         end_frame: Optional[int] = None,
         name: str = "raw",
-    ):
+    ) -> ArrayType:
         """Get the traces of each ROI specified by roi_ids.
 
         Parameters
@@ -268,7 +268,7 @@ class SegmentationExtractor(ABC):
             idxs = slice(None) if roi_ids is None else roi_idxs
             return np.array(traces[start_frame:end_frame, :])[:, idxs]  # numpy fancy indexing is quickest
 
-    def get_traces_dict(self):
+    def get_traces_dict(self) -> dict:
         """Get traces as a dictionary with key as the name of the ROiResponseSeries.
 
         Returns
@@ -285,7 +285,7 @@ class SegmentationExtractor(ABC):
             denoised=self._roi_response_denoised,
         )
 
-    def get_images_dict(self):
+    def get_images_dict(self) -> dict:
         """Get images as a dictionary with key as the name of the ROIResponseSeries.
 
         Returns
@@ -368,7 +368,7 @@ class SegmentationExtractor(ABC):
         """
         return len(self._channel_names)
 
-    def get_num_planes(self):
+    def get_num_planes(self) -> int:
         """Get the default number of planes of imaging for the segmentation extractor.
 
         Notes
@@ -513,7 +513,7 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
             name=name,
         )
 
-    def get_traces_dict(self):
+    def get_traces_dict(self) -> dict:
         return {
             trace_name: self._parent_segmentation.get_traces(
                 start_frame=self._start_frame, end_frame=self._end_frame, name=trace_name
@@ -527,7 +527,7 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
     def get_num_frames(self) -> int:
         return self._num_frames
 
-    def get_num_rois(self):
+    def get_num_rois(self) -> int:
         return self._parent_segmentation.get_num_rois()
 
     def get_images_dict(self) -> dict:
@@ -545,7 +545,7 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
     def get_num_channels(self) -> int:
         return self._parent_segmentation.get_num_channels()
 
-    def get_num_planes(self):
+    def get_num_planes(self) -> int:
         return self._parent_segmentation.get_num_planes()
 
     def get_roi_pixel_masks(self, roi_ids: Optional[ArrayLike] = None) -> List[np.ndarray]:
