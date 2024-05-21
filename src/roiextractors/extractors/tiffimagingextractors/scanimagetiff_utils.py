@@ -133,8 +133,7 @@ def parse_metadata(metadata: dict) -> dict:
     grid_spacing_unit = "n.a"
     origin_coords = None
     origin_coords_unit = "n.a"
-    try:
-        # Attempt to access the nested dictionary keys
+    if roi_metadata["imagingRoiGroup"]["rois"].__contains__("scanfields"):
         scanfields = roi_metadata["imagingRoiGroup"]["rois"]["scanfields"]
         fov_size_in_um = np.array(scanfields["sizeXY"])
         frame_dimension = np.array(scanfields["pixelResolutionXY"])
@@ -142,9 +141,6 @@ def parse_metadata(metadata: dict) -> dict:
         grid_spacing_unit = "micrometers"
         origin_coords = scanfields["centerXY"]
         origin_coords_unit = "micrometers"
-
-    except (KeyError, Exception):
-        pass
 
     metadata_parsed = dict(
         sampling_frequency=sampling_frequency,
