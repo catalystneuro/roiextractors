@@ -13,3 +13,5 @@ ImagingExtractors
   sbximagingextractor
   brukertiffimagingextractors
   micromanagertiffimagingextractor
+  tiffimagingextractor
+  scanimagetiffimagingextractors
