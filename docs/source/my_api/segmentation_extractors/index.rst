@@ -7,3 +7,4 @@ SegmentationExtractors
   numpysegmentationextractor
   nwbsegmentationextractor
   caimansegmentationextractor
+  cnmfesegmentationextractor
