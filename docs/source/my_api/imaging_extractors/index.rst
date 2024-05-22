@@ -6,3 +6,4 @@ ImagingExtractors
 
   numpyimagingextractor
   nwbimagingextractor
+  memmapimagingextractors
