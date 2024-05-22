@@ -1,0 +1,3 @@
+InscopixImagingExtractor
+--------------------
+.. autoclass:: roiextractors.InscopixImagingExtractor

@@ -8,3 +8,4 @@ ImagingExtractors
   nwbimagingextractor
   memmapimagingextractors
   hdf5imagingextractor
+  inscopiximagingextractor
