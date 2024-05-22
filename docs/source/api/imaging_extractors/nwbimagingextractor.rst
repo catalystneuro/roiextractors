@@ -1,3 +1,3 @@
 NwbImagingExtractor
-----------------
+-------------------
 .. autoclass:: roiextractors.NwbImagingExtractor

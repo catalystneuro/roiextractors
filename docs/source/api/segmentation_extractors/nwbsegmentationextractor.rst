@@ -1,3 +1,3 @@
 NwbSegmentationExtractor
-----------------
+------------------------
 .. autoclass:: roiextractors.NwbSegmentationExtractor
