@@ -10,3 +10,4 @@ SegmentationExtractors
   cnmfesegmentationextractor
   extractsegmentationextractors
   simasegmentationextractor
+  suite2psegmentationextractor
