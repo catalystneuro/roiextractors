@@ -1,0 +1,3 @@
+CaimanSegmentationExtractor
+----------------
+.. autoclass:: roiextractors.CaimanSegmentationExtractor
