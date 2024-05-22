@@ -50,7 +50,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         Parameters
         ----------
         file_path: str
-            The location of the folder containing caiman *.hdf5 output file.
+            The location of the folder containing caiman .hdf5 output file.
         """
         SegmentationExtractor.__init__(self)
         self.file_path = file_path
@@ -170,7 +170,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite: bool = True):
-        """Write a segmentation object to a *.hdf5 or *.h5 file specified by save_path.
+        """Write a segmentation object to a .hdf5 or .h5 file specified by save_path.
 
         Parameters
         ----------
