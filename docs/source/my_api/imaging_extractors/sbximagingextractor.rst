@@ -1,0 +1,3 @@
+SbxImagingExtractor
+--------------------
+.. autoclass:: roiextractors.SbxImagingExtractor

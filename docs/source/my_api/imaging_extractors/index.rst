@@ -10,3 +10,4 @@ ImagingExtractors
   hdf5imagingextractor
   inscopiximagingextractor
   miniscopeimagingextractor
+  sbximagingextractor
