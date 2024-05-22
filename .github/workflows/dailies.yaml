@@ -26,5 +26,5 @@ jobs:
             password: ${{ secrets.MAIL_PASSWORD }}
             subject: ROIExtractors Daily Failure
             to: ${{ secrets.DAILY_FAILURE_EMAIL_LIST }}  # add more with commas, no separation
-            from: NWB Inspector
+            from: ROIExtractors
             body: "The daily workflow for ROIExtractors failed: please check status at https://github.com/catalystneuro/roiextractors/actions/workflows/dailies.yaml"
