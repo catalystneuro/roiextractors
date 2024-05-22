@@ -1,3 +1,3 @@
 CnmfeSegmentationExtractor
---------------------
+--------------------------
 .. autoclass:: roiextractors.CnmfeSegmentationExtractor

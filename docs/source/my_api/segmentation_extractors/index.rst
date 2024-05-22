@@ -8,3 +8,4 @@ SegmentationExtractors
   nwbsegmentationextractor
   caimansegmentationextractor
   cnmfesegmentationextractor
+  extractsegmentationextractors
