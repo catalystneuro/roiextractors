@@ -5,4 +5,4 @@ API documentation
    :maxdepth: 0
    :glob:
 
-   build_api/*
+   my_build_api/*
