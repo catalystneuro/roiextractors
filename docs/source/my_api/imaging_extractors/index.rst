@@ -11,3 +11,4 @@ ImagingExtractors
   inscopiximagingextractor
   miniscopeimagingextractor
   sbximagingextractor
+  brukertiffimagingextractors
