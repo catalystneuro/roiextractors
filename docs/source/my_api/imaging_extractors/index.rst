@@ -9,3 +9,4 @@ ImagingExtractors
   memmapimagingextractors
   hdf5imagingextractor
   inscopiximagingextractor
+  miniscopeimagingextractor
