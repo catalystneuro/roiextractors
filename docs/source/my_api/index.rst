@@ -8,3 +8,5 @@ API documentation
   base_segmentationextractors
   extraction_tools
   testing
+  imaging_extractors/index
+  segmentation_extractors/index

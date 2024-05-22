@@ -1,0 +1,3 @@
+NumpyImagingExtractor
+----------------
+.. autoclass:: roiextractors.NumpyImagingExtractor
