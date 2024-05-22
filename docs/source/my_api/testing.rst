@@ -1,0 +1,3 @@
+Testing
+-------
+.. automodule:: roiextractors.testing

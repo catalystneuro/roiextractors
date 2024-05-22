@@ -7,3 +7,4 @@ API documentation
   base_imagingextractors
   base_segmentationextractors
   extraction_tools
+  testing
