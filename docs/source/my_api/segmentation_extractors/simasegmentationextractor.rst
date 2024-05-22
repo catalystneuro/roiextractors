@@ -1,0 +1,3 @@
+SimaSegmentationExtractor
+--------------------
+.. autoclass:: roiextractors.SimaSegmentationExtractor

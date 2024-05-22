@@ -9,3 +9,4 @@ SegmentationExtractors
   caimansegmentationextractor
   cnmfesegmentationextractor
   extractsegmentationextractors
+  simasegmentationextractor
