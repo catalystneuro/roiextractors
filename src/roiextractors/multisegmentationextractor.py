@@ -1,11 +1,3 @@
-"""Defines the MultiSegmentationExtractor class.
-
-Classes
--------
-MultiSegmentationExtractor
-    This class is used to combine multiple SegmentationExtractor objects by frames.
-"""
-
 import numpy as np
 
 from .segmentationextractor import SegmentationExtractor

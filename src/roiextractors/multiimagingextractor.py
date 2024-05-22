@@ -1,11 +1,3 @@
-"""Defines the MultiImagingExtractor class.
-
-Classes
--------
-MultiImagingExtractor
-    This class is used to combine multiple ImagingExtractor objects by frames.
-"""
-
 from collections import defaultdict
 from typing import Tuple, List, Iterable, Optional
 

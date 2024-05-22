@@ -1,11 +1,3 @@
-"""An imaging extractor for HDF5.
-
-Classes
--------
-Hdf5ImagingExtractor
-    An imaging extractor for HDF5.
-"""
-
 from pathlib import Path
 from typing import Optional, Tuple
 from warnings import warn

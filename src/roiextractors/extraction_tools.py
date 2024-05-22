@@ -1,10 +1,4 @@
-"""Various tools for extraction of ROIs from imaging data.
-
-Classes
--------
-VideoStructure
-    A data class for specifying the structure of a video.
-"""
+"""Various tools for extraction of ROIs from imaging data."""
 
 import sys
 import importlib.util

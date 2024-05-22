@@ -1,11 +1,3 @@
-"""A TIFF imaging extractor for TIFF files.
-
-Classes
--------
-TiffImagingExtractor
-    A TIFF imaging extractor for TIFF files.
-"""
-
 from pathlib import Path
 from typing import Optional
 from warnings import warn
