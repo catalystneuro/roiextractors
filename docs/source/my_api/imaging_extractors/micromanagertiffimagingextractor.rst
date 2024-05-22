@@ -1,0 +1,3 @@
+MicroManagerTiffImagingExtractor
+--------------------------------
+.. autoclass:: roiextractors.MicroManagerTiffImagingExtractor

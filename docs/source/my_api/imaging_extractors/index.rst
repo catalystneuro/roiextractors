@@ -12,3 +12,4 @@ ImagingExtractors
   miniscopeimagingextractor
   sbximagingextractor
   brukertiffimagingextractors
+  micromanagertiffimagingextractor
