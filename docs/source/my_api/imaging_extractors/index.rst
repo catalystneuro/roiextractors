@@ -5,3 +5,4 @@ ImagingExtractors
   :maxdepth: 1
 
   numpyimagingextractor
+  nwbimagingextractor

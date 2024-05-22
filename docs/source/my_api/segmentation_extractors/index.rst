@@ -5,3 +5,4 @@ SegmentationExtractors
   :maxdepth: 1
 
   numpysegmentationextractor
+  nwbsegmentationextractor
