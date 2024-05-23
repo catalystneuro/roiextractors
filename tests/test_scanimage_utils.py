@@ -70,6 +70,11 @@ def test_parse_matlab_vector_invalid():
                 "num_planes": 20,
                 "frames_per_slice": 24,
                 "channel_names": ["Channel 1"],
+                "scan_line_rate": 15847.40847329236,
+                "grid_spacing": [0.01757812, 0.01757812],
+                "grid_spacing_unit": "micrometers",
+                "origin_coords": [0, 0],
+                "origin_coords_unit": "micrometers",
                 "roi_metadata": {
                     "imagingRoiGroup": {
                         "ver": 1,
@@ -147,6 +152,11 @@ def test_parse_matlab_vector_invalid():
                 "num_planes": 2,
                 "frames_per_slice": 2,
                 "channel_names": ["Channel 1", "Channel 4"],
+                "scan_line_rate": 15843.868185354244,
+                "grid_spacing": None,
+                "grid_spacing_unit": "n.a",
+                "origin_coords": None,
+                "origin_coords_unit": "n.a",
                 "roi_metadata": {
                     "imagingRoiGroup": {
                         "ver": 1,
