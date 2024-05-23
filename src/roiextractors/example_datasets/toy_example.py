@@ -1,4 +1,10 @@
-"""Toy example ImagingExtractor and SegmentationExtractor for testing."""
+"""Toy example ImagingExtractor and SegmentationExtractor for testing.
+
+Functions
+---------
+toy_example
+    Create a toy example of an ImagingExtractor and a SegmentationExtractor.
+"""
 
 import numpy as np
 

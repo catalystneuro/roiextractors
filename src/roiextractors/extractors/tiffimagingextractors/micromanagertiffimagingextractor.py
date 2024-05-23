@@ -1,3 +1,11 @@
+"""A ImagingExtractor for TIFF files produced by Micro-Manager.
+
+Classes
+-------
+MicroManagerTiffImagingExtractor
+    A ImagingExtractor for TIFF files produced by Micro-Manager.
+"""
+
 import json
 import logging
 import re

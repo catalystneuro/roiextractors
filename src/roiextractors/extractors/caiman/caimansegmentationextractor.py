@@ -1,3 +1,11 @@
+"""A SegmentationExtractor for CaImAn.
+
+Classes
+-------
+CaimanSegmentationExtractor
+    A class for extracting segmentation from CaImAn output.
+"""
+
 from pathlib import Path
 
 try:

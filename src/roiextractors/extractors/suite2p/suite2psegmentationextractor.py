@@ -1,3 +1,11 @@
+"""A segmentation extractor for Suite2p.
+
+Classes
+-------
+Suite2pSegmentationExtractor
+    A segmentation extractor for Suite2p.
+"""
+
 import shutil
 from pathlib import Path
 from typing import Optional

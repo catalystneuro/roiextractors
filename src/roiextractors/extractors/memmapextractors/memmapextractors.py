@@ -1,3 +1,11 @@
+"""Defines the base class for memmapable imaging extractors.
+
+Classes
+-------
+MemmapImagingExtractor
+    The base class for memmapable imaging extractors.
+"""
+
 from pathlib import Path
 
 import numpy as np

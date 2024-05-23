@@ -1,3 +1,11 @@
+"""NumpyMemmapImagingExtractor class.
+
+Classes
+-------
+NumpyMemmapImagingExtractor
+    The class for reading optical imaging data stored in a binary format with numpy.memmap.
+"""
+
 import os
 from pathlib import Path
 

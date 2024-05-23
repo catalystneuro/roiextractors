@@ -1,3 +1,5 @@
+"""Base class definition for volumetric imaging extractors."""
+
 from typing import Tuple, List, Iterable, Optional
 import numpy as np
 
