@@ -1,10 +1,4 @@
-"""Specialized extractor for reading TIFF files produced via ScanImage.
-
-Classes
--------
-ScanImageTiffImagingExtractor
-    Specialized extractor for reading TIFF files produced via ScanImage.
-"""
+"""Specialized extractor for reading TIFF files produced via ScanImage."""
 
 from pathlib import Path
 from typing import Optional, Tuple, List, Iterable

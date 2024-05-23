@@ -1,10 +1,4 @@
-"""Imaging Extractors for Scanbox files.
-
-Classes
--------
-SbxImagingExtractor
-    An ImagingExtractor for Scanbox Image files.
-"""
+"""Imaging Extractors for Scanbox files."""
 
 from multiprocessing.sharedctypes import Value
 import os

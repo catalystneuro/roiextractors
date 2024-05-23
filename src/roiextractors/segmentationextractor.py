@@ -1,14 +1,4 @@
-"""Base segmentation extractors.
-
-Classes
--------
-SegmentationExtractor
-    Abstract class that contains all the meta-data and output data from the ROI segmentation operation when applied to
-    the pre-processed data. It also contains methods to read from and write to various data formats output from the
-    processing pipelines like SIMA, CaImAn, Suite2p, CNMF-E.
-FrameSliceSegmentationExtractor
-    Class to get a lazy frame slice.
-"""
+"""Base segmentation extractors."""
 
 from abc import ABC, abstractmethod
 from typing import Union, Optional, Tuple, Iterable, List

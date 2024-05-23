@@ -1,10 +1,4 @@
-"""A segmentation extractor for Sima.
-
-Classes
--------
-SimaSegmentationExtractor
-    A segmentation extractor for Sima.
-"""
+"""A segmentation extractor for Sima."""
 
 import os
 import pickle
