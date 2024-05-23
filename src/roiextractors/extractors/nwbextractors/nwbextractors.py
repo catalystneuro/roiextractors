@@ -1,4 +1,12 @@
-"""Imaging and segmentation extractors for NWB files."""
+"""Imaging and segmentation extractors for NWB files.
+
+Classes
+-------
+NwbImagingExtractor
+    Extracts imaging data from NWB files.
+NwbSegmentationExtractor
+    Extracts segmentation data from NWB files.
+"""
 
 from pathlib import Path
 from typing import Union, Optional, Iterable, Tuple

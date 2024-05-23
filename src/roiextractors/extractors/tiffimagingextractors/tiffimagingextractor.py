@@ -1,4 +1,10 @@
-"""A TIFF imaging extractor for TIFF files."""
+"""A TIFF imaging extractor for TIFF files.
+
+Classes
+-------
+TiffImagingExtractor
+    A TIFF imaging extractor for TIFF files.
+"""
 
 from pathlib import Path
 from typing import Optional

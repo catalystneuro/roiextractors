@@ -1,4 +1,12 @@
-"""ImagingExtractors for the TIFF image format produced by Bruker."""
+"""ImagingExtractors for the TIFF image format produced by Bruker.
+
+Classes
+-------
+BrukerTiffSinglePlaneImagingExtractor
+    A ImagingExtractor for TIFF files produced by Bruker with only 1 plane.
+BrukerTiffMultiPlaneImagingExtractor
+    A MultiImagingExtractor for TIFF files produced by Bruker with multiple planes.
+"""
 
 import logging
 import re

@@ -1,4 +1,14 @@
-"""Extractor for reading the segmentation data that results from calls to EXTRACT."""
+"""Extractor for reading the segmentation data that results from calls to EXTRACT.
+
+Classes
+-------
+ExtractSegmentationExtractor
+    Abstract class that defines which extractor class to use for a given file.
+NewExtractSegmentationExtractor
+    Extractor for reading the segmentation data that results from calls to newer versions of EXTRACT.
+LegacyExtractSegmentationExtractor
+    Extractor for reading the segmentation data that results from calls to older versions of EXTRACT.
+"""
 
 from abc import ABC
 from pathlib import Path

@@ -1,4 +1,12 @@
-"""Base class definitions for all ImagingExtractors."""
+"""Base class definitions for all ImagingExtractors.
+
+Classes
+-------
+ImagingExtractor
+    Abstract class that contains all the meta-data and input data from the imaging data.
+FrameSliceImagingExtractor
+    Class to get a lazy frame slice.
+"""
 
 from abc import ABC, abstractmethod
 from typing import Union, Optional, Tuple
