@@ -4,5 +4,5 @@ sphinx_rtd_theme
 readthedocs-sphinx-search
 sphinx-toggleprompt
 sphinx-copybutton
-roiextractors
+roiextractors @ git+https://github.com/catalystneuro/roiextractors.git@api_docs
 pydata_sphinx_theme
