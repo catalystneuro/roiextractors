@@ -31,5 +31,6 @@ With this package, a user can:
    usage
    usecase
    contribute
+   api/index
    licence
    contact

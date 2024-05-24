@@ -1,0 +1,3 @@
+TiffImagingExtractor
+--------------------
+.. autoclass:: roiextractors.TiffImagingExtractor

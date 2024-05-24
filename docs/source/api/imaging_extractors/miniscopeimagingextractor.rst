@@ -1,0 +1,3 @@
+MiniscopeImagingExtractor
+-------------------------
+.. autoclass:: roiextractors.MiniscopeImagingExtractor

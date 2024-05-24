@@ -1,0 +1,3 @@
+NumpySegmentationExtractor
+--------------------------
+.. autoclass:: roiextractors.NumpySegmentationExtractor

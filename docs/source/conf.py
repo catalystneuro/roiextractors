@@ -43,7 +43,6 @@ napoleon_numpy_docstring = True
 napoleon_use_param = False
 napoleon_use_ivar = True
 napoleon_include_init_with_doc = False
-napoleon_include_private_with_doc = True
 napoleon_include_special_with_doc = True
 
 # Autodoc
@@ -53,7 +52,7 @@ autodata_content = "both"
 autodoc_default_options = {
     "members": True,
     "member-order": "bysource",
-    "private-members": True,
+    "private-members": False,
     "show-inheritance": False,
     "toctree": True,
 }

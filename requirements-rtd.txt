@@ -4,5 +4,4 @@ sphinx_rtd_theme
 readthedocs-sphinx-search
 sphinx-toggleprompt
 sphinx-copybutton
-roiextractors
 pydata_sphinx_theme
