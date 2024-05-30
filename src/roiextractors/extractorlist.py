@@ -1,5 +1,6 @@
 """Listing of available formats for extraction."""
 
+from .extractors.bioformatsimagingextractor import CxdImagingExtractor
 from .extractors.caiman import CaimanSegmentationExtractor
 from .extractors.hdf5imagingextractor import Hdf5ImagingExtractor
 from .extractors.numpyextractors import (
@@ -52,6 +53,7 @@ imaging_extractor_full_list = [
     MemmapImagingExtractor,
     VolumetricImagingExtractor,
     InscopixImagingExtractor,
+    CxdImagingExtractor,
 ]
 
 segmentation_extractor_full_list = [

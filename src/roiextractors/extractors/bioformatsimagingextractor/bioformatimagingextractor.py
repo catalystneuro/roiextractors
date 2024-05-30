@@ -32,7 +32,7 @@ class BioFormatsImagingExtractor(ImagingExtractor):
 
         Supported file formats: https://bio-formats.readthedocs.io/en/stable/supported-formats.html
 
-        This extractor requires bioformats_jar to be installed in the environment,
+        This extractor requires `bioformats_jar` to be installed in the environment,
         and requires the java executable to be available on the path (or via the JAVA_HOME environment variable),
         along with the mvn executable.
 
