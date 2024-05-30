@@ -13,7 +13,7 @@ from typing import List
 import numpy as np
 
 from ...extraction_tools import PathType
-from .bioformatimagingextractor import BioFormatsImagingExtractor
+from .bioformatsimagingextractor import BioFormatsImagingExtractor
 from .bioformats_utils import extract_ome_metadata, parse_ome_metadata
 
 
