@@ -3,3 +3,4 @@ scanimage-tiff-reader==1.4.1.4
 neuroconv[video]>=0.4.6  # Uses the VideoCaptureContext class
 natsort>=8.3.1
 isx>=1.0.4
+aicsimageio>=4.14.0
