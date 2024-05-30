@@ -14,7 +14,6 @@ import numpy as np
 
 from ...extraction_tools import PathType
 from .bioformatsimagingextractor import BioFormatsImagingExtractor
-from .bioformats_utils import extract_ome_metadata, parse_ome_metadata
 
 
 class CxdImagingExtractor(BioFormatsImagingExtractor):
@@ -36,6 +35,8 @@ class CxdImagingExtractor(BioFormatsImagingExtractor):
         channel_names: list
             List of channel names.
         """
+        from .bioformats_utils import extract_ome_metadata, parse_ome_metadata
+
         ome_metadata = extract_ome_metadata(file_path=file_path)
         parsed_metadata = parse_ome_metadata(metadata=ome_metadata)
         channel_names = parsed_metadata["channel_names"]
@@ -55,6 +56,8 @@ class CxdImagingExtractor(BioFormatsImagingExtractor):
         plane_names: list
             List of plane names.
         """
+        from .bioformats_utils import extract_ome_metadata, parse_ome_metadata
+
         ome_metadata = extract_ome_metadata(file_path=file_path)
         parsed_metadata = parse_ome_metadata(metadata=ome_metadata)
         num_planes = parsed_metadata["num_planes"]
@@ -87,6 +90,8 @@ class CxdImagingExtractor(BioFormatsImagingExtractor):
         plane_name : str
             The name of the plane for this extractor. (default=None)
         """
+        from .bioformats_utils import extract_ome_metadata, parse_ome_metadata
+
         if "JAVA_HOME" not in os.environ:
             conda_home = os.environ.get("CONDA_PREFIX")
             os.environ["JAVA_HOME"] = conda_home

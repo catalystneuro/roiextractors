@@ -64,7 +64,7 @@ def parse_ome_metadata(metadata: OME) -> dict:
     - channel_names
 
     """
-    images_metadata = metadata["images"][0]
+    images_metadata = metadata.images[0]
     pixels_metadata = images_metadata.pixels
 
     sampling_frequency = None
