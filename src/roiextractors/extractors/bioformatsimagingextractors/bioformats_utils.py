@@ -6,7 +6,7 @@ import aicsimageio
 from aicsimageio.formats import FORMAT_IMPLEMENTATIONS
 from ome_types import OME
 
-from roiextractors.extraction_tools import PathType
+from ...extraction_tools import PathType
 
 
 def check_file_format_is_supported(file_path: PathType):

@@ -60,7 +60,7 @@ class BioFormatsImagingExtractor(ImagingExtractor):
             Parsed metadata dictionary in the form outputted by parse_ome_metadata in order to be parsed
             correctly.
         """
-        from roiextractors.extractors.bioformatsimagingextractor.bioformats_utils import check_file_format_is_supported
+        from .bioformats_utils import check_file_format_is_supported
         import aicsimageio
 
         self.file_path = file_path
