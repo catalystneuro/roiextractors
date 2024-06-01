@@ -1,3 +1,3 @@
 CxdImagingExtractor
 -------------------
-.. automodule:: roiextractors.extractors.bioformatsimagingextractors.CxdImagingExtractor
+.. automodule:: roiextractors.extractors.bioformatsimagingextractors.cxdimagingextractor
