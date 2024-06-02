@@ -133,11 +133,12 @@ class CxdImagingExtractor(BioFormatsImagingExtractor):
                 )
             plane_name = plane_names[0]
 
-        sampling_frequency = sampling_frequency or parsed_metadata["sampling_frequency"]
-        if sampling_frequency is None:
-            raise ValueError(
-                "Sampling frequency is not found in the metadata. Please provide it manually with the 'sampling_frequency' argument."
-            )
+        if parsed_metadata["sampling_frequency"] is None:
+            if sampling_frequency is None:
+                raise ValueError(
+                    "Sampling frequency is not found in the metadata. Please provide it manually with the 'sampling_frequency' argument."
+                )
+            parsed_metadata.update(sampling_frequency=sampling_frequency)
 
         super().__init__(
             file_path=file_path,
