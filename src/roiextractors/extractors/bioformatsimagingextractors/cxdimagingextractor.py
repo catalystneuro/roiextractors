@@ -64,7 +64,13 @@ class CxdImagingExtractor(BioFormatsImagingExtractor):
         plane_names = [f"{i}" for i in range(num_planes)]
         return plane_names
 
-    def __init__(self, file_path: PathType, channel_name: str = None, plane_name: str = None):
+    def __init__(
+        self,
+        file_path: PathType,
+        channel_name: str = None,
+        plane_name: str = None,
+        sampling_frequency: float = None,
+    ):
         r"""
         Create a CxdImagingExtractor instance from a CXD file produced by Hamamatsu Photonics.
 
@@ -89,6 +95,9 @@ class CxdImagingExtractor(BioFormatsImagingExtractor):
             The name of the channel for this extractor. (default=None)
         plane_name : str
             The name of the plane for this extractor. (default=None)
+        sampling_frequency : float
+            The sampling frequency of the imaging data. (default=None)
+            Has to be provided manually if not found in the metadata.
         """
         from .bioformats_utils import extract_ome_metadata, parse_ome_metadata
 
@@ -124,6 +133,12 @@ class CxdImagingExtractor(BioFormatsImagingExtractor):
                 )
             plane_name = plane_names[0]
 
+        sampling_frequency = sampling_frequency or parsed_metadata["sampling_frequency"]
+        if sampling_frequency is None:
+            raise ValueError(
+                "Sampling frequency is not found in the metadata. Please provide it manually with the 'sampling_frequency' argument."
+            )
+
         super().__init__(
             file_path=file_path,
             channel_name=channel_name,
@@ -134,4 +149,5 @@ class CxdImagingExtractor(BioFormatsImagingExtractor):
 
         pixels_metadata = self.ome_metadata.images[0].pixels
         timestamps = [plane.delta_t for plane in pixels_metadata.planes]
-        self._times = np.array(timestamps)
+        if np.any(timestamps):
+            self._times = np.array(timestamps)
