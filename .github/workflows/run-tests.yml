@@ -1,12 +1,7 @@
 name: Full Tests
 on:
-  pull_request:
   workflow_dispatch:
   workflow_call:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
 
 jobs:
   run:
@@ -51,16 +46,6 @@ jobs:
         with:
           path: ./ophys_testing_data
           key: ophys-datasets-042023-${{ matrix.os }}-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
-
-      - if: steps.cache-ophys-datasets.outputs.cache-hit == false
-        name: Install and configure AWS CLI
-        run: |
-          pip install awscli
-          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      - if: steps.cache-ophys-datasets.outputs.cache-hit == false
-        name: Download data from S3
-        run: aws s3 cp --recursive s3://${{ secrets.S3_GIN_BUCKET }}//ophys_testing_data ./ophys_testing_data
 
       - name: Run full pytest with coverage
         run: pytest -n auto --dist loadscope --cov=./ --cov-report xml:./codecov.xml
