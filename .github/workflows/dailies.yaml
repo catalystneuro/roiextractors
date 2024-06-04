@@ -16,6 +16,8 @@ jobs:
     run-tests:
         needs: update-testing-data
         uses: ./.github/workflows/run-tests.yml
+        secrets:
+            CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     notify:
         runs-on: ubuntu-latest
