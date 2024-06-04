@@ -81,11 +81,17 @@ class BioFormatsImagingExtractor(ImagingExtractor):
         self._plane_names = [f"{i}" for i in range(self._num_planes)]
 
         if channel_name not in self._channel_names:
-            raise ValueError(f"Channel name ({channel_name}) not found in channel names ({self._channel_names}).")
+            raise ValueError(
+                f"The selected channel '{channel_name}' is not a valid channel name."
+                f" The available channel names are: {self._channel_names}."
+            )
         self.channel_index = self._channel_names.index(channel_name)
 
         if plane_name not in self._plane_names:
-            raise ValueError(f"Plane name ({plane_name}) not found in plane names ({self._plane_names}).")
+            raise ValueError(
+                f"The selected plane '{plane_name}' is not a valid plane name."
+                f" The available plane names are: {self._plane_names}."
+            )
         self.plane_index = self._plane_names.index(plane_name)
 
         with aicsimageio.readers.bioformats_reader.BioFile(self.file_path) as reader:
@@ -109,7 +115,30 @@ class BioFormatsImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self):
         return self._sampling_frequency
 
+    def check_frame_inputs(self, frame) -> None:
+        """Check that the frame index is valid. Raise ValueError if not.
+
+        Parameters
+        ----------
+        frame : int
+            The index of the frame to retrieve.
+
+        Raises
+        ------
+        ValueError
+            If the frame index is invalid.
+        """
+        if frame is None:
+            return
+        if frame >= self._num_frames:
+            raise ValueError(f"Frame index ({frame}) exceeds number of frames ({self._num_frames}).")
+        if frame < 0:
+            raise ValueError(f"Frame index ({frame}) must be greater than or equal to 0.")
+
     def get_video(self, start_frame=None, end_frame=None, channel: int = 0) -> np.ndarray:
+        self.check_frame_inputs(start_frame)
+        self.check_frame_inputs(end_frame)
+
         dimension_dict = {
             "T": slice(start_frame, end_frame),
             "C": self.channel_index,
