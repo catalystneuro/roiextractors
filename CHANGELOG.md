@@ -15,7 +15,7 @@
 * Remove unnecessary `scipy` import error handling: [#315](https://github.com/catalystneuro/roiextractors/pull/315)
 * Fixed the typing returned by the `InscopixImagingExtractor.get_dtype` method: [#326](https://github.com/catalystneuro/roiextractors/pull/326)
 * Detect Changelog Updates was moved to its own dedicated workflow to avoid daily testing failures: [#336](https://github.com/catalystneuro/roiextractors/pull/336)
-* Fixed the Update Testing Data Workflow by unpinning the version of awscli: [#339](https://github.com/catalystneuro/roiextractors/pull/339)
+* Fixed the Daily testing workflows by passing along the appropriate secrets: [#340](https://github.com/catalystneuro/roiextractors/pull/340)
 
 ### Improvements
 
