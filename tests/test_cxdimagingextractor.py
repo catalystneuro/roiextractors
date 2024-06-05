@@ -9,7 +9,7 @@ from tests.setup_paths import OPHYS_DATA_PATH
 aicsimageio = pytest.importorskip("aicsimageio")
 
 try:
-    import aicsimageio.readers.bioformats_reader.BioFile
+    from aicsimageio.readers.bioformats_reader import BioFile
 except ImportError:
     pytest.skip(
         "aicsimageio.readers.bioformats_reader.BioFile is required for these tests but not available.",
