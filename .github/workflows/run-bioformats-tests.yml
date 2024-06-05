@@ -21,21 +21,12 @@ jobs:
           auto-activate-base: false
           python-version: 3.9
 
-      - name: Create conda environment from file
-        run: conda env create -f src/roiextractors/extractors/bioformatsimagingextractors/bioformats_env.yml
-
       - name: Activate conda environment
-        run: echo "conda activate bioformats-environment" >> $GITHUB_ENV
-
-      - name: Set JAVA_HOME
-        run: |
-          if [ -z "${JAVA_HOME}" ]; then
-            echo "JAVA_HOME=$CONDA_PREFIX" >> $GITHUB_ENV
-          fi
+        run: echo "conda activate test" >> $GITHUB_ENV
 
       - name: Global Setup
         env:
-          CONDA_PREFIX: bioformats-environment
+          CONDA_PREFIX: test
         run: |
           source activate $CONDA_PREFIX
           pip install -U pip
@@ -46,11 +37,25 @@ jobs:
 
       - name: Install full requirements
         env:
-          CONDA_PREFIX: bioformats-environment
+          CONDA_PREFIX: test
         run: |
           source activate $CONDA_PREFIX
           pip install .[test]
           pip install -e .[full]
+
+      - name: Install BioFormats requirements
+        env:
+          CONDA_PREFIX: test
+        run: |
+          source activate $CONDA_PREFIX
+          pip install aicsimageio>=4.14.0
+          conda install -c conda-forge bioformats_jar
+
+      - name: Set JAVA_HOME
+        run: |
+          if [ -z "${JAVA_HOME}" ]; then
+            echo "JAVA_HOME=$CONDA_PREFIX" >> $GITHUB_ENV
+          fi
 
       - name: Get ophys_testing_data current head hash
         id: ophys
@@ -65,7 +70,7 @@ jobs:
 
       - name: Run BioFormats tests
         env:
-          CONDA_PREFIX: bioformats-environment
+          CONDA_PREFIX: test
         run: |
           source activate $CONDA_PREFIX
           pytest tests/test_cxdimagingextractor.py -n auto --dist loadscope
