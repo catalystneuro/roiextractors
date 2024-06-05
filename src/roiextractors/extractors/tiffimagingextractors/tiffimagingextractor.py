@@ -14,6 +14,7 @@ from typing import Tuple
 import numpy as np
 from tqdm import tqdm
 
+from ...multiimagingextractor import MultiImagingExtractor
 from ...imagingextractor import ImagingExtractor
 from ...extraction_tools import (
     PathType,
@@ -21,6 +22,7 @@ from ...extraction_tools import (
     raise_multi_channel_or_depth_not_implemented,
     get_package,
 )
+from ...utils import match_paths
 
 
 class TiffImagingExtractor(ImagingExtractor):
@@ -151,3 +153,56 @@ class TiffImagingExtractor(ImagingExtractor):
                     )
                     chunk_frames = np.squeeze(video)
                     tif.save(chunk_frames, contiguous=True, metadata=None)
+
+
+class MultiTiffImagingExtractor(MultiImagingExtractor):
+    """A ImagingExtractor for multiple TIFF files that each have multiple pages."""
+
+    extractor_name = "multi-tiff multi-page Imaging Extractor"
+    is_writable = False
+
+    def __init__(self, file_paths: list[str], sampling_frequency: float):
+        """Create a MultiTiffImagingExtractor instance.
+
+        Parameters
+        ----------
+        file_paths: list of str
+            List of paths to the TIFF files.
+        sampling_frequency : float
+            The frequency at which the frames were sampled, in Hz.
+        """
+        self.file_paths = file_paths
+        imaging_extractors = [
+            TiffImagingExtractor(file_path=x, sampling_frequency=sampling_frequency) for x in self.file_paths
+        ]
+        super().__init__(imaging_extractors=imaging_extractors)
+        self._kwargs.update({"file_paths": file_paths})
+
+
+class FolderTiffImagingExtractor(MultiTiffImagingExtractor):
+    """A ImagingExtractor for multiple TIFF files in a folder that each have multiple pages."""
+
+    extractor_name = "folder-tiff multi-page Imaging Extractor"
+    is_writable = False
+
+    def __init__(self, folder_path: PathType, pattern: str, sampling_frequency: float):
+        """Create a FolderTiffImagingExtractor instance.
+
+        Parameters
+        ----------
+        folder_path: PathType
+            Path to the folder containing the TIFF files.
+        pattern : str
+            The f-string pattern to match the TIFF files in the folder.
+        sampling_frequency : float
+            The frequency at which the frames were sampled, in Hz.
+        """
+        folder_path = Path(folder_path)
+        file_paths = match_paths(str(folder_path), pattern)
+        super().__init__(file_paths=file_paths, sampling_frequency=sampling_frequency)
+        self._kwargs.update(
+            {
+                "folder_path": str(folder_path.absolute()),
+                "pattern": pattern,
+            }
+        )

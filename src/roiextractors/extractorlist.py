@@ -23,6 +23,8 @@ from .extractors.tiffimagingextractors import (
     BrukerTiffMultiPlaneImagingExtractor,
     BrukerTiffSinglePlaneImagingExtractor,
     MicroManagerTiffImagingExtractor,
+    MultiTiffImagingExtractor,
+    FolderTiffImagingExtractor,
 )
 from .extractors.sbximagingextractor import SbxImagingExtractor
 from .extractors.inscopixextractors import InscopixImagingExtractor
@@ -51,6 +53,8 @@ imaging_extractor_full_list = [
     NumpyMemmapImagingExtractor,
     MemmapImagingExtractor,
     VolumetricImagingExtractor,
+    MultiTiffImagingExtractor,
+    FolderTiffImagingExtractor,
     InscopixImagingExtractor,
 ]
 
