@@ -101,10 +101,6 @@ class CxdImagingExtractor(BioFormatsImagingExtractor):
         """
         from .bioformats_utils import extract_ome_metadata, parse_ome_metadata
 
-        if "JAVA_HOME" not in os.environ:
-            conda_home = os.environ.get("CONDA_PREFIX")
-            os.environ["JAVA_HOME"] = conda_home
-
         if ".cxd" not in Path(file_path).suffixes:
             raise ValueError("The file suffix must be .cxd!")
 
