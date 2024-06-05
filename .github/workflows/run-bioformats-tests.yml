@@ -11,6 +11,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:
+      CONDA_ENV: test
+
     steps:
       - uses: actions/checkout@v4
       - run: git fetch --prune --unshallow --tags
@@ -21,14 +24,9 @@ jobs:
           auto-activate-base: false
           python-version: 3.9
 
-      - name: Activate conda environment
-        run: echo "conda activate test" >> $GITHUB_ENV
-
       - name: Global Setup
-        env:
-          CONDA_PREFIX: test
         run: |
-          source activate $CONDA_PREFIX
+          conda activate $CONDA_ENV
           pip install -U pip
           pip install pytest-xdist
           git config --global user.email "CI@example.com"
@@ -36,23 +34,20 @@ jobs:
           pip install wheel==0.41.2  # needed for scanimage
 
       - name: Install full requirements
-        env:
-          CONDA_PREFIX: test
         run: |
-          source activate $CONDA_PREFIX
+          conda activate $CONDA_ENV
           pip install .[test]
           pip install -e .[full]
 
       - name: Install BioFormats requirements
-        env:
-          CONDA_PREFIX: test
         run: |
-          source activate $CONDA_PREFIX
+          conda activate $CONDA_ENV
           pip install aicsimageio>=4.14.0
           conda install -c conda-forge bioformats_jar
 
       - name: Set JAVA_HOME
         run: |
+          conda activate $CONDA_ENV
           if [ -z "${JAVA_HOME}" ]; then
             echo "JAVA_HOME=$CONDA_PREFIX" >> $GITHUB_ENV
           fi
@@ -69,8 +64,6 @@ jobs:
           key: ophys-datasets-042023-${{ runner.os }}-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
 
       - name: Run BioFormats tests
-        env:
-          CONDA_PREFIX: test
         run: |
-          source activate $CONDA_PREFIX
+          conda activate $CONDA_ENV
           pytest tests/test_cxdimagingextractor.py -n auto --dist loadscope
