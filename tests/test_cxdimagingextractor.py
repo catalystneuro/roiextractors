@@ -1,10 +1,20 @@
-import aicsimageio
 import pytest
 from numpy import dtype
 from numpy.testing import assert_array_equal
 
 from roiextractors import CxdImagingExtractor
 from tests.setup_paths import OPHYS_DATA_PATH
+
+# Skip all tests in this module if aicsimageio is not installed
+aicsimageio = pytest.importorskip("aicsimageio")
+
+try:
+    import aicsimageio.readers.bioformats_reader.BioFile
+except ImportError:
+    pytest.skip(
+        "aicsimageio.readers.bioformats_reader.BioFile is required for these tests but not available.",
+        allow_module_level=True,
+    )
 
 
 @pytest.fixture(scope="module")
