@@ -22,6 +22,12 @@ jobs:
         secrets:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+    run-bioformats-tests:
+      needs: update-testing-data
+      uses: ./.github/workflows/run-bioformats-tests.yml
+      secrets:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
     dev-tests:
         needs: update-testing-data
         uses: ./.github/workflows/dev-testing.yaml
