@@ -15,3 +15,4 @@ ImagingExtractors
   micromanagertiffimagingextractor
   tiffimagingextractor
   scanimagetiffimagingextractors
+  bioformatsimagingextractors
