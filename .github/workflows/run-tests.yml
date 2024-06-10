@@ -38,7 +38,7 @@ jobs:
         run: pytest tests/test_internals -n auto --dist loadscope
 
       - name: Test full installation (-e needed for codecov report)
-        run: pip install -e .[full]
+        run: pip install .[full]
 
       - name: Get ophys_testing_data current head hash
         id: ophys
