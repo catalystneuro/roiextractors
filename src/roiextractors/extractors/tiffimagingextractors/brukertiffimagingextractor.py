@@ -317,7 +317,7 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         folder_path : PathType
             The path to the folder that contains the Bruker TIF image files (.ome.tif) and configuration files (.xml, .env).
         stream_name: str, optional
-            The name of the recording channel (e.g. "Ch2").
+            The name of the recording channel (e.g. "Ch2" or "Green").
         """
         self._tifffile = _get_tiff_reader()
 
@@ -343,8 +343,7 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
 
         self._xml_root = _parse_xml(folder_path=folder_path)
         file_elements = self._xml_root.findall(".//File")
-        file_names = [file.attrib["filename"] for file in file_elements]
-        file_names_for_stream = [file for file in file_names if self.stream_name in file]
+        file_names_for_stream = [f.attrib["filename"] for f in file_elements if f.attrib["channelName"] == stream_name]
         # determine image shape and data type from first file
         with self._tifffile.TiffFile(folder_path / file_names_for_stream[0], _multifile=False) as tif:
             self._height, self._width = tif.pages[0].shape
