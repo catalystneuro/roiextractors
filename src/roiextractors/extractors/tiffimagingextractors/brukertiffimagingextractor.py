@@ -85,7 +85,9 @@ def _determine_imaging_is_volumetric(folder_path: PathType) -> bool:
                 is_volumetric = is_series_type_volumetric[series_type]
                 break
             else:
-                raise ValueError(f"Unknown series type: {series_type}, please raise an issue in roiextractor repository")
+                raise ValueError(
+                    f"Unknown series type: {series_type}, please raise an issue in roiextractor repository"
+                )
 
     return is_volumetric
 
