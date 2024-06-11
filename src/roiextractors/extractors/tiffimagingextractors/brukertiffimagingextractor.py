@@ -290,7 +290,8 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
 
     @classmethod
     def get_streams(cls, folder_path: PathType) -> dict:
-        """Get the available streams from the Bruker TIF image files (.ome.tif) and configuration files (.xml, .env).
+        """
+        Get the available streams from the Bruker TIF image files (.ome.tif) and configuration files (.xml, .env).
 
         Parameters
         ----------
@@ -302,7 +303,6 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         streams: dict
             The dictionary of available streams.
         """
-
         channel_names = cls.get_available_channels(folder_path=folder_path)
 
         natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
@@ -313,8 +313,7 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
     @staticmethod
     def get_available_channels(folder_path: PathType) -> set[str]:
         """
-        Extracts and returns the set of available channel names from the XML configuration file
-        in the specified folder.
+        Extract set of available channel names from the XML configuration file in the specified folder.
 
         Parameters
         ----------
