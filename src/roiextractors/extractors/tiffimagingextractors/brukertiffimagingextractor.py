@@ -302,14 +302,14 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         streams: dict
             The dictionary of available streams.
         """
-        
+
         channel_names = cls.get_available_channels(folder_path=folder_path)
-        
+
         natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
         unique_channel_names = natsort.natsorted(channel_names)
         streams = dict(channel_streams=unique_channel_names)
         return streams
-    
+
     @staticmethod
     def get_available_channels(folder_path: PathType) -> set[str]:
         """
@@ -338,12 +338,10 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
                 for subelem in elem:
                     if subelem.tag == "File":
                         channel_names.add(subelem.attrib["channelName"])
-                
+
                 break
 
-
         return channel_names
-
 
     def __init__(self, folder_path: PathType, stream_name: Optional[str] = None):
         """Create a BrukerTiffSinglePlaneImagingExtractor instance from a folder path that contains the image files.
