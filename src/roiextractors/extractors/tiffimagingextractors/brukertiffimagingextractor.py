@@ -329,7 +329,7 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         """
         folder_path = Path(folder_path)
         xml_file_path = folder_path / f"{folder_path.name}.xml"
-        assert xml_file_path.is_file(), f"The XML configuration file is not found at '{xml_file_path}'."
+        assert xml_file_path.is_file(), f"The XML configuration file is not found at '{folder_path}'."
 
         channel_names = set()
         for event, elem in ElementTree.iterparse(xml_file_path, events=("start",)):
