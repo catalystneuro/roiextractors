@@ -411,7 +411,7 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
             frame_rate = _determine_frame_rate(element=sequence_elements[0], file_names=file_names_for_stream)
         assert frame_rate is not None, "Could not determine the frame rate from the XML file."
         self._sampling_frequency = frame_rate
-        self._channel_names = [self.stream_name.split("_")[0]]
+        self._channel_names = channel_streams
 
         # count the number of occurrences of each file path and their names
         # files that contain stacks of images (multi-page tiffs) will appear repeated (number of repetition is the number of frames in the tif file)
