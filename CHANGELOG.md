@@ -9,6 +9,7 @@
 * Add InscopixImagingExtractor: [#276](https://github.com/catalystneuro/roiextractors/pull/276)
 * Updated testing workflows to include python 3.12, m1/intel macos, and dev tests to check neuroconv: [PR #317](https://github.com/catalystneuro/roiextractors/pull/317)
 * Added API documentation: [#337](https://github.com/catalystneuro/roiextractors/pull/337)
+* Optimized `get_streams` for `BrukerTiffSinglePlaneImagingExtractor` by introducing a static function  `get_available_channels` which uses lazy parsing of the XML to fetch the available channels: [#344](https://github.com/catalystneuro/roiextractors/pull/344)
 
 ### Fixes
 
@@ -16,6 +17,7 @@
 * Fixed the typing returned by the `InscopixImagingExtractor.get_dtype` method: [#326](https://github.com/catalystneuro/roiextractors/pull/326)
 * Detect Changelog Updates was moved to its own dedicated workflow to avoid daily testing failures: [#336](https://github.com/catalystneuro/roiextractors/pull/336)
 * Fixed the Daily testing workflows by passing along the appropriate secrets: [#340](https://github.com/catalystneuro/roiextractors/pull/340)
+* Change the criteria of determining if Bruker data is volumetric [#342](https://github.com/catalystneuro/roiextractors/pull/342)
 * Fixes a bug that assumes the channel name is is on the tiff file for `BrukerTiffSinglePlaneImagingExtractor` [#343](https://github.com/catalystneuro/roiextractors/pull/343)
 
 ### Improvements
