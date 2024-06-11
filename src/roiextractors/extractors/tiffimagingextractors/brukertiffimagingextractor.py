@@ -54,7 +54,7 @@ def _determine_frame_rate(element: ElementTree.Element, file_names: Optional[Lis
 
 
 def _determine_imaging_is_volumetric(folder_path: PathType) -> bool:
-    """Determine whether imaging is volumetric based on 'zDevice' configuration value.
+    """Determine whether imaging is volumetric.
 
     Parameters
     ----------
@@ -70,11 +70,24 @@ def _determine_imaging_is_volumetric(folder_path: PathType) -> bool:
     xml_file_path = folder_path / f"{folder_path.name}.xml"
     assert xml_file_path.is_file(), f"The XML configuration file is not found at '{xml_file_path}'."
 
+    is_series_type_volumetric = {
+        "TSeries ZSeries Element": True,  # XYZT
+        "TSeries Timed Element": False,  # XYT
+        "ZSeries": True,  # ZT (not a time series)
+        "Single": False,  # Single image (not a time series)
+    }
+
     is_volumetric = False
     for event, elem in ElementTree.iterparse(xml_file_path, events=("start",)):
-        if elem.tag == "PVStateValue" and elem.attrib.get("key") == "zDevice":
-            is_volumetric = bool(int(elem.attrib["value"]))
-            break  # Stop parsing as we've found the required element
+        if elem.tag == "Sequence":
+            series_type = elem.attrib.get("type")
+            if series_type in is_series_type_volumetric:
+                is_volumetric = is_series_type_volumetric[series_type]
+                break
+            else:
+                raise ValueError(
+                    f"Unknown series type: {series_type}, please raise an issue in roiextractor repository"
+                )
 
     return is_volumetric
 
