@@ -363,7 +363,7 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         folder_path : PathType
             The path to the folder that contains the Bruker TIF image files (.ome.tif) and configuration files (.xml, .env).
         stream_name: str, optional
-            The name of the recording channel (e.g. "Ch2").
+            The name of the recording channel (e.g. "Ch2" or "Green").
         """
         self._tifffile = _get_tiff_reader()
 
@@ -372,25 +372,33 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         assert tif_file_paths, f"The TIF image files are missing from '{folder_path}'."
 
         streams = self.get_streams(folder_path=folder_path)
+        channel_streams = streams["channel_streams"]
         if stream_name is None:
-            if len(streams["channel_streams"]) > 1:
+            if len(channel_streams) > 1:
                 raise ValueError(
                     "More than one recording stream is detected! Please specify which stream you wish to load with the `stream_name` argument. "
-                    "To see what streams are available, call `BrukerTiffSinglePlaneImagingExtractor.get_stream_names(folder_path=...)`."
+                    f"To see what streams are available, call `BrukerTiffSinglePlaneImagingExtractor.get_stream_names(folder_path=...)`."
                 )
-            stream_name = streams["channel_streams"][0]
+            stream_name = channel_streams[0]
 
         self.stream_name = stream_name
-        channel_stream_name = self.stream_name.split("_")[0]
-        if self.stream_name is not None and channel_stream_name not in streams["channel_streams"]:
-            raise ValueError(
-                f"The selected stream '{self.stream_name}' is not in the available channel_streams '{streams['channel_streams']}'!"
-            )
 
         self._xml_root = _parse_xml(folder_path=folder_path)
         file_elements = self._xml_root.findall(".//File")
-        file_names = [file.attrib["filename"] for file in file_elements]
-        file_names_for_stream = [file for file in file_names if self.stream_name in file]
+
+        # This is the case when stream_name is a channel name (e.g. "Green" or "Ch2")
+        if stream_name in channel_streams:
+            file_names_for_stream = [
+                f.attrib["filename"] for f in file_elements if f.attrib["channelName"] == stream_name
+            ]
+
+        else:  # This is the case for when stream_name is a plane_stream
+            file_names = [file.attrib["filename"] for file in file_elements]
+            file_names_for_stream = [file for file in file_names if self.stream_name in file]
+            if file_names_for_stream == []:
+                raise ValueError(
+                    f"The selected stream '{self.stream_name}' is not in the available channel_streams '{streams['channel_streams']}'!"
+                )
         # determine image shape and data type from first file
         with self._tifffile.TiffFile(folder_path / file_names_for_stream[0], _multifile=False) as tif:
             self._height, self._width = tif.pages[0].shape

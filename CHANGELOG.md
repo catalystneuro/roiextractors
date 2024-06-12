@@ -18,6 +18,7 @@
 * Detect Changelog Updates was moved to its own dedicated workflow to avoid daily testing failures: [#336](https://github.com/catalystneuro/roiextractors/pull/336)
 * Fixed the Daily testing workflows by passing along the appropriate secrets: [#340](https://github.com/catalystneuro/roiextractors/pull/340)
 * Change the criteria of determining if Bruker data is volumetric [#342](https://github.com/catalystneuro/roiextractors/pull/342)
+* Fixes a bug that assumes the channel name is is on the tiff file for `BrukerTiffSinglePlaneImagingExtractor` [#343](https://github.com/catalystneuro/roiextractors/pull/343)
 
 ### Improvements
 
