@@ -95,7 +95,7 @@ def _determine_imaging_is_volumetric(folder_path: PathType) -> bool:
     }
 
     is_volumetric = False
-    for event, elem in ElementTree.iterparse(xml_file_path, events=("start",)):
+    for event, elem in etree.iterparse(xml_file_path, events=("start",)):
         if elem.tag == "Sequence":
             series_type = elem.attrib.get("type")
             if series_type in is_series_type_volumetric:
@@ -103,7 +103,7 @@ def _determine_imaging_is_volumetric(folder_path: PathType) -> bool:
                 break
             else:
                 raise ValueError(
-                    f"Unknown series type: {series_type}, please raise an issue in roiextractor repository"
+                    f"Unknown series type: {series_type}, please raise an issue in the roiextractor repository"
                 )
 
     return is_volumetric
@@ -335,7 +335,10 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         """
         channel_names = cls.get_available_channels(folder_path=folder_path)
 
+        channel_names = cls.get_available_channels(folder_path=folder_path)
+
         natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
+        unique_channel_names = natsort.natsorted(channel_names)
         unique_channel_names = natsort.natsorted(channel_names)
         streams = dict(channel_streams=unique_channel_names)
         return streams
@@ -361,14 +364,14 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         assert xml_file_path.is_file(), f"The XML configuration file is not found at '{folder_path}'."
 
         channel_names = set()
-        for event, elem in ElementTree.iterparse(xml_file_path, events=("start",)):
+        for event, elem in etree.iterparse(xml_file_path, events=("start",)):
             if elem.tag == "Frame":
                 # Get all the sub-elements in this Frame element
                 for subelem in elem:
                     if subelem.tag == "File":
                         channel_names.add(subelem.attrib["channelName"])
 
-                break
+                break  # Exit after processing the first "Frame" element
 
         return channel_names
 
@@ -389,6 +392,7 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         assert tif_file_paths, f"The TIF image files are missing from '{folder_path}'."
 
         streams = self.get_streams(folder_path=folder_path)
+        channel_streams = streams["channel_streams"]
         channel_streams = streams["channel_streams"]
         if stream_name is None:
             if len(channel_streams) > 1:
