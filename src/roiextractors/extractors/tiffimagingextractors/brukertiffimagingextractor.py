@@ -391,6 +391,7 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
             file_names_for_stream = [
                 f.attrib["filename"] for f in file_elements if f.attrib["channelName"] == stream_name
             ]
+
         else:  # This is the case for when stream_name is a plane_stream
             file_names = [file.attrib["filename"] for file in file_elements]
             file_names_for_stream = [file for file in file_names if self.stream_name in file]
@@ -411,7 +412,7 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
             frame_rate = _determine_frame_rate(element=sequence_elements[0], file_names=file_names_for_stream)
         assert frame_rate is not None, "Could not determine the frame rate from the XML file."
         self._sampling_frequency = frame_rate
-        self._channel_names = channel_streams
+        self._channel_names = [self.stream_name.split("_")[0]]
 
         # count the number of occurrences of each file path and their names
         # files that contain stacks of images (multi-page tiffs) will appear repeated (number of repetition is the number of frames in the tif file)
