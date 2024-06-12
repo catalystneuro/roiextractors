@@ -303,7 +303,8 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
 
     @classmethod
     def get_streams(cls, folder_path: PathType) -> dict:
-        """Get the available streams from the Bruker TIF image files (.ome.tif) and configuration files (.xml, .env).
+        """
+        Get the available streams from the Bruker TIF image files (.ome.tif) and configuration files (.xml, .env).
 
         Parameters
         ----------
@@ -315,12 +316,44 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         streams: dict
             The dictionary of available streams.
         """
+        channel_names = cls.get_available_channels(folder_path=folder_path)
+
         natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
-        xml_root = _parse_xml(folder_path=folder_path)
-        channel_names = [file.attrib["channelName"] for file in xml_root.findall(".//File")]
-        unique_channel_names = natsort.natsorted(set(channel_names))
+        unique_channel_names = natsort.natsorted(channel_names)
         streams = dict(channel_streams=unique_channel_names)
         return streams
+
+    @staticmethod
+    def get_available_channels(folder_path: PathType) -> set[str]:
+        """
+        Extract set of available channel names from the XML configuration file in the specified folder.
+
+        Parameters
+        ----------
+        folder_path : PathType
+            The path to the folder containing the XML configuration file. It can be either a string
+            or a Path object.
+
+        Returns
+        -------
+        Set[str]
+            A set of channel names available in the first 'Frame' element found in the XML configuration file.
+        """
+        folder_path = Path(folder_path)
+        xml_file_path = folder_path / f"{folder_path.name}.xml"
+        assert xml_file_path.is_file(), f"The XML configuration file is not found at '{folder_path}'."
+
+        channel_names = set()
+        for event, elem in ElementTree.iterparse(xml_file_path, events=("start",)):
+            if elem.tag == "Frame":
+                # Get all the sub-elements in this Frame element
+                for subelem in elem:
+                    if subelem.tag == "File":
+                        channel_names.add(subelem.attrib["channelName"])
+
+                break
+
+        return channel_names
 
     def __init__(self, folder_path: PathType, stream_name: Optional[str] = None):
         """Create a BrukerTiffSinglePlaneImagingExtractor instance from a folder path that contains the image files.

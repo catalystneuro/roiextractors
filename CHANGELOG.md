@@ -9,6 +9,7 @@
 * Add InscopixImagingExtractor: [#276](https://github.com/catalystneuro/roiextractors/pull/276)
 * Updated testing workflows to include python 3.12, m1/intel macos, and dev tests to check neuroconv: [PR #317](https://github.com/catalystneuro/roiextractors/pull/317)
 * Added API documentation: [#337](https://github.com/catalystneuro/roiextractors/pull/337)
+* Optimized `get_streams` for `BrukerTiffSinglePlaneImagingExtractor` by introducing a static function  `get_available_channels` which uses lazy parsing of the XML to fetch the available channels: [#344](https://github.com/catalystneuro/roiextractors/pull/344)
 
 ### Fixes
 
