@@ -2,3 +2,4 @@ pytest
 pytest-cov
 parameterized==0.8.1
 spikeextractors>=0.9.10
+pytest-xdist
