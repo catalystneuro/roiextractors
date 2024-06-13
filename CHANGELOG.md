@@ -30,7 +30,7 @@
 
 * Updated testing workflows to include python 3.12, m1/intel macos, and dev tests to check neuroconv: [PR #317](https://github.com/catalystneuro/roiextractors/pull/317)
 * Added daily testing workflow and fixed bug with python 3.12 by upgrading scanimage-tiff-reader version: [PR #321](https://github.com/catalystneuro/roiextractors/pull/321)
-
+* Use Spikeinterface instead of Spikeextractors for toy_example [PR #349](https://github.com/catalystneuro/roiextractors/pull/349)
 
 
 # v0.5.8
