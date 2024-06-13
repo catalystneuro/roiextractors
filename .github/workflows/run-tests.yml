@@ -33,6 +33,11 @@ jobs:
 
       - name: Install roiextractors with minimal requirements
         run: pip install .[test]
+      - name: Test initial import of all non-lazy dependencies
+        run: python -c "import roiextractors"
+
+      - name: Install roiextractors with testing requirements
+        run: pip install .[test]
 
       - name: Run minimal tests
         run: pytest tests/test_internals -n auto --dist loadscope
