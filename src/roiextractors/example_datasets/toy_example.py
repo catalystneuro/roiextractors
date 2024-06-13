@@ -157,14 +157,10 @@ def toy_example(
         mode=mode,
     )
 
-    # generate spike trains
-    import spikeextractors as se
+    from spikeinterface.core import generate_ground_truth_recording
 
-    rec, sort = se.example_datasets.toy_example(
-        duration=duration,
-        K=num_rois,
-        num_channels=1,
-        sampling_frequency=sampling_frequency,
+    rec, sort = generate_ground_truth_recording(
+        num_channels=1, durations=[duration], num_units=num_rois, sampling_frequency=sampling_frequency
     )
 
     # create decaying response
