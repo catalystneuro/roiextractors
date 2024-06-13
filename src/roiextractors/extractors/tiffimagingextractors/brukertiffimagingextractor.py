@@ -435,8 +435,8 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         self._sampling_frequency = frame_rate
         self._channel_names = [self.stream_name.split("_")[0]]
 
-        # # count the number of occurrences of each file path and their names
-        # # files that contain stacks of images (multi-page tiffs) will appear repeated (number of repetition is the number of frames in the tif file)
+        # count the number of occurrences of each file path and their names
+        # files that contain stacks of images (multi-page tiffs) will appear repeated (number of repetition is the number of frames in the tif file)
         file_counts = Counter(file_names_for_stream)
 
         imaging_extractors = []
