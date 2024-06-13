@@ -16,6 +16,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Optional, Tuple, Union, List, Dict
 from xml.etree import ElementTree
+from lxml import etree
 
 import numpy as np
 
@@ -37,18 +38,34 @@ def _get_tiff_reader() -> ModuleType:
     return get_package(package_name="tifffile", installation_instructions="pip install tifffile")
 
 
-def _determine_frame_rate(element: ElementTree.Element, file_names: Optional[List[str]] = None) -> Union[float, None]:
+def _determine_frame_rate(element: etree.Element, file_names: Optional[List[str]] = None) -> Union[float, None]:
     """Determine the frame rate from the difference in relative timestamps of the frame elements."""
     from neuroconv.utils import calculate_regular_series_rate
 
-    frame_elements = element.findall(".//Frame")
+    # Use a single XPath expression if file_names are provided
     if file_names:
-        frame_elements = [
-            frame for frame in frame_elements for file in frame.findall("File") if file.attrib["filename"] in file_names
-        ]
+        file_names_set = set(file_names)
+        frame_elements = element.xpath(".//Frame[File/@filename]")
+        filtered_frame_elements = []
+        for frame in frame_elements:
+            for file in frame.xpath("File"):
+                if file.attrib.get("filename") in file_names_set:
+                    filtered_frame_elements.append(frame)
+                    break
+        frame_elements = filtered_frame_elements
+    else:
+        frame_elements = element.xpath(".//Frame")
 
-    relative_times = [float(frame.attrib["relativeTime"]) for frame in frame_elements]
-    frame_rate = calculate_regular_series_rate(np.array(relative_times))
+    # Extract relativeTime attributes and convert to float
+    try:
+        relative_times = [float(frame.attrib["relativeTime"]) for frame in frame_elements]
+    except KeyError:
+        raise ValueError("One or more Frame elements are missing the 'relativeTime' attribute.")
+    except ValueError:
+        raise ValueError("One or more 'relativeTime' attributes cannot be converted to float.")
+
+    # Calculate frame rate
+    frame_rate = calculate_regular_series_rate(np.array(relative_times)) if relative_times else None
 
     return frame_rate
 
@@ -78,7 +95,7 @@ def _determine_imaging_is_volumetric(folder_path: PathType) -> bool:
     }
 
     is_volumetric = False
-    for event, elem in ElementTree.iterparse(xml_file_path, events=("start",)):
+    for event, elem in etree.iterparse(xml_file_path, events=("start",)):
         if elem.tag == "Sequence":
             series_type = elem.attrib.get("type")
             if series_type in is_series_type_volumetric:
@@ -86,18 +103,18 @@ def _determine_imaging_is_volumetric(folder_path: PathType) -> bool:
                 break
             else:
                 raise ValueError(
-                    f"Unknown series type: {series_type}, please raise an issue in roiextractor repository"
+                    f"Unknown series type: {series_type}, please raise an issue in the roiextractor repository"
                 )
 
     return is_volumetric
 
 
-def _parse_xml(folder_path: PathType) -> ElementTree.Element:
+def _parse_xml(folder_path: PathType) -> etree.Element:
     """Parse the XML configuration file into element tree and returns the root Element."""
     folder_path = Path(folder_path)
     xml_file_path = folder_path / f"{folder_path.name}.xml"
     assert xml_file_path.is_file(), f"The XML configuration file is not found at '{folder_path}'."
-    tree = ElementTree.parse(xml_file_path)
+    tree = etree.parse(str(xml_file_path))
     return tree.getroot()
 
 
@@ -318,7 +335,10 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         """
         channel_names = cls.get_available_channels(folder_path=folder_path)
 
+        channel_names = cls.get_available_channels(folder_path=folder_path)
+
         natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
+        unique_channel_names = natsort.natsorted(channel_names)
         unique_channel_names = natsort.natsorted(channel_names)
         streams = dict(channel_streams=unique_channel_names)
         return streams
@@ -344,14 +364,14 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         assert xml_file_path.is_file(), f"The XML configuration file is not found at '{folder_path}'."
 
         channel_names = set()
-        for event, elem in ElementTree.iterparse(xml_file_path, events=("start",)):
+        for event, elem in etree.iterparse(xml_file_path, events=("start",)):
             if elem.tag == "Frame":
                 # Get all the sub-elements in this Frame element
                 for subelem in elem:
                     if subelem.tag == "File":
                         channel_names.add(subelem.attrib["channelName"])
 
-                break
+                break  # Exit after processing the first "Frame" element
 
         return channel_names
 
@@ -373,6 +393,7 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
 
         streams = self.get_streams(folder_path=folder_path)
         channel_streams = streams["channel_streams"]
+        channel_streams = streams["channel_streams"]
         if stream_name is None:
             if len(channel_streams) > 1:
                 raise ValueError(
@@ -391,7 +412,6 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
             file_names_for_stream = [
                 f.attrib["filename"] for f in file_elements if f.attrib["channelName"] == stream_name
             ]
-
         else:  # This is the case for when stream_name is a plane_stream
             file_names = [file.attrib["filename"] for file in file_elements]
             file_names_for_stream = [file for file in file_names if self.stream_name in file]
@@ -399,6 +419,7 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
                 raise ValueError(
                     f"The selected stream '{self.stream_name}' is not in the available channel_streams '{streams['channel_streams']}'!"
                 )
+
         # determine image shape and data type from first file
         with self._tifffile.TiffFile(folder_path / file_names_for_stream[0], _multifile=False) as tif:
             self._height, self._width = tif.pages[0].shape
@@ -439,22 +460,25 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
             The dictionary of metadata extracted from the XML file.
         """
         xml_metadata = dict()
-        xml_metadata.update(**self._xml_root.attrib)
-        for child in self._xml_root.findall(".//PVStateValue"):
+        xml_metadata.update(self._xml_root.attrib)
+
+        # Use a single XPath to get all PVStateValue elements
+        pv_state_values = self._xml_root.xpath(".//PVStateValue")
+
+        for child in pv_state_values:
             metadata_root_key = child.attrib["key"]
             if "value" in child.attrib:
-                if metadata_root_key in xml_metadata:
-                    continue
-                xml_metadata[metadata_root_key] = child.attrib["value"]
+                if metadata_root_key not in xml_metadata:
+                    xml_metadata[metadata_root_key] = child.attrib["value"]
             else:
                 xml_metadata[metadata_root_key] = []
                 for indexed_value in child:
                     if "description" in indexed_value.attrib:
-                        xml_metadata[child.attrib["key"]].append(
+                        xml_metadata[metadata_root_key].append(
                             {indexed_value.attrib["description"]: indexed_value.attrib["value"]}
                         )
                     elif "value" in indexed_value.attrib:
-                        xml_metadata[child.attrib["key"]].append(
+                        xml_metadata[metadata_root_key].append(
                             {indexed_value.attrib["index"]: indexed_value.attrib["value"]}
                         )
                     else:
@@ -464,9 +488,10 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
                                     {subindexed_value.attrib["description"]: subindexed_value.attrib["value"]}
                                 )
                             else:
-                                xml_metadata[child.attrib["key"]].append(
+                                xml_metadata[metadata_root_key].append(
                                     {indexed_value.attrib["index"]: subindexed_value.attrib["value"]}
                                 )
+
         return xml_metadata
 
     def _check_consistency_between_imaging_extractors(self):
