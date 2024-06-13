@@ -157,11 +157,9 @@ def toy_example(
         mode=mode,
     )
 
-    from spikeinterface.core import generate_ground_truth_recording
+    from spikeinterface.core import generate_sorting
 
-    rec, sort = generate_ground_truth_recording(
-        num_channels=1, durations=[duration], num_units=num_rois, sampling_frequency=sampling_frequency
-    )
+    sort = generate_sorting(durations=[duration], num_units=num_rois, sampling_frequency=sampling_frequency)
 
     # create decaying response
     resp_samples = int(decay_time * sampling_frequency)
@@ -169,17 +167,16 @@ def toy_example(
     tresp = np.arange(resp_samples)
     resp = np.exp(-tresp / resp_tau)
 
-    num_frames = rec.get_num_frames()  # TODO This should be changed to sampling_frequency x duration
-    num_of_units = sort.get_unit_ids()  # TODO This to be changed by num_rois
+    num_frames = sampling_frequency * duration
 
     # convolve response with ROIs
-    raw = np.zeros(num_of_units, num_frames)  # TODO Change to new standard formating with time in first axis
-    deconvolved = np.zeros(num_of_units, num_frames)  # TODO Change to new standard formating with time in first axis
+    raw = np.zeros(num_rois, num_frames)  # TODO Change to new standard formating with time in first axis
+    deconvolved = np.zeros(num_rois, num_frames)  # TODO Change to new standard formating with time in first axis
     neuropil = noise_std * np.random.randn(
-        num_of_units, num_frames
+        num_rois, num_frames
     )  # TODO Change to new standard formating with time in first axis
     frames = num_frames
-    for u_i, unit in range(num_of_units):
+    for u_i, unit in range(num_rois):
         unit = u_i + 1  # spikeextractor toy example has unit ids starting at 1
         for s in sort.get_unit_spike_train(unit):  # TODO build a local function that generates frames with spikes
             if s < num_frames:
