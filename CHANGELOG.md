@@ -24,12 +24,14 @@
 
 * The `Suite2PSegmentationExtractor` now produces an error when a required sub-file is missin: [#330](https://github.com/catalystneuro/roiextractors/pull/330)
 * Added `_image_mask` initialization in `BaseSegmentationExtractor`; combined `abstractmethod`s into top of file: [#327](https://github.com/catalystneuro/roiextractors/pull/327)
+* Optimize parsing of xml with `lxml` library for Burker extractors: [#346](https://github.com/catalystneuro/roiextractors/pull/346)
 
 ### Testing
 
 * Updated testing workflows to include python 3.12, m1/intel macos, and dev tests to check neuroconv: [PR #317](https://github.com/catalystneuro/roiextractors/pull/317)
 * Added daily testing workflow and fixed bug with python 3.12 by upgrading scanimage-tiff-reader version: [PR #321](https://github.com/catalystneuro/roiextractors/pull/321)
-
+* Remove wheel from requirements and move CI dependencies to test requirements [PR #348](https://github.com/catalystneuro/roiextractors/pull/348)
+* Use Spikeinterface instead of Spikeextractors for toy_example [PR #349](https://github.com/catalystneuro/roiextractors/pull/349)
 
 
 # v0.5.8
