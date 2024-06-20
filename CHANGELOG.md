@@ -19,6 +19,7 @@
 * Fixed the Daily testing workflows by passing along the appropriate secrets: [#340](https://github.com/catalystneuro/roiextractors/pull/340)
 * Change the criteria of determining if Bruker data is volumetric [#342](https://github.com/catalystneuro/roiextractors/pull/342)
 * Fixes a bug that assumes the channel name is is on the tiff file for `BrukerTiffSinglePlaneImagingExtractor` [#343](https://github.com/catalystneuro/roiextractors/pull/343)
+* Including `packaging` explicitly in minimal requirements [#347](https://github.com/catalystneuro/roiextractors/pull/347)
 
 ### Improvements
 
