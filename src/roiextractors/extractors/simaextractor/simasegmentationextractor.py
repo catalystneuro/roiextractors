@@ -42,7 +42,6 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         sima_segmentation_label: str
             name of the ROIs in the dataset from which to extract all ROI info
         """
-
         try:
             import sima
             import dill
