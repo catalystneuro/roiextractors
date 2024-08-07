@@ -42,12 +42,14 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         sima_segmentation_label: str
             name of the ROIs in the dataset from which to extract all ROI info
         """
-        try:
+        sima_spec = importlib.util.find_spec("sima")
+        dill_spec = importlib.util.find_spec("dill")
+        if sima_spec is not None and dill_spec is not None:
             import sima
             import dill
 
             HAVE_SIMA = True
-        except ImportError:
+        else:
             HAVE_SIMA = False
 
         assert HAVE_SIMA, self.installation_mesg
