@@ -38,7 +38,7 @@ class TestScanImageTiffExtractor(TestCase):
             warn_type=UserWarning,
             exc_msg=(
                 "memmap of TIFF file could not be established due to the following error: image data are not memory-mappable. "
-                "Reading entire matrix into memory. Consider using the ScanImageTiffExtractor for lazy data access."
+                "Reading entire matrix into memory. Consider using the ScanImageTiffSinglePlaneImagingExtractor or ScanImageTiffMultiPlaneImagingExtractor for lazy data access."
             ),
         ):
             TiffImagingExtractor(file_path=self.file_path, sampling_frequency=30.0)

@@ -70,7 +70,7 @@ class TiffImagingExtractor(ImagingExtractor):
                 raise RuntimeError(
                     f"Memory mapping failed: {e}. \n"
                     f"Attempt to read the TIFF file directly also failed: {e2}. \n"
-                    f"Consider using ScanImageTiffExtractor for lazy data access, check the file integrity. \n"
+                    f"Consider using ScanImageTiffSinglePlaneImagingExtractor or ScanImageTiffMultiPlaneImagingExtractor for lazy data access, check the file integrity. \n"
                     f"If problems persist, please report an issue at roiextractors/issues."
                 )
 
