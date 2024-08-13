@@ -16,14 +16,6 @@ import numpy as np
 from ...extraction_tools import PathType
 from ...segmentationextractor import SegmentationExtractor
 
-try:
-    import sima
-    import dill
-
-    HAVE_SIMA = True
-except ImportError:
-    HAVE_SIMA = False
-
 
 class SimaSegmentationExtractor(SegmentationExtractor):
     """A segmentation extractor for Sima.
@@ -34,7 +26,6 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "SimaSegmentation"
-    installed = HAVE_SIMA  # check at class level if installed or not
     is_writable = False
     mode = "file"
     # error message when not installed
@@ -51,6 +42,16 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         sima_segmentation_label: str
             name of the ROIs in the dataset from which to extract all ROI info
         """
+        sima_spec = importlib.util.find_spec("sima")
+        dill_spec = importlib.util.find_spec("dill")
+        if sima_spec is not None and dill_spec is not None:
+            import sima
+            import dill
+
+            HAVE_SIMA = True
+        else:
+            HAVE_SIMA = False
+
         assert HAVE_SIMA, self.installation_mesg
         SegmentationExtractor.__init__(self)
         self.file_path = file_path
@@ -79,6 +80,8 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         old_pkl_loc: str
             Path of the pickle file to be converted
         """
+        import dill
+
         # Make a name for the new pickle
         old_pkl_loc = old_pkl_loc + "/"
         for dirpath, dirnames, filenames in os.walk(old_pkl_loc):
@@ -108,6 +111,8 @@ class SimaSegmentationExtractor(SegmentationExtractor):
 
     def _file_extractor_read(self):
         """Read the sima file and return the sima.ImagingDataset object."""
+        import sima
+
         _img_dataset = sima.ImagingDataset.load(self.file_path)
         _img_dataset._savedir = self.file_path
         return _img_dataset
