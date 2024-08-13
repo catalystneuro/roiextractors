@@ -56,14 +56,23 @@ class TiffImagingExtractor(ImagingExtractor):
 
         try:
             self._video = tifffile.memmap(self.file_path, mode="r")
-        except ValueError as e:
-            warn(
-                f"memmap of TIFF file could not be established due to the following error: {e}. "
-                "Reading entire matrix into memory. Consider using the ScanImageTiffExtractor for lazy data access.",
-                stacklevel=2,
-            )
-            with tifffile.TiffFile(self.file_path) as tif:
-                self._video = tif.asarray()
+        except Exception as e:
+
+            try:
+                with tifffile.TiffFile(self.file_path) as tif:
+                    self._video = tif.asarray()
+                warn(
+                    f"memmap of TIFF file could not be established due to the following error: {e}. "
+                    "Reading entire matrix into memory. Consider using the ScanImageTiffExtractor for lazy data access.",
+                    stacklevel=2,
+                )
+            except Exception as e2:
+                raise RuntimeError(
+                    f"Memory mapping failed: {e}. \n"
+                    f"Attempt to read the TIFF file directly also failed: {e2}. \n"
+                    f"Consider using ScanImageTiffExtractor for lazy data access, check the file integrity. \n"
+                    f"If problems persist, please report an issue at roiextractors/issues."
+                )
 
         shape = self._video.shape
         if len(shape) == 3:
