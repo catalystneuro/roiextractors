@@ -68,3 +68,11 @@ imaging_extractor_dict = {imaging_class.extractor_name: imaging_class for imagin
 segmentation_extractor_dict = {
     segmentation_class.extractor_name: segmentation_class for segmentation_class in segmentation_extractor_full_list
 }
+
+
+def _private_fn():
+    pass
+
+
+def skipped_fn():
+    pass
