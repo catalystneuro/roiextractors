@@ -5,9 +5,12 @@ on:
 
 jobs:
   check-docstrings:
-    uses: catalystneuro/.github/.github/actions/check_docstrings@main
-    with:
-      python-version: '3.10'
-      repository: 'catalystneuro/roiextractors'
-      package-name: 'roiextractors'
-      branch: ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: check_docstrings
+        uses: catalystneuro/.github/.github/actions/check_docstrings@main
+        with:
+          python-version: '3.10'
+          repository: 'catalystneuro/roiextractors'
+          package-name: 'roiextractors'
+          branch: ${{ github.ref_name }}
