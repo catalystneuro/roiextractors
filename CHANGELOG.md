@@ -28,6 +28,7 @@
 * Optimize parsing of xml with `lxml` library for Burker extractors: [#346](https://github.com/catalystneuro/roiextractors/pull/346)
 * Protect sima and dill export [#351](https://github.com/catalystneuro/roiextractors/pull/351)
 * Improve error message when `TiffImagingExtractor` is not able to form memmap [#353](https://github.com/catalystneuro/roiextractors/pull/353)
+* Updated Check Docstrings workflow to use new github action: [#354](https://github.com/catalystneuro/roiextractors/pull/354)
 
 ### Testing
 
