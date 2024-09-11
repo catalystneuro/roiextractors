@@ -118,7 +118,7 @@ def generate_dummy_segmentation_extractor(
     num_rois : int, optional
         number of regions of interest, by default 10.
     num_frames : int, optional
-        description, by default 30.
+       Number of frames in the recording, by default 30.
     num_rows : int, optional
         number of rows in the hypothetical video from which the data was extracted, by default 25.
     num_columns : int, optional
