@@ -168,3 +168,84 @@ class VolumetricImagingExtractor(ImagingExtractor):
 
     def get_dtype(self) -> DtypeType:
         return self._imaging_extractors[0].get_dtype()
+
+    def depth_slice(self, start_plane: Optional[int] = None, end_plane: Optional[int] = None):
+        """Return a new VolumetricImagingExtractor ranging from the start_plane to the end_plane."""
+        return DepthSliceVolumetricImagingExtractor(parent_extractor=self, start_plane=start_plane, end_plane=end_plane)
+
+
+class DepthSliceVolumetricImagingExtractor(VolumetricImagingExtractor):
+    """Class to get a lazy depth slice.
+
+    This class can only be used for volumetric imaging data.
+    Do not use this class directly but use `.depth_slice(...)` on a VolumetricImagingExtractor object.
+    """
+
+    extractor_name = "DepthSliceImaging"
+    installed = True
+    is_writable = True
+    installation_mesg = ""
+
+    def __init__(
+        self,
+        parent_extractor: VolumetricImagingExtractor,
+        start_plane: Optional[int] = None,
+        end_plane: Optional[int] = None,
+    ):
+        """Initialize a VolumetricImagingExtractor whose plane(s) subset the parent.
+
+        Parameters
+        ----------
+        parent_extractor : VolumetricImagingExtractor
+            The VolumetricImagingExtractor object to subset the planes of.
+        start_plane : int, optional
+            The left bound of the depth to subset.
+            The default is the first plane of the parent.
+        end_plane : int, optional
+            The right bound of the depth to subset.
+            The default is the last plane of the parent.
+        """
+        self._parent_extractor = parent_extractor
+        parent_image_size = self._parent_extractor.get_image_size()
+        assert (
+            len(parent_image_size) == 3
+        ), f"{self.extractor_name}Extractor can be only used for volumetric imaging data."
+        parent_num_planes = parent_image_size[-1]
+        start_plane = start_plane or 0
+        assert 0 <= start_plane < parent_num_planes
+        end_plane = end_plane or parent_num_planes
+        assert 0 < end_plane <= parent_num_planes
+        assert start_plane < end_plane, "'start_plane' must be smaller than 'end_plane'!"
+
+        self._num_z_planes = end_plane - start_plane
+        self._start_plane = start_plane
+        self._end_plane = end_plane
+        self._height, self._width = parent_image_size[:-1]
+
+        super().__init__()
+
+    def get_image_size(self) -> Union[Tuple[int, int], Tuple[int, int, int]]:
+        if self._num_z_planes == 1:
+            return self._height, self._width
+
+        return self._height, self._width, self._num_z_planes
+
+    def get_num_frames(self) -> int:
+        return self._parent_extractor.get_num_frames()
+
+    def get_sampling_frequency(self) -> float:
+        return self._parent_extractor.get_sampling_frequency()
+
+    def get_channel_names(self) -> list:
+        return self._parent_extractor.get_channel_names()
+
+    def get_num_channels(self) -> int:
+        return self._parent_extractor.get_num_channels()
+
+    def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
+        video = self._parent_extractor.get_video(start_frame=start_frame, end_frame=end_frame)
+        video = video[..., self._start_plane : self._end_plane]
+        if self._num_z_planes == 1:
+            return video.squeeze(axis=-1)
+
+        return video
