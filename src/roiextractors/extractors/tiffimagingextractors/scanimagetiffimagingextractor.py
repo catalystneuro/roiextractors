@@ -299,7 +299,12 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         ScanImageTiffReader = _get_scanimage_reader()
         with ScanImageTiffReader(str(self.file_path)) as io:
             shape = io.shape()  # [frames, rows, columns]
-        if len(shape) == 3:
+        if len(shape) == 2:  # [rows, columns]
+            raise NotImplementedError(
+                "Extractor cannot handle single-frame ScanImageTiff data. Please raise an issue to request this feature: "
+                "https://github.com/catalystneuro/roiextractors/issues "
+            )
+        elif len(shape) == 3:
             self._total_num_frames, self._num_rows, self._num_columns = shape
             if (
                 self._num_planes == 1

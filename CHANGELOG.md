@@ -1,4 +1,15 @@
-# Upcoming (v0.5.9)
+# Upcoming (v0.5.10)
+
+### Features
+
+### Fixes
+* Added specific error message for single-frame scanimage data [PR #360](https://github.com/catalystneuro/roiextractors/pull/360)
+
+### Improvements
+
+### Testing
+
+# v0.5.9
 
 ### Deprecations
 
