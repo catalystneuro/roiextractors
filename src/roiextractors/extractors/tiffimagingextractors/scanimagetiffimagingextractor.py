@@ -53,6 +53,12 @@ class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
         file_paths = natsorted(self.folder_path.glob(file_pattern))
         if len(file_paths) == 0:
             raise ValueError(f"No files found in folder with pattern: {file_pattern}")
+        if any(file_path.name.endswith("00001_00001.tif") for file_path in file_paths):
+            warn(
+                "ScanImageTiffMultiPlaneMultiFileImagingExtractor does not support mid-cycle splits from ScanImage"
+                " with the characteristic file name pattern 'prefix_00001_00001.tif'. Please raise an issue to request"
+                " this feature: https://github.com/catalystneuro/roiextractors/issues"
+            )
         if not extract_all_metadata:
             metadata = extract_extra_metadata(file_paths[0])
             parsed_metadata = parse_metadata(metadata)
@@ -107,6 +113,12 @@ class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
         file_paths = natsorted(self.folder_path.glob(file_pattern))
         if len(file_paths) == 0:
             raise ValueError(f"No files found in folder with pattern: {file_pattern}")
+        if any(file_path.name.endswith("00001_00001.tif") for file_path in file_paths):
+            warn(
+                "ScanImageTiffSinglePlaneMultiFileImagingExtractor does not support mid-cycle splits from ScanImage"
+                " with the characteristic file name pattern 'prefix_00001_00001.tif'. Please raise an issue to request"
+                " this feature: https://github.com/catalystneuro/roiextractors/issues"
+            )
         if not extract_all_metadata:
             metadata = extract_extra_metadata(file_paths[0])
             parsed_metadata = parse_metadata(metadata)
