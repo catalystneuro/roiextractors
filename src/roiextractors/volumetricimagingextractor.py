@@ -1,6 +1,6 @@
 """Base class definition for volumetric imaging extractors."""
 
-from typing import Tuple, List, Iterable, Optional
+from typing import Tuple, List, Iterable, Optional, Union
 import numpy as np
 
 from .extraction_tools import ArrayType, DtypeType
@@ -224,10 +224,7 @@ class DepthSliceVolumetricImagingExtractor(VolumetricImagingExtractor):
 
         super().__init__()
 
-    def get_image_size(self) -> Union[Tuple[int, int], Tuple[int, int, int]]:
-        if self._num_z_planes == 1:
-            return self._height, self._width
-
+    def get_image_size(self) -> Tuple[int, int, int]:
         return self._height, self._width, self._num_z_planes
 
     def get_num_frames(self) -> int:
@@ -245,7 +242,5 @@ class DepthSliceVolumetricImagingExtractor(VolumetricImagingExtractor):
     def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
         video = self._parent_extractor.get_video(start_frame=start_frame, end_frame=end_frame)
         video = video[..., self._start_plane : self._end_plane]
-        if self._num_z_planes == 1:
-            return video.squeeze(axis=-1)
 
         return video
