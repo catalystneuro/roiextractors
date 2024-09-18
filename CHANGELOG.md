@@ -1,4 +1,15 @@
-# Upcoming (v0.5.9)
+# Upcoming (v0.5.10)
+
+### Features
+
+### Fixes
+* Added specific error message for single-frame scanimage data [PR #360](https://github.com/catalystneuro/roiextractors/pull/360)
+
+### Improvements
+
+### Testing
+
+# v0.5.9
 
 ### Deprecations
 
@@ -21,6 +32,7 @@
 * Change the criteria of determining if Bruker data is volumetric [#342](https://github.com/catalystneuro/roiextractors/pull/342)
 * Fixes a bug that assumes the channel name is is on the tiff file for `BrukerTiffSinglePlaneImagingExtractor` [#343](https://github.com/catalystneuro/roiextractors/pull/343)
 * Including `packaging` explicitly in minimal requirements [#347](https://github.com/catalystneuro/roiextractors/pull/347)
+* Updated requirements to include cv2 and update dev testing locations for neuroconv: [#357](https://github.com/catalystneuro/roiextractors/pull/357)
 
 ### Improvements
 

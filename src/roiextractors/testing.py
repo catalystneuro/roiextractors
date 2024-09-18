@@ -122,23 +122,23 @@ def generate_dummy_segmentation_extractor(
     num_rois : int, optional
         number of regions of interest, by default 10.
     num_frames : int, optional
-        _description_, by default 30
-    num_rows : number of frames used in the hypotethical video from which the data was extracted, optional
-        number of rows in the hypotethical video from which the data was extracted, by default 25.
+       Number of frames in the recording, by default 30.
+    num_rows : int, optional
+        number of rows in the hypothetical video from which the data was extracted, by default 25.
     num_columns : int, optional
-        numbe rof columns in the hypotethical video from which the data was extracted, by default 25.
+        number of columns in the hypothetical video from which the data was extracted, by default 25.
     sampling_frequency : float, optional
-        sampling frequency of the hypotethical video form which the data was extracted, by default 30.0.
+        sampling frequency of the hypothetical video from which the data was extracted, by default 30.0.
     has_summary_images : bool, optional
-        whether the dummy segmentation extractor has summary images or not (mean and correlation)
+        whether the dummy segmentation extractor has summary images or not (mean and correlation).
     has_raw_signal : bool, optional
-        whether a raw fluoresence signal is desired in the object, by default True.
+        whether a raw fluorescence signal is desired in the object, by default True.
     has_dff_signal : bool, optional
-        whether a relative (df/f) fluoresence signal is desired in the object, by default True.
+        whether a relative (df/f) fluorescence signal is desired in the object, by default True.
     has_deconvolved_signal : bool, optional
         whether a deconvolved signal is desired in the object, by default True.
     has_neuropil_signal : bool, optional
-        whether a neuropil signal is desiredi n the object, by default True.
+        whether a neuropil signal is desired in the object, by default True.
     rejected_list: list, optional
         A list of rejected rois, None by default.
     seed : int, default 0
