@@ -203,6 +203,9 @@ class DepthSliceVolumetricImagingExtractor(VolumetricImagingExtractor):
     ):
         """Initialize a VolumetricImagingExtractor whose plane(s) subset the parent.
 
+        Subset is exclusive on the right bound, that is, the plane indices of this VolumetricImagingExtractor range over
+        [0, ..., end_plane-start_plane-1].
+
         Parameters
         ----------
         parent_extractor : VolumetricImagingExtractor
@@ -211,7 +214,7 @@ class DepthSliceVolumetricImagingExtractor(VolumetricImagingExtractor):
             The left bound of the depth to subset.
             The default is the first plane of the parent.
         end_plane : int, optional
-            The right bound of the depth to subset.
+            The right bound of the depth, exclusively, to subset.
             The default is the last plane of the parent.
         """
         super().__init__(imaging_extractors=parent_extractor._imaging_extractors[start_plane:end_plane])
