@@ -119,3 +119,10 @@ def test_get_dtype(dtype):
     imaging_extractors = [generate_dummy_imaging_extractor(dtype=dtype)]
     volumetric_imaging_extractor = VolumetricImagingExtractor(imaging_extractors=imaging_extractors)
     assert volumetric_imaging_extractor.get_dtype() == dtype
+
+
+def test_depth_slice(volumetric_imaging_extractor):
+    start_plane = 1
+    end_plane = 2
+    new_extractor = volumetric_imaging_extractor.depth_slice(start_plane=start_plane, end_plane=end_plane)
+    assert new_extractor.get_num_planes() == end_plane - start_plane
