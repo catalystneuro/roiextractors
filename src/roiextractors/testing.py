@@ -18,7 +18,7 @@ floattype = (float, np.floating)
 inttype = (int, np.integer)
 
 
-def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16"):
+def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16", seed: int = 0):
     """Generate a dummy video of a given size and dtype.
 
     Parameters
@@ -27,6 +27,8 @@ def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16"):
         Size of the video to generate.
     dtype : DtypeType, optional
         Dtype of the video to generate, by default "uint16".
+    seed : int, default 0
+        seed for the random number generator, by default 0.
 
     Returns
     -------
@@ -36,13 +38,11 @@ def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16"):
     dtype = np.dtype(dtype)
     number_of_bytes = dtype.itemsize
 
+    rng = np.random.default_rng(seed)
+
     low = 0 if "u" in dtype.name else 2 ** (number_of_bytes - 1) - 2**number_of_bytes
     high = 2**number_of_bytes - 1 if "u" in dtype.name else 2**number_of_bytes - 2 ** (number_of_bytes - 1) - 1
-    video = (
-        np.random.random(size=size)
-        if "float" in dtype.name
-        else np.random.randint(low=low, high=high, size=size, dtype=dtype)
-    )
+    video = rng.random(size=size) if "float" in dtype.name else rng.integers(low=low, high=high, size=size, dtype=dtype)
 
     return video
 
@@ -55,6 +55,7 @@ def generate_dummy_imaging_extractor(
     sampling_frequency: float = 30.0,
     dtype: DtypeType = "uint16",
     channel_names: Optional[List[str]] = None,
+    seed: int = 0,
 ):
     """Generate a dummy imaging extractor for testing.
 
@@ -76,6 +77,8 @@ def generate_dummy_imaging_extractor(
         dtype of the video, by default "uint16".
     channel_names : list, optional
         list of channel names.
+    seed : int, default 0
+        seed for the random number generator, by default 0.
 
     Returns
     -------
@@ -86,7 +89,7 @@ def generate_dummy_imaging_extractor(
         channel_names = [f"channel_num_{num}" for num in range(num_channels)]
 
     size = (num_frames, num_rows, num_columns, num_channels)
-    video = generate_dummy_video(size=size, dtype=dtype)
+    video = generate_dummy_video(size=size, dtype=dtype, seed=seed)
 
     imaging_extractor = NumpyImagingExtractor(
         timeseries=video, sampling_frequency=sampling_frequency, channel_names=channel_names
@@ -107,6 +110,7 @@ def generate_dummy_segmentation_extractor(
     has_deconvolved_signal: bool = True,
     has_neuropil_signal: bool = True,
     rejected_list: Optional[list] = None,
+    seed: int = 0,
 ) -> SegmentationExtractor:
     """Generate a dummy segmentation extractor for testing.
 
@@ -137,6 +141,8 @@ def generate_dummy_segmentation_extractor(
         whether a neuropil signal is desiredi n the object, by default True.
     rejected_list: list, optional
         A list of rejected rois, None by default.
+    seed : int, default 0
+        seed for the random number generator, by default 0.
 
     Returns
     -------
@@ -149,24 +155,26 @@ def generate_dummy_segmentation_extractor(
     contain meaningful content. That is, the image masks matrices are not plausible image mask for a roi, the raw signal
     is not a meaningful biological signal and is not related appropriately to the deconvolved signal , etc.
     """
+    rng = np.random.default_rng(seed)
+
     # Create dummy image masks
-    image_masks = np.random.rand(num_rows, num_columns, num_rois)
+    image_masks = rng.random((num_rows, num_columns, num_rois))
     movie_dims = (num_rows, num_columns)
 
     # Create signals
-    raw = np.random.rand(num_frames, num_rois) if has_raw_signal else None
-    dff = np.random.rand(num_frames, num_rois) if has_dff_signal else None
-    deconvolved = np.random.rand(num_frames, num_rois) if has_deconvolved_signal else None
-    neuropil = np.random.rand(num_frames, num_rois) if has_neuropil_signal else None
+    raw = rng.random((num_frames, num_rois)) if has_raw_signal else None
+    dff = rng.random((num_frames, num_rois)) if has_dff_signal else None
+    deconvolved = rng.random((num_frames, num_rois)) if has_deconvolved_signal else None
+    neuropil = rng.random((num_frames, num_rois)) if has_neuropil_signal else None
 
     # Summary images
-    mean_image = np.random.rand(num_rows, num_columns) if has_summary_images else None
-    correlation_image = np.random.rand(num_rows, num_columns) if has_summary_images else None
+    mean_image = rng.random((num_rows, num_columns)) if has_summary_images else None
+    correlation_image = rng.random((num_rows, num_columns)) if has_summary_images else None
 
     # Rois
     roi_ids = [id for id in range(num_rois)]
-    roi_locations_rows = np.random.randint(low=0, high=num_rows, size=num_rois)
-    roi_locations_columns = np.random.randint(low=0, high=num_columns, size=num_rois)
+    roi_locations_rows = rng.integers(low=0, high=num_rows, size=num_rois)
+    roi_locations_columns = rng.integers(low=0, high=num_columns, size=num_rois)
     roi_locations = np.vstack((roi_locations_rows, roi_locations_columns))
 
     rejected_list = rejected_list if rejected_list else None
