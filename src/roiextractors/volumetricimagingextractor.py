@@ -171,8 +171,8 @@ class VolumetricImagingExtractor(ImagingExtractor):
 
     def depth_slice(self, start_plane: Optional[int] = None, end_plane: Optional[int] = None):
         """Return a new VolumetricImagingExtractor ranging from the start_plane to the end_plane."""
-        start_plane = start_plane or 0
-        end_plane = end_plane or self._num_planes
+        start_plane = start_plane if start_plane is not None else 0
+        end_plane = end_plane if end_plane is not None else self._num_planes
         assert (
             0 <= start_plane < self._num_planes
         ), f"'start_plane' ({start_plane}) must be greater than 0 and smaller than the number of planes ({self._num_planes})."

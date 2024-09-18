@@ -121,8 +121,26 @@ def test_get_dtype(dtype):
     assert volumetric_imaging_extractor.get_dtype() == dtype
 
 
-def test_depth_slice(volumetric_imaging_extractor):
-    start_plane = 1
-    end_plane = 2
-    new_extractor = volumetric_imaging_extractor.depth_slice(start_plane=start_plane, end_plane=end_plane)
-    assert new_extractor.get_num_planes() == end_plane - start_plane
+@pytest.mark.parametrize("start_plane, end_plane", [(None, None), (0, 1), (1, 2)])
+def test_depth_slice(volumetric_imaging_extractor, start_plane, end_plane):
+    start_plane = start_plane or 0
+    end_plane = end_plane or volumetric_imaging_extractor.get_num_planes()
+    sliced_extractor = volumetric_imaging_extractor.depth_slice(start_plane=start_plane, end_plane=end_plane)
+
+    assert sliced_extractor.get_num_planes() == end_plane - start_plane
+    assert sliced_extractor.get_image_size() == (
+        *volumetric_imaging_extractor.get_image_size()[:2],
+        end_plane - start_plane,
+    )
+    video = volumetric_imaging_extractor.get_video()
+    sliced_video = sliced_extractor.get_video()
+    assert np.all(video[..., start_plane:end_plane] == sliced_video)
+    frames = volumetric_imaging_extractor.get_frames(frame_idxs=[0, 1, 2])
+    sliced_frames = sliced_extractor.get_frames(frame_idxs=[0, 1, 2])
+    assert np.all(frames[..., start_plane:end_plane] == sliced_frames)
+
+
+@pytest.mark.parametrize("start_plane, end_plane", [(0, -1), (1, 0), (0, 4)])
+def test_depth_slice_invalid(volumetric_imaging_extractor, start_plane, end_plane):
+    with pytest.raises(AssertionError):
+        volumetric_imaging_extractor.depth_slice(start_plane=start_plane, end_plane=end_plane)
