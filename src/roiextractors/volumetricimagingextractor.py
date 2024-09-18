@@ -171,6 +171,15 @@ class VolumetricImagingExtractor(ImagingExtractor):
 
     def depth_slice(self, start_plane: Optional[int] = None, end_plane: Optional[int] = None):
         """Return a new VolumetricImagingExtractor ranging from the start_plane to the end_plane."""
+        start_plane = start_plane or 0
+        end_plane = end_plane or self._num_planes
+        assert (
+            0 <= start_plane < self._num_planes
+        ), f"'start_plane' ({start_plane}) must be greater than 0 and smaller than the number of planes ({self._num_planes})."
+        assert (
+            start_plane < end_plane <= self._num_planes
+        ), f"'end_plane' ({end_plane}) must be greater than 'start_plane' ({start_plane}) and smaller than or equal to the number of planes ({self._num_planes})."
+
         return DepthSliceVolumetricImagingExtractor(parent_extractor=self, start_plane=start_plane, end_plane=end_plane)
 
 
@@ -205,13 +214,4 @@ class DepthSliceVolumetricImagingExtractor(VolumetricImagingExtractor):
             The right bound of the depth to subset.
             The default is the last plane of the parent.
         """
-        parent_image_size = parent_extractor.get_image_size()
-        assert len(parent_image_size) == 3, f"{self.extractor_name} can be only used for volumetric imaging data."
-        parent_num_planes = parent_image_size[-1]
-        start_plane = start_plane or 0
-        assert 0 <= start_plane < parent_num_planes
-        end_plane = end_plane or parent_num_planes
-        assert 0 < end_plane <= parent_num_planes
-        assert start_plane < end_plane, "'start_plane' must be smaller than 'end_plane'!"
-
         super().__init__(imaging_extractors=parent_extractor._imaging_extractors[start_plane:end_plane])
