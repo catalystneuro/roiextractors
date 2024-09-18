@@ -1,6 +1,7 @@
 # Upcoming (v0.5.10)
 
 ### Features
+* Added a seed to dummy generators [#361](https://github.com/catalystneuro/roiextractors/pull/361)
 
 ### Fixes
 * Added specific error message for single-frame scanimage data [PR #360](https://github.com/catalystneuro/roiextractors/pull/360)
@@ -21,7 +22,6 @@
 * Updated testing workflows to include python 3.12, m1/intel macos, and dev tests to check neuroconv: [PR #317](https://github.com/catalystneuro/roiextractors/pull/317)
 * Added API documentation: [#337](https://github.com/catalystneuro/roiextractors/pull/337)
 * Optimized `get_streams` for `BrukerTiffSinglePlaneImagingExtractor` by introducing a static function  `get_available_channels` which uses lazy parsing of the XML to fetch the available channels: [#344](https://github.com/catalystneuro/roiextractors/pull/344)
-* Added a seed to dummy generators [#361](https://github.com/catalystneuro/roiextractors/pull/361)
 
 ### Fixes
 
