@@ -32,7 +32,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "CaimanSegmentation"
-    installed = HAVE_H5PY and HAVE_SCIPY  # check at class level if installed or not
+    installed = HAVE_H5PY  # check at class level if installed or not
     is_writable = True
     mode = "file"
     # error message when not installed
