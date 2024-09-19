@@ -88,9 +88,7 @@ class ImagingExtractor(ABC):
         pass
 
     @abstractmethod
-    def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
-    ) -> np.ndarray:
+    def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
         """Get the video frames.
 
         Parameters
@@ -99,8 +97,6 @@ class ImagingExtractor(ABC):
             Start frame index (inclusive).
         end_frame: int, optional
             End frame index (exclusive).
-        channel: int, optional
-            Channel index.
 
         Returns
         -------
@@ -123,15 +119,13 @@ class ImagingExtractor(ABC):
         """
         pass
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
+    def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
         """Get specific video frames from indices (not necessarily continuous).
 
         Parameters
         ----------
         frame_idxs: array-like
             Indices of frames to return.
-        channel: int, optional
-            Channel index.
 
         Returns
         -------
@@ -142,7 +136,7 @@ class ImagingExtractor(ABC):
         if np.all(np.diff(frame_idxs) == 0):
             return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1])
         relative_indices = np.array(frame_idxs) - frame_idxs[0]
-        return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)[relative_indices, ..., channel]
+        return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)[relative_indices, ...]
 
     def frame_to_time(self, frames: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
         """Convert user-inputted frame indices to times with units of seconds.
@@ -298,20 +292,18 @@ class FrameSliceImagingExtractor(ImagingExtractor):
         if getattr(self._parent_imaging, "_times") is not None:
             self._times = self._parent_imaging._times[start_frame:end_frame]
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
+    def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
         assert max(frame_idxs) < self._num_frames, "'frame_idxs' range beyond number of available frames!"
         mapped_frame_idxs = np.array(frame_idxs) + self._start_frame
-        return self._parent_imaging.get_frames(frame_idxs=mapped_frame_idxs, channel=channel)
+        return self._parent_imaging.get_frames(frame_idxs=mapped_frame_idxs)
 
-    def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
-    ) -> np.ndarray:
+    def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
         assert start_frame >= 0, (
             f"'start_frame' must be greater than or equal to zero! Received '{start_frame}'.\n"
             "Negative slicing semantics are not supported."
         )
         start_frame_shifted = start_frame + self._start_frame
-        return self._parent_imaging.get_video(start_frame=start_frame_shifted, end_frame=end_frame, channel=channel)
+        return self._parent_imaging.get_video(start_frame=start_frame_shifted, end_frame=end_frame)
 
     def get_image_size(self) -> Tuple[int, int]:
         return tuple(self._parent_imaging.get_image_size())
