@@ -60,24 +60,19 @@ class ImagingExtractor(ABC):
         pass
 
     @abstractmethod
-    def get_channel_names(self) -> list:
-        """Get the channel names in the recoding.
+    @classmethod
+    def get_available_channels(cls, file_path_or_folder_path: PathType) -> list:
+        """Get the available channel names from the source file/folder.
+
+        Parameters
+        ----------
+        file_path_or_folder_path : PathType
+            Path to the source file/folder.
 
         Returns
         -------
         channel_names: list
-            List of strings of channel names
-        """
-        pass
-
-    @abstractmethod
-    def get_num_channels(self) -> int:
-        """Get the total number of active channels in the recording.
-
-        Returns
-        -------
-        num_channels: int
-            Integer count of number of channels.
+            List of channel names.
         """
         pass
 
@@ -325,9 +320,3 @@ class FrameSliceImagingExtractor(ImagingExtractor):
 
     def get_sampling_frequency(self) -> float:
         return self._parent_imaging.get_sampling_frequency()
-
-    def get_channel_names(self) -> list:
-        return self._parent_imaging.get_channel_names()
-
-    def get_num_channels(self) -> int:
-        return self._parent_imaging.get_num_channels()
