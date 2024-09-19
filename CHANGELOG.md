@@ -1,6 +1,7 @@
 # Upcoming (v0.5.10)
 
 ### Features
+* Added a seed to dummy generators [#361](https://github.com/catalystneuro/roiextractors/pull/361)
 
 ### Fixes
 * Added specific error message for single-frame scanimage data [PR #360](https://github.com/catalystneuro/roiextractors/pull/360)
