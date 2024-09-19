@@ -76,6 +76,7 @@ class ImagingExtractor(ABC):
         """
         pass
 
+    @abstractmethod
     def get_dtype(self) -> DtypeType:
         """Get the data type of the video.
 
@@ -84,7 +85,7 @@ class ImagingExtractor(ABC):
         dtype: dtype
             Data type of the video.
         """
-        return self.get_frames(frame_idxs=[0], channel=0).dtype
+        pass
 
     @abstractmethod
     def get_video(
