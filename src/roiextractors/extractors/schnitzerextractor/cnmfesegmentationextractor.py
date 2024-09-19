@@ -147,7 +147,6 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         AssertionError
             If save_path is not a *.mat file.
         """
-        assert HAVE_H5PY, "To use Cnmfe install scipy/h5py: \n\n pip install scipy/h5py \n\n"
         save_path = Path(save_path)
         assert save_path.suffix == ".mat", "'save_path' must be a *.mat file"
         if save_path.is_file():

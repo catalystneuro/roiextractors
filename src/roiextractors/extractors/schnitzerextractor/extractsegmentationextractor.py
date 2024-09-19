@@ -151,11 +151,6 @@ class NewExtractSegmentationExtractor(
     """
 
     extractor_name = "NewExtractSegmentation"
-    installed = HAVE_H5PY  # check at class level if installed or not
-    installation_mesg = (
-        "To use NewExtractSegmentation install h5py: \n\n pip install h5py \n\n"
-        # error message when not installed
-    )
     is_writable = False
     mode = "file"
 
@@ -288,10 +283,8 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "LegacyExtractSegmentation"
-    installed = HAVE_H5PY  # check at class level if installed or not
     is_writable = False
     mode = "file"
-    installation_mesg = "To use extract install h5py: \n\n pip install h5py \n\n"  # error message when not installed
 
     def __init__(
         self,
