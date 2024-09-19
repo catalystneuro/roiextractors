@@ -8,13 +8,7 @@ CnmfeSegmentationExtractor
 
 from pathlib import Path
 
-try:
-    import h5py
-
-    HAVE_H5PY = True
-except ImportError:
-    HAVE_H5PY = False
-
+import h5py
 import numpy as np
 from lazy_ops import DatasetView
 from scipy.sparse import csc_matrix
@@ -33,10 +27,8 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "CnmfeSegmentation"
-    installed = HAVE_H5PY  # check at class level if installed or not
     is_writable = False
     mode = "file"
-    installation_mesg = "To use Cnmfe install h5py: \n\n pip install h5py \n\n"  # error message when not installed
 
     def __init__(self, file_path: PathType):
         """Create a CnmfeSegmentationExtractor from a .mat file.

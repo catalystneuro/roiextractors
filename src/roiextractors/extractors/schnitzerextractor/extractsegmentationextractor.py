@@ -18,13 +18,7 @@ import numpy as np
 from lazy_ops import DatasetView
 from packaging import version
 
-try:
-    import h5py
-
-    HAVE_H5PY = True
-except ImportError:
-    HAVE_H5PY = False
-
+import h5py
 
 from ...extraction_tools import PathType, ArrayType
 from ...segmentationextractor import SegmentationExtractor
@@ -39,8 +33,6 @@ class ExtractSegmentationExtractor(ABC):
     """Abstract class that defines which extractor class to use for a given file."""
 
     extractor_name = "ExtractSegmentation"
-    installed = HAVE_H5PY  # check at class level if installed or not
-    installation_mesg = "To use ExtractSegmentationExtractor install h5py: \n\n pip install h5py \n\n"  # error message when not installed
 
     def __new__(
         cls,

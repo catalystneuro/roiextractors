@@ -8,12 +8,7 @@ CaimanSegmentationExtractor
 
 from pathlib import Path
 
-try:
-    import h5py
-
-    HAVE_H5PY = True
-except ImportError:
-    HAVE_H5PY = False
+import h5py
 
 from scipy.sparse import csc_matrix
 import numpy as np
@@ -32,11 +27,8 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "CaimanSegmentation"
-    installed = HAVE_H5PY  # check at class level if installed or not
     is_writable = True
     mode = "file"
-    # error message when not installed
-    installation_mesg = "To use the CaimanSegmentationExtractor install h5py and scipy: \n\n pip install scipy/h5py\n\n"
 
     def __init__(self, file_path: PathType):
         """Initialize a CaimanSegmentationExtractor instance.
