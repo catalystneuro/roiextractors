@@ -4,6 +4,7 @@
 
 ### Fixes
 * Added specific error message for single-frame scanimage data [PR #360](https://github.com/catalystneuro/roiextractors/pull/360)
+* Added specific warning for scanimage data with mid-cycle splits [PR #361](https://github.com/catalystneuro/roiextractors/pull/361)
 
 ### Improvements
 
