@@ -16,12 +16,7 @@ import numpy as np
 from ...extraction_tools import PathType, ArrayType, raise_multi_channel_or_depth_not_implemented, check_keys
 from ...imagingextractor import ImagingExtractor
 
-try:
-    import scipy.io as spio
-
-    HAVE_Scipy = True
-except ImportError:
-    HAVE_Scipy = False
+import scipy.io as spio
 
 
 class SbxImagingExtractor(ImagingExtractor):

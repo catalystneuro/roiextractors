@@ -17,13 +17,7 @@ except ImportError:
 
 import numpy as np
 from lazy_ops import DatasetView
-
-try:
-    from scipy.sparse import csc_matrix
-
-    HAVE_SCIPY = True
-except ImportError:
-    HAVE_SCIPY = False
+from scipy.sparse import csc_matrix
 
 from ...extraction_tools import PathType
 from ...multisegmentationextractor import MultiSegmentationExtractor

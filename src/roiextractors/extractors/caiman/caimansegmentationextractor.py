@@ -15,13 +15,7 @@ try:
 except ImportError:
     HAVE_H5PY = False
 
-try:
-    from scipy.sparse import csc_matrix
-
-    HAVE_SCIPY = True
-except ImportError:
-    HAVE_SCIPY = False
-
+from scipy.sparse import csc_matrix
 import numpy as np
 
 from ...extraction_tools import PathType, get_package
