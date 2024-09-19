@@ -23,14 +23,7 @@ from packaging import version
 
 
 import h5py
-
-try:
-    import zarr
-
-    HAVE_ZARR = True
-except ImportError:
-    HAVE_ZARR = False
-
+import zarr
 
 ArrayType = ArrayLike
 PathType = Union[str, Path]
