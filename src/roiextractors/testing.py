@@ -51,10 +51,8 @@ def generate_dummy_imaging_extractor(
     num_frames: int = 30,
     num_rows: int = 10,
     num_columns: int = 10,
-    num_channels: int = 1,
     sampling_frequency: float = 30.0,
     dtype: DtypeType = "uint16",
-    channel_names: Optional[List[str]] = None,
     seed: int = 0,
 ):
     """Generate a dummy imaging extractor for testing.
@@ -69,14 +67,10 @@ def generate_dummy_imaging_extractor(
         number of rows in the video, by default 10.
     num_columns : int, optional
         number of columns in the video, by default 10.
-    num_channels : int, optional
-        number of channels in the video, by default 1.
     sampling_frequency : float, optional
         sampling frequency of the video, by default 30.
     dtype : DtypeType, optional
         dtype of the video, by default "uint16".
-    channel_names : list, optional
-        list of channel names.
     seed : int, default 0
         seed for the random number generator, by default 0.
 
@@ -85,15 +79,9 @@ def generate_dummy_imaging_extractor(
     ImagingExtractor
         An imaging extractor with random data fed into `NumpyImagingExtractor`.
     """
-    if channel_names is None:
-        channel_names = [f"channel_num_{num}" for num in range(num_channels)]
-
-    size = (num_frames, num_rows, num_columns, num_channels)
+    size = (num_frames, num_rows, num_columns)
     video = generate_dummy_video(size=size, dtype=dtype, seed=seed)
-
-    imaging_extractor = NumpyImagingExtractor(
-        timeseries=video, sampling_frequency=sampling_frequency, channel_names=channel_names
-    )
+    imaging_extractor = NumpyImagingExtractor(timeseries=video, sampling_frequency=sampling_frequency)
 
     return imaging_extractor
 
@@ -367,23 +355,13 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
     assert {"raw", "dff", "neuropil", "deconvolved", "denoised"} == set(seg.get_traces_dict().keys())
 
 
-def check_imaging_equal(
-    imaging_extractor1: ImagingExtractor, imaging_extractor2: ImagingExtractor, exclude_channel_comparison: bool = False
-):
+def check_imaging_equal(imaging_extractor1: ImagingExtractor, imaging_extractor2: ImagingExtractor):
     """Check that two imaging extractors have equal fields."""
-    # assert equality:
+    assert imaging_extractor1.get_image_size() == imaging_extractor2.get_image_size()
     assert imaging_extractor1.get_num_frames() == imaging_extractor2.get_num_frames()
-    assert imaging_extractor1.get_num_channels() == imaging_extractor2.get_num_channels()
-    assert np.isclose(imaging_extractor1.get_sampling_frequency(), imaging_extractor2.get_sampling_frequency())
-    assert_array_equal(imaging_extractor1.get_image_size(), imaging_extractor2.get_image_size())
-
-    if not exclude_channel_comparison:
-        assert_array_equal(imaging_extractor1.get_channel_names(), imaging_extractor2.get_channel_names())
-
-    assert_array_equal(
-        imaging_extractor1.get_video(start_frame=0, end_frame=1),
-        imaging_extractor2.get_video(start_frame=0, end_frame=1),
-    )
+    assert np.close(imaging_extractor1.get_sampling_frequency(), imaging_extractor2.get_sampling_frequency())
+    assert imaging_extractor1.get_dtype() == imaging_extractor2.get_dtype()
+    assert_array_equal(imaging_extractor1.get_video(), imaging_extractor2.get_video())
     assert_array_almost_equal(
         imaging_extractor1.frame_to_time(np.arange(imaging_extractor1.get_num_frames())),
         imaging_extractor2.frame_to_time(np.arange(imaging_extractor2.get_num_frames())),
