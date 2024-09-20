@@ -9,7 +9,7 @@ NumpySegmentationExtractor
 """
 
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 import numpy as np
 
@@ -26,24 +26,17 @@ class NumpyImagingExtractor(ImagingExtractor):
     is_writable = True
     installation_mesg = ""  # error message when not installed
 
-    def __init__(
-        self,
-        timeseries: PathType,
-        sampling_frequency: FloatType,
-        channel_names: ArrayType = None,
-    ):
-        """Create a NumpyImagingExtractor from a .npy file.
+    def __init__(self, timeseries: Union[PathType, np.ndarray], sampling_frequency: FloatType):
+        """Create a NumpyImagingExtractor from a .npy file or a numpy.ndarray.
 
         Parameters
         ----------
-        timeseries: PathType
-            Path to .npy file.
+        timeseries: PathType or numpy.ndarray
+            Path to .npy file or numpy array containing the video.
         sampling_frequency: FloatType
             Sampling frequency of the video in Hz.
-        channel_names: ArrayType
-            List of channel names.
         """
-        ImagingExtractor.__init__(self)
+        super().__init__()
 
         if isinstance(timeseries, (str, Path)):
             timeseries = Path(timeseries)
@@ -68,49 +61,7 @@ class NumpyImagingExtractor(ImagingExtractor):
             raise TypeError("'timeseries' can be a str or a numpy array")
 
         self._sampling_frequency = float(sampling_frequency)
-
-        self._sampling_frequency = sampling_frequency
-        self._channel_names = channel_names
-
-        (
-            self._num_frames,
-            self._num_rows,
-            self._num_columns,
-            self._num_channels,
-        ) = self.get_video_shape(self._video)
-
-        if len(self._video.shape) == 3:
-            # check if this converts to np.ndarray
-            self._video = self._video[np.newaxis, :]
-
-        if self._channel_names is not None:
-            assert len(self._channel_names) == self._num_channels, (
-                "'channel_names' length is different than number " "of channels"
-            )
-        else:
-            self._channel_names = [f"channel_{ch}" for ch in range(self._num_channels)]
-
-    @staticmethod
-    def get_video_shape(video) -> Tuple[int, int, int, int]:
-        """Get the shape of a video (num_frames, num_rows, num_columns, num_channels).
-
-        Parameters
-        ----------
-        video: numpy.ndarray
-            The video to get the shape of.
-
-        Returns
-        -------
-        video_shape: tuple
-            The shape of the video (num_frames, num_rows, num_columns, num_channels).
-        """
-        if len(video.shape) == 3:
-            # 1 channel
-            num_channels = 1
-            num_frames, num_rows, num_columns = video.shape
-        else:
-            num_frames, num_rows, num_columns, num_channels = video.shape
-        return num_frames, num_rows, num_columns, num_channels
+        self._num_frames, self._num_rows, self._num_columns = self._video.shape
 
     def get_frames(self, frame_idxs=None, channel: Optional[int] = 0) -> np.ndarray:
         if frame_idxs is None:
