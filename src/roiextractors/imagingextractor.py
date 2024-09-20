@@ -115,11 +115,15 @@ class ImagingExtractor(ABC):
         frames: numpy.ndarray
             The video frames.
         """
-        assert max(frame_idxs) <= self.get_num_frames(), "'frame_idxs' exceed number of frames"
+        start_frame, end_frame = min(frame_idxs), max(frame_idxs)
+        assert start_frame >= 0, f"All 'frame_idxs' must be greater than or equal to zero but received {start_frame}."
+        assert (
+            end_frame < self.get_num_frames()
+        ), f"All 'frame_idxs' must be less than the number of frames ({self.get_num_frames()}) but received {end_frame}."
         if np.all(np.diff(frame_idxs) == 0):
             return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1])
         relative_indices = np.array(frame_idxs) - frame_idxs[0]
-        return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)[relative_indices, ...]
+        return self.get_video(start_frame=start_frame, end_frame=end_frame + 1)[relative_indices, ...]
 
     def frame_to_time(self, frames: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
         """Convert user-inputted frame indices to times with units of seconds.
