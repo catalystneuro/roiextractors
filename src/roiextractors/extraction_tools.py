@@ -22,21 +22,8 @@ from tqdm import tqdm
 from packaging import version
 
 
-try:
-    import h5py
-
-    HAVE_H5 = True
-except ImportError:
-    HAVE_H5 = False
-
-
-try:
-    import zarr
-
-    HAVE_ZARR = True
-except ImportError:
-    HAVE_ZARR = False
-
+import h5py
+import zarr
 
 ArrayType = ArrayLike
 PathType = Union[str, Path]
@@ -486,11 +473,8 @@ def write_to_h5_dataset_format(
     Raises
     ------
     AssertionError
-        If h5py is not installed.
-    AssertionError
         If neither 'save_path' nor 'file_handle' are given.
     """
-    assert HAVE_H5, "To write to h5 you need to install h5py: pip install h5py"
     assert save_path is not None or file_handle is not None, "Provide 'save_path' or 'file handle'"
 
     if save_path is not None:

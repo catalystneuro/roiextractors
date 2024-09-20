@@ -18,22 +18,15 @@ from ...imagingextractor import ImagingExtractor
 from lazy_ops import DatasetView
 
 
-try:
-    import h5py
-
-    HAVE_H5 = True
-except ImportError:
-    HAVE_H5 = False
+import h5py
 
 
 class Hdf5ImagingExtractor(ImagingExtractor):
     """An imaging extractor for HDF5."""
 
     extractor_name = "Hdf5Imaging"
-    installed = HAVE_H5  # check at class level if installed or not
     is_writable = True
     mode = "file"
-    installation_mesg = "To use the Hdf5 Extractor run:\n\n pip install h5py\n\n"  # error message when not installed
 
     def __init__(
         self,
