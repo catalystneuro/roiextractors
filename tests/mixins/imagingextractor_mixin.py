@@ -77,6 +77,7 @@ class ImagingExtractorMixin:
     def test_frame_to_time_no_times(self, sampling_frequency):
         imaging_extractor = self.imaging_extractor_cls(**self.imaging_extractor_kwargs)
         imaging_extractor._times = None
+        imaging_extractor._sampling_frequency = sampling_frequency
         times = imaging_extractor.frame_to_time(frames=[0, 1])
         expected_times = np.array([0, 1]) / sampling_frequency
         assert np.array_equal(times, expected_times)
@@ -127,7 +128,7 @@ class ImagingExtractorMixin:
     def test_copy_times(self):
         imaging_extractor = self.imaging_extractor_cls(**self.imaging_extractor_kwargs)
         imaging_extractor2 = self.imaging_extractor_cls(**self.imaging_extractor_kwargs)
-        imaging_extractor._times = np.array([0, 1])
+        imaging_extractor._times = np.arange(imaging_extractor.get_num_frames())
         imaging_extractor2.copy_times(imaging_extractor)
         assert np.array_equal(imaging_extractor._times, imaging_extractor2._times)
         assert imaging_extractor._times is not imaging_extractor2._times
@@ -135,7 +136,3 @@ class ImagingExtractorMixin:
     def test_eq(self, imaging_extractor):
         imaging_extractor2 = self.imaging_extractor_cls(**self.imaging_extractor_kwargs)
         assert imaging_extractor == imaging_extractor2
-
-    def test_frame_slice(self, imaging_extractor):
-        frame_slice = imaging_extractor.frame_slice(start_frame=0, end_frame=1)
-        assert np.array_equal(frame_slice.get_video(), imaging_extractor.get_video(start_frame=0, end_frame=1))

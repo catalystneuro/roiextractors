@@ -115,22 +115,21 @@ class ImagingExtractor(ABC):
         frames: numpy.ndarray
             The video frames.
         """
-        start_frame, end_frame = min(frame_idxs), max(frame_idxs)
+        start_frame = min(frame_idxs)
+        end_frame = max(frame_idxs) + 1
         assert start_frame >= 0, f"All 'frame_idxs' must be greater than or equal to zero but received {start_frame}."
         assert (
-            end_frame < self.get_num_frames()
+            end_frame <= self.get_num_frames()
         ), f"All 'frame_idxs' must be less than the number of frames ({self.get_num_frames()}) but received {end_frame}."
-        if np.all(np.diff(frame_idxs) == 0):
-            return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1])
-        relative_indices = np.array(frame_idxs) - frame_idxs[0]
-        return self.get_video(start_frame=start_frame, end_frame=end_frame + 1)[relative_indices, ...]
+        relative_indices = np.array(frame_idxs) - start_frame
+        return self.get_video(start_frame=start_frame, end_frame=end_frame)[relative_indices, ...]
 
-    def frame_to_time(self, frames: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
+    def frame_to_time(self, frames: ArrayType) -> Union[FloatType, np.ndarray]:
         """Convert user-inputted frame indices to times with units of seconds.
 
         Parameters
         ----------
-        frames: int or array-like
+        frames: array-like
             The frame or frames to be converted to times.
 
         Returns
@@ -139,17 +138,18 @@ class ImagingExtractor(ABC):
             The corresponding times in seconds.
         """
         # Default implementation
+        frames = np.asarray(frames)
         if self._times is None:
             return frames / self.get_sampling_frequency()
         else:
             return self._times[frames]
 
-    def time_to_frame(self, times: Union[FloatType, ArrayType]) -> Union[FloatType, np.ndarray]:
+    def time_to_frame(self, times: ArrayType) -> Union[FloatType, np.ndarray]:
         """Convert a user-inputted times (in seconds) to a frame indices.
 
         Parameters
         ----------
-        times: float or array-like
+        times: array-like
             The times (in seconds) to be converted to frame indices.
 
         Returns
@@ -158,6 +158,7 @@ class ImagingExtractor(ABC):
             The corresponding frame indices.
         """
         # Default implementation
+        times = np.asarray(times)
         if self._times is None:
             return np.round(times * self.get_sampling_frequency()).astype("int64")
         else:
