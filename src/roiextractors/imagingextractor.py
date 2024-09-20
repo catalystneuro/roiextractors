@@ -60,23 +60,6 @@ class ImagingExtractor(ABC):
         pass
 
     @abstractmethod
-    @classmethod
-    def get_available_channels(cls, file_path_or_folder_path: PathType) -> list:
-        """Get the available channel names from the source file/folder.
-
-        Parameters
-        ----------
-        file_path_or_folder_path : PathType
-            Path to the source file/folder.
-
-        Returns
-        -------
-        channel_names: list
-            List of channel names.
-        """
-        pass
-
-    @abstractmethod
     def get_dtype(self) -> DtypeType:
         """Get the data type of the video.
 
