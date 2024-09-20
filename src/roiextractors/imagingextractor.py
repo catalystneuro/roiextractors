@@ -195,6 +195,31 @@ class ImagingExtractor(ABC):
         if extractor._times is not None:
             self.set_times(deepcopy(extractor._times))
 
+    def __eq__(self, imaging_extractor2):
+        image_size_equal = self.get_image_size() == imaging_extractor2.get_image_size()
+        num_frames_equal = self.get_num_frames() == imaging_extractor2.get_num_frames()
+        sampling_frequency_equal = np.isclose(
+            self.get_sampling_frequency(), imaging_extractor2.get_sampling_frequency()
+        )
+        dtype_equal = self.get_dtype() == imaging_extractor2.get_dtype()
+        video_equal = np.array_equal(self.get_video(), imaging_extractor2.get_video())
+        times_equal = np.allclose(
+            self.frame_to_time(np.arange(self.get_num_frames())),
+            imaging_extractor2.frame_to_time(np.arange(imaging_extractor2.get_num_frames())),
+        )
+        imaging_extractors_equal = all(
+            [
+                image_size_equal,
+                num_frames_equal,
+                sampling_frequency_equal,
+                dtype_equal,
+                video_equal,
+                times_equal,
+            ]
+        )
+
+        return imaging_extractors_equal
+
     def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
         """Return a new ImagingExtractor ranging from the start_frame to the end_frame.
 
