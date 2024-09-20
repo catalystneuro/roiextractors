@@ -62,19 +62,10 @@ class NumpyImagingExtractor(ImagingExtractor):
 
         self._sampling_frequency = float(sampling_frequency)
         self._num_frames, self._num_rows, self._num_columns = self._video.shape
+        self._dtype = self._video.dtype
 
-    def get_frames(self, frame_idxs=None, channel: Optional[int] = 0) -> np.ndarray:
-        if frame_idxs is None:
-            frame_idxs = [frame for frame in range(self.get_num_frames())]
-
-        frames = self._video.take(indices=frame_idxs, axis=0)
-        if channel is not None:
-            frames = frames[..., channel].squeeze()
-
-        return frames
-
-    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
-        return self._video[start_frame:end_frame, ..., channel]
+    def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
+        return self._video[start_frame:end_frame, ...]
 
     def get_image_size(self) -> Tuple[int, int]:
         return (self._num_rows, self._num_columns)
@@ -85,35 +76,8 @@ class NumpyImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self):
         return self._sampling_frequency
 
-    def get_channel_names(self):
-        return self._channel_names
-
-    def get_num_channels(self):
-        return self._num_channels
-
-    @staticmethod
-    def write_imaging(imaging, save_path, overwrite: bool = False):
-        """Write a NumpyImagingExtractor to a .npy file.
-
-        Parameters
-        ----------
-        imaging: NumpyImagingExtractor
-            The imaging extractor object to be written to file.
-        save_path: str or PathType
-            Path to .npy file.
-        overwrite: bool
-            If True, overwrite file if it already exists.
-        """
-        save_path = Path(save_path)
-        assert save_path.suffix == ".npy", "'save_path' should have a .npy extension"
-
-        if save_path.is_file():
-            if not overwrite:
-                raise FileExistsError("The specified path exists! Use overwrite=True to overwrite it.")
-            else:
-                save_path.unlink()
-
-        np.save(save_path, imaging.get_video())
+    def get_dtype(self):
+        return self._dtype
 
 
 class NumpySegmentationExtractor(SegmentationExtractor):
