@@ -1,5 +1,5 @@
 from typing import Type
-from roiextractors.extractors import ImagingExtractor
+from roiextractors import ImagingExtractor
 import pytest
 import numpy as np
 from roiextractors.extraction_tools import ArrayType
@@ -41,19 +41,19 @@ class ImagingExtractorMixin:
         assert np.array_equal(video, self.expected_video[:1])
 
     def test_get_video_invalid_start_frame(self, imaging_extractor):
-        with pytest.raises(ValueError):
+        with pytest.raises(AssertionError):
             imaging_extractor.get_video(start_frame=-1)
-        with pytest.raises(ValueError):
+        with pytest.raises(AssertionError):
             imaging_extractor.get_video(start_frame=imaging_extractor.get_num_frames() + 1)
-        with pytest.raises(ValueError):
+        with pytest.raises(AssertionError):
             imaging_extractor.get_video(start_frame=0.5)
 
     def test_get_video_invalid_end_frame(self, imaging_extractor):
-        with pytest.raises(ValueError):
+        with pytest.raises(AssertionError):
             imaging_extractor.get_video(end_frame=-1)
-        with pytest.raises(ValueError):
+        with pytest.raises(AssertionError):
             imaging_extractor.get_video(end_frame=imaging_extractor.get_num_frames() + 1)
-        with pytest.raises(ValueError):
+        with pytest.raises(AssertionError):
             imaging_extractor.get_video(end_frame=0.5)
 
     @pytest.mark.parametrize("frame_idxs", [[0], [0, 1], [0, 2], [0, 1, 2], [2, 1, 0]])
@@ -66,11 +66,11 @@ class ImagingExtractorMixin:
         assert np.array_equal(frames, self.expected_video[frame_idxs])
 
     def test_get_frames_invalid_frame_idxs(self, imaging_extractor):
-        with pytest.raises(ValueError):
+        with pytest.raises(AssertionError):
             imaging_extractor.get_frames(frame_idxs=[-1])
-        with pytest.raises(ValueError):
+        with pytest.raises(AssertionError):
             imaging_extractor.get_frames(frame_idxs=[imaging_extractor.get_num_frames()])
-        with pytest.raises(ValueError):
+        with pytest.raises(AssertionError):
             imaging_extractor.get_frames(frame_idxs=[0.5])
 
     @pytest.mark.parametrize("sampling_frequency", [1, 2, 3])
