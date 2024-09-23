@@ -8,6 +8,7 @@
 * Added specific error message for single-frame scanimage data [PR #360](https://github.com/catalystneuro/roiextractors/pull/360)
 
 ### Improvements
+* Removed unnecessary import checks for scipy, h5py, and zarr [PR #364](https://github.com/catalystneuro/roiextractors/pull/364)
 
 ### Testing
 

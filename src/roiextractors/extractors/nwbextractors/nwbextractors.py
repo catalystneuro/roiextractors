@@ -14,13 +14,8 @@ from typing import Union, Optional, Iterable, Tuple
 import numpy as np
 from lazy_ops import DatasetView
 
-try:
-    from pynwb import NWBHDF5IO
-    from pynwb.ophys import TwoPhotonSeries, OnePhotonSeries
-
-    HAVE_NWB = True
-except ImportError:
-    HAVE_NWB = False
+from pynwb import NWBHDF5IO
+from pynwb.ophys import TwoPhotonSeries, OnePhotonSeries
 from ...extraction_tools import (
     PathType,
     FloatType,
@@ -42,11 +37,6 @@ def temporary_deprecation_message():
     )
 
 
-def check_nwb_install():
-    """Check if pynwb is installed."""
-    assert HAVE_NWB, "To use the Nwb extractors, install pynwb: \n\n pip install pynwb\n\n"
-
-
 class NwbImagingExtractor(ImagingExtractor):
     """An imaging extractor for NWB files.
 
@@ -55,10 +45,8 @@ class NwbImagingExtractor(ImagingExtractor):
     """
 
     extractor_name = "NwbImaging"
-    installed = HAVE_NWB  # check at class level if installed or not
     is_writable = True
     mode = "file"
-    installation_mesg = "To use the Nwb Extractor run:\n\n pip install pynwb\n\n"  # error message when not installed
 
     def __init__(self, file_path: PathType, optical_series_name: Optional[str] = "TwoPhotonSeries"):
         """Create ImagingExtractor object from NWB file.
@@ -264,7 +252,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         file_path: PathType
             .nwb file location
         """
-        check_nwb_install()
         super().__init__()
         file_path = Path(file_path)
         if not file_path.is_file():
