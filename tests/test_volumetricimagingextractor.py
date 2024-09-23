@@ -158,3 +158,8 @@ def test_depth_slice_twice(volumetric_imaging_extractor):
     frames = volumetric_imaging_extractor.get_frames(frame_idxs=[0, 1, 2])
     sliced_frames = twice_sliced_extractor.get_frames(frame_idxs=[0, 1, 2])
     assert np.all(frames[..., :1] == sliced_frames)
+
+
+def test_frame_slice(volumetric_imaging_extractor):
+    with pytest.raises(NotImplementedError):
+        volumetric_imaging_extractor.frame_slice(start_frame=0, end_frame=1)

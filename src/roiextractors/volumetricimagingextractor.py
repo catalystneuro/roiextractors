@@ -182,6 +182,12 @@ class VolumetricImagingExtractor(ImagingExtractor):
 
         return DepthSliceVolumetricImagingExtractor(parent_extractor=self, start_plane=start_plane, end_plane=end_plane)
 
+    def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
+        """Return a new VolumetricImagingExtractor with a subset of frames."""
+        raise NotImplementedError(
+            "frame_slice is not implemented for VolumetricImagingExtractor due to conflicts with get_video()."
+        )
+
 
 class DepthSliceVolumetricImagingExtractor(VolumetricImagingExtractor):
     """Class to get a lazy depth slice.
