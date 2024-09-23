@@ -236,8 +236,15 @@ class ImagingExtractor(ABC):
         imaging: FrameSliceImagingExtractor
             The sliced ImagingExtractor object.
         """
+        num_frames = self.get_num_frames()
         start_frame = start_frame if start_frame is not None else 0
-        end_frame = end_frame if end_frame is not None else self.get_num_frames()
+        end_frame = end_frame if end_frame is not None else num_frames
+        assert 0 <= start_frame < num_frames, f"'start_frame' must be in [0, {num_frames}) but got {start_frame}"
+        assert 0 < end_frame <= num_frames, f"'end_frame' must be in (0, {num_frames}] but got {end_frame}"
+        assert (
+            start_frame <= end_frame
+        ), f"'start_frame' ({start_frame}) must be less than or equal to 'end_frame' ({end_frame})"
+
         return FrameSliceImagingExtractor(parent_imaging=self, start_frame=start_frame, end_frame=end_frame)
 
 
@@ -276,17 +283,6 @@ class FrameSliceImagingExtractor(ImagingExtractor):
         self._start_frame = start_frame
         self._end_frame = end_frame
         self._num_frames = self._end_frame - self._start_frame
-
-        parent_size = self._parent_imaging.get_num_frames()
-        if start_frame is None:
-            start_frame = 0
-        else:
-            assert 0 <= start_frame < parent_size
-        if end_frame is None:
-            end_frame = parent_size
-        else:
-            assert 0 < end_frame <= parent_size
-        assert end_frame > start_frame, "'start_frame' must be smaller than 'end_frame'!"
 
         super().__init__()
         if getattr(self._parent_imaging, "_times") is not None:
