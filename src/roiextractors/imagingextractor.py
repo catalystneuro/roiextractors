@@ -289,18 +289,21 @@ class FrameSliceImagingExtractor(ImagingExtractor):
             self._times = self._parent_imaging._times[start_frame:end_frame]
 
     def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
-        assert max(frame_idxs) < self._num_frames, "'frame_idxs' range beyond number of available frames!"
+        num_frames = self.get_num_frames()
+        assert max(frame_idxs) < num_frames, "'frame_idxs' range beyond number of available frames!"
         assert min(frame_idxs) >= 0, "'frame_idxs' must be greater than or equal to zero!"
         mapped_frame_idxs = np.array(frame_idxs) + self._start_frame
         return self._parent_imaging.get_frames(frame_idxs=mapped_frame_idxs)
 
     def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
+        num_frames = self.get_num_frames()
         start_frame = start_frame if start_frame is not None else 0
-        end_frame = end_frame if end_frame is not None else self._num_frames
-        assert 0 <= start_frame < end_frame, f"'start_frame' must be in [0, end_frame) but got {start_frame}"
+        end_frame = end_frame if end_frame is not None else num_frames
+        assert 0 <= start_frame < num_frames, f"'start_frame' must be in [0, {num_frames}) but got {start_frame}"
+        assert 0 < end_frame <= num_frames, f"'end_frame' must be in (0, {num_frames}] but got {end_frame}"
         assert (
-            start_frame < end_frame <= self._num_frames
-        ), f"'end_frame' must be in (start_frame, {self._num_frames}] but got {end_frame}"
+            start_frame <= end_frame
+        ), f"'start_frame' ({start_frame}) must be less than or equal to 'end_frame' ({end_frame})"
         assert isinstance(start_frame, int), "'start_frame' must be an integer"
         assert isinstance(end_frame, int), "'end_frame' must be an integer"
 

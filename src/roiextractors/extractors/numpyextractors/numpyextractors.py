@@ -67,10 +67,13 @@ class NumpyImagingExtractor(ImagingExtractor):
     def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
         start_frame = start_frame if start_frame is not None else 0
         end_frame = end_frame if end_frame is not None else self._num_frames
-        assert 0 <= start_frame < end_frame, f"'start_frame' must be in [0, end_frame) but got {start_frame}"
         assert (
-            start_frame < end_frame <= self._num_frames
-        ), f"'end_frame' must be in (start_frame, {self._num_frames}] but got {end_frame}"
+            0 <= start_frame < self._num_frames
+        ), f"'start_frame' must be in [0, {self._num_frames}) but got {start_frame}"
+        assert 0 < end_frame <= self._num_frames, f"'end_frame' must be in (0, {self._num_frames}] but got {end_frame}"
+        assert (
+            start_frame <= end_frame
+        ), f"'start_frame' ({start_frame}) must be less than or equal to 'end_frame' ({end_frame})"
         assert isinstance(start_frame, IntType), "'start_frame' must be an integer"
         assert isinstance(end_frame, IntType), "'end_frame' must be an integer"
 
