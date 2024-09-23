@@ -13,7 +13,7 @@ from typing import Optional, Tuple, Union
 
 import numpy as np
 
-from ...extraction_tools import PathType, FloatType, ArrayType
+from ...extraction_tools import PathType, FloatType, ArrayType, IntType
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
 
@@ -71,8 +71,8 @@ class NumpyImagingExtractor(ImagingExtractor):
         assert (
             start_frame < end_frame <= self._num_frames
         ), f"'end_frame' must be in (start_frame, {self._num_frames}] but got {end_frame}"
-        assert isinstance(start_frame, int), "'start_frame' must be an integer"
-        assert isinstance(end_frame, int), "'end_frame' must be an integer"
+        assert isinstance(start_frame, IntType), "'start_frame' must be an integer"
+        assert isinstance(end_frame, IntType), "'end_frame' must be an integer"
 
         return self._video[start_frame:end_frame, ...]
 

@@ -236,6 +236,8 @@ class ImagingExtractor(ABC):
         imaging: FrameSliceImagingExtractor
             The sliced ImagingExtractor object.
         """
+        start_frame = start_frame if start_frame is not None else 0
+        end_frame = end_frame if end_frame is not None else self.get_num_frames()
         return FrameSliceImagingExtractor(parent_imaging=self, start_frame=start_frame, end_frame=end_frame)
 
 
@@ -292,16 +294,23 @@ class FrameSliceImagingExtractor(ImagingExtractor):
 
     def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
         assert max(frame_idxs) < self._num_frames, "'frame_idxs' range beyond number of available frames!"
+        assert min(frame_idxs) >= 0, "'frame_idxs' must be greater than or equal to zero!"
         mapped_frame_idxs = np.array(frame_idxs) + self._start_frame
         return self._parent_imaging.get_frames(frame_idxs=mapped_frame_idxs)
 
     def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
-        assert start_frame >= 0, (
-            f"'start_frame' must be greater than or equal to zero! Received '{start_frame}'.\n"
-            "Negative slicing semantics are not supported."
-        )
+        start_frame = start_frame if start_frame is not None else 0
+        end_frame = end_frame if end_frame is not None else self._num_frames
+        assert 0 <= start_frame < end_frame, f"'start_frame' must be in [0, end_frame) but got {start_frame}"
+        assert (
+            start_frame < end_frame <= self._num_frames
+        ), f"'end_frame' must be in (start_frame, {self._num_frames}] but got {end_frame}"
+        assert isinstance(start_frame, int), "'start_frame' must be an integer"
+        assert isinstance(end_frame, int), "'end_frame' must be an integer"
+
         start_frame_shifted = start_frame + self._start_frame
-        return self._parent_imaging.get_video(start_frame=start_frame_shifted, end_frame=end_frame)
+        end_frame_shifted = end_frame + self._start_frame
+        return self._parent_imaging.get_video(start_frame=start_frame_shifted, end_frame=end_frame_shifted)
 
     def get_image_size(self) -> Tuple[int, int]:
         return tuple(self._parent_imaging.get_image_size())
@@ -311,3 +320,6 @@ class FrameSliceImagingExtractor(ImagingExtractor):
 
     def get_sampling_frequency(self) -> float:
         return self._parent_imaging.get_sampling_frequency()
+
+    def get_dtype(self) -> DtypeType:
+        return self._parent_imaging.get_dtype()
