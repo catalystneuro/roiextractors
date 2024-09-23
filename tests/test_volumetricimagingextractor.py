@@ -144,3 +144,17 @@ def test_depth_slice(volumetric_imaging_extractor, start_plane, end_plane):
 def test_depth_slice_invalid(volumetric_imaging_extractor, start_plane, end_plane):
     with pytest.raises(AssertionError):
         volumetric_imaging_extractor.depth_slice(start_plane=start_plane, end_plane=end_plane)
+
+
+def test_depth_slice_twice(volumetric_imaging_extractor):
+    sliced_extractor = volumetric_imaging_extractor.depth_slice(start_plane=0, end_plane=2)
+    twice_sliced_extractor = sliced_extractor.depth_slice(start_plane=0, end_plane=1)
+
+    assert twice_sliced_extractor.get_num_planes() == 1
+    assert twice_sliced_extractor.get_image_size() == (*volumetric_imaging_extractor.get_image_size()[:2], 1)
+    video = volumetric_imaging_extractor.get_video()
+    sliced_video = twice_sliced_extractor.get_video()
+    assert np.all(video[..., :1] == sliced_video)
+    frames = volumetric_imaging_extractor.get_frames(frame_idxs=[0, 1, 2])
+    sliced_frames = twice_sliced_extractor.get_frames(frame_idxs=[0, 1, 2])
+    assert np.all(frames[..., :1] == sliced_frames)
