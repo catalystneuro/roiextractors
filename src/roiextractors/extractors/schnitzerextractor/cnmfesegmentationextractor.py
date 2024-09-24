@@ -8,22 +8,10 @@ CnmfeSegmentationExtractor
 
 from pathlib import Path
 
-try:
-    import h5py
-
-    HAVE_H5PY = True
-except ImportError:
-    HAVE_H5PY = False
-
+import h5py
 import numpy as np
 from lazy_ops import DatasetView
-
-try:
-    from scipy.sparse import csc_matrix
-
-    HAVE_SCIPY = True
-except ImportError:
-    HAVE_SCIPY = False
+from scipy.sparse import csc_matrix
 
 from ...extraction_tools import PathType
 from ...multisegmentationextractor import MultiSegmentationExtractor
@@ -39,10 +27,8 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "CnmfeSegmentation"
-    installed = HAVE_H5PY  # check at class level if installed or not
     is_writable = False
     mode = "file"
-    installation_mesg = "To use Cnmfe install h5py: \n\n pip install h5py \n\n"  # error message when not installed
 
     def __init__(self, file_path: PathType):
         """Create a CnmfeSegmentationExtractor from a .mat file.
@@ -161,7 +147,6 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         AssertionError
             If save_path is not a *.mat file.
         """
-        assert HAVE_SCIPY and HAVE_H5PY, "To use Cnmfe install scipy/h5py: \n\n pip install scipy/h5py \n\n"
         save_path = Path(save_path)
         assert save_path.suffix == ".mat", "'save_path' must be a *.mat file"
         if save_path.is_file():
