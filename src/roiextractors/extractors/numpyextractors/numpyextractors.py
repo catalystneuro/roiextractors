@@ -65,17 +65,7 @@ class NumpyImagingExtractor(ImagingExtractor):
         self._dtype = self._video.dtype
 
     def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
-        num_frames = self.get_num_frames()
-        start_frame = start_frame if start_frame is not None else 0
-        end_frame = end_frame if end_frame is not None else num_frames
-        assert 0 <= start_frame < num_frames, f"'start_frame' must be in [0, {num_frames}) but got {start_frame}"
-        assert 0 < end_frame <= num_frames, f"'end_frame' must be in (0, {num_frames}] but got {end_frame}"
-        assert (
-            start_frame <= end_frame
-        ), f"'start_frame' ({start_frame}) must be less than or equal to 'end_frame' ({end_frame})"
-        assert isinstance(start_frame, IntType), "'start_frame' must be an integer"
-        assert isinstance(end_frame, IntType), "'end_frame' must be an integer"
-
+        start_frame, end_frame = self._validate_get_video_arguments(start_frame=start_frame, end_frame=end_frame)
         return self._video[start_frame:end_frame, ...]
 
     def get_image_size(self) -> Tuple[int, int]:
