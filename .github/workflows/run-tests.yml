@@ -37,7 +37,7 @@ jobs:
       - name: Install roiextractors with testing requirements
         run: pip install .[test]
       - name: Run minimal tests
-        run: pytest tests/test_internals -n auto --dist loadscope
+        run: pytest tests/test_minimal -n auto --dist loadscope
 
       - name: Test full installation
         run: pip install .[full]
