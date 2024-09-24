@@ -118,6 +118,34 @@ class ImagingExtractorMixin:
     def test_eq(self, imaging_extractor, imaging_extractor2):
         assert imaging_extractor == imaging_extractor2
 
+    @pytest.mark.parametrize("start_frame, end_frame", [(None, None), (1, 3), (0, 1)])
+    def test_frame_slice(self, imaging_extractor, start_frame, end_frame):
+        frame_slice_imaging_extractor = imaging_extractor.frame_slice(start_frame=start_frame, end_frame=end_frame)
+        start_frame = 0 if start_frame is None else start_frame
+        end_frame = imaging_extractor.get_num_frames() if end_frame is None else end_frame
+        assert frame_slice_imaging_extractor._parent_imaging is imaging_extractor
+        assert frame_slice_imaging_extractor._start_frame == start_frame
+        assert frame_slice_imaging_extractor._end_frame == end_frame
+        assert frame_slice_imaging_extractor._num_frames == end_frame - start_frame
+
+    def test_frame_slice_invalid_start_frame(self, imaging_extractor):
+        with pytest.raises(AssertionError):
+            imaging_extractor.frame_slice(start_frame=-1)
+        with pytest.raises(AssertionError):
+            imaging_extractor.frame_slice(start_frame=imaging_extractor.get_num_frames() + 1)
+        with pytest.raises(AssertionError):
+            imaging_extractor.frame_slice(start_frame=0.5)
+        with pytest.raises(AssertionError):
+            imaging_extractor.frame_slice(start_frame=3, end_frame=1)
+
+    def test_frame_slice_invalid_end_frame(self, imaging_extractor):
+        with pytest.raises(AssertionError):
+            imaging_extractor.frame_slice(end_frame=-1)
+        with pytest.raises(AssertionError):
+            imaging_extractor.frame_slice(end_frame=imaging_extractor.get_num_frames() + 1)
+        with pytest.raises(AssertionError):
+            imaging_extractor.frame_slice(end_frame=0.5)
+
 
 class FrameSliceImagingExtractorMixin:
     @pytest.fixture(scope="function")
@@ -242,3 +270,33 @@ class FrameSliceImagingExtractorMixin:
 
     def test_eq_frame_slice(self, frame_slice_imaging_extractor, frame_slice_imaging_extractor2):
         assert frame_slice_imaging_extractor == frame_slice_imaging_extractor2
+
+    @pytest.mark.parametrize("start_frame, end_frame", [(None, None), (1, 2), (0, 1)])
+    def test_frame_slice_on_frame_slice(self, frame_slice_imaging_extractor, start_frame, end_frame):
+        twice_sliced_imaging_extractor = frame_slice_imaging_extractor.frame_slice(
+            start_frame=start_frame, end_frame=end_frame
+        )
+        start_frame = 0 if start_frame is None else start_frame
+        end_frame = twice_sliced_imaging_extractor.get_num_frames() if end_frame is None else end_frame
+        assert twice_sliced_imaging_extractor._parent_imaging is frame_slice_imaging_extractor
+        assert twice_sliced_imaging_extractor._start_frame == start_frame
+        assert twice_sliced_imaging_extractor._end_frame == end_frame
+        assert twice_sliced_imaging_extractor._num_frames == end_frame - start_frame
+
+    def test_frame_slice_invalid_start_frame_on_frame_slice(self, frame_slice_imaging_extractor):
+        with pytest.raises(AssertionError):
+            frame_slice_imaging_extractor.frame_slice(start_frame=-1)
+        with pytest.raises(AssertionError):
+            frame_slice_imaging_extractor.frame_slice(start_frame=frame_slice_imaging_extractor.get_num_frames() + 1)
+        with pytest.raises(AssertionError):
+            frame_slice_imaging_extractor.frame_slice(start_frame=0.5)
+        with pytest.raises(AssertionError):
+            frame_slice_imaging_extractor.frame_slice(start_frame=3, end_frame=1)
+
+    def test_frame_slice_invalid_end_frame_on_frame_slice(self, frame_slice_imaging_extractor):
+        with pytest.raises(AssertionError):
+            frame_slice_imaging_extractor.frame_slice(end_frame=-1)
+        with pytest.raises(AssertionError):
+            frame_slice_imaging_extractor.frame_slice(end_frame=frame_slice_imaging_extractor.get_num_frames() + 1)
+        with pytest.raises(AssertionError):
+            frame_slice_imaging_extractor.frame_slice(end_frame=0.5)

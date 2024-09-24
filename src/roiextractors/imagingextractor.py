@@ -14,7 +14,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from .extraction_tools import ArrayType, PathType, DtypeType, FloatType
+from .extraction_tools import ArrayType, PathType, DtypeType, FloatType, IntType
 
 
 class ImagingExtractor(ABC):
@@ -244,6 +244,8 @@ class ImagingExtractor(ABC):
         assert (
             start_frame <= end_frame
         ), f"'start_frame' ({start_frame}) must be less than or equal to 'end_frame' ({end_frame})"
+        assert isinstance(start_frame, IntType), "'start_frame' must be an integer"
+        assert isinstance(end_frame, IntType), "'end_frame' must be an integer"
 
         return FrameSliceImagingExtractor(parent_imaging=self, start_frame=start_frame, end_frame=end_frame)
 
