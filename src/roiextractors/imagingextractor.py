@@ -9,7 +9,7 @@ FrameSliceImagingExtractor
 """
 
 from abc import ABC, abstractmethod
-from typing import Union, Optional, Tuple
+from typing import Union, Optional, Tuple, get_args
 from copy import deepcopy
 
 import numpy as np
@@ -244,8 +244,8 @@ class ImagingExtractor(ABC):
         assert (
             start_frame <= end_frame
         ), f"'start_frame' ({start_frame}) must be less than or equal to 'end_frame' ({end_frame})"
-        assert isinstance(start_frame, IntType), "'start_frame' must be an integer"
-        assert isinstance(end_frame, IntType), "'end_frame' must be an integer"
+        assert isinstance(start_frame, get_args(IntType)), "'start_frame' must be an integer"
+        assert isinstance(end_frame, get_args(IntType)), "'end_frame' must be an integer"
 
         return FrameSliceImagingExtractor(parent_imaging=self, start_frame=start_frame, end_frame=end_frame)
 
@@ -306,8 +306,9 @@ class FrameSliceImagingExtractor(ImagingExtractor):
         assert (
             start_frame <= end_frame
         ), f"'start_frame' ({start_frame}) must be less than or equal to 'end_frame' ({end_frame})"
-        assert isinstance(start_frame, int), "'start_frame' must be an integer"
-        assert isinstance(end_frame, int), "'end_frame' must be an integer"
+        # python 3.9 doesn't support get_instance on a Union of types, so we use get_args
+        assert isinstance(start_frame, get_args(IntType)), "'start_frame' must be an integer"
+        assert isinstance(end_frame, get_args(IntType)), "'end_frame' must be an integer"
 
         start_frame_shifted = start_frame + self._start_frame
         end_frame_shifted = end_frame + self._start_frame
