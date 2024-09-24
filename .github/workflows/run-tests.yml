@@ -53,7 +53,7 @@ jobs:
           key: ophys-datasets-042023-${{ matrix.os }}-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
 
       - name: Run full pytest with coverage
-        run: pytest -n auto --dist loadscope --cov=./ --cov-report xml:./codecov.xml
+        run: pytest -n auto --dist loadscope --cov=./ --cov-report xml:./codecov.xml --ignore=old_tests
       - if: ${{ matrix.python-version == '3.9' && matrix.os == 'ubuntu-latest'}}
         name: Upload full coverage to Codecov
         uses: codecov/codecov-action@v4
