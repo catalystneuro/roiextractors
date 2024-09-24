@@ -101,7 +101,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         raw=None,
         dff=None,
         deconvolved=None,
-        neuropil=None,
+        background=None,
         accepted_lst=None,
         mean_image=None,
         correlation_image=None,
@@ -124,8 +124,8 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             DfOverF response of each of the ROI in time
         deconvolved: np.ndarray
             deconvolved response of each of the ROI in time
-        neuropil: np.ndarray
-            neuropil response of each of the ROI in time
+        background: np.ndarray
+            background response of each of the ROI in time
         mean_image: np.ndarray
             Mean image
         correlation_image: np.ndarray
@@ -160,15 +160,15 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                     dff = Path(dff)
                     assert dff.suffix == ".npy", "'dff' file is not a numpy file (.npy)"
                     self._roi_response_dff = np.load(dff, mmap_mode="r")
-                    self._roi_response_neuropil = np.load(neuropil, mmap_mode="r")
+                    self._roi_response_background = np.load(background, mmap_mode="r")
                 if deconvolved is not None:
                     deconvolved = Path(deconvolved)
                     assert deconvolved.suffix == ".npy", "'deconvolved' file is not a numpy file (.npy)"
                     self._roi_response_deconvolved = np.load(deconvolved, mmap_mode="r")
-                if neuropil is not None:
-                    neuropil = Path(neuropil)
-                    assert neuropil.suffix == ".npy", "'neuropil' file is not a numpy file (.npy)"
-                    self._roi_response_neuropil = np.load(neuropil, mmap_mode="r")
+                if background is not None:
+                    background = Path(background)
+                    assert background.suffix == ".npy", "'background' file is not a numpy file (.npy)"
+                    self._roi_response_background = np.load(background, mmap_mode="r")
 
                 self._kwargs = {"image_masks": str(Path(image_masks).absolute())}
                 if raw is not None:
@@ -176,7 +176,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                 if raw is not None:
                     self._kwargs.update({"dff": str(Path(dff).absolute())})
                 if raw is not None:
-                    self._kwargs.update({"neuropil": str(Path(neuropil).absolute())})
+                    self._kwargs.update({"background": str(Path(background).absolute())})
                 if raw is not None:
                     self._kwargs.update({"deconvolved": str(Path(deconvolved).absolute())})
 
@@ -186,7 +186,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             NoneType = type(None)
             assert isinstance(raw, (np.ndarray, NoneType))
             assert isinstance(dff, (np.ndarray, NoneType))
-            assert isinstance(neuropil, (np.ndarray, NoneType))
+            assert isinstance(background, (np.ndarray, NoneType))
             assert isinstance(deconvolved, (np.ndarray, NoneType))
             self.is_dumpable = False
             self._image_masks = image_masks
@@ -203,9 +203,9 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                     "Image masks must be (px, py, num_rois), "
                     "traces must be (num_frames, num_rois)"
                 )
-            self._roi_response_neuropil = neuropil
-            if self._roi_response_neuropil is not None:
-                assert self._image_masks.shape[-1] == self._roi_response_neuropil.shape[-1], (
+            self._roi_response_background = background
+            if self._roi_response_background is not None:
+                assert self._image_masks.shape[-1] == self._roi_response_background.shape[-1], (
                     "Inconsistency between image masks and raw traces. "
                     "Image masks must be (px, py, num_rois), "
                     "traces must be (num_frames, num_rois)"
@@ -221,7 +221,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                 "image_masks": image_masks,
                 "signal": raw,
                 "dff": dff,
-                "neuropil": neuropil,
+                "background": background,
                 "deconvolved": deconvolved,
             }
         else:

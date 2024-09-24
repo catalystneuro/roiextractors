@@ -39,7 +39,7 @@ class SegmentationExtractor(ABC):
         self._num_planes = 1
         self._roi_response_raw = None
         self._roi_response_dff = None
-        self._roi_response_neuropil = None
+        self._roi_response_background = None
         self._roi_response_denoised = None
         self._roi_response_deconvolved = None
         self._image_correlation = None
@@ -251,7 +251,7 @@ class SegmentationExtractor(ABC):
         end_frame: int
             The ending frame of the trace.
         name: str
-            The name of the trace to retrieve ex. 'raw', 'dff', 'neuropil', 'deconvolved'
+            The name of the trace to retrieve ex. 'raw', 'dff', 'background', 'deconvolved'
 
         Returns
         -------
@@ -275,12 +275,12 @@ class SegmentationExtractor(ABC):
         -------
         _roi_response_dict: dict
             dictionary with key, values representing different types of RoiResponseSeries:
-                Raw Fluorescence, DeltaFOverF, Denoised, Neuropil, Deconvolved, Background, etc.
+                Raw Fluorescence, DeltaFOverF, Denoised, Deconvolved, Background, etc.
         """
         return dict(
             raw=self._roi_response_raw,
             dff=self._roi_response_dff,
-            neuropil=self._roi_response_neuropil,
+            background=self._roi_response_background,
             deconvolved=self._roi_response_deconvolved,
             denoised=self._roi_response_denoised,
         )
@@ -345,8 +345,8 @@ class SegmentationExtractor(ABC):
         num_background_components: int
             The number of background components extracted.
         """
-        if self._roi_response_neuropil is not None and len(self._roi_response_neuropil.shape) > 0:
-            return self._roi_response_neuropil.shape[1]
+        if self._roi_response_background is not None and len(self._roi_response_background.shape) > 0:
+            return self._roi_response_background.shape[1]
 
     def get_channel_names(self) -> List[str]:
         """Get names of channels in the pipeline.
