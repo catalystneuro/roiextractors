@@ -9,11 +9,11 @@ NumpySegmentationExtractor
 """
 
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 import numpy as np
 
-from ...extraction_tools import PathType, FloatType, ArrayType
+from ...extraction_tools import PathType, FloatType, ArrayType, IntType
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
 
@@ -26,24 +26,17 @@ class NumpyImagingExtractor(ImagingExtractor):
     is_writable = True
     installation_mesg = ""  # error message when not installed
 
-    def __init__(
-        self,
-        timeseries: PathType,
-        sampling_frequency: FloatType,
-        channel_names: ArrayType = None,
-    ):
-        """Create a NumpyImagingExtractor from a .npy file.
+    def __init__(self, timeseries: Union[PathType, np.ndarray], sampling_frequency: FloatType):
+        """Create a NumpyImagingExtractor from a .npy file or a numpy.ndarray.
 
         Parameters
         ----------
-        timeseries: PathType
-            Path to .npy file.
+        timeseries: PathType or numpy.ndarray
+            Path to .npy file or numpy array containing the video.
         sampling_frequency: FloatType
             Sampling frequency of the video in Hz.
-        channel_names: ArrayType
-            List of channel names.
         """
-        ImagingExtractor.__init__(self)
+        super().__init__()
 
         if isinstance(timeseries, (str, Path)):
             timeseries = Path(timeseries)
@@ -68,62 +61,12 @@ class NumpyImagingExtractor(ImagingExtractor):
             raise TypeError("'timeseries' can be a str or a numpy array")
 
         self._sampling_frequency = float(sampling_frequency)
+        self._num_frames, self._num_rows, self._num_columns = self._video.shape
+        self._dtype = self._video.dtype
 
-        self._sampling_frequency = sampling_frequency
-        self._channel_names = channel_names
-
-        (
-            self._num_frames,
-            self._num_rows,
-            self._num_columns,
-            self._num_channels,
-        ) = self.get_video_shape(self._video)
-
-        if len(self._video.shape) == 3:
-            # check if this converts to np.ndarray
-            self._video = self._video[np.newaxis, :]
-
-        if self._channel_names is not None:
-            assert len(self._channel_names) == self._num_channels, (
-                "'channel_names' length is different than number " "of channels"
-            )
-        else:
-            self._channel_names = [f"channel_{ch}" for ch in range(self._num_channels)]
-
-    @staticmethod
-    def get_video_shape(video) -> Tuple[int, int, int, int]:
-        """Get the shape of a video (num_frames, num_rows, num_columns, num_channels).
-
-        Parameters
-        ----------
-        video: numpy.ndarray
-            The video to get the shape of.
-
-        Returns
-        -------
-        video_shape: tuple
-            The shape of the video (num_frames, num_rows, num_columns, num_channels).
-        """
-        if len(video.shape) == 3:
-            # 1 channel
-            num_channels = 1
-            num_frames, num_rows, num_columns = video.shape
-        else:
-            num_frames, num_rows, num_columns, num_channels = video.shape
-        return num_frames, num_rows, num_columns, num_channels
-
-    def get_frames(self, frame_idxs=None, channel: Optional[int] = 0) -> np.ndarray:
-        if frame_idxs is None:
-            frame_idxs = [frame for frame in range(self.get_num_frames())]
-
-        frames = self._video.take(indices=frame_idxs, axis=0)
-        if channel is not None:
-            frames = frames[..., channel].squeeze()
-
-        return frames
-
-    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
-        return self._video[start_frame:end_frame, ..., channel]
+    def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
+        start_frame, end_frame = self._validate_get_video_arguments(start_frame=start_frame, end_frame=end_frame)
+        return self._video[start_frame:end_frame, ...]
 
     def get_image_size(self) -> Tuple[int, int]:
         return (self._num_rows, self._num_columns)
@@ -134,35 +77,8 @@ class NumpyImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self):
         return self._sampling_frequency
 
-    def get_channel_names(self):
-        return self._channel_names
-
-    def get_num_channels(self):
-        return self._num_channels
-
-    @staticmethod
-    def write_imaging(imaging, save_path, overwrite: bool = False):
-        """Write a NumpyImagingExtractor to a .npy file.
-
-        Parameters
-        ----------
-        imaging: NumpyImagingExtractor
-            The imaging extractor object to be written to file.
-        save_path: str or PathType
-            Path to .npy file.
-        overwrite: bool
-            If True, overwrite file if it already exists.
-        """
-        save_path = Path(save_path)
-        assert save_path.suffix == ".npy", "'save_path' should have a .npy extension"
-
-        if save_path.is_file():
-            if not overwrite:
-                raise FileExistsError("The specified path exists! Use overwrite=True to overwrite it.")
-            else:
-                save_path.unlink()
-
-        np.save(save_path, imaging.get_video())
+    def get_dtype(self):
+        return self._dtype
 
 
 class NumpySegmentationExtractor(SegmentationExtractor):

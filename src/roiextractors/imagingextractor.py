@@ -9,12 +9,12 @@ FrameSliceImagingExtractor
 """
 
 from abc import ABC, abstractmethod
-from typing import Union, Optional, Tuple
+from typing import Union, Optional, Tuple, get_args
 from copy import deepcopy
 
 import numpy as np
 
-from .extraction_tools import ArrayType, PathType, DtypeType, FloatType
+from .extraction_tools import ArrayType, PathType, DtypeType, FloatType, IntType
 
 
 class ImagingExtractor(ABC):
@@ -60,27 +60,6 @@ class ImagingExtractor(ABC):
         pass
 
     @abstractmethod
-    def get_channel_names(self) -> list:
-        """Get the channel names in the recoding.
-
-        Returns
-        -------
-        channel_names: list
-            List of strings of channel names
-        """
-        pass
-
-    @abstractmethod
-    def get_num_channels(self) -> int:
-        """Get the total number of active channels in the recording.
-
-        Returns
-        -------
-        num_channels: int
-            Integer count of number of channels.
-        """
-        pass
-
     def get_dtype(self) -> DtypeType:
         """Get the data type of the video.
 
@@ -89,22 +68,18 @@ class ImagingExtractor(ABC):
         dtype: dtype
             Data type of the video.
         """
-        return self.get_frames(frame_idxs=[0], channel=0).dtype
+        pass
 
     @abstractmethod
-    def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
-    ) -> np.ndarray:
+    def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
         """Get the video frames.
 
         Parameters
         ----------
         start_frame: int, optional
-            Start frame index (inclusive).
+            Start frame index (inclusive). By default, it is set to 0.
         end_frame: int, optional
-            End frame index (exclusive).
-        channel: int, optional
-            Channel index.
+            End frame index (exclusive). By default, it is set to the number of frames.
 
         Returns
         -------
@@ -127,33 +102,85 @@ class ImagingExtractor(ABC):
         """
         pass
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
+    def _validate_get_video_arguments(
+        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None
+    ) -> Tuple[int, int]:
+        """Validate the start_frame and end_frame arguments for the get_video method.
+
+        Parameters
+        ----------
+        start_frame: int, optional
+            Start frame index (inclusive). By default, it is set to 0.
+        end_frame: int, optional
+            End frame index (exclusive). By default, it is set to the number of frames.
+
+        Returns
+        -------
+        start_frame: int
+            Start frame index (inclusive).
+        end_frame: int
+            End frame index (exclusive).
+        """
+        num_frames = self.get_num_frames()
+        start_frame = start_frame if start_frame is not None else 0
+        end_frame = end_frame if end_frame is not None else num_frames
+        assert 0 <= start_frame < num_frames, f"'start_frame' must be in [0, {num_frames}) but got {start_frame}"
+        assert 0 < end_frame <= num_frames, f"'end_frame' must be in (0, {num_frames}] but got {end_frame}"
+        assert (
+            start_frame <= end_frame
+        ), f"'start_frame' ({start_frame}) must be less than or equal to 'end_frame' ({end_frame})"
+        # python 3.9 doesn't support get_instance on a Union of types, so we use get_args
+        assert isinstance(start_frame, get_args(IntType)), "'start_frame' must be an integer"
+        assert isinstance(end_frame, get_args(IntType)), "'end_frame' must be an integer"
+        return start_frame, end_frame
+
+    def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
         """Get specific video frames from indices (not necessarily continuous).
 
         Parameters
         ----------
         frame_idxs: array-like
             Indices of frames to return.
-        channel: int, optional
-            Channel index.
 
         Returns
         -------
         frames: numpy.ndarray
             The video frames.
         """
-        assert max(frame_idxs) <= self.get_num_frames(), "'frame_idxs' exceed number of frames"
-        if np.all(np.diff(frame_idxs) == 0):
-            return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1])
-        relative_indices = np.array(frame_idxs) - frame_idxs[0]
-        return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)[relative_indices, ..., channel]
+        start_frame, end_frame = self._validate_get_frames_arguments(frame_idxs=frame_idxs)
+        relative_indices = np.array(frame_idxs) - start_frame
+        return self.get_video(start_frame=start_frame, end_frame=end_frame)[relative_indices, ...]
 
-    def frame_to_time(self, frames: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
+    def _validate_get_frames_arguments(self, frame_idxs: ArrayType) -> Tuple[int, int]:
+        """Validate the frame_idxs argument for the get_frames method.
+
+        Parameters
+        ----------
+        frame_idxs: array-like
+            Indices of frames to return.
+
+        Returns
+        -------
+        start_frame: int
+            Start frame index (inclusive).
+        end_frame: int
+            End frame index (exclusive).
+        """
+        start_frame = min(frame_idxs)
+        end_frame = max(frame_idxs) + 1
+        assert start_frame >= 0, f"All 'frame_idxs' must be greater than or equal to zero but received {start_frame}."
+        assert (
+            end_frame <= self.get_num_frames()
+        ), f"All 'frame_idxs' must be less than the number of frames ({self.get_num_frames()}) but received {end_frame}."
+
+        return start_frame, end_frame
+
+    def frame_to_time(self, frames: ArrayType) -> Union[FloatType, np.ndarray]:
         """Convert user-inputted frame indices to times with units of seconds.
 
         Parameters
         ----------
-        frames: int or array-like
+        frames: array-like
             The frame or frames to be converted to times.
 
         Returns
@@ -162,17 +189,18 @@ class ImagingExtractor(ABC):
             The corresponding times in seconds.
         """
         # Default implementation
+        frames = np.asarray(frames)
         if self._times is None:
             return frames / self.get_sampling_frequency()
         else:
             return self._times[frames]
 
-    def time_to_frame(self, times: Union[FloatType, ArrayType]) -> Union[FloatType, np.ndarray]:
+    def time_to_frame(self, times: ArrayType) -> Union[FloatType, np.ndarray]:
         """Convert a user-inputted times (in seconds) to a frame indices.
 
         Parameters
         ----------
-        times: float or array-like
+        times: array-like
             The times (in seconds) to be converted to frame indices.
 
         Returns
@@ -181,6 +209,7 @@ class ImagingExtractor(ABC):
             The corresponding frame indices.
         """
         # Default implementation
+        times = np.asarray(times)
         if self._times is None:
             return np.round(times * self.get_sampling_frequency()).astype("int64")
         else:
@@ -218,6 +247,31 @@ class ImagingExtractor(ABC):
         if extractor._times is not None:
             self.set_times(deepcopy(extractor._times))
 
+    def __eq__(self, imaging_extractor2):
+        image_size_equal = self.get_image_size() == imaging_extractor2.get_image_size()
+        num_frames_equal = self.get_num_frames() == imaging_extractor2.get_num_frames()
+        sampling_frequency_equal = np.isclose(
+            self.get_sampling_frequency(), imaging_extractor2.get_sampling_frequency()
+        )
+        dtype_equal = self.get_dtype() == imaging_extractor2.get_dtype()
+        video_equal = np.array_equal(self.get_video(), imaging_extractor2.get_video())
+        times_equal = np.allclose(
+            self.frame_to_time(np.arange(self.get_num_frames())),
+            imaging_extractor2.frame_to_time(np.arange(imaging_extractor2.get_num_frames())),
+        )
+        imaging_extractors_equal = all(
+            [
+                image_size_equal,
+                num_frames_equal,
+                sampling_frequency_equal,
+                dtype_equal,
+                video_equal,
+                times_equal,
+            ]
+        )
+
+        return imaging_extractors_equal
+
     def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
         """Return a new ImagingExtractor ranging from the start_frame to the end_frame.
 
@@ -233,22 +287,18 @@ class ImagingExtractor(ABC):
         imaging: FrameSliceImagingExtractor
             The sliced ImagingExtractor object.
         """
+        num_frames = self.get_num_frames()
+        start_frame = start_frame if start_frame is not None else 0
+        end_frame = end_frame if end_frame is not None else num_frames
+        assert 0 <= start_frame < num_frames, f"'start_frame' must be in [0, {num_frames}) but got {start_frame}"
+        assert 0 < end_frame <= num_frames, f"'end_frame' must be in (0, {num_frames}] but got {end_frame}"
+        assert (
+            start_frame <= end_frame
+        ), f"'start_frame' ({start_frame}) must be less than or equal to 'end_frame' ({end_frame})"
+        assert isinstance(start_frame, get_args(IntType)), "'start_frame' must be an integer"
+        assert isinstance(end_frame, get_args(IntType)), "'end_frame' must be an integer"
+
         return FrameSliceImagingExtractor(parent_imaging=self, start_frame=start_frame, end_frame=end_frame)
-
-    @staticmethod
-    def write_imaging(imaging, save_path: PathType, overwrite: bool = False):
-        """Write an imaging extractor to its native file structure.
-
-        Parameters
-        ----------
-        imaging : ImagingExtractor
-            The imaging extractor object to be saved.
-        save_path : str or Path
-            Path to save the file.
-        overwrite : bool, optional
-            If True, overwrite the file/folder if it already exists. The default is False.
-        """
-        raise NotImplementedError
 
 
 class FrameSliceImagingExtractor(ImagingExtractor):
@@ -287,35 +337,23 @@ class FrameSliceImagingExtractor(ImagingExtractor):
         self._end_frame = end_frame
         self._num_frames = self._end_frame - self._start_frame
 
-        parent_size = self._parent_imaging.get_num_frames()
-        if start_frame is None:
-            start_frame = 0
-        else:
-            assert 0 <= start_frame < parent_size
-        if end_frame is None:
-            end_frame = parent_size
-        else:
-            assert 0 < end_frame <= parent_size
-        assert end_frame > start_frame, "'start_frame' must be smaller than 'end_frame'!"
-
         super().__init__()
         if getattr(self._parent_imaging, "_times") is not None:
             self._times = self._parent_imaging._times[start_frame:end_frame]
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
-        assert max(frame_idxs) < self._num_frames, "'frame_idxs' range beyond number of available frames!"
+    def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
+        num_frames = self.get_num_frames()
+        assert max(frame_idxs) < num_frames, "'frame_idxs' range beyond number of available frames!"
+        assert min(frame_idxs) >= 0, "'frame_idxs' must be greater than or equal to zero!"
         mapped_frame_idxs = np.array(frame_idxs) + self._start_frame
-        return self._parent_imaging.get_frames(frame_idxs=mapped_frame_idxs, channel=channel)
+        return self._parent_imaging.get_frames(frame_idxs=mapped_frame_idxs)
 
-    def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
-    ) -> np.ndarray:
-        assert start_frame >= 0, (
-            f"'start_frame' must be greater than or equal to zero! Received '{start_frame}'.\n"
-            "Negative slicing semantics are not supported."
-        )
+    def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
+        start_frame, end_frame = self._validate_get_video_arguments(start_frame=start_frame, end_frame=end_frame)
+
         start_frame_shifted = start_frame + self._start_frame
-        return self._parent_imaging.get_video(start_frame=start_frame_shifted, end_frame=end_frame, channel=channel)
+        end_frame_shifted = end_frame + self._start_frame
+        return self._parent_imaging.get_video(start_frame=start_frame_shifted, end_frame=end_frame_shifted)
 
     def get_image_size(self) -> Tuple[int, int]:
         return tuple(self._parent_imaging.get_image_size())
@@ -326,8 +364,5 @@ class FrameSliceImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self) -> float:
         return self._parent_imaging.get_sampling_frequency()
 
-    def get_channel_names(self) -> list:
-        return self._parent_imaging.get_channel_names()
-
-    def get_num_channels(self) -> int:
-        return self._parent_imaging.get_num_channels()
+    def get_dtype(self) -> DtypeType:
+        return self._parent_imaging.get_dtype()
