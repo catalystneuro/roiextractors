@@ -119,3 +119,47 @@ def test_get_dtype(dtype):
     imaging_extractors = [generate_dummy_imaging_extractor(dtype=dtype)]
     volumetric_imaging_extractor = VolumetricImagingExtractor(imaging_extractors=imaging_extractors)
     assert volumetric_imaging_extractor.get_dtype() == dtype
+
+
+@pytest.mark.parametrize("start_plane, end_plane", [(None, None), (0, 1), (1, 2)])
+def test_depth_slice(volumetric_imaging_extractor, start_plane, end_plane):
+    start_plane = start_plane or 0
+    end_plane = end_plane or volumetric_imaging_extractor.get_num_planes()
+    sliced_extractor = volumetric_imaging_extractor.depth_slice(start_plane=start_plane, end_plane=end_plane)
+
+    assert sliced_extractor.get_num_planes() == end_plane - start_plane
+    assert sliced_extractor.get_image_size() == (
+        *volumetric_imaging_extractor.get_image_size()[:2],
+        end_plane - start_plane,
+    )
+    video = volumetric_imaging_extractor.get_video()
+    sliced_video = sliced_extractor.get_video()
+    assert np.all(video[..., start_plane:end_plane] == sliced_video)
+    frames = volumetric_imaging_extractor.get_frames(frame_idxs=[0, 1, 2])
+    sliced_frames = sliced_extractor.get_frames(frame_idxs=[0, 1, 2])
+    assert np.all(frames[..., start_plane:end_plane] == sliced_frames)
+
+
+@pytest.mark.parametrize("start_plane, end_plane", [(0, -1), (1, 0), (0, 4)])
+def test_depth_slice_invalid(volumetric_imaging_extractor, start_plane, end_plane):
+    with pytest.raises(AssertionError):
+        volumetric_imaging_extractor.depth_slice(start_plane=start_plane, end_plane=end_plane)
+
+
+def test_depth_slice_twice(volumetric_imaging_extractor):
+    sliced_extractor = volumetric_imaging_extractor.depth_slice(start_plane=0, end_plane=2)
+    twice_sliced_extractor = sliced_extractor.depth_slice(start_plane=0, end_plane=1)
+
+    assert twice_sliced_extractor.get_num_planes() == 1
+    assert twice_sliced_extractor.get_image_size() == (*volumetric_imaging_extractor.get_image_size()[:2], 1)
+    video = volumetric_imaging_extractor.get_video()
+    sliced_video = twice_sliced_extractor.get_video()
+    assert np.all(video[..., :1] == sliced_video)
+    frames = volumetric_imaging_extractor.get_frames(frame_idxs=[0, 1, 2])
+    sliced_frames = twice_sliced_extractor.get_frames(frame_idxs=[0, 1, 2])
+    assert np.all(frames[..., :1] == sliced_frames)
+
+
+def test_frame_slice(volumetric_imaging_extractor):
+    with pytest.raises(NotImplementedError):
+        volumetric_imaging_extractor.frame_slice(start_frame=0, end_frame=1)
