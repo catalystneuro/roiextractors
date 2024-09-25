@@ -42,7 +42,7 @@ class SegmentationExtractor(ABC):
         self._roi_response_deconvolved = None
         self._image_correlation = None
         self._image_mean = None
-        self._image_mask = None
+        self._image_masks = None
 
     @abstractmethod
     def get_accepted_list(self) -> list:
