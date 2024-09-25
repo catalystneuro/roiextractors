@@ -35,8 +35,6 @@ class SegmentationExtractor(ABC):
         """Create a new SegmentationExtractor for a specific data format (unique to each child SegmentationExtractor)."""
         self._sampling_frequency = None
         self._times = None
-        self._channel_names = ["OpticalChannel"]
-        self._num_planes = 1
         self._roi_response_raw = None
         self._roi_response_dff = None
         self._roi_response_background = None
@@ -348,40 +346,6 @@ class SegmentationExtractor(ABC):
         if self._roi_response_background is not None and len(self._roi_response_background.shape) > 0:
             return self._roi_response_background.shape[1]
 
-    def get_channel_names(self) -> List[str]:
-        """Get names of channels in the pipeline.
-
-        Returns
-        -------
-        _channel_names: list
-            names of channels (str)
-        """
-        return self._channel_names
-
-    def get_num_channels(self) -> int:
-        """Get number of channels in the pipeline.
-
-        Returns
-        -------
-        num_of_channels: int
-            number of channels
-        """
-        return len(self._channel_names)
-
-    def get_num_planes(self) -> int:
-        """Get the default number of planes of imaging for the segmentation extractor.
-
-        Notes
-        -----
-        Defaults to 1 for all but the MultiSegmentationExtractor.
-
-        Returns
-        -------
-        self._num_planes: int
-            number of planes
-        """
-        return self._num_planes
-
     def set_times(self, times: ArrayType):
         """Set the recording times in seconds for each frame.
 
@@ -538,15 +502,6 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
 
     def get_sampling_frequency(self) -> float:
         return self._parent_segmentation.get_sampling_frequency()
-
-    def get_channel_names(self) -> list:
-        return self._parent_segmentation.get_channel_names()
-
-    def get_num_channels(self) -> int:
-        return self._parent_segmentation.get_num_channels()
-
-    def get_num_planes(self) -> int:
-        return self._parent_segmentation.get_num_planes()
 
     def get_roi_pixel_masks(self, roi_ids: Optional[ArrayLike] = None) -> List[np.ndarray]:
         return self._parent_segmentation.get_roi_pixel_masks(roi_ids=roi_ids)
