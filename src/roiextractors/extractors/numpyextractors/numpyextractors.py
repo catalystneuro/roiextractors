@@ -141,6 +141,10 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             height x width of the movie
         """
         SegmentationExtractor.__init__(self)
+        NoneType = type(None)
+        assert not all(
+            isinstance(response, NoneType) for response in [raw, dff, deconvolved, background]
+        ), "At least one of 'raw', 'dff', 'deconvolved', 'background' must be provided."
         if isinstance(image_masks, (str, Path)):
             image_masks = Path(image_masks)
             if image_masks.is_file():
@@ -180,7 +184,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             else:
                 raise ValueError("'timeeseries' is does not exist")
         elif isinstance(image_masks, np.ndarray):
-            NoneType = type(None)
             assert isinstance(raw, (np.ndarray, NoneType))
             assert isinstance(dff, (np.ndarray, NoneType))
             assert isinstance(background, (np.ndarray, NoneType))
@@ -188,11 +191,12 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             self.is_dumpable = False
             self._image_masks = image_masks
             self._roi_response_raw = raw
-            assert self._image_masks.shape[-1] == self._roi_response_raw.shape[-1], (
-                "Inconsistency between image masks and raw traces. "
-                "Image masks must be (px, py, num_rois), "
-                "traces must be (num_frames, num_rois)"
-            )
+            if self._roi_response_raw is not None:
+                assert self._image_masks.shape[-1] == self._roi_response_raw.shape[-1], (
+                    "Inconsistency between image masks and raw traces. "
+                    "Image masks must be (px, py, num_rois), "
+                    "traces must be (num_frames, num_rois)"
+                )
             self._roi_response_dff = dff
             if self._roi_response_dff is not None:
                 assert self._image_masks.shape[-1] == self._roi_response_dff.shape[-1], (
