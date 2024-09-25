@@ -3,7 +3,7 @@
 Classes
 -------
 NumpyImagingExtractor
-    An ImagingExtractor specified by timeseries .npy file, sampling frequency, and channel names.
+    An ImagingExtractor specified by timeseries np.ndarray or .npy file and sampling frequency.
 NumpySegmentationExtractor
     A Segmentation extractor specified by image masks and traces .npy files.
 """
@@ -19,7 +19,7 @@ from ...segmentationextractor import SegmentationExtractor
 
 
 class NumpyImagingExtractor(ImagingExtractor):
-    """An ImagingExtractor specified by timeseries .npy file, sampling frequency, and channel names."""
+    """An ImagingExtractor specified by timeseries np.ndarray or .npy file and sampling frequency."""
 
     extractor_name = "NumpyImagingExtractor"
     installed = True
@@ -109,7 +109,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         roi_locations=None,
         sampling_frequency=None,
         rejected_list=None,
-        channel_names=None,
         movie_dims=None,
     ):
         """Create a NumpySegmentationExtractor from a .npy file.
@@ -138,8 +137,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             Frame rate of the movie
         rejected_list: list
             list of ROI ids that are rejected manually or via automated rejection
-        channel_names: list
-            list of strings representing channel names
         movie_dims: tuple
             height x width of the movie
         """
@@ -236,7 +233,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             self._roi_ids = roi_ids
         self._roi_locs = roi_locations
         self._sampling_frequency = sampling_frequency
-        self._channel_names = channel_names
         self._rejected_list = rejected_list
         self._accepted_list = accepted_lst
 
