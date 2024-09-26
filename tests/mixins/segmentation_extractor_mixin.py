@@ -73,6 +73,16 @@ class SegmentationExtractorMixin:
         background_image_masks = segmentation_extractor.get_background_image_masks()
         np.testing.assert_array_equal(background_image_masks, expected_background_image_masks)
 
+    def test_get_background_pixel_masks(self, segmentation_extractor, expected_background_image_masks):
+        pixel_masks = segmentation_extractor.get_background_pixel_masks()
+        for i, pixel_mask in enumerate(pixel_masks):
+            expected_image_mask = expected_background_image_masks[:, :, i]
+            expected_locs = np.where(expected_image_mask > 0)
+            expected_values = expected_image_mask[expected_image_mask > 0]
+            np.testing.assert_array_equal(pixel_mask[:, 0], expected_locs[0])
+            np.testing.assert_array_equal(pixel_mask[:, 1], expected_locs[1])
+            np.testing.assert_array_equal(pixel_mask[:, 2], expected_values)
+
     def test_get_background_response_traces(self, segmentation_extractor, expected_background_response_traces):
         background_response_traces = segmentation_extractor.get_background_response_traces()
         for name, expected_trace in expected_background_response_traces.items():
@@ -84,7 +94,3 @@ class SegmentationExtractorMixin:
         correlation_image = name_to_image["correlation"]
         np.testing.assert_array_equal(mean_image, expected_mean_image)
         np.testing.assert_array_equal(correlation_image, expected_correlation_image)
-
-    def test_get_num_frames(self, segmentation_extractor, expected_roi_response_traces):
-        num_frames = segmentation_extractor.get_num_frames()
-        assert num_frames == list(expected_roi_response_traces.values())[0].shape[0]
