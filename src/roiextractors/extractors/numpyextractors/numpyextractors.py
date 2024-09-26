@@ -107,9 +107,9 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         correlation_image=None,
         roi_ids=None,
         roi_locations=None,
+        background_ids=None,
         sampling_frequency=None,
         rejected_list=None,
-        movie_dims=None,
     ):
         """Create a NumpySegmentationExtractor from a .npy file.
 
@@ -137,8 +137,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             Frame rate of the movie
         rejected_list: list
             list of ROI ids that are rejected manually or via automated rejection
-        movie_dims: tuple
-            height x width of the movie
         """
         SegmentationExtractor.__init__(self)
         NoneType = type(None)
@@ -157,19 +155,22 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                     raw = Path(raw)
                     assert raw.suffix == ".npy", "'raw' file is not a numpy file (.npy)"
                     self._roi_response_raw = np.load(raw, mmap_mode="r")
+                    self._num_frames = self._roi_response_raw.shape[0]
                 if dff is not None:
                     dff = Path(dff)
                     assert dff.suffix == ".npy", "'dff' file is not a numpy file (.npy)"
                     self._roi_response_dff = np.load(dff, mmap_mode="r")
-                    self._roi_response_background = np.load(background, mmap_mode="r")
+                    self._num_frames = self._roi_response_dff.shape[0]
                 if deconvolved is not None:
                     deconvolved = Path(deconvolved)
                     assert deconvolved.suffix == ".npy", "'deconvolved' file is not a numpy file (.npy)"
                     self._roi_response_deconvolved = np.load(deconvolved, mmap_mode="r")
+                    self._num_frames = self._roi_response_deconvolved.shape[0]
                 if background is not None:
                     background = Path(background)
                     assert background.suffix == ".npy", "'background' file is not a numpy file (.npy)"
                     self._roi_response_background = np.load(background, mmap_mode="r")
+                    self._num_frames = self._roi_response_background.shape[0]
 
                 self._kwargs = {"image_masks": str(Path(image_masks).absolute())}
                 if raw is not None:
@@ -197,6 +198,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                     "Image masks must be (px, py, num_rois), "
                     "traces must be (num_frames, num_rois)"
                 )
+                self._num_frames = self._roi_response_raw.shape[0]
             self._roi_response_dff = dff
             if self._roi_response_dff is not None:
                 assert self._image_masks.shape[-1] == self._roi_response_dff.shape[-1], (
@@ -204,6 +206,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                     "Image masks must be (px, py, num_rois), "
                     "traces must be (num_frames, num_rois)"
                 )
+                self._num_frames = self._roi_response_dff.shape[0]
             self._roi_response_background = background
             if self._roi_response_background is not None:
                 assert self._image_masks.shape[-1] == self._roi_response_background.shape[-1], (
@@ -211,6 +214,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                     "Image masks must be (px, py, num_rois), "
                     "traces must be (num_frames, num_rois)"
                 )
+                self._num_frames = self._roi_response_background.shape[0]
             self._roi_response_deconvolved = deconvolved
             if self._roi_response_deconvolved is not None:
                 assert self._image_masks.shape[-1] == self._roi_response_deconvolved.shape[-1], (
@@ -218,6 +222,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                     "Image masks must be (px, py, num_rois), "
                     "traces must be (num_frames, num_rois)"
                 )
+                self._num_frames = self._roi_response_deconvolved.shape[0]
             self._kwargs = {
                 "image_masks": image_masks,
                 "signal": raw,
@@ -227,7 +232,8 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             }
         else:
             raise TypeError("'image_masks' can be a str or a numpy array")
-        self._movie_dims = movie_dims if movie_dims is not None else image_masks.shape
+        self._image_size = image_masks.shape[:2]
+        self._num_rois = image_masks.shape[2]
         self._image_mean = mean_image
         self._image_correlation = correlation_image
         if roi_ids is None:
@@ -235,10 +241,40 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         else:
             assert all([isinstance(roi_id, (int, np.integer)) for roi_id in roi_ids]), "'roi_ids' must be int!"
             self._roi_ids = roi_ids
-        self._roi_locs = roi_locations
+        if background_ids is not None:
+            assert all(
+                [isinstance(background_id, (int, np.integer)) for background_id in background_ids]
+            ), "'background_ids' must be int!"
+            self._background_ids = background_ids
+            self._num_background_components = len(background_ids)
+            assert background is not None, "'background' must be provided if 'background_ids' is provided!"
+        elif background is not None:
+            self._num_background_components = self._roi_response_background.shape[1]
+            self._background_ids = list(np.arange(self._num_background_components))
+        else:
+            self._background_ids = None
+            self._num_background_components = None
+
+        if roi_locations is not None:
+            self._roi_locations = roi_locations
+        else:
+            roi_location = np.zeros([2, len(self._roi_ids)], dtype="int")
+            for i, _ in enumerate(roi_ids):
+                image_mask = self._image_masks[:, :, i]
+                temp = np.where(image_mask == np.amax(image_mask))
+                roi_location[:, i] = np.array([np.median(temp[0]), np.median(temp[1])]).T
+
         self._sampling_frequency = sampling_frequency
         self._rejected_list = rejected_list
         self._accepted_list = accepted_lst
+        self._num_frames = self._roi_response_raw.shape[0]
+
+    def get_roi_image_masks(self, roi_ids=None) -> np.ndarray:
+        if roi_ids is None:
+            return self._image_masks
+        all_ids = self.get_roi_ids()
+        roi_indices = [all_ids.index(i) for i in roi_ids]
+        return self._image_masks[:, :, roi_indices]
 
     @property
     def image_dims(self):
@@ -296,10 +332,70 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     # defining the abstract class informed methods:
     def get_roi_ids(self):
-        if self._roi_ids is None:
-            return list(range(self.get_num_rois()))
-        else:
-            return self._roi_ids
+        return self._roi_ids
+
+    def get_background_ids(self) -> list:
+        return self._background_ids
 
     def get_image_size(self):
-        return self._movie_dims
+        return self._image_size
+
+    def get_background_image_masks(self, background_ids=None) -> np.ndarray:
+        if background_ids is None:
+            return self._background_image_masks
+        all_ids = self.get_background_ids()
+        background_indices = [all_ids.index(i) for i in background_ids]
+        return self._image_masks[:, :, background_indices]
+
+    def get_roi_response_traces(
+        self,
+        names: Optional[list[str]] = None,
+        roi_ids: Optional[ArrayType] = None,
+        start_frame: Optional[IntType] = None,
+        end_frame: Optional[IntType] = None,
+    ) -> dict:
+        all_roi_response_traces = dict(
+            raw=self._roi_response_raw,
+            dff=self._roi_response_dff,
+            background=self._roi_response_background,
+            deconvolved=self._roi_response_deconvolved,
+            # denoised=self._roi_response_denoised,
+        )
+        names = names if names is not None else list(all_roi_response_traces.keys())
+        roi_ids = roi_ids if roi_ids is not None else list(range(self.get_num_rois()))
+        start_frame = start_frame if start_frame is not None else 0
+        end_frame = end_frame if end_frame is not None else self.get_num_frames()
+
+        all_ids = self.get_roi_ids()
+        roi_indices = [all_ids.index(i) for i in roi_ids]
+        roi_response_traces = {
+            name: all_roi_response_traces[name][start_frame:end_frame, roi_indices] for name in names
+        }
+        return roi_response_traces
+
+    def get_summary_images(self, names: Optional[list[str]] = None) -> dict:
+        names = names if names is not None else ["mean", "correlation"]
+        all_summary_images = dict(
+            mean=self._image_mean,
+            correlation=self._image_correlation,
+        )
+        summary_images = {name: all_summary_images[name] for name in names}
+        return summary_images
+
+    def get_num_frames(self):
+        return self._num_frames
+
+    def get_roi_locations(self, roi_ids=None):
+        all_roi_ids = self.get_roi_ids()
+        roi_ids = roi_ids if roi_ids is not None else all_roi_ids
+        roi_indices = [all_roi_ids.index(i) for i in roi_ids]
+        return self._roi_locations[:, roi_indices]
+
+    def get_num_rois(self):
+        return self._num_rois
+
+    def get_num_background_components(self) -> int:
+        return self._num_background_components
+
+    def get_sampling_frequency(self) -> float:
+        return self._sampling_frequency
