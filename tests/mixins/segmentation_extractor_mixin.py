@@ -3,17 +3,26 @@ import numpy as np
 
 
 class SegmentationExtractorMixin:
-    def test_get_image_size(self, segmentation_extractor, expected_video):
+    def test_get_image_size(self, segmentation_extractor, expected_image_masks):
         image_size = segmentation_extractor.get_image_size()
-        assert image_size == (expected_video.shape[1], expected_video.shape[2])
+        assert image_size == (expected_image_masks.shape[0], expected_image_masks.shape[1])
 
-    def test_get_num_frames(self, segmentation_extractor, expected_video):
+    def test_get_num_frames(self, segmentation_extractor, expected_roi_response_traces):
         num_frames = segmentation_extractor.get_num_frames()
-        assert num_frames == expected_video.shape[0]
+        first_expected_roi_response_trace = list(expected_roi_response_traces.values())[0]
+        assert num_frames == first_expected_roi_response_trace.shape[0]
 
     def test_get_sampling_frequency(self, segmentation_extractor, expected_sampling_frequency):
         sampling_frequency = segmentation_extractor.get_sampling_frequency()
         assert sampling_frequency == expected_sampling_frequency
+
+    def test_get_roi_ids(self, segmentation_extractor, expected_roi_ids):
+        roi_ids = segmentation_extractor.get_roi_ids()
+        np.testing.assert_array_equal(roi_ids, expected_roi_ids)
+
+    def test_get_num_rois(self, segmentation_extractor, expected_roi_ids):
+        num_rois = segmentation_extractor.get_num_rois()
+        assert num_rois == len(expected_roi_ids)
 
     def test_get_accepted_roi_ids(self, segmentation_extractor, expected_accepted_list):
         accepted_list = segmentation_extractor.get_accepted_roi_ids()
@@ -23,13 +32,9 @@ class SegmentationExtractorMixin:
         rejected_list = segmentation_extractor.get_rejected_roi_ids()
         np.testing.assert_array_equal(rejected_list, expected_rejected_list)
 
-    def test_get_image_size(self, segmentation_extractor, expected_image_masks):
-        image_size = segmentation_extractor.get_image_size()
-        assert image_size == expected_image_masks.shape[:2]
-
-    def test_get_num_frames(self, segmentation_extractor, expected_roi_response_traces):
-        num_frames = segmentation_extractor.get_num_frames()
-        assert num_frames == list(expected_roi_response_traces.values())[0].shape[0]
+    def test_get_roi_locations(self, segmentation_extractor, expected_roi_locations):
+        roi_locations = segmentation_extractor.get_roi_locations()
+        np.testing.assert_array_equal(roi_locations, expected_roi_locations)
 
     @pytest.mark.parametrize("roi_indices", (None, [], [0], [0, 1]))
     def test_get_roi_image_masks(self, segmentation_extractor, expected_image_masks, expected_roi_ids, roi_indices):
@@ -40,6 +45,16 @@ class SegmentationExtractorMixin:
             roi_ids = [expected_roi_ids[i] for i in roi_indices]
             image_masks = segmentation_extractor.get_roi_image_masks(roi_ids=roi_ids)
             np.testing.assert_array_equal(image_masks, expected_image_masks[:, :, roi_indices])
+
+    def test_roi_pixel_masks(self, segmentation_extractor, expected_image_masks, expected_roi_ids):
+        pixel_masks = segmentation_extractor.get_roi_pixel_masks()
+        for i, pixel_mask in enumerate(pixel_masks):
+            expected_image_mask = expected_image_masks[:, :, i]
+            expected_locs = np.where(expected_image_mask > 0)
+            expected_values = expected_image_mask[expected_image_mask > 0]
+            np.testing.assert_array_equal(pixel_mask[:, 0], expected_locs[0])
+            np.testing.assert_array_equal(pixel_mask[:, 1], expected_locs[1])
+            np.testing.assert_array_equal(pixel_mask[:, 2], expected_values)
 
     def test_get_roi_response_traces(self, segmentation_extractor, expected_roi_response_traces):
         roi_response_traces = segmentation_extractor.get_roi_response_traces()
