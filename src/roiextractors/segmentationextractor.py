@@ -186,7 +186,7 @@ class SegmentationExtractor(ABC):
             the pixel.
         """
         if background_ids is None:
-            background_ids = range(self.get_num_background_components())
+            background_ids = self.get_background_ids()
 
         return _pixel_mask_extractor(self.get_background_image_masks(background_ids=background_ids), background_ids)
 
