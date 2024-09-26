@@ -302,21 +302,40 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         all_roi_response_traces = dict(
             raw=self._roi_response_raw,
             dff=self._roi_response_dff,
-            background=self._roi_response_background,
             deconvolved=self._roi_response_deconvolved,
             # denoised=self._roi_response_denoised,
         )
         names = names if names is not None else list(all_roi_response_traces.keys())
-        roi_ids = roi_ids if roi_ids is not None else list(range(self.get_num_rois()))
+        all_ids = self.get_roi_ids()
+        roi_ids = roi_ids if roi_ids is not None else all_ids
         start_frame = start_frame if start_frame is not None else 0
         end_frame = end_frame if end_frame is not None else self.get_num_frames()
 
-        all_ids = self.get_roi_ids()
         roi_indices = [all_ids.index(i) for i in roi_ids]
         roi_response_traces = {
             name: all_roi_response_traces[name][start_frame:end_frame, roi_indices] for name in names
         }
         return roi_response_traces
+
+    def get_background_response_traces(
+        self,
+        names: Optional[list[str]] = None,
+        background_ids: Optional[ArrayType] = None,
+        start_frame: Optional[IntType] = None,
+        end_frame: Optional[IntType] = None,
+    ) -> dict:
+        all_background_response_traces = dict(background=self._roi_response_background)
+        names = names if names is not None else list(all_background_response_traces.keys())
+        all_ids = self.get_background_ids()
+        background_ids = background_ids if background_ids is not None else all_ids
+        start_frame = start_frame if start_frame is not None else 0
+        end_frame = end_frame if end_frame is not None else self.get_num_frames()
+
+        roi_indices = [all_ids.index(i) for i in background_ids]
+        background_response_traces = {
+            name: all_background_response_traces[name][start_frame:end_frame, roi_indices] for name in names
+        }
+        return background_response_traces
 
     def get_summary_images(self, names: Optional[list[str]] = None) -> dict:
         names = names if names is not None else ["mean", "correlation"]
@@ -344,3 +363,9 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
+
+    def get_accepted_roi_ids(self) -> list:
+        return self._accepted_list
+
+    def get_rejected_roi_ids(self) -> list:
+        return self._rejected_list

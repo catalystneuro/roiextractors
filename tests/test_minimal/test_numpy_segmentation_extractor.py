@@ -32,8 +32,14 @@ class TestNumpyImagingExtractor(SegmentationExtractorMixin):
         return rng.random((num_rows, num_columns, num_rois))
 
     @pytest.fixture(scope="class")
-    def expected_traces_dict(self, rng, num_frames, num_rois):
-        trace_names = ["raw", "dff", "deconvolved", "background"]
+    def expected_roi_response_traces(self, rng, num_frames, num_rois):
+        trace_names = ["raw", "dff", "deconvolved"]
+        traces_dict = {name: rng.random((num_frames, num_rois)) for name in trace_names}
+        return traces_dict
+
+    @pytest.fixture(scope="class")
+    def expected_background_response_traces(self, rng, num_frames, num_rois):
+        trace_names = ["background"]
         traces_dict = {name: rng.random((num_frames, num_rois)) for name in trace_names}
         return traces_dict
 
@@ -72,7 +78,8 @@ class TestNumpyImagingExtractor(SegmentationExtractorMixin):
     def segmentation_extractor(
         self,
         expected_image_masks,
-        expected_traces_dict,
+        expected_roi_response_traces,
+        expected_background_response_traces,
         expected_mean_image,
         expected_correlation_image,
         expected_roi_ids,
@@ -83,10 +90,10 @@ class TestNumpyImagingExtractor(SegmentationExtractorMixin):
     ):
         return NumpySegmentationExtractor(
             image_masks=expected_image_masks,
-            raw=expected_traces_dict["raw"],
-            dff=expected_traces_dict["dff"],
-            deconvolved=expected_traces_dict["deconvolved"],
-            background=expected_traces_dict["background"],
+            raw=expected_roi_response_traces["raw"],
+            dff=expected_roi_response_traces["dff"],
+            deconvolved=expected_roi_response_traces["deconvolved"],
+            background=expected_background_response_traces["background"],
             mean_image=expected_mean_image,
             correlation_image=expected_correlation_image,
             roi_ids=expected_roi_ids,
