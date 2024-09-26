@@ -276,61 +276,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         roi_indices = [all_ids.index(i) for i in roi_ids]
         return self._image_masks[:, :, roi_indices]
 
-    @property
-    def image_dims(self):
-        """Return the dimensions of the image.
-
-        Returns
-        -------
-        image_dims: list
-            The dimensions of the image (num_rois, num_rows, num_columns).
-        """
-        return list(self._image_masks.shape[0:2])
-
-    def get_accepted_list(self):
-        if self._accepted_list is None:
-            return list(range(self.get_num_rois()))
-        else:
-            return self._accepted_list
-
-    def get_rejected_list(self):
-        if self._rejected_list is None:
-            return [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
-        else:
-            return self._rejected_list
-
-    @property
-    def roi_locations(self):
-        """Returns the center locations (x, y) of each ROI."""
-        if self._roi_locs is None:
-            num_ROIs = self.get_num_rois()
-            raw_images = self._image_masks
-            roi_location = np.ndarray([2, num_ROIs], dtype="int")
-            for i in range(num_ROIs):
-                temp = np.where(raw_images[:, :, i] == np.amax(raw_images[:, :, i]))
-                roi_location[:, i] = np.array([np.median(temp[0]), np.median(temp[1])]).T
-            return roi_location
-        else:
-            return self._roi_locs
-
-    @staticmethod
-    def write_segmentation(segmentation_object, save_path):
-        """Write a NumpySegmentationExtractor to a .npy file.
-
-        Parameters
-        ----------
-        segmentation_object: NumpySegmentationExtractor
-            The segmentation extractor object to be written to file.
-        save_path: str or PathType
-            Path to .npy file.
-
-        Notes
-        -----
-        This method is not implemented yet.
-        """
-        raise NotImplementedError
-
-    # defining the abstract class informed methods:
     def get_roi_ids(self):
         return self._roi_ids
 
