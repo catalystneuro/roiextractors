@@ -108,6 +108,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         roi_ids=None,
         roi_locations=None,
         background_ids=None,
+        background_image_masks=None,
         sampling_frequency=None,
         rejected_list=None,
     ):
@@ -268,6 +269,19 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         self._rejected_list = rejected_list
         self._accepted_list = accepted_lst
         self._num_frames = self._roi_response_raw.shape[0]
+        if isinstance(background_image_masks, (str, Path)):
+            background_image_masks = Path(background_image_masks)
+            if background_image_masks.is_file():
+                assert (
+                    background_image_masks.suffix == ".npy"
+                ), "'background_image_masks' file is not a numpy file (.npy)"
+                self._background_image_masks = np.load(background_image_masks, mmap_mode="r")
+            else:
+                raise ValueError("'background_image_masks' is does not exist")
+        elif isinstance(background_image_masks, np.ndarray):
+            self._background_image_masks = background_image_masks
+        else:
+            raise TypeError("'background_image_masks' can be a str or a numpy array")
 
     def get_roi_image_masks(self, roi_ids=None) -> np.ndarray:
         if roi_ids is None:
@@ -290,7 +304,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             return self._background_image_masks
         all_ids = self.get_background_ids()
         background_indices = [all_ids.index(i) for i in background_ids]
-        return self._image_masks[:, :, background_indices]
+        return self._background_image_masks[:, :, background_indices]
 
     def get_roi_response_traces(
         self,
@@ -331,9 +345,9 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         start_frame = start_frame if start_frame is not None else 0
         end_frame = end_frame if end_frame is not None else self.get_num_frames()
 
-        roi_indices = [all_ids.index(i) for i in background_ids]
+        background_indices = [all_ids.index(i) for i in background_ids]
         background_response_traces = {
-            name: all_background_response_traces[name][start_frame:end_frame, roi_indices] for name in names
+            name: all_background_response_traces[name][start_frame:end_frame, background_indices] for name in names
         }
         return background_response_traces
 

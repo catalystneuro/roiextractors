@@ -61,6 +61,23 @@ class SegmentationExtractorMixin:
         for name, expected_trace in expected_roi_response_traces.items():
             np.testing.assert_array_equal(roi_response_traces[name], expected_trace)
 
+    def test_get_background_ids(self, segmentation_extractor, expected_background_ids):
+        background_ids = segmentation_extractor.get_background_ids()
+        np.testing.assert_array_equal(background_ids, expected_background_ids)
+
+    def test_get_num_background_components(self, segmentation_extractor, expected_background_ids):
+        num_background_components = segmentation_extractor.get_num_background_components()
+        assert num_background_components == len(expected_background_ids)
+
+    def test_get_background_image_masks(self, segmentation_extractor, expected_background_image_masks):
+        background_image_masks = segmentation_extractor.get_background_image_masks()
+        np.testing.assert_array_equal(background_image_masks, expected_background_image_masks)
+
+    def test_get_background_response_traces(self, segmentation_extractor, expected_background_response_traces):
+        background_response_traces = segmentation_extractor.get_background_response_traces()
+        for name, expected_trace in expected_background_response_traces.items():
+            np.testing.assert_array_equal(background_response_traces[name], expected_trace)
+
     def test_get_summary_images(self, segmentation_extractor, expected_mean_image, expected_correlation_image):
         name_to_image = segmentation_extractor.get_summary_images()
         mean_image = name_to_image["mean"]
