@@ -36,28 +36,6 @@ class SegmentationExtractor(ABC):
         self._times = None
 
     @abstractmethod
-    def get_accepted_list(self) -> list:
-        """Get a list of accepted ROI ids.
-
-        Returns
-        -------
-        accepted_list: list
-            List of accepted ROI ids.
-        """
-        pass
-
-    @abstractmethod
-    def get_rejected_list(self) -> list:
-        """Get a list of rejected ROI ids.
-
-        Returns
-        -------
-        rejected_list: list
-            List of rejected ROI ids.
-        """
-        pass
-
-    @abstractmethod
     def get_image_size(self) -> ArrayType:
         """Get frame size of movie (height, width).
 
@@ -80,6 +58,61 @@ class SegmentationExtractor(ABC):
         pass
 
     @abstractmethod
+    def get_sampling_frequency(self) -> float:
+        """Get the sampling frequency in Hz.
+
+        Returns
+        -------
+        sampling_frequency: float
+            Sampling frequency of the recording in Hz.
+        """
+        pass
+
+    @abstractmethod
+    def get_roi_ids(self) -> list:
+        """Get the list of ROI ids.
+
+        Returns
+        -------
+        roi_ids: list
+            List of roi ids.
+        """
+        pass
+
+    @abstractmethod
+    def get_num_rois(self) -> int:
+        """Get total number of Regions of Interest (ROIs) in the acquired images.
+
+        Returns
+        -------
+        num_rois: int
+            The number of ROIs extracted.
+        """
+        pass
+
+    @abstractmethod
+    def get_accepted_roi_ids(self) -> list:
+        """Get a list of accepted ROI ids.
+
+        Returns
+        -------
+        accepted_roi_ids: list
+            List of accepted ROI ids.
+        """
+        pass
+
+    @abstractmethod
+    def get_rejected_roi_ids(self) -> list:
+        """Get a list of rejected ROI ids.
+
+        Returns
+        -------
+        rejected_roi_ids: list
+            List of rejected ROI ids.
+        """
+        pass
+
+    @abstractmethod
     def get_roi_locations(self, roi_ids=None) -> np.ndarray:
         """Get the locations of the Regions of Interest (ROIs).
 
@@ -92,17 +125,6 @@ class SegmentationExtractor(ABC):
         -------
         roi_locs: numpy.ndarray
             2-D array: 2 X no_ROIs. The pixel ids (x,y) where the centroid of the ROI is.
-        """
-        pass
-
-    @abstractmethod
-    def get_roi_ids(self) -> list:
-        """Get the list of ROI ids.
-
-        Returns
-        -------
-        roi_ids: list
-            List of roi ids.
         """
         pass
 
@@ -144,6 +166,34 @@ class SegmentationExtractor(ABC):
         return _pixel_mask_extractor(self.get_roi_image_masks(roi_ids=roi_ids), roi_ids)
 
     @abstractmethod
+    def get_roi_response_traces(
+        self,
+        names: Optional[list[str]] = None,
+        roi_ids: Optional[ArrayType] = None,
+        start_frame: Optional[int] = None,
+        end_frame: Optional[int] = None,
+    ) -> dict:
+        """Get the roi response traces.
+
+        Parameters
+        ----------
+        names: list
+            List of names of the traces to retrieve. Must be one of {'raw', 'dff', 'deconvolved', 'denoised'}. If None, all traces are returned.
+        roi_ids: array_like
+            A list or 1D array of ids of the ROIs. Length is the number of ROIs requested. If None, all ROIs are returned.
+        start_frame: int
+            The starting frame of the trace. If None, the trace starts from the beginning.
+        end_frame: int
+            The ending frame of the trace. If None, the trace ends at the last frame.
+
+        Returns
+        -------
+        traces: dict
+            Dictionary of traces with key as the name of the trace and value as the trace.
+        """
+        pass
+
+    @abstractmethod
     def get_background_ids(self) -> list:
         """Get the list of background components ids.
 
@@ -152,7 +202,18 @@ class SegmentationExtractor(ABC):
         background_components_ids: list
             List of background components ids.
         """
-        return list(range(self.get_num_background_components()))
+        pass
+
+    @abstractmethod
+    def get_num_background_components(self) -> int:
+        """Get total number of background components in the acquired images.
+
+        Returns
+        -------
+        num_background_components: int
+            The number of background components extracted.
+        """
+        pass
 
     @abstractmethod
     def get_background_image_masks(self, background_ids=None) -> np.ndarray:
@@ -190,39 +251,22 @@ class SegmentationExtractor(ABC):
 
         return _pixel_mask_extractor(self.get_background_image_masks(background_ids=background_ids), background_ids)
 
-    def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
-        """Return a new SegmentationExtractor ranging from the start_frame to the end_frame.
-
-        Parameters
-        ----------
-        start_frame: int
-            The starting frame of the new SegmentationExtractor.
-        end_frame: int
-            The ending frame of the new SegmentationExtractor.
-
-        Returns
-        -------
-        frame_slice_segmentation_extractor: FrameSliceSegmentationExtractor
-            The frame slice segmentation extractor object.
-        """
-        return FrameSliceSegmentationExtractor(parent_segmentation=self, start_frame=start_frame, end_frame=end_frame)
-
     @abstractmethod
-    def get_roi_response_traces(
+    def get_background_response_traces(
         self,
         names: Optional[list[str]] = None,
-        roi_ids: Optional[ArrayType] = None,
+        background_ids: Optional[ArrayType] = None,
         start_frame: Optional[int] = None,
         end_frame: Optional[int] = None,
     ) -> dict:
-        """Get the roi response traces.
+        """Get the background response traces.
 
         Parameters
         ----------
         names: list
-            List of names of the traces to retrieve. Must be one of {'raw', 'dff', 'background', 'deconvolved', 'denoised'}. If None, all traces are returned.
-        roi_ids: array_like
-            A list or 1D array of ids of the ROIs. Length is the number of ROIs requested. If None, all ROIs are returned.
+            List of names of the traces to retrieve. Must be one of {'background'}. If None, all traces are returned.
+        background_ids: array_like
+            A list or 1D array of ids of the background components. Length is the number of background components requested. If None, all background components are returned.
         start_frame: int
             The starting frame of the trace. If None, the trace starts from the beginning.
         end_frame: int
@@ -248,39 +292,6 @@ class SegmentationExtractor(ABC):
         -------
         summary_images: dict
             Dictionary of summary images with key as the name of the image and value as the image.
-        """
-        pass
-
-    @abstractmethod
-    def get_sampling_frequency(self) -> float:
-        """Get the sampling frequency in Hz.
-
-        Returns
-        -------
-        sampling_frequency: float
-            Sampling frequency of the recording in Hz.
-        """
-        pass
-
-    @abstractmethod
-    def get_num_rois(self) -> int:
-        """Get total number of Regions of Interest (ROIs) in the acquired images.
-
-        Returns
-        -------
-        num_rois: int
-            The number of ROIs extracted.
-        """
-        pass
-
-    @abstractmethod
-    def get_num_background_components(self) -> int:
-        """Get total number of background components in the acquired images.
-
-        Returns
-        -------
-        num_background_components: int
-            The number of background components extracted.
         """
         pass
 
@@ -326,6 +337,23 @@ class SegmentationExtractor(ABC):
             return frames / self.get_sampling_frequency()
         else:
             return self._times[frames]
+
+    def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
+        """Return a new SegmentationExtractor ranging from the start_frame to the end_frame.
+
+        Parameters
+        ----------
+        start_frame: int
+            The starting frame of the new SegmentationExtractor.
+        end_frame: int
+            The ending frame of the new SegmentationExtractor.
+
+        Returns
+        -------
+        frame_slice_segmentation_extractor: FrameSliceSegmentationExtractor
+            The frame slice segmentation extractor object.
+        """
+        return FrameSliceSegmentationExtractor(parent_segmentation=self, start_frame=start_frame, end_frame=end_frame)
 
 
 class FrameSliceSegmentationExtractor(SegmentationExtractor):
