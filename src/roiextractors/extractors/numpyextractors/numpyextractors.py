@@ -210,10 +210,10 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                 self._num_frames = self._roi_response_dff.shape[0]
             self._roi_response_background = background
             if self._roi_response_background is not None:
-                assert self._image_masks.shape[-1] == self._roi_response_background.shape[-1], (
-                    "Inconsistency between image masks and raw traces. "
-                    "Image masks must be (px, py, num_rois), "
-                    "traces must be (num_frames, num_rois)"
+                assert background_image_masks.shape[-1] == self._roi_response_background.shape[-1], (
+                    "Inconsistency between background image masks and raw traces. "
+                    "Image masks must be (px, py, num_background_components), "
+                    "traces must be (num_frames, num_background_components)"
                 )
                 self._num_frames = self._roi_response_background.shape[0]
             self._roi_response_deconvolved = deconvolved
