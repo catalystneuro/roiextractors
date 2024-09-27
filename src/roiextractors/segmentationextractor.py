@@ -308,6 +308,7 @@ class SegmentationExtractor(ABC):
         """
         pass
 
+    # TODO: Refactor _times methods from ImagingExtractor and SegmentationExtractor into a BaseExtractor class
     def set_times(self, times: ArrayType):
         """Set the recording times in seconds for each frame.
 
