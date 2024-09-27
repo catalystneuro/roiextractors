@@ -204,4 +204,4 @@ class SegmentationExtractorMixin:
         assert list(summary_images.keys()) == names
         for name, image in summary_images.items():
             expected_image = expected_summary_images[name]
-            np.testing.assert_array_equal(summary_images[name], expected_image)
+            np.testing.assert_array_equal(image, expected_image)
