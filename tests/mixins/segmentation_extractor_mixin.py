@@ -100,24 +100,32 @@ class SegmentationExtractorMixin:
             np.testing.assert_array_equal(roi_response_traces[name], expected_trace)
 
     @pytest.mark.parametrize("roi_indices", ([], [0], [0, 1], [0, 2]))
-    @pytest.mark.parametrize("start_frame, end_frame", [(0, 1), (1, 3)])
-    def test_get_roi_response_traces_with_params(
-        self,
-        segmentation_extractor,
-        expected_roi_response_traces,
-        expected_roi_ids,
-        roi_indices,
-        start_frame,
-        end_frame,
+    def test_get_roi_response_traces_with_roi_ids(
+        self, segmentation_extractor, expected_roi_response_traces, expected_roi_ids, roi_indices
     ):
-        names = list(expected_roi_response_traces.keys())[:1]
         roi_ids = [expected_roi_ids[i] for i in roi_indices]
+        roi_response_traces = segmentation_extractor.get_roi_response_traces(roi_ids=roi_ids)
+        for name, trace in roi_response_traces.items():
+            expected_trace = expected_roi_response_traces[name][:, roi_indices]
+            np.testing.assert_array_equal(trace, expected_trace)
+
+    @pytest.mark.parametrize("start_frame, end_frame", [(0, 1), (1, 3)])
+    def test_get_roi_response_traces_with_frames(
+        self, segmentation_extractor, expected_roi_response_traces, start_frame, end_frame
+    ):
         roi_response_traces = segmentation_extractor.get_roi_response_traces(
-            names=names, roi_ids=roi_ids, start_frame=start_frame, end_frame=end_frame
+            start_frame=start_frame, end_frame=end_frame
         )
+        for name, trace in roi_response_traces.items():
+            expected_trace = expected_roi_response_traces[name][start_frame:end_frame, :]
+            np.testing.assert_array_equal(trace, expected_trace)
+
+    @pytest.mark.parametrize("names", ([], ["raw"], ["dff"], ["raw", "dff"]))
+    def test_get_roi_response_traces_with_names(self, segmentation_extractor, expected_roi_response_traces, names):
+        roi_response_traces = segmentation_extractor.get_roi_response_traces(names=names)
         assert list(roi_response_traces.keys()) == names
         for name, trace in roi_response_traces.items():
-            expected_trace = expected_roi_response_traces[name][start_frame:end_frame, roi_indices]
+            expected_trace = expected_roi_response_traces[name]
             np.testing.assert_array_equal(trace, expected_trace)
 
     def test_get_background_ids(self, segmentation_extractor, expected_background_ids):
@@ -173,24 +181,40 @@ class SegmentationExtractorMixin:
             np.testing.assert_array_equal(background_response_traces[name], expected_trace)
 
     @pytest.mark.parametrize("background_indices", ([], [0], [0, 1], [0, 2]))
-    @pytest.mark.parametrize("start_frame, end_frame", [(0, 1), (1, 3)])
-    def test_get_background_response_traces_with_params(
+    def test_get_background_response_traces_with_background_components(
         self,
         segmentation_extractor,
         expected_background_response_traces,
         expected_background_ids,
         background_indices,
-        start_frame,
-        end_frame,
     ):
-        names = list(expected_background_response_traces.keys())[:1]
         background_ids = [expected_background_ids[i] for i in background_indices]
         background_response_traces = segmentation_extractor.get_background_response_traces(
-            names=names, background_ids=background_ids, start_frame=start_frame, end_frame=end_frame
+            background_ids=background_ids
         )
+        for name, trace in background_response_traces.items():
+            expected_trace = expected_background_response_traces[name][:, background_indices]
+            np.testing.assert_array_equal(trace, expected_trace)
+
+    @pytest.mark.parametrize("start_frame, end_frame", [(0, 1), (1, 3)])
+    def test_get_background_response_traces_with_frames(
+        self, segmentation_extractor, expected_background_response_traces, start_frame, end_frame
+    ):
+        background_response_traces = segmentation_extractor.get_background_response_traces(
+            start_frame=start_frame, end_frame=end_frame
+        )
+        for name, trace in background_response_traces.items():
+            expected_trace = expected_background_response_traces[name][start_frame:end_frame, :]
+            np.testing.assert_array_equal(trace, expected_trace)
+
+    @pytest.mark.parametrize("names", ([], ["background"]))
+    def test_get_background_response_traces_with_names(
+        self, segmentation_extractor, expected_background_response_traces, names
+    ):
+        background_response_traces = segmentation_extractor.get_background_response_traces(names=names)
         assert list(background_response_traces.keys()) == names
         for name, trace in background_response_traces.items():
-            expected_trace = expected_background_response_traces[name][start_frame:end_frame, background_indices]
+            expected_trace = expected_background_response_traces[name]
             np.testing.assert_array_equal(trace, expected_trace)
 
     def test_get_summary_images(self, segmentation_extractor, expected_summary_images):
