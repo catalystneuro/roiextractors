@@ -13,7 +13,14 @@ from typing import Optional, Tuple, Union
 
 import numpy as np
 
-from ...extraction_tools import PathType, FloatType, ArrayType, IntType, NoneType
+from ...extraction_tools import (
+    PathType,
+    FloatType,
+    ArrayType,
+    IntType,
+    NoneType,
+    get_default_roi_locations_from_image_masks,
+)
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
 
@@ -177,12 +184,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         if roi_locations is not None:
             self._roi_locations = roi_locations
         else:
-            self._roi_locations = np.zeros([2, len(self._roi_ids)], dtype="int")
-            for i, _ in enumerate(roi_ids):
-                image_mask = self._image_masks[:, :, i]
-                temp = np.where(image_mask == np.amax(image_mask))
-                self._roi_locations[:, i] = np.array([np.median(temp[0]), np.median(temp[1])]).T
-
+            self._roi_locations = get_default_roi_locations_from_image_masks(self._image_masks)
         if background_image_masks is not None:
             self._num_background_components = background_image_masks.shape[2]
             self._background_ids = (

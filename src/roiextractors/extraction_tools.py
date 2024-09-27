@@ -685,3 +685,31 @@ def get_package(
         f"\nThe required package'{package_name}' is not installed!\n"
         f"To install this package, please run\n\n\t{installation_instructions}\n"
     )
+
+
+def get_default_roi_locations_from_image_masks(image_masks: np.ndarray) -> np.ndarray:
+    """Calculate the default ROI locations from given image masks.
+
+    This function takes a 3D numpy array of image masks and computes the median
+    coordinates of the maximum values in each 2D mask. The result is a 2D numpy
+    array where each column represents the (x, y) coordinates of the ROI for
+    each mask.
+
+    Parameters
+    ----------
+    image_masks : np.ndarray
+        A 3D numpy array of shape (height, width, num_rois) containing the image masks.
+
+    Returns
+    -------
+    np.ndarray
+        A 2D numpy array of shape (2, num_rois) where each column contains the
+        (x, y) coordinates of the ROI for each mask.
+    """
+    num_rois = image_masks.shape[2]
+    roi_locations = np.zeros([2, num_rois], dtype="int")
+    for i in range(num_rois):
+        image_mask = image_masks[:, :, i]
+        max_value_indices = np.where(image_mask == np.amax(image_mask))
+        roi_locations[:, i] = np.array([np.median(max_value_indices[0]), np.median(max_value_indices[1])]).T
+    return roi_locations
