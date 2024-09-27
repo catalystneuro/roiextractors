@@ -245,18 +245,16 @@ def read_numpy_memmap_video(
     return video_memap
 
 
-def _pixel_mask_extractor(image_mask_, _roi_ids) -> list:
-    """Convert image mask to pixel mask.
+def _pixel_mask_extractor(image_masks: np.ndarray) -> list:
+    """Convert image masks to pixel masks.
 
     Pixel masks are an alternative data format for storage of image masks which relies on the sparsity of the images.
     The location and weight of each non-zero pixel is stored for each mask.
 
     Parameters
     ----------
-    image_mask_: numpy.ndarray
+    image_masks: numpy.ndarray
         Dense representation of the ROIs with shape (number_of_rows, number_of_columns, number_of_rois).
-    _roi_ids: list
-        List of roi ids with length number_of_rois.
 
     Returns
     -------
@@ -266,11 +264,11 @@ def _pixel_mask_extractor(image_mask_, _roi_ids) -> list:
         the pixel.
     """
     pixel_mask_list = []
-    for i, roiid in enumerate(_roi_ids):
-        image_mask = np.array(image_mask_[:, :, i])
-        _locs = np.where(image_mask > 0)
-        _pix_values = image_mask[image_mask > 0]
-        pixel_mask_list.append(np.vstack((_locs[0], _locs[1], _pix_values)).T)
+    for i in range(image_masks.shape[2]):
+        image_mask = image_masks[:, :, i]
+        locs = np.where(image_mask > 0)
+        pix_values = image_mask[image_mask > 0]
+        pixel_mask_list.append(np.vstack((locs[0], locs[1], pix_values)).T)
     return pixel_mask_list
 
 

@@ -29,7 +29,7 @@ class TestNumpyImagingExtractor(SegmentationExtractorMixin):
 
     @pytest.fixture(scope="class")
     def num_background_components(self):
-        return 2
+        return 3
 
     @pytest.fixture(scope="class")
     def expected_image_masks(self, rng, num_rows, num_columns, num_rois):
@@ -37,7 +37,7 @@ class TestNumpyImagingExtractor(SegmentationExtractorMixin):
 
     @pytest.fixture(scope="class")
     def expected_roi_response_traces(self, rng, num_frames, num_rois):
-        trace_names = ["raw", "dff", "deconvolved"]
+        trace_names = ["raw", "dff", "deconvolved", "denoised"]
         traces_dict = {name: rng.random((num_frames, num_rois)) for name in trace_names}
         return traces_dict
 

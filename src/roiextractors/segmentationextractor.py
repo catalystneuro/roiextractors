@@ -179,10 +179,7 @@ class SegmentationExtractor(ABC):
             Columns 1 and 2 are the x and y coordinates of the pixel, while the third column represents the weight of
             the pixel.
         """
-        if roi_ids is None:
-            roi_ids = self.get_roi_ids()
-
-        return _pixel_mask_extractor(self.get_roi_image_masks(roi_ids=roi_ids), roi_ids)
+        return _pixel_mask_extractor(image_masks=self.get_roi_image_masks(roi_ids=roi_ids))
 
     @abstractmethod
     def get_roi_response_traces(
@@ -265,10 +262,7 @@ class SegmentationExtractor(ABC):
             Columns 1 and 2 are the x and y coordinates of the pixel, while the third column represents the weight of
             the pixel.
         """
-        if background_ids is None:
-            background_ids = self.get_background_ids()
-
-        return _pixel_mask_extractor(self.get_background_image_masks(background_ids=background_ids), background_ids)
+        return _pixel_mask_extractor(self.get_background_image_masks(background_ids=background_ids))
 
     @abstractmethod
     def get_background_response_traces(
