@@ -113,52 +113,60 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
         Parameters
         ----------
-        image_masks: np.ndarray
-            Binary image for each of the regions of interest
-        raw: np.ndarray
-            Fluorescence response of each of the ROI in time
-        dff: np.ndarray
-            DfOverF response of each of the ROI in time
-        deconvolved: np.ndarray
-            deconvolved response of each of the ROI in time
-        background: np.ndarray
-            background response of each of the ROI in time
-        mean_image: np.ndarray
-            Mean image
-        correlation_image: np.ndarray
-            correlation image
-        roi_ids: int list
-            Unique ids of the ROIs if any
-        roi_locations: np.ndarray
-            x and y location representative of ROI mask
-        sampling_frequency: float
-            Frame rate of the movie
-        rejected_list: list
-            list of ROI ids that are rejected manually or via automated rejection
+        image_masks: Union[PathType, np.ndarray]
+            Binary image for each of the regions of interest.
+        roi_response_traces: dict[str, Union[PathType, np.ndarray]]
+            Dictionary containing the fluorescence response of each ROI in time.
+        sampling_frequency: FloatType
+            Frame rate of the movie.
+        roi_ids: Optional[list]
+            Unique ids of the ROIs. If None, then the indices are used.
+        accepted_roi_ids: Optional[list]
+            List of ROI ids that are accepted. If None, then all ROI ids are accepted.
+        rejected_roi_ids: Optional[list]
+            List of ROI ids that are rejected manually or via automated rejection. If None, then no ROI ids are rejected.
+        roi_locations: Optional[ArrayType]
+            x and y location representative of ROI mask. If None, then the maximum location is used.
+        summary_images: Optional[dict[str, Union[PathType, np.ndarray]]]
+            Dictionary containing summary images like mean image, correlation image, etc.
+        background_image_masks: Optional[Union[PathType, np.ndarray]]
+            Binary image for each of the background components.
+        background_response_traces: Optional[dict[str, Union[PathType, np.ndarray]]]
+            Dictionary containing the background response of each component in time.
+        background_ids: Optional[list]
+            Unique ids of the background components. If None, then the indices are used.
 
         Notes
         -----
-        If any of image_masks, roi_response_traces, background_image_masks, background_response_traces are .npy files,
-        then the rest of them must be .npy files as well.
+        If any of image_masks, roi_response_traces, summary_images, background_image_masks, or background_response_traces
+        are .npy files, then the rest of them must be .npy files as well.
         """
         super().__init__()
         self._sampling_frequency = float(sampling_frequency)
         if isinstance(image_masks, PathType):
             self._init_from_npy(
-                image_masks, roi_response_traces, summary_images, background_image_masks, background_response_traces
+                image_masks=image_masks,
+                roi_response_traces=roi_response_traces,
+                summary_images=summary_images,
+                background_image_masks=background_image_masks,
+                background_response_traces=background_response_traces,
             )
 
         elif isinstance(image_masks, np.ndarray):
             self._init_from_ndarray(
-                image_masks, roi_response_traces, summary_images, background_image_masks, background_response_traces
+                image_masks=image_masks,
+                roi_response_traces=roi_response_traces,
+                summary_images=summary_images,
+                background_image_masks=background_image_masks,
+                background_response_traces=background_response_traces,
             )
         else:
             raise TypeError(
                 f"'image_masks' must be a PathType (str, pathlib.Path) or a numpy array but got {type(image_masks)}"
             )
 
-        self._image_size = image_masks.shape[:2]
-        self._num_rois = image_masks.shape[2]
+        self._image_size = self._image_masks.shape[:2]
+        self._num_rois = self._image_masks.shape[2]
         self._num_frames = list(self._roi_response_traces.values())[0].shape[0]
         self._roi_ids = roi_ids if roi_ids is not None else list(np.arange(self._num_rois))
         self._accepted_roi_ids = accepted_roi_ids if accepted_roi_ids is not None else self._roi_ids
