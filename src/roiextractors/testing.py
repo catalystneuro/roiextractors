@@ -182,8 +182,8 @@ def generate_dummy_segmentation_extractor(
         correlation_image=correlation_image,
         roi_ids=roi_ids,
         roi_locations=roi_locations,
-        accepted_lst=accepeted_list,
-        rejected_list=rejected_list,
+        accepted_roi_ids=accepeted_list,
+        rejected_roi_ids=rejected_list,
         movie_dims=movie_dims,
         channel_names=["channel_num_0"],
     )

@@ -88,9 +88,7 @@ class SegmentationExtractorMixin:
         for name, expected_trace in expected_background_response_traces.items():
             np.testing.assert_array_equal(background_response_traces[name], expected_trace)
 
-    def test_get_summary_images(self, segmentation_extractor, expected_mean_image, expected_correlation_image):
-        name_to_image = segmentation_extractor.get_summary_images()
-        mean_image = name_to_image["mean"]
-        correlation_image = name_to_image["correlation"]
-        np.testing.assert_array_equal(mean_image, expected_mean_image)
-        np.testing.assert_array_equal(correlation_image, expected_correlation_image)
+    def test_get_summary_images(self, segmentation_extractor, expected_summary_images):
+        summary_images = segmentation_extractor.get_summary_images()
+        for name, expected_image in expected_summary_images.items():
+            np.testing.assert_array_equal(summary_images[name], expected_image)

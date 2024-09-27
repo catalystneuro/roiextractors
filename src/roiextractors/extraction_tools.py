@@ -31,6 +31,7 @@ NumpyArray = np.ndarray
 DtypeType = DTypeLike
 IntType = Union[int, np.integer]
 FloatType = float
+NoneType = type(None)
 
 
 def raise_multi_channel_or_depth_not_implemented(extractor_name: str):

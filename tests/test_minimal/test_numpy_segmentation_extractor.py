@@ -48,12 +48,10 @@ class TestNumpyImagingExtractor(SegmentationExtractorMixin):
         return traces_dict
 
     @pytest.fixture(scope="class")
-    def expected_mean_image(self, rng, num_rows, num_columns):
-        return rng.random((num_rows, num_columns))
-
-    @pytest.fixture(scope="class")
-    def expected_correlation_image(self, rng, num_rows, num_columns):
-        return rng.random((num_rows, num_columns))
+    def expected_summary_images(self, rng, num_rows, num_columns):
+        image_names = ["mean", "correlation"]
+        summary_images = {name: rng.random((num_rows, num_columns)) for name in image_names}
+        return summary_images
 
     @pytest.fixture(scope="class")
     def expected_roi_ids(self, num_rois):
@@ -91,8 +89,7 @@ class TestNumpyImagingExtractor(SegmentationExtractorMixin):
         self,
         expected_image_masks,
         expected_roi_response_traces,
-        expected_mean_image,
-        expected_correlation_image,
+        expected_summary_images,
         expected_roi_ids,
         expected_roi_locations,
         expected_accepted_list,
@@ -104,17 +101,14 @@ class TestNumpyImagingExtractor(SegmentationExtractorMixin):
     ):
         return NumpySegmentationExtractor(
             image_masks=expected_image_masks,
-            raw=expected_roi_response_traces["raw"],
-            dff=expected_roi_response_traces["dff"],
-            deconvolved=expected_roi_response_traces["deconvolved"],
-            background=expected_background_response_traces["background"],
-            mean_image=expected_mean_image,
-            correlation_image=expected_correlation_image,
+            roi_response_traces=expected_roi_response_traces,
+            summary_images=expected_summary_images,
             roi_ids=expected_roi_ids,
             roi_locations=expected_roi_locations,
-            accepted_lst=expected_accepted_list,
-            rejected_list=expected_rejected_list,
+            accepted_roi_ids=expected_accepted_list,
+            rejected_roi_ids=expected_rejected_list,
             sampling_frequency=expected_sampling_frequency,
             background_ids=expected_background_ids,
             background_image_masks=expected_background_image_masks,
+            background_response_traces=expected_background_response_traces,
         )
