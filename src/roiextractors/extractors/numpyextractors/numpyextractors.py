@@ -186,7 +186,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         else:
             self._roi_locations = get_default_roi_locations_from_image_masks(self._image_masks)
         if background_image_masks is not None:
-            self._num_background_components = background_image_masks.shape[2]
+            self._num_background_components = self._background_image_masks.shape[2]
             self._background_ids = (
                 background_ids if background_ids is not None else list(np.arange(self._num_background_components))
             )
