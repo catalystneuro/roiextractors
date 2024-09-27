@@ -79,6 +79,24 @@ class SegmentationExtractor(ABC):
         """
         pass
 
+    def get_roi_indices(self, roi_ids: Optional[list] = None) -> list:
+        """Get the list of ROI indices corresponding to the ROI ids.
+
+        Parameters
+        ----------
+        roi_ids: list
+            List of roi ids. If None, all roi indices are returned.
+
+        Returns
+        -------
+        roi_indices: list
+            List of roi indices.
+        """
+        all_roi_ids = self.get_roi_ids()
+        roi_ids = roi_ids if roi_ids is not None else all_roi_ids
+        roi_indices = [all_roi_ids.index(roi_id) for roi_id in roi_ids]
+        return roi_indices
+
     @abstractmethod
     def get_num_rois(self) -> int:
         """Get total number of Regions of Interest (ROIs) in the acquired images.

@@ -293,8 +293,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     def get_roi_image_masks(self, roi_ids=None) -> np.ndarray:
         if roi_ids is None:
             return self._image_masks
-        all_ids = self.get_roi_ids()
-        roi_indices = [all_ids.index(i) for i in roi_ids]
+        roi_indices = self.get_roi_indices(roi_ids=roi_ids)
         return self._image_masks[:, :, roi_indices]
 
     def get_roi_ids(self):
@@ -321,12 +320,10 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         end_frame: Optional[IntType] = None,
     ) -> dict:
         names = names if names is not None else list(self._roi_response_traces.keys())
-        all_ids = self.get_roi_ids()
-        roi_ids = roi_ids if roi_ids is not None else all_ids
         start_frame = start_frame if start_frame is not None else 0
         end_frame = end_frame if end_frame is not None else self.get_num_frames()
 
-        roi_indices = [all_ids.index(i) for i in roi_ids]
+        roi_indices = self.get_roi_indices(roi_ids=roi_ids)
         roi_response_traces = {
             name: self._roi_response_traces[name][start_frame:end_frame, roi_indices] for name in names
         }
@@ -360,9 +357,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         return self._num_frames
 
     def get_roi_locations(self, roi_ids=None):
-        all_roi_ids = self.get_roi_ids()
-        roi_ids = roi_ids if roi_ids is not None else all_roi_ids
-        roi_indices = [all_roi_ids.index(i) for i in roi_ids]
+        roi_indices = self.get_roi_indices(roi_ids=roi_ids)
         return self._roi_locations[:, roi_indices]
 
     def get_num_rois(self):
