@@ -20,6 +20,17 @@ class SegmentationExtractorMixin:
         roi_ids = segmentation_extractor.get_roi_ids()
         np.testing.assert_array_equal(roi_ids, expected_roi_ids)
 
+    def test_get_roi_indices(self, segmentation_extractor, expected_roi_ids):
+        roi_indices = segmentation_extractor.get_roi_indices()
+        expected_roi_indices = list(range(len(expected_roi_ids)))
+        np.testing.assert_array_equal(roi_indices, expected_roi_indices)
+
+    @pytest.mark.parametrize("expected_roi_indices", ([], [0], [0, 1], [0, 2]))
+    def test_get_roi_indices_with_roi_ids(self, segmentation_extractor, expected_roi_ids, expected_roi_indices):
+        roi_ids = [expected_roi_ids[i] for i in expected_roi_indices]
+        roi_indices = segmentation_extractor.get_roi_indices(roi_ids=roi_ids)
+        np.testing.assert_array_equal(roi_indices, expected_roi_indices)
+
     def test_get_num_rois(self, segmentation_extractor, expected_roi_ids):
         num_rois = segmentation_extractor.get_num_rois()
         assert num_rois == len(expected_roi_ids)

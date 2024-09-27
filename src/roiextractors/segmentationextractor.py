@@ -92,8 +92,9 @@ class SegmentationExtractor(ABC):
         roi_indices: list
             List of roi indices.
         """
+        if roi_ids is None:
+            return list(range(self.get_num_rois()))
         all_roi_ids = self.get_roi_ids()
-        roi_ids = roi_ids if roi_ids is not None else all_roi_ids
         roi_indices = [all_roi_ids.index(roi_id) for roi_id in roi_ids]
         return roi_indices
 
