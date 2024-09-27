@@ -290,27 +290,36 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                     "background response traces must be (num_frames, num_background_components)"
                 )
 
+    def get_image_size(self):
+        return self._image_size
+
+    def get_num_frames(self):
+        return self._num_frames
+
+    def get_sampling_frequency(self) -> float:
+        return self._sampling_frequency
+
+    def get_roi_ids(self):
+        return self._roi_ids
+
+    def get_num_rois(self):
+        return self._num_rois
+
+    def get_accepted_roi_ids(self) -> list:
+        return self._accepted_roi_ids
+
+    def get_rejected_roi_ids(self) -> list:
+        return self._rejected_roi_ids
+
+    def get_roi_locations(self, roi_ids=None):
+        roi_indices = self.get_roi_indices(roi_ids=roi_ids)
+        return self._roi_locations[:, roi_indices]
+
     def get_roi_image_masks(self, roi_ids=None) -> np.ndarray:
         if roi_ids is None:
             return self._image_masks
         roi_indices = self.get_roi_indices(roi_ids=roi_ids)
         return self._image_masks[:, :, roi_indices]
-
-    def get_roi_ids(self):
-        return self._roi_ids
-
-    def get_background_ids(self) -> list:
-        return self._background_ids
-
-    def get_image_size(self):
-        return self._image_size
-
-    def get_background_image_masks(self, background_ids=None) -> np.ndarray:
-        if background_ids is None:
-            return self._background_image_masks
-        all_ids = self.get_background_ids()
-        background_indices = [all_ids.index(i) for i in background_ids]
-        return self._background_image_masks[:, :, background_indices]
 
     def get_roi_response_traces(
         self,
@@ -328,6 +337,19 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             name: self._roi_response_traces[name][start_frame:end_frame, roi_indices] for name in names
         }
         return roi_response_traces
+
+    def get_background_ids(self) -> list:
+        return self._background_ids
+
+    def get_num_background_components(self) -> int:
+        return self._num_background_components
+
+    def get_background_image_masks(self, background_ids=None) -> np.ndarray:
+        if background_ids is None:
+            return self._background_image_masks
+        all_ids = self.get_background_ids()
+        background_indices = [all_ids.index(i) for i in background_ids]
+        return self._background_image_masks[:, :, background_indices]
 
     def get_background_response_traces(
         self,
@@ -352,25 +374,3 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         names = names if names is not None else list(self._summary_images.keys())
         summary_images = {name: self._summary_images[name] for name in names}
         return summary_images
-
-    def get_num_frames(self):
-        return self._num_frames
-
-    def get_roi_locations(self, roi_ids=None):
-        roi_indices = self.get_roi_indices(roi_ids=roi_ids)
-        return self._roi_locations[:, roi_indices]
-
-    def get_num_rois(self):
-        return self._num_rois
-
-    def get_num_background_components(self) -> int:
-        return self._num_background_components
-
-    def get_sampling_frequency(self) -> float:
-        return self._sampling_frequency
-
-    def get_accepted_roi_ids(self) -> list:
-        return self._accepted_roi_ids
-
-    def get_rejected_roi_ids(self) -> list:
-        return self._rejected_roi_ids
