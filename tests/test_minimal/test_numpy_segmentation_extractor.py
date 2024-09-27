@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 
 
-class TestNumpyImagingExtractor(SegmentationExtractorMixin):
+class TestNumpySegmentationExtractor(SegmentationExtractorMixin):
     @pytest.fixture(scope="class")
     def rng(self):
         seed = 1727293748  # int(datetime.now().timestamp()) at the time of writing
