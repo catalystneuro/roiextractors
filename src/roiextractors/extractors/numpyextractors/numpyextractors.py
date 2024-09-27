@@ -144,96 +144,14 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         super().__init__()
         self._sampling_frequency = float(sampling_frequency)
         if isinstance(image_masks, PathType):
-            image_masks = Path(image_masks)
-            assert image_masks.is_file(), "'image_masks' file does not exist"
-            assert image_masks.suffix == ".npy", "'image_masks' file is not a numpy file (.npy)"
-
-            self.is_dumpable = True
-            self._image_masks = np.load(image_masks, mmap_mode="r")
-
-            self._roi_response_traces = {}
-            for name, trace in roi_response_traces.items():
-                assert isinstance(
-                    trace, PathType
-                ), f"Since image_masks is a .npy file, roi response '{name}' must also be an .npy file but got {type(trace)}."
-                trace = Path(trace)
-                assert trace.is_file(), f"'{name}' file does not exist"
-                assert trace.suffix == ".npy", f"'{name}' file is not a numpy file (.npy)"
-                self._roi_response_traces[name] = np.load(trace, mmap_mode="r")
-
-            if summary_images is not None:
-                self._summary_images = {}
-                for name, image in summary_images.items():
-                    assert isinstance(
-                        image, PathType
-                    ), f"Since image_masks is a .npy file, summary image '{name}' must also be an .npy file but got {type(image)}."
-                    image = Path(image)
-                    assert image.is_file(), f"'{name}' file does not exist"
-                    assert image.suffix == ".npy", f"'{name}' file is not a numpy file (.npy)"
-                    self._summary_images[name] = np.load(image, mmap_mode="r")
-
-            if background_image_masks is not None:
-                assert isinstance(
-                    background_image_masks, PathType
-                ), f"Since image_masks is a .npy file, background image masks must also be a .npy file but got {type(background_image_masks)}."
-                background_image_masks = Path(background_image_masks)
-                assert background_image_masks.is_file(), "'background_image_masks' file does not exist"
-                assert (
-                    background_image_masks.suffix == ".npy"
-                ), "'background_image_masks' file is not a numpy file (.npy)"
-                self._background_image_masks = np.load(background_image_masks, mmap_mode="r")
-
-            if background_response_traces is not None:
-                self._background_response_traces = {}
-                for name, trace in background_response_traces.items():
-                    assert isinstance(
-                        trace, PathType
-                    ), f"Since image_masks is a .npy file, background response '{name}' must also be a .npy file but got {type(trace)}."
-                    trace = Path(trace)
-                    assert trace.is_file(), f"'{name}' file does not exist"
-                    assert trace.suffix == ".npy", f"'{name}' file is not a numpy file (.npy)"
-                    self._background_response_traces[name] = np.load(trace, mmap_mode="r")
+            self._init_from_npy(
+                image_masks, roi_response_traces, summary_images, background_image_masks, background_response_traces
+            )
 
         elif isinstance(image_masks, np.ndarray):
-            self.is_dumpable = False
-            self._image_masks = image_masks
-
-            self._roi_response_traces = roi_response_traces
-            for name, trace in self._roi_response_traces.items():
-                assert isinstance(
-                    trace, np.ndarray
-                ), f"Since image_masks is a numpy array, roi response '{name}' must also be a numpy array but got {type(trace)}."
-                assert trace.shape[-1] == self._image_masks.shape[-1], (
-                    f"Inconsistency between image masks and {name} traces. "
-                    f"Image masks must be (num_rows, num_columns, num_rois), "
-                    f"traces must be (num_frames, num_rois)"
-                )
-            if summary_images is not None:
-                self._summary_images = summary_images
-                for name, image in self._summary_images.items():
-                    assert image.shape[:2] == self._image_masks.shape[:2], (
-                        f"Inconsistency between image masks and {name} images. "
-                        f"Image masks must be (num_rows, num_columns, num_rois), "
-                        f"images must be (num_rows, num_columns)"
-                    )
-
-            if background_image_masks is not None:
-                assert isinstance(
-                    background_image_masks, np.ndarray
-                ), f"Since image_masks is a numpy array, background image masks must also be a numpy array but got {type(background_image_masks)}."
-                self._background_image_masks = background_image_masks
-
-            if background_response_traces is not None:
-                assert (
-                    background_image_masks is not None
-                ), "Background image masks must be provided if background response traces are provided."
-                self._background_response_traces = background_response_traces
-                for name, trace in self._background_response_traces.items():
-                    assert trace.shape[-1] == self._background_image_masks.shape[-1], (
-                        "Inconsistency between background image masks and background response traces. "
-                        "Background image masks must be (num_rows, num_columns, num_background_components), "
-                        "background response traces must be (num_frames, num_background_components)"
-                    )
+            self._init_from_ndarray(
+                image_masks, roi_response_traces, summary_images, background_image_masks, background_response_traces
+            )
         else:
             raise TypeError(
                 f"'image_masks' must be a PathType (str, pathlib.Path) or a numpy array but got {type(image_masks)}"
@@ -262,6 +180,105 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             self._background_ids = (
                 background_ids if background_ids is not None else list(np.arange(self._num_background_components))
             )
+
+    def _init_from_npy(
+        self,
+        image_masks: PathType,
+        roi_response_traces: dict[str, PathType],
+        summary_images: Optional[dict[str, PathType]],
+        background_image_masks: Optional[PathType],
+        background_response_traces: Optional[dict[str, PathType]],
+    ):
+        image_masks = Path(image_masks)
+        assert image_masks.is_file(), "'image_masks' file does not exist"
+        assert image_masks.suffix == ".npy", "'image_masks' file is not a numpy file (.npy)"
+
+        self.is_dumpable = True
+        self._image_masks = np.load(image_masks, mmap_mode="r")
+
+        self._roi_response_traces = {}
+        for name, trace in roi_response_traces.items():
+            assert isinstance(
+                trace, PathType
+            ), f"Since image_masks is a .npy file, roi response '{name}' must also be an .npy file but got {type(trace)}."
+            trace = Path(trace)
+            assert trace.is_file(), f"'{name}' file does not exist"
+            assert trace.suffix == ".npy", f"'{name}' file is not a numpy file (.npy)"
+            self._roi_response_traces[name] = np.load(trace, mmap_mode="r")
+
+        if summary_images is not None:
+            self._summary_images = {}
+            for name, image in summary_images.items():
+                assert isinstance(
+                    image, PathType
+                ), f"Since image_masks is a .npy file, summary image '{name}' must also be an .npy file but got {type(image)}."
+                image = Path(image)
+                assert image.is_file(), f"'{name}' file does not exist"
+                assert image.suffix == ".npy", f"'{name}' file is not a numpy file (.npy)"
+                self._summary_images[name] = np.load(image, mmap_mode="r")
+
+        if background_image_masks is not None:
+            assert isinstance(
+                background_image_masks, PathType
+            ), f"Since image_masks is a .npy file, background image masks must also be a .npy file but got {type(background_image_masks)}."
+            background_image_masks = Path(background_image_masks)
+            assert background_image_masks.is_file(), "'background_image_masks' file does not exist"
+            assert background_image_masks.suffix == ".npy", "'background_image_masks' file is not a numpy file (.npy)"
+            self._background_image_masks = np.load(background_image_masks, mmap_mode="r")
+
+        if background_response_traces is not None:
+            self._background_response_traces = {}
+            for name, trace in background_response_traces.items():
+                assert isinstance(
+                    trace, PathType
+                ), f"Since image_masks is a .npy file, background response '{name}' must also be a .npy file but got {type(trace)}."
+                trace = Path(trace)
+                assert trace.is_file(), f"'{name}' file does not exist"
+                assert trace.suffix == ".npy", f"'{name}' file is not a numpy file (.npy)"
+                self._background_response_traces[name] = np.load(trace, mmap_mode="r")
+
+    def _init_from_ndarray(
+        self, image_masks, roi_response_traces, summary_images, background_image_masks, background_response_traces
+    ):
+        self.is_dumpable = False
+        self._image_masks = image_masks
+
+        self._roi_response_traces = roi_response_traces
+        for name, trace in self._roi_response_traces.items():
+            assert isinstance(
+                trace, np.ndarray
+            ), f"Since image_masks is a numpy array, roi response '{name}' must also be a numpy array but got {type(trace)}."
+            assert trace.shape[-1] == self._image_masks.shape[-1], (
+                f"Inconsistency between image masks and {name} traces. "
+                f"Image masks must be (num_rows, num_columns, num_rois), "
+                f"traces must be (num_frames, num_rois)"
+            )
+        if summary_images is not None:
+            self._summary_images = summary_images
+            for name, image in self._summary_images.items():
+                assert image.shape[:2] == self._image_masks.shape[:2], (
+                    f"Inconsistency between image masks and {name} images. "
+                    f"Image masks must be (num_rows, num_columns, num_rois), "
+                    f"images must be (num_rows, num_columns)"
+                )
+
+        if background_image_masks is not None:
+            assert isinstance(
+                background_image_masks, np.ndarray
+            ), f"Since image_masks is a numpy array, background image masks must also be a numpy array but got {type(background_image_masks)}."
+            self._background_image_masks = background_image_masks
+
+        if background_response_traces is not None:
+            assert (
+                background_image_masks is not None
+            ), "Background image masks must be provided if background response traces are provided."
+            self._background_response_traces = background_response_traces
+            for name, trace in self._background_response_traces.items():
+                assert trace.shape[-1] == self._background_image_masks.shape[-1], (
+                    "Inconsistency between background image masks and background response traces. "
+                    "Background image masks must be (num_rows, num_columns, num_background_components), "
+                    "background response traces must be (num_frames, num_background_components)"
+                )
 
     def get_roi_image_masks(self, roi_ids=None) -> np.ndarray:
         if roi_ids is None:
