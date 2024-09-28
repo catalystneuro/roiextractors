@@ -1,4 +1,4 @@
-from ..mixins.segmentation_extractor_mixin import SegmentationExtractorMixin
+from ..mixins.segmentation_extractor_mixin import SegmentationExtractorMixin, FrameSliceSegmentationExtractorMixin
 from roiextractors import NumpySegmentationExtractor
 import pytest
 import numpy as np
@@ -99,7 +99,7 @@ def expected_background_image_masks(rng, num_rows, num_columns, num_background_c
     return rng.random((num_rows, num_columns, num_background_components))
 
 
-class TestNumpySegmentationExtractor(SegmentationExtractorMixin):
+class TestNumpySegmentationExtractor(SegmentationExtractorMixin, FrameSliceSegmentationExtractorMixin):
     @pytest.fixture(scope="function")
     def segmentation_extractor(
         self,
@@ -130,7 +130,7 @@ class TestNumpySegmentationExtractor(SegmentationExtractorMixin):
         )
 
 
-class TestNumpySegmentationExtractorFromFile(SegmentationExtractorMixin):
+class TestNumpySegmentationExtractorFromFile(SegmentationExtractorMixin, FrameSliceSegmentationExtractorMixin):
     @pytest.fixture(scope="function")
     def segmentation_extractor(
         self,
