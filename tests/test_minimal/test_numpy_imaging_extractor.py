@@ -1,6 +1,6 @@
 from ..mixins.imaging_extractor_mixin import ImagingExtractorMixin, FrameSliceImagingExtractorMixin
 from roiextractors import NumpyImagingExtractor
-from roiextractors.testing import generate_dummy_video
+from roiextractors.tools.testing import generate_dummy_video
 import pytest
 import numpy as np
 
