@@ -3,23 +3,30 @@
 Classes
 -------
 NumpyImagingExtractor
-    An ImagingExtractor specified by timeseries .npy file, sampling frequency, and channel names.
+    An ImagingExtractor specified by timeseries np.ndarray or .npy file and sampling frequency.
 NumpySegmentationExtractor
     A Segmentation extractor specified by image masks and traces .npy files.
 """
 
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, get_args
 
 import numpy as np
 
-from ...extraction_tools import PathType, FloatType, ArrayType, IntType
+from ...extraction_tools import (
+    PathType,
+    FloatType,
+    ArrayType,
+    IntType,
+    NoneType,
+    get_default_roi_locations_from_image_masks,
+)
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
 
 
 class NumpyImagingExtractor(ImagingExtractor):
-    """An ImagingExtractor specified by timeseries .npy file, sampling frequency, and channel names."""
+    """An ImagingExtractor specified by timeseries np.ndarray or .npy file and sampling frequency."""
 
     extractor_name = "NumpyImagingExtractor"
     installed = True
@@ -37,8 +44,8 @@ class NumpyImagingExtractor(ImagingExtractor):
             Sampling frequency of the video in Hz.
         """
         super().__init__()
-
-        if isinstance(timeseries, (str, Path)):
+        # python 3.9 doesn't support get_instance on a Union of types, so we use get_args
+        if isinstance(timeseries, get_args(PathType)):
             timeseries = Path(timeseries)
             if timeseries.is_file():
                 assert timeseries.suffix == ".npy", "'timeseries' file is not a numpy file (.npy)"
@@ -97,209 +104,282 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     def __init__(
         self,
-        image_masks,
-        raw=None,
-        dff=None,
-        deconvolved=None,
-        neuropil=None,
-        accepted_lst=None,
-        mean_image=None,
-        correlation_image=None,
-        roi_ids=None,
-        roi_locations=None,
-        sampling_frequency=None,
-        rejected_list=None,
-        channel_names=None,
-        movie_dims=None,
+        image_masks: Union[PathType, np.ndarray],
+        roi_response_traces: dict[str, Union[PathType, np.ndarray]],
+        sampling_frequency: FloatType,
+        roi_ids: Optional[list] = None,
+        accepted_roi_ids: Optional[list] = None,
+        rejected_roi_ids: Optional[list] = None,
+        roi_locations: Optional[ArrayType] = None,
+        summary_images: Optional[dict[str, Union[PathType, np.ndarray]]] = None,
+        background_image_masks: Optional[Union[PathType, np.ndarray]] = None,
+        background_response_traces: Optional[dict[str, Union[PathType, np.ndarray]]] = None,
+        background_ids: Optional[list] = None,
     ):
-        """Create a NumpySegmentationExtractor from a .npy file.
+        """Create a NumpySegmentationExtractor from a set of .npy files or a set of np.ndarrays.
 
         Parameters
         ----------
-        image_masks: np.ndarray
-            Binary image for each of the regions of interest
-        raw: np.ndarray
-            Fluorescence response of each of the ROI in time
-        dff: np.ndarray
-            DfOverF response of each of the ROI in time
-        deconvolved: np.ndarray
-            deconvolved response of each of the ROI in time
-        neuropil: np.ndarray
-            neuropil response of each of the ROI in time
-        mean_image: np.ndarray
-            Mean image
-        correlation_image: np.ndarray
-            correlation image
-        roi_ids: int list
-            Unique ids of the ROIs if any
-        roi_locations: np.ndarray
-            x and y location representative of ROI mask
-        sampling_frequency: float
-            Frame rate of the movie
-        rejected_list: list
-            list of ROI ids that are rejected manually or via automated rejection
-        channel_names: list
-            list of strings representing channel names
-        movie_dims: tuple
-            height x width of the movie
-        """
-        SegmentationExtractor.__init__(self)
-        if isinstance(image_masks, (str, Path)):
-            image_masks = Path(image_masks)
-            if image_masks.is_file():
-                assert image_masks.suffix == ".npy", "'image_masks' file is not a numpy file (.npy)"
-
-                self.is_dumpable = True
-                self._image_masks = np.load(image_masks, mmap_mode="r")
-
-                if raw is not None:
-                    raw = Path(raw)
-                    assert raw.suffix == ".npy", "'raw' file is not a numpy file (.npy)"
-                    self._roi_response_raw = np.load(raw, mmap_mode="r")
-                if dff is not None:
-                    dff = Path(dff)
-                    assert dff.suffix == ".npy", "'dff' file is not a numpy file (.npy)"
-                    self._roi_response_dff = np.load(dff, mmap_mode="r")
-                    self._roi_response_neuropil = np.load(neuropil, mmap_mode="r")
-                if deconvolved is not None:
-                    deconvolved = Path(deconvolved)
-                    assert deconvolved.suffix == ".npy", "'deconvolved' file is not a numpy file (.npy)"
-                    self._roi_response_deconvolved = np.load(deconvolved, mmap_mode="r")
-                if neuropil is not None:
-                    neuropil = Path(neuropil)
-                    assert neuropil.suffix == ".npy", "'neuropil' file is not a numpy file (.npy)"
-                    self._roi_response_neuropil = np.load(neuropil, mmap_mode="r")
-
-                self._kwargs = {"image_masks": str(Path(image_masks).absolute())}
-                if raw is not None:
-                    self._kwargs.update({"raw": str(Path(raw).absolute())})
-                if raw is not None:
-                    self._kwargs.update({"dff": str(Path(dff).absolute())})
-                if raw is not None:
-                    self._kwargs.update({"neuropil": str(Path(neuropil).absolute())})
-                if raw is not None:
-                    self._kwargs.update({"deconvolved": str(Path(deconvolved).absolute())})
-
-            else:
-                raise ValueError("'timeeseries' is does not exist")
-        elif isinstance(image_masks, np.ndarray):
-            NoneType = type(None)
-            assert isinstance(raw, (np.ndarray, NoneType))
-            assert isinstance(dff, (np.ndarray, NoneType))
-            assert isinstance(neuropil, (np.ndarray, NoneType))
-            assert isinstance(deconvolved, (np.ndarray, NoneType))
-            self.is_dumpable = False
-            self._image_masks = image_masks
-            self._roi_response_raw = raw
-            assert self._image_masks.shape[-1] == self._roi_response_raw.shape[-1], (
-                "Inconsistency between image masks and raw traces. "
-                "Image masks must be (px, py, num_rois), "
-                "traces must be (num_frames, num_rois)"
-            )
-            self._roi_response_dff = dff
-            if self._roi_response_dff is not None:
-                assert self._image_masks.shape[-1] == self._roi_response_dff.shape[-1], (
-                    "Inconsistency between image masks and raw traces. "
-                    "Image masks must be (px, py, num_rois), "
-                    "traces must be (num_frames, num_rois)"
-                )
-            self._roi_response_neuropil = neuropil
-            if self._roi_response_neuropil is not None:
-                assert self._image_masks.shape[-1] == self._roi_response_neuropil.shape[-1], (
-                    "Inconsistency between image masks and raw traces. "
-                    "Image masks must be (px, py, num_rois), "
-                    "traces must be (num_frames, num_rois)"
-                )
-            self._roi_response_deconvolved = deconvolved
-            if self._roi_response_deconvolved is not None:
-                assert self._image_masks.shape[-1] == self._roi_response_deconvolved.shape[-1], (
-                    "Inconsistency between image masks and raw traces. "
-                    "Image masks must be (px, py, num_rois), "
-                    "traces must be (num_frames, num_rois)"
-                )
-            self._kwargs = {
-                "image_masks": image_masks,
-                "signal": raw,
-                "dff": dff,
-                "neuropil": neuropil,
-                "deconvolved": deconvolved,
-            }
-        else:
-            raise TypeError("'image_masks' can be a str or a numpy array")
-        self._movie_dims = movie_dims if movie_dims is not None else image_masks.shape
-        self._image_mean = mean_image
-        self._image_correlation = correlation_image
-        if roi_ids is None:
-            self._roi_ids = list(np.arange(image_masks.shape[2]))
-        else:
-            assert all([isinstance(roi_id, (int, np.integer)) for roi_id in roi_ids]), "'roi_ids' must be int!"
-            self._roi_ids = roi_ids
-        self._roi_locs = roi_locations
-        self._sampling_frequency = sampling_frequency
-        self._channel_names = channel_names
-        self._rejected_list = rejected_list
-        self._accepted_list = accepted_lst
-
-    @property
-    def image_dims(self):
-        """Return the dimensions of the image.
-
-        Returns
-        -------
-        image_dims: list
-            The dimensions of the image (num_rois, num_rows, num_columns).
-        """
-        return list(self._image_masks.shape[0:2])
-
-    def get_accepted_list(self):
-        if self._accepted_list is None:
-            return list(range(self.get_num_rois()))
-        else:
-            return self._accepted_list
-
-    def get_rejected_list(self):
-        if self._rejected_list is None:
-            return [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
-        else:
-            return self._rejected_list
-
-    @property
-    def roi_locations(self):
-        """Returns the center locations (x, y) of each ROI."""
-        if self._roi_locs is None:
-            num_ROIs = self.get_num_rois()
-            raw_images = self._image_masks
-            roi_location = np.ndarray([2, num_ROIs], dtype="int")
-            for i in range(num_ROIs):
-                temp = np.where(raw_images[:, :, i] == np.amax(raw_images[:, :, i]))
-                roi_location[:, i] = np.array([np.median(temp[0]), np.median(temp[1])]).T
-            return roi_location
-        else:
-            return self._roi_locs
-
-    @staticmethod
-    def write_segmentation(segmentation_object, save_path):
-        """Write a NumpySegmentationExtractor to a .npy file.
-
-        Parameters
-        ----------
-        segmentation_object: NumpySegmentationExtractor
-            The segmentation extractor object to be written to file.
-        save_path: str or PathType
-            Path to .npy file.
+        image_masks: Union[PathType, np.ndarray]
+            Binary image for each of the regions of interest.
+        roi_response_traces: dict[str, Union[PathType, np.ndarray]]
+            Dictionary containing the fluorescence response of each ROI in time.
+        sampling_frequency: FloatType
+            Frame rate of the movie.
+        roi_ids: Optional[list]
+            Unique ids of the ROIs. If None, then the indices are used.
+        accepted_roi_ids: Optional[list]
+            List of ROI ids that are accepted. If None, then all ROI ids are accepted.
+        rejected_roi_ids: Optional[list]
+            List of ROI ids that are rejected manually or via automated rejection. If None, then no ROI ids are rejected.
+        roi_locations: Optional[ArrayType]
+            x and y location representative of ROI mask. If None, then the maximum location is used.
+        summary_images: Optional[dict[str, Union[PathType, np.ndarray]]]
+            Dictionary containing summary images like mean image, correlation image, etc.
+        background_image_masks: Optional[Union[PathType, np.ndarray]]
+            Binary image for each of the background components.
+        background_response_traces: Optional[dict[str, Union[PathType, np.ndarray]]]
+            Dictionary containing the background response of each component in time.
+        background_ids: Optional[list]
+            Unique ids of the background components. If None, then the indices are used.
 
         Notes
         -----
-        This method is not implemented yet.
+        If any of image_masks, roi_response_traces, summary_images, background_image_masks, or background_response_traces
+        are .npy files, then the rest of them must be .npy files as well.
         """
-        raise NotImplementedError
+        super().__init__()
+        self._sampling_frequency = float(sampling_frequency)
+        # python 3.9 doesn't support get_instance on a Union of types, so we use get_args
+        if isinstance(image_masks, get_args(PathType)):
+            self._init_from_npy(
+                image_masks=image_masks,
+                roi_response_traces=roi_response_traces,
+                summary_images=summary_images,
+                background_image_masks=background_image_masks,
+                background_response_traces=background_response_traces,
+            )
 
-    # defining the abstract class informed methods:
-    def get_roi_ids(self):
-        if self._roi_ids is None:
-            return list(range(self.get_num_rois()))
+        elif isinstance(image_masks, np.ndarray):
+            self._init_from_ndarray(
+                image_masks=image_masks,
+                roi_response_traces=roi_response_traces,
+                summary_images=summary_images,
+                background_image_masks=background_image_masks,
+                background_response_traces=background_response_traces,
+            )
         else:
-            return self._roi_ids
+            raise TypeError(
+                f"'image_masks' must be a PathType (str, pathlib.Path) or a numpy array but got {type(image_masks)}"
+            )
+
+        self._image_size = self._image_masks.shape[:2]
+        self._num_rois = self._image_masks.shape[2]
+        self._num_frames = list(self._roi_response_traces.values())[0].shape[0]
+        self._roi_ids = roi_ids if roi_ids is not None else list(np.arange(self._num_rois))
+        self._accepted_roi_ids = accepted_roi_ids if accepted_roi_ids is not None else self._roi_ids
+        self._rejected_roi_ids = (
+            rejected_roi_ids if rejected_roi_ids is not None else list(set(self._roi_ids) - set(self._accepted_roi_ids))
+        )
+
+        if roi_locations is not None:
+            self._roi_locations = roi_locations
+        else:
+            self._roi_locations = get_default_roi_locations_from_image_masks(self._image_masks)
+        if background_image_masks is not None:
+            self._num_background_components = self._background_image_masks.shape[2]
+            self._background_ids = (
+                background_ids if background_ids is not None else list(np.arange(self._num_background_components))
+            )
+
+    def _init_from_npy(
+        self,
+        image_masks: PathType,
+        roi_response_traces: dict[str, PathType],
+        summary_images: Optional[dict[str, PathType]],
+        background_image_masks: Optional[PathType],
+        background_response_traces: Optional[dict[str, PathType]],
+    ):
+        image_masks = Path(image_masks)
+        assert image_masks.is_file(), "'image_masks' file does not exist"
+        assert image_masks.suffix == ".npy", "'image_masks' file is not a numpy file (.npy)"
+
+        self.is_dumpable = True
+        self._image_masks = np.load(image_masks, mmap_mode="r")
+
+        self._roi_response_traces = {}
+        for name, trace in roi_response_traces.items():
+            assert isinstance(
+                trace,
+                get_args(PathType),  # python 3.9 doesn't support get_instance on a Union of types, so we use get_args
+            ), f"Since image_masks is a .npy file, roi response '{name}' must also be an .npy file but got {type(trace)}."
+            trace = Path(trace)
+            assert trace.is_file(), f"'{name}' file does not exist"
+            assert trace.suffix == ".npy", f"'{name}' file is not a numpy file (.npy)"
+            self._roi_response_traces[name] = np.load(trace, mmap_mode="r")
+
+        if summary_images is not None:
+            self._summary_images = {}
+            for name, image in summary_images.items():
+                assert isinstance(
+                    image,
+                    get_args(
+                        PathType
+                    ),  # python 3.9 doesn't support get_instance on a Union of types, so we use get_args
+                ), f"Since image_masks is a .npy file, summary image '{name}' must also be an .npy file but got {type(image)}."
+                image = Path(image)
+                assert image.is_file(), f"'{name}' file does not exist"
+                assert image.suffix == ".npy", f"'{name}' file is not a numpy file (.npy)"
+                self._summary_images[name] = np.load(image, mmap_mode="r")
+
+        if background_image_masks is not None:
+            assert isinstance(
+                background_image_masks,
+                get_args(PathType),  # python 3.9 doesn't support get_instance on a Union of types, so we use get_args
+            ), f"Since image_masks is a .npy file, background image masks must also be a .npy file but got {type(background_image_masks)}."
+            background_image_masks = Path(background_image_masks)
+            assert background_image_masks.is_file(), "'background_image_masks' file does not exist"
+            assert background_image_masks.suffix == ".npy", "'background_image_masks' file is not a numpy file (.npy)"
+            self._background_image_masks = np.load(background_image_masks, mmap_mode="r")
+
+        if background_response_traces is not None:
+            self._background_response_traces = {}
+            for name, trace in background_response_traces.items():
+                assert isinstance(
+                    trace,
+                    get_args(
+                        PathType
+                    ),  # python 3.9 doesn't support get_instance on a Union of types, so we use get_args
+                ), f"Since image_masks is a .npy file, background response '{name}' must also be a .npy file but got {type(trace)}."
+                trace = Path(trace)
+                assert trace.is_file(), f"'{name}' file does not exist"
+                assert trace.suffix == ".npy", f"'{name}' file is not a numpy file (.npy)"
+                self._background_response_traces[name] = np.load(trace, mmap_mode="r")
+
+    def _init_from_ndarray(
+        self, image_masks, roi_response_traces, summary_images, background_image_masks, background_response_traces
+    ):
+        self.is_dumpable = False
+        self._image_masks = image_masks
+
+        self._roi_response_traces = roi_response_traces
+        for name, trace in self._roi_response_traces.items():
+            assert isinstance(
+                trace, np.ndarray
+            ), f"Since image_masks is a numpy array, roi response '{name}' must also be a numpy array but got {type(trace)}."
+            assert trace.shape[-1] == self._image_masks.shape[-1], (
+                f"Inconsistency between image masks and {name} traces. "
+                f"Image masks must be (num_rows, num_columns, num_rois), "
+                f"traces must be (num_frames, num_rois)"
+            )
+        if summary_images is not None:
+            self._summary_images = summary_images
+            for name, image in self._summary_images.items():
+                assert image.shape[:2] == self._image_masks.shape[:2], (
+                    f"Inconsistency between image masks and {name} images. "
+                    f"Image masks must be (num_rows, num_columns, num_rois), "
+                    f"images must be (num_rows, num_columns)"
+                )
+
+        if background_image_masks is not None:
+            assert isinstance(
+                background_image_masks, np.ndarray
+            ), f"Since image_masks is a numpy array, background image masks must also be a numpy array but got {type(background_image_masks)}."
+            self._background_image_masks = background_image_masks
+
+        if background_response_traces is not None:
+            assert (
+                background_image_masks is not None
+            ), "Background image masks must be provided if background response traces are provided."
+            self._background_response_traces = background_response_traces
+            for name, trace in self._background_response_traces.items():
+                assert trace.shape[-1] == self._background_image_masks.shape[-1], (
+                    "Inconsistency between background image masks and background response traces. "
+                    "Background image masks must be (num_rows, num_columns, num_background_components), "
+                    "background response traces must be (num_frames, num_background_components)"
+                )
 
     def get_image_size(self):
-        return self._movie_dims
+        return self._image_size
+
+    def get_num_frames(self):
+        return self._num_frames
+
+    def get_sampling_frequency(self) -> float:
+        return self._sampling_frequency
+
+    def get_roi_ids(self):
+        return self._roi_ids
+
+    def get_num_rois(self):
+        return self._num_rois
+
+    def get_accepted_roi_ids(self) -> list:
+        return self._accepted_roi_ids
+
+    def get_rejected_roi_ids(self) -> list:
+        return self._rejected_roi_ids
+
+    def get_roi_locations(self, roi_ids=None):
+        roi_indices = self.get_roi_indices(roi_ids=roi_ids)
+        return self._roi_locations[:, roi_indices]
+
+    def get_roi_image_masks(self, roi_ids=None) -> np.ndarray:
+        if roi_ids is None:
+            return self._image_masks
+        roi_indices = self.get_roi_indices(roi_ids=roi_ids)
+        return self._image_masks[:, :, roi_indices]
+
+    def get_roi_response_traces(
+        self,
+        names: Optional[list[str]] = None,
+        roi_ids: Optional[ArrayType] = None,
+        start_frame: Optional[IntType] = None,
+        end_frame: Optional[IntType] = None,
+    ) -> dict:
+        names = names if names is not None else list(self._roi_response_traces.keys())
+        start_frame = start_frame if start_frame is not None else 0
+        end_frame = end_frame if end_frame is not None else self.get_num_frames()
+
+        roi_indices = self.get_roi_indices(roi_ids=roi_ids)
+        roi_response_traces = {
+            name: self._roi_response_traces[name][start_frame:end_frame, roi_indices] for name in names
+        }
+        return roi_response_traces
+
+    def get_background_ids(self) -> list:
+        return self._background_ids
+
+    def get_num_background_components(self) -> int:
+        return self._num_background_components
+
+    def get_background_image_masks(self, background_ids=None) -> np.ndarray:
+        if background_ids is None:
+            return self._background_image_masks
+        all_ids = self.get_background_ids()
+        background_indices = [all_ids.index(i) for i in background_ids]
+        return self._background_image_masks[:, :, background_indices]
+
+    def get_background_response_traces(
+        self,
+        names: Optional[list[str]] = None,
+        background_ids: Optional[ArrayType] = None,
+        start_frame: Optional[IntType] = None,
+        end_frame: Optional[IntType] = None,
+    ) -> dict:
+        names = names if names is not None else list(self._background_response_traces.keys())
+        all_ids = self.get_background_ids()
+        background_ids = background_ids if background_ids is not None else all_ids
+        start_frame = start_frame if start_frame is not None else 0
+        end_frame = end_frame if end_frame is not None else self.get_num_frames()
+
+        background_indices = [all_ids.index(i) for i in background_ids]
+        background_response_traces = {
+            name: self._background_response_traces[name][start_frame:end_frame, background_indices] for name in names
+        }
+        return background_response_traces
+
+    def get_summary_images(self, names: Optional[list[str]] = None) -> dict:
+        names = names if names is not None else list(self._summary_images.keys())
+        summary_images = {name: self._summary_images[name] for name in names}
+        return summary_images

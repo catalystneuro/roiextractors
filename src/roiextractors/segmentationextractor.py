@@ -11,7 +11,7 @@ FrameSliceSegmentationExtractor
 """
 
 from abc import ABC, abstractmethod
-from typing import Union, Optional, Tuple, Iterable, List
+from typing import Union, Optional, Tuple, Iterable, List, get_args
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -33,40 +33,7 @@ class SegmentationExtractor(ABC):
 
     def __init__(self):
         """Create a new SegmentationExtractor for a specific data format (unique to each child SegmentationExtractor)."""
-        self._sampling_frequency = None
         self._times = None
-        self._channel_names = ["OpticalChannel"]
-        self._num_planes = 1
-        self._roi_response_raw = None
-        self._roi_response_dff = None
-        self._roi_response_neuropil = None
-        self._roi_response_denoised = None
-        self._roi_response_deconvolved = None
-        self._image_correlation = None
-        self._image_mean = None
-        self._image_mask = None
-
-    @abstractmethod
-    def get_accepted_list(self) -> list:
-        """Get a list of accepted ROI ids.
-
-        Returns
-        -------
-        accepted_list: list
-            List of accepted ROI ids.
-        """
-        pass
-
-    @abstractmethod
-    def get_rejected_list(self) -> list:
-        """Get a list of rejected ROI ids.
-
-        Returns
-        -------
-        rejected_list: list
-            List of rejected ROI ids.
-        """
-        pass
 
     @abstractmethod
     def get_image_size(self) -> ArrayType:
@@ -79,6 +46,7 @@ class SegmentationExtractor(ABC):
         """
         pass
 
+    @abstractmethod
     def get_num_frames(self) -> int:
         """Get the number of frames in the recording (duration of recording).
 
@@ -87,10 +55,83 @@ class SegmentationExtractor(ABC):
         num_frames: int
             Number of frames in the recording.
         """
-        for trace in self.get_traces_dict().values():
-            if trace is not None and len(trace.shape) > 0:
-                return trace.shape[0]
+        pass
 
+    @abstractmethod
+    def get_sampling_frequency(self) -> float:
+        """Get the sampling frequency in Hz.
+
+        Returns
+        -------
+        sampling_frequency: float
+            Sampling frequency of the recording in Hz.
+        """
+        pass
+
+    @abstractmethod
+    def get_roi_ids(self) -> list:
+        """Get the list of ROI ids.
+
+        Returns
+        -------
+        roi_ids: list
+            List of roi ids.
+        """
+        pass
+
+    def get_roi_indices(self, roi_ids: Optional[list] = None) -> list:
+        """Get the list of ROI indices corresponding to the ROI ids.
+
+        Parameters
+        ----------
+        roi_ids: list
+            List of roi ids. If None, all roi indices are returned.
+
+        Returns
+        -------
+        roi_indices: list
+            List of roi indices.
+        """
+        if roi_ids is None:
+            return list(range(self.get_num_rois()))
+        all_roi_ids = self.get_roi_ids()
+        roi_indices = [all_roi_ids.index(roi_id) for roi_id in roi_ids]
+        return roi_indices
+
+    @abstractmethod
+    def get_num_rois(self) -> int:
+        """Get total number of Regions of Interest (ROIs) in the acquired images.
+
+        Returns
+        -------
+        num_rois: int
+            The number of ROIs extracted.
+        """
+        pass
+
+    @abstractmethod
+    def get_accepted_roi_ids(self) -> list:
+        """Get a list of accepted ROI ids.
+
+        Returns
+        -------
+        accepted_roi_ids: list
+            List of accepted ROI ids.
+        """
+        pass
+
+    @abstractmethod
+    def get_rejected_roi_ids(self) -> list:
+        """Get a list of rejected ROI ids.
+
+        Returns
+        -------
+        rejected_roi_ids: list
+            List of rejected ROI ids.
+        """
+        pass
+
+    @abstractmethod
     def get_roi_locations(self, roi_ids=None) -> np.ndarray:
         """Get the locations of the Regions of Interest (ROIs).
 
@@ -104,47 +145,24 @@ class SegmentationExtractor(ABC):
         roi_locs: numpy.ndarray
             2-D array: 2 X no_ROIs. The pixel ids (x,y) where the centroid of the ROI is.
         """
-        if roi_ids is None:
-            roi_idx_ = list(range(self.get_num_rois()))
-        else:
-            all_ids = self.get_roi_ids()
-            roi_idx_ = [all_ids.index(i) for i in roi_ids]
-        roi_location = np.zeros([2, len(roi_idx_)], dtype="int")
-        for c, i in enumerate(roi_idx_):
-            image_mask = self.get_roi_image_masks(roi_ids=[i])
-            temp = np.where(image_mask == np.amax(image_mask))
-            roi_location[:, c] = np.array([np.median(temp[0]), np.median(temp[1])]).T
-        return roi_location
+        pass
 
-    def get_roi_ids(self) -> list:
-        """Get the list of ROI ids.
-
-        Returns
-        -------
-        roi_ids: list
-            List of roi ids.
-        """
-        return list(range(self.get_num_rois()))
-
+    @abstractmethod
     def get_roi_image_masks(self, roi_ids=None) -> np.ndarray:
         """Get the image masks extracted from segmentation algorithm.
 
         Parameters
         ----------
         roi_ids: array_like
-            A list or 1D array of ids of the ROIs. Length is the number of ROIs requested.
+            A list or 1D array of ids of the ROIs. Length is the number of ROIs requested. If None, image masks for all
+            ROIs are returned.
 
         Returns
         -------
         image_masks: numpy.ndarray
             3-D array(val 0 or 1): image_height X image_width X length(roi_ids)
         """
-        if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
-        else:
-            all_ids = self.get_roi_ids()
-            roi_idx_ = [all_ids.index(i) for i in roi_ids]
-        return np.stack([self._image_masks[:, :, k] for k in roi_idx_], 2)
+        pass
 
     def get_roi_pixel_masks(self, roi_ids=None) -> np.array:
         """Get the weights applied to each of the pixels of the mask.
@@ -161,11 +179,37 @@ class SegmentationExtractor(ABC):
             Columns 1 and 2 are the x and y coordinates of the pixel, while the third column represents the weight of
             the pixel.
         """
-        if roi_ids is None:
-            roi_ids = range(self.get_num_rois())
+        return _pixel_mask_extractor(image_masks=self.get_roi_image_masks(roi_ids=roi_ids))
 
-        return _pixel_mask_extractor(self.get_roi_image_masks(roi_ids=roi_ids), roi_ids)
+    @abstractmethod
+    def get_roi_response_traces(
+        self,
+        names: Optional[list[str]] = None,
+        roi_ids: Optional[ArrayType] = None,
+        start_frame: Optional[int] = None,
+        end_frame: Optional[int] = None,
+    ) -> dict:
+        """Get the roi response traces.
 
+        Parameters
+        ----------
+        names: list
+            List of names of the traces to retrieve. Must be one of {'raw', 'dff', 'deconvolved', 'denoised'}. If None, all traces are returned.
+        roi_ids: array_like
+            A list or 1D array of ids of the ROIs. Length is the number of ROIs requested. If None, all ROIs are returned.
+        start_frame: int
+            The starting frame of the trace. If None, the trace starts from the beginning.
+        end_frame: int
+            The ending frame of the trace. If None, the trace ends at the last frame.
+
+        Returns
+        -------
+        traces: dict
+            Dictionary of traces with key as the name of the trace and value as the trace.
+        """
+        pass
+
+    @abstractmethod
     def get_background_ids(self) -> list:
         """Get the list of background components ids.
 
@@ -174,8 +218,20 @@ class SegmentationExtractor(ABC):
         background_components_ids: list
             List of background components ids.
         """
-        return list(range(self.get_num_background_components()))
+        pass
 
+    @abstractmethod
+    def get_num_background_components(self) -> int:
+        """Get total number of background components in the acquired images.
+
+        Returns
+        -------
+        num_background_components: int
+            The number of background components extracted.
+        """
+        pass
+
+    @abstractmethod
     def get_background_image_masks(self, background_ids=None) -> np.ndarray:
         """Get the background image masks extracted from segmentation algorithm.
 
@@ -189,12 +245,7 @@ class SegmentationExtractor(ABC):
         background_image_masks: numpy.ndarray
             3-D array(val 0 or 1): image_height X image_width X length(background_ids)
         """
-        if background_ids is None:
-            background_ids_ = range(self.get_num_background_components())
-        else:
-            all_ids = self.get_background_ids()
-            background_ids_ = [all_ids.index(i) for i in background_ids]
-        return np.stack([self._background_image_masks[:, :, k] for k in background_ids_], 2)
+        pass
 
     def get_background_pixel_masks(self, background_ids=None) -> np.array:
         """Get the weights applied to each of the pixels of the mask.
@@ -211,177 +262,53 @@ class SegmentationExtractor(ABC):
             Columns 1 and 2 are the x and y coordinates of the pixel, while the third column represents the weight of
             the pixel.
         """
-        if background_ids is None:
-            background_ids = range(self.get_num_background_components())
+        return _pixel_mask_extractor(self.get_background_image_masks(background_ids=background_ids))
 
-        return _pixel_mask_extractor(self.get_background_image_masks(background_ids=background_ids), background_ids)
-
-    def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
-        """Return a new SegmentationExtractor ranging from the start_frame to the end_frame.
-
-        Parameters
-        ----------
-        start_frame: int
-            The starting frame of the new SegmentationExtractor.
-        end_frame: int
-            The ending frame of the new SegmentationExtractor.
-
-        Returns
-        -------
-        frame_slice_segmentation_extractor: FrameSliceSegmentationExtractor
-            The frame slice segmentation extractor object.
-        """
-        return FrameSliceSegmentationExtractor(parent_segmentation=self, start_frame=start_frame, end_frame=end_frame)
-
-    def get_traces(
+    @abstractmethod
+    def get_background_response_traces(
         self,
-        roi_ids: ArrayType = None,
+        names: Optional[list[str]] = None,
+        background_ids: Optional[ArrayType] = None,
         start_frame: Optional[int] = None,
         end_frame: Optional[int] = None,
-        name: str = "raw",
-    ) -> ArrayType:
-        """Get the traces of each ROI specified by roi_ids.
+    ) -> dict:
+        """Get the background response traces.
 
         Parameters
         ----------
-        roi_ids: array_like
-            A list or 1D array of ids of the ROIs. Length is the number of ROIs requested.
+        names: list
+            List of names of the traces to retrieve. Must be one of {'background'}. If None, all traces are returned.
+        background_ids: array_like
+            A list or 1D array of ids of the background components. Length is the number of background components requested. If None, all background components are returned.
         start_frame: int
-            The starting frame of the trace.
+            The starting frame of the trace. If None, the trace starts from the beginning.
         end_frame: int
-            The ending frame of the trace.
-        name: str
-            The name of the trace to retrieve ex. 'raw', 'dff', 'neuropil', 'deconvolved'
+            The ending frame of the trace. If None, the trace ends at the last frame.
 
         Returns
         -------
-        traces: array_like
-            2-D array (ROI x timepoints)
+        traces: dict
+            Dictionary of traces with key as the name of the trace and value as the trace.
         """
-        if name not in self.get_traces_dict():
-            raise ValueError(f"traces for {name} not found, enter one of {list(self.get_traces_dict().keys())}")
-        if roi_ids is not None:
-            all_ids = self.get_roi_ids()
-            roi_idxs = [all_ids.index(i) for i in roi_ids]
-        traces = self.get_traces_dict().get(name)
-        if traces is not None and len(traces.shape) != 0:
-            idxs = slice(None) if roi_ids is None else roi_idxs
-            return np.array(traces[start_frame:end_frame, :])[:, idxs]  # numpy fancy indexing is quickest
+        pass
 
-    def get_traces_dict(self) -> dict:
-        """Get traces as a dictionary with key as the name of the ROiResponseSeries.
-
-        Returns
-        -------
-        _roi_response_dict: dict
-            dictionary with key, values representing different types of RoiResponseSeries:
-                Raw Fluorescence, DeltaFOverF, Denoised, Neuropil, Deconvolved, Background, etc.
-        """
-        return dict(
-            raw=self._roi_response_raw,
-            dff=self._roi_response_dff,
-            neuropil=self._roi_response_neuropil,
-            deconvolved=self._roi_response_deconvolved,
-            denoised=self._roi_response_denoised,
-        )
-
-    def get_images_dict(self) -> dict:
-        """Get images as a dictionary with key as the name of the ROIResponseSeries.
-
-        Returns
-        -------
-        _roi_image_dict: dict
-            dictionary with key, values representing different types of Images used in segmentation:
-                Mean, Correlation image
-        """
-        return dict(mean=self._image_mean, correlation=self._image_correlation)
-
-    def get_image(self, name: str = "correlation") -> ArrayType:
-        """Get specific images: mean or correlation.
+    @abstractmethod
+    def get_summary_images(self, names: Optional[list[str]] = None) -> dict:
+        """Get summary images.
 
         Parameters
         ----------
-        name:str
-            name of the type of image to retrieve
+        names: list
+            List of names of the images to retrieve. Must be one of {'mean', 'correlation'}. If None, all images are returned.
 
         Returns
         -------
-        images: numpy.ndarray
+        summary_images: dict
+            Dictionary of summary images with key as the name of the image and value as the image.
         """
-        if name not in self.get_images_dict():
-            raise ValueError(f"could not find {name} image, enter one of {list(self.get_images_dict().keys())}")
-        return self.get_images_dict().get(name)
+        pass
 
-    def get_sampling_frequency(self) -> float:
-        """Get the sampling frequency in Hz.
-
-        Returns
-        -------
-        sampling_frequency: float
-            Sampling frequency of the recording in Hz.
-        """
-        if self._sampling_frequency is not None:
-            return float(self._sampling_frequency)
-
-        return self._sampling_frequency
-
-    def get_num_rois(self) -> int:
-        """Get total number of Regions of Interest (ROIs) in the acquired images.
-
-        Returns
-        -------
-        num_rois: int
-            The number of ROIs extracted.
-        """
-        for trace in self.get_traces_dict().values():
-            if trace is not None and len(trace.shape) > 0:
-                return trace.shape[1]
-
-    def get_num_background_components(self) -> int:
-        """Get total number of background components in the acquired images.
-
-        Returns
-        -------
-        num_background_components: int
-            The number of background components extracted.
-        """
-        if self._roi_response_neuropil is not None and len(self._roi_response_neuropil.shape) > 0:
-            return self._roi_response_neuropil.shape[1]
-
-    def get_channel_names(self) -> List[str]:
-        """Get names of channels in the pipeline.
-
-        Returns
-        -------
-        _channel_names: list
-            names of channels (str)
-        """
-        return self._channel_names
-
-    def get_num_channels(self) -> int:
-        """Get number of channels in the pipeline.
-
-        Returns
-        -------
-        num_of_channels: int
-            number of channels
-        """
-        return len(self._channel_names)
-
-    def get_num_planes(self) -> int:
-        """Get the default number of planes of imaging for the segmentation extractor.
-
-        Notes
-        -----
-        Defaults to 1 for all but the MultiSegmentationExtractor.
-
-        Returns
-        -------
-        self._num_planes: int
-            number of planes
-        """
-        return self._num_planes
-
+    # TODO: Refactor _times methods from ImagingExtractor and SegmentationExtractor into a BaseExtractor class
     def set_times(self, times: ArrayType):
         """Set the recording times in seconds for each frame.
 
@@ -425,21 +352,33 @@ class SegmentationExtractor(ABC):
         else:
             return self._times[frames]
 
-    @staticmethod
-    def write_segmentation(segmentation_extractor, save_path, overwrite=False):
-        """Write recording back to the native format.
+    def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
+        """Return a new ImagingExtractor ranging from the start_frame to the end_frame.
 
         Parameters
         ----------
-        segmentation_extractor: [SegmentationExtractor, MultiSegmentationExtractor]
-            The EXTRACT segmentation object from which an EXTRACT native format
-            file has to be generated.
-        save_path: str
-            path to save the native format.
-        overwrite: bool
-            If True, the file is overwritten if existing (default False)
+        start_frame: int, optional
+            Start frame index (inclusive).
+        end_frame: int, optional
+            End frame index (exclusive).
+
+        Returns
+        -------
+        imaging: FrameSliceImagingExtractor
+            The sliced ImagingExtractor object.
         """
-        raise NotImplementedError
+        num_frames = self.get_num_frames()
+        start_frame = start_frame if start_frame is not None else 0
+        end_frame = end_frame if end_frame is not None else num_frames
+        assert 0 <= start_frame < num_frames, f"'start_frame' must be in [0, {num_frames}) but got {start_frame}"
+        assert 0 < end_frame <= num_frames, f"'end_frame' must be in (0, {num_frames}] but got {end_frame}"
+        assert (
+            start_frame <= end_frame
+        ), f"'start_frame' ({start_frame}) must be less than or equal to 'end_frame' ({end_frame})"
+        assert isinstance(start_frame, get_args(IntType)), "'start_frame' must be an integer"
+        assert isinstance(end_frame, get_args(IntType)), "'end_frame' must be an integer"
+
+        return FrameSliceSegmentationExtractor(parent_segmentation=self, start_frame=start_frame, end_frame=end_frame)
 
 
 class FrameSliceSegmentationExtractor(SegmentationExtractor):
@@ -454,8 +393,8 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
     def __init__(
         self,
         parent_segmentation: SegmentationExtractor,
-        start_frame: Optional[int] = None,
-        end_frame: Optional[int] = None,
+        start_frame: int,
+        end_frame: int,
     ):
         """Create a new FrameSliceSegmentationExtractor from parent SegmentationExtractor.
 
@@ -469,84 +408,85 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
             The ending frame of the new SegmentationExtractor.
         """
         self._parent_segmentation = parent_segmentation
-        self._start_frame = start_frame or 0
-        self._end_frame = end_frame or self._parent_segmentation.get_num_frames()
+        self._start_frame = start_frame
+        self._end_frame = end_frame
         self._num_frames = self._end_frame - self._start_frame
-
-        if hasattr(self._parent_segmentation, "_image_masks"):  # otherwise, do not set attribute at all
-            self._image_masks = self._parent_segmentation._image_masks
-
-        parent_size = self._parent_segmentation.get_num_frames()
-        if start_frame is None:
-            start_frame = 0
-        else:
-            assert 0 <= start_frame < parent_size
-        if end_frame is None:
-            end_frame = parent_size
-        else:
-            assert 0 < end_frame <= parent_size
-        assert end_frame > start_frame, "'start_frame' must be smaller than 'end_frame'!"
 
         super().__init__()
         if getattr(self._parent_segmentation, "_times") is not None:
             self._times = self._parent_segmentation._times[start_frame:end_frame]
 
-    def get_accepted_list(self) -> list:
-        return self._parent_segmentation.get_accepted_list()
-
-    def get_rejected_list(self) -> list:
-        return self._parent_segmentation.get_rejected_list()
-
-    def get_traces(
-        self,
-        roi_ids: Optional[Iterable[int]] = None,
-        start_frame: Optional[int] = None,
-        end_frame: Optional[int] = None,
-        name: str = "raw",
-    ) -> np.ndarray:
-        start_frame = min(start_frame or 0, self._num_frames)
-        end_frame = min(end_frame or self._num_frames, self._num_frames)
-        return self._parent_segmentation.get_traces(
-            roi_ids=roi_ids,
-            start_frame=start_frame + self._start_frame,
-            end_frame=end_frame + self._start_frame,
-            name=name,
-        )
-
-    def get_traces_dict(self) -> dict:
-        return {
-            trace_name: self._parent_segmentation.get_traces(
-                start_frame=self._start_frame, end_frame=self._end_frame, name=trace_name
-            )
-            for trace_name, trace in self._parent_segmentation.get_traces_dict().items()
-        }
-
     def get_image_size(self) -> Tuple[int, int]:
-        return tuple(self._parent_segmentation.get_image_size())
+        return self._parent_segmentation.get_image_size()
 
     def get_num_frames(self) -> int:
         return self._num_frames
 
-    def get_num_rois(self) -> int:
-        return self._parent_segmentation.get_num_rois()
-
-    def get_images_dict(self) -> dict:
-        return self._parent_segmentation.get_images_dict()
-
-    def get_image(self, name="correlation"):
-        return self._parent_segmentation.get_image(name=name)
-
     def get_sampling_frequency(self) -> float:
         return self._parent_segmentation.get_sampling_frequency()
 
-    def get_channel_names(self) -> list:
-        return self._parent_segmentation.get_channel_names()
+    def get_roi_ids(self) -> list:
+        return self._parent_segmentation.get_roi_ids()
 
-    def get_num_channels(self) -> int:
-        return self._parent_segmentation.get_num_channels()
+    def get_num_rois(self) -> int:
+        return self._parent_segmentation.get_num_rois()
 
-    def get_num_planes(self) -> int:
-        return self._parent_segmentation.get_num_planes()
+    def get_accepted_roi_ids(self) -> list:
+        return self._parent_segmentation.get_accepted_roi_ids()
 
-    def get_roi_pixel_masks(self, roi_ids: Optional[ArrayLike] = None) -> List[np.ndarray]:
-        return self._parent_segmentation.get_roi_pixel_masks(roi_ids=roi_ids)
+    def get_rejected_roi_ids(self) -> list:
+        return self._parent_segmentation.get_rejected_roi_ids()
+
+    def get_roi_locations(self, roi_ids=None) -> np.ndarray:
+        return self._parent_segmentation.get_roi_locations(roi_ids=roi_ids)
+
+    def get_roi_image_masks(self, roi_ids=None) -> np.ndarray:
+        return self._parent_segmentation.get_roi_image_masks(roi_ids=roi_ids)
+
+    def get_roi_response_traces(
+        self,
+        names: Optional[list[str]] = None,
+        roi_ids: Optional[ArrayType] = None,
+        start_frame: Optional[int] = None,
+        end_frame: Optional[int] = None,
+    ) -> dict:
+        start_frame = start_frame if start_frame is not None else 0
+        end_frame = end_frame if end_frame is not None else self.get_num_frames()
+        start_frame_shifted = start_frame + self._start_frame
+        end_frame_shifted = end_frame + self._start_frame
+        return self._parent_segmentation.get_roi_response_traces(
+            names=names,
+            roi_ids=roi_ids,
+            start_frame=start_frame_shifted,
+            end_frame=end_frame_shifted,
+        )
+
+    def get_background_ids(self) -> list:
+        return self._parent_segmentation.get_background_ids()
+
+    def get_num_background_components(self) -> int:
+        return self._parent_segmentation.get_num_background_components()
+
+    def get_background_image_masks(self, background_ids=None) -> np.ndarray:
+        return self._parent_segmentation.get_background_image_masks(background_ids=background_ids)
+
+    def get_background_response_traces(
+        self,
+        names: Optional[list[str]] = None,
+        background_ids: Optional[ArrayType] = None,
+        start_frame: Optional[int] = None,
+        end_frame: Optional[int] = None,
+    ) -> dict:
+        start_frame = start_frame if start_frame is not None else 0
+        end_frame = end_frame if end_frame is not None else self.get_num_frames()
+        start_frame_shifted = start_frame + self._start_frame
+        end_frame_shifted = end_frame + self._start_frame
+        return self._parent_segmentation.get_background_response_traces(
+            names=names,
+            background_ids=background_ids,
+            start_frame=start_frame_shifted,
+            end_frame=end_frame_shifted,
+        )
+
+    def get_summary_images(self, names: Optional[list[str]] = None) -> dict:
+        return self._parent_segmentation.get_summary_images(names=names)
