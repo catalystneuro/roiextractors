@@ -38,7 +38,11 @@ def generate_mock_video(size: Tuple[int], dtype: DtypeType = "uint16", seed: int
 
     low = 0 if "u" in dtype.name else 2 ** (number_of_bytes - 1) - 2**number_of_bytes
     high = 2**number_of_bytes - 1 if "u" in dtype.name else 2**number_of_bytes - 2 ** (number_of_bytes - 1) - 1
-    video = rng.random(size=size) if "float" in dtype.name else rng.integers(low=low, high=high, size=size, dtype=dtype)
+    video = (
+        rng.random(size=size, dtype=dtype)
+        if "float" in dtype.name
+        else rng.integers(low=low, high=high, size=size, dtype=dtype)
+    )
 
     return video
 
