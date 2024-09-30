@@ -21,12 +21,6 @@ from .extraction_tools import ArrayType, PathType, DtypeType, FloatType, IntType
 class ImagingExtractor(BaseExtractor):
     """Abstract class that contains all the meta-data and input data from the imaging data."""
 
-    def __init__(self, *args, **kwargs) -> None:
-        """Initialize the ImagingExtractor object."""
-        self._args = args
-        self._kwargs = kwargs
-        self._times = None
-
     @abstractmethod
     def get_dtype(self) -> DtypeType:
         """Get the data type of the video.

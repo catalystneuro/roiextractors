@@ -32,10 +32,6 @@ class SegmentationExtractor(BaseExtractor):
     format specific classes that inherit from this.
     """
 
-    def __init__(self):
-        """Create a new SegmentationExtractor for a specific data format (unique to each child SegmentationExtractor)."""
-        self._times = None
-
     @abstractmethod
     def get_roi_ids(self) -> list:
         """Get the list of ROI ids.
