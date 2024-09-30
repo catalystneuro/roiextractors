@@ -91,15 +91,14 @@ def generate_mock_segmentation_extractor(
     num_frames: int = 30,
     num_rows: int = 25,
     num_columns: int = 25,
+    num_background_components: int = 2,
     sampling_frequency: float = 30.0,
-    has_summary_images: bool = True,
-    has_raw_signal: bool = True,
-    has_dff_signal: bool = True,
-    has_deconvolved_signal: bool = True,
-    has_neuropil_signal: bool = True,
+    summary_image_names: List[str] = ["mean", "correlation"],
+    roi_response_names: List[str] = ["raw", "dff", "deconvolved", "denoised"],
+    background_response_names: List[str] = ["background"],
     rejected_list: Optional[list] = None,
     seed: int = 0,
-) -> SegmentationExtractor:
+) -> NumpySegmentationExtractor:
     """Generate a mock segmentation extractor for testing.
 
     The segmentation extractor is built by feeding random data into the
@@ -115,26 +114,24 @@ def generate_mock_segmentation_extractor(
         number of rows in the hypothetical video from which the data was extracted, by default 25.
     num_columns : int, optional
         number of columns in the hypothetical video from which the data was extracted, by default 25.
+    num_background_components : int, optional
+        number of background components, by default 2.
     sampling_frequency : float, optional
         sampling frequency of the hypothetical video from which the data was extracted, by default 30.0.
-    has_summary_images : bool, optional
-        whether the dummy segmentation extractor has summary images or not (mean and correlation).
-    has_raw_signal : bool, optional
-        whether a raw fluorescence signal is desired in the object, by default True.
-    has_dff_signal : bool, optional
-        whether a relative (df/f) fluorescence signal is desired in the object, by default True.
-    has_deconvolved_signal : bool, optional
-        whether a deconvolved signal is desired in the object, by default True.
-    has_neuropil_signal : bool, optional
-        whether a neuropil signal is desired in the object, by default True.
-    rejected_list: list, optional
+    summary_image_names : List[str], optional
+        names of summary images, by default ["mean", "correlation"].
+    roi_response_names : List[str], optional
+        names of roi response traces, by default ["raw", "dff", "deconvolved", "denoised"].
+    background_response_names : List[str], optional
+        names of background response traces, by default ["background"].
+    rejected_list: Optional[list], optional
         A list of rejected rois, None by default.
     seed : int, default 0
         seed for the random number generator, by default 0.
 
     Returns
     -------
-    SegmentationExtractor
+    NumpySegmentationExtractor
         A segmentation extractor with random data fed into `NumpySegmentationExtractor`
 
     Notes
@@ -147,23 +144,23 @@ def generate_mock_segmentation_extractor(
 
     # Create dummy image masks
     image_masks = rng.random((num_rows, num_columns, num_rois))
-    movie_dims = (num_rows, num_columns)
+    background_image_masks = rng.random((num_rows, num_columns, num_background_components))
 
     # Create signals
-    raw = rng.random((num_frames, num_rois)) if has_raw_signal else None
-    dff = rng.random((num_frames, num_rois)) if has_dff_signal else None
-    deconvolved = rng.random((num_frames, num_rois)) if has_deconvolved_signal else None
-    neuropil = rng.random((num_frames, num_rois)) if has_neuropil_signal else None
+    roi_response_traces = {name: rng.random((num_frames, num_rois)) for name in roi_response_names}
+    background_response_traces = {
+        name: rng.random((num_frames, num_background_components)) for name in background_response_names
+    }
 
     # Summary images
-    mean_image = rng.random((num_rows, num_columns)) if has_summary_images else None
-    correlation_image = rng.random((num_rows, num_columns)) if has_summary_images else None
+    summary_images = {name: rng.random((num_rows, num_columns)) for name in summary_image_names}
 
     # Rois
     roi_ids = [id for id in range(num_rois)]
     roi_locations_rows = rng.integers(low=0, high=num_rows, size=num_rois)
     roi_locations_columns = rng.integers(low=0, high=num_columns, size=num_rois)
     roi_locations = np.vstack((roi_locations_rows, roi_locations_columns))
+    background_ids = [i for i in range(num_background_components)]
 
     rejected_list = rejected_list if rejected_list else None
 
@@ -172,20 +169,17 @@ def generate_mock_segmentation_extractor(
         accepeted_list = list(set(accepeted_list).difference(rejected_list))
 
     dummy_segmentation_extractor = NumpySegmentationExtractor(
-        sampling_frequency=sampling_frequency,
         image_masks=image_masks,
-        raw=raw,
-        dff=dff,
-        deconvolved=deconvolved,
-        neuropil=neuropil,
-        mean_image=mean_image,
-        correlation_image=correlation_image,
+        roi_response_traces=roi_response_traces,
+        sampling_frequency=sampling_frequency,
         roi_ids=roi_ids,
-        roi_locations=roi_locations,
         accepted_roi_ids=accepeted_list,
         rejected_roi_ids=rejected_list,
-        movie_dims=movie_dims,
-        channel_names=["channel_num_0"],
+        roi_locations=roi_locations,
+        summary_images=summary_images,
+        background_image_masks=background_image_masks,
+        background_response_traces=background_response_traces,
+        background_ids=background_ids,
     )
 
     return dummy_segmentation_extractor

@@ -1,4 +1,8 @@
-from roiextractors.tools.testing import generate_mock_video, generate_mock_imaging_extractor
+from roiextractors.tools.testing import (
+    generate_mock_video,
+    generate_mock_imaging_extractor,
+    generate_mock_segmentation_extractor,
+)
 import pytest
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -52,3 +56,23 @@ def test_generate_mock_imaging_extractor_seed():
     imaging_extractor3 = generate_mock_imaging_extractor(seed=1)
     assert_array_equal(imaging_extractor1.get_video(), imaging_extractor2.get_video())
     assert not np.array_equal(imaging_extractor1.get_video(), imaging_extractor3.get_video())
+
+
+@pytest.mark.parametrize(
+    "num_rois, num_frames, num_rows, num_columns, num_background_components",
+    [(1, 2, 3, 4, 5), (3, 2, 4, 5, 6), (5, 3, 2, 1, 0)],
+)
+def test_generate_mock_segmentation_extractor_shape(
+    num_rois, num_frames, num_rows, num_columns, num_background_components
+):
+    segmentation_extractor = generate_mock_segmentation_extractor(
+        num_rois=num_rois,
+        num_frames=num_frames,
+        num_rows=num_rows,
+        num_columns=num_columns,
+        num_background_components=num_background_components,
+    )
+    assert segmentation_extractor.get_num_rois() == num_rois
+    assert segmentation_extractor.get_num_frames() == num_frames
+    assert segmentation_extractor.get_image_size() == (num_rows, num_columns)
+    assert segmentation_extractor.get_num_background_components() == num_background_components
