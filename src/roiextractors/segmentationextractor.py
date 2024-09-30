@@ -272,50 +272,6 @@ class SegmentationExtractor(BaseExtractor):
         """
         pass
 
-    # TODO: Refactor _times methods from ImagingExtractor and SegmentationExtractor into a BaseExtractor class
-    def set_times(self, times: ArrayType):
-        """Set the recording times in seconds for each frame.
-
-        Parameters
-        ----------
-        times: array-like
-            The times in seconds for each frame
-
-        Notes
-        -----
-        Operates on _times attribute of the SegmentationExtractor object.
-        """
-        assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames!"
-        self._times = np.array(times, dtype=np.float64)
-
-    def has_time_vector(self) -> bool:
-        """Detect if the SegmentationExtractor has a time vector set or not.
-
-        Returns
-        -------
-        has_time_vector: bool
-            True if the SegmentationExtractor has a time vector set, otherwise False.
-        """
-        return self._times is not None
-
-    def frame_to_time(self, frames: Union[IntType, ArrayType]) -> Union[FloatType, ArrayType]:
-        """Get the timing of frames in unit of seconds.
-
-        Parameters
-        ----------
-        frames: int or array-like
-            The frame or frames to be converted to times
-
-        Returns
-        -------
-        times: float or array-like
-            The corresponding times in seconds
-        """
-        if self._times is None:
-            return frames / self.get_sampling_frequency()
-        else:
-            return self._times[frames]
-
     def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
         """Return a new ImagingExtractor ranging from the start_frame to the end_frame.
 

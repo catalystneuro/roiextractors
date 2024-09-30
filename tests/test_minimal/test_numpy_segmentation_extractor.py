@@ -129,10 +129,89 @@ class TestNumpySegmentationExtractor(SegmentationExtractorMixin, FrameSliceSegme
             background_response_traces=expected_background_response_traces,
         )
 
+    @pytest.fixture(scope="function")
+    def segmentation_extractor2(
+        self,
+        expected_image_masks,
+        expected_roi_response_traces,
+        expected_summary_images,
+        expected_roi_ids,
+        expected_roi_locations,
+        expected_accepted_list,
+        expected_rejected_list,
+        expected_background_response_traces,
+        expected_background_ids,
+        expected_background_image_masks,
+        expected_sampling_frequency,
+    ):
+        return NumpySegmentationExtractor(
+            image_masks=expected_image_masks,
+            roi_response_traces=expected_roi_response_traces,
+            summary_images=expected_summary_images,
+            roi_ids=expected_roi_ids,
+            roi_locations=expected_roi_locations,
+            accepted_roi_ids=expected_accepted_list,
+            rejected_roi_ids=expected_rejected_list,
+            sampling_frequency=expected_sampling_frequency,
+            background_ids=expected_background_ids,
+            background_image_masks=expected_background_image_masks,
+            background_response_traces=expected_background_response_traces,
+        )
+
 
 class TestNumpySegmentationExtractorFromFile(SegmentationExtractorMixin, FrameSliceSegmentationExtractorMixin):
     @pytest.fixture(scope="function")
     def segmentation_extractor(
+        self,
+        expected_image_masks,
+        expected_roi_response_traces,
+        expected_summary_images,
+        expected_roi_ids,
+        expected_roi_locations,
+        expected_accepted_list,
+        expected_rejected_list,
+        expected_background_response_traces,
+        expected_background_ids,
+        expected_background_image_masks,
+        expected_sampling_frequency,
+        tmp_path,
+    ):
+        name_to_ndarray = dict(
+            image_masks=expected_image_masks,
+            background_image_masks=expected_background_image_masks,
+        )
+        name_to_file_path = {}
+        for name, ndarray in name_to_ndarray.items():
+            file_path = tmp_path / f"{name}.npy"
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            np.save(file_path, ndarray)
+            name_to_file_path[name] = file_path
+        name_to_dict_of_ndarrays = dict(
+            roi_response_traces=expected_roi_response_traces,
+            background_response_traces=expected_background_response_traces,
+            summary_images=expected_summary_images,
+        )
+        name_to_dict_of_file_paths = {}
+        for name, dict_of_ndarrays in name_to_dict_of_ndarrays.items():
+            name_to_dict_of_file_paths[name] = {}
+            for key, ndarray in dict_of_ndarrays.items():
+                file_path = tmp_path / f"{name}_{key}.npy"
+                np.save(file_path, ndarray)
+                name_to_dict_of_file_paths[name][key] = file_path
+
+        return NumpySegmentationExtractor(
+            **name_to_file_path,
+            **name_to_dict_of_file_paths,
+            roi_ids=expected_roi_ids,
+            roi_locations=expected_roi_locations,
+            accepted_roi_ids=expected_accepted_list,
+            rejected_roi_ids=expected_rejected_list,
+            sampling_frequency=expected_sampling_frequency,
+            background_ids=expected_background_ids,
+        )
+
+    @pytest.fixture(scope="function")
+    def segmentation_extractor2(
         self,
         expected_image_masks,
         expected_roi_response_traces,
