@@ -410,3 +410,82 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
 
     def get_summary_images(self, names: Optional[list[str]] = None) -> dict:
         return self._parent_segmentation.get_summary_images(names=names)
+
+
+def _pixel_mask_extractor(image_masks: np.ndarray) -> list:
+    """Convert image masks to pixel masks.
+
+    Pixel masks are an alternative data format for storage of image masks which relies on the sparsity of the images.
+    The location and weight of each non-zero pixel is stored for each mask.
+
+    Parameters
+    ----------
+    image_masks: numpy.ndarray
+        Dense representation of the ROIs with shape (number_of_rows, number_of_columns, number_of_rois).
+
+    Returns
+    -------
+    pixel_masks: list
+        List of length number of rois, each element is a 2-D array with shape (number_of_non_zero_pixels, 3).
+        Columns 1 and 2 are the x and y coordinates of the pixel, while the third column represents the weight of
+        the pixel.
+    """
+    pixel_mask_list = []
+    for i in range(image_masks.shape[2]):
+        image_mask = image_masks[:, :, i]
+        locs = np.where(image_mask > 0)
+        pix_values = image_mask[image_mask > 0]
+        pixel_mask_list.append(np.vstack((locs[0], locs[1], pix_values)).T)
+    return pixel_mask_list
+
+
+def _image_mask_extractor(pixel_mask, _roi_ids, image_shape) -> np.ndarray:
+    """Convert a pixel mask to image mask.
+
+    Parameters
+    ----------
+    pixel_mask: list
+        list of pixel masks (no pixels X 3)
+    _roi_ids: list
+        list of roi ids with length number_of_rois
+    image_shape: array_like
+        shape of the image (number_of_rows, number_of_columns)
+
+    Returns
+    -------
+    image_mask: np.ndarray
+        Dense representation of the ROIs with shape (number_of_rows, number_of_columns, number_of_rois).
+    """
+    image_mask = np.zeros(list(image_shape) + [len(_roi_ids)])
+    for no, rois in enumerate(_roi_ids):
+        for y, x, wt in pixel_mask[rois]:
+            image_mask[int(y), int(x), no] = wt
+    return image_mask
+
+
+def get_default_roi_locations_from_image_masks(image_masks: np.ndarray) -> np.ndarray:
+    """Calculate the default ROI locations from given image masks.
+
+    This function takes a 3D numpy array of image masks and computes the median
+    coordinates of the maximum values in each 2D mask. The result is a 2D numpy
+    array where each column represents the (x, y) coordinates of the ROI for
+    each mask.
+
+    Parameters
+    ----------
+    image_masks : np.ndarray
+        A 3D numpy array of shape (height, width, num_rois) containing the image masks.
+
+    Returns
+    -------
+    np.ndarray
+        A 2D numpy array of shape (2, num_rois) where each column contains the
+        (x, y) coordinates of the ROI for each mask.
+    """
+    num_rois = image_masks.shape[2]
+    roi_locations = np.zeros([2, num_rois], dtype="int")
+    for i in range(num_rois):
+        image_mask = image_masks[:, :, i]
+        max_value_indices = np.where(image_mask == np.amax(image_mask))
+        roi_locations[:, i] = np.array([np.median(max_value_indices[0]), np.median(max_value_indices[1])]).T
+    return roi_locations
