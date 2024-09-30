@@ -10,17 +10,18 @@ FrameSliceSegmentationExtractor
     Class to get a lazy frame slice.
 """
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Union, Optional, Tuple, Iterable, List, get_args
 
 import numpy as np
 from numpy.typing import ArrayLike
 
+from .baseextractor import BaseExtractor
 from .extraction_tools import ArrayType, IntType, FloatType
 from .extraction_tools import _pixel_mask_extractor
 
 
-class SegmentationExtractor(ABC):
+class SegmentationExtractor(BaseExtractor):
     """Abstract segmentation extractor class.
 
     An abstract class that contains all the meta-data and output data from
@@ -34,39 +35,6 @@ class SegmentationExtractor(ABC):
     def __init__(self):
         """Create a new SegmentationExtractor for a specific data format (unique to each child SegmentationExtractor)."""
         self._times = None
-
-    @abstractmethod
-    def get_image_size(self) -> ArrayType:
-        """Get frame size of movie (height, width).
-
-        Returns
-        -------
-        no_rois: array_like
-            2-D array: image height x image width
-        """
-        pass
-
-    @abstractmethod
-    def get_num_frames(self) -> int:
-        """Get the number of frames in the recording (duration of recording).
-
-        Returns
-        -------
-        num_frames: int
-            Number of frames in the recording.
-        """
-        pass
-
-    @abstractmethod
-    def get_sampling_frequency(self) -> float:
-        """Get the sampling frequency in Hz.
-
-        Returns
-        -------
-        sampling_frequency: float
-            Sampling frequency of the recording in Hz.
-        """
-        pass
 
     @abstractmethod
     def get_roi_ids(self) -> list:
