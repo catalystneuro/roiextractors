@@ -18,13 +18,13 @@ def show_video(imaging, ax=None):
 
     def animate_func(i, imaging, im, ax):
         ax.set_title(f"{i}")
-        im.set_array(imaging.get_frames(i))
+        im.set_array(imaging.get_frames([i])[0])
         return [im]
 
     if ax is None:
         fig = plt.figure(figsize=(5, 5))
         ax = fig.add_subplot(111)
-    im0 = imaging.get_frames(0)
+    im0 = imaging.get_frames([0])[0]
     im = ax.imshow(im0, interpolation="none", aspect="auto", vmin=0, vmax=1)
     interval = 1 / imaging.get_sampling_frequency() * 1000
     anim = animation.FuncAnimation(
