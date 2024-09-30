@@ -11,15 +11,11 @@ from ..imagingextractor import ImagingExtractor
 
 from roiextractors import NumpyImagingExtractor, NumpySegmentationExtractor
 
-from roiextractors.tools.typing import DtypeType
-
-NoneType = type(None)
-floattype = (float, np.floating)
-inttype = (int, np.integer)
+from roiextractors.tools.typing import DtypeType, NoneType, FloatType, IntType
 
 
-def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16", seed: int = 0):
-    """Generate a dummy video of a given size and dtype.
+def generate_mock_video(size: Tuple[int], dtype: DtypeType = "uint16", seed: int = 0):
+    """Generate a mock video of a given size and dtype.
 
     Parameters
     ----------
@@ -33,7 +29,7 @@ def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16", seed: in
     Returns
     -------
     video : np.ndarray
-        A dummy video of the given size and dtype.
+        A mock video of the given size and dtype.
     """
     dtype = np.dtype(dtype)
     number_of_bytes = dtype.itemsize
@@ -47,7 +43,7 @@ def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16", seed: in
     return video
 
 
-def generate_dummy_imaging_extractor(
+def generate_mock_imaging_extractor(
     num_frames: int = 30,
     num_rows: int = 10,
     num_columns: int = 10,
@@ -55,7 +51,7 @@ def generate_dummy_imaging_extractor(
     dtype: DtypeType = "uint16",
     seed: int = 0,
 ):
-    """Generate a dummy imaging extractor for testing.
+    """Generate a mock imaging extractor for testing.
 
     The imaging extractor is built by feeding random data into the `NumpyImagingExtractor`.
 
@@ -76,17 +72,17 @@ def generate_dummy_imaging_extractor(
 
     Returns
     -------
-    ImagingExtractor
+    NumpyImagingExtractor
         An imaging extractor with random data fed into `NumpyImagingExtractor`.
     """
     size = (num_frames, num_rows, num_columns)
-    video = generate_dummy_video(size=size, dtype=dtype, seed=seed)
+    video = generate_mock_video(size=size, dtype=dtype, seed=seed)
     imaging_extractor = NumpyImagingExtractor(timeseries=video, sampling_frequency=sampling_frequency)
 
     return imaging_extractor
 
 
-def generate_dummy_segmentation_extractor(
+def generate_mock_segmentation_extractor(
     num_rois: int = 10,
     num_frames: int = 30,
     num_rows: int = 25,
@@ -100,7 +96,7 @@ def generate_dummy_segmentation_extractor(
     rejected_list: Optional[list] = None,
     seed: int = 0,
 ) -> SegmentationExtractor:
-    """Generate a dummy segmentation extractor for testing.
+    """Generate a mock segmentation extractor for testing.
 
     The segmentation extractor is built by feeding random data into the
     `NumpySegmentationExtractor`.
@@ -292,62 +288,62 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
     assert isinstance(seg.get_num_rois(), int)
     assert isinstance(seg.get_num_frames(), int)
     assert isinstance(seg.get_num_channels(), int)
-    assert isinstance(seg.get_sampling_frequency(), (NoneType, floattype))
+    assert isinstance(seg.get_sampling_frequency(), (NoneType, FloatType))
     _assert_iterable_complete(
         seg.get_channel_names(),
         dtypes=list,
         element_dtypes=str,
         shape_max=(seg.get_num_channels(),),
     )
-    _assert_iterable_complete(seg.get_image_size(), dtypes=Iterable, element_dtypes=inttype, shape=(2,))
+    _assert_iterable_complete(seg.get_image_size(), dtypes=Iterable, element_dtypes=IntType, shape=(2,))
     _assert_iterable_complete(
         seg.get_roi_image_masks(roi_ids=seg.get_roi_ids()[:1]),
         dtypes=(np.ndarray,),
-        element_dtypes=floattype,
+        element_dtypes=FloatType,
         shape=(*seg.get_image_size(), 1),
     )
     _assert_iterable_complete(
         seg.get_roi_ids(),
         dtypes=(list,),
         shape=(seg.get_num_rois(),),
-        element_dtypes=inttype,
+        element_dtypes=IntType,
     )
     assert isinstance(seg.get_roi_pixel_masks(roi_ids=seg.get_roi_ids()[:2]), list)
     _assert_iterable_complete(
         seg.get_roi_pixel_masks(roi_ids=seg.get_roi_ids()[:1])[0],
         dtypes=(np.ndarray,),
-        element_dtypes=floattype,
+        element_dtypes=FloatType,
         shape_max=(np.prod(seg.get_image_size()), 3),
     )
     for image_name in seg.get_images_dict():
         _assert_iterable_complete(
             seg.get_image(image_name),
             dtypes=(np.ndarray, NoneType),
-            element_dtypes=floattype,
+            element_dtypes=FloatType,
             shape_max=(*seg.get_image_size(),),
         )
     _assert_iterable_complete(
         seg.get_accepted_list(),
         dtypes=(list, NoneType),
-        element_dtypes=inttype,
+        element_dtypes=IntType,
         shape_max=(seg.get_num_rois(),),
     )
     _assert_iterable_complete(
         seg.get_rejected_list(),
         dtypes=(list, NoneType),
-        element_dtypes=inttype,
+        element_dtypes=IntType,
         shape_max=(seg.get_num_rois(),),
     )
     _assert_iterable_complete(
         seg.get_roi_locations(),
         dtypes=(np.ndarray,),
         shape=(2, seg.get_num_rois()),
-        element_dtypes=inttype,
+        element_dtypes=IntType,
     )
     _assert_iterable_complete(
         seg.get_traces(),
         dtypes=(np.ndarray, NoneType),
-        element_dtypes=floattype,
+        element_dtypes=FloatType,
         shape=(np.prod(seg.get_num_rois()), None),
     )
     assert isinstance(seg.get_traces_dict(), dict)
@@ -402,16 +398,16 @@ def assert_get_frames_return_shape(imaging_extractor: ImagingExtractor):
 
 def check_imaging_return_types(img_ex: ImagingExtractor):
     """Check that the return types of the imaging extractor are correct."""
-    assert isinstance(img_ex.get_num_frames(), inttype)
-    assert isinstance(img_ex.get_num_channels(), inttype)
-    assert isinstance(img_ex.get_sampling_frequency(), floattype)
+    assert isinstance(img_ex.get_num_frames(), IntType)
+    assert isinstance(img_ex.get_num_channels(), IntType)
+    assert isinstance(img_ex.get_sampling_frequency(), FloatType)
     _assert_iterable_complete(
         iterable=img_ex.get_channel_names(),
         dtypes=(list, NoneType),
         element_dtypes=str,
         shape_max=(img_ex.get_num_channels(),),
     )
-    _assert_iterable_complete(iterable=img_ex.get_image_size(), dtypes=Iterable, element_dtypes=inttype, shape=(2,))
+    _assert_iterable_complete(iterable=img_ex.get_image_size(), dtypes=Iterable, element_dtypes=IntType, shape=(2,))
 
     # This needs a method for getting frame shape not image size. It only works for n_channel==1
     # two_first_frames = img_ex.get_frames(frame_idxs=[0, 1])
