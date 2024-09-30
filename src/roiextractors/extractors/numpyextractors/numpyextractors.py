@@ -9,7 +9,7 @@ NumpySegmentationExtractor
 """
 
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, get_args
 
 import numpy as np
 
@@ -44,8 +44,8 @@ class NumpyImagingExtractor(ImagingExtractor):
             Sampling frequency of the video in Hz.
         """
         super().__init__()
-
-        if isinstance(timeseries, (str, Path)):
+        # python 3.9 doesn't support get_instance on a Union of types, so we use get_args
+        if isinstance(timeseries, get_args(PathType)):
             timeseries = Path(timeseries)
             if timeseries.is_file():
                 assert timeseries.suffix == ".npy", "'timeseries' file is not a numpy file (.npy)"
@@ -150,7 +150,8 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         """
         super().__init__()
         self._sampling_frequency = float(sampling_frequency)
-        if isinstance(image_masks, PathType):
+        # python 3.9 doesn't support get_instance on a Union of types, so we use get_args
+        if isinstance(image_masks, get_args(PathType)):
             self._init_from_npy(
                 image_masks=image_masks,
                 roi_response_traces=roi_response_traces,
@@ -209,7 +210,8 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         self._roi_response_traces = {}
         for name, trace in roi_response_traces.items():
             assert isinstance(
-                trace, PathType
+                trace,
+                get_args(PathType),  # python 3.9 doesn't support get_instance on a Union of types, so we use get_args
             ), f"Since image_masks is a .npy file, roi response '{name}' must also be an .npy file but got {type(trace)}."
             trace = Path(trace)
             assert trace.is_file(), f"'{name}' file does not exist"
@@ -220,7 +222,10 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             self._summary_images = {}
             for name, image in summary_images.items():
                 assert isinstance(
-                    image, PathType
+                    image,
+                    get_args(
+                        PathType
+                    ),  # python 3.9 doesn't support get_instance on a Union of types, so we use get_args
                 ), f"Since image_masks is a .npy file, summary image '{name}' must also be an .npy file but got {type(image)}."
                 image = Path(image)
                 assert image.is_file(), f"'{name}' file does not exist"
@@ -229,7 +234,8 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
         if background_image_masks is not None:
             assert isinstance(
-                background_image_masks, PathType
+                background_image_masks,
+                get_args(PathType),  # python 3.9 doesn't support get_instance on a Union of types, so we use get_args
             ), f"Since image_masks is a .npy file, background image masks must also be a .npy file but got {type(background_image_masks)}."
             background_image_masks = Path(background_image_masks)
             assert background_image_masks.is_file(), "'background_image_masks' file does not exist"
@@ -240,7 +246,10 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             self._background_response_traces = {}
             for name, trace in background_response_traces.items():
                 assert isinstance(
-                    trace, PathType
+                    trace,
+                    get_args(
+                        PathType
+                    ),  # python 3.9 doesn't support get_instance on a Union of types, so we use get_args
                 ), f"Since image_masks is a .npy file, background response '{name}' must also be a .npy file but got {type(trace)}."
                 trace = Path(trace)
                 assert trace.is_file(), f"'{name}' file does not exist"
