@@ -12,6 +12,7 @@ from dataclasses import dataclass
 import lazy_ops
 import numpy as np
 import h5py
+from ...tools.typing import PathType, DtypeType
 from .memmapextractors import MemmapImagingExtractor
 
 
@@ -43,7 +44,6 @@ class VideoStructure:
     where the video is to have the following shape (num_frames, num_rows, num_columns, num_channels) you
     could define the class this way:
 
-    >>> from roiextractors.extraction_tools import VideoStructure
     >>> num_rows = 10
     >>> num_columns = 5
     >>> num_channels = 1
@@ -172,7 +172,6 @@ def read_numpy_memmap_video(
 
             As an example you create one of these structures in the following way:
 
-            from roiextractors.extraction_tools import VideoStructure
 
             num_rows = 10
             num_columns = 5
@@ -243,7 +242,6 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
 
             As an example you create one of these structures in the following way:
 
-            from roiextractors.extraction_tools import VideoStructure
 
             num_rows = 10
             num_columns = 5

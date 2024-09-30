@@ -13,7 +13,8 @@ from typing import Tuple, Optional
 
 import numpy as np
 
-from ...extraction_tools import PathType, ArrayType, raise_multi_channel_or_depth_not_implemented, check_keys
+from ...tools.typing import PathType, ArrayType
+from ...tools.io import check_keys
 from ...imagingextractor import ImagingExtractor
 
 import scipy.io as spio

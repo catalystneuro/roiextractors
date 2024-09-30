@@ -12,10 +12,9 @@ from typing import Optional
 from warnings import warn
 import numpy as np
 
-from ...extraction_tools import PathType
-from ...extraction_tools import _image_mask_extractor
+from ...tools.typing import PathType
 from ...multisegmentationextractor import MultiSegmentationExtractor
-from ...segmentationextractor import SegmentationExtractor
+from ...segmentationextractor import SegmentationExtractor, _image_mask_extractor
 
 
 class Suite2pSegmentationExtractor(SegmentationExtractor):

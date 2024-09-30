@@ -11,7 +11,7 @@ from ..imagingextractor import ImagingExtractor
 
 from roiextractors import NumpyImagingExtractor, NumpySegmentationExtractor
 
-from roiextractors.tools.extraction_tools import DtypeType
+from roiextractors.tools.typing import DtypeType
 
 NoneType = type(None)
 floattype = (float, np.floating)

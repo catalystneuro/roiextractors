@@ -17,8 +17,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from .baseextractor import BaseExtractor
-from .extraction_tools import ArrayType, IntType, FloatType
-from .extraction_tools import _pixel_mask_extractor
+from .tools.typing import ArrayType, IntType, FloatType
 
 
 class SegmentationExtractor(BaseExtractor):

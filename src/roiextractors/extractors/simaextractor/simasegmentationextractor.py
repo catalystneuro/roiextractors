@@ -13,7 +13,7 @@ from shutil import copyfile
 
 import numpy as np
 
-from ...extraction_tools import PathType
+from ...tools.typing import PathType
 from ...segmentationextractor import SegmentationExtractor
 
 

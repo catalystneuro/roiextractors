@@ -2,7 +2,8 @@
 
 import numpy as np
 import json
-from ...extraction_tools import PathType, get_package
+from ...tools.typing import PathType
+from ...tools.importing import get_package
 
 
 def _get_scanimage_reader() -> type:

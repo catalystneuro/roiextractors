@@ -11,7 +11,7 @@ from typing import Optional, Tuple, List, Iterable
 from warnings import warn
 import numpy as np
 
-from ...extraction_tools import PathType, FloatType, ArrayType, DtypeType, get_package
+from ...tools.typing import PathType, FloatType, ArrayType, DtypeType
 from ...imagingextractor import ImagingExtractor
 from ...volumetricimagingextractor import VolumetricImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor

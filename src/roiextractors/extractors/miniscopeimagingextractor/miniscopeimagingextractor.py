@@ -15,7 +15,8 @@ import numpy as np
 
 from ...imagingextractor import ImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor
-from ...extraction_tools import PathType, DtypeType, get_package
+from ...tools.typing import PathType, DtypeType
+from ...tools.importing import get_package
 
 
 class MiniscopeImagingExtractor(MultiImagingExtractor):  # TODO: rename to MiniscopeMultiImagingExtractor

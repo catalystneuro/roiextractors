@@ -15,7 +15,7 @@ from copy import deepcopy
 import numpy as np
 
 from .baseextractor import BaseExtractor
-from .extraction_tools import ArrayType, PathType, DtypeType, FloatType, IntType
+from .tools.typing import ArrayType, PathType, DtypeType, FloatType, IntType
 
 
 class ImagingExtractor(BaseExtractor):

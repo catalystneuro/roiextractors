@@ -15,12 +15,8 @@ import numpy as np
 from tqdm import tqdm
 
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import (
-    PathType,
-    FloatType,
-    raise_multi_channel_or_depth_not_implemented,
-    get_package,
-)
+from ...tools.typing import PathType, FloatType
+from ...tools.importing import get_package
 
 
 class TiffImagingExtractor(ImagingExtractor):

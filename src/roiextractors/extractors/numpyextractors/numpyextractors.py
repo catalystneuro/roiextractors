@@ -13,16 +13,14 @@ from typing import Optional, Tuple, Union, get_args
 
 import numpy as np
 
-from ...extraction_tools import (
+from ...tools.typing import (
     PathType,
     FloatType,
     ArrayType,
     IntType,
-    NoneType,
-    get_default_roi_locations_from_image_masks,
 )
 from ...imagingextractor import ImagingExtractor
-from ...segmentationextractor import SegmentationExtractor
+from ...segmentationextractor import SegmentationExtractor, get_default_roi_locations_from_image_masks
 
 
 class NumpyImagingExtractor(ImagingExtractor):

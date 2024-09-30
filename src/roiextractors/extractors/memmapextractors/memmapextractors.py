@@ -15,7 +15,7 @@ from tqdm import tqdm
 from ...imagingextractor import ImagingExtractor
 from typing import Tuple, Optional
 
-from ...extraction_tools import PathType, DtypeType
+from ...tools.typing import PathType, DtypeType
 
 
 class MemmapImagingExtractor(ImagingExtractor):

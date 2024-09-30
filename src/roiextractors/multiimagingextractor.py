@@ -11,7 +11,7 @@ from typing import Tuple, List, Iterable, Optional
 
 import numpy as np
 
-from .extraction_tools import ArrayType, NumpyArray
+from .tools.typing import ArrayType
 from .imagingextractor import ImagingExtractor
 
 
@@ -99,7 +99,7 @@ class MultiImagingExtractor(ImagingExtractor):
 
         return times
 
-    def _get_frames_from_an_imaging_extractor(self, extractor_index: int, frame_idxs: ArrayType) -> NumpyArray:
+    def _get_frames_from_an_imaging_extractor(self, extractor_index: int, frame_idxs: ArrayType) -> np.ndarray:
         """Get frames from a single imaging extractor.
 
         Parameters
@@ -121,7 +121,7 @@ class MultiImagingExtractor(ImagingExtractor):
     def get_dtype(self):
         return self._imaging_extractors[0].get_dtype()
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> NumpyArray:
+    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
         if isinstance(frame_idxs, (int, np.integer)):
             frame_idxs = [frame_idxs]
         frame_idxs = np.array(frame_idxs)
