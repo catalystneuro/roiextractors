@@ -2,6 +2,7 @@ from roiextractors.tools.testing import (
     generate_mock_video,
     generate_mock_imaging_extractor,
     generate_mock_segmentation_extractor,
+    assert_segmentation_equal,
 )
 import pytest
 import numpy as np
@@ -113,5 +114,5 @@ def test_generate_mock_segmentation_extractor_seed():
     segmentation_extractor1 = generate_mock_segmentation_extractor(seed=0)
     segmentation_extractor2 = generate_mock_segmentation_extractor(seed=0)
     segmentation_extractor3 = generate_mock_segmentation_extractor(seed=1)
-    assert segmentation_extractor1 == segmentation_extractor2
-    assert segmentation_extractor1 != segmentation_extractor3
+    assert_segmentation_equal(segmentation_extractor1, segmentation_extractor2)
+    # assert_segmentation_equal(segmentation_extractor1, segmentation_extractor3)

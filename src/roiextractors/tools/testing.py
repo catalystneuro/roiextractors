@@ -185,43 +185,151 @@ def generate_mock_segmentation_extractor(
     return dummy_segmentation_extractor
 
 
-def check_segmentations_equal(
+def assert_segmentation_equal(
     segmentation_extractor1: SegmentationExtractor, segmentation_extractor2: SegmentationExtractor
 ):
-    """Check that two segmentation extractors have equal fields."""
-    check_segmentation_return_types(segmentation_extractor1)
-    check_segmentation_return_types(segmentation_extractor2)
-    # assert equality:
-    assert segmentation_extractor1.get_num_rois() == segmentation_extractor2.get_num_rois()
-    assert segmentation_extractor1.get_num_frames() == segmentation_extractor2.get_num_frames()
-    assert segmentation_extractor1.get_num_channels() == segmentation_extractor2.get_num_channels()
-    assert np.isclose(
-        segmentation_extractor1.get_sampling_frequency(), segmentation_extractor2.get_sampling_frequency()
-    )
-    assert_array_equal(segmentation_extractor1.get_channel_names(), segmentation_extractor2.get_channel_names())
-    assert_array_equal(segmentation_extractor1.get_image_size(), segmentation_extractor2.get_image_size())
+    """Assert that two segmentation extractors have equal fields.
+
+    Specific assertions are made for the following fields:
+    - image_size
+    - num_frames
+    - sampling_frequency
+    - _times
+    - roi_ids
+    - num_rois
+    - accepted_roi_ids
+    - rejected_roi_ids
+    - roi_locations
+    - roi_image_masks
+    - roi_pixel_masks
+    - roi_response_traces
+    - background_ids
+    - num_background_components
+    - background_image_masks
+    - background_response_traces
+    - summary_images
+
+    Parameters
+    ----------
+    segmentation_extractor1 : SegmentationExtractor
+        First segmentation extractor to compare.
+    segmentation_extractor2 : SegmentationExtractor
+        Second segmentation extractor to compare.
+
+    Raises
+    ------
+    AssertionError
+        If the segmentation extractors are not equal.
+    """
+    assert (
+        segmentation_extractor1.get_image_size() == segmentation_extractor2.get_image_size()
+    ), "SegmentationExtractors are not equal: image_sizes do not match."
+    assert (
+        segmentation_extractor1.get_num_frames() == segmentation_extractor2.get_num_frames()
+    ), "SegmentationExtractors are not equal: num_frames do not match."
+    assert (
+        segmentation_extractor1.get_sampling_frequency() == segmentation_extractor2.get_sampling_frequency()
+    ), "SegmentationExtractors are not equal: sampling_frequencies do not match."
     assert_array_equal(
-        segmentation_extractor1.get_roi_image_masks(roi_ids=segmentation_extractor1.get_roi_ids()[:1]),
-        segmentation_extractor2.get_roi_image_masks(roi_ids=segmentation_extractor2.get_roi_ids()[:1]),
+        segmentation_extractor1._times,
+        segmentation_extractor2._times,
+        err_msg="SegmentationExtractors are not equal: _times do not match.",
     )
-    assert set(
-        segmentation_extractor1.get_roi_pixel_masks(roi_ids=segmentation_extractor1.get_roi_ids()[:1])[0].flatten()
-    ) == set(
-        segmentation_extractor2.get_roi_pixel_masks(roi_ids=segmentation_extractor1.get_roi_ids()[:1])[0].flatten()
-    )
-
-    check_segmentations_images(segmentation_extractor1, segmentation_extractor2)
-
-    assert_array_equal(segmentation_extractor1.get_accepted_list(), segmentation_extractor2.get_accepted_list())
-    assert_array_equal(segmentation_extractor1.get_rejected_list(), segmentation_extractor2.get_rejected_list())
-    assert_array_equal(segmentation_extractor1.get_roi_locations(), segmentation_extractor2.get_roi_locations())
-    assert_array_equal(segmentation_extractor1.get_roi_ids(), segmentation_extractor2.get_roi_ids())
-    assert_array_equal(segmentation_extractor1.get_traces(), segmentation_extractor2.get_traces())
-
     assert_array_equal(
-        segmentation_extractor1.frame_to_time(np.arange(segmentation_extractor1.get_num_frames())),
-        segmentation_extractor2.frame_to_time(np.arange(segmentation_extractor2.get_num_frames())),
+        segmentation_extractor1.get_roi_ids(),
+        segmentation_extractor2.get_roi_ids(),
+        err_msg="SegmentationExtractors are not equal: roi_ids do not match.",
     )
+    assert (
+        segmentation_extractor1.get_num_rois() == segmentation_extractor2.get_num_rois()
+    ), "SegmentationExtractors are not equal: num_rois do not match."
+    assert_array_equal(
+        segmentation_extractor1.get_accepted_roi_ids(),
+        segmentation_extractor2.get_accepted_roi_ids(),
+        err_msg="SegmentationExtractors are not equal: accepted_roi_ids do not match.",
+    )
+    assert_array_equal(
+        segmentation_extractor1.get_rejected_roi_ids(),
+        segmentation_extractor2.get_rejected_roi_ids(),
+        err_msg="SegmentationExtractors are not equal: rejected_roi_ids do not match.",
+    )
+    assert_array_equal(
+        segmentation_extractor1.get_roi_locations(),
+        segmentation_extractor2.get_roi_locations(),
+        err_msg="SegmentationExtractors are not equal: roi_locations do not match.",
+    )
+    assert_array_equal(
+        segmentation_extractor1.get_roi_image_masks(),
+        segmentation_extractor2.get_roi_image_masks(),
+        err_msg="SegmentationExtractors are not equal: roi_image_masks do not match.",
+    )
+    assert_array_equal(
+        segmentation_extractor1.get_roi_pixel_masks(),
+        segmentation_extractor2.get_roi_pixel_masks(),
+        err_msg="SegmentationExtractors are not equal: roi_pixel_masks do not match.",
+    )
+    roi_response_traces1 = segmentation_extractor1.get_roi_response_traces()
+    roi_response_traces2 = segmentation_extractor2.get_roi_response_traces()
+    for name, trace1 in roi_response_traces1.items():
+        assert (
+            name in roi_response_traces2
+        ), f"SegmentationExtractors are not equal: SegmentationExtractor1 has roi_response_trace {name} but SegmentationExtractor2 does not."
+        trace2 = roi_response_traces2[name]
+        assert_array_equal(
+            trace1,
+            trace2,
+            err_msg=f"SegmentationExtractors are not equal: roi_response_trace {name} does not match.",
+        )
+    for name2 in roi_response_traces2:
+        assert (
+            name2 in roi_response_traces1
+        ), f"SegmentationExtractors are not equal: SegmentationExtractor2 has roi_response_trace {name2} but SegmentationExtractor1 does not."
+    assert_array_equal(
+        segmentation_extractor1.get_background_ids(),
+        segmentation_extractor2.get_background_ids(),
+        err_msg="SegmentationExtractors are not equal: background_ids do not match.",
+    )
+    assert (
+        segmentation_extractor1.get_num_background_components()
+        == segmentation_extractor2.get_num_background_components()
+    ), "SegmentationExtractors are not equal: num_background_components do not match."
+    assert_array_equal(
+        segmentation_extractor1.get_background_image_masks(),
+        segmentation_extractor2.get_background_image_masks(),
+        err_msg="SegmentationExtractors are not equal: background_image_masks do not match.",
+    )
+    background_response_traces1 = segmentation_extractor1.get_background_response_traces()
+    background_response_traces2 = segmentation_extractor2.get_background_response_traces()
+    for name, trace1 in background_response_traces1.items():
+        assert (
+            name in background_response_traces2
+        ), f"SegmentationExtractors are not equal: SegmentationExtractor1 has background_response_trace {name} but SegmentationExtractor2 does not."
+        trace2 = background_response_traces2[name]
+        assert_array_equal(
+            trace1,
+            trace2,
+            err_msg=f"SegmentationExtractors are not equal: background_response_trace {name} does not match.",
+        )
+    for name2 in background_response_traces2:
+        assert (
+            name2 in background_response_traces1
+        ), f"SegmentationExtractors are not equal: SegmentationExtractor2 has background_response_trace {name2} but SegmentationExtractor1 does not."
+    summary_images1 = segmentation_extractor1.get_summary_images()
+    summary_images2 = segmentation_extractor2.get_summary_images()
+    for name, image1 in summary_images1.items():
+        assert (
+            name in summary_images2
+        ), f"SegmentationExtractors are not equal: SegmentationExtractor1 has summary_image {name} but SegmentationExtractor2 does not."
+        image2 = summary_images2[name]
+        assert_array_equal(
+            image1,
+            image2,
+            err_msg=f"SegmentationExtractors are not equal: summary_image {name} does not match.",
+        )
+    for name2 in summary_images2:
+        assert (
+            name2 in summary_images1
+        ), f"SegmentationExtractors are not equal: SegmentationExtractor2 has summary_image {name2} but SegmentationExtractor1 does not."
 
 
 def check_imaging_equal(imaging_extractor1: ImagingExtractor, imaging_extractor2: ImagingExtractor):
