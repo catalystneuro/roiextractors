@@ -231,41 +231,6 @@ def test_generate_mock_segmentation_extractor_seed():
     assert not segmentation_equal(segmentation_extractor1, segmentation_extractor3)
 
 
-# def assert_segmentation_equal(
-#     segmentation_extractor1: SegmentationExtractor, segmentation_extractor2: SegmentationExtractor
-# ):
-#     """Assert that two segmentation extractors have equal fields.
-
-#     Parameters
-#     ----------
-#     segmentation_extractor1 : SegmentationExtractor
-#         First segmentation extractor to compare.
-#     segmentation_extractor2 : SegmentationExtractor
-#         Second segmentation extractor to compare.
-
-
-#     Raises
-#     ------
-#     AssertionError
-#         If any of the following attributes or data do not match between the two SegmentationExtractor objects:
-#         - image_size
-#         - num_frames
-#         - sampling_frequency
-#         - _times
-#         - roi_ids
-#         - num_rois
-#         - accepted_roi_ids
-#         - rejected_roi_ids
-#         - roi_locations
-#         - roi_image_masks
-#         - roi_pixel_masks
-#         - roi_response_traces
-#         - background_ids
-#         - num_background_components
-#         - background_image_masks
-#         - background_response_traces
-#         - summary_images
-#     """
 def test_assert_segmentation_equal_image_size():
     segmentation_extractor1 = generate_mock_segmentation_extractor(num_rows=1)
     segmentation_extractor2 = generate_mock_segmentation_extractor(num_rows=1)
