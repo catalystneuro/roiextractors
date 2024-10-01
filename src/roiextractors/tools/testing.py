@@ -190,25 +190,6 @@ def assert_segmentation_equal(
 ):
     """Assert that two segmentation extractors have equal fields.
 
-    Specific assertions are made for the following fields:
-    - image_size
-    - num_frames
-    - sampling_frequency
-    - _times
-    - roi_ids
-    - num_rois
-    - accepted_roi_ids
-    - rejected_roi_ids
-    - roi_locations
-    - roi_image_masks
-    - roi_pixel_masks
-    - roi_response_traces
-    - background_ids
-    - num_background_components
-    - background_image_masks
-    - background_response_traces
-    - summary_images
-
     Parameters
     ----------
     segmentation_extractor1 : SegmentationExtractor
@@ -219,7 +200,24 @@ def assert_segmentation_equal(
     Raises
     ------
     AssertionError
-        If the segmentation extractors are not equal.
+        If any of the following attributes or data do not match between the two SegmentationExtractor objects:
+        - image_size
+        - num_frames
+        - sampling_frequency
+        - _times
+        - roi_ids
+        - num_rois
+        - accepted_roi_ids
+        - rejected_roi_ids
+        - roi_locations
+        - roi_image_masks
+        - roi_pixel_masks
+        - roi_response_traces
+        - background_ids
+        - num_background_components
+        - background_image_masks
+        - background_response_traces
+        - summary_images
     """
     assert (
         segmentation_extractor1.get_image_size() == segmentation_extractor2.get_image_size()
@@ -332,14 +330,115 @@ def assert_segmentation_equal(
         ), f"SegmentationExtractors are not equal: SegmentationExtractor2 has summary_image {name2} but SegmentationExtractor1 does not."
 
 
-def check_imaging_equal(imaging_extractor1: ImagingExtractor, imaging_extractor2: ImagingExtractor):
-    """Check that two imaging extractors have equal fields."""
-    assert imaging_extractor1.get_image_size() == imaging_extractor2.get_image_size()
-    assert imaging_extractor1.get_num_frames() == imaging_extractor2.get_num_frames()
-    assert np.close(imaging_extractor1.get_sampling_frequency(), imaging_extractor2.get_sampling_frequency())
-    assert imaging_extractor1.get_dtype() == imaging_extractor2.get_dtype()
-    assert_array_equal(imaging_extractor1.get_video(), imaging_extractor2.get_video())
-    assert_array_almost_equal(
-        imaging_extractor1.frame_to_time(np.arange(imaging_extractor1.get_num_frames())),
-        imaging_extractor2.frame_to_time(np.arange(imaging_extractor2.get_num_frames())),
+def segmentation_equal(
+    segmentation_extractor1: SegmentationExtractor, segmentation_extractor2: SegmentationExtractor
+) -> bool:
+    """Return True if two SegmentationExtractors have equal fields, False otherwise.
+
+    Parameters
+    ----------
+    segmentation_extractor1 : SegmentationExtractor
+        First segmentation extractor to compare.
+    segmentation_extractor2 : SegmentationExtractor
+        Second segmentation extractor to compare.
+
+    Returns
+    -------
+    bool
+        True if all of the following fields match between the two SegmentationExtractor objects:
+        - image_size
+        - num_frames
+        - sampling_frequency
+        - _times
+        - roi_ids
+        - num_rois
+        - accepted_roi_ids
+        - rejected_roi_ids
+        - roi_locations
+        - roi_image_masks
+        - roi_pixel_masks
+        - roi_response_traces
+        - background_ids
+        - num_background_components
+        - background_image_masks
+        - background_response_traces
+        - summary_images
+    """
+    try:
+        assert_segmentation_equal(segmentation_extractor1, segmentation_extractor2)
+        return True
+    except AssertionError:
+        return False
+
+
+def assert_imaging_equal(imaging_extractor1: ImagingExtractor, imaging_extractor2: ImagingExtractor):
+    """Assert that two ImagingExtractor objects are equal by comparing their attributes and data.
+
+    Parameters
+    ----------
+    imaging_extractor1 : ImagingExtractor
+        The first ImagingExtractor object to compare.
+    imaging_extractor2 : ImagingExtractor
+        The second ImagingExtractor object to compare.
+
+    Raises
+    ------
+    AssertionError
+        If any of the following attributes or data do not match between the two ImagingExtractor objects:
+        - Image size
+        - Number of frames
+        - Sampling frequency
+        - Data type (dtype)
+        - Video data
+        - Time points (_times)
+    """
+    assert (
+        imaging_extractor1.get_image_size() == imaging_extractor2.get_image_size()
+    ), "ImagingExtractors are not equal: image_sizes do not match."
+    assert (
+        imaging_extractor1.get_num_frames() == imaging_extractor2.get_num_frames()
+    ), "ImagingExtractors are not equal: num_frames do not match."
+    assert np.isclose(
+        imaging_extractor1.get_sampling_frequency(), imaging_extractor2.get_sampling_frequency()
+    ), "ImagingExtractors are not equal: sampling_frequencies do not match."
+    assert (
+        imaging_extractor1.get_dtype() == imaging_extractor2.get_dtype()
+    ), "ImagingExtractors are not equal: dtypes do not match."
+    assert_array_equal(
+        imaging_extractor1.get_video(),
+        imaging_extractor2.get_video(),
+        err_msg="ImagingExtractors are not equal: videos do not match.",
     )
+    assert_array_equal(
+        imaging_extractor1._times,
+        imaging_extractor2._times,
+        err_msg="ImagingExtractors are not equal: _times do not match.",
+    )
+
+
+def imaging_equal(imaging_extractor1: ImagingExtractor, imaging_extractor2: ImagingExtractor) -> bool:
+    """Return True if two ImagingExtractors are equal, False otherwise.
+
+    Parameters
+    ----------
+    imaging_extractor1 : ImagingExtractor
+        The first ImagingExtractor object to compare.
+    imaging_extractor2 : ImagingExtractor
+        The second ImagingExtractor object to compare.
+
+    Returns
+    -------
+    bool
+        True if all of the following fields match between the two ImagingExtractor objects:
+        - Image size
+        - Number of frames
+        - Sampling frequency
+        - Data type (dtype)
+        - Video data
+        - Time points (_times)
+    """
+    try:
+        assert_imaging_equal(imaging_extractor1, imaging_extractor2)
+        return True
+    except AssertionError:
+        return False
