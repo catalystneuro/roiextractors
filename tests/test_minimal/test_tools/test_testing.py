@@ -54,8 +54,8 @@ def test_generate_mock_imaging_extractor_seed():
     imaging_extractor1 = generate_mock_imaging_extractor(seed=0)
     imaging_extractor2 = generate_mock_imaging_extractor(seed=0)
     imaging_extractor3 = generate_mock_imaging_extractor(seed=1)
-    assert_array_equal(imaging_extractor1.get_video(), imaging_extractor2.get_video())
-    assert not np.array_equal(imaging_extractor1.get_video(), imaging_extractor3.get_video())
+    assert imaging_extractor1 == imaging_extractor2
+    assert imaging_extractor1 != imaging_extractor3
 
 
 @pytest.mark.parametrize(
@@ -76,3 +76,42 @@ def test_generate_mock_segmentation_extractor_shape(
     assert segmentation_extractor.get_num_frames() == num_frames
     assert segmentation_extractor.get_image_size() == (num_rows, num_columns)
     assert segmentation_extractor.get_num_background_components() == num_background_components
+
+
+@pytest.mark.parametrize("sampling_frequency", [10.0, 20.0, 30.0])
+def test_generate_mock_segmentation_extractor_sampling_frequency(sampling_frequency):
+    segmentation_extractor = generate_mock_segmentation_extractor(sampling_frequency=sampling_frequency)
+    assert segmentation_extractor.get_sampling_frequency() == sampling_frequency
+
+
+@pytest.mark.parametrize(
+    "summary_image_names, roi_response_names, background_response_names",
+    [
+        ([], ["denoised"], []),
+        (["mean"], ["raw", "dff"], ["background"]),
+        (["correlation"], ["deconvolved"], ["background"]),
+    ],
+)
+def test_generate_mock_segmentation_extractor_names(summary_image_names, roi_response_names, background_response_names):
+    segmentation_extractor = generate_mock_segmentation_extractor(
+        summary_image_names=summary_image_names,
+        roi_response_names=roi_response_names,
+        background_response_names=background_response_names,
+    )
+    assert list(segmentation_extractor.get_summary_images().keys()) == summary_image_names
+    assert list(segmentation_extractor.get_roi_response_traces().keys()) == roi_response_names
+    assert list(segmentation_extractor.get_background_response_traces().keys()) == background_response_names
+
+
+@pytest.mark.parametrize("rejected_roi_ids", [[], [0, 1], [1, 2, 3]])
+def test_generate_mock_segmentation_extractor_rejected_list(rejected_roi_ids):
+    segmentation_extractor = generate_mock_segmentation_extractor(rejected_roi_ids=rejected_roi_ids)
+    assert segmentation_extractor.get_rejected_roi_ids() == rejected_roi_ids
+
+
+def test_generate_mock_segmentation_extractor_seed():
+    segmentation_extractor1 = generate_mock_segmentation_extractor(seed=0)
+    segmentation_extractor2 = generate_mock_segmentation_extractor(seed=0)
+    segmentation_extractor3 = generate_mock_segmentation_extractor(seed=1)
+    assert segmentation_extractor1 == segmentation_extractor2
+    assert segmentation_extractor1 != segmentation_extractor3

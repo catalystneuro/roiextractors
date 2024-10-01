@@ -96,7 +96,7 @@ def generate_mock_segmentation_extractor(
     summary_image_names: List[str] = ["mean", "correlation"],
     roi_response_names: List[str] = ["raw", "dff", "deconvolved", "denoised"],
     background_response_names: List[str] = ["background"],
-    rejected_list: Optional[list] = None,
+    rejected_roi_ids: Optional[list] = None,
     seed: int = 0,
 ) -> NumpySegmentationExtractor:
     """Generate a mock segmentation extractor for testing.
@@ -124,7 +124,7 @@ def generate_mock_segmentation_extractor(
         names of roi response traces, by default ["raw", "dff", "deconvolved", "denoised"].
     background_response_names : List[str], optional
         names of background response traces, by default ["background"].
-    rejected_list: Optional[list], optional
+    rejected_roi_ids: Optional[list], optional
         A list of rejected rois, None by default.
     seed : int, default 0
         seed for the random number generator, by default 0.
@@ -162,11 +162,11 @@ def generate_mock_segmentation_extractor(
     roi_locations = np.vstack((roi_locations_rows, roi_locations_columns))
     background_ids = [i for i in range(num_background_components)]
 
-    rejected_list = rejected_list if rejected_list else None
+    rejected_roi_ids = rejected_roi_ids if rejected_roi_ids else None
 
     accepeted_list = roi_ids
-    if rejected_list is not None:
-        accepeted_list = list(set(accepeted_list).difference(rejected_list))
+    if rejected_roi_ids is not None:
+        accepeted_list = list(set(accepeted_list).difference(rejected_roi_ids))
 
     dummy_segmentation_extractor = NumpySegmentationExtractor(
         image_masks=image_masks,
@@ -174,7 +174,7 @@ def generate_mock_segmentation_extractor(
         sampling_frequency=sampling_frequency,
         roi_ids=roi_ids,
         accepted_roi_ids=accepeted_list,
-        rejected_roi_ids=rejected_list,
+        rejected_roi_ids=rejected_roi_ids,
         roi_locations=roi_locations,
         summary_images=summary_images,
         background_image_masks=background_image_masks,
