@@ -2,7 +2,10 @@ from roiextractors.tools.testing import (
     generate_mock_video,
     generate_mock_imaging_extractor,
     generate_mock_segmentation_extractor,
+    assert_imaging_equal,
+    imaging_equal,
     assert_segmentation_equal,
+    segmentation_equal,
 )
 import pytest
 import numpy as np
@@ -55,8 +58,8 @@ def test_generate_mock_imaging_extractor_seed():
     imaging_extractor1 = generate_mock_imaging_extractor(seed=0)
     imaging_extractor2 = generate_mock_imaging_extractor(seed=0)
     imaging_extractor3 = generate_mock_imaging_extractor(seed=1)
-    assert imaging_extractor1 == imaging_extractor2
-    assert imaging_extractor1 != imaging_extractor3
+    assert_imaging_equal(imaging_extractor1, imaging_extractor2)
+    assert not imaging_equal(imaging_extractor1, imaging_extractor3)
 
 
 @pytest.mark.parametrize(
@@ -115,4 +118,4 @@ def test_generate_mock_segmentation_extractor_seed():
     segmentation_extractor2 = generate_mock_segmentation_extractor(seed=0)
     segmentation_extractor3 = generate_mock_segmentation_extractor(seed=1)
     assert_segmentation_equal(segmentation_extractor1, segmentation_extractor2)
-    # assert_segmentation_equal(segmentation_extractor1, segmentation_extractor3)
+    assert not segmentation_equal(segmentation_extractor1, segmentation_extractor3)
