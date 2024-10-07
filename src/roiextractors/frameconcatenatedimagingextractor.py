@@ -83,12 +83,12 @@ class FrameConcatenatedImagingExtractor(ImagingExtractor):
         times: numpy.ndarray
             Array of times.
         """
-        frame_indices = np.array([*range(self._start_frames[0], self._end_frames[-1])])
+        frame_indices = np.arange(self._num_frames)
         times = self.frame_to_time(frames=frame_indices)
 
         for extractor_index, extractor in enumerate(self._imaging_extractors):
             if getattr(extractor, "_times") is not None:
-                to_replace = [*range(self._start_frames[extractor_index], self._end_frames[extractor_index])]
+                to_replace = np.arange(self._start_frames[extractor_index], self._end_frames[extractor_index])
                 times[to_replace] = extractor._times
 
         return times
