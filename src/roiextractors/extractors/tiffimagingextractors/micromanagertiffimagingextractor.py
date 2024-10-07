@@ -21,7 +21,7 @@ import numpy as np
 from ...imagingextractor import ImagingExtractor
 from ...tools.typing import PathType, DtypeType
 from ...tools.importing import get_package
-from ...multiimagingextractor import FrameConcatenatedImagingExtractor
+from ...frameconcatenatedimagingextractor import FrameConcatenatedImagingExtractor
 
 
 def filter_tiff_tag_warnings(record):

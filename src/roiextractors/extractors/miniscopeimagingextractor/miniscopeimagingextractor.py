@@ -14,7 +14,7 @@ from typing import Optional, Tuple, List
 import numpy as np
 
 from ...imagingextractor import ImagingExtractor
-from ...multiimagingextractor import FrameConcatenatedImagingExtractor
+from ...frameconcatenatedimagingextractor import FrameConcatenatedImagingExtractor
 from ...tools.typing import PathType, DtypeType
 from ...tools.importing import get_package
 

@@ -6,7 +6,7 @@ from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
 from parameterized import parameterized, param
 
-from roiextractors.multiimagingextractor import FrameConcatenatedImagingExtractor
+from roiextractors.frameconcatenatedimagingextractor import FrameConcatenatedImagingExtractor
 from roiextractors.testing import generate_dummy_imaging_extractor
 
 

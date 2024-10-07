@@ -20,7 +20,7 @@ from lxml import etree
 
 import numpy as np
 
-from ...multiimagingextractor import FrameConcatenatedImagingExtractor
+from ...frameconcatenatedimagingextractor import FrameConcatenatedImagingExtractor
 from ...imagingextractor import ImagingExtractor
 from ...tools.typing import PathType, DtypeType, ArrayType
 from ...tools.importing import get_package

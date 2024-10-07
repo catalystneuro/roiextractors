@@ -14,7 +14,7 @@ import numpy as np
 from ...tools.typing import PathType, FloatType, ArrayType, DtypeType
 from ...imagingextractor import ImagingExtractor
 from ...volumetricimagingextractor import VolumetricImagingExtractor
-from ...multiimagingextractor import FrameConcatenatedImagingExtractor
+from ...frameconcatenatedimagingextractor import FrameConcatenatedImagingExtractor
 from .scanimagetiff_utils import (
     extract_extra_metadata,
     parse_metadata,
