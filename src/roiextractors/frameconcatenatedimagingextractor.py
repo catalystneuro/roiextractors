@@ -34,8 +34,6 @@ class FrameConcatenatedImagingExtractor(ImagingExtractor):
         assert isinstance(imaging_extractors, list), "Enter a list of ImagingExtractor objects as argument"
         assert all(isinstance(imaging_extractor, ImagingExtractor) for imaging_extractor in imaging_extractors)
         self._imaging_extractors = imaging_extractors
-
-        # Checks that properties are consistent between extractors
         self._check_consistency_between_imaging_extractors()
 
         self._start_frames, self._end_frames = [], []
@@ -63,15 +61,11 @@ class FrameConcatenatedImagingExtractor(ImagingExtractor):
         This method checks the following properties:
             - sampling frequency
             - image size
-            - number of channels
-            - channel names
             - data type
         """
         properties_to_check = dict(
             get_sampling_frequency="The sampling frequency",
             get_image_size="The size of a frame",
-            get_num_channels="The number of channels",
-            get_channel_names="The name of the channels",
             get_dtype="The data type.",
         )
         for method, property_message in properties_to_check.items():
