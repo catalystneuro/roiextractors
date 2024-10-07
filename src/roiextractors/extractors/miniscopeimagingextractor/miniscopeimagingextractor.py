@@ -14,12 +14,12 @@ from typing import Optional, Tuple, List
 import numpy as np
 
 from ...imagingextractor import ImagingExtractor
-from ...multiimagingextractor import MultiImagingExtractor
+from ...multiimagingextractor import FrameConcatenatedImagingExtractor
 from ...tools.typing import PathType, DtypeType
 from ...tools.importing import get_package
 
 
-class MiniscopeImagingExtractor(MultiImagingExtractor):  # TODO: rename to MiniscopeMultiImagingExtractor
+class MiniscopeImagingExtractor(FrameConcatenatedImagingExtractor):  # TODO: rename to MiniscopeMultiImagingExtractor
     """An ImagingExtractor for the Miniscope video (.avi) format.
 
     This format consists of video (.avi) file(s) and configuration files (.json).

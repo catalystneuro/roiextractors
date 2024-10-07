@@ -14,7 +14,7 @@ import numpy as np
 from ...tools.typing import PathType, FloatType, ArrayType, DtypeType
 from ...imagingextractor import ImagingExtractor
 from ...volumetricimagingextractor import VolumetricImagingExtractor
-from ...multiimagingextractor import MultiImagingExtractor
+from ...multiimagingextractor import FrameConcatenatedImagingExtractor
 from .scanimagetiff_utils import (
     extract_extra_metadata,
     parse_metadata,
@@ -23,7 +23,7 @@ from .scanimagetiff_utils import (
 )
 
 
-class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
+class ScanImageTiffMultiPlaneMultiFileImagingExtractor(FrameConcatenatedImagingExtractor):
     """Specialized extractor for reading multi-file (buffered) TIFF files produced via ScanImage."""
 
     extractor_name = "ScanImageTiffMultiPlaneMultiFileImaging"
@@ -70,7 +70,7 @@ class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
         super().__init__(imaging_extractors=imaging_extractors)
 
 
-class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
+class ScanImageTiffSinglePlaneMultiFileImagingExtractor(FrameConcatenatedImagingExtractor):
     """Specialized extractor for reading multi-file (buffered) TIFF files produced via ScanImage."""
 
     extractor_name = "ScanImageTiffSinglePlaneMultiFileImaging"

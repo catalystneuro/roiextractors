@@ -21,7 +21,7 @@ import numpy as np
 from ...imagingextractor import ImagingExtractor
 from ...tools.typing import PathType, DtypeType
 from ...tools.importing import get_package
-from ...multiimagingextractor import MultiImagingExtractor
+from ...multiimagingextractor import FrameConcatenatedImagingExtractor
 
 
 def filter_tiff_tag_warnings(record):
@@ -37,7 +37,7 @@ def _get_tiff_reader() -> ModuleType:
     return get_package(package_name="tifffile", installation_instructions="pip install tifffile")
 
 
-class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
+class MicroManagerTiffImagingExtractor(FrameConcatenatedImagingExtractor):
     """Specialized extractor for reading TIFF files produced via Micro-Manager.
 
     The image file stacks are saved into multipage TIF files in OME-TIFF format (.ome.tif files),

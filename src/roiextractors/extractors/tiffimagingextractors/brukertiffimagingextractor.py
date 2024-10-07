@@ -20,7 +20,7 @@ from lxml import etree
 
 import numpy as np
 
-from ...multiimagingextractor import MultiImagingExtractor
+from ...multiimagingextractor import FrameConcatenatedImagingExtractor
 from ...imagingextractor import ImagingExtractor
 from ...tools.typing import PathType, DtypeType, ArrayType
 from ...tools.importing import get_package
@@ -119,7 +119,7 @@ def _parse_xml(folder_path: PathType) -> etree.Element:
     return tree.getroot()
 
 
-class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
+class BrukerTiffMultiPlaneImagingExtractor(FrameConcatenatedImagingExtractor):
     """A MultiImagingExtractor for TIFF files produced by Bruke with multiple planes.
 
     This format consists of multiple TIF image files (.ome.tif) and configuration files (.xml, .env).
@@ -312,7 +312,7 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
         return video
 
 
-class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
+class BrukerTiffSinglePlaneImagingExtractor(FrameConcatenatedImagingExtractor):
     """A MultiImagingExtractor for TIFF files produced by Bruker with only 1 plane."""
 
     extractor_name = "BrukerTiffSinglePlaneImaging"

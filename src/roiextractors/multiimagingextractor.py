@@ -1,8 +1,8 @@
-"""Defines the MultiImagingExtractor class.
+"""Defines the FrameConcatenatedImagingExtractor class.
 
 Classes
 -------
-MultiImagingExtractor
+FrameConcatenatedImagingExtractor
     This class is used to combine multiple ImagingExtractor objects by frames.
 """
 
@@ -15,15 +15,15 @@ from .tools.typing import ArrayType
 from .imagingextractor import ImagingExtractor
 
 
-class MultiImagingExtractor(ImagingExtractor):
+class FrameConcatenatedImagingExtractor(ImagingExtractor):
     """Class to combine multiple ImagingExtractor objects by frames."""
 
-    extractor_name = "MultiImagingExtractor"
+    extractor_name = "FrameConcatenatedImagingExtractor"
     installed = True
     installation_mesg = ""
 
     def __init__(self, imaging_extractors: List[ImagingExtractor]):
-        """Initialize a MultiImagingExtractor object from a list of ImagingExtractors.
+        """Initialize a FrameConcatenatedImagingExtractor object from a list of ImagingExtractors.
 
         Parameters
         ----------
@@ -152,7 +152,7 @@ class MultiImagingExtractor(ImagingExtractor):
     ) -> np.ndarray:
         if channel != 0:
             raise NotImplementedError(
-                f"MultiImagingExtractors for multiple channels have not yet been implemented! (Received '{channel}'."
+                f"FrameConcatenatedImagingExtractors for multiple channels have not yet been implemented! (Received '{channel}'."
             )
 
         start = start_frame if start_frame is not None else 0
