@@ -38,16 +38,15 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         """
         SegmentationExtractor.__init__(self)
         self.folder_path = folder_path
-        self._roi_response_denoised = self._trace_extractor_read(field = "C")
-        self._roi_response_baseline = self._trace_extractor_read(field = "b0")
-        self._roi_response_neuropil = self._trace_extractor_read(field = "f")
-        self._roi_response_deconvolved = self._trace_extractor_read(field = "S")
+        self._roi_response_denoised = self._trace_extractor_read(field="C")
+        self._roi_response_baseline = self._trace_extractor_read(field="b0")
+        self._roi_response_neuropil = self._trace_extractor_read(field="f")
+        self._roi_response_deconvolved = self._trace_extractor_read(field="S")
         self._image_maximum_projection = self._file_extractor_read("/max_proj.zarr/max_proj")
         self._image_masks = self._roi_image_mask_read()
         self._background_image_masks = self._background_image_mask_read()
 
-
-    def _file_extractor_read(self, zarr_group = ""):
+    def _file_extractor_read(self, zarr_group=""):
         """Read the zarr.
 
         Returns
@@ -73,7 +72,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         if dataset is None or "A" not in dataset:
             return None
         else:
-            return np.transpose(dataset["A"], (1,2,0))
+            return np.transpose(dataset["A"], (1, 2, 0))
 
     def _background_image_mask_read(self):
         """Read the image masks from the zarr output.
@@ -167,4 +166,8 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             dictionary with key, values representing different types of Images used in segmentation:
                 Mean, Correlation image
         """
-        return dict(mean=self._image_mean, correlation=self._image_correlation, maximum_projection=self._image_maximum_projection)
+        return dict(
+            mean=self._image_mean,
+            correlation=self._image_correlation,
+            maximum_projection=self._image_maximum_projection,
+        )
