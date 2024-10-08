@@ -74,6 +74,10 @@ class MultiSegmentationExtractor(SegmentationExtractor):
         plane_names: list
             list of strings of names for the plane. Defaults to 'Plane0', 'Plane1' ...
         """
+        raise NotImplementedError(
+            "Multi-Plane Segmentations are currently not supported. Please raise an issue to request this feature: "
+            "https://github.com/catalystneuro/roiextractors/issues "
+        )
         SegmentationExtractor.__init__(self)
         if not isinstance(segmentatation_extractors_list, list):
             raise Exception("Enter a list of segmentation extractor objects as argument")
