@@ -13,7 +13,7 @@ from warnings import warn
 import numpy as np
 
 from ...tools.typing import PathType
-from ...volumetricsegmentationextractor import VolumetricSegmentationExtractor
+from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor, convert_pixel_masks_to_image_masks
 
 
@@ -318,7 +318,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
                 shutil.rmtree(str(save_path))
 
         # Solve with recursion
-        if isinstance(segmentation_object, VolumetricSegmentationExtractor):
+        if isinstance(segmentation_object, MultiSegmentationExtractor):
             segext_objs = segmentation_object.segmentations
             for plane_num, segext_obj in enumerate(segext_objs):
                 save_path_plane = save_path / f"plane{plane_num}"

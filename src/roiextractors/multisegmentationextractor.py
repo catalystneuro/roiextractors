@@ -1,8 +1,8 @@
-"""Defines the VolumetricSegmentationExtractor class.
+"""Defines the MultiSegmentationExtractor class.
 
 Classes
 -------
-VolumetricSegmentationExtractor
+MultiSegmentationExtractor
     This class is used to combine multiple SegmentationExtractor objects by frames.
 """
 
@@ -55,17 +55,17 @@ def concatenate_output(func):  # TODO: refactor to avoid magical behavior
     return _get_from_roi_map
 
 
-class VolumetricSegmentationExtractor(SegmentationExtractor):
+class MultiSegmentationExtractor(SegmentationExtractor):
     """Class is used to concatenate multi-plane recordings from the same device and session of experiment."""
 
-    extractor_name = "VolumetricSegmentationExtractor"
+    extractor_name = "MultiSegmentationExtractor"
     installed = True  # check at class level if installed or not
     is_writable = False
     mode = "file"
     installation_mesg = ""  # error message when not installed
 
     def __init__(self, segmentatation_extractors_list, plane_names=None):  # TODO: Hungarian notation --> type hints
-        """Initialize a VolumetricSegmentationExtractor object from a list of SegmentationExtractors.
+        """Initialize a MultiSegmentationExtractor object from a list of SegmentationExtractors.
 
         Parameters
         ----------

@@ -14,7 +14,7 @@ from lazy_ops import DatasetView
 from scipy.sparse import csc_matrix
 
 from ...tools.typing import PathType
-from ...volumetricsegmentationextractor import VolumetricSegmentationExtractor
+from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
 
 
@@ -157,7 +157,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
 
         folder_path = save_path.parent
         file_name = save_path.name
-        if isinstance(segmentation_object, VolumetricSegmentationExtractor):
+        if isinstance(segmentation_object, MultiSegmentationExtractor):
             segext_objs = segmentation_object.segmentations
             for plane_num, segext_obj in enumerate(segext_objs):
                 save_path_plane = folder_path / f"Plane_{plane_num}" / file_name
