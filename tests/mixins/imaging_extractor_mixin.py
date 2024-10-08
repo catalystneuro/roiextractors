@@ -244,3 +244,7 @@ class FrameSliceImagingExtractorMixin:
             frame_slice_imaging_extractor.frame_slice(end_frame=frame_slice_imaging_extractor.get_num_frames() + 1)
         with pytest.raises(AssertionError):
             frame_slice_imaging_extractor.frame_slice(end_frame=0.5)
+
+    def test_depth_slice_not_implemented(self, frame_slice_imaging_extractor):
+        with pytest.raises(NotImplementedError):
+            frame_slice_imaging_extractor.depth_slice()
