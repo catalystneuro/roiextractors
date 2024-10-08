@@ -232,7 +232,7 @@ class TestNumpySegmentationExtractorFromFile(SegmentationExtractorMixin, FrameSl
         )
         name_to_file_path = {}
         for name, ndarray in name_to_ndarray.items():
-            file_path = tmp_path / f"{name}.npy"
+            file_path = tmp_path / f"{name}2.npy"
             file_path.parent.mkdir(parents=True, exist_ok=True)
             np.save(file_path, ndarray)
             name_to_file_path[name] = file_path
@@ -245,7 +245,7 @@ class TestNumpySegmentationExtractorFromFile(SegmentationExtractorMixin, FrameSl
         for name, dict_of_ndarrays in name_to_dict_of_ndarrays.items():
             name_to_dict_of_file_paths[name] = {}
             for key, ndarray in dict_of_ndarrays.items():
-                file_path = tmp_path / f"{name}_{key}.npy"
+                file_path = tmp_path / f"{name}_{key}2.npy"
                 np.save(file_path, ndarray)
                 name_to_dict_of_file_paths[name][key] = file_path
 
