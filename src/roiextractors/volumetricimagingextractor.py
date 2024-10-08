@@ -80,7 +80,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
             The 3D video frames (num_frames, num_rows, num_columns, num_planes).
         """
         start_frame, end_frame = self._validate_get_video_arguments(start_frame, end_frame)
-        shape = (end_frame - start_frame, *self.get_image_size())
+        shape = (end_frame - start_frame, *self.get_image_size(), self.get_num_planes())
         video = np.empty(shape=shape, dtype=self.get_dtype())
         for i, imaging_extractor in enumerate(self._imaging_extractors):
             video[..., i] = imaging_extractor.get_video(start_frame, end_frame)
@@ -102,15 +102,14 @@ class VolumetricImagingExtractor(ImagingExtractor):
         super().get_frames(frame_idxs=frame_idxs)
 
     def get_image_size(self) -> Tuple:
-        """Get the size of a single frame.
+        """Get the size of each 2D image in the recording (num_rows, num_columns).
 
         Returns
         -------
         image_size: tuple
-            The size of a single frame (num_rows, num_columns, num_planes).
+            Size of each image (num_rows, num_columns).
         """
-        image_size = (*self._imaging_extractors[0].get_image_size(), self.get_num_planes())
-        return image_size
+        return self._imaging_extractors[0].get_image_size()
 
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
