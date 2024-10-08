@@ -33,8 +33,8 @@ class FrameConcatenatedImagingExtractor(ImagingExtractor):
         super().__init__()
         assert isinstance(imaging_extractors, list), "Enter a list of ImagingExtractor objects as argument"
         assert all(isinstance(imaging_extractor, ImagingExtractor) for imaging_extractor in imaging_extractors)
+        self._check_consistency_between_imaging_extractors(imaging_extractors=imaging_extractors)
         self._imaging_extractors = imaging_extractors
-        self._check_consistency_between_imaging_extractors()
 
         self._start_frames, self._end_frames = [], []
         num_frames = 0
@@ -50,8 +50,14 @@ class FrameConcatenatedImagingExtractor(ImagingExtractor):
             times = self._get_times()
             self.set_times(times=times)
 
-    def _check_consistency_between_imaging_extractors(self):
+    @staticmethod
+    def _check_consistency_between_imaging_extractors(imaging_extractors: List[ImagingExtractor]):
         """Check that essential properties are consistent between extractors so that they can be combined appropriately.
+
+        Parameters
+        ----------
+        imaging_extractors: list of ImagingExtractor
+            list of imaging extractor objects
 
         Raises
         ------
@@ -71,7 +77,7 @@ class FrameConcatenatedImagingExtractor(ImagingExtractor):
             get_dtype="The data type.",
         )
         for method, property_message in properties_to_check.items():
-            values = [getattr(extractor, method)() for extractor in self._imaging_extractors]
+            values = [getattr(extractor, method)() for extractor in imaging_extractors]
             unique_values = set(tuple(v) if isinstance(v, Iterable) else v for v in values)
             assert (
                 len(unique_values) == 1
