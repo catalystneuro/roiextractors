@@ -231,3 +231,6 @@ class FrameSliceImagingExtractor(ImagingExtractor):
 
     def get_dtype(self) -> DtypeType:
         return self._parent_imaging.get_dtype()
+
+    def depth_slice(self, start_plane: Optional[int] = None, end_plane: Optional[int] = None):
+        raise NotImplementedError("Depth slicing is not supported for FrameSliceImagingExtractor.")
