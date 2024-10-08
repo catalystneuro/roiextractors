@@ -22,7 +22,8 @@ import numpy as np
 
 from ...multiimagingextractor import MultiImagingExtractor
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import PathType, get_package, DtypeType, ArrayType
+from ...tools.typing import PathType, DtypeType, ArrayType
+from ...tools.importing import get_package
 
 
 def filter_read_uic_tag_warnings(record):

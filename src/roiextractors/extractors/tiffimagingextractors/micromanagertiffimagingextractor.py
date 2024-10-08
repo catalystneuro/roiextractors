@@ -19,7 +19,8 @@ from xml.etree import ElementTree
 import numpy as np
 
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import PathType, get_package, DtypeType
+from ...tools.typing import PathType, DtypeType
+from ...tools.importing import get_package
 from ...multiimagingextractor import MultiImagingExtractor
 
 

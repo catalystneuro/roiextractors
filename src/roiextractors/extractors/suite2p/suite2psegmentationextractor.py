@@ -12,10 +12,9 @@ from typing import Optional
 from warnings import warn
 import numpy as np
 
-from ...extraction_tools import PathType
-from ...extraction_tools import _image_mask_extractor
+from ...tools.typing import PathType
 from ...multisegmentationextractor import MultiSegmentationExtractor
-from ...segmentationextractor import SegmentationExtractor
+from ...segmentationextractor import SegmentationExtractor, convert_pixel_masks_to_image_masks
 
 
 class Suite2pSegmentationExtractor(SegmentationExtractor):
@@ -181,7 +180,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         image_mean_name = "meanImg" if channel_name == "chan1" else f"meanImg_chan2"
         self._image_mean = self.options[image_mean_name] if image_mean_name in self.options else None
         roi_indices = list(range(self.get_num_rois()))
-        self._image_masks = _image_mask_extractor(
+        self._image_masks = convert_pixel_masks_to_image_masks(
             self.get_roi_pixel_masks(),
             roi_indices,
             self.get_image_size(),

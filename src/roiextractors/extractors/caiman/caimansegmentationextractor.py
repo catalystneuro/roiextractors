@@ -13,7 +13,8 @@ import h5py
 from scipy.sparse import csc_matrix
 import numpy as np
 
-from ...extraction_tools import PathType, get_package
+from ...tools.typing import PathType
+from ...tools.importing import get_package
 from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
 

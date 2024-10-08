@@ -20,7 +20,7 @@ from packaging import version
 
 import h5py
 
-from ...extraction_tools import PathType, ArrayType
+from ...tools.typing import PathType, ArrayType
 from ...segmentationextractor import SegmentationExtractor
 
 

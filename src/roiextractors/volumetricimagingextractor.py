@@ -3,7 +3,7 @@
 from typing import Tuple, List, Iterable, Optional
 import numpy as np
 
-from .extraction_tools import ArrayType, DtypeType
+from .tools.typing import ArrayType, DtypeType
 from .imagingextractor import ImagingExtractor
 
 

@@ -65,9 +65,6 @@ class ImagingExtractorMixin(BaseExtractorMixin):
         with pytest.raises(AssertionError):
             imaging_extractor.get_frames(frame_idxs=[0.5])
 
-    def test_eq(self, imaging_extractor, imaging_extractor2):
-        assert imaging_extractor == imaging_extractor2
-
     @pytest.mark.parametrize("start_frame, end_frame", [(None, None), (1, 3), (0, 1)])
     def test_frame_slice(self, imaging_extractor, start_frame, end_frame):
         frame_slice_imaging_extractor = imaging_extractor.frame_slice(start_frame=start_frame, end_frame=end_frame)
@@ -217,9 +214,6 @@ class FrameSliceImagingExtractorMixin:
         frame_slice_imaging_extractor2.copy_times(frame_slice_imaging_extractor)
         assert np.array_equal(frame_slice_imaging_extractor2._times, expected_times)
         assert frame_slice_imaging_extractor2._times is not expected_times
-
-    def test_eq_frame_slice(self, frame_slice_imaging_extractor, frame_slice_imaging_extractor2):
-        assert frame_slice_imaging_extractor == frame_slice_imaging_extractor2
 
     @pytest.mark.parametrize("start_frame, end_frame", [(None, None), (1, 2), (0, 1)])
     def test_frame_slice_on_frame_slice(self, frame_slice_imaging_extractor, start_frame, end_frame):

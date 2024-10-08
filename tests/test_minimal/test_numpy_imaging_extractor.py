@@ -1,6 +1,6 @@
 from ..mixins.imaging_extractor_mixin import ImagingExtractorMixin, FrameSliceImagingExtractorMixin
 from roiextractors import NumpyImagingExtractor
-from roiextractors.testing import generate_dummy_video
+from roiextractors.tools.testing import generate_mock_video
 import pytest
 import numpy as np
 
@@ -8,7 +8,7 @@ import numpy as np
 class TestNumpyImagingExtractor(ImagingExtractorMixin, FrameSliceImagingExtractorMixin):
     @pytest.fixture(scope="class")
     def expected_video(self):
-        return generate_dummy_video(size=(3, 2, 4))
+        return generate_mock_video(size=(3, 2, 4))
 
     @pytest.fixture(scope="class")
     def expected_sampling_frequency(self):
@@ -26,7 +26,7 @@ class TestNumpyImagingExtractor(ImagingExtractorMixin, FrameSliceImagingExtracto
 class TestNumpyImagingExtractorFromFile(ImagingExtractorMixin, FrameSliceImagingExtractorMixin):
     @pytest.fixture(scope="class")
     def expected_video(self):
-        return generate_dummy_video(size=(3, 2, 4))
+        return generate_mock_video(size=(3, 2, 4))
 
     @pytest.fixture(scope="class")
     def expected_sampling_frequency(self):

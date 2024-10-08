@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Union, Tuple
 from copy import deepcopy
 import numpy as np
-from .extraction_tools import ArrayType, FloatType
+from .tools.typing import ArrayType, FloatType
 
 
 class BaseExtractor(ABC):

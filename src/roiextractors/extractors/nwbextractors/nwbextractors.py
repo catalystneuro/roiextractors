@@ -16,12 +16,11 @@ from lazy_ops import DatasetView
 
 from pynwb import NWBHDF5IO
 from pynwb.ophys import TwoPhotonSeries, OnePhotonSeries
-from ...extraction_tools import (
+from ...tools.typing import (
     PathType,
     FloatType,
     IntType,
     ArrayType,
-    raise_multi_channel_or_depth_not_implemented,
 )
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor

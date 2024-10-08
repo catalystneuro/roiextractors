@@ -6,7 +6,7 @@ from typing import Optional, Tuple
 import numpy as np
 
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import PathType
+from ...tools.typing import PathType
 
 
 class InscopixImagingExtractor(ImagingExtractor):
