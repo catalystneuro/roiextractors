@@ -29,7 +29,7 @@ from .extractors.inscopixextractors import InscopixImagingExtractor
 from .extractors.memmapextractors import NumpyMemmapImagingExtractor
 from .extractors.memmapextractors import MemmapImagingExtractor
 from .extractors.miniscopeimagingextractor import MiniscopeImagingExtractor
-from .multisegmentationextractor import MultiSegmentationExtractor
+from .volumetricsegmentationextractor import VolumetricSegmentationExtractor
 from .frameconcatenatedimagingextractor import FrameConcatenatedImagingExtractor
 from .volumetricimagingextractor import VolumetricImagingExtractor
 
