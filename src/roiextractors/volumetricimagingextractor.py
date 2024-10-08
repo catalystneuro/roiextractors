@@ -48,16 +48,12 @@ class VolumetricImagingExtractor(ImagingExtractor):
         This method checks the following properties:
             - sampling frequency
             - image size
-            - number of channels
-            - channel names
             - data type
             - num_frames
         """
         properties_to_check = dict(
             get_sampling_frequency="The sampling frequency",
             get_image_size="The size of a frame",
-            get_num_channels="The number of channels",
-            get_channel_names="The name of the channels",
             get_dtype="The data type",
             get_num_frames="The number of frames",
         )
@@ -83,24 +79,9 @@ class VolumetricImagingExtractor(ImagingExtractor):
         video: numpy.ndarray
             The 3D video frames (num_frames, num_rows, num_columns, num_planes).
         """
-        if start_frame is None:
-            start_frame = 0
-        elif start_frame < 0:
-            start_frame = self.get_num_frames() + start_frame
-        elif start_frame >= self.get_num_frames():
-            raise ValueError(
-                f"start_frame {start_frame} is greater than or equal to the number of frames {self.get_num_frames()}"
-            )
-        if end_frame is None:
-            end_frame = self.get_num_frames()
-        elif end_frame < 0:
-            end_frame = self.get_num_frames() + end_frame
-        elif end_frame > self.get_num_frames():
-            raise ValueError(f"end_frame {end_frame} is greater than the number of frames {self.get_num_frames()}")
-        if end_frame <= start_frame:
-            raise ValueError(f"end_frame {end_frame} is less than or equal to start_frame {start_frame}")
-
-        video = np.zeros((end_frame - start_frame, *self.get_image_size()), self.get_dtype())
+        start_frame, end_frame = self._validate_get_video_arguments(start_frame, end_frame)
+        shape = (end_frame - start_frame, *self.get_image_size(), self.get_num_planes())
+        video = np.empty(shape=shape, dtype=self.get_dtype())
         for i, imaging_extractor in enumerate(self._imaging_extractors):
             video[..., i] = imaging_extractor.get_video(start_frame, end_frame)
         return video
@@ -116,33 +97,19 @@ class VolumetricImagingExtractor(ImagingExtractor):
         Returns
         -------
         frames: numpy.ndarray
-            The 3D video frames (num_rows, num_columns, num_planes).
+            The 3D video frames (num_frames, num_rows, num_columns, num_planes).
         """
-        if isinstance(frame_idxs, int):
-            frame_idxs = [frame_idxs]
-        for frame_idx in frame_idxs:
-            if frame_idx < -1 * self.get_num_frames() or frame_idx >= self.get_num_frames():
-                raise ValueError(f"frame_idx {frame_idx} is out of bounds")
-
-        # Note np.all([]) returns True so not all(np.diff(frame_idxs) == 1) returns False if frame_idxs is a single int
-        if not all(np.diff(frame_idxs) == 1):
-            frames = np.zeros((len(frame_idxs), *self.get_image_size()), self.get_dtype())
-            for i, imaging_extractor in enumerate(self._imaging_extractors):
-                frames[..., i] = imaging_extractor.get_frames(frame_idxs)
-            return frames
-        else:
-            return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)
+        return super().get_frames(frame_idxs=frame_idxs)
 
     def get_image_size(self) -> Tuple:
-        """Get the size of a single frame.
+        """Get the size of each 2D image in the recording (num_rows, num_columns).
 
         Returns
         -------
         image_size: tuple
-            The size of a single frame (num_rows, num_columns, num_planes).
+            Size of each image (num_rows, num_columns).
         """
-        image_size = (*self._imaging_extractors[0].get_image_size(), self.get_num_planes())
-        return image_size
+        return self._imaging_extractors[0].get_image_size()
 
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
@@ -160,12 +127,6 @@ class VolumetricImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self) -> float:
         return self._imaging_extractors[0].get_sampling_frequency()
 
-    def get_channel_names(self) -> list:
-        return self._imaging_extractors[0].get_channel_names()
-
-    def get_num_channels(self) -> int:
-        return self._imaging_extractors[0].get_num_channels()
-
     def get_dtype(self) -> DtypeType:
         return self._imaging_extractors[0].get_dtype()
 
@@ -181,12 +142,6 @@ class VolumetricImagingExtractor(ImagingExtractor):
         ), f"'end_plane' ({end_plane}) must be greater than 'start_plane' ({start_plane}) and smaller than or equal to the number of planes ({self._num_planes})."
 
         return DepthSliceVolumetricImagingExtractor(parent_extractor=self, start_plane=start_plane, end_plane=end_plane)
-
-    def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
-        """Return a new VolumetricImagingExtractor with a subset of frames."""
-        raise NotImplementedError(
-            "frame_slice is not implemented for VolumetricImagingExtractor due to conflicts with get_video()."
-        )
 
 
 class DepthSliceVolumetricImagingExtractor(VolumetricImagingExtractor):

@@ -6,7 +6,7 @@ from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
 from parameterized import parameterized, param
 
-from roiextractors.multiimagingextractor import MultiImagingExtractor
+from roiextractors.frameconcatenatedimagingextractor import FrameConcatenatedImagingExtractor
 from roiextractors.testing import generate_dummy_imaging_extractor
 
 
@@ -19,7 +19,7 @@ class TestMultiImagingExtractor(TestCase):
             generate_dummy_imaging_extractor(num_frames=10, num_rows=3, num_columns=4, sampling_frequency=20.0)
             for _ in range(3)
         ]
-        cls.multi_imaging_extractor = MultiImagingExtractor(imaging_extractors=cls.extractors)
+        cls.multi_imaging_extractor = FrameConcatenatedImagingExtractor(imaging_extractors=cls.extractors)
 
     def test_get_image_size(self):
         assert self.multi_imaging_extractor.get_image_size() == self.extractors[0].get_image_size()
@@ -126,7 +126,7 @@ class TestMultiImagingExtractor(TestCase):
 
     def test_set_times(self):
         self.extractors[1].set_times(np.arange(0, 10) / 30.0)
-        multi_imaging_extractor = MultiImagingExtractor(imaging_extractors=self.extractors)
+        multi_imaging_extractor = FrameConcatenatedImagingExtractor(imaging_extractors=self.extractors)
 
         dummy_times = np.arange(0, 30) / 20.0
         to_replace = [*range(multi_imaging_extractor._start_frames[1], multi_imaging_extractor._end_frames[1])]
@@ -178,7 +178,7 @@ class TestMultiImagingExtractor(TestCase):
             exc_type=AssertionError,
             exc_msg=expected_error_msg,
         ):
-            MultiImagingExtractor(imaging_extractors=inconsistent_extractors)
+            FrameConcatenatedImagingExtractor(imaging_extractors=inconsistent_extractors)
 
 
 if __name__ == "__main__":

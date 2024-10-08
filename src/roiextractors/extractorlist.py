@@ -30,7 +30,7 @@ from .extractors.memmapextractors import NumpyMemmapImagingExtractor
 from .extractors.memmapextractors import MemmapImagingExtractor
 from .extractors.miniscopeimagingextractor import MiniscopeImagingExtractor
 from .multisegmentationextractor import MultiSegmentationExtractor
-from .multiimagingextractor import MultiImagingExtractor
+from .frameconcatenatedimagingextractor import FrameConcatenatedImagingExtractor
 from .volumetricimagingextractor import VolumetricImagingExtractor
 
 imaging_extractor_full_list = [
