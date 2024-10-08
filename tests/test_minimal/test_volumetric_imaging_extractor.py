@@ -8,7 +8,7 @@ import pytest
 import numpy as np
 
 
-class TestVolumetricImagingExtractor(VolumetricImagingExtractorMixin):
+class TestVolumetricImagingExtractor(VolumetricImagingExtractorMixin, VolumetricFrameSliceImagingExtractorMixin):
     @pytest.fixture(scope="class")
     def expected_video(self):
         return generate_mock_video(size=(5, 2, 4, 3))
