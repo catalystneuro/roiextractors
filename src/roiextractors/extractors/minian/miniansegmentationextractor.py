@@ -11,6 +11,7 @@ from pathlib import Path
 import zarr
 import warnings
 import numpy as np
+import pandas as pd
 
 from ...extraction_tools import PathType
 from ...segmentationextractor import SegmentationExtractor
@@ -43,8 +44,10 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         self._roi_response_neuropil = self._trace_extractor_read(field="f")
         self._roi_response_deconvolved = self._trace_extractor_read(field="S")
         self._image_maximum_projection = self._file_extractor_read("/max_proj.zarr/max_proj")
+        # TODO add extraction of motion correction
         self._image_masks = self._roi_image_mask_read()
         self._background_image_masks = self._background_image_mask_read()
+        self._times = self._timestamps_extractor_read()
 
     def _file_extractor_read(self, zarr_group=""):
         """Read the zarr.
@@ -110,6 +113,22 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             return np.transpose(dataset[field])
         elif dataset[field].ndim == 1:
             return np.expand_dims(dataset[field], axis=1)
+
+    def _timestamps_extractor_read(self):
+        """ Extract timestamps corresponding to frame numbers of the stored denoised trace
+
+            Returns
+            -------
+            list
+                The timestamps of the denoised trace.
+        """
+
+        csv_file = self.folder_path + "timeStamps.csv"
+        df = pd.read_csv(csv_file)
+        frame_numbers = self._file_extractor_read("/C.zarr/frame")
+        filtered_df = df[df['Frame Number'].isin(frame_numbers)]
+
+        return filtered_df['Time Stamp (ms)'].tolist()
 
     def get_image_size(self):
         dataset = self._file_extractor_read("/A.zarr")
