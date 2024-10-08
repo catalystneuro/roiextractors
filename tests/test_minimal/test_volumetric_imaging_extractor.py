@@ -1,4 +1,7 @@
-from ..mixins.volumetric_imaging_extractor_mixin import VolumetricImagingExtractorMixin
+from ..mixins.volumetric_imaging_extractor_mixin import (
+    VolumetricImagingExtractorMixin,
+    VolumetricFrameSliceImagingExtractorMixin,
+)
 from roiextractors import NumpyImagingExtractor, VolumetricImagingExtractor
 from roiextractors.tools.testing import generate_mock_video
 import pytest
