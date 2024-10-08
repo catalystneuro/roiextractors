@@ -128,12 +128,6 @@ class VolumetricImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self) -> float:
         return self._imaging_extractors[0].get_sampling_frequency()
 
-    def get_channel_names(self) -> list:
-        return self._imaging_extractors[0].get_channel_names()
-
-    def get_num_channels(self) -> int:
-        return self._imaging_extractors[0].get_num_channels()
-
     def get_dtype(self) -> DtypeType:
         return self._imaging_extractors[0].get_dtype()
 
