@@ -79,24 +79,9 @@ class VolumetricImagingExtractor(ImagingExtractor):
         video: numpy.ndarray
             The 3D video frames (num_frames, num_rows, num_columns, num_planes).
         """
-        if start_frame is None:
-            start_frame = 0
-        elif start_frame < 0:
-            start_frame = self.get_num_frames() + start_frame
-        elif start_frame >= self.get_num_frames():
-            raise ValueError(
-                f"start_frame {start_frame} is greater than or equal to the number of frames {self.get_num_frames()}"
-            )
-        if end_frame is None:
-            end_frame = self.get_num_frames()
-        elif end_frame < 0:
-            end_frame = self.get_num_frames() + end_frame
-        elif end_frame > self.get_num_frames():
-            raise ValueError(f"end_frame {end_frame} is greater than the number of frames {self.get_num_frames()}")
-        if end_frame <= start_frame:
-            raise ValueError(f"end_frame {end_frame} is less than or equal to start_frame {start_frame}")
-
-        video = np.zeros((end_frame - start_frame, *self.get_image_size()), self.get_dtype())
+        start_frame, end_frame = self._validate_get_video_arguments(start_frame, end_frame)
+        shape = (end_frame - start_frame, *self.get_image_size())
+        video = np.empty(shape=shape, dtype=self.get_dtype())
         for i, imaging_extractor in enumerate(self._imaging_extractors):
             video[..., i] = imaging_extractor.get_video(start_frame, end_frame)
         return video
