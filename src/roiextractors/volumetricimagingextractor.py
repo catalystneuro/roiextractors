@@ -97,9 +97,9 @@ class VolumetricImagingExtractor(ImagingExtractor):
         Returns
         -------
         frames: numpy.ndarray
-            The 3D video frames (num_rows, num_columns, num_planes).
+            The 3D video frames (num_frames, num_rows, num_columns, num_planes).
         """
-        super().get_frames(frame_idxs=frame_idxs)
+        return super().get_frames(frame_idxs=frame_idxs)
 
     def get_image_size(self) -> Tuple:
         """Get the size of each 2D image in the recording (num_rows, num_columns).
