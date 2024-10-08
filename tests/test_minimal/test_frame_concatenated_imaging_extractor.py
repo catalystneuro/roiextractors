@@ -3,7 +3,7 @@ from ..mixins.frame_concatenated_imaging_extractor_mixin import (
     FrameConcatenatedFrameSliceImagingExtractorMixin,
 )
 from roiextractors import NumpyImagingExtractor, FrameConcatenatedImagingExtractor
-from roiextractors.tools.testing import generate_mock_video
+from roiextractors.tools.testing import generate_mock_video, generate_mock_imaging_extractor
 import pytest
 import numpy as np
 
@@ -52,28 +52,27 @@ class TestFrameConcatenatedImagingExtractor(
         super().test_get_frames(imaging_extractor, expected_video, frame_idxs)
 
 
+@pytest.mark.parametrize(
+    "parameter_sets",
+    [
+        [dict(sampling_frequency=1), dict(sampling_frequency=2)],
+        [dict(num_rows=1), dict(num_rows=2)],
+        [dict(num_columns=1), dict(num_columns=2)],
+        [dict(dtype=np.int16), dict(dtype=np.float32)],
+    ],
+)
+def test_check_consistency_between_imaging_extractors(parameter_sets):
+    imaging_extractors = [generate_mock_imaging_extractor(**params) for params in parameter_sets]
+    with pytest.raises(AssertionError):
+        FrameConcatenatedImagingExtractor(imaging_extractors=imaging_extractors)
+
+
 def test_FrameConcatenatedImagingExtractor_invalid():
     with pytest.raises(AssertionError):
         FrameConcatenatedImagingExtractor(imaging_extractors=[])
     with pytest.raises(AssertionError):
-        imaging_extractor = NumpyImagingExtractor(timeseries=np.zeros((3, 2, 4)), sampling_frequency=20.0)
+        imaging_extractor = generate_mock_imaging_extractor()
         FrameConcatenatedImagingExtractor(imaging_extractors=imaging_extractor)
-    with pytest.raises(AssertionError):
-        imaging_extractor1 = NumpyImagingExtractor(timeseries=np.zeros((3, 2, 4)), sampling_frequency=20.0)
-        imaging_extractor2 = NumpyImagingExtractor(timeseries=np.zeros((3, 2, 4)), sampling_frequency=10.0)
-        FrameConcatenatedImagingExtractor(imaging_extractors=[imaging_extractor1, imaging_extractor2])
-    with pytest.raises(AssertionError):
-        imaging_extractor1 = NumpyImagingExtractor(timeseries=np.zeros((3, 2, 4)), sampling_frequency=20.0)
-        imaging_extractor2 = NumpyImagingExtractor(timeseries=np.zeros((3, 1, 4)), sampling_frequency=20.0)
-        FrameConcatenatedImagingExtractor(imaging_extractors=[imaging_extractor1, imaging_extractor2])
-    with pytest.raises(AssertionError):
-        imaging_extractor1 = NumpyImagingExtractor(
-            timeseries=np.zeros((3, 2, 4), dtype=np.float64), sampling_frequency=20.0
-        )
-        imaging_extractor2 = NumpyImagingExtractor(
-            timeseries=np.zeros((3, 2, 4), dtype=np.float32), sampling_frequency=20.0
-        )
-        FrameConcatenatedImagingExtractor(imaging_extractors=[imaging_extractor1, imaging_extractor2])
 
 
 def test_FrameConcatenatedImagingExtractor_with_times():
