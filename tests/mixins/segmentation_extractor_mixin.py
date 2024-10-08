@@ -1,20 +1,25 @@
 import pytest
 import numpy as np
 
+from .base_extractor_mixin import BaseExtractorMixin
 
-class SegmentationExtractorMixin:
-    def test_get_image_size(self, segmentation_extractor, expected_image_masks):
-        image_size = segmentation_extractor.get_image_size()
-        assert image_size == (expected_image_masks.shape[0], expected_image_masks.shape[1])
 
-    def test_get_num_frames(self, segmentation_extractor, expected_roi_response_traces):
-        num_frames = segmentation_extractor.get_num_frames()
-        first_expected_roi_response_trace = list(expected_roi_response_traces.values())[0]
-        assert num_frames == first_expected_roi_response_trace.shape[0]
+class SegmentationExtractorMixin(BaseExtractorMixin):
+    @pytest.fixture(scope="function")
+    def extractor(self, segmentation_extractor):
+        return segmentation_extractor
 
-    def test_get_sampling_frequency(self, segmentation_extractor, expected_sampling_frequency):
-        sampling_frequency = segmentation_extractor.get_sampling_frequency()
-        assert sampling_frequency == expected_sampling_frequency
+    @pytest.fixture(scope="function")
+    def extractor2(self, segmentation_extractor2):
+        return segmentation_extractor2
+
+    @pytest.fixture(scope="function")
+    def expected_image_size(self, expected_image_masks):
+        return expected_image_masks.shape[:2]
+
+    @pytest.fixture(scope="function")
+    def expected_num_frames(self, expected_roi_response_traces):
+        return list(expected_roi_response_traces.values())[0].shape[0]
 
     def test_get_roi_ids(self, segmentation_extractor, expected_roi_ids):
         roi_ids = segmentation_extractor.get_roi_ids()

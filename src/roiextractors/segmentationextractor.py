@@ -10,17 +10,18 @@ FrameSliceSegmentationExtractor
     Class to get a lazy frame slice.
 """
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Union, Optional, Tuple, Iterable, List, get_args
 
 import numpy as np
 from numpy.typing import ArrayLike
 
+from .baseextractor import BaseExtractor
 from .extraction_tools import ArrayType, IntType, FloatType
 from .extraction_tools import _pixel_mask_extractor
 
 
-class SegmentationExtractor(ABC):
+class SegmentationExtractor(BaseExtractor):
     """Abstract segmentation extractor class.
 
     An abstract class that contains all the meta-data and output data from
@@ -30,43 +31,6 @@ class SegmentationExtractor(ABC):
     All the methods with @abstract decorator have to be defined by the
     format specific classes that inherit from this.
     """
-
-    def __init__(self):
-        """Create a new SegmentationExtractor for a specific data format (unique to each child SegmentationExtractor)."""
-        self._times = None
-
-    @abstractmethod
-    def get_image_size(self) -> ArrayType:
-        """Get frame size of movie (height, width).
-
-        Returns
-        -------
-        no_rois: array_like
-            2-D array: image height x image width
-        """
-        pass
-
-    @abstractmethod
-    def get_num_frames(self) -> int:
-        """Get the number of frames in the recording (duration of recording).
-
-        Returns
-        -------
-        num_frames: int
-            Number of frames in the recording.
-        """
-        pass
-
-    @abstractmethod
-    def get_sampling_frequency(self) -> float:
-        """Get the sampling frequency in Hz.
-
-        Returns
-        -------
-        sampling_frequency: float
-            Sampling frequency of the recording in Hz.
-        """
-        pass
 
     @abstractmethod
     def get_roi_ids(self) -> list:
@@ -307,50 +271,6 @@ class SegmentationExtractor(ABC):
             Dictionary of summary images with key as the name of the image and value as the image.
         """
         pass
-
-    # TODO: Refactor _times methods from ImagingExtractor and SegmentationExtractor into a BaseExtractor class
-    def set_times(self, times: ArrayType):
-        """Set the recording times in seconds for each frame.
-
-        Parameters
-        ----------
-        times: array-like
-            The times in seconds for each frame
-
-        Notes
-        -----
-        Operates on _times attribute of the SegmentationExtractor object.
-        """
-        assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames!"
-        self._times = np.array(times, dtype=np.float64)
-
-    def has_time_vector(self) -> bool:
-        """Detect if the SegmentationExtractor has a time vector set or not.
-
-        Returns
-        -------
-        has_time_vector: bool
-            True if the SegmentationExtractor has a time vector set, otherwise False.
-        """
-        return self._times is not None
-
-    def frame_to_time(self, frames: Union[IntType, ArrayType]) -> Union[FloatType, ArrayType]:
-        """Get the timing of frames in unit of seconds.
-
-        Parameters
-        ----------
-        frames: int or array-like
-            The frame or frames to be converted to times
-
-        Returns
-        -------
-        times: float or array-like
-            The corresponding times in seconds
-        """
-        if self._times is None:
-            return frames / self.get_sampling_frequency()
-        else:
-            return self._times[frames]
 
     def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
         """Return a new ImagingExtractor ranging from the start_frame to the end_frame.
