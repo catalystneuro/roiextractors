@@ -6,6 +6,7 @@
 
 ### Fixes
 * Added specific error message for single-frame scanimage data [PR #360](https://github.com/catalystneuro/roiextractors/pull/360)
+* Fixed bug with ScanImage's parse_metadata so that it works properly when hStackManager is disabled [PR #373](https://github.com/catalystneuro/roiextractors/pull/373)
 
 ### Improvements
 * Removed unnecessary import checks for scipy, h5py, and zarr [PR #364](https://github.com/catalystneuro/roiextractors/pull/364)
