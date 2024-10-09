@@ -16,22 +16,15 @@ import numpy as np
 from ...extraction_tools import PathType, ArrayType, raise_multi_channel_or_depth_not_implemented, check_keys
 from ...imagingextractor import ImagingExtractor
 
-try:
-    import scipy.io as spio
-
-    HAVE_Scipy = True
-except ImportError:
-    HAVE_Scipy = False
+import scipy.io as spio
 
 
 class SbxImagingExtractor(ImagingExtractor):
     """Imaging extractor for the Scanbox image format."""
 
     extractor_name = "SbxImaging"
-    installed = HAVE_Scipy  # check at class level if installed or not
     is_writable = True
     mode = "folder"
-    installation_mesg = "To use the Sbx Extractor run:\n\n pip install scipy\n\n"  # error message when not installed
 
     def __init__(self, file_path: PathType, sampling_frequency: Optional[float] = None):
         """Create a SbxImagingExtractor from .mat or .sbx files.

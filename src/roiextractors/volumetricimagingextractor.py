@@ -168,3 +168,59 @@ class VolumetricImagingExtractor(ImagingExtractor):
 
     def get_dtype(self) -> DtypeType:
         return self._imaging_extractors[0].get_dtype()
+
+    def depth_slice(self, start_plane: Optional[int] = None, end_plane: Optional[int] = None):
+        """Return a new VolumetricImagingExtractor ranging from the start_plane to the end_plane."""
+        start_plane = start_plane if start_plane is not None else 0
+        end_plane = end_plane if end_plane is not None else self._num_planes
+        assert (
+            0 <= start_plane < self._num_planes
+        ), f"'start_plane' ({start_plane}) must be greater than 0 and smaller than the number of planes ({self._num_planes})."
+        assert (
+            start_plane < end_plane <= self._num_planes
+        ), f"'end_plane' ({end_plane}) must be greater than 'start_plane' ({start_plane}) and smaller than or equal to the number of planes ({self._num_planes})."
+
+        return DepthSliceVolumetricImagingExtractor(parent_extractor=self, start_plane=start_plane, end_plane=end_plane)
+
+    def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
+        """Return a new VolumetricImagingExtractor with a subset of frames."""
+        raise NotImplementedError(
+            "frame_slice is not implemented for VolumetricImagingExtractor due to conflicts with get_video()."
+        )
+
+
+class DepthSliceVolumetricImagingExtractor(VolumetricImagingExtractor):
+    """Class to get a lazy depth slice.
+
+    This class can only be used for volumetric imaging data.
+    Do not use this class directly but use `.depth_slice(...)` on a VolumetricImagingExtractor object.
+    """
+
+    extractor_name = "DepthSliceVolumetricImagingExtractor"
+    installed = True
+    is_writable = True
+    installation_mesg = ""
+
+    def __init__(
+        self,
+        parent_extractor: VolumetricImagingExtractor,
+        start_plane: Optional[int] = None,
+        end_plane: Optional[int] = None,
+    ):
+        """Initialize a VolumetricImagingExtractor whose plane(s) subset the parent.
+
+        Subset is exclusive on the right bound, that is, the plane indices of this VolumetricImagingExtractor range over
+        [0, ..., end_plane-start_plane-1].
+
+        Parameters
+        ----------
+        parent_extractor : VolumetricImagingExtractor
+            The VolumetricImagingExtractor object to subset the planes of.
+        start_plane : int, optional
+            The left bound of the depth to subset.
+            The default is the first plane of the parent.
+        end_plane : int, optional
+            The right bound of the depth, exclusively, to subset.
+            The default is the last plane of the parent.
+        """
+        super().__init__(imaging_extractors=parent_extractor._imaging_extractors[start_plane:end_plane])
