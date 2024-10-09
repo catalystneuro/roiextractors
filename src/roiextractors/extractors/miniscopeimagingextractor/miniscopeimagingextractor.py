@@ -18,14 +18,14 @@ from ...multiimagingextractor import MultiImagingExtractor
 from ...extraction_tools import PathType, DtypeType, get_package
 
 
-class MiniscopeImagingExtractor(MultiImagingExtractor):  # TODO: rename to MiniscopeMultiImagingExtractor
+class MiniscopeMultiSegmentExtractor(MultiImagingExtractor):
     """An ImagingExtractor for the Miniscope video (.avi) format.
 
     This format consists of video (.avi) file(s) and configuration files (.json).
-    One _MiniscopeImagingExtractor is created for each video file and then combined into the MiniscopeImagingExtractor.
+    One _MiniscopeSingleVideoExtractor is created for each video file and then combined into the MiniscopeImagingExtractor.
     """
 
-    extractor_name = "MiniscopeImaging"
+    extractor_name = "MiniscopeMultiImaging"
     is_writable = True
     mode = "folder"
 
@@ -58,24 +58,28 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):  # TODO: rename to Minis
 
         imaging_extractors = []
         for file_path in miniscope_avi_file_paths:
-            extractor = _MiniscopeImagingExtractor(file_path=file_path)
+            extractor = _MiniscopeSingleVideoExtractor(file_path=file_path)
             extractor._sampling_frequency = self._sampling_frequency
             imaging_extractors.append(extractor)
 
         super().__init__(imaging_extractors=imaging_extractors)
 
 
-class _MiniscopeImagingExtractor(ImagingExtractor):
-    """An ImagingExtractor for the Miniscope video (.avi) format.
+# Temporal renaming to keep backwards compatibility
+MiniscopeImagingExtractor = MiniscopeMultiSegmentExtractor
 
-    This format consists of a single video (.avi) file and configuration file (.json).
-    Multiple _MiniscopeImagingExtractor are combined into the MiniscopeImagingExtractor for public access.
+
+class _MiniscopeSingleVideoExtractor(ImagingExtractor):
+    """An auxiliar extractor to get data from a single Miniscope video (.avi) file.
+
+    This format consists of a single video (.avi)
+    Multiple _MiniscopeSingleVideoExtractor are combined into the MiniscopeImagingExtractor for public access.
     """
 
-    extractor_name = "_MiniscopeImaging"
+    extractor_name = "_MiniscopeSingleVideo"
 
     def __init__(self, file_path: PathType):
-        """Create a _MiniscopeImagingExtractor instance from a file path.
+        """Create a _MiniscopeSingleVideoExtractor instance from a file path.
 
         Parameters
         ----------
