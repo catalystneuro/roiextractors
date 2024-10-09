@@ -24,21 +24,21 @@ class TestMinianSegmentationExtractor(TestCase):
 
         # denoised traces
         dataset = zarr.open(folder_path + "/C.zarr")
-        cls.denoised_traces = np.transpose(dataset['C'])
-        cls.num_frames = len(dataset['frame'][:])
+        cls.denoised_traces = np.transpose(dataset["C"])
+        cls.num_frames = len(dataset["frame"][:])
         # deconvolved traces
         dataset = zarr.open(folder_path + "/S.zarr")
-        cls.deconvolved_traces = np.transpose(dataset['S'])
+        cls.deconvolved_traces = np.transpose(dataset["S"])
         # baseline traces
         dataset = zarr.open(folder_path + "/b0.zarr")
-        cls.baseline_traces = np.transpose(dataset['b0'])
+        cls.baseline_traces = np.transpose(dataset["b0"])
         # neuropil trace
         dataset = zarr.open(folder_path + "/f.zarr")
         cls.neuropil_trace = np.expand_dims(dataset["f"], axis=1)
 
         # ROIs masks
         dataset = zarr.open(folder_path + "/A.zarr")
-        cls.image_masks = np.transpose(dataset['A'], (1,2,0))
+        cls.image_masks = np.transpose(dataset["A"], (1, 2, 0))
         cls.image_size = (dataset["height"].shape[0], dataset["width"].shape[0])
         cls.num_rois = dataset["unit_id"].shape[0]
         # background mask
@@ -46,8 +46,6 @@ class TestMinianSegmentationExtractor(TestCase):
         cls.background_image_mask = np.expand_dims(dataset["b"], axis=2)
         # summary image: maximum projection
         cls.maximum_projection_image = np.array(zarr.open(folder_path + "/max_proj.zarr/max_proj"))
-
-
 
     @classmethod
     def tearDownClass(cls):
@@ -57,7 +55,16 @@ class TestMinianSegmentationExtractor(TestCase):
     def test_incomplete_extractor_load(self):
         """Check extractor can be initialized when not all traces are available."""
         # temporary directory for testing assertion when some of the files are missing
-        folders_to_copy = ["A.zarr","C.zarr","b0.zarr", "b.zarr", "f.zarr", "max_proj.zarr", ".zgroup", "timeStamps.csv"]
+        folders_to_copy = [
+            "A.zarr",
+            "C.zarr",
+            "b0.zarr",
+            "b.zarr",
+            "f.zarr",
+            "max_proj.zarr",
+            ".zgroup",
+            "timeStamps.csv",
+        ]
         self.test_dir.mkdir(exist_ok=True)
 
         for folder in folders_to_copy:
@@ -105,4 +112,3 @@ class TestMinianSegmentationExtractor(TestCase):
         """Test that the mean image is correctly loaded from the extractor."""
         images_dict = self.extractor.get_images_dict()
         assert_array_equal(images_dict["maximum_projection"], self.maximum_projection_image)
-

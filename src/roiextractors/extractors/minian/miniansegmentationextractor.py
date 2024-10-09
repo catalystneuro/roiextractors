@@ -113,19 +113,19 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             return np.expand_dims(dataset[field], axis=1)
 
     def _timestamps_extractor_read(self):
-        """ Extract timestamps corresponding to frame numbers of the stored denoised trace
+        """Extract timestamps corresponding to frame numbers of the stored denoised trace
 
-            Returns
-            -------
-            np.ndarray
-                The timestamps of the denoised trace.
+        Returns
+        -------
+        np.ndarray
+            The timestamps of the denoised trace.
         """
         csv_file = self.folder_path / "timeStamps.csv"
         df = pd.read_csv(csv_file)
         frame_numbers = self._file_extractor_read("/C.zarr/frame")
-        filtered_df = df[df['Frame Number'].isin(frame_numbers)]*1e-3
+        filtered_df = df[df["Frame Number"].isin(frame_numbers)] * 1e-3
 
-        return filtered_df['Time Stamp (ms)'].to_numpy()
+        return filtered_df["Time Stamp (ms)"].to_numpy()
 
     def get_image_size(self):
         dataset = self._file_extractor_read("/A.zarr")
