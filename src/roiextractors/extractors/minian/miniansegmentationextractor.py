@@ -43,8 +43,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         self._roi_response_baseline = self._trace_extractor_read(field="b0")
         self._roi_response_neuropil = self._trace_extractor_read(field="f")
         self._roi_response_deconvolved = self._trace_extractor_read(field="S")
-        self._image_maximum_projection = self._file_extractor_read("/max_proj.zarr/max_proj")
-        # TODO add extraction of motion correction
+        self._image_maximum_projection = np.array(self._file_extractor_read("/max_proj.zarr/max_proj"))
         self._image_masks = self._roi_image_mask_read()
         self._background_image_masks = self._background_image_mask_read()
         self._times = self._timestamps_extractor_read()
@@ -61,7 +60,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             warnings.warn(f"Group '{zarr_group}' not found in the Zarr store.", UserWarning)
             return None
         else:
-            return zarr.open(self.folder_path + f"/{zarr_group}", "r")
+            return zarr.open(str(self.folder_path) + f"/{zarr_group}", "r")
 
     def _roi_image_mask_read(self):
         """Read the image masks from the zarr output.
@@ -104,7 +103,6 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         trace: numpy.ndarray
             The traces specified by the field.
         """
-
         dataset = self._file_extractor_read(f"/{field}.zarr")
 
         if dataset is None or field not in dataset:
@@ -119,16 +117,15 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
             Returns
             -------
-            list
+            np.ndarray
                 The timestamps of the denoised trace.
         """
-
-        csv_file = self.folder_path + "timeStamps.csv"
+        csv_file = self.folder_path / "timeStamps.csv"
         df = pd.read_csv(csv_file)
         frame_numbers = self._file_extractor_read("/C.zarr/frame")
-        filtered_df = df[df['Frame Number'].isin(frame_numbers)]
+        filtered_df = df[df['Frame Number'].isin(frame_numbers)]*1e-3
 
-        return filtered_df['Time Stamp (ms)'].tolist()
+        return filtered_df['Time Stamp (ms)'].to_numpy()
 
     def get_image_size(self):
         dataset = self._file_extractor_read("/A.zarr")
