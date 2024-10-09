@@ -114,8 +114,12 @@ def parse_metadata(metadata: dict) -> dict:
         where M is the number of channels (active or not).
     """
     sampling_frequency = float(metadata["SI.hRoiManager.scanFrameRate"])
-    num_planes = int(metadata["SI.hStackManager.numSlices"])
-    frames_per_slice = int(metadata["SI.hStackManager.framesPerSlice"])
+    if metadata["SI.hStackManager.enable"] == "true":
+        num_planes = int(metadata["SI.hStackManager.numSlices"])
+        frames_per_slice = int(metadata["SI.hStackManager.framesPerSlice"])
+    else:
+        num_planes = 1
+        frames_per_slice = 1
     active_channels = parse_matlab_vector(metadata["SI.hChannels.channelsActive"])
     channel_indices = np.array(active_channels) - 1  # Account for MATLAB indexing
     channel_names = np.array(metadata["SI.hChannels.channelName"].split("'")[1::2])

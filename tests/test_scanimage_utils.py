@@ -67,8 +67,8 @@ def test_parse_matlab_vector_invalid():
             {
                 "sampling_frequency": 15.2379,
                 "num_channels": 1,
-                "num_planes": 20,
-                "frames_per_slice": 24,
+                "num_planes": 1,
+                "frames_per_slice": 1,
                 "channel_names": ["Channel 1"],
                 "roi_metadata": {
                     "imagingRoiGroup": {
