@@ -18,11 +18,35 @@ from ...multiimagingextractor import MultiImagingExtractor
 from ...extraction_tools import PathType, DtypeType, get_package
 
 
-class MiniscopeMultiSegmentExtractor(MultiImagingExtractor):
-    """An ImagingExtractor for the Miniscope video (.avi) format.
+class MiniscopeMultiRecordingImagingExtractor(MultiImagingExtractor):
+    """
+    ImagingExtractor processes multiple separate Miniscope recordings within the same session.
 
-    This format consists of video (.avi) file(s) and configuration files (.json).
-    One _MiniscopeSingleVideoExtractor is created for each video file and then combined into the MiniscopeImagingExtractor.
+    Important, this extractor consolidates the recordings as a single continuous dataset.
+
+    Expected directory structure:
+
+    .
+    ├── C6-J588_Disc5
+    │   ├── 15_03_28  (timestamp)
+    │   │   ├── BehavCam_2
+    │   │   ├── metaData.json
+    │   │   └── Miniscope
+    │   ├── 15_06_28 (timestamp)
+    │   │   ├── BehavCam_2
+    │   │   ├── metaData.json
+    │   │   └── Miniscope
+    │   └── 15_07_58 (timestamp)
+    │       ├── BehavCam_2
+    │       ├── metaData.json
+    │       └── Miniscope
+    └──
+
+    Where the Miniscope folders contain a collection of .avi files and a metaData.json file.
+
+    For each video file, a _MiniscopeSingleVideoExtractor is created. These individual extractors
+    are then combined into the MiniscopeMultiRecordingImagingExtractor to handle the session's recordings
+    as a unified, continuous dataset.
     """
 
     extractor_name = "MiniscopeMultiImaging"
@@ -30,7 +54,7 @@ class MiniscopeMultiSegmentExtractor(MultiImagingExtractor):
     mode = "folder"
 
     def __init__(self, folder_path: PathType):
-        """Create a MiniscopeImagingExtractor instance from a folder path.
+        """Create a MiniscopeMultiRecordingImagingExtractor instance from a folder path.
 
         Parameters
         ----------
@@ -65,15 +89,15 @@ class MiniscopeMultiSegmentExtractor(MultiImagingExtractor):
         super().__init__(imaging_extractors=imaging_extractors)
 
 
-# Temporal renaming to keep backwards compatibility
-MiniscopeImagingExtractor = MiniscopeMultiSegmentExtractor
+# Temporary renaming to keep backwards compatibility
+MiniscopeImagingExtractor = MiniscopeMultiRecordingImagingExtractor
 
 
 class _MiniscopeSingleVideoExtractor(ImagingExtractor):
     """An auxiliar extractor to get data from a single Miniscope video (.avi) file.
 
     This format consists of a single video (.avi)
-    Multiple _MiniscopeSingleVideoExtractor are combined into the MiniscopeImagingExtractor for public access.
+    Multiple _MiniscopeSingleVideoExtractor are combined by downstream extractors to extract the data
     """
 
     extractor_name = "_MiniscopeSingleVideo"
