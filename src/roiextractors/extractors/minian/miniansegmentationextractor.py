@@ -23,6 +23,21 @@ class MinianSegmentationExtractor(SegmentationExtractor):
     This class inherits from the SegmentationExtractor class, having all
     its functionality specifically applied to the dataset output from
     the 'Minian' ROI segmentation method.
+
+    Users can extract key information such as ROI traces, image masks,
+    and timestamps from the output of the Minian pipeline.
+
+    Key features:
+    - Extracts fluorescence traces (denoised, baseline, neuropil, deconvolved) for each ROI.
+    - Retrieves ROI masks and background components.
+    - Provides access to timestamps corresponding to calcium traces.
+    - Retrieves maximum projection image.
+
+    Parameters
+    ----------
+    folder_path: str
+        Path to the folder containing Minian .zarr output files.
+
     """
 
     extractor_name = "MinianSegmentation"
