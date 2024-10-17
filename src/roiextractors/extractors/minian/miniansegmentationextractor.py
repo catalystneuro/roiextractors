@@ -54,16 +54,16 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         """
         SegmentationExtractor.__init__(self)
         self.folder_path = folder_path
-        self._roi_response_denoised = self._trace_extractor_read(field="C")
-        self._roi_response_baseline = self._trace_extractor_read(field="b0")
-        self._roi_response_neuropil = self._trace_extractor_read(field="f")
-        self._roi_response_deconvolved = self._trace_extractor_read(field="S")
-        self._image_maximum_projection = np.array(self._file_extractor_read("/max_proj.zarr/max_proj"))
-        self._image_masks = self._roi_image_mask_read()
-        self._background_image_masks = self._background_image_mask_read()
-        self._times = self._timestamps_extractor_read()
+        self._roi_response_denoised = self._read_trace_from_zarr_filed(field="C")
+        self._roi_response_baseline = self._read_trace_from_zarr_filed(field="b0")
+        self._roi_response_neuropil = self._read_trace_from_zarr_filed(field="f")
+        self._roi_response_deconvolved = self._read_trace_from_zarr_filed(field="S")
+        self._image_maximum_projection = np.array(self._read_zarr_group("/max_proj.zarr/max_proj"))
+        self._image_masks = self._read_roi_image_mask_from_zarr_filed()
+        self._background_image_masks = self._read_background_image_mask_from_zarr_filed()
+        self._times = self._read_timestamps_from_csv()
 
-    def _file_extractor_read(self, zarr_group=""):
+    def _read_zarr_group(self, zarr_group=""):
         """Read the zarr.
 
         Returns
@@ -77,7 +77,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         else:
             return zarr.open(str(self.folder_path) + f"/{zarr_group}", "r")
 
-    def _roi_image_mask_read(self):
+    def _read_roi_image_mask_from_zarr_filed(self):
         """Read the image masks from the zarr output.
 
         Returns
@@ -85,13 +85,13 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         image_masks: numpy.ndarray
             The image masks for each ROI.
         """
-        dataset = self._file_extractor_read("/A.zarr")
+        dataset = self._read_zarr_group("/A.zarr")
         if dataset is None or "A" not in dataset:
             return None
         else:
             return np.transpose(dataset["A"], (1, 2, 0))
 
-    def _background_image_mask_read(self):
+    def _read_background_image_mask_from_zarr_filed(self):
         """Read the image masks from the zarr output.
 
         Returns
@@ -99,13 +99,13 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         image_masks: numpy.ndarray
             The image masks for each background components.
         """
-        dataset = self._file_extractor_read("/b.zarr")
+        dataset = self._read_zarr_group("/b.zarr")
         if dataset is None or "b" not in dataset:
             return None
         else:
             return np.expand_dims(dataset["b"], axis=2)
 
-    def _trace_extractor_read(self, field):
+    def _read_trace_from_zarr_filed(self, field):
         """Read the traces specified by the field from the zarr object.
 
         Parameters
@@ -118,7 +118,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         trace: numpy.ndarray
             The traces specified by the field.
         """
-        dataset = self._file_extractor_read(f"/{field}.zarr")
+        dataset = self._read_zarr_group(f"/{field}.zarr")
 
         if dataset is None or field not in dataset:
             return None
@@ -127,7 +127,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         elif dataset[field].ndim == 1:
             return np.expand_dims(dataset[field], axis=1)
 
-    def _timestamps_extractor_read(self):
+    def _read_timestamps_from_csv(self):
         """Extract timestamps corresponding to frame numbers of the stored denoised trace
 
         Returns
@@ -137,13 +137,13 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         """
         csv_file = self.folder_path / "timeStamps.csv"
         df = pd.read_csv(csv_file)
-        frame_numbers = self._file_extractor_read("/C.zarr/frame")
+        frame_numbers = self._read_zarr_group("/C.zarr/frame")
         filtered_df = df[df["Frame Number"].isin(frame_numbers)] * 1e-3
 
         return filtered_df["Time Stamp (ms)"].to_numpy()
 
     def get_image_size(self):
-        dataset = self._file_extractor_read("/A.zarr")
+        dataset = self._read_zarr_group("/A.zarr")
         height = dataset["height"].shape[0]
         width = dataset["width"].shape[0]
         return (height, width)
@@ -169,7 +169,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         return list()
 
     def get_roi_ids(self) -> list:
-        dataset = self._file_extractor_read("/A.zarr")
+        dataset = self._read_zarr_group("/A.zarr")
         return list(dataset["unit_id"])
 
     def get_traces_dict(self) -> dict:
