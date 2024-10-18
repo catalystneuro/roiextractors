@@ -192,10 +192,24 @@ class ImagingExtractor(ABC):
         Parameters
         ----------
         times: array-like
-            The times in seconds for each frame
+            The times in seconds for each frame.
+
+        Raises
+        ------
+        ValueError
+            If the length of 'times' does not match the number of frames.
         """
-        assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames!"
-        self._times = np.array(times).astype("float64")
+        num_frames = self.get_num_frames()
+        num_timestamps = len(times)
+
+        if num_timestamps != num_frames:
+            raise ValueError(
+                f"Mismatch between the number of frames and timestamps: "
+                f"{num_frames} frames, but {num_timestamps} timestamps provided. "
+                "Ensure the length of 'times' matches the number of frames."
+            )
+
+        self._times = np.array(times).astype("float64", copy=False)
 
     def has_time_vector(self) -> bool:
         """Detect if the ImagingExtractor has a time vector set or not.
