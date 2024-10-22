@@ -10,6 +10,7 @@ import json
 import re
 from pathlib import Path
 from typing import Optional, Tuple, List
+import warnings
 
 import numpy as np
 
@@ -18,19 +19,43 @@ from ...multiimagingextractor import MultiImagingExtractor
 from ...extraction_tools import PathType, DtypeType, get_package
 
 
-class MiniscopeImagingExtractor(MultiImagingExtractor):  # TODO: rename to MiniscopeMultiImagingExtractor
-    """An ImagingExtractor for the Miniscope video (.avi) format.
+class MiniscopeMultiRecordingImagingExtractor(MultiImagingExtractor):
+    """
+    ImagingExtractor processes multiple separate Miniscope recordings within the same session.
 
-    This format consists of video (.avi) file(s) and configuration files (.json).
-    One _MiniscopeImagingExtractor is created for each video file and then combined into the MiniscopeImagingExtractor.
+    Important, this extractor consolidates the recordings as a single continuous dataset.
+
+    Expected directory structure:
+
+    .
+    ├── C6-J588_Disc5
+    │   ├── 15_03_28  (timestamp)
+    │   │   ├── BehavCam_2
+    │   │   ├── metaData.json
+    │   │   └── Miniscope
+    │   ├── 15_06_28 (timestamp)
+    │   │   ├── BehavCam_2
+    │   │   ├── metaData.json
+    │   │   └── Miniscope
+    │   └── 15_07_58 (timestamp)
+    │       ├── BehavCam_2
+    │       ├── metaData.json
+    │       └── Miniscope
+    └──
+
+    Where the Miniscope folders contain a collection of .avi files and a metaData.json file.
+
+    For each video file, a _MiniscopeSingleVideoExtractor is created. These individual extractors
+    are then combined into the MiniscopeMultiRecordingImagingExtractor to handle the session's recordings
+    as a unified, continuous dataset.
     """
 
-    extractor_name = "MiniscopeImaging"
+    extractor_name = "MiniscopeMultiRecordingImagingExtractor"
     is_writable = True
     mode = "folder"
 
     def __init__(self, folder_path: PathType):
-        """Create a MiniscopeImagingExtractor instance from a folder path.
+        """Create a MiniscopeMultiRecordingImagingExtractor instance from a folder path.
 
         Parameters
         ----------
@@ -58,24 +83,36 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):  # TODO: rename to Minis
 
         imaging_extractors = []
         for file_path in miniscope_avi_file_paths:
-            extractor = _MiniscopeImagingExtractor(file_path=file_path)
+            extractor = _MiniscopeSingleVideoExtractor(file_path=file_path)
             extractor._sampling_frequency = self._sampling_frequency
             imaging_extractors.append(extractor)
 
         super().__init__(imaging_extractors=imaging_extractors)
 
 
-class _MiniscopeImagingExtractor(ImagingExtractor):
-    """An ImagingExtractor for the Miniscope video (.avi) format.
+# Temporary renaming to keep backwards compatibility
+class MiniscopeImagingExtractor(MiniscopeMultiRecordingImagingExtractor):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            "MiniscopeImagingExtractor is unstable and might change its signature. "
+            "Please use MiniscopeMultiRecordingImagingExtractor instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(*args, **kwargs)
 
-    This format consists of a single video (.avi) file and configuration file (.json).
-    Multiple _MiniscopeImagingExtractor are combined into the MiniscopeImagingExtractor for public access.
+
+class _MiniscopeSingleVideoExtractor(ImagingExtractor):
+    """An auxiliar extractor to get data from a single Miniscope video (.avi) file.
+
+    This format consists of a single video (.avi)
+    Multiple _MiniscopeSingleVideoExtractor are combined by downstream extractors to extract the data
     """
 
-    extractor_name = "_MiniscopeImaging"
+    extractor_name = "_MiniscopeSingleVideo"
 
     def __init__(self, file_path: PathType):
-        """Create a _MiniscopeImagingExtractor instance from a file path.
+        """Create a _MiniscopeSingleVideoExtractor instance from a file path.
 
         Parameters
         ----------
