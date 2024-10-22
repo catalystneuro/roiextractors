@@ -11,6 +11,7 @@
 ### Improvements
 * Removed unnecessary import checks for scipy, h5py, and zarr [PR #364](https://github.com/catalystneuro/roiextractors/pull/364)
 * Improved the error message for the `set_timestamps` method in the `ImagingExtractor` class[PR #377](https://github.com/catalystneuro/roiextractors/pull/377)
+* Renamed `MiniscopeImagingExtractor` to`MiniscopeMultiRecordingImagingExtractor` class[PR #374](https://github.com/catalystneuro/roiextractors/pull/374)
 
 ### Testing
 

@@ -10,6 +10,7 @@ import json
 import re
 from pathlib import Path
 from typing import Optional, Tuple, List
+import warnings
 
 import numpy as np
 
@@ -49,7 +50,7 @@ class MiniscopeMultiRecordingImagingExtractor(MultiImagingExtractor):
     as a unified, continuous dataset.
     """
 
-    extractor_name = "MiniscopeMultiImaging"
+    extractor_name = "MiniscopeMultiRecordingImagingExtractor"
     is_writable = True
     mode = "folder"
 
@@ -90,7 +91,15 @@ class MiniscopeMultiRecordingImagingExtractor(MultiImagingExtractor):
 
 
 # Temporary renaming to keep backwards compatibility
-MiniscopeImagingExtractor = MiniscopeMultiRecordingImagingExtractor
+class MiniscopeImagingExtractor(MiniscopeMultiRecordingImagingExtractor):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            "MiniscopeImagingExtractor is unstable and might change its signature. "
+            "Please use MiniscopeMultiRecordingImagingExtractor instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(*args, **kwargs)
 
 
 class _MiniscopeSingleVideoExtractor(ImagingExtractor):
