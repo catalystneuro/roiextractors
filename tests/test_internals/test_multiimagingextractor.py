@@ -116,11 +116,13 @@ class TestMultiImagingExtractor(TestCase):
         assert_array_equal(test_frames, expected_frames)
 
     def test_set_incorrect_times(self):
-        with self.assertRaisesWith(
-            exc_type=AssertionError,
-            exc_msg="'times' should have the same length of the number of frames!",
-        ):
+        with self.assertRaises(ValueError) as cm:
             self.multi_imaging_extractor.set_times(times=np.arange(0, 10) / 30.0)
+        self.assertEqual(
+            str(cm.exception),
+            "Mismatch between the number of frames and timestamps: 30 frames, but 10 timestamps provided. "
+            "Ensure the length of 'times' matches the number of frames.",
+        )
 
         self.assertEqual(self.multi_imaging_extractor._times, None)
 
