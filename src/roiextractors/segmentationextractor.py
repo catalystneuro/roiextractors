@@ -476,6 +476,9 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
         if hasattr(self._parent_segmentation, "_image_masks"):  # otherwise, do not set attribute at all
             self._image_masks = self._parent_segmentation._image_masks
 
+        if hasattr(self._parent_segmentation, "_background_image_masks"):  # otherwise, do not set attribute at all
+            self._background_image_masks = self._parent_segmentation._background_image_masks
+
         parent_size = self._parent_segmentation.get_num_frames()
         if start_frame is None:
             start_frame = 0
@@ -530,6 +533,9 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
     def get_num_rois(self) -> int:
         return self._parent_segmentation.get_num_rois()
 
+    def get_num_background_components(self) -> int:
+        return self._parent_segmentation.get_num_background_components()
+
     def get_images_dict(self) -> dict:
         return self._parent_segmentation.get_images_dict()
 
@@ -550,3 +556,6 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
 
     def get_roi_pixel_masks(self, roi_ids: Optional[ArrayLike] = None) -> List[np.ndarray]:
         return self._parent_segmentation.get_roi_pixel_masks(roi_ids=roi_ids)
+
+    def get_background_pixel_masks(self, background_ids: Optional[ArrayLike] = None) -> List[np.ndarray]:
+        return self._parent_segmentation.get_background_pixel_masks(background_ids=background_ids)
