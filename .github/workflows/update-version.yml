@@ -18,19 +18,20 @@ jobs:
         run: |
           git fetch --prune --unshallow --tags
           IFS=$'\n' read -rd '' -a tags <<<"$(git tag --list --sort version:refname)"
-          latest_tag=${y[${#y[@]} - 1]}
-          old_version="${latest_tag:1}"
-          echo "Old Version: $old_version"
-          IFS=$'.' read -rd '' -a split_old_version <<<"$old_version"
-          old_major_version=${split_old_version[0]}
-          old_minor_version=${split_old_version[1]}
-          old_patch_version=${split_old_version[2]}
-          new_patch_version=`expr $old_patch_version + 1`
-          new_version="$old_major_version.$old_minor_version.$new_patch_version"
-          echo "New Version: $new_version"
-          sed -i -e "s/version=\"$old_version\"/version=\"$new_version\"/g" setup.py
-          echo "old_version=$old_version" >> "$GITHUB_ENV"
-          echo "new_version=$new_version" >> "$GITHUB_ENV"
+          echo $tags
+          # latest_tag=${y[${#y[@]} - 1]}
+          # old_version="${latest_tag:1}"
+          # echo "Old Version: $old_version"
+          # IFS=$'.' read -rd '' -a split_old_version <<<"$old_version"
+          # old_major_version=${split_old_version[0]}
+          # old_minor_version=${split_old_version[1]}
+          # old_patch_version=${split_old_version[2]}
+          # new_patch_version=`expr $old_patch_version + 1`
+          # new_version="$old_major_version.$old_minor_version.$new_patch_version"
+          # echo "New Version: $new_version"
+          # sed -i -e "s/version=\"$old_version\"/version=\"$new_version\"/g" setup.py
+          # echo "old_version=$old_version" >> "$GITHUB_ENV"
+          # echo "new_version=$new_version" >> "$GITHUB_ENV"
       - name: Commit Changes and Create Pull Request
         run: |
           git config --global user.email 41898282+github-actions[bot]@users.noreply.github.com
