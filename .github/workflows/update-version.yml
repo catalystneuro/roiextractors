@@ -32,7 +32,7 @@ jobs:
           sed -i -e "s/version=\"$old_version\"/version=\"$new_version\"/g" setup.py
           echo "old_version=$old_version" >> "$GITHUB_ENV"
           echo "new_version=$new_version" >> "$GITHUB_ENV"
-        shell: bash 
+        shell: bash
       - name: Commit Changes and Create Pull Request
         run: |
           git config --global user.email 41898282+github-actions[bot]@users.noreply.github.com
