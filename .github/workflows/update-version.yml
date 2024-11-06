@@ -17,11 +17,11 @@ jobs:
       - name: Update dev version
         run: |
           git fetch --prune --unshallow --tags
-          tags=("${(@f)$(git tag --list --sort version:refname)}")
-          latest_tag=${tags[-1]}
+          IFS=$'\n' read -rd '' -a tags <<<"$(git tag --list --sort version:refname)"
+          latest_tag=${y[${#y[@]} - 1]}
           old_version="${latest_tag:1}"
           echo "Old Version: $old_version"
-          split_old_version=("${(@s:.:)old_version}")
+          IFS=$'.' read -rd '' -a split_old_version <<<"$old_version"
           old_major_version=${split_old_version[0]}
           old_minor_version=${split_old_version[1]}
           old_patch_version=${split_old_version[2]}
