@@ -1,4 +1,11 @@
-# Upcoming (v0.5.10)
+# Upcoming (v0.5.11)
+
+### Features
+
+### Fixes
+
+
+# v0.5.10
 
 ### Features
 * Added a seed to dummy generators [#361](https://github.com/catalystneuro/roiextractors/pull/361)
@@ -14,7 +21,6 @@
 * Improved the error message for the `set_timestamps` method in the `ImagingExtractor` class[PR #377](https://github.com/catalystneuro/roiextractors/pull/377)
 * Renamed `MiniscopeImagingExtractor` to`MiniscopeMultiRecordingImagingExtractor` class[PR #374](https://github.com/catalystneuro/roiextractors/pull/374)
 
-### Testing
 
 # v0.5.9
 
