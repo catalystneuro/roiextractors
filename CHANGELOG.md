@@ -5,7 +5,7 @@
 ### Fixes
 
 
-# v0.5.10
+# v0.5.10 (November 6th, 2024)
 
 ### Features
 * Added a seed to dummy generators [#361](https://github.com/catalystneuro/roiextractors/pull/361)
