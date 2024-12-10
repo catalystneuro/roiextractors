@@ -2,8 +2,7 @@ import os
 import tempfile
 from pathlib import Path
 from shutil import copy
-
-from neuroconv.utils import load_dict_from_file
+import json
 
 # Output by default to a temporary directory
 OUTPUT_PATH = Path(tempfile.mkdtemp())
@@ -28,7 +27,10 @@ else:
         test_config_path.parent.mkdir(parents=True, exist_ok=True)
         copy(src=base_test_config_path, dst=test_config_path)
 
-    test_config_dict = load_dict_from_file(test_config_path)
+    with open(file=test_config_path) as f:
+        # Load the configuration for the data tests
+        test_config_dict = json.load(f)
+
     LOCAL_PATH = Path(test_config_dict["LOCAL_PATH"])
 
     if test_config_dict["SAVE_OUTPUTS"]:
