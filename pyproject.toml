@@ -62,7 +62,7 @@ test = [
     "spikeinterface>=0.100.7",
     "pytest-xdist"
 ]
-rtd = [
+docs = [
     "Jinja2",
     "Sphinx",
     "sphinx_rtd_theme",
