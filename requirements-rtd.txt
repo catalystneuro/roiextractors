@@ -1,7 +1,0 @@
-Jinja2
-Sphinx
-sphinx_rtd_theme
-readthedocs-sphinx-search
-sphinx-toggleprompt
-sphinx-copybutton
-pydata_sphinx_theme
