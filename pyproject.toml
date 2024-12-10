@@ -1,3 +1,90 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "roiextractors"
+version = "0.5.11"
+description = "Python module for extracting optical physiology ROIs and traces for various file types and formats"
+readme = "README.md"
+license = { file = "LICENSE.txt" }
+authors = [
+    { name = "Heberto Mayorquin" },
+    { name = "Szonja Weigl" },
+    { name = "Cody Baker" },
+    { name = "Ben Dichter", email = "ben.dichter@gmail.com" },
+    { name = "Alessio Buccino" },
+    { name = "Paul Adkisson" },
+    { name = "Alessandra Trapani" }
+]
+keywords = ["ROI", "extraction", "optical physiology"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering"
+]
+urls = { Homepage = "https://github.com/catalystneuro/roiextractors" }
+
+requires-python = ">=3.7"
+
+dependencies = [
+  "h5py>=2.10.0",
+  "pynwb>=2.0.1",
+  "tqdm>=4.48.2",
+  "lazy_ops>=0.2.0",
+  "dill>=0.3.2",
+  "scipy>=1.5.2",
+  "psutil>=5.8.0",
+  "PyYAML",
+  "lxml",
+  "packaging"
+]
+
+[project.optional-dependencies]
+full = [
+    "tifffile>=2018.10.18",
+    "scanimage-tiff-reader>=1.4.1.4",
+    "neuroconv[video]>=0.4.6",
+    "opencv-python-headless>=4.8.1.78",
+    "natsort>=8.3.1",
+    "isx>=1.0.4"
+]
+test = [
+    "pytest",
+    "pytest-cov",
+    "parameterized==0.8.1",
+    "spikeinterface>=0.100.7",
+    "pytest-xdist"
+]
+rtd = [
+    "Jinja2",
+    "Sphinx",
+    "sphinx_rtd_theme",
+    "readthedocs-sphinx-search",
+    "sphinx-toggleprompt",
+    "sphinx-copybutton",
+    "pydata_sphinx_theme"
+]
+
+[tool.setuptools]
+packages-find = { where = ["src"] }
+include-package-data = true
+
+[tool.setuptools.packages]
+package-dir = { "" = "src" }
+
+[tool.setuptools.manifest]
+include = ["LICENSE.txt", "README.md"]
+recursive-exclude = ["tests", "__pycache__", "*.py[co]"]
+
+
 
 [tool.black]
 line-length = 120
