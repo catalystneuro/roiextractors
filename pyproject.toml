@@ -44,12 +44,6 @@ dependencies = [
   "packaging"
 ]
 
-[project.urls]
-"Homepage" = "https://github.com/catalystneuro/roiextractors"
-"Documentation" = "https://roiextractors.readthedocs.io//"
-"Changelog" = "https://github.com/catalystneuro/roiextractors/blob/main/CHANGELOG.md"
-
-
 [project.optional-dependencies]
 full = [
     "tifffile>=2018.10.18",
@@ -75,6 +69,11 @@ docs = [
     "sphinx-copybutton",
     "pydata_sphinx_theme"
 ]
+
+[project.urls]
+"Homepage" = "https://github.com/catalystneuro/roiextractors"
+"Documentation" = "https://roiextractors.readthedocs.io//"
+"Changelog" = "https://github.com/catalystneuro/roiextractors/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["src"]
