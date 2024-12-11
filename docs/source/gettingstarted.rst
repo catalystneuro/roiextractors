@@ -9,17 +9,23 @@ Installation
 
        $ pip install roiextractors
 
-#. You can check for any missing packages by explicitly installing from the `requirements <https://github.com/catalystneuro/roiextractors/blob/master/requirements.txt/>`_ file:
-    .. code-block:: shell
-
-        $ pip install -r requirements.txt
 
 #. **Cloning the github repo**:
     .. code-block:: shell
 
         $ git clone https://github.com/SpikeInterface/spikeinterface.git
         $ cd spikeinterface
-        $ python setup.py install (or develop)
+        $ pip install --editable .
+
+You can also install the optional dependencies by installing the package with the following command:
+
+.. code-block:: shell
+
+    $ pip install "roiextractors[full]"
+    $ pip install "roiextractors[test]"
+    $ pip install "roiextractors[docs]"
+
+These commands install the full, test, and documentation dependencies, respectively.
 
 What is RoiExtractors
 ---------------------
