@@ -29,7 +29,12 @@ classifiers = [
     "Operating System :: MacOS",
     "License :: OSI Approved :: BSD License",
 ]
-urls = { Homepage = "https://github.com/catalystneuro/roiextractors" }
+urls = { Homepage =  }
+
+[project.urls]
+"Homepage" = "https://github.com/catalystneuro/roiextractors"
+"Documentation" = "https://roiextractors.readthedocs.io//"
+"Changelog" = "https://github.com/catalystneuro/roiextractors/blob/main/CHANGELOG.md"
 
 requires-python = ">=3.9"
 
