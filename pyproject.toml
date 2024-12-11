@@ -29,12 +29,6 @@ classifiers = [
     "Operating System :: MacOS",
     "License :: OSI Approved :: BSD License",
 ]
-
-[project.urls]
-"Homepage" = "https://github.com/catalystneuro/roiextractors"
-"Documentation" = "https://roiextractors.readthedocs.io//"
-"Changelog" = "https://github.com/catalystneuro/roiextractors/blob/main/CHANGELOG.md"
-
 requires-python = ">=3.9"
 
 dependencies = [
@@ -49,6 +43,12 @@ dependencies = [
   "lxml",
   "packaging"
 ]
+
+[project.urls]
+"Homepage" = "https://github.com/catalystneuro/roiextractors"
+"Documentation" = "https://roiextractors.readthedocs.io//"
+"Changelog" = "https://github.com/catalystneuro/roiextractors/blob/main/CHANGELOG.md"
+
 
 [project.optional-dependencies]
 full = [
