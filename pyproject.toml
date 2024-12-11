@@ -29,7 +29,6 @@ classifiers = [
     "Operating System :: MacOS",
     "License :: OSI Approved :: BSD License",
 ]
-urls = { Homepage =  }
 
 [project.urls]
 "Homepage" = "https://github.com/catalystneuro/roiextractors"
