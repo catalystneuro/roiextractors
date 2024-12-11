@@ -4,6 +4,9 @@
 
 ### Fixes
 
+## Improvements
+* Use `pyproject.toml` for project metadata and installation requirements [#382](https://github.com/catalystneuro/roiextractors/pull/382)
+
 
 # v0.5.10 (November 6th, 2024)
 
