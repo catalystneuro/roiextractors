@@ -10,6 +10,7 @@ NumpySegmentationExtractor
 
 from pathlib import Path
 from typing import Optional, Tuple
+from warnings import warn
 
 import numpy as np
 
@@ -113,6 +114,26 @@ class NumpyImagingExtractor(ImagingExtractor):
         return num_frames, num_rows, num_columns, num_channels
 
     def get_frames(self, frame_idxs=None, channel: Optional[int] = 0) -> np.ndarray:
+        """Get specific video frames from indices.
+
+        Parameters
+        ----------
+        frame_idxs: array-like, optional
+            Indices of frames to return. If None, returns all frames.
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        frames: numpy.ndarray
+            The video frames.
+        """
+        if channel != 0:
+            warn(
+                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if frame_idxs is None:
             frame_idxs = [frame for frame in range(self.get_num_frames())]
 
@@ -123,6 +144,28 @@ class NumpyImagingExtractor(ImagingExtractor):
         return frames
 
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+        """Get the video frames.
+
+        Parameters
+        ----------
+        start_frame: int, optional
+            Start frame index (inclusive).
+        end_frame: int, optional
+            End frame index (exclusive).
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        video: numpy.ndarray
+            The video frames.
+        """
+        if channel != 0:
+            warn(
+                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         return self._video[start_frame:end_frame, ..., channel]
 
     def get_image_size(self) -> Tuple[int, int]:

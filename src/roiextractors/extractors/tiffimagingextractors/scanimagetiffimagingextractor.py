@@ -562,8 +562,28 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extr
             )
 
     def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> np.ndarray:
-        ScanImageTiffReader = _get_scanimage_reader()
+        """Get specific video frames from indices.
 
+        Parameters
+        ----------
+        frame_idxs: array-like
+            Indices of frames to return.
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        frames: numpy.ndarray
+            The video frames.
+        """
+        if channel != 0:
+            warn(
+                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+        ScanImageTiffReader = _get_scanimage_reader()
         squeeze_data = False
         if isinstance(frame_idxs, int):
             squeeze_data = True
@@ -599,8 +619,30 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extr
             return io.data(beg=idx, end=idx + 1)
 
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
-        ScanImageTiffReader = _get_scanimage_reader()
+        """Get the video frames.
 
+        Parameters
+        ----------
+        start_frame: int, optional
+            Start frame index (inclusive).
+        end_frame: int, optional
+            End frame index (exclusive).
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        video: numpy.ndarray
+            The video frames.
+        """
+        if channel != 0:
+            warn(
+                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+        ScanImageTiffReader = _get_scanimage_reader()
         with ScanImageTiffReader(filename=str(self.file_path)) as io:
             return io.data(beg=start_frame, end=end_frame)
 
