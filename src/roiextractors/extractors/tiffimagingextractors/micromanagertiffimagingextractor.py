@@ -14,6 +14,7 @@ from itertools import islice
 from pathlib import Path
 from types import ModuleType
 from typing import Optional, Tuple, Dict
+from warnings import warn
 
 from xml.etree import ElementTree
 import numpy as np
@@ -231,8 +232,16 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
         return self._dtype
 
     def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
+        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
     ) -> np.ndarray:
+
+        if channel != 0:
+            warn(
+                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         if start_frame is not None and end_frame is not None and start_frame == end_frame:
             return self.pages[start_frame].asarray()
 

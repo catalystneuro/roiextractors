@@ -47,8 +47,16 @@ class InscopixImagingExtractor(ImagingExtractor):
         return 1
 
     def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
+        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
     ) -> np.ndarray:
+
+        if channel != 0:
+            warnings.warn(
+                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         start_frame = start_frame or 0
         end_frame = end_frame or self.get_num_frames()
         return np.array([self.movie.get_frame_data(i) for i in range(start_frame, end_frame)])
