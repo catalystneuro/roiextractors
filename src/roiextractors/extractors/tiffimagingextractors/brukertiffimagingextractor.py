@@ -278,6 +278,29 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
         return self._imaging_extractors[0].get_sampling_frequency() * self._num_planes_per_channel_stream
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
+        """Get specific frames from the video.
+
+        Parameters
+        ----------
+        frame_idxs: ArrayType
+            The indices of the frames to get.
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        frames: numpy.ndarray
+            The requested frames.
+        """
+        if channel != 0:
+            from warnings import warn
+
+            warn(
+                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         if isinstance(frame_idxs, (int, np.integer)):
             frame_idxs = [frame_idxs]
         frame_idxs = np.array(frame_idxs)
@@ -294,7 +317,35 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
     ) -> np.ndarray:
+        """Get a chunk of video.
+
+        Parameters
+        ----------
+        start_frame: int, optional
+            Start frame index (inclusive).
+        end_frame: int, optional
+            End frame index (exclusive).
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        video: numpy.ndarray
+            The video chunk.
+
+        Raises
+        ------
+        NotImplementedError
+            If channel is not 0, as multiple channels are not yet supported.
+        """
         if channel != 0:
+            from warnings import warn
+
+            warn(
+                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             raise NotImplementedError(
                 f"MultiImagingExtractors for multiple channels have not yet been implemented! (Received '{channel}'."
             )
