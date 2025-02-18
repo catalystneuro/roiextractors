@@ -7,6 +7,7 @@ MemmapImagingExtractor
 """
 
 from pathlib import Path
+from warnings import warn
 
 import numpy as np
 import psutil
@@ -38,6 +39,27 @@ class MemmapImagingExtractor(ImagingExtractor):
         super().__init__()
 
     def get_frames(self, frame_idxs=None, channel: Optional[int] = 0) -> np.ndarray:
+        """Get specific video frames from indices.
+
+        Parameters
+        ----------
+        frame_idxs: array-like, optional
+            Indices of frames to return. If None, returns all frames.
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        frames: numpy.ndarray
+            The video frames.
+        """
+        if channel != 0:
+            warn(
+                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         if frame_idxs is None:
             frame_idxs = [frame for frame in range(self.get_num_frames())]
 
@@ -50,6 +72,28 @@ class MemmapImagingExtractor(ImagingExtractor):
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
     ) -> np.ndarray:
+        """Get the video frames.
+
+        Parameters
+        ----------
+        start_frame: int, optional
+            Start frame index (inclusive).
+        end_frame: int, optional
+            End frame index (exclusive).
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        video: numpy.ndarray
+            The video frames.
+        """
+        if channel != 0:
+            warn(
+                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         frame_idxs = range(start_frame, end_frame)
         return self.get_frames(frame_idxs=frame_idxs, channel=channel)
 

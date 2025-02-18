@@ -11,6 +11,7 @@ FrameSliceImagingExtractor
 from abc import ABC, abstractmethod
 from typing import Union, Optional, Tuple
 from copy import deepcopy
+import warnings
 
 import numpy as np
 
@@ -104,7 +105,7 @@ class ImagingExtractor(ABC):
         end_frame: int, optional
             End frame index (exclusive).
         channel: int, optional
-            Channel index.
+            Channel index. Deprecated: This parameter will be removed in August 2025.
 
         Returns
         -------
@@ -125,6 +126,12 @@ class ImagingExtractor(ABC):
 
         Where x is the columns width or and y is the rows or height.
         """
+        if channel != 0:
+            warnings.warn(
+                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         pass
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
@@ -135,13 +142,19 @@ class ImagingExtractor(ABC):
         frame_idxs: array-like
             Indices of frames to return.
         channel: int, optional
-            Channel index.
+            Channel index. Deprecated: This parameter will be removed in August 2025.
 
         Returns
         -------
         frames: numpy.ndarray
             The video frames.
         """
+        if channel != 0:
+            warnings.warn(
+                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         assert max(frame_idxs) <= self.get_num_frames(), "'frame_idxs' exceed number of frames"
         if np.all(np.diff(frame_idxs) == 0):
             return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1])
