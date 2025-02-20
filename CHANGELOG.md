@@ -6,7 +6,7 @@
 * Use tifffile.imwrite instead of tifffile.imsave for TiffImagingExtractor: [#390](https://github.com/catalystneuro/roiextractors/pull/390)
 
 ### Deprecations
-* The 'channel' parameter in get_frames() and get_video() methods is deprecated and will be removed in August 2025.
+* The 'channel' parameter in get_frames() and get_video() methods is deprecated and will be removed in August 2025.  [#388](https://github.com/catalystneuro/roiextractors/pull/388)
 
 ### Improvements
 * Use `pyproject.toml` for project metadata and installation requirements [#382](https://github.com/catalystneuro/roiextractors/pull/382)

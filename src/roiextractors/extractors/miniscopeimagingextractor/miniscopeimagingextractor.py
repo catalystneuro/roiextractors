@@ -152,7 +152,7 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
         return ["OpticalChannel"]
 
     def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
+        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
     ) -> np.ndarray:
         """Get the video frames.
 

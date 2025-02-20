@@ -10,6 +10,7 @@ from collections import defaultdict
 from typing import Tuple, List, Iterable, Optional
 
 import numpy as np
+import warnings
 
 from .extraction_tools import ArrayType, NumpyArray
 from .imagingextractor import ImagingExtractor
