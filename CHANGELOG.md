@@ -3,6 +3,7 @@
 ### Features
 
 ### Fixes
+* Use tifffile.imwrite instead of tifffile.imsave for TiffImagingExtractor: [#390](https://github.com/catalystneuro/roiextractors/pull/390)
 
 ### Deprecations
 * The 'channel' parameter in get_frames() and get_video() methods is deprecated and will be removed in August 2025.
