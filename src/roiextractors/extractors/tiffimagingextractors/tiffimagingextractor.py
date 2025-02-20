@@ -184,7 +184,7 @@ class TiffImagingExtractor(ImagingExtractor):
                 save_path.unlink()
 
         if chunk_size is None:
-            tifffile.imsave(save_path, imaging.get_video())
+            tifffile.imwrite(save_path, imaging.get_video())
         else:
             num_frames = imaging.get_num_frames()
             # chunk size is not None
