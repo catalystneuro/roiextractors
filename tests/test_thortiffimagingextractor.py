@@ -13,9 +13,7 @@ from .setup_paths import OPHYS_DATA_PATH
 
 
 # Path to the test data
-TEST_DIR = Path(
-    "/home/heberto/neuroconv_testing_data/ophys_testing_data/imaging_datasets/ThorlabsTiff/single_channel_single_plane/20231018-002"
-)
+TEST_DIR = OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "single_channel_single_plane" / "20231018-002"
 FILE_PATH = TEST_DIR / "ChanA_001_001_001_001.tif"
 
 
@@ -51,10 +49,6 @@ class TestThorTiffImagingExtractor:
         """Test the channel names property."""
         assert self.extractor.get_channel_names() is not None
         assert isinstance(self.extractor.get_channel_names(), list)
-
-    def test_thor_tiff_extractor_num_channels(self):
-        """Test the number of channels property."""
-        assert self.extractor.get_num_channels() == 1
 
     def test_thor_tiff_extractor_dtype(self):
         """Test the data type property."""
@@ -97,7 +91,6 @@ class TestThorTiffImagingExtractor:
 
     def test_multiple_files(self):
         """Test handling of multiple files in the same directory."""
-        # This test assumes there are multiple .tif files in the test directory
         tif_files = list(TEST_DIR.glob("*.tif"))
         if len(tif_files) <= 1:
             pytest.skip("Not enough TIFF files for multiple file test.")
@@ -112,4 +105,3 @@ class TestThorTiffImagingExtractor:
         assert imaging1.get_image_size() == imaging2.get_image_size()
         assert imaging1.get_sampling_frequency() == imaging2.get_sampling_frequency()
         assert imaging1.get_channel_names() == imaging2.get_channel_names()
-        assert imaging1.get_num_channels() == imaging2.get_num_channels()

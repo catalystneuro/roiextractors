@@ -152,7 +152,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
             self._channel_names = []
 
     @staticmethod
-    def _parse_ome_metadata(metadata_string: str) -> ET._Element:
+    def _parse_ome_metadata(metadata_string: str):
         """Parse an OME metadata string using lxml.etree.
 
         Removes XML comments if present and attempts to parse as bytes first.
