@@ -61,12 +61,18 @@ class TestThorTiffImagingExtractor:
         assert video.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
         assert video.dtype == self.test_data.dtype  # Same data type
 
+        # Compare with the entire test_data
+        assert_array_equal(video, self.test_data)
+
         # Test with start and end frame
         start_frame = 0
         end_frame = 2
         video_slice = self.extractor.get_video(start_frame=start_frame, end_frame=end_frame)
         assert video_slice.shape[0] == end_frame - start_frame  # Correct number of frames
         assert video_slice.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
+
+        # Compare with the corresponding slice of test_data
+        assert_array_equal(video_slice, self.test_data[start_frame:end_frame])
 
     def test_thor_tiff_extractor_get_frames(self):
         """Test the get_frames method."""
@@ -75,11 +81,19 @@ class TestThorTiffImagingExtractor:
         assert frames.shape[0] == len(frame_idxs)  # Correct number of frames
         assert frames.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
 
+        # Compare with frames extracted directly from the test_data
+        for i, frame_idx in enumerate(frame_idxs):
+            assert_array_equal(frames[i], self.test_data[frame_idx])
+
         # Test with non-consecutive frames
         frame_idxs = [0, 2]
         frames = self.extractor.get_frames(frame_idxs=frame_idxs)
         assert frames.shape[0] == len(frame_idxs)  # Correct number of frames
         assert frames.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
+
+        # Compare with frames extracted directly from the test_data
+        for i, frame_idx in enumerate(frame_idxs):
+            assert_array_equal(frames[i], self.test_data[frame_idx])
 
     def test_experiment_xml(self):
         """Test parsing of Experiment.xml."""
