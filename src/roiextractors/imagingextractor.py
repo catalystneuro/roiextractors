@@ -71,17 +71,6 @@ class ImagingExtractor(ABC):
         """
         pass
 
-    @abstractmethod
-    def get_num_channels(self) -> int:
-        """Get the total number of active channels in the recording.
-
-        Returns
-        -------
-        num_channels: int
-            Integer count of number of channels.
-        """
-        pass
-
     def get_dtype(self) -> DtypeType:
         """Get the data type of the video.
 
@@ -357,4 +346,9 @@ class FrameSliceImagingExtractor(ImagingExtractor):
         return self._parent_imaging.get_channel_names()
 
     def get_num_channels(self) -> int:
+        warnings.warn(
+            "get_num_channels() is deprecated and will be removed in or after August 2025.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._parent_imaging.get_num_channels()

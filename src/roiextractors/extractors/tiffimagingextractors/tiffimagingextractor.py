@@ -144,6 +144,11 @@ class TiffImagingExtractor(ImagingExtractor):
         return self._sampling_frequency
 
     def get_num_channels(self):
+        warn(
+            "get_num_channels() is deprecated and will be removed in or after August 2025.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._num_channels
 
     def get_channel_names(self):

@@ -1,6 +1,7 @@
 """Base class definition for volumetric imaging extractors."""
 
 from typing import Tuple, List, Iterable, Optional
+import warnings
 import numpy as np
 
 from .extraction_tools import ArrayType, DtypeType
@@ -164,6 +165,11 @@ class VolumetricImagingExtractor(ImagingExtractor):
         return self._imaging_extractors[0].get_channel_names()
 
     def get_num_channels(self) -> int:
+        warnings.warn(
+            "get_num_channels() is deprecated and will be removed in or after August 2025.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._imaging_extractors[0].get_num_channels()
 
     def get_dtype(self) -> DtypeType:
