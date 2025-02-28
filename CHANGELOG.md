@@ -10,6 +10,7 @@
 
 ### Improvements
 * Use `pyproject.toml` for project metadata and installation requirements [#382](https://github.com/catalystneuro/roiextractors/pull/382)
+* Added __repr__ and _repr_html_ methods to ImagingExtractor for better display in terminals and Jupyter notebooks
 
 
 # v0.5.10 (November 6th, 2024)
