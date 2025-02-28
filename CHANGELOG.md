@@ -7,7 +7,7 @@
 
 ### Deprecations
 * The 'channel' parameter in get_frames() and get_video() methods is deprecated and will be removed in August 2025.  [#388](https://github.com/catalystneuro/roiextractors/pull/388)
-* Removed get_num_channels from the ImagingExtractor abstract class. Implementations remain in concrete classes.
+* Removed get_num_channels from the ImagingExtractor abstract class. Implementations remain in concrete classes. [#392](https://github.com/catalystneuro/roiextractors/pull/392)
 
 ### Improvements
 * Use `pyproject.toml` for project metadata and installation requirements [#382](https://github.com/catalystneuro/roiextractors/pull/382)
