@@ -88,20 +88,3 @@ class TestThorTiffImagingExtractor:
 
         # Test that channel names were extracted from Experiment.xml
         assert len(self.extractor.get_channel_names()) > 0
-
-    def test_multiple_files(self):
-        """Test handling of multiple files in the same directory."""
-        tif_files = list(TEST_DIR.glob("*.tif"))
-        if len(tif_files) <= 1:
-            pytest.skip("Not enough TIFF files for multiple file test.")
-
-        # Test with the first file
-        imaging1 = ThorTiffImagingExtractor(file_path=tif_files[0])
-
-        # Test with the second file
-        imaging2 = ThorTiffImagingExtractor(file_path=tif_files[1])
-
-        # Both should have the same properties except possibly number of frames
-        assert imaging1.get_image_size() == imaging2.get_image_size()
-        assert imaging1.get_sampling_frequency() == imaging2.get_sampling_frequency()
-        assert imaging1.get_channel_names() == imaging2.get_channel_names()

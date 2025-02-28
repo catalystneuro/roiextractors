@@ -53,29 +53,29 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         self._parse_experiment_xml()
 
         # Open the TIFF file to extract OME metadata and series information.
-        with tifffile.TiffFile(self.file_path) as tiff_reader:
-            self._ome_metadata = tiff_reader.ome_metadata
-            ome_root = self._parse_ome_metadata(self._ome_metadata)
-            pixels_element = ome_root.find(".//{*}Pixels")
-            if pixels_element is None:
-                raise ValueError("Could not find 'Pixels' element in OME metadata.")
+        # Keep the file reference open instead of using a context manager
+        self._tiff_reader = tifffile.TiffFile(self.file_path)
+        self._ome_metadata = self._tiff_reader.ome_metadata
+        ome_root = self._parse_ome_metadata(self._ome_metadata)
+        pixels_element = ome_root.find(".//{*}Pixels")
+        if pixels_element is None:
+            raise ValueError("Could not find 'Pixels' element in OME metadata.")
 
-            self._num_channels = int(pixels_element.get("SizeC", "1"))
-            self._num_frames = int(pixels_element.get("SizeT", "1"))
-            self._num_rows = int(pixels_element.get("SizeY"))
-            self._num_columns = int(pixels_element.get("SizeX"))
-            self._num_z = int(pixels_element.get("SizeZ", "1"))
-            self._dimension_order = pixels_element.get("DimensionOrder")
+        self._num_channels = int(pixels_element.get("SizeC", "1"))
+        self._num_frames = int(pixels_element.get("SizeT", "1"))
+        self._num_rows = int(pixels_element.get("SizeY"))
+        self._num_columns = int(pixels_element.get("SizeX"))
+        self._num_z = int(pixels_element.get("SizeZ", "1"))
+        self._dimension_order = pixels_element.get("DimensionOrder")
 
-            # Series is a concept from the tifffile library.
-            # It indexes all the data across pages and files
-            series = tiff_reader.series[0]
-            self._dtype = series.dtype
-            number_of_pages = len(series)
-            series_axes = (
-                series.axes
-            )  # "XYZTC" or "XYCZT" Note this is different from OME metadata as this is data layout
-            series_shape = series.shape
+        # Series is a concept from the tifffile library.
+        # It indexes all the data across pages and files
+        series = self._tiff_reader.series[0]
+        self._dtype = series.dtype
+        number_of_pages = len(series)
+        series_axes = series.axes
+        # "XYZTC" or "XYCZT" Note this is different from OME metadata as this is data layout
+        series_shape = series.shape
 
         # Determine non-spatial axes (remove X and Y).
         non_spatial_axes = [axis for axis in series_axes if axis not in ("X", "Y")]
@@ -182,48 +182,48 @@ class ThorTiffImagingExtractor(ImagingExtractor):
             Array of shape (n_frames, height, width) if no depth, or
             (n_frames, height, width, n_z) if a Z dimension exists.
         """
-        with tifffile.TiffFile(self.file_path) as tiff_reader:
-            series = tiff_reader.series[0]
-            data_type = series.dtype
-            image_height = self._num_rows
-            image_width = self._num_columns
+        # Use the stored tiff_reader instead of opening a new one
+        series = self._tiff_reader.series[0]
+        data_type = series.dtype
+        image_height = self._num_rows
+        image_width = self._num_columns
 
-            has_z_dimension = self._z_axis_index is not None and self._num_z > 1
-            number_of_z_planes = self._num_z if has_z_dimension else 1
+        has_z_dimension = self._z_axis_index is not None and self._num_z > 1
+        number_of_z_planes = self._num_z if has_z_dimension else 1
 
-            n_frames = len(frame_idxs)
-            output_shape = (
-                (n_frames, image_height, image_width, number_of_z_planes)
-                if has_z_dimension
-                else (n_frames, image_height, image_width)
-            )
-            output_array = np.empty(output_shape, dtype=data_type)
+        n_frames = len(frame_idxs)
+        output_shape = (
+            (n_frames, image_height, image_width, number_of_z_planes)
+            if has_z_dimension
+            else (n_frames, image_height, image_width)
+        )
+        output_array = np.empty(output_shape, dtype=data_type)
 
-            for frame_counter, frame_idx in enumerate(frame_idxs):
-                if frame_idx not in self._frame_page_mapping:
-                    raise ValueError(f"No pages found for frame {frame_idx}.")
-                page_mappings = self._frame_page_mapping[frame_idx]
+        for frame_counter, frame_idx in enumerate(frame_idxs):
+            if frame_idx not in self._frame_page_mapping:
+                raise ValueError(f"No pages found for frame {frame_idx}.")
+            page_mappings = self._frame_page_mapping[frame_idx]
 
-                # Filter by channel if a channel name was provided.
-                if self._channel_axis_index is not None and self.channel_name is not None:
-                    filter_index = self._channel_index_for_filter
-                    page_mappings = [m for m in page_mappings if m.channel_index == filter_index]
+            # Filter by channel if a channel name was provided.
+            if self._channel_axis_index is not None and self.channel_name is not None:
+                filter_index = self._channel_index_for_filter
+                page_mappings = [m for m in page_mappings if m.channel_index == filter_index]
 
-                if has_z_dimension:
-                    page_mappings.sort(key=lambda entry: entry.depth_index)
-                    if len(page_mappings) != number_of_z_planes:
-                        raise ValueError(
-                            f"Expected {number_of_z_planes} pages for frame {frame_idx} but got {len(page_mappings)}."
-                        )
-                    for depth_counter, mapping_entry in enumerate(page_mappings):
-                        page_data = series.pages[mapping_entry.page_index].asarray()
-                        output_array[frame_counter, :, :, depth_counter] = page_data
-                else:
-                    if len(page_mappings) != 1:
-                        raise ValueError(f"Expected 1 page for frame {frame_idx} but got {len(page_mappings)}.")
-                    single_page_index = page_mappings[0].page_index
-                    page_data = series.pages[single_page_index].asarray()
-                    output_array[frame_counter, :, :] = page_data
+            if has_z_dimension:
+                page_mappings.sort(key=lambda entry: entry.depth_index)
+                if len(page_mappings) != number_of_z_planes:
+                    raise ValueError(
+                        f"Expected {number_of_z_planes} pages for frame {frame_idx} but got {len(page_mappings)}."
+                    )
+                for depth_counter, mapping_entry in enumerate(page_mappings):
+                    page_data = series.pages[mapping_entry.page_index].asarray()
+                    output_array[frame_counter, :, :, depth_counter] = page_data
+            else:
+                if len(page_mappings) != 1:
+                    raise ValueError(f"Expected 1 page for frame {frame_idx} but got {len(page_mappings)}.")
+                single_page_index = page_mappings[0].page_index
+                page_data = series.pages[single_page_index].asarray()
+                output_array[frame_counter, :, :] = page_data
 
         return output_array
 
@@ -259,3 +259,8 @@ class ThorTiffImagingExtractor(ImagingExtractor):
     def get_dtype(self):
         """Return the data type of the video."""
         return self._dtype
+
+    def __del__(self):
+        """Close the tiff_reader when the object is garbage collected."""
+        if hasattr(self, "_tiff_reader"):
+            self._tiff_reader.close()
