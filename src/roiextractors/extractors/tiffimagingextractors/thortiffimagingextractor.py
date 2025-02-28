@@ -14,13 +14,20 @@ from ...imagingextractor import ImagingExtractor
 
 class ThorTiffImagingExtractor(ImagingExtractor):
     """
-    An ImagingExtractor for multiple TIFF files using OME metadata.
+    An ImagingExtractor for TIFF files exported files exported with the `ThorImage` software.
+
+    Note that is possible that the data is acquired with a Thor microscope but not with the ThorImage software and
+    this extractor will not work in that case.
+
+    The ThorImage software exports TIFF files following (loosely) the OME-TIFF standard. Plus, there is a file
+    `Experiment.xml` that contains metadata about the acquisition. This extractor reads the TIFF file and the
+    `Experiment.xml` file to extract the image data and metadata.
 
     This extractor builds a mapping between the T (time) dimension and the corresponding
-    pages/IFD or the tiff files using a named tuple structure:
+    pages/IFDs of the TIFF files using a named tuple structure:
 
-    For each time frame (T), we record a list of PageMapping objects that corresponds to the
-    pages of the tiff file that contain the image data for that frame.
+    For each time frame (T), we record a list of PageMapping objects that correspond to the
+    pages of the TIFF file that contain the image data for that frame.
 
     Each PageMapping object contains:
       - page_index: The index of the page in the TIFF file (which holds the complete X and Y image data),
@@ -147,9 +154,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
                 self._channel_names = [self._channel_names[self._channel_index_for_filter]]
                 self._num_channels = 1
         else:
-            # If Experiment.xml is missing, set defaults.
-            self._sampling_frequency = None
-            self._channel_names = []
+            raise ValueError(f"Experiment.xml file not found in {self.folder_path}.")
 
     @staticmethod
     def _parse_ome_metadata(metadata_string: str):
@@ -180,7 +185,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         -------
         np.ndarray
             Array of shape (n_frames, height, width) if no depth, or
-            (n_frames, height, width, n_z) if a Z dimension exists.
+            (n_frames, height, width, planes) if a Z dimension exists.
         """
         # Use the stored tiff_reader instead of opening a new one
         series = self._tiff_reader.series[0]
