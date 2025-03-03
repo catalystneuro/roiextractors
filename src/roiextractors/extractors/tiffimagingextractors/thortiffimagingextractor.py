@@ -7,7 +7,6 @@ import warnings
 import xml.etree.ElementTree as ET
 
 import numpy as np
-import tifffile
 
 from ...imagingextractor import ImagingExtractor
 
@@ -61,6 +60,8 @@ class ThorTiffImagingExtractor(ImagingExtractor):
 
         # Open the TIFF file to extract OME metadata and series information.
         # Keep the file reference open instead of using a context manager
+        import tifffile
+
         self._tiff_reader = tifffile.TiffFile(self.file_path)
         self._ome_metadata = self._tiff_reader.ome_metadata
         ome_root = self._parse_ome_metadata(self._ome_metadata)
