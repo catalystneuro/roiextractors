@@ -110,6 +110,22 @@ class MemmapImagingExtractor(ImagingExtractor):
         pass
 
     def get_num_channels(self) -> int:
+        """Get the total number of active channels in the recording.
+
+        Returns
+        -------
+        num_channels: int
+            Integer count of number of channels.
+
+        Deprecated
+        ----------
+        This method will be removed in or after August 2025.
+        """
+        warn(
+            "get_num_channels() is deprecated and will be removed in or after August 2025.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._num_channels
 
     def get_dtype(self) -> DtypeType:
