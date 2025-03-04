@@ -127,7 +127,7 @@ class SbxImagingExtractor(ImagingExtractor):
             info["resfreq"] / info["config"]["lines"] * (2 - info["scanmode"]) * info["fov_repeats"]
         )
         # SIMA:
-        info["nsamples"] = info["sz"][1] * info["recordsPerBuffer"] * info["nChan"] * 2
+        info["nsamples"] = int(info["sz"][1]) * int(info["recordsPerBuffer"]) * int(info["nChan"] * 2)
         # SIMA:
         if ("volscan" in info and info["volscan"] > 0) or ("volscan" not in info and len(info.get("otwave", []))):
             info["nplanes"] = len(info["otwave"])
@@ -135,7 +135,7 @@ class SbxImagingExtractor(ImagingExtractor):
             info["nplanes"] = 1
         # SIMA:
         if info.get("scanbox_version", -1) >= 2:
-            info["max_idx"] = os.path.getsize(self.sbx_file_path) // info["nsamples"] - 1
+            info["max_idx"] = os.path.getsize(self.sbx_file_path) // int(info["nsamples"]) - 1
         else:
             info["max_idx"] = os.path.getsize(self.sbx_file_path) // info["bytesPerBuffer"] * factor - 1
         # SIMA: Fix for old scanbox versions
@@ -152,7 +152,7 @@ class SbxImagingExtractor(ImagingExtractor):
             The numpy array containing the data from the `.sbx` file.
         """
         nrows = self._info["recordsPerBuffer"]
-        ncols = self._info["sz"][1]
+        ncols = int(self._info["sz"][1])
         nchannels = self._info["nChan"]
         nplanes = self._info["nplanes"]
         nframes = (self._info["max_idx"] + 1) // nplanes
