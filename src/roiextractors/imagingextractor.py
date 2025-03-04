@@ -84,18 +84,24 @@ class ImagingExtractor(ABC):
             return f"{hours:.1f}h"
 
     def _convert_bytes_to_str(self, size_in_bytes):
-        """Convert bytes to a human-readable string."""
+        """
+        Convert bytes to a human-readable string.
+
+        Convert bytes to a human-readable string using IEC binary prefixes (KiB, MiB, GiB).
+        Note that RAM memory is typically measured in IEC binary prefixes  while disk storage is typically
+        measured in SI binary prefixes.
+        """
         if size_in_bytes < 1024:
             return f"{size_in_bytes}B"
         elif size_in_bytes < 1024 * 1024:
             size_kb = size_in_bytes / 1024
-            return f"{size_kb:.1f}KB"
+            return f"{size_kb:.1f}KiB"
         elif size_in_bytes < 1024 * 1024 * 1024:
             size_mb = size_in_bytes / (1024 * 1024)
-            return f"{size_mb:.1f}MB"
+            return f"{size_mb:.1f}MiB"
         else:
             size_gb = size_in_bytes / (1024 * 1024 * 1024)
-            return f"{size_gb:.1f}GB"
+            return f"{size_gb:.1f}GiB"
 
     @abstractmethod
     def get_image_size(self) -> Tuple[int, int]:
