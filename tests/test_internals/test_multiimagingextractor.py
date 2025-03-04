@@ -107,7 +107,7 @@ class TestMultiImagingExtractor(TestCase):
             ],
             axis=0,
         )
-        assert_array_equal(x=test_video, y=expected_video)
+        assert_array_equal(test_video, expected_video)
 
     def test_get_video_single_frame(self):
         test_frames = self.multi_imaging_extractor.get_video(start_frame=10, end_frame=11)

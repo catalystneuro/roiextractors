@@ -177,7 +177,7 @@ class MemmapImagingExtractor(ImagingExtractor):
             type_size = np.dtype(dtype).itemsize
 
             n_channels = imaging.get_num_channels()
-            pixels_per_frame = n_channels * np.product(imaging.get_image_size())
+            pixels_per_frame = n_channels * np.prod(imaging.get_image_size())
             bytes_per_frame = type_size * pixels_per_frame
             frames_in_buffer = buffer_size_in_bytes // bytes_per_frame
 

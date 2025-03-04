@@ -64,7 +64,7 @@ class BaseTestFrameSlicesegmentation(TestCase):
         )
 
     def test_get_rejected_list(self):
-        return assert_array_equal(x=self.frame_sliced_segmentation.get_rejected_list(), y=[])
+        return assert_array_equal(self.frame_sliced_segmentation.get_rejected_list(), [])
 
     @parameterized.expand(
         [param(name="raw"), param(name="dff"), param(name="neuropil"), param(name="deconvolved")],
