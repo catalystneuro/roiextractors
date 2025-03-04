@@ -64,7 +64,7 @@ class BaseTestFrameSlicesegmentation(TestCase):
         )
 
     def test_get_rejected_list(self):
-        return assert_array_equal(x=self.frame_sliced_segmentation.get_rejected_list(), y=[])
+        return assert_array_equal(self.frame_sliced_segmentation.get_rejected_list(), [])
 
     @parameterized.expand(
         [param(name="raw"), param(name="dff"), param(name="neuropil"), param(name="deconvolved")],
@@ -128,7 +128,7 @@ def test_frame_slicing_segmentation_get_roi_pixel_masks_override():
     toy_segmentation_example.get_roi_pixel_masks = MethodType(get_roi_pixel_masks_override, toy_segmentation_example)
 
     frame_sliced_segmentation = toy_segmentation_example.frame_slice(start_frame=start_frame, end_frame=end_frame)
-    np.testing.assert_array_equal(x=frame_sliced_segmentation.get_roi_pixel_masks(), y=np.array([1, 2, 3]))
+    np.testing.assert_array_equal(frame_sliced_segmentation.get_roi_pixel_masks(), np.array([1, 2, 3]))
 
 
 if __name__ == "__main__":
