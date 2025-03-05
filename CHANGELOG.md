@@ -1,4 +1,4 @@
-# Upcoming (v0.5.12)
+# v0.5.12 (Upcoming)
 
 ### Features
 
