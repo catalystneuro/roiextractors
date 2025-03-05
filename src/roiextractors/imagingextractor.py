@@ -71,6 +71,24 @@ class ImagingExtractor(ABC):
         """
         pass
 
+    def get_num_channels(self) -> int:
+        """Get the total number of active channels in the recording.
+
+        Returns
+        -------
+        num_channels: int
+            Integer count of number of channels.
+
+        Deprecated
+        ----------
+        This method will be removed in or after August 2025.
+        """
+        warnings.warn(
+            "get_num_channels() is deprecated and will be removed in or after August 2025.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
     def get_dtype(self) -> DtypeType:
         """Get the data type of the video.
 
