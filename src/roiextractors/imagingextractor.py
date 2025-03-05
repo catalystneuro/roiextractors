@@ -16,6 +16,7 @@ import warnings
 import numpy as np
 
 from .extraction_tools import ArrayType, PathType, DtypeType, FloatType
+from math import prod
 
 
 class ImagingExtractor(ABC):
@@ -26,6 +27,81 @@ class ImagingExtractor(ABC):
         self._args = args
         self._kwargs = kwargs
         self._times = None
+        self.name = self.__class__.__name__
+
+    def _repr_text(self):
+        """Generate text representation of the ImagingExtractor object."""
+        num_frames = self.get_num_frames()
+        image_size = self.get_image_size()
+        dtype = self.get_dtype()
+        sf_hz = self.get_sampling_frequency()
+
+        # Format sampling frequency
+        if not sf_hz.is_integer():
+            sampling_frequency_repr = f"{sf_hz:f} Hz"
+        else:
+            sampling_frequency_repr = f"{sf_hz:0.1f}Hz"
+
+        # Calculate duration
+        duration = num_frames / sf_hz
+        duration_str = self._convert_seconds_to_str(duration)
+
+        # Check if this is a volumetric extractor
+        is_volumetric_extractor = hasattr(self, "get_num_planes") and callable(getattr(self, "get_num_planes"))
+
+        # Calculate memory size using product of all dimensions in image_size
+        memory_size = num_frames * prod(image_size) * dtype.itemsize
+        memory_str = self._convert_bytes_to_str(memory_size)
+
+        # Format shape string based on whether it's volumetric or not
+        if is_volumetric_extractor:
+            num_planes = self.get_num_planes()
+            shape_str = (
+                f"[{num_frames:,} frames × {image_size[0]} pixels × {image_size[1]} pixels × {num_planes} planes]"
+            )
+        else:
+            shape_str = f"[{num_frames:,} frames × {image_size[0]} pixels × {image_size[1]} pixels]"
+
+        return (
+            f"{self.name} {shape_str}\n"
+            f"  Sampling rate: {sampling_frequency_repr}\n"
+            f"  Duration: {duration_str}\n"
+            f"  Memory: {memory_str} ({dtype} dtype)"
+        )
+
+    def __repr__(self):
+        return self._repr_text()
+
+    def _convert_seconds_to_str(self, seconds):
+        """Convert seconds to a human-readable string."""
+        if seconds < 60:
+            return f"{seconds:.1f}s"
+        elif seconds < 3600:
+            minutes = seconds / 60
+            return f"{minutes:.1f}min"
+        else:
+            hours = seconds / 3600
+            return f"{hours:.1f}h"
+
+    def _convert_bytes_to_str(self, size_in_bytes):
+        """
+        Convert bytes to a human-readable string.
+
+        Convert bytes to a human-readable string using IEC binary prefixes (KiB, MiB, GiB).
+        Note that RAM memory is typically measured in IEC binary prefixes  while disk storage is typically
+        measured in SI binary prefixes.
+        """
+        if size_in_bytes < 1024:
+            return f"{size_in_bytes}B"
+        elif size_in_bytes < 1024 * 1024:
+            size_kb = size_in_bytes / 1024
+            return f"{size_kb:.1f}KiB"
+        elif size_in_bytes < 1024 * 1024 * 1024:
+            size_mb = size_in_bytes / (1024 * 1024)
+            return f"{size_mb:.1f}MiB"
+        else:
+            size_gb = size_in_bytes / (1024 * 1024 * 1024)
+            return f"{size_gb:.1f}GiB"
 
     @abstractmethod
     def get_image_size(self) -> Tuple[int, int]:
