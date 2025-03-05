@@ -102,3 +102,12 @@ class TestThorTiffImagingExtractor:
 
         # Test that channel names were extracted from Experiment.xml
         assert len(self.extractor.get_channel_names()) > 0
+
+        date_value = self.extractor._experiment_xml_dict["ThorImageExperiment"]["Date"]
+        from datetime import datetime
+
+        dt_from_utime = datetime.fromtimestamp(int(date_value["@uTime"]))
+
+        # Assert that the date extracted from Experiment.xml matches the expected datetime
+        expected_datetime = datetime(2023, 10, 18, 11, 39, 19)
+        assert dt_from_utime == expected_datetime

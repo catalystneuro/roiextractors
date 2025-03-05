@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Tuple, Union
 from collections import defaultdict, namedtuple
 import warnings
 import xml.etree.ElementTree as ET
-
+import math
 import numpy as np
 
 from ...imagingextractor import ImagingExtractor
@@ -53,7 +53,6 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         self.file_path = Path(file_path)
         self.folder_path = self.file_path.parent
         self.channel_name = channel_name
-        self._data = None  # Mapping pages on demand
 
         # Load Experiment.xml metadata if available.
         self._parse_experiment_xml()
@@ -92,7 +91,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         if "T" not in non_spatial_axes:
             raise ValueError("The TIFF file must have a T (time) dimension. Image stack mode is not supported.")
 
-        total_expected_pages = np.prod(non_spatial_shape)
+        total_expected_pages = math.prod(non_spatial_shape)
         if total_expected_pages != number_of_pages:
             warnings.warn(f"Expected {total_expected_pages} pages but found {number_of_pages} pages in the series.")
 
@@ -125,23 +124,32 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         """
         experiment_xml_path = self.folder_path / "Experiment.xml"
         if experiment_xml_path.exists():
-            experiment_tree = ET.parse(str(experiment_xml_path))
-            experiment_root = experiment_tree.getroot()
-            lsm_element = experiment_root.find(".//LSM")
-            if lsm_element is not None:
-                frame_rate = lsm_element.attrib.get("frameRate")
-                self._sampling_frequency = float(frame_rate) if frame_rate is not None else None
-            else:
-                raise ValueError("Could not find 'LSM' element in Experiment.xml which contains the frame rate.")
+            # Parse the XML file into a dictionary
+            self._experiment_xml_dict = _read_xml_as_dict(experiment_xml_path)
 
-            wavelength_elements = experiment_root.findall(".//Wavelength")
-            self._channel_names = [
-                wavelength.attrib.get("name") for wavelength in wavelength_elements if "name" in wavelength.attrib
-            ]
+            # Extract sampling frequency from LSM element
+            thor_experiment = self._experiment_xml_dict.get("ThorImageExperiment", {})
+            lsm = thor_experiment.get("LSM", {})
+            if lsm and "@frameRate" in lsm:
+                self._sampling_frequency = float(lsm["@frameRate"])
+            else:
+                raise ValueError("Could not find 'LSM' element with frameRate attribute in Experiment.xml.")
+
+            # Extract channel names from Wavelength elements
+            wavelengths = thor_experiment.get("Wavelengths", {})
+            wavelength_list = wavelengths.get("Wavelength", [])
+
+            # Ensure wavelength_list is a list even if there's only one wavelength
+            if not isinstance(wavelength_list, list):
+                wavelength_list = [wavelength_list]
+
+            self._channel_names = [w.get("@name") for w in wavelength_list if "@name" in w]
+
             if self.channel_name is not None and self.channel_name not in self._channel_names:
                 raise ValueError(
                     f"Channel '{self.channel_name}' not available. Available channels: {self._channel_names}"
                 )
+
             # Set channel filter if a channel name is provided.
             if self.channel_name is not None:
                 self._channel_index_for_filter = None
@@ -270,3 +278,38 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         """Close the tiff_reader when the object is garbage collected."""
         if hasattr(self, "_tiff_reader"):
             self._tiff_reader.close()
+
+
+def _xml_element_to_dict(elem):
+    """Convert an ElementTree element into a dictionary."""
+    dictionary = {elem.tag: {} if elem.attrib else None}
+    children = list(elem)
+    if children:
+        nested_dictionary = {}
+        for child in children:
+            child_dict = _xml_element_to_dict(child)
+            tag = child.tag
+            # If the tag is already present, convert to a list
+            if tag in nested_dictionary:
+                if type(nested_dictionary[tag]) is list:
+                    nested_dictionary[tag].append(child_dict[tag])
+                else:
+                    nested_dictionary[tag] = [nested_dictionary[tag], child_dict[tag]]
+            else:
+                nested_dictionary.update(child_dict)
+        dictionary = {elem.tag: nested_dictionary}
+    if elem.attrib:
+        dictionary[elem.tag].update({f"@{k}": v for k, v in elem.attrib.items()})
+    text = elem.text.strip() if elem.text else ""
+    if text:
+        if children or elem.attrib:
+            dictionary[elem.tag]["#text"] = text
+        else:
+            dictionary[elem.tag] = text
+    return dictionary
+
+
+def _read_xml_as_dict(file_path: Union[str, Path]) -> dict:
+    """Read an XML file and convert it to a dictionary."""
+    xml_dict = _xml_element_to_dict(ET.parse(file_path).getroot())
+    return xml_dict
