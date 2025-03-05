@@ -59,9 +59,7 @@ class BaseTestFrameSlicesegmentation(TestCase):
         assert self.frame_sliced_segmentation.get_num_rois() == 10
 
     def test_get_accepted_list(self):
-        return assert_array_equal(
-            x=self.frame_sliced_segmentation.get_accepted_list(), y=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-        )
+        return assert_array_equal(self.frame_sliced_segmentation.get_accepted_list(), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
 
     def test_get_rejected_list(self):
         return assert_array_equal(self.frame_sliced_segmentation.get_rejected_list(), [])
@@ -91,7 +89,7 @@ class BaseTestFrameSlicesegmentation(TestCase):
     @parameterized.expand([param(name="mean"), param(name="correlation")], name_func=segmentation_name_function)
     def test_get_image(self, name: str):
         assert_array_equal(
-            x=self.frame_sliced_segmentation.get_image(name=name), y=self.toy_segmentation_example.get_image(name=name)
+            self.frame_sliced_segmentation.get_image(name=name), self.toy_segmentation_example.get_image(name=name)
         )
 
 
