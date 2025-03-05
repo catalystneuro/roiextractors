@@ -1,7 +1,7 @@
 # Upcoming (v0.5.11)
 
 ### Features
-* Added ThorTiffImagingExtractor for reading TIFF files produced via Thor
+* Added ThorTiffImagingExtractor for reading TIFF files produced via Thor [#395](https://github.com/catalystneuro/roiextractors/pull/395)
 
 ### Fixes
 * Use tifffile.imwrite instead of tifffile.imsave for TiffImagingExtractor: [#390](https://github.com/catalystneuro/roiextractors/pull/390)
