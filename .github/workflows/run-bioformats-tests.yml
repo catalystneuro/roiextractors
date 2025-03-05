@@ -1,0 +1,69 @@
+name: BioFormats Tests
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      CONDA_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: git fetch --prune --unshallow --tags
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-activate-base: false
+          python-version: 3.9
+
+      - name: Global Setup
+        run: |
+          conda activate $CONDA_ENV
+          pip install -U pip
+          pip install pytest-xdist
+          git config --global user.email "CI@example.com"
+          git config --global user.name "CI Almighty"
+          pip install wheel==0.41.2  # needed for scanimage
+
+      - name: Install full requirements
+        run: |
+          conda activate $CONDA_ENV
+          pip install .[test]
+          pip install -e .[full]
+
+      - name: Install BioFormats requirements
+        run: |
+          conda activate $CONDA_ENV
+          pip install aicsimageio>=4.14.0
+          conda install -c conda-forge bioformats_jar
+
+      - name: Set JAVA_HOME
+        run: |
+          conda activate $CONDA_ENV
+          if [ -z "${JAVA_HOME}" ]; then
+            echo "JAVA_HOME=$CONDA_PREFIX" >> $GITHUB_ENV
+          fi
+
+      - name: Get ophys_testing_data current head hash
+        id: ophys
+        run: echo "::set-output name=HASH_OPHYS_DATASET::$(git ls-remote https://gin.g-node.org/CatalystNeuro/ophys_testing_data.git HEAD | cut -f1)"
+
+      - name: Cache ophys dataset - ${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
+        uses: actions/cache@v2
+        id: cache-ophys-datasets
+        with:
+          path: ./ophys_testing_data
+          key: ophys-datasets-042023-${{ runner.os }}-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
+
+      - name: Run BioFormats tests
+        run: |
+          conda activate $CONDA_ENV
+          pytest tests/test_cxdimagingextractor.py -n auto --dist loadscope

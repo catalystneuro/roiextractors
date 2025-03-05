@@ -1,0 +1,8 @@
+name: bioformats-environment
+channels:
+  - conda-forge
+dependencies:
+  - bioformats_jar
+  - pip
+  - pip:
+    - aicsimageio>=4.14.0
