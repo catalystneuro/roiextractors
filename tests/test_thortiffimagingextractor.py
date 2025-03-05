@@ -1,8 +1,6 @@
-"""Tests for ThorTiffImagingExtractor."""
-
-import os
 import pytest
 from pathlib import Path
+from datetime import datetime, timezone
 
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -104,10 +102,11 @@ class TestThorTiffImagingExtractor:
         assert len(self.extractor.get_channel_names()) > 0
 
         date_value = self.extractor._experiment_xml_dict["ThorImageExperiment"]["Date"]
-        from datetime import datetime
 
-        dt_from_utime = datetime.fromtimestamp(int(date_value["@uTime"]))
+        unix_timestamp = int(date_value["@uTime"])
+        assert unix_timestamp == 1697650759
+        datetime_utc = datetime.fromtimestamp(unix_timestamp, tz=timezone.utc)
 
         # Assert that the date extracted from Experiment.xml matches the expected datetime
-        expected_datetime = datetime(2023, 10, 18, 11, 39, 19)
-        assert dt_from_utime == expected_datetime
+        expected_datetime = datetime(2023, 10, 18, 17, 39, 19, tzinfo=timezone.utc)
+        assert datetime_utc == expected_datetime
