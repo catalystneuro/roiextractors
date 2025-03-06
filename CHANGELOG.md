@@ -1,4 +1,15 @@
-# Upcoming (v0.5.11)
+# v0.5.12 (Upcoming)
+
+### Features
+
+### Fixes
+
+### Deprecations
+
+### Improvements
+
+
+# v0.5.11 (March 5th, 2025)
 
 ### Features
 * Added ThorTiffImagingExtractor for reading TIFF files produced via Thor [#395](https://github.com/catalystneuro/roiextractors/pull/395)
@@ -13,6 +24,7 @@
 * Use `pyproject.toml` for project metadata and installation requirements [#382](https://github.com/catalystneuro/roiextractors/pull/382)
 * Added `__repr__` and  methods to ImagingExtractor for better display in terminals and Jupyter notebooks [#393](https://github.com/catalystneuro/roiextractors/pull/393) and [#396](https://github.com/catalystneuro/roiextractors/pull/396)
 * Removed deprecated np.product from the library [#397](https://github.com/catalystneuro/roiextractors/pull/397)
+
 
 # v0.5.10 (November 6th, 2024)
 
