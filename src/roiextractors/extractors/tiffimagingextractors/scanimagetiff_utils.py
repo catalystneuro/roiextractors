@@ -121,6 +121,8 @@ def parse_metadata(metadata: dict) -> dict:
         num_planes = 1
         frames_per_slice = 1
 
+    # `channelSave` indicates whether the channel is saved. Note that a channel might not be saved even if it is active.
+    # We check `channelSave` first but keep the `channelsActive` check for backward compatibility.
     channel_availability_keys = ["SI.hChannels.channelSave", "SI.hChannels.channelsActive"]
     for channel_availability in channel_availability_keys:
         if channel_availability in metadata.keys():
