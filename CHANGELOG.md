@@ -1,6 +1,7 @@
 # v0.5.12 (Upcoming)
 
 ### Features
+* Added MultiTIFFMultiPageExtractor for handling multiple TIFF files, each with multiple pages, organized according to a specified dimension order [#XXX](https://github.com/catalystneuro/roiextractors/pull/XXX)
 
 ### Fixes
 
