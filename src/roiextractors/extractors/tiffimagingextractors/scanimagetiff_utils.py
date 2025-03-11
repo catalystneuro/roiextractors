@@ -121,7 +121,7 @@ def parse_metadata(metadata: dict) -> dict:
         num_planes = 1
         frames_per_slice = 1
 
-    channel_availability_keys = ["SI.hChannels.channelSave", "SI.hChannels.channelsave", "SI.hChannels.channelsActive"]
+    channel_availability_keys = ["SI.hChannels.channelSave", "SI.hChannels.channelsActive"]
     for channel_availability in channel_availability_keys:
         if channel_availability in metadata.keys():
             break
