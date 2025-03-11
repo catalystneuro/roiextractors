@@ -120,8 +120,16 @@ def parse_metadata(metadata: dict) -> dict:
     else:
         num_planes = 1
         frames_per_slice = 1
-    active_channels = parse_matlab_vector(metadata["SI.hChannels.channelsActive"])
-    channel_indices = np.array(active_channels) - 1  # Account for MATLAB indexing
+
+    # `channelSave` indicates whether the channel is saved. Note that a channel might not be saved even if it is active.
+    # We check `channelSave` first but keep the `channelsActive` check for backward compatibility.
+    channel_availability_keys = ["SI.hChannels.channelSave", "SI.hChannels.channelsActive"]
+    for channel_availability in channel_availability_keys:
+        if channel_availability in metadata.keys():
+            break
+
+    available_channels = parse_matlab_vector(metadata[channel_availability])
+    channel_indices = np.array(available_channels) - 1  # Account for MATLAB indexing
     channel_names = np.array(metadata["SI.hChannels.channelName"].split("'")[1::2])
     channel_names = channel_names[channel_indices].tolist()
     num_channels = len(channel_names)
