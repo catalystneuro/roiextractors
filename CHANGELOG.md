@@ -3,7 +3,7 @@
 ### Features
 
 ### Fixes
-* Use `SI.hChannels.channelSave` or `SI.hChannels.channelsave` to determine number of channels for ScanImage extractors when available [#395](https://github.com/catalystneuro/roiextractors/pull/395)
+* Use `SI.hChannels.channelSave` or `SI.hChannels.channelsave` to determine number of channels for ScanImage extractors when available [#401](https://github.com/catalystneuro/roiextractors/pull/401)
 ### Deprecations
 
 ### Improvements
