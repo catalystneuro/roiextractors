@@ -67,7 +67,19 @@ class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
                 parsed_metadata=parsed_metadata,
             )
             imaging_extractors.append(imaging_extractor)
+
+        self._num_planes = imaging_extractors[0].get_num_planes()
         super().__init__(imaging_extractors=imaging_extractors)
+
+    def get_num_planes(self) -> int:
+        """Get the number of depth planes.
+
+        Returns
+        -------
+        _num_planes: int
+            The number of depth planes.
+        """
+        return self._num_planes
 
 
 class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
