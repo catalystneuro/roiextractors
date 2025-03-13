@@ -28,7 +28,15 @@ from ...segmentationextractor import SegmentationExtractor
 
 
 def temporary_deprecation_message():
-    """Raise a NotImplementedError with a temporary deprecation message."""
+    """Issue a deprecation warning and raise a NotImplementedError with a migration message."""
+    from warnings import warn
+
+    warn(
+        "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
     raise NotImplementedError(
         "ROIExtractors no longer supports direct write to NWB. This method will be removed in a future release.\n\n"
         "Please install nwb-conversion-tools and import the corresponding write method from there.\n\nFor example,\n\n"

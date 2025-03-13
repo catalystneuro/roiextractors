@@ -196,6 +196,11 @@ class NumpyImagingExtractor(ImagingExtractor):
         overwrite: bool
             If True, overwrite file if it already exists.
         """
+        warnings.warn(
+            "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         save_path = Path(save_path)
         assert save_path.suffix == ".npy", "'save_path' should have a .npy extension"
 
