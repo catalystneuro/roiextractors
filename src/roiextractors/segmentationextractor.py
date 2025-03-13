@@ -425,29 +425,6 @@ class SegmentationExtractor(ABC):
         else:
             return self._times[frames]
 
-    @staticmethod
-    def write_segmentation(segmentation_extractor, save_path, overwrite=False):
-        """Write recording back to the native format.
-
-        Parameters
-        ----------
-        segmentation_extractor: [SegmentationExtractor, MultiSegmentationExtractor]
-            The EXTRACT segmentation object from which an EXTRACT native format
-            file has to be generated.
-        save_path: str
-            path to save the native format.
-        overwrite: bool
-            If True, the file is overwritten if existing (default False)
-        """
-        from warnings import warn
-
-        warn(
-            "The write_segmentation function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        raise NotImplementedError
-
 
 class FrameSliceSegmentationExtractor(SegmentationExtractor):
     """Class to get a lazy frame slice.

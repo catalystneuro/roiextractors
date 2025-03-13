@@ -419,16 +419,3 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     def get_nwb_metadata(sgmextractor):
         """Return the metadata dictionary for the NWB file (deprecated)."""
         temporary_deprecation_message()
-
-    @staticmethod
-    def write_segmentation(
-        segext_obj: SegmentationExtractor,
-        save_path: PathType = None,
-        plane_num=0,
-        metadata: dict = None,
-        overwrite: bool = True,
-        buffer_size: int = 10,
-        nwbfile=None,
-    ):
-        """Write segmentation data to NWB file (deprecated)."""
-        temporary_deprecation_message()
