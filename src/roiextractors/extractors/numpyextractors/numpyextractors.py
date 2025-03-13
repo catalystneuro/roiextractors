@@ -424,6 +424,11 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         -----
         This method is not implemented yet.
         """
+        warn(
+            "The write_segmentation function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         raise NotImplementedError
 
     # defining the abstract class informed methods:

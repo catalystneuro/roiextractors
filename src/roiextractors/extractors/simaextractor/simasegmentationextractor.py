@@ -6,10 +6,12 @@ SimaSegmentationExtractor
     A segmentation extractor for Sima.
 """
 
+import importlib
 import os
 import pickle
 import re
 from shutil import copyfile
+from warnings import warn
 
 import numpy as np
 
@@ -179,6 +181,11 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         -----
         This function is not implemented for this extractor.
         """
+        warn(
+            "The write_segmentation function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         raise NotImplementedError  # TODO: implement write_segmentation
 
     def get_image_size(self):
