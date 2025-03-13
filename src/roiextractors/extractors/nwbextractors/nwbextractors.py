@@ -275,19 +275,6 @@ class NwbImagingExtractor(ImagingExtractor):
         """Return the metadata dictionary for the NWB file (deprecated)."""
         temporary_deprecation_message()
 
-    @staticmethod
-    def write_imaging(
-        imaging: ImagingExtractor,
-        save_path: PathType = None,
-        nwbfile=None,
-        metadata: dict = None,
-        overwrite: bool = False,
-        buffer_size: int = 10,
-        use_times: bool = False,
-    ):
-        """Write imaging data to NWB file (deprecated)."""
-        temporary_deprecation_message()
-
 
 class NwbSegmentationExtractor(SegmentationExtractor):
     """An segmentation extractor for NWB files."""

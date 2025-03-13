@@ -213,8 +213,6 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         FileExistsError
             If the file already exists and overwrite is False.
         """
-        from warnings import warn
-
         warn(
             "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
             DeprecationWarning,
