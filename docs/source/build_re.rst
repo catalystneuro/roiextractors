@@ -65,10 +65,3 @@ To build a custom SegmentationExtractor that interfaces with the output of a cus
         def get_image_size(self)
 
             # returns something like self._image_mean.shape
-
-        @staticmethod
-        def write_segmentation(segmentation_obj, save_path, other_params):
-            '''
-            This is an example of a function that is not abstract so it is optional if you want to override it.
-            It allows other SegmentationExtractor to use your new SegmentationExtractor to convert their data into your format
-            '''
