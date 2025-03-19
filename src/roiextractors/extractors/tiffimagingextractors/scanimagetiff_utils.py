@@ -163,6 +163,7 @@ def read_scanimage_metadata(file_path: PathType) -> dict:
             break
 
     available_channels = non_varying_frame_metadata[channel_availability]
+    available_channels = [available_channels] if not isinstance(available_channels, list) else available_channels
     channel_indices = np.array(available_channels) - 1  # Account for MATLAB indexing
     channel_names = non_varying_frame_metadata["SI.hChannels.channelName"]
     channel_names_available = [channel_names[i] for i in channel_indices]
