@@ -8,18 +8,19 @@ from ...segmentationextractor import SegmentationExtractor
 
 import isx
 
+
 class InscopixSegmentationExtractor(SegmentationExtractor):
     """A segmentation extractor for Inscopix."""
 
     extractor_name = "InscopixSegmentationExtractor"
-    installed = True  
+    installed = True
     is_writable = False
     mode = "file"
-    installation_mesg = ""  
+    installation_mesg = ""
 
     def __init__(self, file_path: PathType):
         """Initialize a InscopixSegmentationExtractor instance.
-        
+
         Main class for extracting segmentation data from Inscopix format.
 
         Parameters
@@ -40,7 +41,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         else:
             all_ids = self.get_roi_ids()
             roi_idx_ = [all_ids.index(i) for i in roi_ids]
-        
+
         masks = [self.cell_set.get_cell_image_data(roi_id) for roi_id in roi_idx_]
         if len(masks) == 1:
             return masks[0]
@@ -62,12 +63,10 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             return None
 
     def get_accepted_list(self) -> list:
-        return [id for x, id in enumerate(self.get_roi_ids()) 
-                if self.cell_set.get_cell_status(x) == "accepted"]
+        return [id for x, id in enumerate(self.get_roi_ids()) if self.cell_set.get_cell_status(x) == "accepted"]
 
     def get_rejected_list(self) -> list:
-        return [id for x, id in enumerate(self.get_roi_ids()) 
-                if self.cell_set.get_cell_status(x) == "rejected"]
+        return [id for x, id in enumerate(self.get_roi_ids()) if self.cell_set.get_cell_status(x) == "rejected"]
 
     def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="raw") -> ArrayType:
         if roi_ids is None:
@@ -75,8 +74,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         else:
             all_ids = self.get_roi_ids()
             roi_idx_ = [all_ids.index(i) for i in roi_ids]
-        return np.vstack([self.cell_set.get_cell_trace_data(roi_id)[start_frame:end_frame] 
-                         for roi_id in roi_idx_])
+        return np.vstack([self.cell_set.get_cell_trace_data(roi_id)[start_frame:end_frame] for roi_id in roi_idx_])
 
     def get_num_frames(self) -> int:
         try:
