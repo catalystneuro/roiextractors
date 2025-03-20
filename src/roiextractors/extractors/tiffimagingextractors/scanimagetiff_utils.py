@@ -86,6 +86,111 @@ def parse_matlab_vector(matlab_vector: str) -> list:
     return vector
 
 
+def read_scanimage_metadata(file_path: PathType) -> dict:
+    """
+    Read and parse metadata from a ScanImage TIFF file.
+
+    This function extracts both the non-varying frame metadata and ROI group metadata
+    (if available) from a ScanImage TIFF file and processes them to extract key imaging parameters.
+
+    The function returns a python dictionary with fields already parsed to python objects (in opposition to a string)
+
+    Parameters
+    ----------
+    file_path : PathType
+        Path to the ScanImage TIFF file.
+
+    Returns
+    -------
+    metadata_dict : dict
+        Dictionary containing three nested dictionaries:
+        - scan_image_non_varying_frame_metadata: Raw non-varying frame metadata
+        - scan_image_roi_group_metadata: Raw ROI group metadata (if present)
+        - roiextractors_parsed_metadata: Parsed metadata with standardized keys:
+            - sampling_frequency: Frame or volume scan rate in Hz
+            - num_channels: Number of available imaging channels
+            - num_planes: Number of imaging planes (slices)
+            - frames_per_slice: Number of frames per Z slice
+            - channel_names: List of available channel names
+            - roi_metadata: ROI definitions (if present)
+
+    Notes
+    -----
+    The ScanImage TIFF format includes:
+    1. TIFF Header Section: Defines byte order and offsets
+    2. ScanImage Static Metadata Section: Contains metadata applicable to all frames
+        - Non-Varying Frame Data: System configuration for all frames
+        - ROI Group Data: Defined regions of interest (if available)
+    3. Frame Sections: One per image frame, containing:
+        - IFD Header: Image File Directory with tags and values
+        - Frame-specific data: Timestamps and other frame metadata
+        - Image data: The actual image pixels
+
+    The function uses the tifffile module's read_scanimage_metadata function to extract
+    the raw metadata, then processes it to standardize key imaging parameters.
+    """
+    from tifffile import read_scanimage_metadata
+
+    with open(file_path, "rb") as fh:
+        all_metadata = read_scanimage_metadata(fh)
+        non_varying_frame_metadata = all_metadata[0]
+        roi_group_metadata = all_metadata[1]
+
+    if non_varying_frame_metadata["SI.hStackManager.enable"]:
+        num_slices = non_varying_frame_metadata["SI.hStackManager.numSlices"]
+
+        flyback_frames = (
+            non_varying_frame_metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
+            - non_varying_frame_metadata["SI.hStackManager.numFramesPerVolume"]
+        )
+        # num_planes = num_slices + flyback_frames   # TODO: discuss on issue, leave the current behavior now
+        num_planes = num_slices
+        frames_per_slice = non_varying_frame_metadata["SI.hStackManager.framesPerSlice"]
+    else:
+        num_planes = 1
+        frames_per_slice = 1
+
+    if num_planes == 1:
+        sampling_frequency = non_varying_frame_metadata["SI.hRoiManager.scanFrameRate"]
+    else:
+        sampling_frequency = non_varying_frame_metadata["SI.hRoiManager.scanVolumeRate"]
+
+    # `channelSave` indicates whether the channel is saved. Note that a channel might not be saved even if it is active.
+    # We check `channelSave` first but keep the `channelsActive` check for backward compatibility.
+    channel_availability_keys = ["SI.hChannels.channelSave", "SI.hChannels.channelsActive"]
+    for channel_availability in channel_availability_keys:
+        if channel_availability in non_varying_frame_metadata.keys():
+            break
+
+    available_channels = non_varying_frame_metadata[channel_availability]
+    available_channels = [available_channels] if not isinstance(available_channels, list) else available_channels
+    channel_indices = np.array(available_channels) - 1  # Account for MATLAB indexing
+    channel_names = non_varying_frame_metadata["SI.hChannels.channelName"]
+    channel_names_available = [channel_names[i] for i in channel_indices]
+    num_channels = len(channel_names_available)
+    if roi_group_metadata:
+        roi_metadata = roi_group_metadata["RoiGroups"]
+    else:
+        roi_metadata = None
+
+    metadata_parsed = dict(
+        sampling_frequency=sampling_frequency,
+        num_channels=num_channels,
+        num_planes=num_planes,
+        frames_per_slice=frames_per_slice,
+        channel_names=channel_names_available,
+        roi_metadata=roi_metadata,
+    )
+
+    metadata_dict = dict(
+        scan_image_non_varying_frame_metadata=non_varying_frame_metadata,
+        scan_image_roi_group_metadata=roi_group_metadata,
+        roiextractors_parsed_metadata=metadata_parsed,
+    )
+
+    return metadata_dict
+
+
 def parse_metadata(metadata: dict) -> dict:
     """Parse metadata dictionary to extract relevant information and store it standard keys for ImagingExtractors.
 

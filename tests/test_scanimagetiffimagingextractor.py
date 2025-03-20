@@ -31,7 +31,7 @@ def file_path():
 @pytest.fixture(scope="module")
 def expected_properties():
     return dict(
-        sampling_frequency=29.1248,
+        sampling_frequency=7.28119,
         num_channels=2,
         num_planes=2,
         frames_per_slice=2,
