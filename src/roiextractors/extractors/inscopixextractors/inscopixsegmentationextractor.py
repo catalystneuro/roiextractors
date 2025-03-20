@@ -1,3 +1,5 @@
+"""Inscopix Segmentation Extractor."""
+
 from typing import Optional
 import numpy as np
 
