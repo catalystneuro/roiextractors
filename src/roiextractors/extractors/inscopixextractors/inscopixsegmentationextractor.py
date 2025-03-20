@@ -20,7 +20,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         """Initialize a InscopixSegmentationExtractor instance.
 
         Main class for extracting segmentation data from Inscopix format.
-        
+
         Parameters
         ----------
         file_path: str
