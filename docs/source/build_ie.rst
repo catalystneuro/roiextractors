@@ -59,10 +59,3 @@ To build your custom ImagingExtractor to interface with a new raw image storage 
         def get_image_size(self)
 
             # returns something like self._data.shape[1:]
-
-        @staticmethod
-        def write_imaging(imaging_obj, save_path, other_params):
-            '''
-            This is an example of a function that is not abstract so it is optional if you want to override it.
-            It allows other ImageExtractors to use your new ImageExtractors to convert their  data into your this file format.
-            '''

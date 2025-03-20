@@ -250,4 +250,11 @@ class SbxImagingExtractor(ImagingExtractor):
         -----
         This function is not implemented yet.
         """
+        from warnings import warn
+
+        warn(
+            "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         raise NotImplementedError
