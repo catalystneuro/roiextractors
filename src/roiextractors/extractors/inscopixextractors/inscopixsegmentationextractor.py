@@ -51,7 +51,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
     def get_num_rois(self):
         return self._num_rois
-    
+
     def get_roi_ids(self):
         return self._roi_ids
 
@@ -67,12 +67,10 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         return np.hstack([self._cellset.get_cell_image_data(roi_id) for roi_id in roi_idx_])
 
     def get_accepted_list(self):
-        return [id for x, id in enumerate(self.get_roi_ids()) 
-                if self._cellset.get_cell_status(x) == "accepted"]
+        return [id for x, id in enumerate(self.get_roi_ids()) if self._cellset.get_cell_status(x) == "accepted"]
 
     def get_rejected_list(self):
-        return [id for x, id in enumerate(self.get_roi_ids()) 
-                if self._cellset.get_cell_status(x) == "rejected"]
+        return [id for x, id in enumerate(self.get_roi_ids()) if self._cellset.get_cell_status(x) == "rejected"]
 
     def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="raw"):
         if roi_ids is None:
@@ -80,8 +78,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         else:
             all_ids = self.get_roi_ids()
             roi_idx_ = [all_ids.index(i) for i in roi_ids]
-        return np.vstack([self._cellset.get_cell_trace_data(roi_id)[start_frame:end_frame] 
-                         for roi_id in roi_idx_])
+        return np.vstack([self._cellset.get_cell_trace_data(roi_id)[start_frame:end_frame] for roi_id in roi_idx_])
 
     def get_num_frames(self):
         try:
