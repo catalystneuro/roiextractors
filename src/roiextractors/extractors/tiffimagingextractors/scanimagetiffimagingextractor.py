@@ -20,6 +20,7 @@ from .scanimagetiff_utils import (
     parse_metadata,
     extract_timestamps_from_file,
     _get_scanimage_reader,
+    read_scanimage_metadata,
 )
 
 
@@ -53,9 +54,11 @@ class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
         file_paths = natsorted(self.folder_path.glob(file_pattern))
         if len(file_paths) == 0:
             raise ValueError(f"No files found in folder with pattern: {file_pattern}")
+
+        self.metadata = read_scanimage_metadata(file_paths[0])
         if not extract_all_metadata:
-            metadata = extract_extra_metadata(file_paths[0])
-            parsed_metadata = parse_metadata(metadata)
+            metadata = self.metadata
+            parsed_metadata = self.metadata["roiextractors_parsed_metadata"]
         else:
             metadata, parsed_metadata = None, None
         imaging_extractors = []
@@ -120,8 +123,8 @@ class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
         if len(file_paths) == 0:
             raise ValueError(f"No files found in folder with pattern: {file_pattern}")
         if not extract_all_metadata:
-            metadata = extract_extra_metadata(file_paths[0])
-            parsed_metadata = parse_metadata(metadata)
+            metadata = read_scanimage_metadata(file_paths[0])
+            parsed_metadata = metadata["roiextractors_parsed_metadata"]
         else:
             metadata, parsed_metadata = None, None
         imaging_extractors = []
@@ -171,8 +174,8 @@ class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
         """
         self.file_path = Path(file_path)
         if metadata is None:
-            self.metadata = extract_extra_metadata(file_path)
-            self.parsed_metadata = parse_metadata(self.metadata)
+            self.metadata = read_scanimage_metadata(file_path)
+            self.parsed_metadata = self.metadata["roiextractors_parsed_metadata"]
         else:
             self.metadata = metadata
             assert parsed_metadata is not None, "If metadata is provided, parsed_metadata must also be provided."
@@ -287,8 +290,8 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         """
         self.file_path = Path(file_path)
         if metadata is None:
-            self.metadata = extract_extra_metadata(file_path)
-            self.parsed_metadata = parse_metadata(self.metadata)
+            self.metadata = read_scanimage_metadata(file_path)
+            self.parsed_metadata = self.metadata["roiextractors_parsed_metadata"]
         else:
             self.metadata = metadata
             assert parsed_metadata is not None, "If metadata is provided, parsed_metadata must also be provided."
