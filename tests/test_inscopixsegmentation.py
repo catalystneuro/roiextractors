@@ -6,6 +6,8 @@ from roiextractors import InscopixSegmentationExtractor
 from .setup_paths import OPHYS_DATA_PATH
 
 print(f"OPHYS_DATA_PATH: {OPHYS_DATA_PATH}")
+
+
 def test_inscopix_segmentation_extractor():
     file_path = OPHYS_DATA_PATH / "segmentation_datasets" / "inscopix" / "cellset.isxd"
     extractor = InscopixSegmentationExtractor(file_path=str(file_path))
