@@ -32,40 +32,70 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         self.file_path = file_path
         self.cell_set = isx.CellSet.read(file_path)
 
+    @staticmethod
+    def _get_roi_ids(cellset):
+        try:
+            return [cellset.get_cell_name(x) for x in range(cellset.num_cells)]
+        except AttributeError:
+            return np.arange(len(cellset.get_cell_indices()))
+
+    def _load_properties(self):
+        self._num_rois = self._cellset.num_cells
+        self._roi_ids = self._get_roi_ids(self._cellset)
+        try:
+            num_pixels = self._cellset.footer["spacingInfo"]["numPixels"]
+            self._image_size = (num_pixels["x"], num_pixels["y"])
+        except (AttributeError, KeyError):
+            first_mask = self._cellset.get_cell_mask(0)
+            self._image_size = first_mask.shape if self._num_rois > 0 else None
+
     def get_num_rois(self):
-        return self.cell_set.num_cells
+        return self._num_rois
+    
+    def get_roi_ids(self):
+        return self._roi_ids
 
-    def get_roi_image_masks(self, roi_ids=None) -> np.ndarray:
+    def get_image_size(self):
+        return self._image_size
+
+    def get_roi_image_masks(self, roi_ids=None):
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
         else:
             all_ids = self.get_roi_ids()
             roi_idx_ = [all_ids.index(i) for i in roi_ids]
-        return np.hstack([self.cell_set.get_cell_image_data(roi_id) for roi_id in roi_idx_])
+        return np.hstack([self._cellset.get_cell_image_data(roi_id) for roi_id in roi_idx_])
 
-    def get_roi_ids(self) -> list:
-        return [self.cell_set.get_cell_name(x) for x in range(self.get_num_rois())]
+    def get_accepted_list(self):
+        return [id for x, id in enumerate(self.get_roi_ids()) 
+                if self._cellset.get_cell_status(x) == "accepted"]
 
-    def get_image_size(self) -> ArrayType:
-        num_pixels = self.cell_set.footer["spacingInfo"]["numPixels"]
-        return num_pixels["x"], num_pixels["y"]
+    def get_rejected_list(self):
+        return [id for x, id in enumerate(self.get_roi_ids()) 
+                if self._cellset.get_cell_status(x) == "rejected"]
 
-    def get_accepted_list(self) -> list:
-        return [id for x, id in enumerate(self.get_roi_ids()) if self.cell_set.get_cell_status(x) == "accepted"]
-
-    def get_rejected_list(self) -> list:
-        return [id for x, id in enumerate(self.get_roi_ids()) if self.cell_set.get_cell_status(x) == "rejected"]
-
-    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="raw") -> ArrayType:
+    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="raw"):
         if roi_ids is None:
             roi_idx_ = range(self.get_num_rois())
         else:
             all_ids = self.get_roi_ids()
             roi_idx_ = [all_ids.index(i) for i in roi_ids]
-        return np.vstack([self.cell_set.get_cell_trace_data(roi_id)[start_frame:end_frame] for roi_id in roi_idx_])
+        return np.vstack([self._cellset.get_cell_trace_data(roi_id)[start_frame:end_frame] 
+                         for roi_id in roi_idx_])
 
-    def get_num_frames(self) -> int:
-        return self.cell_set.footer["timingInfo"]["numTimes"]
+    def get_num_frames(self):
+        try:
+            return self._cellset.footer["timingInfo"]["numTimes"]
+        except (AttributeError, KeyError):
+            first_trace = self._cellset.get_cell_trace_data(0)
+            return len(first_trace) if first_trace is not None else 0
 
-    def get_sampling_frequency(self) -> float:
-        return 1 / self.cell_set.timing.period.secs_float
+    def get_sampling_frequency(self):
+        try:
+            return 1 / self._cellset.timing.period.secs_float
+        except AttributeError:
+            return None
+
+    @staticmethod
+    def write_segmentation(segmentation_object, save_path):
+        raise NotImplementedError("Writing to Inscopix format is not supported yet")
