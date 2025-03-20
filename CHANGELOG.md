@@ -1,6 +1,7 @@
 # v0.5.12 (Upcoming)
 
 ### Features
+* Added InscopixSegmentationExtractor for reading .isxd segmentation files [#274](https://github.com/catalystneuro/roiextractors/pull/274)
 
 ### Fixes
 * Use `SI.hChannels.channelSave` or `SI.hChannels.channelsave` to determine number of channels for ScanImage extractors when available [#401](https://github.com/catalystneuro/roiextractors/pull/401)
