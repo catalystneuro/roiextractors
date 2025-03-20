@@ -6,9 +6,6 @@ import numpy as np
 from ...extraction_tools import PathType, ArrayType
 from ...segmentationextractor import SegmentationExtractor
 
-import isx
-
-
 class InscopixSegmentationExtractor(SegmentationExtractor):
     """A segmentation extractor for Inscopix."""
 
@@ -28,6 +25,8 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         file_path: str
             The location of the folder containing Inscopix *.mat output file.
         """
+        import isx
+        
         SegmentationExtractor.__init__(self)
         self.file_path = file_path
         self.cell_set = isx.CellSet.read(file_path)
