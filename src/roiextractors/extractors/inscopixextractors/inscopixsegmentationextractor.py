@@ -18,6 +18,9 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
     def __init__(self, file_path: PathType):
         """Initialize a InscopixSegmentationExtractor instance.
+
+        Main class for extracting segmentation data from Inscopix format.
+        
         Parameters
         ----------
         file_path: str
