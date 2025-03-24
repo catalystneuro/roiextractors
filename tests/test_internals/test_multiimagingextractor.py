@@ -37,27 +37,27 @@ class TestMultiImagingExtractor(TestCase):
         assert self.multi_imaging_extractor.get_num_channels() == 1
 
     def test_get_frames_assertion(self):
-        with self.assertRaisesWith(exc_type=AssertionError, exc_msg="'frame_idxs' exceed number of frames"):
-            self.multi_imaging_extractor.get_frames(frame_idxs=[31])
+        with self.assertRaisesWith(exc_type=AssertionError, exc_msg="'frames' exceed number of frames"):
+            self.multi_imaging_extractor.get_frames(frames=[31])
 
     def test_get_non_consecutive_frames(self):
-        test_frames = self.multi_imaging_extractor.get_frames(frame_idxs=[8, 10, 12, 15, 20, 29])
+        test_frames = self.multi_imaging_extractor.get_frames(frames=[8, 10, 12, 15, 20, 29])
         expected_frames = np.concatenate(
             (
-                self.extractors[0].get_frames(frame_idxs=[8])[np.newaxis, ...],
-                self.extractors[1].get_frames(frame_idxs=[0, 2, 5]),
-                self.extractors[2].get_frames(frame_idxs=[0, 9]),
+                self.extractors[0].get_frames(frames=[8])[np.newaxis, ...],
+                self.extractors[1].get_frames(frames=[0, 2, 5]),
+                self.extractors[2].get_frames(frames=[0, 9]),
             ),
             axis=0,
         )
         assert_array_equal(test_frames, expected_frames)
 
     def test_get_consecutive_frames(self):
-        test_frames = self.multi_imaging_extractor.get_frames(frame_idxs=np.arange(16, 22))
+        test_frames = self.multi_imaging_extractor.get_frames(frames=np.arange(16, 22))
         expected_frames = np.concatenate(
             (
-                self.extractors[1].get_frames(frame_idxs=np.arange(6, 10)),
-                self.extractors[2].get_frames(frame_idxs=[0, 1]),
+                self.extractors[1].get_frames(frames=np.arange(6, 10)),
+                self.extractors[2].get_frames(frames=[0, 1]),
             ),
             axis=0,
         )
@@ -65,7 +65,7 @@ class TestMultiImagingExtractor(TestCase):
         assert_array_equal(test_frames, expected_frames)
 
     def test_get_all_frames(self):
-        test_frames = self.multi_imaging_extractor.get_frames(frame_idxs=np.arange(0, 30))
+        test_frames = self.multi_imaging_extractor.get_frames(frames=np.arange(0, 30))
         expected_frames = np.concatenate(
             [extractor.get_frames(np.arange(0, 10)) for extractor in self.extractors],
             axis=0,

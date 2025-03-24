@@ -51,10 +51,10 @@ To build your custom ImagingExtractor to interface with a new raw image storage 
 
             return self.sampling_frequency
 
-        def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> NumpyArray:
+        def get_frames(self, frames: ArrayType, channel: int = 0) -> NumpyArray:
 
             # define a method to read a frame from the given frame numbers requested.
-            return self._data[frame_idxs]
+            return self._data[frames]
 
         def get_image_size(self)
 

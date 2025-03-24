@@ -104,35 +104,41 @@ class VolumetricImagingExtractor(ImagingExtractor):
         video = np.zeros((end_frame - start_frame, *self.get_image_size()), self.get_dtype())
         for i, imaging_extractor in enumerate(self._imaging_extractors):
             video[..., i] = imaging_extractor.get_video(start_frame, end_frame)
-        return video
-
-    def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
-        """Get specific video frames from indices (not necessarily continuous).
+            return video
+    
+    def get_frames(self, frames: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
+        """Get specific video frames.
 
         Parameters
         ----------
-        frame_idxs: array-like
+        frames: array-like
             Indices of frames to return.
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
 
         Returns
         -------
         frames: numpy.ndarray
-            The 3D video frames (num_rows, num_columns, num_planes).
+            The video frames.
         """
-        if isinstance(frame_idxs, int):
-            frame_idxs = [frame_idxs]
-        for frame_idx in frame_idxs:
-            if frame_idx < -1 * self.get_num_frames() or frame_idx >= self.get_num_frames():
-                raise ValueError(f"frame_idx {frame_idx} is out of bounds")
-
-        # Note np.all([]) returns True so not all(np.diff(frame_idxs) == 1) returns False if frame_idxs is a single int
-        if not all(np.diff(frame_idxs) == 1):
-            frames = np.zeros((len(frame_idxs), *self.get_image_size()), self.get_dtype())
-            for i, imaging_extractor in enumerate(self._imaging_extractors):
-                frames[..., i] = imaging_extractor.get_frames(frame_idxs)
-            return frames
+        
+        if isinstance(frames, (int, np.integer)):
+            frame_indices = [frames]
         else:
-            return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)
+            frame_indices = frames
+        
+        for frame_idx in frame_indices:
+            if frame_idx < -self.get_num_frames() or frame_idx >= self.get_num_frames():
+                raise ValueError(f"frame_idx {frame_idx} is out of bounds")
+        
+        extracted_frames = []
+        for extractor in self._imaging_extractors:
+            extracted_frames.append(extractor.get_frames(frames=frame_indices))
+        
+        extracted_frames = np.array(extracted_frames)
+        output_frames = np.moveaxis(extracted_frames, 0, -1)
+        
+        return output_frames
 
     def get_image_size(self) -> Tuple:
         """Get the size of a single frame.

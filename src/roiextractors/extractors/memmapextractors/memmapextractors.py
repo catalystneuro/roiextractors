@@ -38,12 +38,12 @@ class MemmapImagingExtractor(ImagingExtractor):
         self._video = video
         super().__init__()
 
-    def get_frames(self, frame_idxs=None, channel: Optional[int] = 0) -> np.ndarray:
+    def get_frames(self, frames=None, channel: Optional[int] = 0) -> np.ndarray:
         """Get specific video frames from indices.
 
         Parameters
         ----------
-        frame_idxs: array-like, optional
+        frames: array-like, optional
             Indices of frames to return. If None, returns all frames.
         channel: int, optional
             Channel index. Deprecated: This parameter will be removed in August 2025.
@@ -60,10 +60,10 @@ class MemmapImagingExtractor(ImagingExtractor):
                 stacklevel=2,
             )
 
-        if frame_idxs is None:
-            frame_idxs = [frame for frame in range(self.get_num_frames())]
+        if frames is None:
+            frames = [frame for frame in range(self.get_num_frames())]
 
-        frames = self._video.take(indices=frame_idxs, axis=0)
+        frames = self._video.take(indices=frames, axis=0)
         if channel is not None:
             frames = frames[..., channel]
 
@@ -94,8 +94,8 @@ class MemmapImagingExtractor(ImagingExtractor):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        frame_idxs = range(start_frame, end_frame)
-        return self.get_frames(frame_idxs=frame_idxs, channel=channel)
+        frames = range(start_frame, end_frame)
+        return self.get_frames(frames=frames, channel=channel)
 
     def get_image_size(self) -> Tuple[int, int]:
         return (self._num_rows, self._num_columns)

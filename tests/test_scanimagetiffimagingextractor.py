@@ -100,22 +100,22 @@ def test_ScanImageTiffSinglePlaneImagingExtractor__init__parsed_metadata_not_pro
         )
 
 
-@pytest.mark.parametrize("frame_idxs", (0, [0, 1, 2], [0, 2, 5]))
-def test_get_frames(scan_image_tiff_single_plane_imaging_extractor, frame_idxs, expected_properties):
+@pytest.mark.parametrize("frames", (0, [0, 1, 2], [0, 2, 5]))
+def test_get_frames(scan_image_tiff_single_plane_imaging_extractor, frames, expected_properties):
     ScanImageTiffReader = _get_scanimage_reader()
 
-    frames = scan_image_tiff_single_plane_imaging_extractor.get_frames(frame_idxs=frame_idxs)
+    frames = scan_image_tiff_single_plane_imaging_extractor.get_frames(frames=frames)
     file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
     plane = scan_image_tiff_single_plane_imaging_extractor.plane
     channel = scan_image_tiff_single_plane_imaging_extractor.channel
     num_planes = expected_properties["num_planes"]
     num_channels = expected_properties["num_channels"]
     frames_per_slice = expected_properties["frames_per_slice"]
-    if isinstance(frame_idxs, int):
-        frame_idxs = [frame_idxs]
+    if isinstance(frames, int):
+        frames = [frames]
 
     raw_idxs = []
-    for idx in frame_idxs:
+    for idx in frames:
         cycle = idx // frames_per_slice
         frame_in_cycle = idx % frames_per_slice
         raw_idx = (
@@ -130,10 +130,10 @@ def test_get_frames(scan_image_tiff_single_plane_imaging_extractor, frame_idxs, 
         assert_array_equal(frames, io.data()[raw_idxs])
 
 
-@pytest.mark.parametrize("frame_idxs", ([-1], [50]))
-def test_get_frames_invalid(scan_image_tiff_single_plane_imaging_extractor, frame_idxs):
+@pytest.mark.parametrize("frames", ([-1], [50]))
+def test_get_frames_invalid(scan_image_tiff_single_plane_imaging_extractor, frames):
     with pytest.raises(ValueError):
-        scan_image_tiff_single_plane_imaging_extractor.get_frames(frame_idxs=frame_idxs)
+        scan_image_tiff_single_plane_imaging_extractor.get_frames(frames=frames)
 
 
 @pytest.mark.parametrize("frame_idx", (1, 3, 5))

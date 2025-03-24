@@ -113,12 +113,12 @@ class NumpyImagingExtractor(ImagingExtractor):
             num_frames, num_rows, num_columns, num_channels = video.shape
         return num_frames, num_rows, num_columns, num_channels
 
-    def get_frames(self, frame_idxs=None, channel: Optional[int] = 0) -> np.ndarray:
+    def get_frames(self, frames=None, channel: Optional[int] = 0) -> np.ndarray:
         """Get specific video frames from indices.
 
         Parameters
         ----------
-        frame_idxs: array-like, optional
+        frames: array-like, optional
             Indices of frames to return. If None, returns all frames.
         channel: int, optional
             Channel index. Deprecated: This parameter will be removed in August 2025.
@@ -134,10 +134,10 @@ class NumpyImagingExtractor(ImagingExtractor):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        if frame_idxs is None:
-            frame_idxs = [frame for frame in range(self.get_num_frames())]
+        if frames is None:
+            frames = [frame for frame in range(self.get_num_frames())]
 
-        frames = self._video.take(indices=frame_idxs, axis=0)
+        frames = self._video.take(indices=frames, axis=0)
         if channel is not None:
             frames = frames[..., channel].squeeze()
 

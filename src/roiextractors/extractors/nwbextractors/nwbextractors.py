@@ -166,12 +166,12 @@ class NwbImagingExtractor(ImagingExtractor):
             ),
         )
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0):
+    def get_frames(self, frames: ArrayType, channel: Optional[int] = 0):
         """Get specific video frames from indices.
 
         Parameters
         ----------
-        frame_idxs: array-like
+        frames: array-like
             Indices of frames to return.
         channel: int, optional
             Channel index. Deprecated: This parameter will be removed in August 2025.
@@ -190,12 +190,12 @@ class NwbImagingExtractor(ImagingExtractor):
                 stacklevel=2,
             )
         squeeze_data = False
-        if isinstance(frame_idxs, int):
+        if isinstance(frames, int):
             squeeze_data = True
-            frame_idxs = [frame_idxs]
-        elif isinstance(frame_idxs, np.ndarray):
-            frame_idxs = frame_idxs.tolist()
-        frames = self.photon_series.data[frame_idxs].transpose([0, 2, 1])
+            frames = [frames]
+        elif isinstance(frames, np.ndarray):
+            frames = frames.tolist()
+        frames = self.photon_series.data[frames].transpose([0, 2, 1])
         if squeeze_data:
             frames = frames.squeeze()
         return frames

@@ -11,10 +11,12 @@ BrukerTiffMultiPlaneImagingExtractor
 import logging
 import re
 from collections import Counter
+import warnings
 from itertools import islice
 from pathlib import Path
 from types import ModuleType
-from typing import Optional, Tuple, Union, List, Dict
+from typing import Optional, Tuple, Union, List, Dict, Any
+from numpy import ndarray
 from xml.etree import ElementTree
 from lxml import etree
 
@@ -276,43 +278,41 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
 
     def get_sampling_frequency(self) -> float:
         return self._imaging_extractors[0].get_sampling_frequency() * self._num_planes_per_channel_stream
-
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
-        """Get specific frames from the video.
-
+    
+    def get_frames(self, frames: ArrayType, channel: Optional[int] = 0) -> ndarray:
+        """Get specific video frames from indices.
+    
         Parameters
         ----------
-        frame_idxs: ArrayType
-            The indices of the frames to get.
+        frames: array-like
+            Indices of frames to return.
         channel: int, optional
             Channel index. Deprecated: This parameter will be removed in August 2025.
-
+    
         Returns
         -------
         frames: numpy.ndarray
-            The requested frames.
+            The video frames.
         """
         if channel != 0:
-            from warnings import warn
-
-            warn(
+            warnings.warn(
                 "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
                 DeprecationWarning,
                 stacklevel=2,
             )
-
-        if isinstance(frame_idxs, (int, np.integer)):
-            frame_idxs = [frame_idxs]
-        frame_idxs = np.array(frame_idxs)
-        assert np.all(frame_idxs < self.get_num_frames()), "'frame_idxs' exceed number of frames"
-
-        frames_shape = (len(frame_idxs),) + self.get_image_size()
-        frames = np.empty(shape=frames_shape, dtype=self.get_dtype())
-
+    
+        if isinstance(frames, (int, np.integer)):
+            frames = [frames]
+        frames = np.array(frames)
+        assert np.all(frames < self.get_num_frames()), "'frames' exceed number of frames"
+    
+        frames_shape = (len(frames),) + self.get_image_size()
+        output_frames = np.empty(shape=frames_shape, dtype=self.get_dtype())
+    
         for plane_ind, extractor in enumerate(self._imaging_extractors):
-            frames[..., plane_ind] = extractor.get_frames(frame_idxs)
-
-        return frames
+            output_frames[..., plane_ind] = extractor.get_frames(frames)
+    
+        return output_frames
 
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0

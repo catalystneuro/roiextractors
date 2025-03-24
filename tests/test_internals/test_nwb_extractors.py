@@ -81,25 +81,25 @@ class TestNwbImagingExtractor(unittest.TestCase):
         assert num_frames == expected_num_frames
         assert num_channels == expected_num_channels
 
-        # Test numpy like behavior for frame_idxs
-        frame_idxs = 0
-        frames_with_scalar = nwb_imaging_extractor.get_frames(frame_idxs)
-        expected_frames = self.video[frame_idxs, ...]
+        # Test numpy like behavior for frames
+        frames = 0
+        frames_with_scalar = nwb_imaging_extractor.get_frames(frames)
+        expected_frames = self.video[frames, ...]
         np.testing.assert_array_almost_equal(frames_with_scalar, expected_frames)
 
-        frame_idxs = [0]
-        frames_with_singleton = nwb_imaging_extractor.get_frames(frame_idxs)
-        expected_frames = self.video[frame_idxs, ...]
+        frames = [0]
+        frames_with_singleton = nwb_imaging_extractor.get_frames(frames)
+        expected_frames = self.video[frames, ...]
         np.testing.assert_array_almost_equal(frames_with_singleton, expected_frames)
 
-        frame_idxs = [0, 1]
-        frames_with_list = nwb_imaging_extractor.get_frames(frame_idxs)
-        expected_frames = self.video[frame_idxs, ...]
+        frames = [0, 1]
+        frames_with_list = nwb_imaging_extractor.get_frames(frames)
+        expected_frames = self.video[frames, ...]
         np.testing.assert_array_almost_equal(frames_with_list, expected_frames)
 
-        frame_idxs = np.array([0, 1])
-        frames_with_array = nwb_imaging_extractor.get_frames(frame_idxs)
-        expected_frames = self.video[frame_idxs, ...]
+        frames = np.array([0, 1])
+        frames_with_array = nwb_imaging_extractor.get_frames(frames)
+        expected_frames = self.video[frames, ...]
         np.testing.assert_array_almost_equal(frames_with_array, expected_frames)
 
         video = nwb_imaging_extractor.get_video()

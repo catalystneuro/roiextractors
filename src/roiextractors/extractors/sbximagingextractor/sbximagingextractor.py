@@ -164,12 +164,12 @@ class SbxImagingExtractor(ImagingExtractor):
         np_data = np.memmap(self.sbx_file_path, dtype="uint16", mode="r", shape=shape, order="F")
         return np_data
 
-    def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> np.array:
+    def get_frames(self, frames: ArrayType, channel: int = 0) -> np.array:
         """Get specific video frames from indices.
 
         Parameters
         ----------
-        frame_idxs: array-like
+        frames: array-like
             Indices of frames to return.
         channel: int, optional
             Channel index. Deprecated: This parameter will be removed in August 2025.
@@ -187,7 +187,7 @@ class SbxImagingExtractor(ImagingExtractor):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        frame_out = np.iinfo("uint16").max - self._data.transpose(4, 2, 1, 0, 3)[frame_idxs, :, :, channel, 0]
+        frame_out = np.iinfo("uint16").max - self._data.transpose(4, 2, 1, 0, 3)[frames, :, :, channel, 0]
         return frame_out
 
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:

@@ -397,28 +397,28 @@ def assert_get_frames_return_shape(imaging_extractor: ImagingExtractor):
     """
     image_size = imaging_extractor.get_image_size()
 
-    frame_idxs = 0
-    frames_with_scalar = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
-    assert frames_with_scalar.shape == image_size, "get_frames does not work correctly with frame_idxs=0"
+    frames = 0
+    frames_with_scalar = imaging_extractor.get_frames(frames=frames, channel=0)
+    assert frames_with_scalar.shape == image_size, "get_frames does not work correctly with frames=0"
 
-    frame_idxs = [0]
-    frames_with_single_element_list = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
-    assert_msg = "get_frames does not work correctly with frame_idxs=[0]"
+    frames = [0]
+    frames_with_single_element_list = imaging_extractor.get_frames(frames=frames, channel=0)
+    assert_msg = "get_frames does not work correctly with frames=[0]"
     assert frames_with_single_element_list.shape == (1, image_size[0], image_size[1]), assert_msg
 
-    frame_idxs = [0, 1]
-    frames_with_list = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
-    assert_msg = "get_frames does not work correctly with frame_idxs=[0, 1]"
+    frames = [0, 1]
+    frames_with_list = imaging_extractor.get_frames(frames=frames, channel=0)
+    assert_msg = "get_frames does not work correctly with frames=[0, 1]"
     assert frames_with_list.shape == (2, image_size[0], image_size[1]), assert_msg
 
-    frame_idxs = np.array([0, 1])
-    frames_with_array = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
-    assert_msg = "get_frames does not work correctly with frame_idxs=np.arrray([0, 1])"
+    frames = np.array([0, 1])
+    frames_with_array = imaging_extractor.get_frames(frames=frames, channel=0)
+    assert_msg = "get_frames does not work correctly with frames=np.arrray([0, 1])"
     assert frames_with_array.shape == (2, image_size[0], image_size[1]), assert_msg
 
-    frame_idxs = [0, 2]
-    frames_with_array = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
-    assert_msg = "get_frames does not work correctly with frame_idxs=[0, 2]"
+    frames = [0, 2]
+    frames_with_array = imaging_extractor.get_frames(frames=frames, channel=0)
+    assert_msg = "get_frames does not work correctly with frames=[0, 2]"
     assert frames_with_array.shape == (2, image_size[0], image_size[1]), assert_msg
 
 
@@ -436,7 +436,7 @@ def check_imaging_return_types(img_ex: ImagingExtractor):
     _assert_iterable_complete(iterable=img_ex.get_image_size(), dtypes=Iterable, element_dtypes=inttype, shape=(2,))
 
     # This needs a method for getting frame shape not image size. It only works for n_channel==1
-    # two_first_frames = img_ex.get_frames(frame_idxs=[0, 1])
+    # two_first_frames = img_ex.get_frames(frames=[0, 1])
     # _assert_iterable_complete(
     #     iterable=two_first_frames,
     #     dtypes=(np.ndarray,),

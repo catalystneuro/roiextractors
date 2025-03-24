@@ -100,14 +100,14 @@ class MultiImagingExtractor(ImagingExtractor):
 
         return times
 
-    def _get_frames_from_an_imaging_extractor(self, extractor_index: int, frame_idxs: ArrayType) -> NumpyArray:
+    def _get_frames_from_an_imaging_extractor(self, extractor_index: int, frames: ArrayType) -> NumpyArray:
         """Get frames from a single imaging extractor.
 
         Parameters
         ----------
         extractor_index: int
             Index of the imaging extractor to use.
-        frame_idxs: array_like
+        frames: array_like
             Indices of the frames to get.
 
         Returns
@@ -116,18 +116,18 @@ class MultiImagingExtractor(ImagingExtractor):
             Array of frames.
         """
         imaging_extractor = self._imaging_extractors[extractor_index]
-        frames = imaging_extractor.get_frames(frame_idxs=frame_idxs)
+        frames = imaging_extractor.get_frames(frames=frames)
         return frames
 
     def get_dtype(self):
         return self._imaging_extractors[0].get_dtype()
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> NumpyArray:
+    def get_frames(self, frames: ArrayType, channel: Optional[int] = 0) -> NumpyArray:
         """Get specific video frames from indices.
 
         Parameters
         ----------
-        frame_idxs: array-like
+        frames: array-like
             Indices of frames to return.
         channel: int, optional
             Channel index. Deprecated: This parameter will be removed in August 2025.
@@ -143,13 +143,13 @@ class MultiImagingExtractor(ImagingExtractor):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        if isinstance(frame_idxs, (int, np.integer)):
-            frame_idxs = [frame_idxs]
-        frame_idxs = np.array(frame_idxs)
-        assert np.all(frame_idxs < self.get_num_frames()), "'frame_idxs' exceed number of frames"
-        extractor_indices = np.searchsorted(self._end_frames, frame_idxs, side="right")
-        relative_frame_indices = frame_idxs - np.array(self._start_frames)[extractor_indices]
-        # Match frame_idxs to imaging extractors
+        if isinstance(frames, (int, np.integer)):
+            frames = [frames]
+        frames = np.array(frames)
+        assert np.all(frames < self.get_num_frames()), "'frames' exceed number of frames"
+        extractor_indices = np.searchsorted(self._end_frames, frames, side="right")
+        relative_frame_indices = frames - np.array(self._start_frames)[extractor_indices]
+        # Match frames to imaging extractors
         extractors_dict = defaultdict(list)
         for extractor_index, frame_index in zip(extractor_indices, relative_frame_indices):
             extractors_dict[extractor_index].append(frame_index)
@@ -159,7 +159,7 @@ class MultiImagingExtractor(ImagingExtractor):
         for extractor_index, frame_indices in extractors_dict.items():
             frames_for_each_extractor = self._get_frames_from_an_imaging_extractor(
                 extractor_index=extractor_index,
-                frame_idxs=frame_indices,
+                frames=frame_indices,
             )
             if len(frame_indices) == 1:
                 frames_for_each_extractor = frames_for_each_extractor[np.newaxis, ...]

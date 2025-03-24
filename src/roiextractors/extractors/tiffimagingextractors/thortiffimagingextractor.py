@@ -181,13 +181,13 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         except ValueError:
             return ET.fromstring(metadata_string)
 
-    def get_frames(self, frame_idxs: List[int]) -> np.ndarray:
+    def get_frames(self, frames: List[int]) -> np.ndarray:
         """
         Get specific frames by their time indices.
 
         Parameters
         ----------
-        frame_idxs : List[int]
+        frames : List[int]
             List of time/frame indices to retrieve.
 
         Returns
@@ -205,7 +205,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         has_z_dimension = self._z_axis_index is not None and self._num_z > 1
         number_of_z_planes = self._num_z if has_z_dimension else 1
 
-        n_frames = len(frame_idxs)
+        n_frames = len(frames)
         output_shape = (
             (n_frames, image_height, image_width, number_of_z_planes)
             if has_z_dimension
@@ -213,7 +213,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         )
         output_array = np.empty(output_shape, dtype=data_type)
 
-        for frame_counter, frame_idx in enumerate(frame_idxs):
+        for frame_counter, frame_idx in enumerate(frames):
             if frame_idx not in self._frame_page_mapping:
                 raise ValueError(f"No pages found for frame {frame_idx}.")
             page_mappings = self._frame_page_mapping[frame_idx]

@@ -74,23 +74,23 @@ class TestThorTiffImagingExtractor:
 
     def test_thor_tiff_extractor_get_frames(self):
         """Test the get_frames method."""
-        frame_idxs = [0, 1, 2]
-        frames = self.extractor.get_frames(frame_idxs=frame_idxs)
-        assert frames.shape[0] == len(frame_idxs)  # Correct number of frames
+        frames = [0, 1, 2]
+        frames = self.extractor.get_frames(frames=frames)
+        assert frames.shape[0] == len(frames)  # Correct number of frames
         assert frames.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
 
         # Compare with frames extracted directly from the test_data
-        for i, frame_idx in enumerate(frame_idxs):
+        for i, frame_idx in enumerate(frames):
             assert_array_equal(frames[i], self.test_data[frame_idx])
 
         # Test with non-consecutive frames
-        frame_idxs = [0, 2]
-        frames = self.extractor.get_frames(frame_idxs=frame_idxs)
-        assert frames.shape[0] == len(frame_idxs)  # Correct number of frames
+        frames = [0, 2]
+        frames = self.extractor.get_frames(frames=frames)
+        assert frames.shape[0] == len(frames)  # Correct number of frames
         assert frames.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
 
         # Compare with frames extracted directly from the test_data
-        for i, frame_idx in enumerate(frame_idxs):
+        for i, frame_idx in enumerate(frames):
             assert_array_equal(frames[i], self.test_data[frame_idx])
 
     def test_experiment_xml(self):

@@ -316,20 +316,20 @@ def check_get_frames_args(func):
     Raises
     ------
     AssertionError
-        If 'frame_idxs' exceed the number of frames.
+        If 'frames' exceed the number of frames.
     """
 
     @wraps(func)
-    def corrected_args(imaging, frame_idxs, channel=0):
+    def corrected_args(imaging, frames, channel=0):
         channel = int(channel)
-        if isinstance(frame_idxs, (int, np.integer)):
-            frame_idxs = [frame_idxs]
-        if not isinstance(frame_idxs, slice):
-            frame_idxs = np.array(frame_idxs)
-            assert np.all(frame_idxs < imaging.get_num_frames()), "'frame_idxs' exceed number of frames"
-        get_frames_correct_arg = func(imaging, frame_idxs, channel)
+        if isinstance(frames, (int, np.integer)):
+            frames = [frames]
+        if not isinstance(frames, slice):
+            frames = np.array(frames)
+            assert np.all(frames < imaging.get_num_frames()), "'frames' exceed number of frames"
+        get_frames_correct_arg = func(imaging, frames, channel)
 
-        if len(frame_idxs) == 1:
+        if len(frames) == 1:
             return get_frames_correct_arg[0]
         else:
             return get_frames_correct_arg

@@ -338,12 +338,12 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         index = [self.frame_to_raw_index(iframe) for iframe in range(self._num_frames)]
         self._times = timestamps[index]
 
-    def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
+    def get_frames(self, frames: ArrayType) -> np.ndarray:
         """Get specific video frames from indices (not necessarily continuous).
 
         Parameters
         ----------
-        frame_idxs: array-like
+        frames: array-like
             Indices of frames to return.
 
         Returns
@@ -351,14 +351,14 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         frames: numpy.ndarray
             The video frames.
         """
-        if isinstance(frame_idxs, int):
-            frame_idxs = [frame_idxs]
-        self.check_frame_inputs(frame_idxs[-1])
+        if isinstance(frames, int):
+            frames = [frames]
+        self.check_frame_inputs(frames[-1])
 
-        if not all(np.diff(frame_idxs) == 1):
-            return np.concatenate([self._get_single_frame(frame=idx) for idx in frame_idxs])
+        if not all(np.diff(frames) == 1):
+            return np.concatenate([self._get_single_frame(frame=idx) for idx in frames])
         else:
-            return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)
+            return self.get_video(start_frame=frames[0], end_frame=frames[-1] + 1)
 
     # Data accessed through an open ScanImageTiffReader io gets scrambled if there are multiple calls.
     # Thus, open fresh io in context each time something is needed.
@@ -576,12 +576,12 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extr
                 "https://github.com/catalystneuro/roiextractors/issues "
             )
 
-    def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> np.ndarray:
+    def get_frames(self, frames: ArrayType, channel: int = 0) -> np.ndarray:
         """Get specific video frames from indices.
 
         Parameters
         ----------
-        frame_idxs: array-like
+        frames: array-like
             Indices of frames to return.
         channel: int, optional
             Channel index. Deprecated: This parameter will be removed in August 2025.
@@ -600,15 +600,15 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extr
 
         ScanImageTiffReader = _get_scanimage_reader()
         squeeze_data = False
-        if isinstance(frame_idxs, int):
+        if isinstance(frames, int):
             squeeze_data = True
-            frame_idxs = [frame_idxs]
+            frames = [frames]
 
-        if not all(np.diff(frame_idxs) == 1):
-            return np.concatenate([self._get_single_frame(idx=idx) for idx in frame_idxs])
+        if not all(np.diff(frames) == 1):
+            return np.concatenate([self._get_single_frame(idx=idx) for idx in frames])
         else:
             with ScanImageTiffReader(filename=str(self.file_path)) as io:
-                frames = io.data(beg=frame_idxs[0], end=frame_idxs[-1] + 1)
+                frames = io.data(beg=frames[0], end=frames[-1] + 1)
                 if squeeze_data:
                     frames = frames.squeeze()
             return frames

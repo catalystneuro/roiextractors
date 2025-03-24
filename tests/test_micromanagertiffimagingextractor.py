@@ -87,7 +87,7 @@ class TestMicroManagerTiffExtractor(TestCase):
         assert_array_equal(self.extractor.get_video(), self.video)
 
     def test_micromanagertiffextractor_get_single_frame(self):
-        assert_array_equal(self.extractor.get_frames(frame_idxs=[0]), self.video[0][np.newaxis, ...])
+        assert_array_equal(self.extractor.get_frames(frames=[0]), self.video[0][np.newaxis, ...])
 
     def test_private_micromanagertiffextractor_num_frames(self):
         for sub_extractor in self.extractor._imaging_extractors:

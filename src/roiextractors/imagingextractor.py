@@ -173,7 +173,7 @@ class ImagingExtractor(ABC):
         dtype: dtype
             Data type of the video.
         """
-        return self.get_frames(frame_idxs=[0], channel=0).dtype
+        return self.get_frames(frames=[0], channel=0).dtype
 
     @abstractmethod
     def get_video(
@@ -217,12 +217,12 @@ class ImagingExtractor(ABC):
             )
         pass
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
+    def get_frames(self, frames: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
         """Get specific video frames from indices (not necessarily continuous).
 
         Parameters
         ----------
-        frame_idxs: array-like
+        frames: array-like
             Indices of frames to return.
         channel: int, optional
             Channel index. Deprecated: This parameter will be removed in August 2025.
@@ -238,11 +238,11 @@ class ImagingExtractor(ABC):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        assert max(frame_idxs) <= self.get_num_frames(), "'frame_idxs' exceed number of frames"
-        if np.all(np.diff(frame_idxs) == 0):
-            return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1])
-        relative_indices = np.array(frame_idxs) - frame_idxs[0]
-        return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)[relative_indices, ..., channel]
+        assert max(frames) <= self.get_num_frames(), "'frames' exceed number of frames"
+        if np.all(np.diff(frames) == 0):
+            return self.get_video(start_frame=frames[0], end_frame=frames[-1])
+        relative_indices = np.array(frames) - frames[0]
+        return self.get_video(start_frame=frames[0], end_frame=frames[-1] + 1)[relative_indices, ..., channel]
 
     def frame_to_time(self, frames: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
         """Convert user-inputted frame indices to times with units of seconds.
@@ -378,7 +378,7 @@ class FrameSliceImagingExtractor(ImagingExtractor):
         """Initialize an ImagingExtractor whose frames subset the parent.
 
         Subset is exclusive on the right bound, that is, the indexes of this ImagingExtractor range over
-        [0, ..., end_frame-start_frame-1], which is used to resolve the index mapping in `get_frames(frame_idxs=[...])`.
+        [0, ..., end_frame-start_frame-1], which is used to resolve the index mapping in `get_frames(frames=[...])`.
 
         Parameters
         ----------
@@ -412,10 +412,10 @@ class FrameSliceImagingExtractor(ImagingExtractor):
         if getattr(self._parent_imaging, "_times") is not None:
             self._times = self._parent_imaging._times[start_frame:end_frame]
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
-        assert max(frame_idxs) < self._num_frames, "'frame_idxs' range beyond number of available frames!"
-        mapped_frame_idxs = np.array(frame_idxs) + self._start_frame
-        return self._parent_imaging.get_frames(frame_idxs=mapped_frame_idxs, channel=channel)
+    def get_frames(self, frames: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
+        assert max(frames) < self._num_frames, "'frames' range beyond number of available frames!"
+        mapped_frames = np.array(frames) + self._start_frame
+        return self._parent_imaging.get_frames(frames=mapped_frames, channel=channel)
 
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
