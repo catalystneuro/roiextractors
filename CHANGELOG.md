@@ -2,8 +2,11 @@
 
 ### Features
 * Added MultiTIFFMultiPageExtractor for handling multiple TIFF files, each with multiple pages, organized according to a specified dimension order [#XXX](https://github.com/catalystneuro/roiextractors/pull/XXX)
+* New `read_scanimage_metadata` for reading scanimage metadata from a file directly as a python dict [#405](https://github.com/catalystneuro/roiextractors/pull/401)
 
 ### Fixes
+* Use `SI.hChannels.channelSave` or `SI.hChannels.channelsave` to determine number of channels for ScanImage extractors when available [#401](https://github.com/catalystneuro/roiextractors/pull/401)
+* Fixes the sampling rate for volumetric `ScanImage` [#405](https://github.com/catalystneuro/roiextractors/pull/401)
 
 ### Deprecations
 
