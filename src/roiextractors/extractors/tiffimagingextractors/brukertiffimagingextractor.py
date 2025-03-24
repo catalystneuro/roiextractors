@@ -278,17 +278,17 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
 
     def get_sampling_frequency(self) -> float:
         return self._imaging_extractors[0].get_sampling_frequency() * self._num_planes_per_channel_stream
-    
+
     def get_frames(self, frames: ArrayType, channel: Optional[int] = 0) -> ndarray:
         """Get specific video frames from indices.
-    
+
         Parameters
         ----------
         frames: array-like
             Indices of frames to return.
         channel: int, optional
             Channel index. Deprecated: This parameter will be removed in August 2025.
-    
+
         Returns
         -------
         frames: numpy.ndarray
@@ -300,18 +300,18 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
                 DeprecationWarning,
                 stacklevel=2,
             )
-    
+
         if isinstance(frames, (int, np.integer)):
             frames = [frames]
         frames = np.array(frames)
         assert np.all(frames < self.get_num_frames()), "'frames' exceed number of frames"
-    
+
         frames_shape = (len(frames),) + self.get_image_size()
         output_frames = np.empty(shape=frames_shape, dtype=self.get_dtype())
-    
+
         for plane_ind, extractor in enumerate(self._imaging_extractors):
             output_frames[..., plane_ind] = extractor.get_frames(frames)
-    
+
         return output_frames
 
     def get_video(

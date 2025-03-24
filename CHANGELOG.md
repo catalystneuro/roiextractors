@@ -14,15 +14,15 @@
 ## [Unreleased]
 
 ### Changed
-- Standardized parameter name in `get_frames()` method across all extractors from 
-  `frame_idxs` to `frames` for better consistency. This maintains backward compatibility 
+- Standardized parameter name in `get_frames()` method across all extractors from
+  `frame_idxs` to `frames` for better consistency. This maintains backward compatibility
   while aligning with existing test code and other extractors in the library.
-  
+
   For example:
   ```python
   # Old style (still supported but will be deprecated)
   extractor.get_frames(frame_idxs=[0, 1, 2])
-  
+
   # New standardized style
   extractor.get_frames(frames=[0, 1, 2])
   ```

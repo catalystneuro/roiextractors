@@ -105,7 +105,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
         for i, imaging_extractor in enumerate(self._imaging_extractors):
             video[..., i] = imaging_extractor.get_video(start_frame, end_frame)
             return video
-    
+
     def get_frames(self, frames: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
         """Get specific video frames.
 
@@ -121,23 +121,23 @@ class VolumetricImagingExtractor(ImagingExtractor):
         frames: numpy.ndarray
             The video frames.
         """
-        
+
         if isinstance(frames, (int, np.integer)):
             frame_indices = [frames]
         else:
             frame_indices = frames
-        
+
         for frame_idx in frame_indices:
             if frame_idx < -self.get_num_frames() or frame_idx >= self.get_num_frames():
                 raise ValueError(f"frame_idx {frame_idx} is out of bounds")
-        
+
         extracted_frames = []
         for extractor in self._imaging_extractors:
             extracted_frames.append(extractor.get_frames(frames=frame_indices))
-        
+
         extracted_frames = np.array(extracted_frames)
         output_frames = np.moveaxis(extracted_frames, 0, -1)
-        
+
         return output_frames
 
     def get_image_size(self) -> Tuple:
