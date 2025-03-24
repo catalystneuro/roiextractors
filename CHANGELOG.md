@@ -1,7 +1,7 @@
 # v0.5.12 (Upcoming)
 
 ### Features
-* Added MultiTIFFMultiPageExtractor for handling multiple TIFF files, each with multiple pages, organized according to a specified dimension order [#XXX](https://github.com/catalystneuro/roiextractors/pull/XXX)
+* Added MultiTIFFMultiPageExtractor for handling multiple TIFF files, each with multiple pages, organized according to a specified dimension order [#402](https://github.com/catalystneuro/roiextractors/pull/402)
 * New `read_scanimage_metadata` for reading scanimage metadata from a file directly as a python dict [#405](https://github.com/catalystneuro/roiextractors/pull/401)
 
 ### Fixes
