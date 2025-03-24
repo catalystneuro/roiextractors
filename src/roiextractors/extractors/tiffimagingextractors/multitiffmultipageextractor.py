@@ -7,8 +7,7 @@ MultiTIFFMultiPageExtractor
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
-from collections import defaultdict
+from typing import List, Optional, Tuple
 import warnings
 import numpy as np
 import glob
@@ -38,8 +37,8 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         dimension_order: str = "ZCT",
         num_channels: int = 1,
         channel_index: int = 0,
-        num_acquisition_cycles: Optional[int] = None,
         num_planes: int = 1,
+        num_acquisition_cycles: Optional[int] = None,
     ):
         """Initialize the extractor with file paths and dimension information.
 
@@ -58,11 +57,27 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             Number of channels. Default is 1.
         channel_index : int, optional
             Index of the channel to extract. Default is 0 (first channel).
-        num_acquisition_cycles : int, optional
-            Number of acquisition cycles (timepoints). If None, it will be calculated based on the total number
-            of IFDs and other dimensions. Default is None.
         num_planes : int, optional
             Number of depth planes (Z). Default is 1.
+        num_acquisition_cycles : int, optional
+            The total number of complete acquisition cycles present in the dataset. An acquisition cycle
+            represents one full sweep through the imaging dimensions according to the specified dimension_order.
+
+            In microscopy applications where oversampling occurs (multiple samples per depth/channel):
+            - If dimension_order starts with "T" (e.g., "TCZ", "TZC"): This parameter indicates how many
+            times each frame is acquired before changing other dimensions.
+            - If "T" is the second dimension (e.g., "ZTC", "CZT"): This indicates how many complete
+            scans occur at each level of the first dimension before proceeding.
+            - If "T" is the last dimension (e.g., "ZCT", "CZT"): This represents distinct timepoints
+            in a time series.
+
+            When set to None (default), the extractor automatically calculates this value as:
+                num_acquisition_cycles = total_ifds // (num_channels * num_planes)
+
+            This is particularly important for:
+            1. Oversampling to improve signal-to-noise ratio
+            2. Capturing dynamics at different timescales
+            3. Multi-exposure imaging where the same volume is imaged repeatedly
 
         Notes
         -----
@@ -150,25 +165,24 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         ifds_per_file = [len(handle.pages) for handle in self._file_handles]
         total_ifds = sum(ifds_per_file)
 
-        if num_acquisition_cycles is None:
-            # Calculate num_acquisition_cycles based on total IFDs and other dimensions
-            ifds_per_volume = num_channels * num_planes
-            if ifds_per_volume == 0:
-                raise ValueError("Invalid dimension sizes: num_channels and num_planes cannot both be zero")
+        ifds_per_cycle = num_channels * num_planes
+        if ifds_per_cycle == 0:
+            raise ValueError("Invalid dimension sizes: num_channels and num_planes cannot both be zero")
 
-            if total_ifds % ifds_per_volume != 0:
+        self._num_samples = total_ifds // ifds_per_cycle
+
+        if num_acquisition_cycles is None:
+
+            # Calculate num_acquisition_cycles based on total IFDs and other dimensions
+            if total_ifds % ifds_per_cycle != 0:
                 warnings.warn(
-                    f"Total IFDs ({total_ifds}) is not divisible by IFDs per volume ({ifds_per_volume}). "
+                    f"Total IFDs ({total_ifds}) is not divisible by IFDs per cycle ({ifds_per_cycle}). "
                     f"Some samples may not be accessible."
                 )
 
-            num_acquisition_cycles = total_ifds // ifds_per_volume
+            num_acquisition_cycles = total_ifds // ifds_per_cycle
 
         self.num_acquisition_cycles = num_acquisition_cycles
-
-        # Set the number of samples based on the acquisition cycles
-        # Each acquisition cycle corresponds to one sample for the selected channel
-        self._num_samples = num_acquisition_cycles
 
         # Create full mapping for all channels, times, and depths
         full_mapping = self._create_sample_to_ifd_mapping(
@@ -184,7 +198,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         sample_to_ifd_mapping = full_mapping[channel_mask]
 
         # Sort by time_index and depth_index for easier access
-        sorted_indices = np.lexsort((sample_to_ifd_mapping["depth_index"], sample_to_ifd_mapping["time_index"]))
+        sorted_indices = np.argsort(sample_to_ifd_mapping["time_index"])
         self._sample_to_ifd_mapping = sample_to_ifd_mapping[sorted_indices]
 
         # Determine if we're dealing with volumetric data
@@ -230,7 +244,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         )
 
         # Calculate total number of entries
-        total_entries = num_acquisition_cycles * num_channels * num_planes
+        total_entries = sum(ifds_per_file)
 
         # Define the sizes for each dimension
         dimension_sizes = {"Z": num_planes, "T": num_acquisition_cycles, "C": num_channels}

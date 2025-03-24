@@ -38,8 +38,9 @@ class TestMultiTIFFMultiPageExtractor(unittest.TestCase):
 
         # Create test data
         # 2 files, each with 6 pages (2 time points, 1 channel, 3 depths)
+        # That is, each file has 2 volumes  for 4 samples in total
         num_files = 2
-        num_acquisition_cycles = 2
+        acquisitions_per_file = 2
         num_channels = 1
         num_planes = 3
         height = 10
@@ -50,7 +51,7 @@ class TestMultiTIFFMultiPageExtractor(unittest.TestCase):
 
             # Create pages for this file
             pages = []
-            for t in range(num_acquisition_cycles):
+            for t in range(acquisitions_per_file):
                 for c in range(num_channels):
                     for z in range(num_planes):
                         # Create a unique pattern for each page
@@ -71,11 +72,10 @@ class TestMultiTIFFMultiPageExtractor(unittest.TestCase):
             dimension_order="CZT",
             num_channels=1,
             num_planes=3,
-            num_acquisition_cycles=2,
         )
 
         # Check basic properties
-        self.assertEqual(extractor.get_num_frames(), 2)  # num_acquisition_cycles
+        self.assertEqual(extractor.get_num_frames(), 4)
         self.assertEqual(extractor.get_image_size(), (10, 12))  # (height, width)
         self.assertEqual(extractor.get_sampling_frequency(), 30.0)
         self.assertEqual(len(extractor.get_channel_names()), 1)
@@ -91,7 +91,6 @@ class TestMultiTIFFMultiPageExtractor(unittest.TestCase):
             dimension_order="CZT",
             num_channels=1,
             num_planes=3,
-            num_acquisition_cycles=2,
         )
 
         # Get specific frames
@@ -120,7 +119,7 @@ class TestMultiTIFFMultiPageExtractor(unittest.TestCase):
         )
 
         # Check basic properties
-        self.assertEqual(extractor.get_num_frames(), 2)
+        self.assertEqual(extractor.get_num_frames(), 4)
         self.assertEqual(extractor.get_image_size(), (10, 12))
 
     def test_different_dimension_orders(self):
@@ -134,11 +133,10 @@ class TestMultiTIFFMultiPageExtractor(unittest.TestCase):
             dimension_order="ZTC",
             num_channels=1,
             num_planes=3,
-            num_acquisition_cycles=2,
         )
 
         # Check basic properties
-        self.assertEqual(extractor_ztc.get_num_frames(), 2)
+        self.assertEqual(extractor_ztc.get_num_frames(), 4)
 
         # Get frames and check they're accessible
         frame_0 = extractor_ztc.get_frames([0])
@@ -146,29 +144,18 @@ class TestMultiTIFFMultiPageExtractor(unittest.TestCase):
 
     def test_comparison_with_scanimage_multifile(self):
         """Test comparison with ScanImageTiffMultiPlaneMultiFileImagingExtractor."""
-        # Skip test if OPHYS_DATA_PATH is not available
-        if not hasattr(OPHYS_DATA_PATH, "exists") or not OPHYS_DATA_PATH.exists():
-            self.skipTest("OPHYS_DATA_PATH not available")
 
         # Path to ScanImage folder and file pattern
         scanimage_folder_path = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
         multifile_file_pattern = "scanimage_20240320_multifile_*.tif"
 
-        # Check if the files exist
+        scanimage_extractor = ScanImageTiffMultiPlaneMultiFileImagingExtractor(
+            folder_path=scanimage_folder_path,
+            file_pattern=multifile_file_pattern,
+            channel_name="Channel 1",
+        )
+
         file_paths = list(scanimage_folder_path.glob(multifile_file_pattern))
-        if not file_paths:
-            self.skipTest(f"No files found matching pattern {multifile_file_pattern} in folder {scanimage_folder_path}")
-
-        # Initialize ScanImageTiffMultiPlaneMultiFileImagingExtractor
-        try:
-            scanimage_extractor = ScanImageTiffMultiPlaneMultiFileImagingExtractor(
-                folder_path=scanimage_folder_path,
-                file_pattern=multifile_file_pattern,
-                channel_name="Channel 1",
-            )
-        except Exception as e:
-            self.skipTest(f"Failed to initialize ScanImageTiffMultiPlaneMultiFileImagingExtractor: {e}")
-
         # Initialize MultiTIFFMultiPageExtractor with equivalent mapping
         multi_extractor = MultiTIFFMultiPageExtractor(
             file_paths=file_paths,
@@ -177,7 +164,6 @@ class TestMultiTIFFMultiPageExtractor(unittest.TestCase):
             num_channels=2,
             channel_index=0,
             num_planes=1,  # For this example, num_planes is 1
-            num_acquisition_cycles=scanimage_extractor.get_num_frames(),
         )
 
         # Compare basic properties
