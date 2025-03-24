@@ -181,22 +181,14 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
         # Filter mapping for the specified channel
         channel_mask = full_mapping["channel_index"] == channel_index
-        filtered_mapping = full_mapping[channel_mask]
+        sample_to_ifd_mapping = full_mapping[channel_mask]
 
         # Sort by time_index and depth_index for easier access
-        sorted_indices = np.lexsort((filtered_mapping["depth_index"], filtered_mapping["time_index"]))
-        self._sample_to_ifd_mapping = filtered_mapping[sorted_indices]
+        sorted_indices = np.lexsort((sample_to_ifd_mapping["depth_index"], sample_to_ifd_mapping["time_index"]))
+        self._sample_to_ifd_mapping = sample_to_ifd_mapping[sorted_indices]
 
-        # Store initialization parameters for potential reconstruction
-        self._kwargs = {
-            "file_paths": [str(path) for path in self.file_paths],
-            "sampling_frequency": sampling_frequency,
-            "dimension_order": dimension_order,
-            "num_channels": num_channels,
-            "channel_index": channel_index,
-            "num_acquisition_cycles": num_acquisition_cycles,
-            "num_planes": num_planes,
-        }
+        # Determine if we're dealing with volumetric data
+        self.is_volumetric = self.num_planes > 1
 
     @staticmethod
     def _create_sample_to_ifd_mapping(
@@ -247,17 +239,17 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         # In dimension order, the first element changes fastest
         dimension_divisors = {}
         current_divisor = 1
-        for dimension in dimension_order:  # Process from fastest to slowest
+        for dimension in dimension_order:
             dimension_divisors[dimension] = current_divisor
             current_divisor *= dimension_sizes[dimension]
 
         # Create a linear range of IFD indices
-        ifd_indices = np.arange(total_entries)
+        indices = np.arange(total_entries)
 
         # Calculate indices for each dimension
-        depth_indices = (ifd_indices // dimension_divisors["Z"]) % dimension_sizes["Z"]
-        time_indices = (ifd_indices // dimension_divisors["T"]) % dimension_sizes["T"]
-        channel_indices = (ifd_indices // dimension_divisors["C"]) % dimension_sizes["C"]
+        depth_indices = (indices // dimension_divisors["Z"]) % dimension_sizes["Z"]
+        time_indices = (indices // dimension_divisors["T"]) % dimension_sizes["T"]
+        channel_indices = (indices // dimension_divisors["C"]) % dimension_sizes["C"]
 
         # Generate file_indices and local_ifd_indices using list comprehensions
         # Create arrays of file indices (repeating each file index for the number of IFDs in that file)
@@ -266,16 +258,16 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         )
 
         # Create arrays of local IFD indices (starting from 0 for each file)
-        local_ifd_indices = np.concatenate([np.arange(num_ifds, dtype=np.uint16) for num_ifds in ifds_per_file])
+        ifd_indices = np.concatenate([np.arange(num_ifds, dtype=np.uint16) for num_ifds in ifds_per_file])
 
         # Ensure we don't exceed total_entries
         file_indices = file_indices[:total_entries]
-        local_ifd_indices = local_ifd_indices[:total_entries]
+        ifd_indices = ifd_indices[:total_entries]
 
         # Create the structured array
         mapping = np.zeros(total_entries, dtype=mapping_dtype)
         mapping["file_index"] = file_indices
-        mapping["IFD_index"] = local_ifd_indices
+        mapping["IFD_index"] = ifd_indices
         mapping["channel_index"] = channel_indices
         mapping["depth_index"] = depth_indices
         mapping["time_index"] = time_indices
@@ -293,8 +285,8 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         Returns
         -------
         numpy.ndarray
-            Array of frames with shape (n_frames, height, width) if num_planes is 1,
-            or (n_frames, height, width, num_planes) if num_planes > 1.
+            Array of frames with shape (num_samples, height, width) if num_planes is 1,
+            or (num_samples, height, width, num_planes) if num_planes > 1.
 
         Raises
         ------
@@ -310,13 +302,8 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         if np.any(frame_idxs >= self._num_samples) or np.any(frame_idxs < 0):
             raise ValueError(f"Frame indices must be between 0 and {self._num_samples - 1}")
 
-        # Determine if we're dealing with volumetric data
-        is_volumetric = self.num_planes > 1
-
         # Always preallocate output array as volumetric
-        frames = np.empty(
-            (len(frame_idxs), self._num_rows, self._num_columns, max(1, self.num_planes)), dtype=self._dtype
-        )
+        samples = np.empty((len(frame_idxs), self._num_rows, self._num_columns, self.num_planes), dtype=self._dtype)
 
         # Load each requested frame
         for frame_idx_position, frame_idx in enumerate(frame_idxs):
@@ -327,24 +314,18 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
                 # Get the mapping for this frame and depth
                 mapping_entry = self._sample_to_ifd_mapping[mapping_idx]
-
-                # Ensure file_index is within range
-                file_index = min(mapping_entry["file_index"], len(self._file_handles) - 1)
-
-                # Load the data from the file
+                file_index = mapping_entry["file_index"]
                 file_handle = self._file_handles[file_index]
-
-                # Ensure IFD_index is within range
-                ifd_index = min(mapping_entry["IFD_index"], len(file_handle.pages) - 1)
+                ifd_index = mapping_entry["IFD_index"]
 
                 ifd = file_handle.pages[ifd_index]
-                frames[frame_idx_position, :, :, depth_position] = ifd.asarray()
+                samples[frame_idx_position, :, :, depth_position] = ifd.asarray()
 
         # Squeeze the depth dimension if not volumetric
-        if not is_volumetric:
-            frames = frames.squeeze(axis=3)
+        if not self.is_volumetric:
+            samples = samples.squeeze(axis=3)
 
-        return frames
+        return samples
 
     def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
         """Get a range of frames.
@@ -359,8 +340,8 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         Returns
         -------
         numpy.ndarray
-            Array of frames with shape (n_frames, height, width) if num_planes is 1,
-            or (n_frames, height, width, num_planes) if num_planes > 1.
+            Array of frames with shape (num_samples, height, width) if num_planes is 1,
+            or (num_samples, height, width, num_planes) if num_planes > 1.
         """
         if start_frame is None:
             start_frame = 0
