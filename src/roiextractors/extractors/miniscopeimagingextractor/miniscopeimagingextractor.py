@@ -139,7 +139,23 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
     def get_num_channels(self) -> int:
         return 1
 
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._image_size[:-1]
+
     def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._image_size[:-1]
 
     def get_sampling_frequency(self):

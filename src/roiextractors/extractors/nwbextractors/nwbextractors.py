@@ -10,6 +10,7 @@ NwbSegmentationExtractor
 
 from pathlib import Path
 from typing import Union, Optional, Iterable, Tuple
+import warnings
 
 import numpy as np
 from lazy_ops import DatasetView
@@ -232,7 +233,23 @@ class NwbImagingExtractor(ImagingExtractor):
         video = video[start_frame:end_frame].transpose([0, 2, 1])
         return video
 
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return (self._num_rows, self._columns)  # TODO: change name of _columns to _num_cols for consistency
+
     def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return (self._num_rows, self._columns)  # TODO: change name of _columns to _num_cols for consistency
 
     def get_num_frames(self):
@@ -417,7 +434,23 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         tranpose_image_convention = (1, 0) if len(self.get_image_size()) == 2 else (1, 0, 2)
         return np.array(self._roi_locs.data)[roi_idxs, tranpose_image_convention].T  # h5py fancy indexing is slow
 
+    def get_image_shape(self):
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._image_masks.shape[:2]
+
     def get_image_size(self):
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._image_masks.shape[:2]
 
     @staticmethod
