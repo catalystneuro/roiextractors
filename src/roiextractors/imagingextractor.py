@@ -104,15 +104,37 @@ class ImagingExtractor(ABC):
             return f"{size_gb:.1f}GiB"
 
     @abstractmethod
-    def get_image_size(self) -> Tuple[int, int]:
-        """Get the size of the video (num_rows, num_columns).
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        pass
+
+    def get_image_size(self) -> Tuple:
+        """Get the size of the video.
 
         Returns
         -------
         image_size: tuple
-            Size of the video (num_rows, num_columns).
+            Size of the video. For regular imaging extractors, this is (num_rows, num_columns).
+            For volumetric imaging extractors, this is (num_rows, num_columns, num_planes).
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_image_shape() instead for consistent behavior across all extractors.
         """
-        pass
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_image_shape()
 
     @abstractmethod
     def get_num_frames(self) -> int:
@@ -427,7 +449,23 @@ class FrameSliceImagingExtractor(ImagingExtractor):
         start_frame_shifted = start_frame + self._start_frame
         return self._parent_imaging.get_video(start_frame=start_frame_shifted, end_frame=end_frame, channel=channel)
 
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._parent_imaging.get_image_shape()
+
     def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return tuple(self._parent_imaging.get_image_size())
 
     def get_num_frames(self) -> int:

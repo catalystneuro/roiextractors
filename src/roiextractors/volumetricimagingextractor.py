@@ -56,6 +56,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
         """
         properties_to_check = dict(
             get_sampling_frequency="The sampling frequency",
+            get_image_shape="The shape of a frame",
             get_image_size="The size of a frame",
             get_num_channels="The number of channels",
             get_channel_names="The name of the channels",
@@ -134,6 +135,16 @@ class VolumetricImagingExtractor(ImagingExtractor):
         else:
             return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)
 
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._imaging_extractors[0].get_image_shape()
+
     def get_image_size(self) -> Tuple:
         """Get the size of a single frame.
 
@@ -141,7 +152,18 @@ class VolumetricImagingExtractor(ImagingExtractor):
         -------
         image_size: tuple
             The size of a single frame (num_rows, num_columns, num_planes).
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_image_shape() instead for consistent behavior across all extractors.
         """
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         image_size = (*self._imaging_extractors[0].get_image_size(), self.get_num_planes())
         return image_size
 

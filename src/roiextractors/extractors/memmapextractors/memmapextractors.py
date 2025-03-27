@@ -7,6 +7,7 @@ MemmapImagingExtractor
 """
 
 from pathlib import Path
+import warnings
 from warnings import warn
 
 import numpy as np
@@ -97,7 +98,23 @@ class MemmapImagingExtractor(ImagingExtractor):
         frame_idxs = range(start_frame, end_frame)
         return self.get_frames(frame_idxs=frame_idxs, channel=channel)
 
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return (self._num_rows, self._num_columns)
+
     def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return (self._num_rows, self._num_columns)
 
     def get_num_frames(self) -> int:
