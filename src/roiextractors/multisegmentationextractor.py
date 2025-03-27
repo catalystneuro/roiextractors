@@ -59,7 +59,6 @@ class MultiSegmentationExtractor(SegmentationExtractor):
     """Class is used to concatenate multi-plane recordings from the same device and session of experiment."""
 
     extractor_name = "MultiSegmentationExtractor"
-    installed = True  # check at class level if installed or not
     is_writable = False
     mode = "file"
     installation_mesg = ""  # error message when not installed
