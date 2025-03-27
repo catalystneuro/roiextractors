@@ -302,7 +302,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     """An segmentation extractor for NWB files."""
 
     extractor_name = "NwbSegmentationExtractor"
-    installed = True  # check at class level if installed or not
     is_writable = False
     mode = "file"
     installation_mesg = ""  # error message when not installed

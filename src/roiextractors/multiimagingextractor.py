@@ -20,7 +20,6 @@ class MultiImagingExtractor(ImagingExtractor):
     """Class to combine multiple ImagingExtractor objects by frames."""
 
     extractor_name = "MultiImagingExtractor"
-    installed = True
     installation_mesg = ""
 
     def __init__(self, imaging_extractors: List[ImagingExtractor]):

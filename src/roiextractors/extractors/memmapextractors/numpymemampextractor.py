@@ -67,8 +67,6 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
         offset : int, optional
             The offset in bytes. Usually corresponds to the number of bytes occupied by the header. 0 by default.
         """
-        self.installed = True
-
         self.file_path = Path(file_path)
         self.video_structure = video_structure
         self._sampling_frequency = float(sampling_frequency)
