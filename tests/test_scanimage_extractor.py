@@ -73,8 +73,8 @@ class TestScanImageExtractors:
             with TiffReader(file_path) as tiff_reader:
                 data = tiff_reader.asarray()
                 channel_data = data[:, extractor._channel_index, ...]
-                extractor_frames = extractor.get_series(start_sample=start_sample, stop_sample=stop_sample)
-                assert_array_equal(channel_data, extractor_frames)
+                extractor_samples = extractor.get_series(start_sample=start_sample, stop_sample=stop_sample)
+                assert_array_equal(channel_data, extractor_samples)
 
                 start_sample += samples_per_file
                 stop_sample += samples_per_file
@@ -120,6 +120,18 @@ class TestScanImageExtractors:
         assert extractor.get_num_samples() == 3
         assert extractor.get_image_shape() == (1024, 1024)
         assert extractor.get_sampling_frequency() == 15.2379
+
+        samples_per_file = extractor.get_num_samples() / len(extractor.file_paths)
+        start_sample = 0
+        stop_sample = samples_per_file
+        for file_path in extractor.file_paths:
+            with TiffReader(file_path) as tiff_reader:
+                data = tiff_reader.asarray()
+                extractor_samples = extractor.get_series(start_sample=start_sample, stop_sample=stop_sample)
+                assert_array_equal(data, extractor_samples)
+
+                start_sample += samples_per_file
+                stop_sample += samples_per_file
 
     def test_scanimage_multivolume(self):
         """
