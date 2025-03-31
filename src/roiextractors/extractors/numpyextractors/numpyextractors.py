@@ -188,8 +188,29 @@ class NumpyImagingExtractor(ImagingExtractor):
         )
         return (self._num_rows, self._num_columns)
 
-    def get_num_frames(self):
+    def get_num_samples(self):
         return self._num_frames
+
+    def get_num_frames(self):
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self):
         return self._sampling_frequency

@@ -238,8 +238,29 @@ class SbxImagingExtractor(ImagingExtractor):
         )
         return tuple(self._info["sz"])
 
-    def get_num_frames(self) -> int:
+    def get_num_samples(self) -> int:
         return (self._info["max_idx"] + 1) // self._info["nplanes"]
+
+    def get_num_frames(self) -> int:
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency

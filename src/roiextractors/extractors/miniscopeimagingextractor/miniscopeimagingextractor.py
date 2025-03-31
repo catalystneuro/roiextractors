@@ -133,8 +133,29 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
 
         self._sampling_frequency = None
 
-    def get_num_frames(self) -> int:
+    def get_num_samples(self) -> int:
         return self._num_frames
+
+    def get_num_frames(self) -> int:
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_num_channels(self) -> int:
         return 1

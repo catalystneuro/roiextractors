@@ -270,9 +270,25 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         )
         return self._num_rows, self._num_columns
 
-    def get_num_frames(self) -> int:
-        """Return the number of frames (time points)."""
+    def get_num_samples(self) -> int:
+        """Return the number of samples (time points)."""
         return self._num_frames
+
+    def get_num_frames(self) -> int:
+        """Return the number of frames (time points).
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> Optional[float]:
         """Return the sampling frequency, if available."""

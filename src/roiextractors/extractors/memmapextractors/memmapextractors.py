@@ -117,8 +117,29 @@ class MemmapImagingExtractor(ImagingExtractor):
         )
         return (self._num_rows, self._num_columns)
 
-    def get_num_frames(self) -> int:
+    def get_num_samples(self) -> int:
         return self._num_frames
+
+    def get_num_frames(self) -> int:
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
@@ -143,7 +164,7 @@ class MemmapImagingExtractor(ImagingExtractor):
         Returns
         -------
         video_shape: Tuple[int, int, int, int]
-            The shape of the video data (num_frames, num_rows, num_columns, num_channels).
+            The shape of the video data (num_samples, num_rows, num_columns, num_channels).
         """
         return (self._num_frames, self._num_rows, self._num_columns, self._num_channels)
 
