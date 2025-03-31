@@ -83,7 +83,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self.is_volumetric = self._metadata["SI.hStackManager.enable"]
         if self.is_volumetric:
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanVolumeRate"]
-            self._number_of_planes = self._metadata["SI.hStackManager.numSlices"]
+            self._num_planes = self._metadata["SI.hStackManager.numSlices"]
 
             frames_per_slice = self._metadata["SI.hStackManager.numSlices"]
             if frames_per_slice > 1:
@@ -106,7 +106,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         else:
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanFrameRate"]
-            self._number_of_planes = 1
+            self._num_planes = 1
             self._frames_per_slice = 1
 
         # This piece of the metadata is the indication that the channel is saved on the data
@@ -176,7 +176,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         dimension_order = "CZT"
 
         # Calculate number of samples
-        ifds_per_cycle = self._num_channels * self._number_of_planes
+        ifds_per_cycle = self._num_channels * self._num_planes
 
         num_acquisition_cycles = total_ifds // ifds_per_cycle
         self._num_samples = num_acquisition_cycles  #  / len(channels_available)
@@ -186,7 +186,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             dimension_order=dimension_order,
             num_channels=self._num_channels,
             num_acquisition_cycles=num_acquisition_cycles,
-            num_planes=self._number_of_planes,
+            num_planes=self._num_planes,
             ifds_per_file=ifds_per_file,
         )
 
@@ -199,7 +199,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self._sample_to_ifd_mapping = sample_to_ifd_mapping[sorted_indices]
 
         # Determine if we're dealing with volumetric data
-        self.is_volumetric = self._number_of_planes > 1
+        self.is_volumetric = self._num_planes > 1
 
     def _find_data_files(self) -> List[PathType]:
         """Find additional files in the series based on the file naming pattern."""
@@ -358,7 +358,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             for depth_position in range(self._num_planes):
                 # Calculate the index in the mapping array
                 # Each frame has num_planes entries in the mapping
-                mapping_idx = frame_idx * self._num_planes + depth_position
+                mapping_idx = int(frame_idx) * self._num_planes + depth_position
 
                 # Get the mapping for this frame and depth
                 mapping_entry = self._sample_to_ifd_mapping[mapping_idx]
@@ -401,6 +401,24 @@ class ScanImageImagingExtractor(ImagingExtractor):
         frame_idxs = np.arange(start_frame, end_frame)
         return self.get_frames(frame_idxs)
 
+    def get_series(self, start_sample: int, stop_sample: int) -> np.ndarray:
+        """Get a range of samples.
+
+        Parameters
+        ----------
+        start_sample : int
+            Start sample index (inclusive).
+        stop_sample : int
+            End sample index (exclusive).
+
+        Returns
+        -------
+        numpy.ndarray
+            Array of samples with shape (num_samples, height, width) if num_planes is 1,
+            or (num_samples, height, width, num_planes) if num_planes > 1.
+        """
+        return self.get_video(start_frame=start_sample, end_frame=stop_sample)
+
     def get_image_shape(self) -> Tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
@@ -418,6 +436,16 @@ class ScanImageImagingExtractor(ImagingExtractor):
         -------
         int
             Number of frames in the video.
+        """
+        return self._num_samples
+
+    def get_num_samples(self) -> int:
+        """Get the number of samples in the video.
+
+        Returns
+        -------
+        int
+            Number of samples in the video.
         """
         return self._num_samples
 

@@ -32,7 +32,7 @@ class TestScanImageExtractors:
         # Uncomment when adding support
         # Basic properties
         # assert extractor.is_volumetric == True
-        # assert extractor.get_num_frames() == 160
+        # assert extractor.get_num_samples() == 160
         # assert extractor.get_image_shape() == (512, 512)
         # assert extractor.get_sampling_frequency()  == 0.187588
 
@@ -62,17 +62,22 @@ class TestScanImageExtractors:
         assert extracted_file_names == expected_files_names
 
         assert extractor.is_volumetric == False
-        samples_per_file = 10
-        assert extractor.get_num_frames() == 10 * 3  # 10 frames per file
+        assert extractor.get_num_samples() == 10 * 3  # 10 samples per file
         assert extractor.get_image_shape() == (512, 512)
         assert extractor.get_sampling_frequency() == 98.83842317607626
 
-        # for file_path in extractor.file_paths:
-        #     with TiffReader(file_path) as tiff_reader:
-        #         data = tiff_reader.asarray()
+        samples_per_file = extractor.get_num_samples() / len(extractor.file_paths)
+        start_sample = 0
+        stop_sample = samples_per_file
+        for file_path in extractor.file_paths:
+            with TiffReader(file_path) as tiff_reader:
+                data = tiff_reader.asarray()
+                channel_data = data[:, extractor._channel_index, ...]
+                extractor_frames = extractor.get_series(start_sample=start_sample, stop_sample=stop_sample)
+                assert_array_equal(channel_data, extractor_frames)
 
-        #         extractor_frames = extractor.get_frames(frame_idxs=range(10))
-        #         assert_array_equal(data, extractor_frames)
+                start_sample += samples_per_file
+                stop_sample += samples_per_file
 
     def test_scanimage_noroi(self):
         """
@@ -85,7 +90,7 @@ class TestScanImageExtractors:
             extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 3")
 
         # assert extractor.is_volumetric == True
-        # assert extractor.get_num_frames() == 12
+        # assert extractor.get_num_samples() == 12
         # assert extractor.get_image_shape() == (256, 256)
         # assert extractor.get_sampling_frequency()  == 14.5517
 
@@ -112,7 +117,7 @@ class TestScanImageExtractors:
         extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 3")
 
         assert extractor.is_volumetric == False
-        assert extractor.get_num_frames() == 3
+        assert extractor.get_num_samples() == 3
         assert extractor.get_image_shape() == (1024, 1024)
         assert extractor.get_sampling_frequency() == 15.2379
 
