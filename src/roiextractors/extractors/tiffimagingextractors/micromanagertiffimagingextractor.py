@@ -14,6 +14,7 @@ from itertools import islice
 from pathlib import Path
 from types import ModuleType
 from typing import Optional, Tuple, Dict
+import warnings
 from warnings import warn
 
 from xml.etree import ElementTree
@@ -160,7 +161,23 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         """Override the parent class method as none of the properties that are checked are from the sub-imaging extractors."""
         return True
 
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._height, self._width
+
     def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._height, self._width
 
     def get_sampling_frequency(self) -> float:
@@ -219,7 +236,23 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
     def get_num_channels(self) -> int:
         return 1
 
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._image_size
+
     def get_image_size(self):
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._image_size
 
     def get_sampling_frequency(self):
