@@ -75,7 +75,7 @@ class TestScanImageExtractors:
         # First file of the series should be enough to initialize
         file_path = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
 
-        extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 3")
+        extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
         assert len(extractor.file_paths) == 3
 
         expected_files_names = [
@@ -156,7 +156,7 @@ class TestScanImageExtractors:
         File: scanimage_20220801_single.tif
         Metadata:
         - Volumetric: False (single plane)
-        - Channels: 1 (using "Channel 3")
+        - Channels: 1
         - Frames: 3
         - Frame rate: 15.2379 Hz
         - Image shape: 1024 x 1024
@@ -173,7 +173,7 @@ class TestScanImageExtractors:
         # This is frame per slice 24 and should fail
         file_path = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
 
-        extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 3")
+        extractor = ScanImageImagingExtractor(file_path=file_path)
 
         assert extractor.is_volumetric == False
         assert extractor.get_num_samples() == 3
@@ -258,7 +258,7 @@ class TestScanImageExtractors:
 
         # Create extractor with explicit file_paths parameter
         extractor = ScanImageImagingExtractor(
-            file_path=file_paths[0], channel_name="Channel 3", file_paths=file_paths  # First file is still required
+            file_path=file_paths[0], channel_name="Channel 1", file_paths=file_paths  # First file is still required
         )
 
         # Verify the correct files were loaded
@@ -272,3 +272,81 @@ class TestScanImageExtractors:
         # Verify the data is loaded correctly
         assert extractor.get_num_samples() == 10 * 3, "Should have 10 samples per file"
         assert extractor.get_image_shape() == (512, 512), "Image shape should be correct"
+
+    def test_get_times(self):
+        """Test the get_times method.
+
+        This test verifies that the get_times method correctly extracts timestamps
+        from ScanImage TIFF files for the selected channel.
+
+        The test checks that for multi-channel data, the timestamps are correctly
+        filtered for the selected channel.
+        """
+
+        file_path = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
+
+        extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
+        extractor_ch2 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
+
+        # Get timestamps for each channel
+        timestamps_ch1 = extractor_ch1.get_times()
+        timestamps_ch2 = extractor_ch2.get_times()
+
+        # Check basic properties
+        assert (
+            len(timestamps_ch1) == extractor_ch1.get_num_frames()
+        ), "Should have one timestamp per frame for channel 1"
+        assert (
+            len(timestamps_ch2) == extractor_ch2.get_num_frames()
+        ), "Should have one timestamp per frame for channel 2"
+
+        # Extract all timestamps from the file to compare
+        from tifffile import TiffFile
+
+        all_file_paths = [
+            "scanimage_20240320_multifile_00001.tif",
+            "scanimage_20240320_multifile_00002.tif",
+            "scanimage_20240320_multifile_00003.tif",
+        ]
+
+        all_timestamps = []
+        for file_name in all_file_paths:
+            file_path = SCANIMAGE_PATH / file_name
+            if not file_path.exists():
+                raise FileNotFoundError(f"File {file_path} does not exist.")
+            # Read the metadata from the TIFF file
+            with TiffFile(file_path) as tiff:
+                for page in tiff.pages:
+                    if "ImageDescription" not in page.tags:
+                        continue
+
+                    metadata_str = page.tags["ImageDescription"].value
+
+                    # Look for the timestamp line
+                    for line in metadata_str.strip().split("\n"):
+                        if line.startswith("frameTimestamps_sec"):
+                            # Extract the value part after " = "
+                            _, value_str = line.split(" = ", 1)
+                            try:
+                                timestamp = float(value_str.strip())
+                                all_timestamps.append(timestamp)
+                            except ValueError:
+                                all_timestamps.append(None)
+                            break
+
+        all_timestamps = np.asarray(all_timestamps)
+        assert len(all_timestamps) == len(timestamps_ch1) + len(
+            timestamps_ch2
+        ), "Total timestamps should match the sum of both channels"
+        # Verify that the timestamps for each channel are correctly filtered from all timestamps
+        # For a 2-channel recording, channel 3 should have timestamps from even indices (0, 2, 4...)
+        # and channel 4 should have timestamps from odd indices (1, 3, 5...)
+        ch1_indices = np.arange(0, len(all_timestamps), 2)
+        ch2_indices = np.arange(1, len(all_timestamps), 2)
+
+        expected_timestamps_ch1 = np.array(all_timestamps)[ch1_indices]
+        expected_timestamps_ch2 = np.array(all_timestamps)[ch2_indices]
+
+        # Compare the first few timestamps to verify correct filtering
+        assert np.allclose(timestamps_ch1, expected_timestamps_ch1), "Channel 1 timestamps should match expected values"
+        assert np.allclose(timestamps_ch2, expected_timestamps_ch2), "Channel 2 timestamps should match expected values"

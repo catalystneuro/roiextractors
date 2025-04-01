@@ -71,19 +71,14 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Path to the TIFF file. If this is part of a multi-file series, this should be the first file.
         channel_name : str, optional
             Name of the channel to extract. If None and multiple channels are available, the first channel will be used.
-        file_pattern : str, optional
-            Pattern for the TIFF files to read -- see pathlib.Path.glob for details. If None, the default,
-            the extractor will use the default naming conventions on ScanImage to locate additional files.
-            See _find_data_files for details.
         file_paths : List[PathType], optional
-            List of file paths to use directly. If provided, this overrides file_pattern and the automatic
+            List of file paths to use directly. If provided, this overrides the automatic
             file detection heuristics. Use this when you know exactly which files should be included,
             or when the automatic detection doesn't work correctly. The file paths should be provided
             in the correct temporal order, as they will be used as-is without sorting.
         """
         super().__init__()
         self.file_path = Path(file_path)
-        self.file_pattern = file_pattern
 
         # Validate file suffix
         valid_suffixes = [".tiff", ".tif", ".TIFF", ".TIF"]
@@ -137,8 +132,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self._num_channels = len(channels_available)
 
         # Determine their name and use matlab 1-indexing
-        channel_names = self._metadata["SI.hChannels.channelName"]
-        channel_names = [channel_names[channel_index + 1] for channel_index in channels_available]
+        all_channel_names = self._metadata["SI.hChannels.channelName"]
+        channel_names = [all_channel_names[channel_index - 1] for channel_index in channels_available]
 
         # Channel selection checks
         self._is_multi_channel_data = len(channel_names) > 1
@@ -164,11 +159,11 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self.channel_name = channel_names[0]
             self._channel_index = 0
 
-        # Store file_paths parameter
-        self._provided_file_paths = file_paths
-
         # Check if this is a multi-file dataset
-        self.file_paths = self._find_data_files()
+        if file_paths is None:
+            self.file_paths = self._find_data_files()
+        else:
+            self.file_paths = file_paths
 
         # Open all TIFF files and store only file readers for lazy loading
         total_ifds = 0
@@ -196,8 +191,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         total_ifds = sum(ifds_per_file)
 
         # For ScanImage, dimension order is always CZT
-        # That is, jump through channels first and then depth and then the pattern
-        # is repeated.
+        # That is, jump through channels first and then depth and then the pattern is repeated
         dimension_order = "CZT"
 
         # Calculate number of samples
@@ -248,11 +242,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
         List[PathType]
             List of paths to all files in the series, sorted naturally (e.g., file_1, file_2, file_10)
         """
-        # If file_paths is provided, use it directly without sorting
-        if self._provided_file_paths is not None:
-            # Convert all paths to Path objects but preserve the original order
-            return [Path(p) for p in self._provided_file_paths]
-
         # Parse the file name to extract base name, acquisition number, and file index
         file_stem = self.file_path.stem
 
@@ -274,15 +263,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
         elif stack_mode == "slow" and self.is_volumetric:
             base_name, acquisition, file_index = file_stem.split("_")
             pattern = f"{base_name}_*{self.file_path.suffix}"
-        # This is the case where the user specifies directly that they want multiple files
-        elif self.file_pattern is not None:
-            pattern = self.file_pattern
         else:
             files_found = [self.file_path]
             return files_found
 
-        # Split the file stem by underscores
-        # Look for other files with the same pattern in the same directory
         from natsort import natsorted
 
         files_found = natsorted(self.file_path.parent.glob(pattern))
@@ -604,6 +588,59 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Data type of the video.
         """
         return self._dtype
+
+    def get_times(self) -> np.ndarray:
+        """Get the timestamps for each frame.
+
+        Returns
+        -------
+        numpy.ndarray
+            Array of timestamps in seconds for each frame.
+
+        Notes
+        -----
+        This method extracts timestamps from the ScanImage TIFF file(s) for the selected channel.
+        It uses the mapping created during initialization to efficiently locate and extract
+        timestamps for each frame.
+        """
+        if self._times is not None:
+            return self._times
+
+        # Initialize array to store timestamps
+        timestamps = np.zeros(self._num_samples, dtype=np.float64)
+
+        # For each frame, extract its timestamp from the corresponding file and IFD
+        for frame_idx in range(self._num_samples):
+            # Get the first plane's mapping entry for this frame
+            # (We only need one plane per frame to get the timestamp)
+            mapping_idx = frame_idx * self._num_planes
+            mapping_entry = self._sample_to_ifd_mapping[mapping_idx]
+
+            file_index = mapping_entry["file_index"]
+            file_handle = self._tiff_readers[file_index]
+            ifd_index = mapping_entry["IFD_index"]
+
+            # Extract timestamp from the IFD description
+            description = file_handle.pages[ifd_index].description
+            description_lines = description.split("\n")
+
+            for line in description_lines:
+                if "frameTimestamps_sec" in line:
+                    # Extract the value part after " = "
+                    _, value_str = line.split(" = ", 1)
+                    try:
+                        timestamps[frame_idx] = float(value_str.strip())
+                    except ValueError:
+                        # If parsing fails, use frame index / sampling frequency as fallback
+                        timestamps[frame_idx] = frame_idx / self._sampling_frequency
+                    break
+            else:
+                # If no timestamp found, use frame index / sampling frequency as fallback
+                timestamps[frame_idx] = frame_idx / self._sampling_frequency
+
+        # Cache the timestamps
+        self._times = timestamps
+        return timestamps
 
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
