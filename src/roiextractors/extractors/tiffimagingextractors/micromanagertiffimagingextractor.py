@@ -100,10 +100,10 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         self._check_missing_files_in_folder(expected_list_of_files=list(file_counts.keys()))
         # Initialize the private imaging extractors with the number of frames for each file
         imaging_extractors = []
-        for file_path, num_frames_per_file in file_counts.items():
+        for file_path, num_samples_per_file in file_counts.items():
             extractor = _MicroManagerTiffImagingExtractor(self.folder_path / file_path)
             extractor._dtype = self._dtype
-            extractor._num_frames = num_frames_per_file
+            extractor._num_samples = num_samples_per_file
             extractor._image_size = (self._height, self._width)
             imaging_extractors.append(extractor)
         super().__init__(imaging_extractors=imaging_extractors)
