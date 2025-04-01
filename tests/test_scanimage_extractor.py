@@ -16,39 +16,40 @@ SCANIMAGE_PATH = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
 class TestScanImageExtractors:
     """Test the ScanImage extractor classes with various ScanImage files."""
 
-    def test_volumetric_data(self):
-        """Test with volumetric data that has multiple frames per slice.
+    def test_planar_single_channel(self):
+        """Test with planar (non-volumetric) single channel data.
 
-        File: scanimage_20220801_volume.tif
+        File: scanimage_20220801_single.tif
         Metadata:
-        - Acquisition mode: grab
-        - Volumetric: True (20 slices)
-        - Channels: 1 (single channel)
-        - Frames per slice: 8 (not supported)
-        - Frame rate: 30.0141 Hz
-        - Volume rate: 0.187588 Hz
-
-        This test verifies that the extractor correctly raises a ValueError when
-        encountering a ScanImage file with multiple frames per slice, which is not
-        currently supported by the ScanImageImagingExtractor.
+        - Volumetric: False (single plane)
+        - Channels: 1
+        - Frames: 3
+        - Frame rate: 15.2379 Hz
+        - Image shape: 1024 x 1024
         """
-        # For multifile, we only need to provide the first file
-        file_path = SCANIMAGE_PATH / "scanimage_20220801_volume.tif"
+        # This is frame per slice 24 and should fail
+        file_path = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
 
-        with pytest.raises(ValueError):
-            extractor = ScanImageImagingExtractor(file_path=file_path)
+        extractor = ScanImageImagingExtractor(file_path=file_path)
 
-        # Uncomment when adding support
-        # Basic properties
-        # assert extractor.is_volumetric == True
-        # assert extractor.get_num_samples() == 160
-        # assert extractor.get_image_shape() == (512, 512)
-        # assert extractor.get_sampling_frequency()  == 0.187588
+        assert extractor.is_volumetric == False
+        assert extractor.get_num_samples() == 3
+        assert extractor.get_image_shape() == (1024, 1024)
+        assert extractor.get_sampling_frequency() == 15.2379
 
-        # # Check if multiple files were detected
-        # assert len(extractor.file_paths)  == 1
+        samples_per_file = extractor.get_num_samples() / len(extractor.file_paths)
+        start_sample = 0
+        stop_sample = samples_per_file
+        for file_path in extractor.file_paths:
+            with TiffReader(file_path) as tiff_reader:
+                data = tiff_reader.asarray()
+                extractor_samples = extractor.get_series(start_sample=start_sample, stop_sample=stop_sample)
+                assert_array_equal(data, extractor_samples)
 
-    def test_scanimage_multifile(self):
+                start_sample += samples_per_file
+                stop_sample += samples_per_file
+
+    def test_planar_multi_channnel_multi_file(self):
         """Test with multi-file planar data acquired in loop acquisition mode.
 
         Files: scanimage_20240320_multifile_0000[1-3].tif
@@ -105,6 +106,38 @@ class TestScanImageExtractors:
                 start_sample += samples_per_file
                 stop_sample += samples_per_file
 
+    def test_volumetric_data(self):
+        """Test with volumetric data that has multiple frames per slice.
+
+        File: scanimage_20220801_volume.tif
+        Metadata:
+        - Acquisition mode: grab
+        - Volumetric: True (20 slices)
+        - Channels: 1 (single channel)
+        - Frames per slice: 8 (not supported)
+        - Frame rate: 30.0141 Hz
+        - Volume rate: 0.187588 Hz
+
+        This test verifies that the extractor correctly raises a ValueError when
+        encountering a ScanImage file with multiple frames per slice, which is not
+        currently supported by the ScanImageImagingExtractor.
+        """
+        # For multifile, we only need to provide the first file
+        file_path = SCANIMAGE_PATH / "scanimage_20220801_volume.tif"
+
+        with pytest.raises(ValueError):
+            extractor = ScanImageImagingExtractor(file_path=file_path)
+
+        # Uncomment when adding support
+        # Basic properties
+        # assert extractor.is_volumetric == True
+        # assert extractor.get_num_samples() == 160
+        # assert extractor.get_image_shape() == (512, 512)
+        # assert extractor.get_sampling_frequency()  == 0.187588
+
+        # # Check if multiple files were detected
+        # assert len(extractor.file_paths)  == 1
+
     def test_scanimage_noroi(self):
         """Test with volumetric data acquired in grab mode with multiple frames per depth.
 
@@ -112,9 +145,8 @@ class TestScanImageExtractors:
         Metadata:
         - Acquisition mode: grab
         - Volumetric: True (multiple planes)
-        - Channels: Multiple (testing with "Channel 3")
-        - Frames per slice: 2
-        - Multiple frames per depth: Yes (not currently supported)
+        - Channels: Multiple Channels
+        - Frames per depth: 2
         - Frame rate: 29.1248 Hz
         - Volume rate: 7.28119 Hz
         """
@@ -150,48 +182,6 @@ class TestScanImageExtractors:
         with pytest.raises(ValueError):
             extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 3")
 
-    def test_scanimage_single(self):
-        """Test with planar (non-volumetric) single channel data.
-
-        File: scanimage_20220801_single.tif
-        Metadata:
-        - Volumetric: False (single plane)
-        - Channels: 1
-        - Frames: 3
-        - Frame rate: 15.2379 Hz
-        - Image shape: 1024 x 1024
-
-        This test verifies that the extractor correctly:
-        1. Identifies the data as non-volumetric (planar)
-        2. Extracts the correct metadata (frame count, dimensions, sampling rate)
-        3. Loads the correct number of samples
-        4. Retrieves data that matches the original file content
-
-        Unlike the volumetric tests, this test should pass as single-plane data
-        is fully supported by the ScanImageImagingExtractor.
-        """
-        # This is frame per slice 24 and should fail
-        file_path = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
-
-        extractor = ScanImageImagingExtractor(file_path=file_path)
-
-        assert extractor.is_volumetric == False
-        assert extractor.get_num_samples() == 3
-        assert extractor.get_image_shape() == (1024, 1024)
-        assert extractor.get_sampling_frequency() == 15.2379
-
-        samples_per_file = extractor.get_num_samples() / len(extractor.file_paths)
-        start_sample = 0
-        stop_sample = samples_per_file
-        for file_path in extractor.file_paths:
-            with TiffReader(file_path) as tiff_reader:
-                data = tiff_reader.asarray()
-                extractor_samples = extractor.get_series(start_sample=start_sample, stop_sample=stop_sample)
-                assert_array_equal(data, extractor_samples)
-
-                start_sample += samples_per_file
-                stop_sample += samples_per_file
-
     def test_scanimage_multivolume(self):
         """Test with a multi-volume ScanImage file with frames per slice > 1.
 
@@ -207,7 +197,7 @@ class TestScanImageExtractors:
         with pytest.raises(ValueError):
             extractor = ScanImageImagingExtractor(file_path=file_path)
 
-    def test_static_get_channel_names(self):
+    def test_get_channel_names(self):
         """Test the static get_channel_names method.
 
         This test verifies that the static get_channel_names method correctly extracts
@@ -273,7 +263,7 @@ class TestScanImageExtractors:
         assert extractor.get_num_samples() == 10 * 3, "Should have 10 samples per file"
         assert extractor.get_image_shape() == (512, 512), "Image shape should be correct"
 
-    def test_get_times(self):
+    def test_get_times_planar_multichannel(self):
         """Test the get_times method.
 
         This test verifies that the get_times method correctly extracts timestamps

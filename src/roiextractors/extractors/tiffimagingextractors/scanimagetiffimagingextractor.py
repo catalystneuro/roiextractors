@@ -200,7 +200,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         num_acquisition_cycles = total_ifds // ifds_per_cycle
         self._num_samples = num_acquisition_cycles  #  / len(channels_available)
 
-        # Create full mapping for all channels, times, and depths
+        # Create full mapping for all channels, samples, and depths
         full_samples_to_ifd_mapping = self._create_sample_to_ifd_mapping(
             dimension_order=dimension_order,
             num_channels=self._num_channels,
@@ -288,7 +288,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         num_channels : int
             Number of channels.
         num_acquisition_cycles : int
-            Number of acquisition cycles (timepoints).
+            Number of acquisition cycles (samples).
         num_planes : int
             Number of depth planes (Z).
         ifds_per_file : List[int]
@@ -420,10 +420,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 # Get the mapping for this frame and depth
                 mapping_entry = self._sample_to_ifd_mapping[mapping_idx]
                 file_index = mapping_entry["file_index"]
-                file_handle = self._tiff_readers[file_index]
+                tiff_reader = self._tiff_readers[file_index]
                 ifd_index = mapping_entry["IFD_index"]
 
-                ifd = file_handle.pages[ifd_index]
+                ifd = tiff_reader.pages[ifd_index]
                 samples[frame_idx_position, :, :, depth_position] = ifd.asarray()
 
         # Squeeze the depth dimension if not volumetric
@@ -617,11 +617,11 @@ class ScanImageImagingExtractor(ImagingExtractor):
             mapping_entry = self._sample_to_ifd_mapping[mapping_idx]
 
             file_index = mapping_entry["file_index"]
-            file_handle = self._tiff_readers[file_index]
+            tiff_reader = self._tiff_readers[file_index]
             ifd_index = mapping_entry["IFD_index"]
 
             # Extract timestamp from the IFD description
-            description = file_handle.pages[ifd_index].description
+            description = tiff_reader.pages[ifd_index].description
             description_lines = description.split("\n")
 
             for line in description_lines:
@@ -663,6 +663,61 @@ class ScanImageImagingExtractor(ImagingExtractor):
         is volumetric or planar.
         """
         return self._num_planes
+
+    def get_plane_extractor(self, plane_idx: int) -> "ImagingExtractor":
+        """Extract a specific depth plane from volumetric data.
+
+        This method allows for extracting a specific depth plane from volumetric imaging data,
+        returning a modified version of the extractor that only returns data for the specified plane.
+
+        Parameters
+        ----------
+        plane_idx: int
+            Index of the depth plane to extract (0-indexed).
+
+        Returns
+        -------
+        extractor: ImagingExtractor
+            A modified version of the extractor that only returns data for the specified plane.
+
+        Raises
+        ------
+        ValueError
+            If the data is not volumetric (has only one plane).
+            If plane_idx is out of range.
+
+        Examples
+        --------
+        >>> extractor = ScanImageImagingExtractor('path/to/volumetric_file.tif')
+        >>> # Get only the first plane
+        >>> first_plane = extractor.depth_slice(plane_idx=0)
+        >>> # Get the second plane
+        >>> second_plane = extractor.depth_slice(plane_idx=1)
+        """
+        if not self.is_volumetric:
+            raise ValueError("Cannot depth slice non-volumetric data. This data has only one plane.")
+
+        # Validate parameters
+        if plane_idx < 0 or plane_idx >= self._num_planes:
+            raise ValueError(f"plane_idx ({plane_idx}) must be between 0 and {self._num_planes - 1}")
+
+        # Create a copy of the current extractor
+        import copy
+
+        sliced_extractor = copy.deepcopy(self)
+
+        # Filter the sample_to_ifd_mapping to only include entries for the specified depth plane
+        depth_mask = sliced_extractor._sample_to_ifd_mapping["depth_index"] == plane_idx
+        sliced_extractor._sample_to_ifd_mapping = sliced_extractor._sample_to_ifd_mapping[depth_mask]
+
+        # Update the number of samples
+        sliced_extractor._num_samples = len(sliced_extractor._sample_to_ifd_mapping)
+
+        # Override the is_volumetric flag and num_planes
+        sliced_extractor.is_volumetric = False
+        sliced_extractor._num_planes = 1
+
+        return sliced_extractor
 
     def __del__(self):
         """Close file handles when the extractor is garbage collected."""
