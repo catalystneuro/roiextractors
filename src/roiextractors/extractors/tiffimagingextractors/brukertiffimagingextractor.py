@@ -531,9 +531,9 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         file_counts = Counter(file_names_for_stream)
 
         imaging_extractors = []
-        for file_name, num_frames in file_counts.items():
+        for file_name, num_samples in file_counts.items():
             extractor = _BrukerTiffSinglePlaneImagingExtractor(file_path=str(Path(folder_path) / file_name))
-            extractor._num_frames = num_frames
+            extractor._num_samples = num_samples
             extractor._image_size = (self._height, self._width)
             extractor._dtype = self._dtype
             imaging_extractors.append(extractor)
