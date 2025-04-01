@@ -231,9 +231,44 @@ class TestScanImageExtractors:
         assert len(multi_channel_names) == 2, "Multi-channel file should have two channels"
         assert multi_channel_names == ["Channel 1", "Channel 2"]
 
-        # Test with volumetric fil
+        # Test with volumetric file (should still work even though extractor initialization would fail)
         volumetric_file = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
         volumetric_channel_names = ScanImageImagingExtractor.get_channel_names(volumetric_file)
         assert isinstance(volumetric_channel_names, list), "Channel names should be returned as a list"
         assert len(volumetric_channel_names) >= 1, "Should extract at least one channel name"
         assert volumetric_channel_names == ["Channel 1", "Channel 4"]
+
+    def test_file_paths_parameter(self):
+        """Test the file_paths parameter for direct file specification.
+
+        This test verifies that the extractor correctly uses the provided file_paths
+        parameter instead of relying on automatic file detection heuristics.
+
+        The test checks:
+        1. Explicitly providing file paths works correctly
+        2. The extractor loads the correct number of files
+        3. The files are loaded in the correct order
+        """
+        # Get the paths to the multi-file dataset
+        file_paths = [
+            SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif",
+            SCANIMAGE_PATH / "scanimage_20240320_multifile_00002.tif",
+            SCANIMAGE_PATH / "scanimage_20240320_multifile_00003.tif",
+        ]
+
+        # Create extractor with explicit file_paths parameter
+        extractor = ScanImageImagingExtractor(
+            file_path=file_paths[0], channel_name="Channel 3", file_paths=file_paths  # First file is still required
+        )
+
+        # Verify the correct files were loaded
+        assert len(extractor.file_paths) == 3, "Should load all 3 files"
+
+        # Verify the files are in the correct order
+        expected_file_names = [Path(p).name for p in file_paths]
+        actual_file_names = [Path(p).name for p in extractor.file_paths]
+        assert actual_file_names == expected_file_names, "Files should be loaded in the provided order"
+
+        # Verify the data is loaded correctly
+        assert extractor.get_num_samples() == 10 * 3, "Should have 10 samples per file"
+        assert extractor.get_image_shape() == (512, 512), "Image shape should be correct"

@@ -57,6 +57,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         file_path: PathType,
         channel_name: Optional[str] = None,
         file_pattern: Optional[str] = None,
+        file_paths: Optional[List[PathType]] = None,
     ):
         """Create a ScanImageImagingExtractor instance from a TIFF file produced by ScanImage.
 
@@ -72,8 +73,13 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Name of the channel to extract. If None and multiple channels are available, the first channel will be used.
         file_pattern : str, optional
             Pattern for the TIFF files to read -- see pathlib.Path.glob for details. If None, the default,
-            the extractor will use the default naming conventions on ScanImage to locate addititional files
-            see _find_additional_files for details
+            the extractor will use the default naming conventions on ScanImage to locate additional files.
+            See _find_data_files for details.
+        file_paths : List[PathType], optional
+            List of file paths to use directly. If provided, this overrides file_pattern and the automatic
+            file detection heuristics. Use this when you know exactly which files should be included,
+            or when the automatic detection doesn't work correctly. The file paths should be provided
+            in the correct temporal order, as they will be used as-is without sorting.
         """
         super().__init__()
         self.file_path = Path(file_path)
@@ -158,6 +164,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self.channel_name = channel_names[0]
             self._channel_index = 0
 
+        # Store file_paths parameter
+        self._provided_file_paths = file_paths
+
         # Check if this is a multi-file dataset
         self.file_paths = self._find_data_files()
 
@@ -220,25 +229,30 @@ class ScanImageImagingExtractor(ImagingExtractor):
     def _find_data_files(self) -> List[PathType]:
         """Find additional files in the series based on the file naming pattern.
 
-        This method analyzes the file name and ScanImage metadata to determine if the current file
-        is part of a multi-file dataset. It uses different strategies based on the acquisition mode:
+        This method determines which files to include in the dataset using one of these approaches:
 
-        - For 'grab' mode with finite frames per file: Uses base_name_acquisition_* pattern
-        - For 'loop' mode: Uses base_name_* pattern
-        - For 'slow' stack mode with volumetric data: Uses base_name_* pattern
-        - When file_pattern is provided: Uses the provided pattern
-        - Otherwise: Returns only the current file
+        1. If file_paths is provided: Uses the provided list of file paths directly
+        2. If file_pattern is provided: Uses the provided pattern to glob for files
+        3. Otherwise, analyzes the file name and ScanImage metadata to determine if the current file
+           is part of a multi-file dataset. It uses different strategies based on the acquisition mode:
+           - For 'grab' mode with finite frames per file: Uses base_name_acquisition_* pattern
+           - For 'loop' mode: Uses base_name_* pattern
+           - For 'slow' stack mode with volumetric data: Uses base_name_* pattern
+           - Otherwise: Returns only the current file
 
-        This information was shared in a private conversation with Lawrence Niu, who is a developer of ScanImage.
-
-        The method uses ScanImage's metadata to determine the acquisition state and other parameters
-        that influence how files are named and organized.
+        This information about ScanImage file naming was shared in a private conversation with
+        Lawrence Niu, who is a developer of ScanImage.
 
         Returns
         -------
         List[PathType]
             List of paths to all files in the series, sorted naturally (e.g., file_1, file_2, file_10)
         """
+        # If file_paths is provided, use it directly without sorting
+        if self._provided_file_paths is not None:
+            # Convert all paths to Path objects but preserve the original order
+            return [Path(p) for p in self._provided_file_paths]
+
         # Parse the file name to extract base name, acquisition number, and file index
         file_stem = self.file_path.stem
 
