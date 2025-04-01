@@ -91,7 +91,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
             self.metadata = metadata
 
         # The test data has four dimensions and the first axis is channels
-        self._num_channels, self._num_frames, self._num_rows, self._num_cols = self._video.shape
+        self._num_channels, self._num_samples, self._num_rows, self._num_cols = self._video.shape
         self._video = self._video.lazy_transpose([1, 2, 3, 0])
 
         if self._channel_names is not None:
@@ -189,7 +189,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         return self._num_rows, self._num_cols
 
     def get_num_samples(self):
-        return self._num_frames
+        return self._num_samples
 
     def get_num_frames(self):
         """Get the number of frames in the video.

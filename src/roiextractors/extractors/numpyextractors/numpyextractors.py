@@ -75,7 +75,7 @@ class NumpyImagingExtractor(ImagingExtractor):
         self._channel_names = channel_names
 
         (
-            self._num_frames,
+            self._num_samples,
             self._num_rows,
             self._num_columns,
             self._num_channels,
@@ -189,7 +189,7 @@ class NumpyImagingExtractor(ImagingExtractor):
         return (self._num_rows, self._num_columns)
 
     def get_num_samples(self):
-        return self._num_frames
+        return self._num_samples
 
     def get_num_frames(self):
         """Get the number of frames in the video.

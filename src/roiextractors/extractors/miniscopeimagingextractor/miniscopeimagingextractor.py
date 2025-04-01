@@ -127,14 +127,14 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
         super().__init__()
 
         with self._video_capture(file_path=str(file_path)) as video_obj:
-            self._num_frames = video_obj.get_video_frame_count()
+            self._num_samples = video_obj.get_video_frame_count()
             self._image_size = video_obj.get_frame_shape()
             self._dtype = video_obj.get_video_frame_dtype()
 
         self._sampling_frequency = None
 
     def get_num_samples(self) -> int:
-        return self._num_frames
+        return self._num_samples
 
     def get_num_frames(self) -> int:
         """Get the number of frames in the video.

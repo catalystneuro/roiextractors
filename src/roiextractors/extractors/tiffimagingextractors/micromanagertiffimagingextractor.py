@@ -87,7 +87,7 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
 
         schema_name = re.findall("\{(.*)\}", ome_metadata_root.tag)[0]
         pixels_element = ome_metadata_root.find(f"{{{schema_name}}}Image/{{{schema_name}}}Pixels")
-        self._num_frames = int(pixels_element.attrib["SizeT"])
+        self._num_samples = int(pixels_element.attrib["SizeT"])
         self._dtype = np.dtype(pixels_element.attrib["Type"])
 
         # all the file names are repeated under the TiffData tag
@@ -184,7 +184,7 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         return self._sampling_frequency
 
     def get_num_samples(self) -> int:
-        return self._num_frames
+        return self._num_samples
 
     def get_num_frames(self) -> int:
         """Get the number of frames in the video.
@@ -248,11 +248,11 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
 
         self.pages = self.tifffile.TiffFile(self.file_path).pages
         self._dtype = None
-        self._num_frames = None
+        self._num_samples = None
         self._image_size = None
 
     def get_num_samples(self):
-        return self._num_frames
+        return self._num_samples
 
     def get_num_frames(self):
         """Get the number of frames in the video.

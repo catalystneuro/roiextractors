@@ -69,7 +69,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
             raise ValueError("Could not find 'Pixels' element in OME metadata.")
 
         self._num_channels = int(pixels_element.get("SizeC", "1"))
-        self._num_frames = int(pixels_element.get("SizeT", "1"))
+        self._num_samples = int(pixels_element.get("SizeT", "1"))
         self._num_rows = int(pixels_element.get("SizeY"))
         self._num_columns = int(pixels_element.get("SizeX"))
         self._num_z = int(pixels_element.get("SizeZ", "1"))
@@ -246,7 +246,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         if start_frame is None:
             start_frame = 0
         if end_frame is None:
-            end_frame = self._num_frames
+            end_frame = self._num_samples
         frame_indices = list(range(start_frame, end_frame))
         return self.get_frames(frame_indices)
 
@@ -272,7 +272,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
 
     def get_num_samples(self) -> int:
         """Return the number of samples (time points)."""
-        return self._num_frames
+        return self._num_samples
 
     def get_num_frames(self) -> int:
         """Return the number of frames (time points).

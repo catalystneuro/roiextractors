@@ -87,7 +87,7 @@ class NwbImagingExtractor(ImagingExtractor):
         self._data_has_channels_axis = True
         if len(self.photon_series.data.shape) == 3:
             self._num_channels = 1
-            self._num_frames, self._columns, self._num_rows = self.photon_series.data.shape
+            self._num_samples, self._columns, self._num_rows = self.photon_series.data.shape
         else:
             raise_multi_channel_or_depth_not_implemented(extractor_name=self.extractor_name)
 
@@ -253,7 +253,7 @@ class NwbImagingExtractor(ImagingExtractor):
         return (self._num_rows, self._columns)  # TODO: change name of _columns to _num_cols for consistency
 
     def get_num_samples(self):
-        return self._num_frames
+        return self._num_samples
 
     def get_num_frames(self):
         """Get the number of frames in the video.

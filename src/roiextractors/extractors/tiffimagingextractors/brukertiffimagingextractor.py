@@ -261,12 +261,12 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
 
         super().__init__(imaging_extractors=imaging_extractors)
 
-        self._num_frames = self._imaging_extractors[0].get_num_frames()
+        self._num_samples = self._imaging_extractors[0].get_num_frames()
         self._image_size = *self._imaging_extractors[0].get_image_size(), self._num_planes_per_channel_stream
         self.xml_metadata = self._imaging_extractors[0].xml_metadata
 
         self._start_frames = [0] * self._num_planes_per_channel_stream
-        self._end_frames = [self._num_frames] * self._num_planes_per_channel_stream
+        self._end_frames = [self._num_samples] * self._num_planes_per_channel_stream
 
     def get_image_shape(self) -> Tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
@@ -650,12 +650,12 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
 
         super().__init__()
 
-        self._num_frames = None
+        self._num_samples = None
         self._image_size = None
         self._dtype = None
 
     def get_num_samples(self) -> int:
-        return self._num_frames
+        return self._num_samples
 
     def get_num_frames(self) -> int:
         """Get the number of frames in the video.
