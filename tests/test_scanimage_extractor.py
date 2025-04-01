@@ -17,11 +17,20 @@ class TestScanImageExtractors:
     """Test the ScanImage extractor classes with various ScanImage files."""
 
     def test_volumetric_data(self):
-        """
-        Test for a file acquired with ScanImage in multifile mode.
-        This is single channel data in grab acquisition
-        This has more than one frame per depth so it should fail.
+        """Test with volumetric data that has multiple frames per slice.
 
+        File: scanimage_20220801_volume.tif
+        Metadata:
+        - Acquisition mode: grab
+        - Volumetric: True (20 slices)
+        - Channels: 1 (single channel)
+        - Frames per slice: 8 (not supported)
+        - Frame rate: 30.0141 Hz
+        - Volume rate: 0.187588 Hz
+
+        This test verifies that the extractor correctly raises a ValueError when
+        encountering a ScanImage file with multiple frames per slice, which is not
+        currently supported by the ScanImageImagingExtractor.
         """
         # For multifile, we only need to provide the first file
         file_path = SCANIMAGE_PATH / "scanimage_20220801_volume.tif"
@@ -40,10 +49,27 @@ class TestScanImageExtractors:
         # assert len(extractor.file_paths)  == 1
 
     def test_scanimage_multifile(self):
-        """
-        Test for data acquired in loop acquisition so it will be multi file
-        this is planar file
-        there are two channels
+        """Test with multi-file planar data acquired in loop acquisition mode.
+
+        Files: scanimage_20240320_multifile_0000[1-3].tif
+        Metadata:
+        - Acquisition mode: loop (3 acquisitions per loop)
+        - Volumetric: False (1 slice)
+        - Channels: 2 (using "Channel 3")
+        - Frames per slice: 10
+        - Frame rate: 98.84 Hz
+        - Image shape: 512 x 512
+
+        This test verifies that the extractor correctly:
+        1. Detects and loads all 3 files in the series
+        2. Extracts the correct metadata (volumetric status, sampling frequency, etc.)
+        3. Retrieves the correct data from each file in the series
+
+        The test checks:
+        - File detection: Confirms all 3 files in the series are found
+        - File ordering: Verifies files are loaded in the correct sequence
+        - Metadata extraction: Validates volumetric status, frame count, dimensions, and sampling rate
+        - Data integrity: Ensures data from each file is correctly loaded and matches the original files
         """
 
         # First file of the series should be enough to initialize
@@ -80,10 +106,17 @@ class TestScanImageExtractors:
                 stop_sample += samples_per_file
 
     def test_scanimage_noroi(self):
-        """
-        Data acquired in grab mode, volumetric data multi channel
-        This has multiple frames per depth so it should throw an error
+        """Test with volumetric data acquired in grab mode with multiple frames per depth.
 
+        File: scanimage_20220923_noroi.tif
+        Metadata:
+        - Acquisition mode: grab
+        - Volumetric: True (multiple planes)
+        - Channels: Multiple (testing with "Channel 3")
+        - Frames per slice: 2
+        - Multiple frames per depth: Yes (not currently supported)
+        - Frame rate: 29.1248 Hz
+        - Volume rate: 7.28119 Hz
         """
         file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
         with pytest.raises(ValueError):
@@ -95,10 +128,22 @@ class TestScanImageExtractors:
         # assert extractor.get_sampling_frequency()  == 14.5517
 
     def test_scanimage_roi(self):
-        """
-        Multi channel data
-        Volumetric data
-        frames per slice 2 so it should throw an error
+        """Test with multi-channel volumetric data with frames per slice > 1.
+
+        File: scanimage_20220923_roi.tif
+        Metadata:
+        - Volumetric: True (multiple planes)
+        - Channels: Multiple
+        - Frames per slice: 2
+        - Frame rate: 29.1248 Hz
+        - Volume rate: 7.28119 Hz
+
+        This test verifies that the extractor correctly raises a ValueError when
+        encountering a ScanImage file with frames per slice > 1, which is not
+        currently supported by the ScanImageImagingExtractor.
+
+        When support for multiple frames per slice is added, this test should be
+        updated to verify correct metadata extraction and data loading.
         """
 
         file_path = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
@@ -106,10 +151,24 @@ class TestScanImageExtractors:
             extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 3")
 
     def test_scanimage_single(self):
-        """
-        Planar data
-        Single channel data
+        """Test with planar (non-volumetric) single channel data.
 
+        File: scanimage_20220801_single.tif
+        Metadata:
+        - Volumetric: False (single plane)
+        - Channels: 1 (using "Channel 3")
+        - Frames: 3
+        - Frame rate: 15.2379 Hz
+        - Image shape: 1024 x 1024
+
+        This test verifies that the extractor correctly:
+        1. Identifies the data as non-volumetric (planar)
+        2. Extracts the correct metadata (frame count, dimensions, sampling rate)
+        3. Loads the correct number of samples
+        4. Retrieves data that matches the original file content
+
+        Unlike the volumetric tests, this test should pass as single-plane data
+        is fully supported by the ScanImageImagingExtractor.
         """
         # This is frame per slice 24 and should fail
         file_path = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
@@ -134,15 +193,47 @@ class TestScanImageExtractors:
                 stop_sample += samples_per_file
 
     def test_scanimage_multivolume(self):
-        """
-        Test with a ScanImage multivolume file.
-        Volumetric data
-        Single channel
-        frames per slice 8 so it should fail
+        """Test with a multi-volume ScanImage file with frames per slice > 1.
 
+        File: scanimage_20220801_multivolume.tif
+        Metadata:
+        - Volumetric: True (multiple planes)
+        - Channels: 1 (single channel)
+        - Frames per slice: 8
         """
         file_path = SCANIMAGE_PATH / "scanimage_20220801_multivolume.tif"
 
         # Create multi-plane extractor
         with pytest.raises(ValueError):
             extractor = ScanImageImagingExtractor(file_path=file_path)
+
+    def test_static_get_channel_names(self):
+        """Test the static get_channel_names method.
+
+        This test verifies that the static get_channel_names method correctly extracts
+        channel names from ScanImage TIFF files without needing to create an extractor instance.
+
+        The test checks:
+        1. Single-channel file: Verifies correct channel name extraction
+        2. Multi-channel file: Verifies all channel names are correctly extracted
+        """
+        # Test with single-channel file
+        single_channel_file = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
+        single_channel_names = ScanImageImagingExtractor.get_channel_names(single_channel_file)
+        assert isinstance(single_channel_names, list), "Channel names should be returned as a list"
+        assert len(single_channel_names) == 1, "Single channel file should have one channel"
+        assert single_channel_names[0] == "Channel 1", "Channel name should match expected value"
+
+        # Test with multi-channel file
+        multi_channel_file = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
+        multi_channel_names = ScanImageImagingExtractor.get_channel_names(multi_channel_file)
+        assert isinstance(multi_channel_names, list), "Channel names should be returned as a list"
+        assert len(multi_channel_names) == 2, "Multi-channel file should have two channels"
+        assert multi_channel_names == ["Channel 1", "Channel 2"]
+
+        # Test with volumetric fil
+        volumetric_file = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
+        volumetric_channel_names = ScanImageImagingExtractor.get_channel_names(volumetric_file)
+        assert isinstance(volumetric_channel_names, list), "Channel names should be returned as a list"
+        assert len(volumetric_channel_names) >= 1, "Should extract at least one channel name"
+        assert volumetric_channel_names == ["Channel 1", "Channel 4"]

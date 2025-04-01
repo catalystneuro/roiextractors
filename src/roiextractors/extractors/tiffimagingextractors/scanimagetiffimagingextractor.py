@@ -26,14 +26,28 @@ from .scanimagetiff_utils import (
 
 
 class ScanImageImagingExtractor(ImagingExtractor):
-    """Specialized extractor for reading TIFF files produced via ScanImage.
+    """
+    Specialized extractor for reading TIFF files produced via ScanImage software.
 
-    This extractor implements a similar approach to the MultiTIFFMultiPageExtractor but is specialized
-    for ScanImage TIFF files. It handles multiple TIFF files, each with multiple pages, organized
-    according to the ScanImage dimension order (CZT).
+    This extractor is designed to handle the complex structure of ScanImage TIFF files, which can contain
+    multiple channels, planes (Z-dimension), and time points organized according to the ScanImage dimension
+    order (CZT - Channel, Z-depth, Time). It supports both single-file and multi-file datasets generated
+    by ScanImage in various acquisition modes (grab, focus, loop).
 
-    The extractor creates a mapping between each logical sample index and its corresponding file and IFD location.
-    This mapping is used to efficiently retrieve samples when requested.
+    The extractor creates a mapping between each logical sample index and its corresponding physical file
+    and IFD (Image File Directory) location. This mapping enables efficient retrieval of specific frames
+    without loading the entire dataset into memory, making it suitable for large datasets.
+
+    Key features:
+    - Handles multi-channel data with channel selection
+    - Supports volumetric (multi-plane) imaging data
+    - Automatically detects and loads multi-file datasets based on ScanImage naming conventions
+    - Extracts and provides access to ScanImage metadata
+    - Efficiently retrieves frames using lazy loading
+
+    Current limitations:
+    - Does not support datasets with multiple frames per slice (will raise ValueError)
+    - Does not support datasets with flyback frames (will raise ValueError)
     """
 
     extractor_name = "ScanImageImagingExtractor"
@@ -80,6 +94,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         self._general_metadata = tiff_reader.scanimage_metadata
         self._metadata = self._general_metadata["FrameData"]
+
+        # This criteria was confirmed by Lawrence Niu, a developer of ScanImage
         self.is_volumetric = self._metadata["SI.hStackManager.enable"]
         if self.is_volumetric:
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanVolumeRate"]
@@ -202,7 +218,27 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self.is_volumetric = self._num_planes > 1
 
     def _find_data_files(self) -> List[PathType]:
-        """Find additional files in the series based on the file naming pattern."""
+        """Find additional files in the series based on the file naming pattern.
+
+        This method analyzes the file name and ScanImage metadata to determine if the current file
+        is part of a multi-file dataset. It uses different strategies based on the acquisition mode:
+
+        - For 'grab' mode with finite frames per file: Uses base_name_acquisition_* pattern
+        - For 'loop' mode: Uses base_name_* pattern
+        - For 'slow' stack mode with volumetric data: Uses base_name_* pattern
+        - When file_pattern is provided: Uses the provided pattern
+        - Otherwise: Returns only the current file
+
+        This information was shared in a private conversation with Lawrence Niu, who is a developer of ScanImage.
+
+        The method uses ScanImage's metadata to determine the acquisition state and other parameters
+        that influence how files are named and organized.
+
+        Returns
+        -------
+        List[PathType]
+            List of paths to all files in the series, sorted naturally (e.g., file_1, file_2, file_10)
+        """
         # Parse the file name to extract base name, acquisition number, and file index
         file_stem = self.file_path.stem
 
@@ -325,10 +361,18 @@ class ScanImageImagingExtractor(ImagingExtractor):
     def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
         """Get specific frames by their indices.
 
+        This method retrieves frames at the specified indices from the ScanImage TIFF file(s).
+        It uses the mapping created during initialization to efficiently locate and load only
+        the requested frames, without loading the entire dataset into memory.
+
+        For volumetric data (multiple planes), the returned array will have an additional dimension
+        for the planes. For planar data (single plane), the plane dimension is squeezed out.
+
         Parameters
         ----------
         frame_idxs : array-like
             Indices of frames to retrieve. Must be an array-like object, not a single integer.
+            For example: [0, 1, 2] or np.array([0, 5, 10])
 
         Returns
         -------
@@ -336,12 +380,27 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Array of frames with shape (num_samples, height, width) if num_planes is 1,
             or (num_samples, height, width, num_planes) if num_planes > 1.
 
+            For example, for a non-volumetric dataset with 512x512 frames, requesting 3 frames
+            would return an array with shape (3, 512, 512).
+
+            For a volumetric dataset with 5 planes and 512x512 frames, requesting 3 frames
+            would return an array with shape (3, 512, 512, 5).
+
         Raises
         ------
         TypeError
             If frame_idxs is an integer instead of an array-like object.
+            Use frame_idxs=[n] to get a single frame.
         ValueError
-            If any frame index is out of range.
+            If any frame index is out of range (negative or >= num_samples).
+
+        Examples
+        --------
+        >>> extractor = ScanImageImagingExtractor('path/to/file.tif')
+        >>> # Get the first frame
+        >>> frame_0 = extractor.get_frames([0])
+        >>> # Get multiple specific frames
+        >>> frames = extractor.get_frames([0, 10, 20])
         """
         if isinstance(frame_idxs, (int, np.integer)):
             raise TypeError("frame_idxs must be an array-like object, not a single integer")
@@ -376,7 +435,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
         return samples
 
     def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
-        """Get a range of frames.
+        """Get a continuous range of frames.
+
+        This method retrieves a continuous block of frames from the ScanImage TIFF file(s).
+        It is more efficient than get_frames() when retrieving a large number of consecutive frames.
 
         Parameters
         ----------
@@ -384,6 +446,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Start frame index (inclusive). Default is 0.
         end_frame : int, optional
             End frame index (exclusive). Default is the total number of frames.
+            For example, to get frames 0-9, use start_frame=0, end_frame=10.
         channel : int, optional
             Channel index. Deprecated: This parameter will be removed in August 2025.
 
@@ -392,6 +455,14 @@ class ScanImageImagingExtractor(ImagingExtractor):
         numpy.ndarray
             Array of frames with shape (num_samples, height, width) if num_planes is 1,
             or (num_samples, height, width, num_planes) if num_planes > 1.
+
+        Examples
+        --------
+        >>> extractor = ScanImageImagingExtractor('path/to/file.tif')
+        >>> # Get the first 10 frames
+        >>> first_10_frames = extractor.get_video(start_frame=0, end_frame=10)
+        >>> # Get all frames
+        >>> all_frames = extractor.get_video()
         """
         if start_frame is None:
             start_frame = 0
@@ -403,6 +474,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
     def get_series(self, start_sample: int, stop_sample: int) -> np.ndarray:
         """Get a range of samples.
+
+        This method is an alias for get_video() that uses sample terminology instead of frame terminology.
+        In the context of imaging data, samples and frames refer to the same thing.
 
         Parameters
         ----------
@@ -416,6 +490,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
         numpy.ndarray
             Array of samples with shape (num_samples, height, width) if num_planes is 1,
             or (num_samples, height, width, num_planes) if num_planes > 1.
+
+        See Also
+        --------
+        get_video : Equivalent method using frame terminology
         """
         return self.get_video(start_frame=start_sample, end_frame=stop_sample)
 
@@ -459,15 +537,49 @@ class ScanImageImagingExtractor(ImagingExtractor):
         """
         return self._sampling_frequency
 
-    def get_channel_names(self) -> list:
-        """Get the channel names in the recording.
+    @staticmethod
+    def get_channel_names(file_path: PathType) -> list:
+        """Get the channel names available in a ScanImage TIFF file.
+
+        This static method extracts the channel names from a ScanImage TIFF file
+        without needing to create an extractor instance. This is useful for
+        determining which channels are available before creating an extractor.
+
+        Parameters
+        ----------
+        file_path : PathType
+            Path to the ScanImage TIFF file.
 
         Returns
         -------
         list
-            List containing the name of the selected channel.
+            List of channel names available in the file.
+
+        Examples
+        --------
+        >>> channel_names = ScanImageImagingExtractor.get_channel_names('path/to/file.tif')
+        >>> print(f"Available channels: {channel_names}")
         """
-        return [self.channel_name]
+        from tifffile import read_scanimage_metadata
+
+        with open(file_path, "rb") as fh:
+            all_metadata = read_scanimage_metadata(fh)
+            non_varying_frame_metadata = all_metadata[0]
+
+        # `channelSave` indicates whether the channel is saved
+        # We check `channelSave` first but keep the `channelsActive` check for backward compatibility
+        channel_availability_keys = ["SI.hChannels.channelSave", "SI.hChannels.channelsActive"]
+        for channel_availability in channel_availability_keys:
+            if channel_availability in non_varying_frame_metadata.keys():
+                break
+
+        available_channels = non_varying_frame_metadata[channel_availability]
+        available_channels = [available_channels] if not isinstance(available_channels, list) else available_channels
+        channel_indices = np.array(available_channels) - 1  # Account for MATLAB indexing
+        channel_names = non_varying_frame_metadata["SI.hChannels.channelName"]
+        channel_names_available = [channel_names[i] for i in channel_indices]
+
+        return channel_names_available
 
     def get_dtype(self) -> DtypeType:
         """Get the data type of the video.
@@ -482,10 +594,22 @@ class ScanImageImagingExtractor(ImagingExtractor):
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
 
+        For volumetric data, this returns the number of Z-planes in each volume.
+        For planar data, this returns 1.
+
         Returns
         -------
         int
             Number of depth planes.
+
+        Notes
+        -----
+        The presence of multiple planes indicates volumetric (3D) data rather than
+        planar (2D) data. This information can be used to determine if the data
+        should be processed as a volume or as individual planes.
+
+        The is_volumetric property can also be checked to determine if the data
+        is volumetric or planar.
         """
         return self._num_planes
 
