@@ -12,8 +12,8 @@
 * The `get_image_size()` method is deprecated and will be removed in or after September 2025. Use `get_image_shape()` instead for consistent behavior across all extractors. [#409](https://github.com/catalystneuro/roiextractors/pull/409)
 
 ### Improvements
-
-## [Unreleased]
+### Added
+- Added `get_raw_data` method to `InscopixImagingExtractor` and updated the corresponding tests for retrieving raw video frame data. 
 
 # v0.5.11 (March 5th, 2025)
 
