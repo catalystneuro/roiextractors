@@ -42,11 +42,6 @@ jobs:
       - name: Test full installation
         run: pip install .[full]
 
-      - name: Install roiextractors with full requirements
-        run: |
-          pip install isx==2.0
-          pip install .[full]
-
       - name: Get ophys_testing_data current head hash
         id: ophys
         run: echo "::set-output name=HASH_OPHYS_DATASET::$(git ls-remote https://gin.g-node.org/CatalystNeuro/ophys_testing_data.git HEAD | cut -f1)"
