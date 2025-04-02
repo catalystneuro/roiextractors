@@ -70,6 +70,7 @@ docs = [
     "sphinx-copybutton",
     "pydata_sphinx_theme"
 ]
+macos = ["git+https://github.com/inscopix/py_isx.git@main"]
 
 [project.urls]
 "Homepage" = "https://github.com/catalystneuro/roiextractors"

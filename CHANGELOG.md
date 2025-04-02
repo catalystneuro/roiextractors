@@ -13,6 +13,10 @@
 
 ### Improvements
 
+## [Unreleased]
+### Added
+- Added an optional dependency group `macos` for macOS users with Apple Silicon to install the `isx>=2.0` package.
+- Updated the README to include instructions for macOS users with Apple Silicon, including the use of the `macos` optional dependency group.
 
 # v0.5.11 (March 5th, 2025)
 
