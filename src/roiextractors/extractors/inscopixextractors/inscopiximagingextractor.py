@@ -80,10 +80,10 @@ class InscopixImagingExtractor(ImagingExtractor):
 
     def get_dtype(self) -> np.dtype:
         return np.dtype(self.movie.data_type)
-    
+
     def get_raw_data(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
         """Get raw data from the video frames.
-        
+
         Returns
         -------
         np.ndarray : The raw data from the specified frames.

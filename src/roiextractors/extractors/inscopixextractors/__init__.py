@@ -2,4 +2,3 @@
 
 from .inscopiximagingextractor import InscopixImagingExtractor
 from .inscopixsegmentationextractor import InscopixSegmentationExtractor
-

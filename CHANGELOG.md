@@ -13,7 +13,7 @@
 
 ### Improvements
 ### Added
-- Added `get_raw_data` method to `InscopixImagingExtractor` and updated the corresponding tests for retrieving raw video frame data. 
+- Added `get_raw_data` method to `InscopixImagingExtractor` and updated the corresponding tests for retrieving raw video frame data.
 
 # v0.5.11 (March 5th, 2025)
 
