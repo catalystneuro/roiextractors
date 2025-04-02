@@ -261,12 +261,12 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
 
         super().__init__(imaging_extractors=imaging_extractors)
 
-        self._num_frames = self._imaging_extractors[0].get_num_frames()
+        self._num_samples = self._imaging_extractors[0].get_num_frames()
         self._image_size = *self._imaging_extractors[0].get_image_size(), self._num_planes_per_channel_stream
         self.xml_metadata = self._imaging_extractors[0].xml_metadata
 
         self._start_frames = [0] * self._num_planes_per_channel_stream
-        self._end_frames = [self._num_frames] * self._num_planes_per_channel_stream
+        self._end_frames = [self._num_samples] * self._num_planes_per_channel_stream
 
     def get_image_shape(self) -> Tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
@@ -290,8 +290,29 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
         )
         return self._image_size
 
+    def get_num_samples(self) -> int:
+        return self._imaging_extractors[0].get_num_samples()
+
     def get_num_frames(self) -> int:
-        return self._imaging_extractors[0].get_num_frames()
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._imaging_extractors[0].get_sampling_frequency() * self._num_planes_per_channel_stream
@@ -510,9 +531,9 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         file_counts = Counter(file_names_for_stream)
 
         imaging_extractors = []
-        for file_name, num_frames in file_counts.items():
+        for file_name, num_samples in file_counts.items():
             extractor = _BrukerTiffSinglePlaneImagingExtractor(file_path=str(Path(folder_path) / file_name))
-            extractor._num_frames = num_frames
+            extractor._num_samples = num_samples
             extractor._image_size = (self._height, self._width)
             extractor._dtype = self._dtype
             imaging_extractors.append(extractor)
@@ -629,12 +650,33 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
 
         super().__init__()
 
-        self._num_frames = None
+        self._num_samples = None
         self._image_size = None
         self._dtype = None
 
+    def get_num_samples(self) -> int:
+        return self._num_samples
+
     def get_num_frames(self) -> int:
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_num_channels(self) -> int:
         return 1

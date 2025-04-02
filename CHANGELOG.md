@@ -9,6 +9,7 @@
 
 ### Deprecations
 * The `get_image_size()` method is deprecated and will be removed in or after September 2025. Use `get_image_shape()` instead for consistent behavior across all extractors. [#409](https://github.com/catalystneuro/roiextractors/pull/409)
+* Change `get_num_frames` for `get_num_samples` [#411](https://github.com/catalystneuro/roiextractors/pull/411)
 
 ### Improvements
 
