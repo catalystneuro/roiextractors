@@ -46,7 +46,7 @@ Output:
 
 .. code-block:: python
 
-    img_ext.get_num_frames()
+    img_ext.get_num_samples()
 
 Output:
 
@@ -115,7 +115,7 @@ Output:
 
 .. code-block:: python
 
-    seg_ext.get_num_frames()
+    seg_ext.get_num_samples()
 
 Output:
 

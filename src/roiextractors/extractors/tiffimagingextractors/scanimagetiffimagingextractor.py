@@ -1032,7 +1032,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
                 self._frames_per_slice = 1
             self._num_raw_per_plane = self._frames_per_slice * self._num_channels
             self._num_raw_per_cycle = self._num_raw_per_plane * self._num_planes
-            self._num_frames = self._total_num_frames // (self._num_planes * self._num_channels)
+            self._num_samples = self._total_num_frames // (self._num_planes * self._num_channels)
             self._num_cycles = self._total_num_frames // self._num_raw_per_cycle
         else:
             raise NotImplementedError(
@@ -1040,7 +1040,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
                 "https://github.com/catalystneuro/roiextractors/issues "
             )
         timestamps = extract_timestamps_from_file(file_path)
-        index = [self.frame_to_raw_index(iframe) for iframe in range(self._num_frames)]
+        index = [self.frame_to_raw_index(iframe) for iframe in range(self._num_samples)]
         self._times = timestamps[index]
 
     def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
@@ -1104,7 +1104,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         if start_frame is None:
             start_frame = 0
         if end_frame is None:
-            end_frame = self._num_frames
+            end_frame = self._num_samples
         end_frame_inclusive = end_frame - 1
         self.check_frame_inputs(end_frame_inclusive)
         self.check_frame_inputs(start_frame)
@@ -1156,8 +1156,29 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         )
         return (self._num_rows, self._num_columns)
 
+    def get_num_samples(self) -> int:
+        return self._num_samples
+
     def get_num_frames(self) -> int:
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
@@ -1194,8 +1215,8 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         ValueError
             If the frame index is invalid.
         """
-        if frame >= self._num_frames:
-            raise ValueError(f"Frame index ({frame}) exceeds number of frames ({self._num_frames}).")
+        if frame >= self._num_samples:
+            raise ValueError(f"Frame index ({frame}) exceeds number of frames ({self._num_samples}).")
         if frame < 0:
             raise ValueError(f"Frame index ({frame}) must be greater than or equal to 0.")
 
@@ -1289,7 +1310,7 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extr
         with ScanImageTiffReader(str(self.file_path)) as io:
             shape = io.shape()  # [frames, rows, columns]
         if len(shape) == 3:
-            self._num_frames, self._num_rows, self._num_columns = shape
+            self._num_samples, self._num_rows, self._num_columns = shape
             self._num_channels = 1
         else:  # no example file for multiple color channels or depths
             raise NotImplementedError(
@@ -1401,8 +1422,29 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extr
         )
         return (self._num_rows, self._num_columns)
 
+    def get_num_samples(self) -> int:
+        return self._num_samples
+
     def get_num_frames(self) -> int:
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency

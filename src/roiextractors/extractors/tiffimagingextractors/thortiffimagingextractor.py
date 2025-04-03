@@ -69,7 +69,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
             raise ValueError("Could not find 'Pixels' element in OME metadata.")
 
         self._num_channels = int(pixels_element.get("SizeC", "1"))
-        self._num_frames = int(pixels_element.get("SizeT", "1"))
+        self._num_samples = int(pixels_element.get("SizeT", "1"))
         self._num_rows = int(pixels_element.get("SizeY"))
         self._num_columns = int(pixels_element.get("SizeX"))
         self._num_z = int(pixels_element.get("SizeZ", "1"))
@@ -246,7 +246,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         if start_frame is None:
             start_frame = 0
         if end_frame is None:
-            end_frame = self._num_frames
+            end_frame = self._num_samples
         frame_indices = list(range(start_frame, end_frame))
         return self.get_frames(frame_indices)
 
@@ -270,9 +270,25 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         )
         return self._num_rows, self._num_columns
 
+    def get_num_samples(self) -> int:
+        """Return the number of samples (time points)."""
+        return self._num_samples
+
     def get_num_frames(self) -> int:
-        """Return the number of frames (time points)."""
-        return self._num_frames
+        """Return the number of frames (time points).
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> Optional[float]:
         """Return the sampling frequency, if available."""
