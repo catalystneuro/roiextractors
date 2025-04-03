@@ -78,6 +78,6 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
             file_path=file_path, video_structure=video_structure, dtype=dtype, offset=offset
         )
         self._video = video_structure.transform_video_to_canonical_form(self._video)
-        self._num_frames, self._num_rows, self._num_columns, self._num_channels = self._video.shape
+        self._num_samples, self._num_rows, self._num_columns, self._num_channels = self._video.shape
 
         super().__init__(video=self._video)
