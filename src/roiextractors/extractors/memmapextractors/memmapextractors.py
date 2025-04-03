@@ -7,6 +7,7 @@ MemmapImagingExtractor
 """
 
 from pathlib import Path
+import warnings
 from warnings import warn
 import warnings
 
@@ -98,11 +99,48 @@ class MemmapImagingExtractor(ImagingExtractor):
         frame_idxs = range(start_frame, end_frame)
         return self.get_frames(frame_idxs=frame_idxs, channel=channel)
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
         return (self._num_rows, self._num_columns)
 
+    def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return (self._num_rows, self._num_columns)
+
+    def get_num_samples(self) -> int:
+        return self._num_samples
+
     def get_num_frames(self) -> int:
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
@@ -127,9 +165,9 @@ class MemmapImagingExtractor(ImagingExtractor):
         Returns
         -------
         video_shape: Tuple[int, int, int, int]
-            The shape of the video data (num_frames, num_rows, num_columns, num_channels).
+            The shape of the video data (num_samples, num_rows, num_columns, num_channels).
         """
-        return (self._num_frames, self._num_rows, self._num_columns, self._num_channels)
+        return (self._num_samples, self._num_rows, self._num_columns, self._num_channels)
 
     @staticmethod
     def write_imaging(

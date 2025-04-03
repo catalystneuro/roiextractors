@@ -56,11 +56,12 @@ class VolumetricImagingExtractor(ImagingExtractor):
         """
         properties_to_check = dict(
             get_sampling_frequency="The sampling frequency",
+            get_image_shape="The shape of a frame",
             get_image_size="The size of a frame",
             get_num_channels="The number of channels",
             get_channel_names="The name of the channels",
             get_dtype="The data type",
-            get_num_frames="The number of frames",
+            get_num_samples="The number of samples",
         )
         for method, property_message in properties_to_check.items():
             values = [getattr(extractor, method)() for extractor in imaging_extractors]
@@ -87,17 +88,17 @@ class VolumetricImagingExtractor(ImagingExtractor):
         if start_frame is None:
             start_frame = 0
         elif start_frame < 0:
-            start_frame = self.get_num_frames() + start_frame
-        elif start_frame >= self.get_num_frames():
+            start_frame = self.get_num_samples() + start_frame
+        elif start_frame >= self.get_num_samples():
             raise ValueError(
-                f"start_frame {start_frame} is greater than or equal to the number of frames {self.get_num_frames()}"
+                f"start_frame {start_frame} is greater than or equal to the number of samples {self.get_num_samples()}"
             )
         if end_frame is None:
-            end_frame = self.get_num_frames()
+            end_frame = self.get_num_samples()
         elif end_frame < 0:
-            end_frame = self.get_num_frames() + end_frame
-        elif end_frame > self.get_num_frames():
-            raise ValueError(f"end_frame {end_frame} is greater than the number of frames {self.get_num_frames()}")
+            end_frame = self.get_num_samples() + end_frame
+        elif end_frame > self.get_num_samples():
+            raise ValueError(f"end_frame {end_frame} is greater than the number of samples {self.get_num_samples()}")
         if end_frame <= start_frame:
             raise ValueError(f"end_frame {end_frame} is less than or equal to start_frame {start_frame}")
 
@@ -122,7 +123,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
         if isinstance(frame_idxs, int):
             frame_idxs = [frame_idxs]
         for frame_idx in frame_idxs:
-            if frame_idx < -1 * self.get_num_frames() or frame_idx >= self.get_num_frames():
+            if frame_idx < -1 * self.get_num_samples() or frame_idx >= self.get_num_samples():
                 raise ValueError(f"frame_idx {frame_idx} is out of bounds")
 
         # Note np.all([]) returns True so not all(np.diff(frame_idxs) == 1) returns False if frame_idxs is a single int
@@ -134,6 +135,16 @@ class VolumetricImagingExtractor(ImagingExtractor):
         else:
             return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)
 
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._imaging_extractors[0].get_image_shape()
+
     def get_image_size(self) -> Tuple:
         """Get the size of a single frame.
 
@@ -141,7 +152,18 @@ class VolumetricImagingExtractor(ImagingExtractor):
         -------
         image_size: tuple
             The size of a single frame (num_rows, num_columns, num_planes).
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_image_shape() instead for consistent behavior across all extractors.
         """
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         image_size = (*self._imaging_extractors[0].get_image_size(), self.get_num_planes())
         return image_size
 
@@ -155,8 +177,29 @@ class VolumetricImagingExtractor(ImagingExtractor):
         """
         return self._num_planes
 
+    def get_num_samples(self) -> int:
+        return self._imaging_extractors[0].get_num_samples()
+
     def get_num_frames(self) -> int:
-        return self._imaging_extractors[0].get_num_frames()
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._imaging_extractors[0].get_sampling_frequency()

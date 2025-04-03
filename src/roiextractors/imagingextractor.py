@@ -31,7 +31,7 @@ class ImagingExtractor(ABC):
 
     def _repr_text(self):
         """Generate text representation of the ImagingExtractor object."""
-        num_frames = self.get_num_frames()
+        num_samples = self.get_num_samples()
         image_size = self.get_image_size()
         dtype = self.get_dtype()
         sf_hz = self.get_sampling_frequency()
@@ -43,24 +43,24 @@ class ImagingExtractor(ABC):
             sampling_frequency_repr = f"{sf_hz:0.1f}Hz"
 
         # Calculate duration
-        duration = num_frames / sf_hz
+        duration = num_samples / sf_hz
         duration_str = self._convert_seconds_to_str(duration)
 
         # Check if this is a volumetric extractor
         is_volumetric_extractor = hasattr(self, "get_num_planes") and callable(getattr(self, "get_num_planes"))
 
         # Calculate memory size using product of all dimensions in image_size
-        memory_size = num_frames * prod(image_size) * dtype.itemsize
+        memory_size = num_samples * prod(image_size) * dtype.itemsize
         memory_str = self._convert_bytes_to_str(memory_size)
 
         # Format shape string based on whether it's volumetric or not
         if is_volumetric_extractor:
             num_planes = self.get_num_planes()
             shape_str = (
-                f"[{num_frames:,} frames × {image_size[0]} pixels × {image_size[1]} pixels × {num_planes} planes]"
+                f"[{num_samples:,} frames × {image_size[0]} pixels × {image_size[1]} pixels × {num_planes} planes]"
             )
         else:
-            shape_str = f"[{num_frames:,} frames × {image_size[0]} pixels × {image_size[1]} pixels]"
+            shape_str = f"[{num_samples:,} frames × {image_size[0]} pixels × {image_size[1]} pixels]"
 
         return (
             f"{self.name} {shape_str}\n"
@@ -104,17 +104,49 @@ class ImagingExtractor(ABC):
             return f"{size_gb:.1f}GiB"
 
     @abstractmethod
-    def get_image_size(self) -> Tuple[int, int]:
-        """Get the size of the video (num_rows, num_columns).
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        pass
+
+    def get_image_size(self) -> Tuple:
+        """Get the size of the video.
 
         Returns
         -------
         image_size: tuple
-            Size of the video (num_rows, num_columns).
+            Size of the video. For regular imaging extractors, this is (num_rows, num_columns).
+            For volumetric imaging extractors, this is (num_rows, num_columns, num_planes).
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_image_shape() instead for consistent behavior across all extractors.
+        """
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_image_shape()
+
+    @abstractmethod
+    def get_num_samples(self) -> int:
+        """Get the number of samples in the video.
+
+        Returns
+        -------
+        num_samples: int
+            Number of samples in the video.
         """
         pass
 
-    @abstractmethod
     def get_num_frames(self) -> int:
         """Get the number of frames in the video.
 
@@ -122,8 +154,19 @@ class ImagingExtractor(ABC):
         -------
         num_frames: int
             Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
         """
-        pass
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     @abstractmethod
     def get_sampling_frequency(self) -> float:
@@ -238,7 +281,7 @@ class ImagingExtractor(ABC):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        assert max(frame_idxs) <= self.get_num_frames(), "'frame_idxs' exceed number of frames"
+        assert max(frame_idxs) <= self.get_num_samples(), "'frame_idxs' exceed number of samples"
         if np.all(np.diff(frame_idxs) == 0):
             return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1])
         relative_indices = np.array(frame_idxs) - frame_idxs[0]
@@ -293,16 +336,16 @@ class ImagingExtractor(ABC):
         Raises
         ------
         ValueError
-            If the length of 'times' does not match the number of frames.
+            If the length of 'times' does not match the number of samples.
         """
-        num_frames = self.get_num_frames()
+        num_samples = self.get_num_samples()
         num_timestamps = len(times)
 
-        if num_timestamps != num_frames:
+        if num_timestamps != num_samples:
             raise ValueError(
-                f"Mismatch between the number of frames and timestamps: "
-                f"{num_frames} frames, but {num_timestamps} timestamps provided. "
-                "Ensure the length of 'times' matches the number of frames."
+                f"Mismatch between the number of samples and timestamps: "
+                f"{num_samples} samples, but {num_timestamps} timestamps provided. "
+                "Ensure the length of 'times' matches the number of samples."
             )
 
         self._times = np.array(times).astype("float64", copy=False)
@@ -380,9 +423,9 @@ class FrameSliceImagingExtractor(ImagingExtractor):
         self._parent_imaging = parent_imaging
         self._start_frame = start_frame
         self._end_frame = end_frame
-        self._num_frames = self._end_frame - self._start_frame
+        self._num_samples = self._end_frame - self._start_frame
 
-        parent_size = self._parent_imaging.get_num_frames()
+        parent_size = self._parent_imaging.get_num_samples()
         if start_frame is None:
             start_frame = 0
         else:
@@ -398,7 +441,7 @@ class FrameSliceImagingExtractor(ImagingExtractor):
             self._times = self._parent_imaging._times[start_frame:end_frame]
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
-        assert max(frame_idxs) < self._num_frames, "'frame_idxs' range beyond number of available frames!"
+        assert max(frame_idxs) < self._num_samples, "'frame_idxs' range beyond number of available frames!"
         mapped_frame_idxs = np.array(frame_idxs) + self._start_frame
         return self._parent_imaging.get_frames(frame_idxs=mapped_frame_idxs, channel=channel)
 
@@ -412,11 +455,48 @@ class FrameSliceImagingExtractor(ImagingExtractor):
         start_frame_shifted = start_frame + self._start_frame
         return self._parent_imaging.get_video(start_frame=start_frame_shifted, end_frame=end_frame, channel=channel)
 
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._parent_imaging.get_image_shape()
+
     def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return tuple(self._parent_imaging.get_image_size())
 
+    def get_num_samples(self) -> int:
+        return self._num_samples
+
     def get_num_frames(self) -> int:
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._parent_imaging.get_sampling_frequency()

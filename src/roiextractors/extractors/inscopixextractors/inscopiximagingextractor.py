@@ -28,12 +28,50 @@ class InscopixImagingExtractor(ImagingExtractor):
         super().__init__(file_path=file_path)
         self.movie = isx.Movie.read(str(file_path))
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
         num_pixels = self.movie.spacing.num_pixels
         return num_pixels
 
-    def get_num_frames(self) -> int:
+    def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        num_pixels = self.movie.spacing.num_pixels
+        return num_pixels
+
+    def get_num_samples(self) -> int:
         return self.movie.timing.num_samples
+
+    def get_num_frames(self) -> int:
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return 1 / self.movie.timing.period.secs_float

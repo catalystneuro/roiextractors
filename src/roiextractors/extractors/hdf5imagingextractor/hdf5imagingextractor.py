@@ -8,6 +8,7 @@ Hdf5ImagingExtractor
 
 from pathlib import Path
 from typing import Optional, Tuple
+import warnings
 from warnings import warn
 
 import numpy as np
@@ -90,7 +91,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
             self.metadata = metadata
 
         # The test data has four dimensions and the first axis is channels
-        self._num_channels, self._num_frames, self._num_rows, self._num_cols = self._video.shape
+        self._num_channels, self._num_samples, self._num_rows, self._num_cols = self._video.shape
         self._video = self._video.lazy_transpose([1, 2, 3, 0])
 
         if self._channel_names is not None:
@@ -168,11 +169,48 @@ class Hdf5ImagingExtractor(ImagingExtractor):
             )
         return self._video.lazy_slice[start_frame:end_frame, :, :, channel].dsetread()
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
         return self._num_rows, self._num_cols
 
+    def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._num_rows, self._num_cols
+
+    def get_num_samples(self):
+        return self._num_samples
+
     def get_num_frames(self):
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self):
         return self._sampling_frequency

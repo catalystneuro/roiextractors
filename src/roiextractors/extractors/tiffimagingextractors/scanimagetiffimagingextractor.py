@@ -8,6 +8,7 @@ ScanImageTiffImagingExtractor
 
 from pathlib import Path
 from typing import Optional, Tuple, List, Iterable
+import warnings
 from warnings import warn
 import numpy as np
 
@@ -20,6 +21,7 @@ from .scanimagetiff_utils import (
     parse_metadata,
     extract_timestamps_from_file,
     _get_scanimage_reader,
+    read_scanimage_metadata,
 )
 
 
@@ -53,9 +55,11 @@ class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
         file_paths = natsorted(self.folder_path.glob(file_pattern))
         if len(file_paths) == 0:
             raise ValueError(f"No files found in folder with pattern: {file_pattern}")
+
+        self.metadata = read_scanimage_metadata(file_paths[0])
         if not extract_all_metadata:
-            metadata = extract_extra_metadata(file_paths[0])
-            parsed_metadata = parse_metadata(metadata)
+            metadata = self.metadata
+            parsed_metadata = self.metadata["roiextractors_parsed_metadata"]
         else:
             metadata, parsed_metadata = None, None
         imaging_extractors = []
@@ -120,8 +124,8 @@ class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
         if len(file_paths) == 0:
             raise ValueError(f"No files found in folder with pattern: {file_pattern}")
         if not extract_all_metadata:
-            metadata = extract_extra_metadata(file_paths[0])
-            parsed_metadata = parse_metadata(metadata)
+            metadata = read_scanimage_metadata(file_paths[0])
+            parsed_metadata = metadata["roiextractors_parsed_metadata"]
         else:
             metadata, parsed_metadata = None, None
         imaging_extractors = []
@@ -171,8 +175,8 @@ class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
         """
         self.file_path = Path(file_path)
         if metadata is None:
-            self.metadata = extract_extra_metadata(file_path)
-            self.parsed_metadata = parse_metadata(self.metadata)
+            self.metadata = read_scanimage_metadata(file_path)
+            self.parsed_metadata = self.metadata["roiextractors_parsed_metadata"]
         else:
             self.metadata = metadata
             assert parsed_metadata is not None, "If metadata is provided, parsed_metadata must also be provided."
@@ -287,8 +291,8 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         """
         self.file_path = Path(file_path)
         if metadata is None:
-            self.metadata = extract_extra_metadata(file_path)
-            self.parsed_metadata = parse_metadata(self.metadata)
+            self.metadata = read_scanimage_metadata(file_path)
+            self.parsed_metadata = self.metadata["roiextractors_parsed_metadata"]
         else:
             self.metadata = metadata
             assert parsed_metadata is not None, "If metadata is provided, parsed_metadata must also be provided."
@@ -324,7 +328,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
                 self._frames_per_slice = 1
             self._num_raw_per_plane = self._frames_per_slice * self._num_channels
             self._num_raw_per_cycle = self._num_raw_per_plane * self._num_planes
-            self._num_frames = self._total_num_frames // (self._num_planes * self._num_channels)
+            self._num_samples = self._total_num_frames // (self._num_planes * self._num_channels)
             self._num_cycles = self._total_num_frames // self._num_raw_per_cycle
         else:
             raise NotImplementedError(
@@ -332,7 +336,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
                 "https://github.com/catalystneuro/roiextractors/issues "
             )
         timestamps = extract_timestamps_from_file(file_path)
-        index = [self.frame_to_raw_index(iframe) for iframe in range(self._num_frames)]
+        index = [self.frame_to_raw_index(iframe) for iframe in range(self._num_samples)]
         self._times = timestamps[index]
 
     def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
@@ -396,7 +400,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         if start_frame is None:
             start_frame = 0
         if end_frame is None:
-            end_frame = self._num_frames
+            end_frame = self._num_samples
         end_frame_inclusive = end_frame - 1
         self.check_frame_inputs(end_frame_inclusive)
         self.check_frame_inputs(start_frame)
@@ -429,11 +433,48 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         video = raw_video[index]
         return video
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
         return (self._num_rows, self._num_columns)
 
+    def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return (self._num_rows, self._num_columns)
+
+    def get_num_samples(self) -> int:
+        return self._num_samples
+
     def get_num_frames(self) -> int:
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
@@ -470,8 +511,8 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         ValueError
             If the frame index is invalid.
         """
-        if frame >= self._num_frames:
-            raise ValueError(f"Frame index ({frame}) exceeds number of frames ({self._num_frames}).")
+        if frame >= self._num_samples:
+            raise ValueError(f"Frame index ({frame}) exceeds number of frames ({self._num_samples}).")
         if frame < 0:
             raise ValueError(f"Frame index ({frame}) must be greater than or equal to 0.")
 
@@ -565,7 +606,7 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extr
         with ScanImageTiffReader(str(self.file_path)) as io:
             shape = io.shape()  # [frames, rows, columns]
         if len(shape) == 3:
-            self._num_frames, self._num_rows, self._num_columns = shape
+            self._num_samples, self._num_rows, self._num_columns = shape
             self._num_channels = 1
         else:  # no example file for multiple color channels or depths
             raise NotImplementedError(
@@ -658,11 +699,48 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extr
         with ScanImageTiffReader(filename=str(self.file_path)) as io:
             return io.data(beg=start_frame, end=end_frame)
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
         return (self._num_rows, self._num_columns)
 
+    def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return (self._num_rows, self._num_columns)
+
+    def get_num_samples(self) -> int:
+        return self._num_samples
+
     def get_num_frames(self) -> int:
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency

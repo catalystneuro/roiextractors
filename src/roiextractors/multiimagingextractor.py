@@ -40,12 +40,12 @@ class MultiImagingExtractor(ImagingExtractor):
         self._check_consistency_between_imaging_extractors()
 
         self._start_frames, self._end_frames = [], []
-        num_frames = 0
+        num_samples = 0
         for imaging_extractor in self._imaging_extractors:
-            self._start_frames.append(num_frames)
-            num_frames = num_frames + imaging_extractor.get_num_frames()
-            self._end_frames.append(num_frames)
-        self._num_frames = num_frames
+            self._start_frames.append(num_samples)
+            num_samples = num_samples + imaging_extractor.get_num_samples()
+            self._end_frames.append(num_samples)
+        self._num_samples = num_samples
 
         if any((getattr(imaging_extractor, "_times") is not None for imaging_extractor in self._imaging_extractors)):
             times = self._get_times()
@@ -73,7 +73,8 @@ class MultiImagingExtractor(ImagingExtractor):
             get_image_size="The size of a frame",
             get_num_channels="The number of channels",
             get_channel_names="The name of the channels",
-            get_dtype="The data type.",
+            get_dtype="The data type",
+            get_num_samples="The number of samples",
         )
         for method, property_message in properties_to_check.items():
             values = [getattr(extractor, method)() for extractor in self._imaging_extractors]
@@ -146,7 +147,7 @@ class MultiImagingExtractor(ImagingExtractor):
         if isinstance(frame_idxs, (int, np.integer)):
             frame_idxs = [frame_idxs]
         frame_idxs = np.array(frame_idxs)
-        assert np.all(frame_idxs < self.get_num_frames()), "'frame_idxs' exceed number of frames"
+        assert np.all(frame_idxs < self.get_num_samples()), "'frame_idxs' exceed number of samples"
         extractor_indices = np.searchsorted(self._end_frames, frame_idxs, side="right")
         relative_frame_indices = frame_idxs - np.array(self._start_frames)[extractor_indices]
         # Match frame_idxs to imaging extractors
@@ -242,11 +243,48 @@ class MultiImagingExtractor(ImagingExtractor):
 
         return video
 
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._imaging_extractors[0].get_image_shape()
+
     def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._imaging_extractors[0].get_image_size()
 
+    def get_num_samples(self) -> int:
+        return self._num_samples
+
     def get_num_frames(self) -> int:
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._imaging_extractors[0].get_sampling_frequency()

@@ -37,7 +37,7 @@ class TestMultiImagingExtractor(TestCase):
         assert self.multi_imaging_extractor.get_num_channels() == 1
 
     def test_get_frames_assertion(self):
-        with self.assertRaisesWith(exc_type=AssertionError, exc_msg="'frame_idxs' exceed number of frames"):
+        with self.assertRaisesWith(exc_type=AssertionError, exc_msg="'frame_idxs' exceed number of samples"):
             self.multi_imaging_extractor.get_frames(frame_idxs=[31])
 
     def test_get_non_consecutive_frames(self):
@@ -120,8 +120,8 @@ class TestMultiImagingExtractor(TestCase):
             self.multi_imaging_extractor.set_times(times=np.arange(0, 10) / 30.0)
         self.assertEqual(
             str(cm.exception),
-            "Mismatch between the number of frames and timestamps: 30 frames, but 10 timestamps provided. "
-            "Ensure the length of 'times' matches the number of frames.",
+            "Mismatch between the number of samples and timestamps: 30 samples, but 10 timestamps provided. "
+            "Ensure the length of 'times' matches the number of samples.",
         )
 
         self.assertEqual(self.multi_imaging_extractor._times, None)
