@@ -6,10 +6,12 @@ SimaSegmentationExtractor
     A segmentation extractor for Sima.
 """
 
+import importlib
 import os
 import pickle
 import re
 from shutil import copyfile
+from warnings import warn
 
 import numpy as np
 
@@ -170,16 +172,6 @@ class SimaSegmentationExtractor(SegmentationExtractor):
 
     def get_rejected_list(self):
         return [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
-
-    @staticmethod
-    def write_segmentation(segmentation_object, savepath):
-        """Write a segmentation object to a file.
-
-        Notes
-        -----
-        This function is not implemented for this extractor.
-        """
-        raise NotImplementedError  # TODO: implement write_segmentation
 
     def get_image_size(self):
         return self._image_masks.shape[0:2]
