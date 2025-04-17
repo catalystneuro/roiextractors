@@ -429,7 +429,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Shape of the video frame (num_rows, num_columns).
         """
         return (self._num_rows, self._num_columns)
-    
+
     def get_frame_shape(self) -> Tuple[int, int]:
         """Get the shape of a single frame (num_rows, num_columns).
 
