@@ -59,7 +59,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
     ):
         """
         Initialize the extractor.
-        
+
         Parameters
         ----------
         file_path : PathType
