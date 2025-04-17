@@ -66,9 +66,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Name of the channel to extract. If None and multiple channels are available, the first channel will be used.
         file_paths : List[PathType], optional
             List of file paths to use. If provided, this overrides the automatic
-            file detection heuristics. Use this if automatic detection does not work correctly and you know 
-            exactly which files should be included.  The file paths should be provided in an order that 
-            reflects the temporal order of the frames in the dataset.       
+            file detection heuristics. Use this if automatic detection does not work correctly and you know
+            exactly which files should be included.  The file paths should be provided in an order that
+            reflects the temporal order of the frames in the dataset.
         """
         super().__init__()
         self.file_path = Path(file_path)
@@ -211,7 +211,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
         sorted_indices = np.lexsort(sorting_tuple)
         self._frames_to_ifd_table = channel_frames_to_ifd_table[sorted_indices]
 
-
     def _find_data_files(self) -> List[PathType]:
         """Find additional files in the series based on the file naming pattern.
 
@@ -266,11 +265,15 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
     @staticmethod
     def _create_frame_to_ifd_table(
-        dimension_order: str, num_channels: int, num_acquisition_cycles: int, num_planes: int, ifds_per_file: List[int],
+        dimension_order: str,
+        num_channels: int,
+        num_acquisition_cycles: int,
+        num_planes: int,
+        ifds_per_file: List[int],
     ) -> np.ndarray:
         """
         Create a table that describes the data layout of the dataset.
-        
+
         Every row in the table corresponds to a frame in the dataset and contains:
         - file_index: The index of the file in the series
         - IFD_index: The index of the IFD in the file
@@ -355,8 +358,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
         mapping["time_index"] = time_indices
 
         return mapping
-    
-    def get_series(self, start_sample: Optional[int], end_sample: Optional[int] = None) -> np.ndarray: 
+
+    def get_series(self, start_sample: Optional[int], end_sample: Optional[int] = None) -> np.ndarray:
         """
         Get data as a time series from start_sample to end_sample.
 
@@ -382,20 +385,19 @@ class ScanImageImagingExtractor(ImagingExtractor):
             would return an array with shape (3, 512, 512).
 
             For a volumetric dataset with 5 planes and 512x512 frames, requesting 3 samples
-            would return an array with shape (3, 512, 512, 5).    
+            would return an array with shape (3, 512, 512, 5).
         """
         start_sample = int(start_sample) if start_sample is not None else 0
         end_sample = int(end_sample) if end_sample is not None else self._num_samples
 
-        
         samples_in_series = end_sample - start_sample
-        
+
         # Preallocate output array as volumetric and squeeze if not volumetric before returning
         samples = np.empty((samples_in_series, self._num_rows, self._num_columns, self._num_planes), dtype=self._dtype)
 
         for return_index, sample_index in enumerate(range(start_sample, end_sample)):
             for depth_position in range(self._num_planes):
-                
+
                 # Calculate the index in the mapping table array
                 frame_index = sample_index * self._num_planes + depth_position
                 table_row = self._frames_to_ifd_table[frame_index]
@@ -411,7 +413,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             samples = samples.squeeze(axis=3)
 
         return samples
-        
+
     def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
         """Here for backwards compatibility, should be removed at some point."""
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
@@ -425,23 +427,23 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Shape of the video frame (num_rows, num_columns).
         """
         return (self._num_rows, self._num_columns)
-    
+
     def get_sample_shape(self):
         """
         Get the shape of a single sample
 
-        Returns       
+        Returns
         -------
         tuple of int
             Shape of a single sample. If the data is volumetric, the shape is hape of a single sample (num_rows, num_columns).
-            (num_rows, num_columns, num_planes). Otherwise, the shape is 
+            (num_rows, num_columns, num_planes). Otherwise, the shape is
             (num_rows, num_columns).
         """
         if self.is_volumetric:
             return (self._num_rows, self._num_columns, self._num_planes)
         else:
             return (self._num_rows, self._num_columns)
-        
+
     def get_num_samples(self) -> int:
         """Get the number of samples in the video.
 
@@ -538,7 +540,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         # For each sample, extract its timestamp from the corresponding file and IFD
         for sample_index in range(self._num_samples):
-            
+
             # Get the last frame in this sample to get the timestamps
             frame_index = sample_index * self._num_planes + (self._num_planes - 1)
             table_row = self._frames_to_ifd_table[frame_index]
@@ -546,15 +548,15 @@ class ScanImageImagingExtractor(ImagingExtractor):
             ifd_index = table_row["IFD_index"]
 
             tiff_reader = self._tiff_readers[file_index]
-            image_file_directory = tiff_reader.pages[ifd_index]      
-            
+            image_file_directory = tiff_reader.pages[ifd_index]
+
             # Extract timestamp from the IFD description
             description = image_file_directory.description
             description_lines = description.split("\n")
 
             # Use iterator pattern to find frameTimestamps_sec
             timestamp_line = next((line for line in description_lines if "frameTimestamps_sec" in line), None)
-            
+
             if timestamp_line is not None:
                 # Extract the value part after " = "
                 _, value_str = timestamp_line.split(" = ", 1)
