@@ -138,7 +138,6 @@ class TestScanImageExtractors:
         # # Check if multiple files were detected
         # assert len(extractor.file_paths)  == 1
 
-
     def test_volumetric_data_single_channel_multi_sample_per_slice2(self):
         """Test with a multi-volume ScanImage file with frames per slice > 1.
 
@@ -197,7 +196,6 @@ class TestScanImageExtractors:
         file_path = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
         with pytest.raises(ValueError):
             extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 3")
-
 
     def test_get_channel_names(self):
         """Test the static get_channel_names method.
