@@ -106,7 +106,7 @@ class TestScanImageExtractors:
                 start_sample += samples_per_file
                 stop_sample += samples_per_file
 
-    def test_volumetric_data(self):
+    def test_volumetric_data_single_channel_multi_sample_per_slice(self):
         """Test with volumetric data that has multiple frames per slice.
 
         File: scanimage_20220801_volume.tif
@@ -138,7 +138,23 @@ class TestScanImageExtractors:
         # # Check if multiple files were detected
         # assert len(extractor.file_paths)  == 1
 
-    def test_scanimage_noroi(self):
+
+    def test_volumetric_data_single_channel_multi_sample_per_slice2(self):
+        """Test with a multi-volume ScanImage file with frames per slice > 1.
+
+        File: scanimage_20220801_multivolume.tif
+        Metadata:
+        - Volumetric: True (multiple planes)
+        - Channels: 1 (single channel)
+        - Frames per slice: 8
+        """
+        file_path = SCANIMAGE_PATH / "scanimage_20220801_multivolume.tif"
+
+        # Create multi-plane extractor
+        with pytest.raises(ValueError):
+            extractor = ScanImageImagingExtractor(file_path=file_path)
+
+    def test_volumetric_data_multi_channel_multi_sample_per_slice(self):
         """Test with volumetric data acquired in grab mode with multiple frames per depth.
 
         File: scanimage_20220923_noroi.tif
@@ -159,7 +175,7 @@ class TestScanImageExtractors:
         # assert extractor.get_image_shape() == (256, 256)
         # assert extractor.get_sampling_frequency()  == 14.5517
 
-    def test_scanimage_roi(self):
+    def test_volumetric_data_single_channel_multi_sample_per_slice2(self):
         """Test with multi-channel volumetric data with frames per slice > 1.
 
         File: scanimage_20220923_roi.tif
@@ -182,20 +198,6 @@ class TestScanImageExtractors:
         with pytest.raises(ValueError):
             extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 3")
 
-    def test_scanimage_multivolume(self):
-        """Test with a multi-volume ScanImage file with frames per slice > 1.
-
-        File: scanimage_20220801_multivolume.tif
-        Metadata:
-        - Volumetric: True (multiple planes)
-        - Channels: 1 (single channel)
-        - Frames per slice: 8
-        """
-        file_path = SCANIMAGE_PATH / "scanimage_20220801_multivolume.tif"
-
-        # Create multi-plane extractor
-        with pytest.raises(ValueError):
-            extractor = ScanImageImagingExtractor(file_path=file_path)
 
     def test_get_channel_names(self):
         """Test the static get_channel_names method.
