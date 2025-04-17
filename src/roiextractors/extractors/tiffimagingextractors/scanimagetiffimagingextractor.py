@@ -58,6 +58,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
         file_paths: Optional[List[PathType]] = None,
     ):
         """
+        Initialize the extractor.
+        
         Parameters
         ----------
         file_path : PathType
