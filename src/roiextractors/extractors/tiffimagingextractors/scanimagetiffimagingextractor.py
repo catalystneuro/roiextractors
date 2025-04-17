@@ -1197,7 +1197,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         return raw_index
 
 
-class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extractor on or after December 2023
+class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extractor on/after December 2023
     """Specialized extractor for reading TIFF files produced via ScanImage.
 
     This implementation is for legacy purposes and is not recommended for use.
