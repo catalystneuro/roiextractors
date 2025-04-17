@@ -77,7 +77,7 @@ class TiffImagingExtractor(ImagingExtractor):
 
         shape = self._video.shape
         if len(shape) == 3:
-            self._num_frames, self._num_rows, self._num_columns = shape
+            self._num_samples, self._num_rows, self._num_columns = shape
             self._num_channels = 1
         else:
             raise_multi_channel_or_depth_not_implemented(extractor_name=self.extractor_name)
@@ -154,8 +154,29 @@ class TiffImagingExtractor(ImagingExtractor):
         )
         return (self._num_rows, self._num_columns)
 
+    def get_num_samples(self):
+        return self._num_samples
+
     def get_num_frames(self):
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self):
         return self._sampling_frequency
@@ -208,10 +229,10 @@ class TiffImagingExtractor(ImagingExtractor):
         if chunk_size is None:
             tifffile.imwrite(save_path, imaging.get_video())
         else:
-            num_frames = imaging.get_num_frames()
+            num_samples = imaging.get_num_samples()
             # chunk size is not None
-            n_chunk = num_frames // chunk_size
-            if num_frames % chunk_size > 0:
+            n_chunk = num_samples // chunk_size
+            if num_samples % chunk_size > 0:
                 n_chunk += 1
             if verbose:
                 chunks = tqdm(range(n_chunk), ascii=True, desc="Writing to .tiff file")
@@ -221,7 +242,7 @@ class TiffImagingExtractor(ImagingExtractor):
                 for i in chunks:
                     video = imaging.get_video(
                         start_frame=i * chunk_size,
-                        end_frame=min((i + 1) * chunk_size, num_frames),
+                        end_frame=min((i + 1) * chunk_size, num_samples),
                     )
                     chunk_frames = np.squeeze(video)
                     tif.save(chunk_frames, contiguous=True, metadata=None)

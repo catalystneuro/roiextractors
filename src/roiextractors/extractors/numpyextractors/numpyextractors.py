@@ -24,7 +24,6 @@ class NumpyImagingExtractor(ImagingExtractor):
     """An ImagingExtractor specified by timeseries .npy file, sampling frequency, and channel names."""
 
     extractor_name = "NumpyImagingExtractor"
-    installed = True
     is_writable = True
     installation_mesg = ""  # error message when not installed
 
@@ -75,7 +74,7 @@ class NumpyImagingExtractor(ImagingExtractor):
         self._channel_names = channel_names
 
         (
-            self._num_frames,
+            self._num_samples,
             self._num_rows,
             self._num_columns,
             self._num_channels,
@@ -188,8 +187,29 @@ class NumpyImagingExtractor(ImagingExtractor):
         )
         return (self._num_rows, self._num_columns)
 
+    def get_num_samples(self):
+        return self._num_samples
+
     def get_num_frames(self):
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self):
         return self._sampling_frequency
@@ -234,7 +254,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "NumpySegmentationExtractor"
-    installed = True  # check at class level if installed or not
     is_writable = True
     mode = "file"
     installation_mesg = ""  # error message when not installed

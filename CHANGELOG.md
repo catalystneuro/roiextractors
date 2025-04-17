@@ -2,7 +2,7 @@
 
 ### Features
 * New `read_scanimage_metadata` for reading scanimage metadata from a file directly as a python dict [#405](https://github.com/catalystneuro/roiextractors/pull/401)
-* Added InscopixSegmentationExtractor for reading .isxd segmentation files [#274](https://github.com/catalystneuro/roiextractors/pull/274)
+* Added InscopixSegmentationExtractor for reading .isxd segmentation files [#407](https://github.com/catalystneuro/roiextractors/pull/407)
 
 ### Fixes
 * Use `SI.hChannels.channelSave` or `SI.hChannels.channelsave` to determine number of channels for ScanImage extractors when available [#401](https://github.com/catalystneuro/roiextractors/pull/401)
@@ -10,10 +10,11 @@
 
 ### Deprecations
 * The `get_image_size()` method is deprecated and will be removed in or after September 2025. Use `get_image_shape()` instead for consistent behavior across all extractors. [#409](https://github.com/catalystneuro/roiextractors/pull/409)
+* Change `get_num_frames` for `get_num_samples` [#411](https://github.com/catalystneuro/roiextractors/pull/411)
 
 ### Improvements
-### Added
-- Added `get_raw_data` method to `InscopixImagingExtractor` and updated the corresponding tests for retrieving raw video frame data.
+* Added `get_raw_data` method to `InscopixImagingExtractor` and updated the corresponding tests for retrieving raw video frame data.
+* Removed unused installed attribute [#410](https://github.com/catalystneuro/roiextractors/pull/410)
 
 # v0.5.11 (March 5th, 2025)
 
