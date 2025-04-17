@@ -417,7 +417,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         return samples
 
     def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
-        """Here for backwards compatibility, should be removed at some point."""
+        """Get video. Here for backwards compatibility, should be removed at some point."""
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_image_shape(self) -> Tuple[int, int]:
@@ -429,10 +429,20 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Shape of the video frame (num_rows, num_columns).
         """
         return (self._num_rows, self._num_columns)
+    
+    def get_frame_shape(self) -> Tuple[int, int]:
+        """Get the shape of a single frame (num_rows, num_columns).
+
+        Returns
+        -------
+        tuple
+            Shape of a single frame (num_rows, num_columns).
+        """
+        return (self._num_rows, self._num_columns)
 
     def get_sample_shape(self):
         """
-        Get the shape of a single sample
+        Get the shape of a sample.
 
         Returns
         -------
