@@ -16,7 +16,7 @@ SCANIMAGE_PATH = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
 class TestScanImageExtractors:
     """Test the ScanImage extractor classes with various ScanImage files."""
 
-    def test_planar_single_channel(self):
+    def test_planar_single_channel_single_file(self):
         """Test with planar (non-volumetric) single channel data.
 
         File: scanimage_20220801_single.tif
@@ -39,15 +39,15 @@ class TestScanImageExtractors:
 
         samples_per_file = extractor.get_num_samples() / len(extractor.file_paths)
         start_sample = 0
-        stop_sample = samples_per_file
+        end_sample = samples_per_file
         for file_path in extractor.file_paths:
             with TiffReader(file_path) as tiff_reader:
                 data = tiff_reader.asarray()
-                extractor_samples = extractor.get_series(start_sample=start_sample, stop_sample=stop_sample)
+                extractor_samples = extractor.get_series(start_sample=start_sample, end_sample=end_sample)
                 assert_array_equal(data, extractor_samples)
 
                 start_sample += samples_per_file
-                stop_sample += samples_per_file
+                end_sample += samples_per_file
 
     def test_planar_multi_channnel_multi_file(self):
         """Test with multi-file planar data acquired in loop acquisition mode.
@@ -95,16 +95,16 @@ class TestScanImageExtractors:
 
         samples_per_file = extractor.get_num_samples() / len(extractor.file_paths)
         start_sample = 0
-        stop_sample = samples_per_file
+        end_sample = samples_per_file
         for file_path in extractor.file_paths:
             with TiffReader(file_path) as tiff_reader:
                 data = tiff_reader.asarray()
                 channel_data = data[:, extractor._channel_index, ...]
-                extractor_samples = extractor.get_series(start_sample=start_sample, stop_sample=stop_sample)
+                extractor_samples = extractor.get_series(start_sample=start_sample, end_sample=end_sample)
                 assert_array_equal(channel_data, extractor_samples)
 
                 start_sample += samples_per_file
-                stop_sample += samples_per_file
+                end_sample += samples_per_file
 
     def test_volumetric_data_single_channel_multi_sample_per_slice(self):
         """Test with volumetric data that has multiple frames per slice.
@@ -286,10 +286,10 @@ class TestScanImageExtractors:
 
         # Check basic properties
         assert (
-            len(timestamps_ch1) == extractor_ch1.get_num_frames()
+            len(timestamps_ch1) == extractor_ch1.get_num_samples()
         ), "Should have one timestamp per frame for channel 1"
         assert (
-            len(timestamps_ch2) == extractor_ch2.get_num_frames()
+            len(timestamps_ch2) == extractor_ch2.get_num_samples()
         ), "Should have one timestamp per frame for channel 2"
 
         # Extract all timestamps from the file to compare

@@ -29,12 +29,11 @@ class ScanImageImagingExtractor(ImagingExtractor):
     """
     Specialized extractor for reading TIFF files produced via ScanImage software.
 
-    This extractor is designed to handle the complex structure of ScanImage TIFF files, which can contain
-    multiple channels, planes (Z-dimension), and time points organized according to the ScanImage dimension
-    order (CZT - Channel, Z-depth, Time). It supports both single-file and multi-file datasets generated
+    This extractor is designed to handle the structure of ScanImage TIFF files, which can contain
+    multi channel and multi volume data.  It also supports both single-file and multi-file datasets generated
     by ScanImage in various acquisition modes (grab, focus, loop).
 
-    The extractor creates a mapping between each logical sample index and its corresponding physical file
+    The extractor creates a mapping between each frame in the dataset and its corresponding physical file
     and IFD (Image File Directory) location. This mapping enables efficient retrieval of specific frames
     without loading the entire dataset into memory, making it suitable for large datasets.
 
@@ -56,15 +55,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self,
         file_path: PathType,
         channel_name: Optional[str] = None,
-        file_pattern: Optional[str] = None,
         file_paths: Optional[List[PathType]] = None,
     ):
-        """Create a ScanImageImagingExtractor instance from a TIFF file produced by ScanImage.
-
-        This extractor allows for lazy accessing of slices, unlike
-        :py:class:`~roiextractors.extractors.tiffimagingextractors.TiffImagingExtractor`.
-        It creates a mapping between logical sample indices and physical file/IFD locations for efficient retrieval.
-
+        """
         Parameters
         ----------
         file_path : PathType
@@ -72,10 +65,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
         channel_name : str, optional
             Name of the channel to extract. If None and multiple channels are available, the first channel will be used.
         file_paths : List[PathType], optional
-            List of file paths to use directly. If provided, this overrides the automatic
-            file detection heuristics. Use this when you know exactly which files should be included,
-            or when the automatic detection doesn't work correctly. The file paths should be provided
-            in the correct temporal order, as they will be used as-is without sorting.
+            List of file paths to use. If provided, this overrides the automatic
+            file detection heuristics. Use this if automatic detection does not work correctly and you know 
+            exactly which files should be included.  The file paths should be provided in an order that 
+            reflects the temporal order of the frames in the dataset.       
         """
         super().__init__()
         self.file_path = Path(file_path)
@@ -201,7 +194,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self._num_samples = num_acquisition_cycles  #  / len(channels_available)
 
         # Create full mapping for all channels, samples, and depths
-        full_samples_to_ifd_mapping = self._create_sample_to_ifd_mapping(
+        full_frame_to_ifds_table = self._create_frame_to_ifd_table(
             dimension_order=dimension_order,
             num_channels=self._num_channels,
             num_acquisition_cycles=num_acquisition_cycles,
@@ -210,15 +203,14 @@ class ScanImageImagingExtractor(ImagingExtractor):
         )
 
         # Filter mapping for the specified channel
-        channel_mask = full_samples_to_ifd_mapping["channel_index"] == self._channel_index
-        sample_to_ifd_mapping = full_samples_to_ifd_mapping[channel_mask]
+        channel_mask = full_frame_to_ifds_table["channel_index"] == self._channel_index
+        channel_frames_to_ifd_table = full_frame_to_ifds_table[channel_mask]
 
         # Sort by time_index and depth_index for easier access
-        sorted_indices = np.lexsort((sample_to_ifd_mapping["depth_index"], sample_to_ifd_mapping["time_index"]))
-        self._sample_to_ifd_mapping = sample_to_ifd_mapping[sorted_indices]
+        sorting_tuple = (channel_frames_to_ifd_table["time_index"], channel_frames_to_ifd_table["depth_index"])
+        sorted_indices = np.lexsort(sorting_tuple)
+        self._frames_to_ifd_table = channel_frames_to_ifd_table[sorted_indices]
 
-        # Determine if we're dealing with volumetric data
-        self.is_volumetric = self._num_planes > 1
 
     def _find_data_files(self) -> List[PathType]:
         """Find additional files in the series based on the file naming pattern.
@@ -255,11 +247,11 @@ class ScanImageImagingExtractor(ImagingExtractor):
         if acquisition_state == "grab" and frames_per_file != float("inf"):
             base_name, acquisition, file_index = file_stem.split("_")
             pattern = f"{base_name}_{acquisition}_*{self.file_path.suffix}"
-        # Looped acquisitions also divides the files
+        # Looped acquisitions also divides the files according to Lawrence Niu in private conversation
         elif acquisition_state == "loop":  # This also separates the files
             base_name = "_".join(file_stem.split("_")[:-1])  # Everything before the last _
             pattern = f"{base_name}_*{self.file_path.suffix}"
-        # This also divided the files according to Niu Lawrence in private conversation
+        # This also divided the files according to Lawrence Niu in private conversation
         elif stack_mode == "slow" and self.is_volumetric:
             base_name, acquisition, file_index = file_stem.split("_")
             pattern = f"{base_name}_*{self.file_path.suffix}"
@@ -273,12 +265,20 @@ class ScanImageImagingExtractor(ImagingExtractor):
         return files_found
 
     @staticmethod
-    def _create_sample_to_ifd_mapping(
-        dimension_order: str, num_channels: int, num_acquisition_cycles: int, num_planes: int, ifds_per_file: List[int]
+    def _create_frame_to_ifd_table(
+        dimension_order: str, num_channels: int, num_acquisition_cycles: int, num_planes: int, ifds_per_file: List[int],
     ) -> np.ndarray:
-        """Create a mapping from sample index to file and IFD indices.
+        """
+        Create a table that describes the data layout of the dataset.
+        
+        Every row in the table corresponds to a frame in the dataset and contains:
+        - file_index: The index of the file in the series
+        - IFD_index: The index of the IFD in the file
+        - channel_index: The index of the channel
+        - depth_index: The index of the depth
+        - time_index: The index of the time
 
-        This function creates a structured numpy array that maps each combination of time,
+        The table is represented as a structured numpy array that maps each combination of time,
         channel, and depth to its corresponding physical location in the TIFF files.
 
         Parameters
@@ -300,7 +300,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             A structured array mapping all combinations of time, channel, and depth to file
             and IFD indices.
         """
-        # Create structured dtype for mapping
+        # Create structured dtype for the table
         mapping_dtype = np.dtype(
             [
                 ("file_index", np.uint16),
@@ -355,11 +355,12 @@ class ScanImageImagingExtractor(ImagingExtractor):
         mapping["time_index"] = time_indices
 
         return mapping
+    
+    def get_series(self, start_sample: Optional[int], end_sample: Optional[int] = None) -> np.ndarray: 
+        """
+        Get data as a time series from start_sample to end_sample.
 
-    def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
-        """Get specific frames by their indices.
-
-        This method retrieves frames at the specified indices from the ScanImage TIFF file(s).
+        This method retrieves frames at the specified range from the ScanImage TIFF file(s).
         It uses the mapping created during initialization to efficiently locate and load only
         the requested frames, without loading the entire dataset into memory.
 
@@ -368,132 +369,52 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         Parameters
         ----------
-        frame_idxs : array-like
-            Indices of frames to retrieve. Must be an array-like object, not a single integer.
-            For example: [0, 1, 2] or np.array([0, 5, 10])
+        start_sample : int
+        end_sample : int
 
         Returns
         -------
         numpy.ndarray
-            Array of frames with shape (num_samples, height, width) if num_planes is 1,
+            Array of data with shape (num_samples, height, width) if num_planes is 1,
             or (num_samples, height, width, num_planes) if num_planes > 1.
 
-            For example, for a non-volumetric dataset with 512x512 frames, requesting 3 frames
+            For example, for a non-volumetric dataset with 512x512 frames, requesting 3 samples
             would return an array with shape (3, 512, 512).
 
-            For a volumetric dataset with 5 planes and 512x512 frames, requesting 3 frames
-            would return an array with shape (3, 512, 512, 5).
-
-        Raises
-        ------
-        TypeError
-            If frame_idxs is an integer instead of an array-like object.
-            Use frame_idxs=[n] to get a single frame.
-        ValueError
-            If any frame index is out of range (negative or >= num_samples).
-
-        Examples
-        --------
-        >>> extractor = ScanImageImagingExtractor('path/to/file.tif')
-        >>> # Get the first frame
-        >>> frame_0 = extractor.get_frames([0])
-        >>> # Get multiple specific frames
-        >>> frames = extractor.get_frames([0, 10, 20])
+            For a volumetric dataset with 5 planes and 512x512 frames, requesting 3 samples
+            would return an array with shape (3, 512, 512, 5).    
         """
-        if isinstance(frame_idxs, (int, np.integer)):
-            raise TypeError("frame_idxs must be an array-like object, not a single integer")
+        start_sample = int(start_sample) if start_sample is not None else 0
+        end_sample = int(end_sample) if end_sample is not None else self._num_samples
 
-        frame_idxs = np.array(frame_idxs)
-        if np.any(frame_idxs >= self._num_samples) or np.any(frame_idxs < 0):
-            raise ValueError(f"Frame indices must be between 0 and {self._num_samples - 1}")
+        
+        samples_in_series = end_sample - start_sample
+        
+        # Preallocate output array as volumetric and squeeze if not volumetric before returning
+        samples = np.empty((samples_in_series, self._num_rows, self._num_columns, self._num_planes), dtype=self._dtype)
 
-        # Always preallocate output array as volumetric
-        samples = np.empty((len(frame_idxs), self._num_rows, self._num_columns, self._num_planes), dtype=self._dtype)
-
-        # Load each requested frame
-        for frame_idx_position, frame_idx in enumerate(frame_idxs):
+        for return_index, sample_index in enumerate(range(start_sample, end_sample)):
             for depth_position in range(self._num_planes):
-                # Calculate the index in the mapping array
-                # Each frame has num_planes entries in the mapping
-                mapping_idx = int(frame_idx) * self._num_planes + depth_position
+                
+                # Calculate the index in the mapping table array
+                frame_index = sample_index * self._num_planes + depth_position
+                table_row = self._frames_to_ifd_table[frame_index]
+                file_index = table_row["file_index"]
+                ifd_index = table_row["IFD_index"]
 
-                # Get the mapping for this frame and depth
-                mapping_entry = self._sample_to_ifd_mapping[mapping_idx]
-                file_index = mapping_entry["file_index"]
                 tiff_reader = self._tiff_readers[file_index]
-                ifd_index = mapping_entry["IFD_index"]
-
-                ifd = tiff_reader.pages[ifd_index]
-                samples[frame_idx_position, :, :, depth_position] = ifd.asarray()
+                image_file_directory = tiff_reader.pages[ifd_index]
+                samples[return_index, :, :, depth_position] = image_file_directory.asarray()
 
         # Squeeze the depth dimension if not volumetric
         if not self.is_volumetric:
             samples = samples.squeeze(axis=3)
 
         return samples
-
+        
     def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
-        """Get a continuous range of frames.
-
-        This method retrieves a continuous block of frames from the ScanImage TIFF file(s).
-        It is more efficient than get_frames() when retrieving a large number of consecutive frames.
-
-        Parameters
-        ----------
-        start_frame : int, optional
-            Start frame index (inclusive). Default is 0.
-        end_frame : int, optional
-            End frame index (exclusive). Default is the total number of frames.
-            For example, to get frames 0-9, use start_frame=0, end_frame=10.
-        channel : int, optional
-            Channel index. Deprecated: This parameter will be removed in August 2025.
-
-        Returns
-        -------
-        numpy.ndarray
-            Array of frames with shape (num_samples, height, width) if num_planes is 1,
-            or (num_samples, height, width, num_planes) if num_planes > 1.
-
-        Examples
-        --------
-        >>> extractor = ScanImageImagingExtractor('path/to/file.tif')
-        >>> # Get the first 10 frames
-        >>> first_10_frames = extractor.get_video(start_frame=0, end_frame=10)
-        >>> # Get all frames
-        >>> all_frames = extractor.get_video()
-        """
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self._num_samples
-
-        frame_idxs = np.arange(start_frame, end_frame)
-        return self.get_frames(frame_idxs)
-
-    def get_series(self, start_sample: int, stop_sample: int) -> np.ndarray:
-        """Get a range of samples.
-
-        This method is an alias for get_video() that uses sample terminology instead of frame terminology.
-        In the context of imaging data, samples and frames refer to the same thing.
-
-        Parameters
-        ----------
-        start_sample : int
-            Start sample index (inclusive).
-        stop_sample : int
-            End sample index (exclusive).
-
-        Returns
-        -------
-        numpy.ndarray
-            Array of samples with shape (num_samples, height, width) if num_planes is 1,
-            or (num_samples, height, width, num_planes) if num_planes > 1.
-
-        See Also
-        --------
-        get_video : Equivalent method using frame terminology
-        """
-        return self.get_video(start_frame=start_sample, end_frame=stop_sample)
+        """Here for backwards compatibility, should be removed at some point."""
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_image_shape(self) -> Tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
@@ -504,17 +425,23 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Shape of the video frame (num_rows, num_columns).
         """
         return (self._num_rows, self._num_columns)
-
-    def get_num_frames(self) -> int:
-        """Get the number of frames in the video.
-
-        Returns
-        -------
-        int
-            Number of frames in the video.
+    
+    def get_sample_shape(self):
         """
-        return self._num_samples
+        Get the shape of a single sample
 
+        Returns       
+        -------
+        tuple of int
+            Shape of a single sample. If the data is volumetric, the shape is hape of a single sample (num_rows, num_columns).
+            (num_rows, num_columns, num_planes). Otherwise, the shape is 
+            (num_rows, num_columns).
+        """
+        if self.is_volumetric:
+            return (self._num_rows, self._num_columns, self._num_planes)
+        else:
+            return (self._num_rows, self._num_columns)
+        
     def get_num_samples(self) -> int:
         """Get the number of samples in the video.
 
@@ -601,7 +528,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         -----
         This method extracts timestamps from the ScanImage TIFF file(s) for the selected channel.
         It uses the mapping created during initialization to efficiently locate and extract
-        timestamps for each frame.
+        timestamps for each sample.
         """
         if self._times is not None:
             return self._times
@@ -609,34 +536,40 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # Initialize array to store timestamps
         timestamps = np.zeros(self._num_samples, dtype=np.float64)
 
-        # For each frame, extract its timestamp from the corresponding file and IFD
-        for frame_idx in range(self._num_samples):
-            # Get the first plane's mapping entry for this frame
-            # (We only need one plane per frame to get the timestamp)
-            mapping_idx = frame_idx * self._num_planes
-            mapping_entry = self._sample_to_ifd_mapping[mapping_idx]
+        # For each sample, extract its timestamp from the corresponding file and IFD
+        for sample_index in range(self._num_samples):
+            
+            # Get the last frame in this sample to get the timestamps
+            frame_index = sample_index * self._num_planes + (self._num_planes - 1)
+            table_row = self._frames_to_ifd_table[frame_index]
+            file_index = table_row["file_index"]
+            ifd_index = table_row["IFD_index"]
 
-            file_index = mapping_entry["file_index"]
             tiff_reader = self._tiff_readers[file_index]
-            ifd_index = mapping_entry["IFD_index"]
-
+            image_file_directory = tiff_reader.pages[ifd_index]      
+            
             # Extract timestamp from the IFD description
-            description = tiff_reader.pages[ifd_index].description
+            description = image_file_directory.description
             description_lines = description.split("\n")
 
-            for line in description_lines:
-                if "frameTimestamps_sec" in line:
-                    # Extract the value part after " = "
-                    _, value_str = line.split(" = ", 1)
-                    try:
-                        timestamps[frame_idx] = float(value_str.strip())
-                    except ValueError:
-                        # If parsing fails, use frame index / sampling frequency as fallback
-                        timestamps[frame_idx] = frame_idx / self._sampling_frequency
-                    break
+            # Use iterator pattern to find frameTimestamps_sec
+            timestamp_line = next((line for line in description_lines if "frameTimestamps_sec" in line), None)
+            
+            if timestamp_line is not None:
+                # Extract the value part after " = "
+                _, value_str = timestamp_line.split(" = ", 1)
+                try:
+                    timestamps[sample_index] = float(value_str.strip())
+                except ValueError:
+                    # If parsing fails, use sample index / sampling frequency as fallback
+                    timestamps[sample_index] = sample_index / self._sampling_frequency
             else:
-                # If no timestamp found, use frame index / sampling frequency as fallback
-                timestamps[frame_idx] = frame_idx / self._sampling_frequency
+                # If no timestamp found, throw a warning and use sample index / sampling frequency as fallback
+                warnings.warn(
+                    f"No frameTimestamps_sec found for sample {sample_index}. Using calculated timestamp instead.",
+                    UserWarning,
+                )
+                timestamps[sample_index] = sample_index / self._sampling_frequency
 
         # Cache the timestamps
         self._times = timestamps
@@ -652,19 +585,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
         -------
         int
             Number of depth planes.
-
-        Notes
-        -----
-        The presence of multiple planes indicates volumetric (3D) data rather than
-        planar (2D) data. This information can be used to determine if the data
-        should be processed as a volume or as individual planes.
-
-        The is_volumetric property can also be checked to determine if the data
-        is volumetric or planar.
         """
         return self._num_planes
 
-    def get_plane_extractor(self, plane_idx: int) -> "ImagingExtractor":
+    def get_plane_extractor(self, plane_index: int) -> "ImagingExtractor":
         """Extract a specific depth plane from volumetric data.
 
         This method allows for extracting a specific depth plane from volumetric imaging data,
@@ -672,7 +596,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         Parameters
         ----------
-        plane_idx: int
+        plane_index: int
             Index of the depth plane to extract (0-indexed).
 
         Returns
@@ -684,34 +608,34 @@ class ScanImageImagingExtractor(ImagingExtractor):
         ------
         ValueError
             If the data is not volumetric (has only one plane).
-            If plane_idx is out of range.
+            If plane_index is out of range.
 
         Examples
         --------
         >>> extractor = ScanImageImagingExtractor('path/to/volumetric_file.tif')
         >>> # Get only the first plane
-        >>> first_plane = extractor.depth_slice(plane_idx=0)
+        >>> first_plane = extractor.depth_slice(plane_index=0)
         >>> # Get the second plane
-        >>> second_plane = extractor.depth_slice(plane_idx=1)
+        >>> second_plane = extractor.depth_slice(plane_index=1)
         """
         if not self.is_volumetric:
             raise ValueError("Cannot depth slice non-volumetric data. This data has only one plane.")
 
         # Validate parameters
-        if plane_idx < 0 or plane_idx >= self._num_planes:
-            raise ValueError(f"plane_idx ({plane_idx}) must be between 0 and {self._num_planes - 1}")
+        if plane_index < 0 or plane_index >= self._num_planes:
+            raise ValueError(f"plane_index ({plane_index}) must be between 0 and {self._num_planes - 1}")
 
         # Create a copy of the current extractor
         import copy
 
         sliced_extractor = copy.deepcopy(self)
 
-        # Filter the sample_to_ifd_mapping to only include entries for the specified depth plane
-        depth_mask = sliced_extractor._sample_to_ifd_mapping["depth_index"] == plane_idx
-        sliced_extractor._sample_to_ifd_mapping = sliced_extractor._sample_to_ifd_mapping[depth_mask]
+        # Filter the frames_to_ifd_table to only include entries for the specified depth plane
+        depth_mask = sliced_extractor._frames_to_ifd_table["depth_index"] == plane_index
+        sliced_extractor._frames_to_ifd_table = sliced_extractor._frames_to_ifd_table[depth_mask]
 
         # Update the number of samples
-        sliced_extractor._num_samples = len(sliced_extractor._sample_to_ifd_mapping)
+        sliced_extractor._num_samples = len(sliced_extractor._frames_to_ifd_table)
 
         # Override the is_volumetric flag and num_planes
         sliced_extractor.is_volumetric = False
@@ -1259,7 +1183,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         return raw_index
 
 
-class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extractor on/after December 2023
+class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extractor on or after December 2023
     """Specialized extractor for reading TIFF files produced via ScanImage.
 
     This implementation is for legacy purposes and is not recommended for use.
