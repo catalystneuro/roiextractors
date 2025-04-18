@@ -21,6 +21,10 @@ def test_inscopiximagingextractor_movie_128x128x100_part1():
     assert extractor.get_frames(frame_idxs=[0], channel=0).dtype is extractor.get_dtype()
     assert extractor.get_dtype().itemsize
 
+    raw_data = extractor.get_raw_data()
+    assert raw_data.shape == (100, 128, 128)
+    assert raw_data.dtype == extractor.get_dtype()
+
 
 def test_inscopiximagingextractor_movie_longer_than_3_min():
     file_path = OPHYS_DATA_PATH / "imaging_datasets" / "inscopix" / "movie_longer_than_3_min.isxd"
@@ -36,6 +40,10 @@ def test_inscopiximagingextractor_movie_longer_than_3_min():
     assert extractor.get_frames(frame_idxs=[0], channel=0).dtype is extractor.get_dtype()
     assert extractor.get_dtype().itemsize
 
+    raw_data = extractor.get_raw_data()
+    assert raw_data.shape == (1248, 33, 29)
+    assert raw_data.dtype == extractor.get_dtype()
+
 
 def test_inscopiximagingextractor_movie_u8():
     file_path = OPHYS_DATA_PATH / "imaging_datasets" / "inscopix" / "movie_u8.isxd"
@@ -50,3 +58,7 @@ def test_inscopiximagingextractor_movie_u8():
     assert extractor.get_video().shape == (5, 3, 4)
     assert extractor.get_frames(frame_idxs=[0], channel=0).dtype is extractor.get_dtype()
     assert extractor.get_dtype().itemsize
+
+    raw_data = extractor.get_raw_data()
+    assert raw_data.shape == (5, 3, 4)
+    assert raw_data.dtype == extractor.get_dtype()
