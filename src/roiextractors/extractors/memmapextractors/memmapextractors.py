@@ -9,6 +9,7 @@ MemmapImagingExtractor
 from pathlib import Path
 import warnings
 from warnings import warn
+import warnings
 
 import numpy as np
 import psutil
@@ -188,6 +189,11 @@ class MemmapImagingExtractor(ImagingExtractor):
         buffer_size_in_gb: float
             The size of the buffer in Gigabytes. The default of None results in buffering over one frame at a time.
         """
+        warnings.warn(
+            "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         # The base and default case is to load one image at a time.
         if buffer_size_in_gb is None:
             buffer_size_in_gb = 0
