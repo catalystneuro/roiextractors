@@ -308,6 +308,11 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             ├── iscell.npy
             └── ops.npy
         """
+        warn(
+            "The write_segmentation function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         save_path = Path(save_path)
         assert not save_path.is_file(), "'save_path' must be a folder"
 
