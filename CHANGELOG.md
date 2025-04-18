@@ -13,7 +13,7 @@
 * Change `get_num_frames` for `get_num_samples` [#411](https://github.com/catalystneuro/roiextractors/pull/411)
 
 ### Improvements
-
+* Removed unused installed attribute [#410](https://github.com/catalystneuro/roiextractors/pull/410)
 
 # v0.5.11 (March 5th, 2025)
 

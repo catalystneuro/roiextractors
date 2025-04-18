@@ -43,6 +43,7 @@ dependencies = [
   "lxml",
   "packaging",
   "zarr>=2,<3",
+  "numcodecs<0.16.0",
 ]
 
 [project.optional-dependencies]

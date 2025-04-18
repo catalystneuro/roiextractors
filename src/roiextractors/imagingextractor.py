@@ -396,7 +396,6 @@ class FrameSliceImagingExtractor(ImagingExtractor):
     """
 
     extractor_name = "FrameSliceImagingExtractor"
-    installed = True
     is_writable = True
     installation_mesg = ""
 

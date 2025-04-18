@@ -12,7 +12,6 @@ class VolumetricImagingExtractor(ImagingExtractor):
     """Class to combine multiple ImagingExtractor objects by depth plane."""
 
     extractor_name = "VolumetricImaging"
-    installed = True
     installatiuon_mesage = ""
 
     def __init__(self, imaging_extractors: List[ImagingExtractor]):
@@ -246,7 +245,6 @@ class DepthSliceVolumetricImagingExtractor(VolumetricImagingExtractor):
     """
 
     extractor_name = "DepthSliceVolumetricImagingExtractor"
-    installed = True
     is_writable = True
     installation_mesg = ""
 
