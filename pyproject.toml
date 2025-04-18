@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "roiextractors"
-version = "0.5.12"
+version = "0.5.13"
 description = "Python module for extracting optical physiology ROIs and traces for various file types and formats"
 readme = "README.md"
 license = { file = "LICENSE.txt" }
