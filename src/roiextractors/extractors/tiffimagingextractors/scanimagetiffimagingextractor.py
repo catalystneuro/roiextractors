@@ -30,7 +30,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
     Specialized extractor for reading TIFF files produced via ScanImage software.
 
     This extractor is designed to handle the structure of ScanImage TIFF files, which can contain
-    multi channel and multi volume data.  It also supports both single-file and multi-file datasets generated
+    multi channel and both planar and volumetric data. It also supports both single-file and multi-file datasets generated
     by ScanImage in various acquisition modes (grab, focus, loop).
 
     The extractor creates a mapping between each frame in the dataset and its corresponding physical file
