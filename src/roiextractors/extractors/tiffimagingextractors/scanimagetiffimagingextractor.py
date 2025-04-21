@@ -96,6 +96,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
         if self.is_volumetric:
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanVolumeRate"]
             self._num_planes = self._metadata["SI.hStackManager.numSlices"]
+            self._frames_per_volume = self._metadata["SI.hStackManager.numFramesPerVolume"]
+            self._frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
 
             frames_per_slice = self._metadata["SI.hStackManager.framesPerSlice"]
             if frames_per_slice > 1:
@@ -104,22 +106,19 @@ class ScanImageImagingExtractor(ImagingExtractor):
                     "Please open an issue on GitHub roiextractors to request this feature: "
                 )
                 raise ValueError(error_msg)
-            flyback_frames = (
-                self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
-                - self._metadata["SI.hStackManager.numFramesPerVolume"]
-            )
 
-            if flyback_frames > 0:
-                error_msg(
-                    "Flyback frames detected. " "Please open an issue on GitHub roiextractors to request this feature: "
-                )
+            # Flyback frames warning
+            self.flyback_frames = self._frames_per_volume_with_flyback - self._frames_per_volume
+            if self.flyback_frames > 0:
+                warnings.warn(f"{self.flyback_frames} flyback frames detected. At the moment they are discarded.")
 
-                raise ValueError(error_msg)
-
+            # We need to map all the frames in a volume even if we are not using all of them
+            self._frames_per_volume_in_file = self._frames_per_volume_with_flyback
         else:
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanFrameRate"]
             self._num_planes = 1
             self._frames_per_slice = 1
+            self._frames_per_volume_in_file = 1
 
         # This piece of the metadata is the indication that the channel is saved on the data
         channels_available = self._metadata["SI.hChannels.channelSave"]
@@ -200,7 +199,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             dimension_order=dimension_order,
             num_channels=self._num_channels,
             num_acquisition_cycles=num_acquisition_cycles,
-            num_planes=self._num_planes,
+            frames_per_volume=self._frames_per_volume_in_file,
             ifds_per_file=ifds_per_file,
         )
 
@@ -270,7 +269,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         dimension_order: str,
         num_channels: int,
         num_acquisition_cycles: int,
-        num_planes: int,
+        frames_per_volume: int,
         ifds_per_file: List[int],
     ) -> np.ndarray:
         """
@@ -294,8 +293,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Number of channels.
         num_acquisition_cycles : int
             Number of acquisition cycles (samples).
-        num_planes : int
-            Number of depth planes (Z).
+        frames_per_volume : int
+            Number of frames per volume, usually the number of planes but can be larger if multiple
+            frames are acquired per plane or if flyback frames are included.
         ifds_per_file : List[int]
             Number of IFDs in each file.
 
@@ -320,7 +320,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         total_entries = sum(ifds_per_file)
 
         # Define the sizes for each dimension
-        dimension_sizes = {"Z": num_planes, "T": num_acquisition_cycles, "C": num_channels}
+        dimension_sizes = {"Z": frames_per_volume, "T": num_acquisition_cycles, "C": num_channels}
 
         # Calculate divisors for each dimension
         # In dimension order, the first element changes fastest
