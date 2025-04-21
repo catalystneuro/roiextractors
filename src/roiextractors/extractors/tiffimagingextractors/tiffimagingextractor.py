@@ -223,6 +223,11 @@ class TiffImagingExtractor(ImagingExtractor):
         verbose : bool
             If True, will print progress bar.
         """
+        warn(
+            "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         tifffile = get_package(package_name="tifffile")
 
         save_path = Path(save_path)

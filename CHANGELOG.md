@@ -10,12 +10,13 @@
 * Fixed `get_series` method in `MemmapImagingExtractor` to preserve channel dimension [#416](https://github.com/catalystneuro/roiextractors/pull/416)
 
 ### Deprecations
+* Deprecated `write_imaging` and `write_segmentation` methods: [#403](https://github.com/catalystneuro/roiextractors/pull/403)
 * The `get_image_size()` method is deprecated and will be removed in or after September 2025. Use `get_image_shape()` instead for consistent behavior across all extractors. [#409](https://github.com/catalystneuro/roiextractors/pull/409)
 * Change `get_num_frames` for `get_num_samples` [#411](https://github.com/catalystneuro/roiextractors/pull/411)
 * The `get_video(start_frame, end_frame)` method is deprecated and will be removed in or after September 2025. Use `get_series(start_sample, end_sample)` instead for consistent naming with `get_num_samples`. [#416](https://github.com/catalystneuro/roiextractors/pull/416)
 
 ### Improvements
-
+* Removed unused installed attribute [#410](https://github.com/catalystneuro/roiextractors/pull/410)
 
 # v0.5.11 (March 5th, 2025)
 

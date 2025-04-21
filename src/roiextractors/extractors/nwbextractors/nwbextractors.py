@@ -29,7 +29,15 @@ from ...segmentationextractor import SegmentationExtractor
 
 
 def temporary_deprecation_message():
-    """Raise a NotImplementedError with a temporary deprecation message."""
+    """Issue a deprecation warning and raise a NotImplementedError with a migration message."""
+    from warnings import warn
+
+    warn(
+        "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
     raise NotImplementedError(
         "ROIExtractors no longer supports direct write to NWB. This method will be removed in a future release.\n\n"
         "Please install nwb-conversion-tools and import the corresponding write method from there.\n\nFor example,\n\n"
@@ -318,25 +326,11 @@ class NwbImagingExtractor(ImagingExtractor):
         """Return the metadata dictionary for the NWB file (deprecated)."""
         temporary_deprecation_message()
 
-    @staticmethod
-    def write_imaging(
-        imaging: ImagingExtractor,
-        save_path: PathType = None,
-        nwbfile=None,
-        metadata: dict = None,
-        overwrite: bool = False,
-        buffer_size: int = 10,
-        use_times: bool = False,
-    ):
-        """Write imaging data to NWB file (deprecated)."""
-        temporary_deprecation_message()
-
 
 class NwbSegmentationExtractor(SegmentationExtractor):
     """An segmentation extractor for NWB files."""
 
     extractor_name = "NwbSegmentationExtractor"
-    installed = True  # check at class level if installed or not
     is_writable = False
     mode = "file"
     installation_mesg = ""  # error message when not installed
@@ -490,17 +484,4 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     @staticmethod
     def get_nwb_metadata(sgmextractor):
         """Return the metadata dictionary for the NWB file (deprecated)."""
-        temporary_deprecation_message()
-
-    @staticmethod
-    def write_segmentation(
-        segext_obj: SegmentationExtractor,
-        save_path: PathType = None,
-        plane_num=0,
-        metadata: dict = None,
-        overwrite: bool = True,
-        buffer_size: int = 10,
-        nwbfile=None,
-    ):
-        """Write segmentation data to NWB file (deprecated)."""
         temporary_deprecation_message()

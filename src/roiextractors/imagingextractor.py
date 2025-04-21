@@ -422,21 +422,6 @@ class ImagingExtractor(ABC):
         """
         return FrameSliceImagingExtractor(parent_imaging=self, start_frame=start_frame, end_frame=end_frame)
 
-    @staticmethod
-    def write_imaging(imaging, save_path: PathType, overwrite: bool = False):
-        """Write an imaging extractor to its native file structure.
-
-        Parameters
-        ----------
-        imaging : ImagingExtractor
-            The imaging extractor object to be saved.
-        save_path : str or Path
-            Path to save the file.
-        overwrite : bool, optional
-            If True, overwrite the file/folder if it already exists. The default is False.
-        """
-        raise NotImplementedError
-
 
 class FrameSliceImagingExtractor(ImagingExtractor):
     """Class to get a lazy frame slice.
@@ -445,7 +430,6 @@ class FrameSliceImagingExtractor(ImagingExtractor):
     """
 
     extractor_name = "FrameSliceImagingExtractor"
-    installed = True
     is_writable = True
     installation_mesg = ""
 
