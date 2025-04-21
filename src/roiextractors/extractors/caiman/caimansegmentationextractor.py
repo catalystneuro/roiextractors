@@ -7,6 +7,7 @@ CaimanSegmentationExtractor
 """
 
 from pathlib import Path
+from warnings import warn
 
 import h5py
 
@@ -172,6 +173,11 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         FileExistsError
             If the file already exists and overwrite is False.
         """
+        warn(
+            "The write_segmentation function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         save_path = Path(save_path)
         assert save_path.suffix in [
             ".hdf5",
