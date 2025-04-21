@@ -663,7 +663,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
             for handle in self._tiff_readers:
                 try:
                     handle.close()
-                except Exception:
+                except Exception as e:
+                    warnings.warn(f"Error closing TIFF file handle {handle} with error: {e}", UserWarning)
                     pass
 
 
