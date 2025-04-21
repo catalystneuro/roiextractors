@@ -381,8 +381,8 @@ def check_imaging_equal(
         assert_array_equal(imaging_extractor1.get_channel_names(), imaging_extractor2.get_channel_names())
 
     assert_array_equal(
-        imaging_extractor1.get_video(start_frame=0, end_frame=1),
-        imaging_extractor2.get_video(start_frame=0, end_frame=1),
+        imaging_extractor1.get_series(start_sample=0, end_sample=1),
+        imaging_extractor2.get_series(start_sample=0, end_sample=1),
     )
     assert_array_almost_equal(
         imaging_extractor1.frame_to_time(np.arange(imaging_extractor1.get_num_samples())),

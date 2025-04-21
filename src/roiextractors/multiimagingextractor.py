@@ -169,6 +169,66 @@ class MultiImagingExtractor(ImagingExtractor):
         frames = np.concatenate(frames_to_concatenate, axis=0)
         return frames
 
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        """Get the video frames.
+
+        Parameters
+        ----------
+        start_sample: int, optional
+            Start sample index (inclusive).
+        end_sample: int, optional
+            End sample index (exclusive).
+
+        Returns
+        -------
+        series: numpy.ndarray
+            The video frames.
+        """
+        start = start_sample if start_sample is not None else 0
+        stop = end_sample if end_sample is not None else self.get_num_samples()
+        extractors_range = np.searchsorted(self._end_frames, (start, stop - 1), side="right")
+        extractors_spanned = list(
+            range(extractors_range[0], min(extractors_range[-1] + 1, len(self._imaging_extractors)))
+        )
+
+        # Early return with simple relative indexing; preserves native return class of that extractor
+        if len(extractors_spanned) == 1:
+            relative_start = start - self._start_frames[extractors_spanned[0]]
+            relative_stop = stop - start + relative_start
+
+            return self._imaging_extractors[extractors_spanned[0]].get_series(
+                start_sample=relative_start, end_sample=relative_stop
+            )
+
+        series_shape = (stop - start,) + self._imaging_extractors[0].get_image_size()
+        series = np.empty(shape=series_shape, dtype=self.get_dtype())
+        current_frame = 0
+
+        # Left endpoint; since more than one extractor is spanned, only care about indexing first start frame
+        relative_start = start - self._start_frames[extractors_spanned[0]]
+        relative_span = self._end_frames[extractors_spanned[0]] - start
+        array_frame_slice = slice(current_frame, relative_span)
+        series[array_frame_slice, ...] = self._imaging_extractors[extractors_spanned[0]].get_series(
+            start_sample=relative_start
+        )
+        current_frame += relative_span
+
+        # All inner spans can be written knowing only how long each section is
+        for extractor_index in extractors_spanned[1:-1]:
+            relative_span = self._end_frames[extractor_index] - self._start_frames[extractor_index]
+            array_frame_slice = slice(current_frame, current_frame + relative_span)
+            series[array_frame_slice, ...] = self._imaging_extractors[extractor_index].get_series()
+            current_frame += relative_span
+
+        # Right endpoint; since more than one extractor is spanned, only care about indexing final end frame
+        relative_stop = stop - self._start_frames[extractors_spanned[-1]]
+        array_frame_slice = slice(current_frame, None)
+        series[array_frame_slice, ...] = self._imaging_extractors[extractors_spanned[-1]].get_series(
+            end_sample=relative_stop
+        )
+
+        return series
+
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
     ) -> np.ndarray:
@@ -187,7 +247,17 @@ class MultiImagingExtractor(ImagingExtractor):
         -------
         video: numpy.ndarray
             The video frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
         """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if channel != 0:
             warnings.warn(
                 "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
@@ -198,50 +268,7 @@ class MultiImagingExtractor(ImagingExtractor):
                 f"MultiImagingExtractors for multiple channels have not yet been implemented! (Received '{channel}'."
             )
 
-        start = start_frame if start_frame is not None else 0
-        stop = end_frame if end_frame is not None else self.get_num_frames()
-        extractors_range = np.searchsorted(self._end_frames, (start, stop - 1), side="right")
-        extractors_spanned = list(
-            range(extractors_range[0], min(extractors_range[-1] + 1, len(self._imaging_extractors)))
-        )
-
-        # Early return with simple relative indexing; preserves native return class of that extractor
-        if len(extractors_spanned) == 1:
-            relative_start = start - self._start_frames[extractors_spanned[0]]
-            relative_stop = stop - start + relative_start
-
-            return self._imaging_extractors[extractors_spanned[0]].get_video(
-                start_frame=relative_start, end_frame=relative_stop
-            )
-
-        video_shape = (stop - start,) + self._imaging_extractors[0].get_image_size()
-        video = np.empty(shape=video_shape, dtype=self.get_dtype())
-        current_frame = 0
-
-        # Left endpoint; since more than one extractor is spanned, only care about indexing first start frame
-        relative_start = start - self._start_frames[extractors_spanned[0]]
-        relative_span = self._end_frames[extractors_spanned[0]] - start
-        array_frame_slice = slice(current_frame, relative_span)
-        video[array_frame_slice, ...] = self._imaging_extractors[extractors_spanned[0]].get_video(
-            start_frame=relative_start
-        )
-        current_frame += relative_span
-
-        # All inner spans can be written knowing only how long each section is
-        for extractor_index in extractors_spanned[1:-1]:
-            relative_span = self._end_frames[extractor_index] - self._start_frames[extractor_index]
-            array_frame_slice = slice(current_frame, current_frame + relative_span)
-            video[array_frame_slice, ...] = self._imaging_extractors[extractor_index].get_video()
-            current_frame += relative_span
-
-        # Right endpoint; since more than one extractor is spanned, only care about indexing final end frame
-        relative_stop = stop - self._start_frames[extractors_spanned[-1]]
-        array_frame_slice = slice(current_frame, None)
-        video[array_frame_slice, ...] = self._imaging_extractors[extractors_spanned[-1]].get_video(
-            end_frame=relative_stop
-        )
-
-        return video
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_image_shape(self) -> Tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
