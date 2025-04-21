@@ -602,7 +602,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         """
         return self._num_planes
 
-    def get_plane_extractor(self, plane_index: int) -> "ImagingExtractor":
+    def get_plane_extractor(self, plane_index: int) -> ImagingExtractor:
         """Extract a specific depth plane from volumetric data.
 
         This method allows for extracting a specific depth plane from volumetric imaging data,
