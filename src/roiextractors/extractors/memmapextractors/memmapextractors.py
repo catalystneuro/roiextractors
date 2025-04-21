@@ -71,8 +71,13 @@ class MemmapImagingExtractor(ImagingExtractor):
         return frames
 
     def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self._num_samples
         frame_idxs = range(start_sample, end_sample)
-        return self.get_frames(frame_idxs=frame_idxs, channel=0)
+        # Use channel=None to preserve the channel dimension
+        return self._video.take(indices=list(frame_idxs), axis=0)
 
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
