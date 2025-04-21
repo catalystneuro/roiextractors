@@ -306,23 +306,50 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
     def get_dtype(self):
         return self._dtype
 
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        if start_sample is not None and end_sample is not None and start_sample == end_sample:
+            return self.pages[start_sample].asarray()
+
+        end_sample = end_sample or self.get_num_samples()
+        start_sample = start_sample or 0
+        series = np.zeros(shape=(end_sample - start_sample, *self.get_image_size()), dtype=self.get_dtype())
+        for page_ind, page in enumerate(islice(self.pages, start_sample, end_sample)):
+            series[page_ind] = page.asarray()
+        return series
+
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
     ) -> np.ndarray:
+        """Get the video frames.
 
+        Parameters
+        ----------
+        start_frame: int, optional
+            Start frame index (inclusive).
+        end_frame: int, optional
+            End frame index (exclusive).
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        video: numpy.ndarray
+            The video frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
+        """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if channel != 0:
-            warn(
+            warnings.warn(
                 "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
                 DeprecationWarning,
                 stacklevel=2,
             )
-
-        if start_frame is not None and end_frame is not None and start_frame == end_frame:
-            return self.pages[start_frame].asarray()
-
-        end_frame = end_frame or self.get_num_frames()
-        start_frame = start_frame or 0
-        video = np.zeros(shape=(end_frame - start_frame, *self.get_image_size()), dtype=self.get_dtype())
-        for page_ind, page in enumerate(islice(self.pages, start_frame, end_frame)):
-            video[page_ind] = page.asarray()
-        return video
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)

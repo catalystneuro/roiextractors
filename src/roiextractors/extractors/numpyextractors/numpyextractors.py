@@ -144,6 +144,9 @@ class NumpyImagingExtractor(ImagingExtractor):
 
         return frames
 
+    def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
+        return self._video[start_sample:end_sample, ..., 0]
+
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
         """Get the video frames.
 
@@ -160,7 +163,17 @@ class NumpyImagingExtractor(ImagingExtractor):
         -------
         video: numpy.ndarray
             The video frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
         """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if channel != 0:
             warn(
                 "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",

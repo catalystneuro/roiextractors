@@ -144,6 +144,9 @@ class Hdf5ImagingExtractor(ImagingExtractor):
             frames = frames.squeeze()
         return frames
 
+    def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
+        return self._video.lazy_slice[start_sample:end_sample, :, :, 0].dsetread()
+
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
         """Get the video frames.
 
@@ -160,14 +163,24 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         -------
         video: numpy.ndarray
             The video frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
         """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if channel != 0:
             warn(
                 "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
                 DeprecationWarning,
                 stacklevel=2,
             )
-        return self._video.lazy_slice[start_frame:end_frame, :, :, channel].dsetread()
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_image_shape(self) -> Tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).

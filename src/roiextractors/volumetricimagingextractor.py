@@ -70,6 +70,29 @@ class VolumetricImagingExtractor(ImagingExtractor):
                 len(unique_values) == 1
             ), f"{property_message} is not consistent over the files (found {unique_values})."
 
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        if start_sample is None:
+            start_sample = 0
+        elif start_sample < 0:
+            start_sample = self.get_num_samples() + start_sample
+        elif start_sample >= self.get_num_samples():
+            raise ValueError(
+                f"start_sample {start_sample} is greater than or equal to the number of samples {self.get_num_samples()}"
+            )
+        if end_sample is None:
+            end_sample = self.get_num_samples()
+        elif end_sample < 0:
+            end_sample = self.get_num_samples() + end_sample
+        elif end_sample > self.get_num_samples():
+            raise ValueError(f"end_sample {end_sample} is greater than the number of samples {self.get_num_samples()}")
+        if end_sample <= start_sample:
+            raise ValueError(f"end_sample {end_sample} is less than or equal to start_sample {start_sample}")
+
+        series = np.zeros((end_sample - start_sample, *self.get_image_size()), self.get_dtype())
+        for i, imaging_extractor in enumerate(self._imaging_extractors):
+            series[..., i] = imaging_extractor.get_series(start_sample, end_sample)
+        return series
+
     def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
         """Get the video frames.
 
@@ -84,42 +107,40 @@ class VolumetricImagingExtractor(ImagingExtractor):
         -------
         video: numpy.ndarray
             The 3D video frames (num_frames, num_rows, num_columns, num_planes).
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
         """
-        if start_frame is None:
-            start_frame = 0
-        elif start_frame < 0:
-            start_frame = self.get_num_samples() + start_frame
-        elif start_frame >= self.get_num_samples():
-            raise ValueError(
-                f"start_frame {start_frame} is greater than or equal to the number of samples {self.get_num_samples()}"
-            )
-        if end_frame is None:
-            end_frame = self.get_num_samples()
-        elif end_frame < 0:
-            end_frame = self.get_num_samples() + end_frame
-        elif end_frame > self.get_num_samples():
-            raise ValueError(f"end_frame {end_frame} is greater than the number of samples {self.get_num_samples()}")
-        if end_frame <= start_frame:
-            raise ValueError(f"end_frame {end_frame} is less than or equal to start_frame {start_frame}")
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
-        video = np.zeros((end_frame - start_frame, *self.get_image_size()), self.get_dtype())
-        for i, imaging_extractor in enumerate(self._imaging_extractors):
-            video[..., i] = imaging_extractor.get_video(start_frame, end_frame)
-        return video
-
-    def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
+    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
         """Get specific video frames from indices (not necessarily continuous).
 
         Parameters
         ----------
         frame_idxs: array-like
             Indices of frames to return.
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
 
         Returns
         -------
         frames: numpy.ndarray
             The 3D video frames (num_rows, num_columns, num_planes).
         """
+        if channel != 0:
+            warnings.warn(
+                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if isinstance(frame_idxs, int):
             frame_idxs = [frame_idxs]
         for frame_idx in frame_idxs:
@@ -130,10 +151,10 @@ class VolumetricImagingExtractor(ImagingExtractor):
         if not all(np.diff(frame_idxs) == 1):
             frames = np.zeros((len(frame_idxs), *self.get_image_size()), self.get_dtype())
             for i, imaging_extractor in enumerate(self._imaging_extractors):
-                frames[..., i] = imaging_extractor.get_frames(frame_idxs)
+                frames[..., i] = imaging_extractor.get_frames(frame_idxs, channel=channel)
             return frames
         else:
-            return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)
+            return self.get_series(start_sample=frame_idxs[0], end_sample=frame_idxs[-1] + 1)
 
     def get_image_shape(self) -> Tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).

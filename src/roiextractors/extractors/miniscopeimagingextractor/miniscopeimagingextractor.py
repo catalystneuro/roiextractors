@@ -188,6 +188,20 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
     def get_channel_names(self) -> List[str]:
         return ["OpticalChannel"]
 
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        end_sample = end_sample or self.get_num_samples()
+        start_sample = start_sample or 0
+
+        series = np.empty(shape=(end_sample - start_sample, *self.get_image_size()), dtype=self.get_dtype())
+        with self._video_capture(file_path=str(self.file_path)) as video_obj:
+            # Set the starting frame position
+            video_obj.current_frame = start_sample
+            for frame_number in range(end_sample - start_sample):
+                frame = next(video_obj)
+                series[frame_number] = self._cv2.cvtColor(frame, self._cv2.COLOR_RGB2GRAY)
+
+        return series
+
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
     ) -> np.ndarray:
@@ -211,21 +225,20 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
         -----
         The grayscale conversion is based on minian
         https://github.com/denisecailab/minian/blob/f64c456ca027200e19cf40a80f0596106918fd09/minian/utilities.py#LL272C12-L272C12
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
         """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if channel != 0:
             raise NotImplementedError(
                 f"The {self.extractor_name}Extractor does not currently support multiple color channels."
             )
 
-        end_frame = end_frame or self.get_num_frames()
-        start_frame = start_frame or 0
-
-        video = np.empty(shape=(end_frame - start_frame, *self.get_image_size()), dtype=self.get_dtype())
-        with self._video_capture(file_path=str(self.file_path)) as video_obj:
-            # Set the starting frame position
-            video_obj.current_frame = start_frame
-            for frame_number in range(end_frame - start_frame):
-                frame = next(video_obj)
-                video[frame_number] = self._cv2.cvtColor(frame, self._cv2.COLOR_RGB2GRAY)
-
-        return video
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
