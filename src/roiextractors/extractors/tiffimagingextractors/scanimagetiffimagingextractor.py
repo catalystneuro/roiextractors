@@ -30,7 +30,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
     Specialized extractor for reading TIFF files produced via ScanImage software.
 
     This extractor is designed to handle the structure of ScanImage TIFF files, which can contain
-    multi channel and multi volume data.  It also supports both single-file and multi-file datasets generated
+    multi channel and both planar and volumetric data. It also supports both single-file and multi-file datasets generated
     by ScanImage in various acquisition modes (grab, focus, loop).
 
     The extractor creates a mapping between each frame in the dataset and its corresponding physical file
@@ -602,7 +602,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         """
         return self._num_planes
 
-    def get_plane_extractor(self, plane_index: int) -> "ImagingExtractor":
+    def get_plane_extractor(self, plane_index: int) -> ImagingExtractor:
         """Extract a specific depth plane from volumetric data.
 
         This method allows for extracting a specific depth plane from volumetric imaging data,
