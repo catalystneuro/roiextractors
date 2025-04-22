@@ -45,7 +45,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
     - Efficiently retrieves frames using lazy loading
 
     Current limitations:
-    - Does not support datasets with multiple frames per slice (will raise ValueError)
+    - For datasets with multiple frames per slice, a slice_sample parameter must be provided
     - Does not support datasets with flyback frames (will raise ValueError)
     """
 
@@ -53,9 +53,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
     def __init__(
         self,
-        file_path: PathType,
+        file_path: Optional[PathType] = None,
         channel_name: Optional[str] = None,
         file_paths: Optional[List[PathType]] = None,
+        slice_sample: Optional[int] = None,
     ):
         """
         Initialize the extractor.
@@ -71,10 +72,14 @@ class ScanImageImagingExtractor(ImagingExtractor):
             file detection heuristics. Use this if automatic detection does not work correctly and you know
             exactly which files should be included.  The file paths should be provided in an order that
             reflects the temporal order of the frames in the dataset.
+        slice_sample : int, optional
+            When frames_per_slice > 1 (multiple frames per slice), this parameter specifies which frame to use
+            for each slice. Must be between 0 and frames_per_slice-1. If None and frames_per_slice > 1,
+            a ValueError will be raised.
         """
         super().__init__()
-        self.file_path = Path(file_path)
-
+        self.file_paths = file_paths if file_paths is not None else [Path(file_path)]
+        self.file_path = self.file_paths[0] if file_paths is not None else file_path
         # Validate file suffix
         valid_suffixes = [".tiff", ".tif", ".TIFF", ".TIF"]
         if self.file_path.suffix not in valid_suffixes:
@@ -86,7 +91,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         # Open the
         tifffile = get_package(package_name="tifffile")
-        tiff_reader = tifffile.TiffReader(file_path)
+        tiff_reader = tifffile.TiffReader(self.file_path)
 
         self._general_metadata = tiff_reader.scanimage_metadata
         self._metadata = self._general_metadata["FrameData"]
@@ -100,12 +105,22 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self._frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
 
             frames_per_slice = self._metadata["SI.hStackManager.framesPerSlice"]
+            self._frames_per_slice = frames_per_slice
             if frames_per_slice > 1:
-                error_msg = (
-                    "Multiple frames per slice detected. "
-                    "Please open an issue on GitHub roiextractors to request this feature: "
-                )
-                raise ValueError(error_msg)
+                if slice_sample is None:
+                    error_msg = (
+                        f"Multiple frames per slice detected (frames_per_slice = {frames_per_slice}). "
+                        f"Please specify a slice_sample between 0 and {frames_per_slice - 1} to select which frame to use for each slice."
+                    )
+                    raise ValueError(error_msg)
+
+                if not (0 <= slice_sample < frames_per_slice):
+                    error_msg = f"slice_sample must be between 0 and {frames_per_slice - 1} (frames_per_slice - 1), but got {slice_sample}."
+                    raise ValueError(error_msg)
+
+                self._slice_sample = slice_sample
+            else:
+                self._slice_sample = None
 
             # Flyback frames warning
             self.flyback_frames = self._frames_per_volume_with_flyback - self._frames_per_volume
@@ -210,7 +225,17 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # Sort by time_index and depth_index for easier access
         sorting_tuple = (channel_frames_to_ifd_table["time_index"], channel_frames_to_ifd_table["depth_index"])
         sorted_indices = np.lexsort(sorting_tuple)
-        self._frames_to_ifd_table = channel_frames_to_ifd_table[sorted_indices]
+        channel_frames_to_ifd_table = channel_frames_to_ifd_table[sorted_indices]
+
+        # Filter mapping for the specified slice_sample if frames_per_slice > 1
+        if self.is_volumetric and self._frames_per_slice > 1 and self._slice_sample is not None:
+            # Create a mask to select frames at the pattern: slice_sample + _num_planes * n
+            # where n is the number of full volumes in the acquisition
+            indices = np.arange(len(channel_frames_to_ifd_table))
+            slice_mask = (indices % self._frames_per_slice) == self._slice_sample
+            channel_frames_to_ifd_table = channel_frames_to_ifd_table[slice_mask]
+
+        self._frames_to_ifd_table = channel_frames_to_ifd_table
 
     def _find_data_files(self) -> List[PathType]:
         """Find additional files in the series based on the file naming pattern.
@@ -253,7 +278,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             pattern = f"{base_name}_*{self.file_path.suffix}"
         # This also divided the files according to Lawrence Niu in private conversation
         elif stack_mode == "slow" and self.is_volumetric:
-            base_name, acquisition, file_index = file_stem.split("_")
+            base_name = "_".join(file_stem.split("_")[:-1])  # Everything before the last _
             pattern = f"{base_name}_*{self.file_path.suffix}"
         else:
             files_found = [self.file_path]
@@ -475,6 +500,29 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Sampling frequency in Hz.
         """
         return self._sampling_frequency
+
+    @staticmethod
+    def get_slices_per_sample(file_path: PathType) -> int:
+        """Get the number of slices per sample from a ScanImage TIFF file.
+
+        Parameters
+        ----------
+        file_path : PathType
+            Path to the ScanImage TIFF file.
+
+        Returns
+        -------
+        int
+            Number of slices per sample.
+        """
+        from tifffile import read_scanimage_metadata
+
+        with open(file_path, "rb") as fh:
+            all_metadata = read_scanimage_metadata(fh)
+            non_varying_frame_metadata = all_metadata[0]
+
+        frames_per_slice = non_varying_frame_metadata.get("SI.hStackManager.framesPerSlice", 1)
+        return frames_per_slice
 
     @staticmethod
     def get_channel_names(file_path: PathType) -> list:
