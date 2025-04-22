@@ -46,7 +46,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
     Current limitations:
     - Does not support datasets with multiple frames per slice (will raise ValueError)
-    - Flyback frames are currently discarded
+    - Does not support datasets with flyback frames (will raise ValueError)
     """
 
     extractor_name = "ScanImageImagingExtractor"
@@ -113,15 +113,17 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
             self.flyback_frames = self._frames_per_volume_with_flyback - self._frames_per_volume
             if self.flyback_frames > 0:
-                warnings.warn(f"{self.flyback_frames} flyback frames detected. At the moment they are discarded.")
+                error_msg = (
+                    f"{self.flyback_frames} flyback frames detected. "
+                    "Please open an issue on GitHub roiextractors to request this feature: "
+                )
+                raise ValueError(error_msg)
 
-            # We need to map all the frames in a volume even if we are not using all of them
-            self._dataset_frames_per_volume_per_channel = self._frames_per_volume_with_flyback
         else:
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanFrameRate"]
             self._num_planes = 1
             self._frames_per_slice = 1
-            self._dataset_frames_per_volume_per_channel = 1
+            self._frames_per_volume = 1
 
         # This piece of the metadata is the indication that the channel is saved on the data
         channels_available = self._metadata["SI.hChannels.channelSave"]
@@ -187,7 +189,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         ifds_per_file = [len(tiff_reader.pages) for tiff_reader in self._tiff_readers]
         self._num_frames_in_dataset = sum(ifds_per_file)
 
-        frames_per_cycle = self._num_channels * self._dataset_frames_per_volume_per_channel
+        frames_per_cycle = self._num_channels * self._frames_per_volume
         num_acquisition_cycles = self._num_frames_in_dataset // frames_per_cycle
 
         self._num_samples = num_acquisition_cycles
@@ -200,7 +202,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             dimension_order=dimension_order,
             num_channels=self._num_channels,
             num_acquisition_cycles=num_acquisition_cycles,
-            frames_per_volume=self._dataset_frames_per_volume_per_channel,
+            frames_per_volume=self._frames_per_volume,
             ifds_per_file=ifds_per_file,
         )
 
@@ -291,8 +293,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         num_acquisition_cycles : int
             Number of acquisition cycles (samples).
         frames_per_volume : int
-            Number of frames per volume, usually the number of planes but can be larger if multiple
-            frames are acquired per plane or if flyback frames are included.
+            Number of frames per volume, the number of planes in the volume for a single channel.
         ifds_per_file : List[int]
             Number of IFDs in each file.
 
