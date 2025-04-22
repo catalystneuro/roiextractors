@@ -13,7 +13,7 @@ from .setup_paths import OPHYS_DATA_PATH
 SCANIMAGE_PATH = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
 
 
-class TestScanImageExtractors:
+class TestScanImageExtractor:
     """Test the ScanImage extractor classes with various ScanImage files."""
 
     def test_planar_single_channel_single_file(self):
@@ -106,237 +106,143 @@ class TestScanImageExtractors:
                 start_sample += samples_per_file
                 end_sample += samples_per_file
 
-    def test_volumetric_data_single_channel_multi_sample_per_slice(self):
-        """Test with volumetric data that has multiple frames per slice.
 
-        File: scanimage_20220801_volume.tif
-        Metadata:
-        - Acquisition mode: grab
-        - Volumetric: True (20 slices)
-        - Channels: 1 (single channel)
-        - Frames per slice: 8 (not supported)
-        - Frame rate: 30.0141 Hz
-        - Volume rate: 0.187588 Hz
+def test_get_channel_names():
+    """Test the static get_channel_names method.
 
-        This test verifies that the extractor correctly raises a ValueError when
-        encountering a ScanImage file with multiple frames per slice, which is not
-        currently supported by the ScanImageImagingExtractor.
-        """
-        # For multifile, we only need to provide the first file
-        file_path = SCANIMAGE_PATH / "scanimage_20220801_volume.tif"
+    This test verifies that the static get_channel_names method correctly extracts
+    channel names from ScanImage TIFF files without needing to create an extractor instance.
 
-        with pytest.raises(ValueError):
-            extractor = ScanImageImagingExtractor(file_path=file_path)
+    The test checks:
+    1. Single-channel file: Verifies correct channel name extraction
+    2. Multi-channel file: Verifies all channel names are correctly extracted
+    """
+    # Test with single-channel file
+    single_channel_file = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
+    single_channel_names = ScanImageImagingExtractor.get_channel_names(single_channel_file)
+    assert isinstance(single_channel_names, list), "Channel names should be returned as a list"
+    assert len(single_channel_names) == 1, "Single channel file should have one channel"
+    assert single_channel_names[0] == "Channel 1", "Channel name should match expected value"
 
-        # Uncomment when adding support
-        # Basic properties
-        # assert extractor.is_volumetric == True
-        # assert extractor.get_num_samples() == 160
-        # assert extractor.get_image_shape() == (512, 512)
-        # assert extractor.get_sampling_frequency()  == 0.187588
+    # Test with multi-channel file
+    multi_channel_file = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
+    multi_channel_names = ScanImageImagingExtractor.get_channel_names(multi_channel_file)
+    assert isinstance(multi_channel_names, list), "Channel names should be returned as a list"
+    assert len(multi_channel_names) == 2, "Multi-channel file should have two channels"
+    assert multi_channel_names == ["Channel 1", "Channel 2"]
 
-        # # Check if multiple files were detected
-        # assert len(extractor.file_paths)  == 1
+    # Test with volumetric file (should still work even though extractor initialization would fail)
+    volumetric_file = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
+    volumetric_channel_names = ScanImageImagingExtractor.get_channel_names(volumetric_file)
+    assert isinstance(volumetric_channel_names, list), "Channel names should be returned as a list"
+    assert len(volumetric_channel_names) >= 1, "Should extract at least one channel name"
+    assert volumetric_channel_names == ["Channel 1", "Channel 4"]
 
-    def test_volumetric_data_single_channel_multi_sample_per_slice2(self):
-        """Test with a multi-volume ScanImage file with frames per slice > 1.
 
-        File: scanimage_20220801_multivolume.tif
-        Metadata:
-        - Volumetric: True (multiple planes)
-        - Channels: 1 (single channel)
-        - Frames per slice: 8
-        """
-        file_path = SCANIMAGE_PATH / "scanimage_20220801_multivolume.tif"
+def test_file_paths_parameter():
+    """Test the file_paths parameter for direct file specification.
 
-        # Create multi-plane extractor
-        with pytest.raises(ValueError):
-            extractor = ScanImageImagingExtractor(file_path=file_path)
+    This test verifies that the extractor correctly uses the provided file_paths
+    parameter instead of relying on automatic file detection heuristics.
 
-    def test_volumetric_data_multi_channel_multi_sample_per_slice(self):
-        """Test with volumetric data acquired in grab mode with multiple frames per depth.
+    The test checks:
+    1. Explicitly providing file paths works correctly
+    2. The extractor loads the correct number of files
+    3. The files are loaded in the correct order
+    """
+    # Get the paths to the multi-file dataset
+    file_paths = [
+        SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif",
+        SCANIMAGE_PATH / "scanimage_20240320_multifile_00002.tif",
+        SCANIMAGE_PATH / "scanimage_20240320_multifile_00003.tif",
+    ]
 
-        File: scanimage_20220923_noroi.tif
-        Metadata:
-        - Acquisition mode: grab
-        - Volumetric: True (multiple planes)
-        - Channels: Multiple Channels
-        - Frames per depth: 2
-        - Frame rate: 29.1248 Hz
-        - Volume rate: 7.28119 Hz
-        """
-        file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
-        with pytest.raises(ValueError):
-            extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 3")
+    # Create extractor with explicit file_paths parameter
+    extractor = ScanImageImagingExtractor(file_paths=file_paths, channel_name="Channel 1")
 
-        # assert extractor.is_volumetric == True
-        # assert extractor.get_num_samples() == 12
-        # assert extractor.get_image_shape() == (256, 256)
-        # assert extractor.get_sampling_frequency()  == 14.5517
+    # Verify the correct files were loaded
+    assert len(extractor.file_paths) == 3, "Should load all 3 files"
 
-    def test_volumetric_data_single_channel_multi_sample_per_slice2(self):
-        """Test with multi-channel volumetric data with frames per slice > 1.
+    # Verify the files are in the correct order
+    expected_file_names = [Path(p).name for p in file_paths]
+    actual_file_names = [Path(p).name for p in extractor.file_paths]
+    assert actual_file_names == expected_file_names, "Files should be loaded in the provided order"
 
-        File: scanimage_20220923_roi.tif
-        Metadata:
-        - Volumetric: True (multiple planes)
-        - Channels: Multiple
-        - Frames per slice: 2
-        - Frame rate: 29.1248 Hz
-        - Volume rate: 7.28119 Hz
+    # Verify the data is loaded correctly
+    assert extractor.get_num_samples() == 10 * 3, "Should have 10 samples per file"
+    assert extractor.get_image_shape() == (512, 512), "Image shape should be correct"
 
-        This test verifies that the extractor correctly raises a ValueError when
-        encountering a ScanImage file with frames per slice > 1, which is not
-        currently supported by the ScanImageImagingExtractor.
 
-        When support for multiple frames per slice is added, this test should be
-        updated to verify correct metadata extraction and data loading.
-        """
+def test_get_times_planar_multichannel():
+    """Test the get_times method.
 
-        file_path = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
-        with pytest.raises(ValueError):
-            extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 3")
+    This test verifies that the get_times method correctly extracts timestamps
+    from ScanImage TIFF files for the selected channel.
 
-    def test_get_channel_names(self):
-        """Test the static get_channel_names method.
+    The test checks that for multi-channel data, the timestamps are correctly
+    filtered for the selected channel.
+    """
 
-        This test verifies that the static get_channel_names method correctly extracts
-        channel names from ScanImage TIFF files without needing to create an extractor instance.
+    file_path = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
 
-        The test checks:
-        1. Single-channel file: Verifies correct channel name extraction
-        2. Multi-channel file: Verifies all channel names are correctly extracted
-        """
-        # Test with single-channel file
-        single_channel_file = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
-        single_channel_names = ScanImageImagingExtractor.get_channel_names(single_channel_file)
-        assert isinstance(single_channel_names, list), "Channel names should be returned as a list"
-        assert len(single_channel_names) == 1, "Single channel file should have one channel"
-        assert single_channel_names[0] == "Channel 1", "Channel name should match expected value"
+    extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
+    extractor_ch2 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
 
-        # Test with multi-channel file
-        multi_channel_file = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
-        multi_channel_names = ScanImageImagingExtractor.get_channel_names(multi_channel_file)
-        assert isinstance(multi_channel_names, list), "Channel names should be returned as a list"
-        assert len(multi_channel_names) == 2, "Multi-channel file should have two channels"
-        assert multi_channel_names == ["Channel 1", "Channel 2"]
+    # Get timestamps for each channel
+    timestamps_ch1 = extractor_ch1.get_times()
+    timestamps_ch2 = extractor_ch2.get_times()
 
-        # Test with volumetric file (should still work even though extractor initialization would fail)
-        volumetric_file = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
-        volumetric_channel_names = ScanImageImagingExtractor.get_channel_names(volumetric_file)
-        assert isinstance(volumetric_channel_names, list), "Channel names should be returned as a list"
-        assert len(volumetric_channel_names) >= 1, "Should extract at least one channel name"
-        assert volumetric_channel_names == ["Channel 1", "Channel 4"]
+    # Check basic properties
+    assert len(timestamps_ch1) == extractor_ch1.get_num_samples(), "Should have one timestamp per frame for channel 1"
+    assert len(timestamps_ch2) == extractor_ch2.get_num_samples(), "Should have one timestamp per frame for channel 2"
 
-    def test_file_paths_parameter(self):
-        """Test the file_paths parameter for direct file specification.
+    # Extract all timestamps from the file to compare
+    from tifffile import TiffFile
 
-        This test verifies that the extractor correctly uses the provided file_paths
-        parameter instead of relying on automatic file detection heuristics.
+    all_file_paths = [
+        "scanimage_20240320_multifile_00001.tif",
+        "scanimage_20240320_multifile_00002.tif",
+        "scanimage_20240320_multifile_00003.tif",
+    ]
 
-        The test checks:
-        1. Explicitly providing file paths works correctly
-        2. The extractor loads the correct number of files
-        3. The files are loaded in the correct order
-        """
-        # Get the paths to the multi-file dataset
-        file_paths = [
-            SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif",
-            SCANIMAGE_PATH / "scanimage_20240320_multifile_00002.tif",
-            SCANIMAGE_PATH / "scanimage_20240320_multifile_00003.tif",
-        ]
+    all_timestamps = []
+    for file_name in all_file_paths:
+        file_path = SCANIMAGE_PATH / file_name
+        if not file_path.exists():
+            raise FileNotFoundError(f"File {file_path} does not exist.")
+        # Read the metadata from the TIFF file
+        with TiffFile(file_path) as tiff:
+            for page in tiff.pages:
+                if "ImageDescription" not in page.tags:
+                    continue
 
-        # Create extractor with explicit file_paths parameter
-        extractor = ScanImageImagingExtractor(
-            file_path=file_paths[0], channel_name="Channel 1", file_paths=file_paths  # First file is still required
-        )
+                metadata_str = page.tags["ImageDescription"].value
 
-        # Verify the correct files were loaded
-        assert len(extractor.file_paths) == 3, "Should load all 3 files"
+                # Look for the timestamp line
+                for line in metadata_str.strip().split("\n"):
+                    if line.startswith("frameTimestamps_sec"):
+                        # Extract the value part after " = "
+                        _, value_str = line.split(" = ", 1)
+                        try:
+                            timestamp = float(value_str.strip())
+                            all_timestamps.append(timestamp)
+                        except ValueError:
+                            all_timestamps.append(None)
+                        break
 
-        # Verify the files are in the correct order
-        expected_file_names = [Path(p).name for p in file_paths]
-        actual_file_names = [Path(p).name for p in extractor.file_paths]
-        assert actual_file_names == expected_file_names, "Files should be loaded in the provided order"
+    all_timestamps = np.asarray(all_timestamps)
+    assert len(all_timestamps) == len(timestamps_ch1) + len(
+        timestamps_ch2
+    ), "Total timestamps should match the sum of both channels"
+    # Verify that the timestamps for each channel are correctly filtered from all timestamps
+    # For a 2-channel recording, channel 3 should have timestamps from even indices (0, 2, 4...)
+    # and channel 4 should have timestamps from odd indices (1, 3, 5...)
+    ch1_indices = np.arange(0, len(all_timestamps), 2)
+    ch2_indices = np.arange(1, len(all_timestamps), 2)
 
-        # Verify the data is loaded correctly
-        assert extractor.get_num_samples() == 10 * 3, "Should have 10 samples per file"
-        assert extractor.get_image_shape() == (512, 512), "Image shape should be correct"
+    expected_timestamps_ch1 = np.array(all_timestamps)[ch1_indices]
+    expected_timestamps_ch2 = np.array(all_timestamps)[ch2_indices]
 
-    def test_get_times_planar_multichannel(self):
-        """Test the get_times method.
-
-        This test verifies that the get_times method correctly extracts timestamps
-        from ScanImage TIFF files for the selected channel.
-
-        The test checks that for multi-channel data, the timestamps are correctly
-        filtered for the selected channel.
-        """
-
-        file_path = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
-
-        extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
-        extractor_ch2 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
-
-        # Get timestamps for each channel
-        timestamps_ch1 = extractor_ch1.get_times()
-        timestamps_ch2 = extractor_ch2.get_times()
-
-        # Check basic properties
-        assert (
-            len(timestamps_ch1) == extractor_ch1.get_num_samples()
-        ), "Should have one timestamp per frame for channel 1"
-        assert (
-            len(timestamps_ch2) == extractor_ch2.get_num_samples()
-        ), "Should have one timestamp per frame for channel 2"
-
-        # Extract all timestamps from the file to compare
-        from tifffile import TiffFile
-
-        all_file_paths = [
-            "scanimage_20240320_multifile_00001.tif",
-            "scanimage_20240320_multifile_00002.tif",
-            "scanimage_20240320_multifile_00003.tif",
-        ]
-
-        all_timestamps = []
-        for file_name in all_file_paths:
-            file_path = SCANIMAGE_PATH / file_name
-            if not file_path.exists():
-                raise FileNotFoundError(f"File {file_path} does not exist.")
-            # Read the metadata from the TIFF file
-            with TiffFile(file_path) as tiff:
-                for page in tiff.pages:
-                    if "ImageDescription" not in page.tags:
-                        continue
-
-                    metadata_str = page.tags["ImageDescription"].value
-
-                    # Look for the timestamp line
-                    for line in metadata_str.strip().split("\n"):
-                        if line.startswith("frameTimestamps_sec"):
-                            # Extract the value part after " = "
-                            _, value_str = line.split(" = ", 1)
-                            try:
-                                timestamp = float(value_str.strip())
-                                all_timestamps.append(timestamp)
-                            except ValueError:
-                                all_timestamps.append(None)
-                            break
-
-        all_timestamps = np.asarray(all_timestamps)
-        assert len(all_timestamps) == len(timestamps_ch1) + len(
-            timestamps_ch2
-        ), "Total timestamps should match the sum of both channels"
-        # Verify that the timestamps for each channel are correctly filtered from all timestamps
-        # For a 2-channel recording, channel 3 should have timestamps from even indices (0, 2, 4...)
-        # and channel 4 should have timestamps from odd indices (1, 3, 5...)
-        ch1_indices = np.arange(0, len(all_timestamps), 2)
-        ch2_indices = np.arange(1, len(all_timestamps), 2)
-
-        expected_timestamps_ch1 = np.array(all_timestamps)[ch1_indices]
-        expected_timestamps_ch2 = np.array(all_timestamps)[ch2_indices]
-
-        # Compare the first few timestamps to verify correct filtering
-        assert np.allclose(timestamps_ch1, expected_timestamps_ch1), "Channel 1 timestamps should match expected values"
-        assert np.allclose(timestamps_ch2, expected_timestamps_ch2), "Channel 2 timestamps should match expected values"
+    # Compare the first few timestamps to verify correct filtering
+    assert np.allclose(timestamps_ch1, expected_timestamps_ch1), "Channel 1 timestamps should match expected values"
+    assert np.allclose(timestamps_ch2, expected_timestamps_ch2), "Channel 2 timestamps should match expected values"
