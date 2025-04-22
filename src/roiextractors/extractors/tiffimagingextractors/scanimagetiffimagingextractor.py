@@ -385,7 +385,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         return mapping
 
-    def get_series(self, start_sample: Optional[int], end_sample: Optional[int] = None) -> np.ndarray:
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
         """
         Get data as a time series from start_sample to end_sample.
 
