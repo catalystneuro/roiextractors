@@ -34,21 +34,21 @@ def test_check_consistency_between_imaging_extractors(params):
         VolumetricImagingExtractor(imaging_extractors=imaging_extractors)
 
 
-@pytest.mark.parametrize("start_frame, end_frame", [(None, None), (0, num_frames), (3, 7), (-2, -1)])
-def test_get_video(volumetric_imaging_extractor, start_frame, end_frame):
-    video = volumetric_imaging_extractor.get_video(start_frame=start_frame, end_frame=end_frame)
-    expected_video = []
+@pytest.mark.parametrize("start_sample, end_sample", [(None, None), (0, num_frames), (3, 7), (-2, -1)])
+def test_get_series(volumetric_imaging_extractor, start_sample, end_sample):
+    series = volumetric_imaging_extractor.get_series(start_sample=start_sample, end_sample=end_sample)
+    expected_series = []
     for extractor in volumetric_imaging_extractor._imaging_extractors:
-        expected_video.append(extractor.get_video(start_frame=start_frame, end_frame=end_frame))
-    expected_video = np.array(expected_video)
-    expected_video = np.moveaxis(expected_video, 0, -1)
-    assert np.all(video == expected_video)
+        expected_series.append(extractor.get_series(start_sample=start_sample, end_sample=end_sample))
+    expected_series = np.array(expected_series)
+    expected_series = np.moveaxis(expected_series, 0, -1)
+    assert np.all(series == expected_series)
 
 
-@pytest.mark.parametrize("start_frame, end_frame", [(num_frames + 1, None), (None, num_frames + 1), (2, 1)])
-def test_get_video_invalid(volumetric_imaging_extractor, start_frame, end_frame):
+@pytest.mark.parametrize("start_sample, end_sample", [(num_frames + 1, None), (None, num_frames + 1), (2, 1)])
+def test_get_series_invalid(volumetric_imaging_extractor, start_sample, end_sample):
     with pytest.raises(ValueError):
-        volumetric_imaging_extractor.get_video(start_frame=start_frame, end_frame=end_frame)
+        volumetric_imaging_extractor.get_series(start_sample=start_sample, end_sample=end_sample)
 
 
 @pytest.mark.parametrize("frame_idxs", [0, [0, 1, 2], [0, num_frames - 1], [-3, -1]])
@@ -132,9 +132,9 @@ def test_depth_slice(volumetric_imaging_extractor, start_plane, end_plane):
         *volumetric_imaging_extractor.get_image_size()[:2],
         end_plane - start_plane,
     )
-    video = volumetric_imaging_extractor.get_video()
-    sliced_video = sliced_extractor.get_video()
-    assert np.all(video[..., start_plane:end_plane] == sliced_video)
+    series = volumetric_imaging_extractor.get_series()
+    sliced_series = sliced_extractor.get_series()
+    assert np.all(series[..., start_plane:end_plane] == sliced_series)
     frames = volumetric_imaging_extractor.get_frames(frame_idxs=[0, 1, 2])
     sliced_frames = sliced_extractor.get_frames(frame_idxs=[0, 1, 2])
     assert np.all(frames[..., start_plane:end_plane] == sliced_frames)
@@ -152,9 +152,9 @@ def test_depth_slice_twice(volumetric_imaging_extractor):
 
     assert twice_sliced_extractor.get_num_planes() == 1
     assert twice_sliced_extractor.get_image_size() == (*volumetric_imaging_extractor.get_image_size()[:2], 1)
-    video = volumetric_imaging_extractor.get_video()
-    sliced_video = twice_sliced_extractor.get_video()
-    assert np.all(video[..., :1] == sliced_video)
+    series = volumetric_imaging_extractor.get_series()
+    sliced_series = twice_sliced_extractor.get_series()
+    assert np.all(series[..., :1] == sliced_series)
     frames = volumetric_imaging_extractor.get_frames(frame_idxs=[0, 1, 2])
     sliced_frames = twice_sliced_extractor.get_frames(frame_idxs=[0, 1, 2])
     assert np.all(frames[..., :1] == sliced_frames)

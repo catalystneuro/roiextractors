@@ -94,11 +94,11 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
     def test_brukertiffextractor_dtype(self):
         self.assertEqual(self.extractor.get_dtype(), np.uint16)
 
-    def test_brukertiffextractor_get_video(self):
-        video = self.extractor.get_video()
-        assert_array_equal(video, self.video)
-        self.assertEqual(video.dtype, np.uint16)
-        assert_array_equal(self.extractor.get_video(start_frame=0, end_frame=1), self.video[:1])
+    def test_brukertiffextractor_get_series(self):
+        series = self.extractor.get_series()
+        assert_array_equal(series, self.video)
+        self.assertEqual(series.dtype, np.uint16)
+        assert_array_equal(self.extractor.get_series(start_sample=0, end_sample=1), self.video[:1])
 
     def test_brukertiffextractor_get_single_frame(self):
         assert_array_equal(self.extractor.get_frames(frame_idxs=[0]), self.video[0][np.newaxis, ...])
@@ -165,11 +165,11 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
                 stream_name="Ch2_000003",
             )
 
-    def test_brukertiffextractor_get_video(self):
-        video = self.extractor.get_video()
-        assert_array_equal(video, self.test_video)
-        self.assertEqual(video.dtype, np.uint16)
-        assert_array_equal(self.extractor.get_video(start_frame=2, end_frame=4), self.test_video[2:4])
+    def test_brukertiffextractor_get_series(self):
+        series = self.extractor.get_series()
+        assert_array_equal(series, self.test_video)
+        self.assertEqual(series.dtype, np.uint16)
+        assert_array_equal(self.extractor.get_series(start_sample=2, end_sample=4), self.test_video[2:4])
 
     def test_brukertiffextractor_get_single_frame(self):
         assert_array_equal(self.extractor.get_frames(frame_idxs=[0]), self.test_video[0][np.newaxis, ...])
@@ -211,17 +211,17 @@ class TestBrukerTiffExtractorDualColorCase(TestCase):
     def test_brukertiffextractor_sampling_frequency(self):
         self.assertEqual(self.extractor.get_sampling_frequency(), 29.873615189896864)
 
-    def test_brukertiffextractor_get_video(self):
-        assert_array_equal(self.extractor.get_video(start_frame=0, end_frame=1), self.test_video_ch1[:1])
-        video = self.extractor.get_video()
-        assert_array_equal(video, self.test_video_ch1)
-        self.assertEqual(video.dtype, np.uint16)
+    def test_brukertiffextractor_get_series(self):
+        assert_array_equal(self.extractor.get_series(start_sample=0, end_sample=1), self.test_video_ch1[:1])
+        series = self.extractor.get_series()
+        assert_array_equal(series, self.test_video_ch1)
+        self.assertEqual(series.dtype, np.uint16)
 
-    def test_brukertiffextractor_second_stream_get_video(self):
+    def test_brukertiffextractor_second_stream_get_series(self):
         extractor = BrukerTiffSinglePlaneImagingExtractor(folder_path=self.folder_path, stream_name="Ch2")
-        video = extractor.get_video()
-        assert_array_equal(extractor.get_video(), self.test_video_ch2)
-        self.assertEqual(video.dtype, np.uint16)
+        series = extractor.get_series()
+        assert_array_equal(extractor.get_series(), self.test_video_ch2)
+        self.assertEqual(series.dtype, np.uint16)
 
     def test_brukertiffextractor_second_stream_sampling_frequency(self):
         extractor = BrukerTiffSinglePlaneImagingExtractor(folder_path=self.folder_path, stream_name="Ch2")

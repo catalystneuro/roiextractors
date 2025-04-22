@@ -165,20 +165,20 @@ def test_get_single_frame_invalid(scan_image_tiff_single_plane_imaging_extractor
         scan_image_tiff_single_plane_imaging_extractor._get_single_frame(frame=frame)
 
 
-@pytest.mark.parametrize("start_frame, end_frame", [(0, None), (None, 6), (1, 4), (0, 6)])
-def test_get_video(
+@pytest.mark.parametrize("start_sample, end_sample", [(0, None), (None, 6), (1, 4), (0, 6)])
+def test_get_series(
     scan_image_tiff_single_plane_imaging_extractor,
     expected_properties,
-    start_frame,
-    end_frame,
+    start_sample,
+    end_sample,
 ):
     ScanImageTiffReader = _get_scanimage_reader()
 
-    video = scan_image_tiff_single_plane_imaging_extractor.get_video(start_frame=start_frame, end_frame=end_frame)
-    if start_frame is None:
-        start_frame = 0
-    if end_frame is None:
-        end_frame = expected_properties["num_frames"]
+    series = scan_image_tiff_single_plane_imaging_extractor.get_series(start_sample=start_sample, end_sample=end_sample)
+    if start_sample is None:
+        start_sample = 0
+    if end_sample is None:
+        end_sample = expected_properties["num_frames"]
     file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
     plane = scan_image_tiff_single_plane_imaging_extractor.plane
     channel = scan_image_tiff_single_plane_imaging_extractor.channel
@@ -187,7 +187,7 @@ def test_get_video(
     frames_per_slice = expected_properties["frames_per_slice"]
 
     raw_idxs = []
-    for idx in range(start_frame, end_frame):
+    for idx in range(start_sample, end_sample):
         cycle = idx // frames_per_slice
         frame_in_cycle = idx % frames_per_slice
         raw_idx = (
@@ -199,17 +199,17 @@ def test_get_video(
         raw_idxs.append(raw_idx)
 
     with ScanImageTiffReader(file_path) as io:
-        assert_array_equal(video, io.data()[raw_idxs])
+        assert_array_equal(series, io.data()[raw_idxs])
 
 
-@pytest.mark.parametrize("start_frame, end_frame", [(-1, 2), (0, 50)])
-def test_get_video_invalid(
+@pytest.mark.parametrize("start_sample, end_sample", [(-1, 2), (0, 50)])
+def test_get_series_invalid(
     scan_image_tiff_single_plane_imaging_extractor,
-    start_frame,
-    end_frame,
+    start_sample,
+    end_sample,
 ):
     with pytest.raises(ValueError):
-        scan_image_tiff_single_plane_imaging_extractor.get_video(start_frame=start_frame, end_frame=end_frame)
+        scan_image_tiff_single_plane_imaging_extractor.get_series(start_sample=start_sample, end_sample=end_sample)
 
 
 def test_get_image_size(scan_image_tiff_single_plane_imaging_extractor, expected_properties):

@@ -46,7 +46,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
     Current limitations:
     - For datasets with multiple frames per slice, a slice_sample parameter must be provided
-    - Does not support datasets with flyback frames (will raise ValueError)
     """
 
     extractor_name = "ScanImageImagingExtractor"
@@ -440,10 +439,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
             samples = samples.squeeze(axis=3)
 
         return samples
-
-    def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
-        """Get video. Here for backwards compatibility, should be removed at some point."""
-        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_image_shape(self) -> Tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
@@ -1073,6 +1068,43 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         with ScanImageTiffReader(str(self.file_path)) as io:
             return io.data(beg=raw_index, end=raw_index + 1)
 
+    def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self._num_samples
+        end_sample_inclusive = end_sample - 1
+        self.check_frame_inputs(end_sample_inclusive)
+        self.check_frame_inputs(start_sample)
+        raw_start = self.frame_to_raw_index(start_sample)
+        raw_end_inclusive = self.frame_to_raw_index(end_sample_inclusive)  # frame_to_raw_index requires inclusive frame
+        raw_end = raw_end_inclusive + 1
+
+        ScanImageTiffReader = _get_scanimage_reader()
+        with ScanImageTiffReader(filename=str(self.file_path)) as io:
+            raw_video = io.data(beg=raw_start, end=raw_end)
+
+        start_cycle = np.ceil(start_sample / self._frames_per_slice).astype("int")
+        end_cycle = end_sample // self._frames_per_slice
+        num_cycles = end_cycle - start_cycle
+        start_frame_in_cycle = start_sample % self._frames_per_slice
+        end_frame_in_cycle = end_sample % self._frames_per_slice
+        start_left_in_cycle = (self._frames_per_slice - start_frame_in_cycle) % self._frames_per_slice
+        end_left_in_cycle = (self._frames_per_slice - end_frame_in_cycle) % self._frames_per_slice
+        index = []
+        for j in range(start_left_in_cycle):  # Add remaining frames from first (incomplete) cycle
+            index.append(j * self._num_channels)
+        for i in range(num_cycles):
+            for j in range(self._frames_per_slice):
+                index.append(
+                    (j - start_frame_in_cycle) * self._num_channels
+                    + (i + bool(start_left_in_cycle)) * self._num_raw_per_cycle
+                )
+        for j in range(end_left_in_cycle):  # Add remaining frames from last (incomplete) cycle)
+            index.append((j - start_frame_in_cycle) * self._num_channels + num_cycles * self._num_raw_per_cycle)
+        series = raw_video[index]
+        return series
+
     def get_video(self, start_frame=None, end_frame=None) -> np.ndarray:
         """Get the video frames.
 
@@ -1087,42 +1119,18 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         -------
         video: numpy.ndarray
             The video frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
         """
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self._num_samples
-        end_frame_inclusive = end_frame - 1
-        self.check_frame_inputs(end_frame_inclusive)
-        self.check_frame_inputs(start_frame)
-        raw_start = self.frame_to_raw_index(start_frame)
-        raw_end_inclusive = self.frame_to_raw_index(end_frame_inclusive)  # frame_to_raw_index requires inclusive frame
-        raw_end = raw_end_inclusive + 1
-
-        ScanImageTiffReader = _get_scanimage_reader()
-        with ScanImageTiffReader(filename=str(self.file_path)) as io:
-            raw_video = io.data(beg=raw_start, end=raw_end)
-
-        start_cycle = np.ceil(start_frame / self._frames_per_slice).astype("int")
-        end_cycle = end_frame // self._frames_per_slice
-        num_cycles = end_cycle - start_cycle
-        start_frame_in_cycle = start_frame % self._frames_per_slice
-        end_frame_in_cycle = end_frame % self._frames_per_slice
-        start_left_in_cycle = (self._frames_per_slice - start_frame_in_cycle) % self._frames_per_slice
-        end_left_in_cycle = (self._frames_per_slice - end_frame_in_cycle) % self._frames_per_slice
-        index = []
-        for j in range(start_left_in_cycle):  # Add remaining frames from first (incomplete) cycle
-            index.append(j * self._num_channels)
-        for i in range(num_cycles):
-            for j in range(self._frames_per_slice):
-                index.append(
-                    (j - start_frame_in_cycle) * self._num_channels
-                    + (i + bool(start_left_in_cycle)) * self._num_raw_per_cycle
-                )
-        for j in range(end_left_in_cycle):  # Add remaining frames from last (incomplete) cycle)
-            index.append((j - start_frame_in_cycle) * self._num_channels + num_cycles * self._num_raw_per_cycle)
-        video = raw_video[index]
-        return video
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_image_shape(self) -> Tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
@@ -1362,6 +1370,11 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extr
         with ScanImageTiffReader(str(self.file_path)) as io:
             return io.data(beg=idx, end=idx + 1)
 
+    def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
+        ScanImageTiffReader = _get_scanimage_reader()
+        with ScanImageTiffReader(filename=str(self.file_path)) as io:
+            return io.data(beg=start_sample, end=end_sample)
+
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
         """Get the video frames.
 
@@ -1378,17 +1391,24 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extr
         -------
         video: numpy.ndarray
             The video frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
         """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if channel != 0:
-            warn(
+            warnings.warn(
                 "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
                 DeprecationWarning,
                 stacklevel=2,
             )
-
-        ScanImageTiffReader = _get_scanimage_reader()
-        with ScanImageTiffReader(filename=str(self.file_path)) as io:
-            return io.data(beg=start_frame, end=end_frame)
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_image_shape(self) -> Tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
