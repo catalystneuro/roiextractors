@@ -102,29 +102,28 @@ class ScanImageImagingExtractor(ImagingExtractor):
         if self.is_volumetric:
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanVolumeRate"]
             self._num_planes = self._metadata["SI.hStackManager.numSlices"]
-            # This includes frames per slice but does not account for multi channel
-            self._frames_per_volume = self._metadata["SI.hStackManager.numFramesPerVolume"]
-            self._frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
 
-            frames_per_slice = self._metadata["SI.hStackManager.framesPerSlice"]
-            self._frames_per_slice = frames_per_slice
-            if frames_per_slice > 1:
+            self._frames_per_slice = self._metadata["SI.hStackManager.framesPerSlice"]
+            if self._frames_per_slice > 1:
                 if slice_sample is None:
                     error_msg = (
-                        f"Multiple frames per slice detected (frames_per_slice = {frames_per_slice}). "
-                        f"Please specify a slice_sample between 0 and {frames_per_slice - 1} to select which frame to use for each slice."
+                        f"Multiple frames per slice detected (frames_per_slice = {self._frames_per_slice}). "
+                        f"Please specify a slice_sample between 0 and {self._frames_per_slice - 1} to select which frame to use for each slice."
                     )
                     raise ValueError(error_msg)
 
-                if not (0 <= slice_sample < frames_per_slice):
-                    error_msg = f"slice_sample must be between 0 and {frames_per_slice - 1} (frames_per_slice - 1), but got {slice_sample}."
+                if not (0 <= slice_sample < self._frames_per_slice):
+                    error_msg = f"slice_sample must be between 0 and {self._frames_per_slice - 1} (frames_per_slice - 1), but got {slice_sample}."
                     raise ValueError(error_msg)
 
                 self._slice_sample = slice_sample
             else:
                 self._slice_sample = None
 
-            # Flyback frames warning
+            # This includes frames per slice but does not account for multi channel
+            self._frames_per_volume = self._metadata["SI.hStackManager.numFramesPerVolume"]
+            self._frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
+
             self.flyback_frames = self._frames_per_volume_with_flyback - self._frames_per_volume
             if self.flyback_frames > 0:
                 warnings.warn(f"{self.flyback_frames} flyback frames detected. At the moment they are discarded.")
