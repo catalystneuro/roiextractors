@@ -79,6 +79,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
         super().__init__()
         self.file_paths = file_paths if file_paths is not None else [Path(file_path)]
         self.file_path = self.file_paths[0] if file_paths is not None else file_path
+        assert self.file_path is not None, "file_path or file_paths must be provided"
+
         # Validate file suffix
         valid_suffixes = [".tiff", ".tif", ".TIFF", ".TIF"]
         if self.file_path.suffix not in valid_suffixes:
