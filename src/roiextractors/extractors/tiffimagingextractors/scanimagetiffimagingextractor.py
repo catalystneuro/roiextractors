@@ -46,7 +46,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
     Current limitations:
     - Does not support datasets with multiple frames per slice (will raise ValueError)
-    - Does not support datasets with flyback frames (will raise ValueError)
     """
 
     extractor_name = "ScanImageImagingExtractor"
@@ -415,10 +414,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
             samples = samples.squeeze(axis=3)
 
         return samples
-
-    def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
-        """Get video. Here for backwards compatibility, should be removed at some point."""
-        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_image_shape(self) -> Tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
