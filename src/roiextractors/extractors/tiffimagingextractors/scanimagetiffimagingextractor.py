@@ -183,17 +183,15 @@ class ScanImageImagingExtractor(ImagingExtractor):
         ifds_per_file = [len(tiff_reader.pages) for tiff_reader in self._tiff_readers]
         total_ifds = sum(ifds_per_file)
 
-        # For ScanImage, dimension order is always CZT
-        # That is, jump through channels first and then depth and then the pattern is repeated
-        dimension_order = "CZT"
-
         # Calculate number of samples
         ifds_per_cycle = self._num_channels * self._num_planes
 
         num_acquisition_cycles = total_ifds // ifds_per_cycle
         self._num_samples = num_acquisition_cycles  #  / len(channels_available)
 
-        # Create full mapping for all channels, samples, and depths
+        # For ScanImage, dimension order is always CZT
+        # That is, jump through channels first and then depth and then the pattern is repeated
+        dimension_order = "CZT"
         full_frame_to_ifds_table = self._create_frame_to_ifd_table(
             dimension_order=dimension_order,
             num_channels=self._num_channels,
@@ -205,11 +203,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # Filter mapping for the specified channel
         channel_mask = full_frame_to_ifds_table["channel_index"] == self._channel_index
         channel_frames_to_ifd_table = full_frame_to_ifds_table[channel_mask]
-
-        # Sort by time_index and depth_index for easier access
-        sorting_tuple = (channel_frames_to_ifd_table["time_index"], channel_frames_to_ifd_table["depth_index"])
-        sorted_indices = np.lexsort(sorting_tuple)
-        self._frames_to_ifd_table = channel_frames_to_ifd_table[sorted_indices]
+        self._frames_to_ifd_table = channel_frames_to_ifd_table
 
     def _find_data_files(self) -> List[PathType]:
         """Find additional files in the series based on the file naming pattern.
