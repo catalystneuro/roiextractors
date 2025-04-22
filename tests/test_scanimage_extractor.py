@@ -171,12 +171,34 @@ class TestScanImageExtractorVolumetricMultiSample:
             extractor = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4")
 
         # Test that the extractor works correctly when a valid slice_sample is provided
-        extractor = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4", slice_sample=0)
+        extractor_sample_1 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4", slice_sample=0)
 
-        assert extractor.is_volumetric == True
-        assert extractor.get_image_shape() == (256, 256)
-        assert extractor.get_sampling_frequency() == 14.5517
-        assert extractor.get_num_samples() == 24 // 2 // 2  # 24 pages, 2 frames per slice, 2 channels
+        assert extractor_sample_1.is_volumetric == True
+        assert extractor_sample_1.get_frame_shape() == (256, 256)
+        assert extractor_sample_1.get_sample_shape() == (256, 256, 2)
+        assert extractor_sample_1.get_sampling_frequency() == 14.5517
+        expected_samples = 24 // 2 // 2 // 2  # 24 pages, 2 channels, 2 slices and 2 frames per slice
+        assert extractor_sample_1.get_num_samples() == expected_samples
+
+        extractor_sample_2 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4", slice_sample=1)
+        assert extractor_sample_2.is_volumetric == True
+        assert extractor_sample_2.get_frame_shape() == (256, 256)
+        assert extractor_sample_2.get_sample_shape() == (256, 256, 2)
+
+        assert extractor_sample_2.get_sampling_frequency() == 14.5517
+        expected_samples_2 = 24 // 2 // 2 // 2  # 24 pages, 2 channels, 2 slices and 2 frames per slice
+        assert extractor_sample_2.get_num_samples() == expected_samples_2
+
+        # Compare to tiff library extraction for data integrity:
+        with TiffReader(file_path) as tiff_reader:
+            data = tiff_reader.asarray()
+
+        # Extract the data for the first slice
+        data_sample_1 = extractor_sample_1.get_series()
+        np.testing.assert_array_equal(data_sample_1, data[:, 1, 0, ...], "Data for slice 1 should match")
+
+        data_sample_2 = extractor_sample_2.get_series()
+        np.testing.assert_array_equal(data_sample_2, data[:, 1, 1, ...], "Data for slice 2 should match")
 
     def test_volumetric_data_multi_channel_single_file_2(self):
         """Test with multi-channel volumetric data with frames per slice > 1.
@@ -207,12 +229,14 @@ class TestScanImageExtractorVolumetricMultiSample:
         assert extractor_sample_1.is_volumetric == True
         assert extractor_sample_1.get_image_shape() == (528, 256)
         assert extractor_sample_1.get_sampling_frequency() == 7.28119
-        assert extractor_sample_1.get_num_samples() == 24 // 2 // 2  # 24 pages, 2 frames per slice, 2 channels
+        expected_samples = 24 // 2 // 2 / 2  # 24 pages, 2 frames per slice, 2 channels and 2 volumes
+        assert extractor_sample_1.get_num_samples() == expected_samples
 
         assert extractor_sample_2.is_volumetric == True
         assert extractor_sample_2.get_image_shape() == (528, 256)
         assert extractor_sample_2.get_sampling_frequency() == 7.28119
-        assert extractor_sample_2.get_num_samples() == 24 // 2 // 2  # 24 pages, 2 frames per slice, 2 channels
+        expected_samples_2 = 24 // 2 // 2 / 2  # 24 pages, 2 frames per slice, 2 channels and 2 volumes
+        assert extractor_sample_2.get_num_samples() == expected_samples_2
 
         # Compare to tiff library extraction for data integrity:
 

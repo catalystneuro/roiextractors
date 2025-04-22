@@ -100,6 +100,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         if self.is_volumetric:
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanVolumeRate"]
             self._num_planes = self._metadata["SI.hStackManager.numSlices"]
+            # This includes frames per slice but does not account for multi channel
             self._frames_per_volume = self._metadata["SI.hStackManager.numFramesPerVolume"]
             self._frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
 
@@ -127,12 +128,12 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 warnings.warn(f"{self.flyback_frames} flyback frames detected. At the moment they are discarded.")
 
             # We need to map all the frames in a volume even if we are not using all of them
-            self._frames_per_volume_in_file = self._frames_per_volume_with_flyback
+            self._dataset_frames_per_volume_per_channel = self._frames_per_volume_with_flyback
         else:
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanFrameRate"]
             self._num_planes = 1
             self._frames_per_slice = 1
-            self._frames_per_volume_in_file = 1
+            self._dataset_frames_per_volume_per_channel = 1
 
         # This piece of the metadata is the indication that the channel is saved on the data
         channels_available = self._metadata["SI.hChannels.channelSave"]
@@ -196,24 +197,24 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         # Calculate total IFDs and samples
         ifds_per_file = [len(tiff_reader.pages) for tiff_reader in self._tiff_readers]
-        total_ifds = sum(ifds_per_file)
+        self._num_frames_in_dataset = sum(ifds_per_file)
 
+        frames_per_cycle = self._num_channels * self._dataset_frames_per_volume_per_channel
+        num_acquisition_cycles = self._num_frames_in_dataset // frames_per_cycle
+
+        # Calculate the number of samples
+        self._num_samples = num_acquisition_cycles
+
+        # Create full mapping for all channels, samples, and depths
         # For ScanImage, dimension order is always CZT
         # That is, jump through channels first and then depth and then the pattern is repeated
         dimension_order = "CZT"
 
-        # Calculate number of samples
-        ifds_per_cycle = self._num_channels * self._num_planes
-
-        num_acquisition_cycles = total_ifds // ifds_per_cycle
-        self._num_samples = num_acquisition_cycles  #  / len(channels_available)
-
-        # Create full mapping for all channels, samples, and depths
         full_frame_to_ifds_table = self._create_frame_to_ifd_table(
             dimension_order=dimension_order,
             num_channels=self._num_channels,
             num_acquisition_cycles=num_acquisition_cycles,
-            frames_per_volume=self._frames_per_volume_in_file,
+            frames_per_volume=self._dataset_frames_per_volume_per_channel,
             ifds_per_file=ifds_per_file,
         )
 
@@ -385,7 +386,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         return mapping
 
-    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_series(self, start_sample: Optional[int], end_sample: Optional[int] = None) -> np.ndarray:
         """
         Get data as a time series from start_sample to end_sample.
 
