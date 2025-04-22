@@ -263,7 +263,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
         files_found = natsorted(self.file_path.parent.glob(pattern))
         return files_found
 
-    @staticmethod
     def _create_frame_to_ifd_table(
         dimension_order: str,
         num_channels: int,
@@ -279,7 +278,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         - IFD_index: The index of the IFD in the file
         - channel_index: The index of the channel
         - depth_index: The index of the depth
-        - time_index: The index of the time
+        - acquisition_cycle_index: The index of the time
 
         The table is represented as a structured numpy array that maps each combination of time,
         channel, and depth to its corresponding physical location in the TIFF files.
@@ -311,7 +310,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 ("IFD_index", np.uint16),
                 ("channel_index", np.uint8),
                 ("depth_index", np.uint8),
-                ("time_index", np.uint16),
+                ("acquisition_cycle_index", np.uint16),
             ]
         )
 
@@ -334,7 +333,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         # Calculate indices for each dimension
         depth_indices = (indices // dimension_divisors["Z"]) % dimension_sizes["Z"]
-        time_indices = (indices // dimension_divisors["T"]) % dimension_sizes["T"]
+        acquisition_cycle_indices = (indices // dimension_divisors["T"]) % dimension_sizes["T"]
         channel_indices = (indices // dimension_divisors["C"]) % dimension_sizes["C"]
 
         # Generate file_indices and local_ifd_indices
@@ -356,9 +355,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         mapping["IFD_index"] = ifd_indices
         mapping["channel_index"] = channel_indices
         mapping["depth_index"] = depth_indices
-        mapping["time_index"] = time_indices
-
-        return mapping
+        mapping["acquisition_cycle_index"] = acquisition_cycle_indices
 
     def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
         """
