@@ -191,6 +191,10 @@ class SbxImagingExtractor(ImagingExtractor):
         frame_out = np.iinfo("uint16").max - self._data.transpose(4, 2, 1, 0, 3)[frame_idxs, :, :, channel, 0]
         return frame_out
 
+    def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
+        frame_out = np.iinfo("uint16").max - self._data[0, :, :, 0, start_sample:end_sample]
+        return frame_out.transpose(2, 1, 0)
+
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
         """Get the video frames.
 
@@ -207,7 +211,17 @@ class SbxImagingExtractor(ImagingExtractor):
         -------
         video: numpy.ndarray
             The video frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
         """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if channel != 0:
             from warnings import warn
 
@@ -216,8 +230,7 @@ class SbxImagingExtractor(ImagingExtractor):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        frame_out = np.iinfo("uint16").max - self._data[channel, :, :, 0, start_frame:end_frame]
-        return frame_out.transpose(2, 1, 0)
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_image_shape(self) -> Tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
