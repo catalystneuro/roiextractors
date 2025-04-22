@@ -175,6 +175,7 @@ class TestScanImageExtractorVolumetricMultiSample:
 
         assert extractor_sample_1.is_volumetric == True
         assert extractor_sample_1.get_frame_shape() == (256, 256)
+        assert extractor_sample_1.get_num_planes() == 2
         assert extractor_sample_1.get_sample_shape() == (256, 256, 2)
         assert extractor_sample_1.get_sampling_frequency() == 14.5517
         expected_samples = 24 // 2 // 2 // 2  # 24 pages, 2 channels, 2 slices and 2 frames per slice
@@ -183,6 +184,7 @@ class TestScanImageExtractorVolumetricMultiSample:
         extractor_sample_2 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4", slice_sample=1)
         assert extractor_sample_2.is_volumetric == True
         assert extractor_sample_2.get_frame_shape() == (256, 256)
+        assert extractor_sample_2.get_num_planes() == 2
         assert extractor_sample_2.get_sample_shape() == (256, 256, 2)
 
         assert extractor_sample_2.get_sampling_frequency() == 14.5517
@@ -191,14 +193,56 @@ class TestScanImageExtractorVolumetricMultiSample:
 
         # Compare to tiff library extraction for data integrity:
         with TiffReader(file_path) as tiff_reader:
-            data = tiff_reader.asarray()
+            data_tiff = tiff_reader.asarray()
 
         # Extract the data for the first slice
         data_sample_1 = extractor_sample_1.get_series()
-        np.testing.assert_array_equal(data_sample_1, data[:, 1, 0, ...], "Data for slice 1 should match")
-
         data_sample_2 = extractor_sample_2.get_series()
-        np.testing.assert_array_equal(data_sample_2, data[:, 1, 1, ...], "Data for slice 2 should match")
+
+        # Compare all frames for slice sample 0
+        tiff_slice_sample_index = 0
+        tiff_channel_index = 1  # Channel 4 is at index 1 in the tiff data
+
+        # Iterate through all samples (volumes)
+        num_samples = extractor_sample_1.get_num_samples()
+        num_planes = extractor_sample_1.get_num_planes()
+        for sample_index in range(num_samples):
+            sample = data_sample_1[sample_index, ...]  # data is (time, width, height, depth)
+
+            # Iterate through all frames in the sample (depth planes)
+            for frame_index in range(num_planes):
+                frame_extractor = sample[..., frame_index]
+
+                # Calculate the corresponding index in the tiff data
+                # Each sample has 2 frames per slice, and we're using slice_sample=0
+                tiff_frame_index = sample_index * 2 + frame_index
+                frame_tiff = data_tiff[tiff_frame_index, tiff_slice_sample_index, tiff_channel_index, ...]
+
+                np.testing.assert_array_equal(
+                    frame_extractor, frame_tiff, f"Sample {sample_index}, frame {frame_index} does not match tiff data"
+                )
+
+        # Compare all frames for slice sample 1
+        tiff_slice_sample_index = 1
+
+        # Iterate through all samples (volumes)
+        num_samples = extractor_sample_2.get_num_samples()
+        num_planes = extractor_sample_2.get_num_planes()
+        for sample_index in range(num_samples):
+            sample = data_sample_2[sample_index, ...]  # data is (time, width, height, depth)
+
+            # Iterate through all frames in the sample (depth planes)
+            for frame_index in range(num_planes):
+                frame_extractor = sample[..., frame_index]
+
+                # Calculate the corresponding index in the tiff data
+                # Each sample has 2 frames per slice, and we're using slice_sample=1
+                tiff_frame_index = sample_index * 2 + frame_index
+                frame_tiff = data_tiff[tiff_frame_index, tiff_slice_sample_index, tiff_channel_index, ...]
+
+                np.testing.assert_array_equal(
+                    frame_extractor, frame_tiff, f"Sample {sample_index}, frame {frame_index} does not match tiff data"
+                )
 
     def test_volumetric_data_multi_channel_single_file_2(self):
         """Test with multi-channel volumetric data with frames per slice > 1.
@@ -239,16 +283,53 @@ class TestScanImageExtractorVolumetricMultiSample:
         assert extractor_sample_2.get_num_samples() == expected_samples_2
 
         # Compare to tiff library extraction for data integrity:
-
         with TiffReader(file_path) as tiff_reader:
             data = tiff_reader.asarray()
 
-        # Extract the data for the first slice
+        # Extract the data for both slices
         data_sample_1 = extractor_sample_1.get_series()
-        np.testing.assert_array_equal(data_sample_1, data[:, 0, 0, ...], "Data for slice 1 should match")
-
         data_sample_2 = extractor_sample_2.get_series()
-        np.testing.assert_array_equal(data_sample_2, data[:, 1, 0, ...], "Data for slice 2 should match")
+
+        # Compare all frames for slice sample 0
+        tiff_slice_sample_index = 0
+        tiff_channel_index = 0  # Channel 1 is at index 0 in the tiff data
+
+        # Iterate through all samples (volumes)
+        for sample_index in range(extractor_sample_1.get_num_samples()):
+            sample = data_sample_1[sample_index, ...]  # data is (time, width, height, depth)
+
+            # Iterate through all frames in the sample (depth planes)
+            for frame_index in range(extractor_sample_1.get_num_planes()):
+                frame_extractor = sample[..., frame_index]
+
+                # Calculate the corresponding index in the tiff data
+                # Each sample has 2 frames per slice, and we're using slice_sample=0
+                tiff_frame_index = sample_index * 2 + frame_index
+                frame_tiff = data[tiff_frame_index, tiff_slice_sample_index, tiff_channel_index, ...]
+
+                np.testing.assert_array_equal(
+                    frame_extractor, frame_tiff, f"Sample {sample_index}, frame {frame_index} does not match tiff data"
+                )
+
+        # Compare all frames for slice sample 1
+        tiff_slice_sample_index = 1
+
+        # Iterate through all samples (volumes)
+        for sample_index in range(extractor_sample_2.get_num_samples()):
+            sample = data_sample_2[sample_index, ...]  # data is (time, width, height, depth)
+
+            # Iterate through all frames in the sample (depth planes)
+            for frame_index in range(extractor_sample_2.get_num_planes()):
+                frame_extractor = sample[..., frame_index]
+
+                # Calculate the corresponding index in the tiff data
+                # Each sample has 2 frames per slice, and we're using slice_sample=1
+                tiff_frame_index = sample_index * 2 + frame_index
+                frame_tiff = data[tiff_frame_index, tiff_slice_sample_index, tiff_channel_index, ...]
+
+                np.testing.assert_array_equal(
+                    frame_extractor, frame_tiff, f"Sample {sample_index}, frame {frame_index} does not match tiff data"
+                )
 
 
 def test_get_slices_per_sample():

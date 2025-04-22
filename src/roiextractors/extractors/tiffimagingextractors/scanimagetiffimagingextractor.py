@@ -222,15 +222,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
         channel_mask = full_frame_to_ifds_table["channel_index"] == self._channel_index
         channel_frames_to_ifd_table = full_frame_to_ifds_table[channel_mask]
 
-        # Sort by time_index and depth_index for easier access
-        sorting_tuple = (channel_frames_to_ifd_table["time_index"], channel_frames_to_ifd_table["depth_index"])
-        sorted_indices = np.lexsort(sorting_tuple)
-        channel_frames_to_ifd_table = channel_frames_to_ifd_table[sorted_indices]
-
         # Filter mapping for the specified slice_sample if frames_per_slice > 1
         if self.is_volumetric and self._frames_per_slice > 1 and self._slice_sample is not None:
-            # Create a mask to select frames at the pattern: slice_sample + _num_planes * n
-            # where n is the number of full volumes in the acquisition
+            # Slicing pattern: slice_sample, slice_sample + frames_per_slice, ...
             indices = np.arange(len(channel_frames_to_ifd_table))
             slice_mask = (indices % self._frames_per_slice) == self._slice_sample
             channel_frames_to_ifd_table = channel_frames_to_ifd_table[slice_mask]
@@ -289,7 +283,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
         files_found = natsorted(self.file_path.parent.glob(pattern))
         return files_found
 
-    @staticmethod
     def _create_frame_to_ifd_table(
         dimension_order: str,
         num_channels: int,
@@ -305,7 +298,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         - IFD_index: The index of the IFD in the file
         - channel_index: The index of the channel
         - depth_index: The index of the depth
-        - time_index: The index of the time
+        - acquisition_cycle_index: The index of the time
 
         The table is represented as a structured numpy array that maps each combination of time,
         channel, and depth to its corresponding physical location in the TIFF files.
@@ -337,7 +330,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 ("IFD_index", np.uint16),
                 ("channel_index", np.uint8),
                 ("depth_index", np.uint8),
-                ("time_index", np.uint16),
+                ("acquisition_cycle_index", np.uint16),
             ]
         )
 
@@ -360,7 +353,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         # Calculate indices for each dimension
         depth_indices = (indices // dimension_divisors["Z"]) % dimension_sizes["Z"]
-        time_indices = (indices // dimension_divisors["T"]) % dimension_sizes["T"]
+        acquisition_cycle_indices = (indices // dimension_divisors["T"]) % dimension_sizes["T"]
         channel_indices = (indices // dimension_divisors["C"]) % dimension_sizes["C"]
 
         # Generate file_indices and local_ifd_indices
@@ -382,11 +375,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
         mapping["IFD_index"] = ifd_indices
         mapping["channel_index"] = channel_indices
         mapping["depth_index"] = depth_indices
-        mapping["time_index"] = time_indices
+        mapping["acquisition_cycle_index"] = acquisition_cycle_indices
 
-        return mapping
-
-    def get_series(self, start_sample: Optional[int], end_sample: Optional[int] = None) -> np.ndarray:
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
         """
         Get data as a time series from start_sample to end_sample.
 
