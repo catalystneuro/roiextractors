@@ -72,7 +72,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
             reflects the temporal order of the frames in the dataset.
         """
         super().__init__()
-        self.file_path = Path(file_path)
+        self.file_paths = file_paths if file_paths is not None else [Path(file_path)]
+        self.file_path = self.file_paths[0] if file_paths is not None else file_path
 
         # Validate file suffix
         valid_suffixes = [".tiff", ".tif", ".TIFF", ".TIF"]
@@ -85,7 +86,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         # Open the
         tifffile = get_package(package_name="tifffile")
-        tiff_reader = tifffile.TiffReader(file_path)
+        tiff_reader = tifffile.TiffReader(self.file_path)
 
         self._general_metadata = tiff_reader.scanimage_metadata
         self._metadata = self._general_metadata["FrameData"]
