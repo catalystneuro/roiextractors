@@ -257,6 +257,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         files_found = natsorted(self.file_path.parent.glob(pattern))
         return files_found
 
+    @staticmethod
     def _create_frame_to_ifd_table(
         dimension_order: str,
         num_channels: int,
@@ -350,6 +351,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
         mapping["channel_index"] = channel_indices
         mapping["depth_index"] = depth_indices
         mapping["acquisition_cycle_index"] = acquisition_cycle_indices
+
+        return mapping
 
     def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
         """
