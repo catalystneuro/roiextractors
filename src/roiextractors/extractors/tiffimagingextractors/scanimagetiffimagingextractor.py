@@ -46,6 +46,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
     Current limitations:
     - For datasets with multiple frames per slice, a slice_sample parameter must be provided
+    - Flyback frames are currently discarded
     """
 
     extractor_name = "ScanImageImagingExtractor"
