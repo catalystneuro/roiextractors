@@ -98,8 +98,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanVolumeRate"]
             self._num_planes = self._metadata["SI.hStackManager.numSlices"]
 
-            frames_per_slice = self._metadata["SI.hStackManager.framesPerSlice"]
-            if frames_per_slice > 1:
+            self.frames_per_slice = self._metadata["SI.hStackManager.framesPerSlice"]
+            if self.frames_per_slice > 1:
                 error_msg = (
                     "Multiple frames per slice detected. "
                     "Please open an issue on GitHub roiextractors to request this feature: "
