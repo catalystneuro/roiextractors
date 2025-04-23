@@ -85,13 +85,15 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
             When true, all the samples are loaded as they appear in the acquisition cycle:
 
-            depth_1_frame_sample_1
-            depth_1_frame_sample_2
-            depth_1_frame_sample_3
-            depth_2_frame_sample_1
-            depth_2_frame_sample_2
-            depth_2_frame_sample_3
-            depth_3_frame_sample_1
+            depth_1_frame_sample_1 - first series sample
+            depth_1_frame_sample_2 - first series sample - extractor.get_series(start_sample=0, end_sample=1)
+            depth_1_frame_sample_3 - first series sample
+            depth_2_frame_sample_1 - second series sample
+            depth_2_frame_sample_2 - second series sample - extractor.get_series(start_sample=1, end_sample=2)
+            depth_2_frame_sample_3 - second series sample
+            depth_3_frame_sample_1 - second series sample
+            depth_3_frame_sample_2 - second series sample - extractor.get_series(start_sample=2, end_sample=3)
+            depth_3_frame_sample_3 - second series sample
 
             etc.
 

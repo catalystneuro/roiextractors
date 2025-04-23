@@ -538,7 +538,7 @@ def test_get_times_planar_multichannel():
                 # Look for the timestamp line
                 for line in metadata_str.strip().split("\n"):
                     if line.startswith("frameTimestamps_sec"):
-                        # Extract the value part after " = "
+                        #    Extract the value part after " = "
                         _, value_str = line.split(" = ", 1)
                         try:
                             timestamp = float(value_str.strip())
