@@ -413,7 +413,7 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
 
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
-    def get_video_shape(self) -> Tuple[int, int, int]:
+    def get_volume_shape(self) -> Tuple[int, int, int]:
         """Get the shape of the volumetric video (num_rows, num_columns, num_planes).
 
         Returns

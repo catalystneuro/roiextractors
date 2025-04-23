@@ -172,7 +172,7 @@ class ImagingExtractor(ABC):
             )
         raise NotImplementedError("This method must be implemented by volumetric extractor subclasses.")
 
-    def get_video_shape(self) -> Tuple[int, int, int]:
+    def get_volume_shape(self) -> Tuple[int, int, int]:
         """Get the shape of the volumetric video (num_rows, num_columns, num_planes).
 
         Returns
@@ -188,13 +188,13 @@ class ImagingExtractor(ABC):
         if not self.is_volumetric:
             raise NotImplementedError(
                 "This extractor is not volumetric. "
-                "The get_video_shape method is only available for volumetric extractors."
+                "The get_volume_shape method is only available for volumetric extractors."
             )
 
         if not hasattr(self, "get_num_planes") or not callable(getattr(self, "get_num_planes")):
             raise NotImplementedError(
                 "This extractor does not implement get_num_planes method. "
-                "The get_video_shape method requires the get_num_planes method to be implemented."
+                "The get_volume_shape method requires the get_num_planes method to be implemented."
             )
 
         image_shape = self.get_image_shape()

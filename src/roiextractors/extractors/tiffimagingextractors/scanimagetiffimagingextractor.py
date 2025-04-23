@@ -76,7 +76,7 @@ class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
         super().__init__(imaging_extractors=imaging_extractors)
         self.is_volumetric = True
 
-    def get_video_shape(self) -> Tuple[int, int, int]:
+    def get_volume_shape(self) -> Tuple[int, int, int]:
         """Get the shape of the volumetric video (num_rows, num_columns, num_planes).
 
         Returns
@@ -213,7 +213,7 @@ class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
         ), "All imaging extractors must have the same number of planes."
         self.is_volumetric = True
 
-    def get_video_shape(self) -> Tuple[int, int, int]:
+    def get_volume_shape(self) -> Tuple[int, int, int]:
         """Get the shape of the volumetric video (num_rows, num_columns, num_planes).
 
         Returns

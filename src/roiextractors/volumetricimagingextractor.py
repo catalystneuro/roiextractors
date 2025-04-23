@@ -239,7 +239,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
     def get_dtype(self) -> DtypeType:
         return self._imaging_extractors[0].get_dtype()
 
-    def get_video_shape(self) -> Tuple[int, int, int]:
+    def get_volume_shape(self) -> Tuple[int, int, int]:
         """Get the shape of the volumetric video (num_rows, num_columns, num_planes).
 
         Returns
