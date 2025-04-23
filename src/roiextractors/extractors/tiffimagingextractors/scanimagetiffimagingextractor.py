@@ -126,7 +126,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
             else:
                 self._slice_sample = None
 
-            # This includes frames per slice but does not account for multi channel
             self._frames_per_volume_per_channel = self._metadata["SI.hStackManager.numFramesPerVolume"]
             self._frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
 
@@ -142,7 +141,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanFrameRate"]
             self._num_planes = 1
             self._frames_per_slice = 1
-            self._flyback_frames = 0
+            self.flyback_frames = 0
 
         # This piece of the metadata is the indication that the channel is saved on the data
         channels_available = self._metadata["SI.hChannels.channelSave"]
