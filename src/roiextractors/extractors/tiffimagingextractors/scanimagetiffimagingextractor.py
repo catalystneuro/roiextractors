@@ -37,6 +37,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
     and IFD (Image File Directory) location. This mapping enables efficient retrieval of specific frames
     without loading the entire dataset into memory, making it suitable for large datasets.
 
+    For datasets with multiple frames per slice, a slice_sample parameter must be provided.
+
+
     Key features:
     - Handles multi-channel data with channel selection
     - Supports volumetric (multi-plane) imaging data
@@ -45,8 +48,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
     - Efficiently retrieves frames using lazy loading
 
     Current limitations:
-    - For datasets with multiple frames per slice, a slice_sample parameter must be provided
-    - Flyback frames are currently discarded
     - Does not support datasets with flyback frames (will raise ValueError)
     """
 
@@ -141,7 +142,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanFrameRate"]
             self._num_planes = 1
             self._frames_per_slice = 1
-            self._frames_per_volume_in_file = 1
 
         # This piece of the metadata is the indication that the channel is saved on the data
         channels_available = self._metadata["SI.hChannels.channelSave"]
@@ -228,58 +228,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
             channel_frames_to_ifd_table = channel_frames_to_ifd_table[slice_mask]
 
         self._frames_to_ifd_table = channel_frames_to_ifd_table
-
-    def _find_data_files(self) -> List[PathType]:
-        """Find additional files in the series based on the file naming pattern.
-
-        This method determines which files to include in the dataset using one of these approaches:
-
-        1. If file_paths is provided: Uses the provided list of file paths directly
-        2. If file_pattern is provided: Uses the provided pattern to glob for files
-        3. Otherwise, analyzes the file name and ScanImage metadata to determine if the current file
-           is part of a multi-file dataset. It uses different strategies based on the acquisition mode:
-           - For 'grab' mode with finite frames per file: Uses base_name_acquisition_* pattern
-           - For 'loop' mode: Uses base_name_* pattern
-           - For 'slow' stack mode with volumetric data: Uses base_name_* pattern
-           - Otherwise: Returns only the current file
-
-        This information about ScanImage file naming was shared in a private conversation with
-        Lawrence Niu, who is a developer of ScanImage.
-
-        Returns
-        -------
-        List[PathType]
-            List of paths to all files in the series, sorted naturally (e.g., file_1, file_2, file_10)
-        """
-        # Parse the file name to extract base name, acquisition number, and file index
-        file_stem = self.file_path.stem
-
-        # Can be grab, focus or loop, see
-        # https://docs.scanimage.org/Basic+Features/Acquisitions.html
-        acquisition_state = self._metadata["SI.acqState"]
-        frames_per_file = self._metadata["SI.hScan2D.logFramesPerFile"]
-        stack_mode = self._metadata["SI.hStackManager.stackMode"]
-
-        # This is the happy path that is well specified in the documentation
-        if acquisition_state == "grab" and frames_per_file != float("inf"):
-            base_name, acquisition, file_index = file_stem.split("_")
-            pattern = f"{base_name}_{acquisition}_*{self.file_path.suffix}"
-        # Looped acquisitions also divides the files according to Lawrence Niu in private conversation
-        elif acquisition_state == "loop":  # This also separates the files
-            base_name = "_".join(file_stem.split("_")[:-1])  # Everything before the last _
-            pattern = f"{base_name}_*{self.file_path.suffix}"
-        # This also divided the files according to Lawrence Niu in private conversation
-        elif stack_mode == "slow" and self.is_volumetric:
-            base_name, acquisition, file_index = file_stem.split("_")
-            pattern = f"{base_name}_*{self.file_path.suffix}"
-        else:
-            files_found = [self.file_path]
-            return files_found
-
-        from natsort import natsorted
-
-        files_found = natsorted(self.file_path.parent.glob(pattern))
-        return files_found
 
     @staticmethod
     def _create_frame_to_ifd_table(
@@ -723,6 +671,31 @@ class ScanImageImagingExtractor(ImagingExtractor):
         sliced_extractor._num_planes = 1
 
         return sliced_extractor
+
+    @staticmethod
+    def get_slices_per_sample(file_path: PathType) -> int:
+        """
+        Get the number of slices per sample from a ScanImage TIFF file.
+
+        Parameters
+        ----------
+        file_path : PathType
+            Path to the ScanImage TIFF file.
+
+        Returns
+        -------
+        int
+            Number of slices per sample.
+
+        """
+        from tifffile import read_scanimage_metadata
+
+        with open(file_path, "rb") as fh:
+            all_metadata = read_scanimage_metadata(fh)
+            non_varying_frame_metadata = all_metadata[0]
+
+        frames_per_slice = non_varying_frame_metadata.get("SI.hStackManager.framesPerSlice", 1)
+        return frames_per_slice
 
     def __del__(self):
         """Close file handles when the extractor is garbage collected."""

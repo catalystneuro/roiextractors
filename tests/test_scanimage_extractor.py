@@ -581,7 +581,8 @@ class TestScanImageExtractorVolumetricMultiSample:
 
 
 def test_get_slices_per_sample():
-    """Test the static get_slices_per_sample method.
+    """
+    Test the static get_slices_per_sample method.
 
     This test verifies that the static get_slices_per_sample method correctly extracts
     the number of slices per sample from ScanImage TIFF files without needing to create
