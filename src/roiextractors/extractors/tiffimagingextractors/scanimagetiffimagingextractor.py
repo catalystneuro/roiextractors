@@ -86,10 +86,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
             When true, all the samples are loaded as they appear in the acquisition cycle:
 
             depth_1_frame_sample_1
-            depth_1_frame_sample_1
+            depth_1_frame_sample_2
             depth_1_frame_sample_3
             depth_2_frame_sample_1
-            depth_2_frame_sample_1
+            depth_2_frame_sample_2
             depth_2_frame_sample_3
             depth_3_frame_sample_1
 
