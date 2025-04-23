@@ -7,7 +7,7 @@ ScanImageTiffImagingExtractor
 """
 
 from pathlib import Path
-from typing import Optional, Tuple, List, Iterable
+from typing import Optional, Tuple, List
 import warnings
 from warnings import warn
 import numpy as np
@@ -47,6 +47,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
     Current limitations:
     - For datasets with multiple frames per slice, a slice_sample parameter must be provided
     - Flyback frames are currently discarded
+    - Does not support datasets with flyback frames (will raise ValueError)
     """
 
     extractor_name = "ScanImageImagingExtractor"
@@ -55,7 +56,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self,
         file_path: Optional[PathType] = None,
         channel_name: Optional[str] = None,
-        file_paths: Optional[List[PathType]] = None,
+        file_paths: Optional[list[PathType]] = None,
         slice_sample: Optional[int] = None,
     ):
         """
@@ -67,8 +68,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Path to the TIFF file. If this is part of a multi-file series, this should be the first file.
         channel_name : str, optional
             Name of the channel to extract. If None and multiple channels are available, the first channel will be used.
-        file_paths : List[PathType], optional
-            List of file paths to use. If provided, this overrides the automatic
+            Check available channels with `get_available_channel_names`.
+        file_paths : list[PathType], optional
+            list of file paths to use. If provided, this overrides the automatic
             file detection heuristics. Use this if automatic detection does not work correctly and you know
             exactly which files should be included.  The file paths should be provided in an order that
             reflects the temporal order of the frames in the dataset.
@@ -78,8 +80,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             a ValueError will be raised.
         """
         super().__init__()
-        self.file_paths = file_paths if file_paths is not None else [Path(file_path)]
-        self.file_path = self.file_paths[0] if file_paths is not None else file_path
+        self.file_path = file_paths[0] if file_paths is not None else file_path
         assert self.file_path is not None, "file_path or file_paths must be provided"
 
         # Validate file suffix
@@ -97,6 +98,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         self._general_metadata = tiff_reader.scanimage_metadata
         self._metadata = self._general_metadata["FrameData"]
+
+        self._num_rows, self._num_columns = tiff_reader.pages[0].shape
+        self._dtype = tiff_reader.pages[0].dtype
 
         # This criteria was confirmed by Lawrence Niu, a developer of ScanImage
         self.is_volumetric = self._metadata["SI.hStackManager.enable"]
@@ -127,15 +131,17 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
             self.flyback_frames = self._frames_per_volume_with_flyback - self._frames_per_volume
             if self.flyback_frames > 0:
-                warnings.warn(f"{self.flyback_frames} flyback frames detected. At the moment they are discarded.")
+                error_msg = (
+                    f"{self.flyback_frames} flyback frames detected. "
+                    "Please open an issue on GitHub roiextractors to request this feature: "
+                )
+                raise ValueError(error_msg)
 
-            # We need to map all the frames in a volume even if we are not using all of them
-            self._dataset_frames_per_volume_per_channel = self._frames_per_volume_with_flyback
         else:
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanFrameRate"]
             self._num_planes = 1
             self._frames_per_slice = 1
-            self._dataset_frames_per_volume_per_channel = 1
+            self._frames_per_volume_in_file = 1
 
         # This piece of the metadata is the indication that the channel is saved on the data
         channels_available = self._metadata["SI.hChannels.channelSave"]
@@ -144,30 +150,30 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         # Determine their name and use matlab 1-indexing
         all_channel_names = self._metadata["SI.hChannels.channelName"]
-        channel_names = [all_channel_names[channel_index - 1] for channel_index in channels_available]
+        self.channel_names = [all_channel_names[channel_index - 1] for channel_index in channels_available]
 
         # Channel selection checks
-        self._is_multi_channel_data = len(channel_names) > 1
+        self._is_multi_channel_data = len(self.channel_names) > 1
         if self._is_multi_channel_data and channel_name is None:
 
             error_msg = (
-                f"Multiple channels available in the data {channel_names}"
+                f"Multiple channels available in the data {self.channel_names}"
                 "Please specify a channel name to extract data from."
             )
             raise ValueError(error_msg)
         elif self._is_multi_channel_data and channel_name is not None:
-            if channel_name not in channel_names:
+            if channel_name not in self.channel_names:
                 error_msg = (
-                    f"Channel name ({channel_name}) not found in available channels ({channel_names}). "
+                    f"Channel name ({channel_name}) not found in available channels ({self.channel_names}). "
                     "Please specify a valid channel name."
                 )
                 raise ValueError(error_msg)
 
             self.channel_name = channel_name
-            self._channel_index = channel_names.index(channel_name)
+            self._channel_index = self.channel_names.index(channel_name)
         else:  # single channel data
 
-            self.channel_name = channel_names[0]
+            self.channel_name = self.channel_names[0]
             self._channel_index = 0
 
         # Check if this is a multi-file dataset
@@ -189,33 +195,24 @@ class ScanImageImagingExtractor(ImagingExtractor):
                     tiff_reader.close()
                 raise RuntimeError(f"Error opening TIFF file {file_path}: {e}")
 
-        # Get image dimensions from the first IFD of the first file
-        if not self._tiff_readers or not self._tiff_readers[0].pages:
-            raise ValueError("No valid TIFF files or IFDs found")
-
-        first_ifd = self._tiff_readers[0].pages[0]
-        self._num_rows, self._num_columns = first_ifd.shape
-        self._dtype = first_ifd.dtype
-
         # Calculate total IFDs and samples
         ifds_per_file = [len(tiff_reader.pages) for tiff_reader in self._tiff_readers]
+
+        # Note that this includes all the frames for all the channels including flyback frames
         self._num_frames_in_dataset = sum(ifds_per_file)
 
-        frames_per_cycle = self._num_channels * self._dataset_frames_per_volume_per_channel
-        num_acquisition_cycles = self._num_frames_in_dataset // frames_per_cycle
+        image_frames_per_cycle = self._num_channels * self._num_planes
+        # Note that there might be frames at the end that do not belong to a full cycle
+        num_acquisition_cycles = self._num_frames_in_dataset // image_frames_per_cycle
 
-        # Calculate the number of samples
+        #  Every cycle a full sample is acquired for every channel
         self._num_samples = num_acquisition_cycles
 
         # Create full mapping for all channels, samples, and depths
-        # For ScanImage, dimension order is always CZT
-        # That is, jump through channels first and then depth and then the pattern is repeated
-        dimension_order = "CZT"
         full_frame_to_ifds_table = self._create_frame_to_ifd_table(
-            dimension_order=dimension_order,
             num_channels=self._num_channels,
+            num_planes=self._num_planes,
             num_acquisition_cycles=num_acquisition_cycles,
-            frames_per_volume=self._dataset_frames_per_volume_per_channel,
             ifds_per_file=ifds_per_file,
         )
 
@@ -273,7 +270,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             pattern = f"{base_name}_*{self.file_path.suffix}"
         # This also divided the files according to Lawrence Niu in private conversation
         elif stack_mode == "slow" and self.is_volumetric:
-            base_name = "_".join(file_stem.split("_")[:-1])  # Everything before the last _
+            base_name, acquisition, file_index = file_stem.split("_")
             pattern = f"{base_name}_*{self.file_path.suffix}"
         else:
             files_found = [self.file_path]
@@ -286,11 +283,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
     @staticmethod
     def _create_frame_to_ifd_table(
-        dimension_order: str,
         num_channels: int,
+        num_planes: int,
         num_acquisition_cycles: int,
-        frames_per_volume: int,
-        ifds_per_file: List[int],
+        ifds_per_file: list[int],
     ) -> np.ndarray:
         """
         Create a table that describes the data layout of the dataset.
@@ -307,16 +303,14 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         Parameters
         ----------
-        dimension_order : str
-            The order of dimensions in the data.
         num_channels : int
             Number of channels.
+        num_planes: int
+            The number of planes which corresponds to the depth index or the number of frames per volume
+            per channel.
         num_acquisition_cycles : int
-            Number of acquisition cycles (samples).
-        frames_per_volume : int
-            Number of frames per volume, usually the number of planes but can be larger if multiple
-            frames are acquired per plane or if flyback frames are included.
-        ifds_per_file : List[int]
+            Number of acquisition cycles. For ScanImage, this is the number of samples.
+        ifds_per_file : list[int]
             Number of IFDs in each file.
 
         Returns
@@ -337,42 +331,33 @@ class ScanImageImagingExtractor(ImagingExtractor):
         )
 
         # Calculate total number of entries
-        total_entries = sum(ifds_per_file)
+        frames_per_acquisition_cycle = num_planes * num_channels
 
-        # Define the sizes for each dimension
-        dimension_sizes = {"Z": frames_per_volume, "T": num_acquisition_cycles, "C": num_channels}
+        # Generate global ifd indices for complete cycles only
+        # This ensures we only include frames from complete acquisition cycles
+        complete_cycles_frames = num_acquisition_cycles * frames_per_acquisition_cycle
+        global_ifd_indices = np.arange(complete_cycles_frames, dtype=np.uint32)
 
-        # Calculate divisors for each dimension
-        # In dimension order, the first element changes fastest
-        dimension_divisors = {}
-        current_divisor = 1
-        for dimension in dimension_order:
-            dimension_divisors[dimension] = current_divisor
-            current_divisor *= dimension_sizes[dimension]
+        # To find their file index we need file boundaries
+        file_boundaries = np.zeros(len(ifds_per_file) + 1, dtype=np.uint32)
+        file_boundaries[1:] = np.cumsum(ifds_per_file)
 
-        # Create a linear range of IFD indices
-        indices = np.arange(total_entries)
+        # Find which file each global index belongs to
+        file_indices = np.searchsorted(file_boundaries, global_ifd_indices, side="right") - 1
 
-        # Calculate indices for each dimension
-        depth_indices = (indices // dimension_divisors["Z"]) % dimension_sizes["Z"]
-        acquisition_cycle_indices = (indices // dimension_divisors["T"]) % dimension_sizes["T"]
-        channel_indices = (indices // dimension_divisors["C"]) % dimension_sizes["C"]
+        # Now, we offset the global IFD indices by the starting position of the file
+        # to get local IFD indices that start at 0 for each file
+        ifd_indices = global_ifd_indices - file_boundaries[file_indices]
 
-        # Generate file_indices and local_ifd_indices
-        # Create arrays of file indices (repeating each file index for the number of IFDs in that file)
-        file_indices = np.concatenate(
-            [np.full(num_ifds, file_idx, dtype=np.uint16) for file_idx, num_ifds in enumerate(ifds_per_file)]
-        )
+        # Calculate indices for each dimension based on the frame position within the cycle
+        # For ScanImage, the order is always CZT which means that the channel index comes first,
+        # followed by depth and then acquisition cycle
+        channel_indices = global_ifd_indices % num_channels
+        depth_indices = (global_ifd_indices // num_channels) % num_planes
+        acquisition_cycle_indices = global_ifd_indices // frames_per_acquisition_cycle
 
-        # Create arrays of local IFD indices (starting from 0 for each file)
-        ifd_indices = np.concatenate([np.arange(num_ifds, dtype=np.uint16) for num_ifds in ifds_per_file])
-
-        # Ensure we don't exceed total_entries
-        file_indices = file_indices[:total_entries]
-        ifd_indices = ifd_indices[:total_entries]
-
-        # Create the structured array
-        mapping = np.zeros(total_entries, dtype=mapping_dtype)
+        # Create the structured array with the correct size (number of imaging frames after filtering)
+        mapping = np.zeros(len(global_ifd_indices), dtype=mapping_dtype)
         mapping["file_index"] = file_indices
         mapping["IFD_index"] = ifd_indices
         mapping["channel_index"] = channel_indices
@@ -380,6 +365,58 @@ class ScanImageImagingExtractor(ImagingExtractor):
         mapping["acquisition_cycle_index"] = acquisition_cycle_indices
 
         return mapping
+
+    def _find_data_files(self) -> list[PathType]:
+        """Find additional files in the series based on the file naming pattern.
+
+        This method determines which files to include in the dataset using one of these approaches:
+
+        1. If file_paths is provided: Uses the provided list of file paths directly
+        2. If file_pattern is provided: Uses the provided pattern to glob for files
+        3. Otherwise, analyzes the file name and ScanImage metadata to determine if the current file
+            is part of a multi-file dataset. It uses different strategies based on the acquisition mode:
+            - For 'grab' mode with finite frames per file: Uses base_name_acquisition_* pattern
+            - For 'loop' mode: Uses base_name_* pattern
+            - For 'slow' stack mode with volumetric data: Uses base_name_* pattern
+            - Otherwise: Returns only the current file
+
+        This information about ScanImage file naming was shared in a private conversation with
+        Lawrence Niu, who is a developer of ScanImage.
+
+        Returns
+        -------
+        list[PathType]
+            list of paths to all files in the series, sorted naturally (e.g., file_1, file_2, file_10)
+        """
+        # Parse the file name to extract base name, acquisition number, and file index
+        file_stem = self.file_path.stem
+
+        # Can be grab, focus or loop, see
+        # https://docs.scanimage.org/Basic+Features/Acquisitions.html
+        acquisition_state = self._metadata["SI.acqState"]
+        frames_per_file = self._metadata["SI.hScan2D.logFramesPerFile"]
+        stack_mode = self._metadata["SI.hStackManager.stackMode"]
+
+        # This is the happy path that is well specified in the documentation
+        if acquisition_state == "grab" and frames_per_file != float("inf"):
+            base_name, acquisition, file_index = file_stem.split("_")
+            pattern = f"{base_name}_{acquisition}_*{self.file_path.suffix}"
+        # Looped acquisitions also divides the files according to Lawrence Niu in private conversation
+        elif acquisition_state == "loop":  # This also separates the files
+            base_name = "_".join(file_stem.split("_")[:-1])  # Everything before the last _
+            pattern = f"{base_name}_*{self.file_path.suffix}"
+        # This also divided the files according to Lawrence Niu in private conversation
+        elif stack_mode == "slow" and self.is_volumetric:
+            base_name = "_".join(file_stem.split("_")[:-1])  # Everything before the last _
+            pattern = f"{base_name}_*{self.file_path.suffix}"
+        else:
+            files_found = [self.file_path]
+            return files_found
+
+        from natsort import natsorted
+
+        files_found = natsorted(self.file_path.parent.glob(pattern))
+        return files_found
 
     def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
         """
@@ -410,18 +447,20 @@ class ScanImageImagingExtractor(ImagingExtractor):
             would return an array with shape (3, 512, 512, 5).
         """
         start_sample = int(start_sample) if start_sample is not None else 0
-        end_sample = int(end_sample) if end_sample is not None else self._num_samples
+        end_sample = int(end_sample) if end_sample is not None else self.get_num_samples()
 
         samples_in_series = end_sample - start_sample
 
         # Preallocate output array as volumetric and squeeze if not volumetric before returning
-        samples = np.empty((samples_in_series, self._num_rows, self._num_columns, self._num_planes), dtype=self._dtype)
+        num_rows, num_columns, num_planes = self.get_volume_shape()
+        dtype = self.get_dtype()
+        samples = np.empty((samples_in_series, num_rows, num_columns, num_planes), dtype=dtype)
 
         for return_index, sample_index in enumerate(range(start_sample, end_sample)):
-            for depth_position in range(self._num_planes):
+            for depth_position in range(num_planes):
 
                 # Calculate the index in the mapping table array
-                frame_index = sample_index * self._num_planes + depth_position
+                frame_index = sample_index * num_planes + depth_position
                 table_row = self._frames_to_ifd_table[frame_index]
                 file_index = table_row["file_index"]
                 ifd_index = table_row["IFD_index"]
@@ -472,6 +511,16 @@ class ScanImageImagingExtractor(ImagingExtractor):
         else:
             return (self._num_rows, self._num_columns)
 
+    def get_volume_shape(self) -> Tuple[int, int, int]:
+        """Get the shape of a single volume (num_rows, num_columns, num_planes).
+
+        Returns
+        -------
+        tuple
+            Shape of a single volume (num_rows, num_columns, num_planes).
+        """
+        return (self._num_rows, self._num_columns, self._num_planes)
+
     def get_num_samples(self) -> int:
         """Get the number of samples in the video.
 
@@ -493,30 +542,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         return self._sampling_frequency
 
     @staticmethod
-    def get_slices_per_sample(file_path: PathType) -> int:
-        """Get the number of slices per sample from a ScanImage TIFF file.
-
-        Parameters
-        ----------
-        file_path : PathType
-            Path to the ScanImage TIFF file.
-
-        Returns
-        -------
-        int
-            Number of slices per sample.
-        """
-        from tifffile import read_scanimage_metadata
-
-        with open(file_path, "rb") as fh:
-            all_metadata = read_scanimage_metadata(fh)
-            non_varying_frame_metadata = all_metadata[0]
-
-        frames_per_slice = non_varying_frame_metadata.get("SI.hStackManager.framesPerSlice", 1)
-        return frames_per_slice
-
-    @staticmethod
-    def get_channel_names(file_path: PathType) -> list:
+    def get_available_channel_names(file_path: PathType) -> list:
         """Get the channel names available in a ScanImage TIFF file.
 
         This static method extracts the channel names from a ScanImage TIFF file
@@ -531,7 +557,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         Returns
         -------
         list
-            List of channel names available in the file.
+            list of channel names available in the file.
 
         Examples
         --------
@@ -587,13 +613,15 @@ class ScanImageImagingExtractor(ImagingExtractor):
             return self._times
 
         # Initialize array to store timestamps
-        timestamps = np.zeros(self._num_samples, dtype=np.float64)
+        num_samples = self.get_num_samples()
+        num_planes = self.get_num_planes()
+        timestamps = np.zeros(num_samples, dtype=np.float64)
 
         # For each sample, extract its timestamp from the corresponding file and IFD
-        for sample_index in range(self._num_samples):
+        for sample_index in range(num_samples):
 
             # Get the last frame in this sample to get the timestamps
-            frame_index = sample_index * self._num_planes + (self._num_planes - 1)
+            frame_index = sample_index * num_planes + (num_planes - 1)
             table_row = self._frames_to_ifd_table[frame_index]
             file_index = table_row["file_index"]
             ifd_index = table_row["IFD_index"]
@@ -688,7 +716,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         sliced_extractor._frames_to_ifd_table = sliced_extractor._frames_to_ifd_table[depth_mask]
 
         # Update the number of samples
-        sliced_extractor._num_samples = len(sliced_extractor._frames_to_ifd_table)
+        sliced_extractor._num_samples_per_channel = len(sliced_extractor._frames_to_ifd_table)
 
         # Override the is_volumetric flag and num_planes
         sliced_extractor.is_volumetric = False
