@@ -687,6 +687,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
         """
         Get the number of slices per sample from a ScanImage TIFF file.
 
+        ScanImage can sample mutiple frames per each slice.
+
         Parameters
         ----------
         file_path : PathType
