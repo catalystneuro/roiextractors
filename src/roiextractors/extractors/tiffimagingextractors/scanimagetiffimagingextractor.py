@@ -685,7 +685,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
     @staticmethod
     def get_frames_per_slice(file_path: PathType) -> int:
         """
-        Get the number of slices per sample from a ScanImage TIFF file.
+        Get the number of frames per slice from a ScanImage TIFF file.
 
         ScanImage can sample mutiple frames per each slice.
 
@@ -697,7 +697,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         Returns
         -------
         int
-            Number of slices per sample.
+            Number of frames per slice.
 
         """
         from tifffile import read_scanimage_metadata
