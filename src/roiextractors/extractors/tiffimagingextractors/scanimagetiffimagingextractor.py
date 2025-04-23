@@ -7,7 +7,7 @@ ScanImageTiffImagingExtractor
 """
 
 from pathlib import Path
-from typing import Optional, Tuple, List, Iterable
+from typing import Optional, Tuple, List
 import warnings
 from warnings import warn
 import numpy as np
@@ -55,7 +55,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self,
         file_path: Optional[PathType] = None,
         channel_name: Optional[str] = None,
-        file_paths: Optional[List[PathType]] = None,
+        file_paths: Optional[list[PathType]] = None,
     ):
         """
         Initialize the extractor.
@@ -66,8 +66,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Path to the TIFF file. If this is part of a multi-file series, this should be the first file.
         channel_name : str, optional
             Name of the channel to extract. If None and multiple channels are available, the first channel will be used.
-        file_paths : List[PathType], optional
-            List of file paths to use. If provided, this overrides the automatic
+        file_paths : list[PathType], optional
+            list of file paths to use. If provided, this overrides the automatic
             file detection heuristics. Use this if automatic detection does not work correctly and you know
             exactly which files should be included.  The file paths should be provided in an order that
             reflects the temporal order of the frames in the dataset.
@@ -207,7 +207,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         channel_frames_to_ifd_table = full_frame_to_ifds_table[channel_mask]
         self._frames_to_ifd_table = channel_frames_to_ifd_table
 
-    def _find_data_files(self) -> List[PathType]:
+    def _find_data_files(self) -> list[PathType]:
         """Find additional files in the series based on the file naming pattern.
 
         This method determines which files to include in the dataset using one of these approaches:
@@ -226,8 +226,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         Returns
         -------
-        List[PathType]
-            List of paths to all files in the series, sorted naturally (e.g., file_1, file_2, file_10)
+        list[PathType]
+            list of paths to all files in the series, sorted naturally (e.g., file_1, file_2, file_10)
         """
         # Parse the file name to extract base name, acquisition number, and file index
         file_stem = self.file_path.stem
@@ -265,7 +265,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         num_channels: int,
         num_acquisition_cycles: int,
         frames_per_volume_per_channel: int,
-        ifds_per_file: List[int],
+        ifds_per_file: list[int],
     ) -> np.ndarray:
         """
         Create a table that describes the data layout of the dataset.
@@ -312,6 +312,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         # Calculate total number of entries
         num_frames_in_dataset = sum(ifds_per_file)
+        image_frames_per_volume = frames_per_volume_per_channel * num_channels
+        num_imaging_frames_in_dataset = num_acquisition_cycles * image_frames_per_volume
 
         # Define the sizes for each dimension
         dimension_sizes = {
@@ -329,7 +331,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             current_divisor *= dimension_sizes[dimension]
 
         # Create a linear range of IFD indices
-        indices = np.arange(num_frames_in_dataset)
+        indices = np.arange(num_imaging_frames_in_dataset)
 
         # Calculate indices for each dimension
         depth_indices = (indices // dimension_divisors["Z"]) % dimension_sizes["Z"]
@@ -346,11 +348,11 @@ class ScanImageImagingExtractor(ImagingExtractor):
         ifd_indices = np.concatenate([np.arange(num_ifds, dtype=np.uint16) for num_ifds in ifds_per_file])
 
         # Ensure we don't exceed total_entries
-        file_indices = file_indices[:num_frames_in_dataset]
-        ifd_indices = ifd_indices[:num_frames_in_dataset]
+        file_indices = file_indices[:num_imaging_frames_in_dataset]
+        ifd_indices = ifd_indices[:num_imaging_frames_in_dataset]
 
         # Create the structured array
-        mapping = np.zeros(num_frames_in_dataset, dtype=mapping_dtype)
+        mapping = np.zeros(num_imaging_frames_in_dataset, dtype=mapping_dtype)
         mapping["file_index"] = file_indices
         mapping["IFD_index"] = ifd_indices
         mapping["channel_index"] = channel_indices
