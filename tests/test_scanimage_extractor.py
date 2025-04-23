@@ -107,10 +107,10 @@ class TestScanImageExtractor:
                 end_sample += samples_per_file
 
 
-def test_get_channel_names():
+def test_get_availale_channel_names():
     """Test the static get_channel_names method.
 
-    This test verifies that the static get_channel_names method correctly extracts
+    This test verifies that the static get_available_channel_names method correctly extracts
     channel names from ScanImage TIFF files without needing to create an extractor instance.
 
     The test checks:
@@ -119,21 +119,21 @@ def test_get_channel_names():
     """
     # Test with single-channel file
     single_channel_file = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
-    single_channel_names = ScanImageImagingExtractor.get_channel_names(single_channel_file)
+    single_channel_names = ScanImageImagingExtractor.get_available_channel_names(single_channel_file)
     assert isinstance(single_channel_names, list), "Channel names should be returned as a list"
     assert len(single_channel_names) == 1, "Single channel file should have one channel"
     assert single_channel_names[0] == "Channel 1", "Channel name should match expected value"
 
     # Test with multi-channel file
     multi_channel_file = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
-    multi_channel_names = ScanImageImagingExtractor.get_channel_names(multi_channel_file)
+    multi_channel_names = ScanImageImagingExtractor.get_available_channel_names(multi_channel_file)
     assert isinstance(multi_channel_names, list), "Channel names should be returned as a list"
     assert len(multi_channel_names) == 2, "Multi-channel file should have two channels"
     assert multi_channel_names == ["Channel 1", "Channel 2"]
 
     # Test with volumetric file (should still work even though extractor initialization would fail)
     volumetric_file = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
-    volumetric_channel_names = ScanImageImagingExtractor.get_channel_names(volumetric_file)
+    volumetric_channel_names = ScanImageImagingExtractor.get_available_channel_names(volumetric_file)
     assert isinstance(volumetric_channel_names, list), "Channel names should be returned as a list"
     assert len(volumetric_channel_names) >= 1, "Should extract at least one channel name"
     assert volumetric_channel_names == ["Channel 1", "Channel 4"]

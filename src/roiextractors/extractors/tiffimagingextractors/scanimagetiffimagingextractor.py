@@ -112,7 +112,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self._frames_per_volume_per_channel = self._metadata["SI.hStackManager.numFramesPerVolume"]
             self._frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
 
-            self.flyback_frames = self._frames_per_volume_with_flyback - self._frames_per_volume
+            self.flyback_frames = self._frames_per_volume_with_flyback - self._frames_per_volume_per_channel
             if self.flyback_frames > 0:
                 error_msg = (
                     f"{self.flyback_frames} flyback frames detected. "
@@ -134,30 +134,30 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         # Determine their name and use matlab 1-indexing
         all_channel_names = self._metadata["SI.hChannels.channelName"]
-        channel_names = [all_channel_names[channel_index - 1] for channel_index in channels_available]
+        self.channel_names = [all_channel_names[channel_index - 1] for channel_index in channels_available]
 
         # Channel selection checks
-        self._is_multi_channel_data = len(channel_names) > 1
+        self._is_multi_channel_data = len(self.channel_names) > 1
         if self._is_multi_channel_data and channel_name is None:
 
             error_msg = (
-                f"Multiple channels available in the data {channel_names}"
+                f"Multiple channels available in the data {self.channel_names}"
                 "Please specify a channel name to extract data from."
             )
             raise ValueError(error_msg)
         elif self._is_multi_channel_data and channel_name is not None:
-            if channel_name not in channel_names:
+            if channel_name not in self.channel_names:
                 error_msg = (
-                    f"Channel name ({channel_name}) not found in available channels ({channel_names}). "
+                    f"Channel name ({channel_name}) not found in available channels ({self.channel_names}). "
                     "Please specify a valid channel name."
                 )
                 raise ValueError(error_msg)
 
             self.channel_name = channel_name
-            self._channel_index = channel_names.index(channel_name)
+            self._channel_index = self.channel_names.index(channel_name)
         else:  # single channel data
 
-            self.channel_name = channel_names[0]
+            self.channel_name = self.channel_names[0]
             self._channel_index = 0
 
         # Check if this is a multi-file dataset
@@ -290,7 +290,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Number of acquisition cycles. For ScanImage, this is the number of samples.
         frames_per_volume_per_channel : int
             Number of frames per volume, the number of planes in the volume for a single channel.
-        ifds_per_file : List[int]
+        ifds_per_file : list[int]
             Number of IFDs in each file.
 
         Returns
@@ -486,8 +486,11 @@ class ScanImageImagingExtractor(ImagingExtractor):
         """
         return self._sampling_frequency
 
+    def get_channel_names(self):
+        return self.channel_names
+
     @staticmethod
-    def get_channel_names(file_path: PathType) -> list:
+    def get_available_channel_names(file_path: PathType) -> list:
         """Get the channel names available in a ScanImage TIFF file.
 
         This static method extracts the channel names from a ScanImage TIFF file
@@ -502,7 +505,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         Returns
         -------
         list
-            List of channel names available in the file.
+            list of channel names available in the file.
 
         Examples
         --------
