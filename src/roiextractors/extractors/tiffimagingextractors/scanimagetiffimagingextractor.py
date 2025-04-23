@@ -7,8 +7,7 @@ ScanImageTiffImagingExtractor
 """
 
 from pathlib import Path
-from typing import Optional, Tuple, List
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple
 import warnings
 from warnings import warn
 import numpy as np
