@@ -43,6 +43,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
     - Automatically detects and loads multi-file datasets based on ScanImage naming conventions
     - Extracts and provides access to ScanImage metadata
     - Efficiently retrieves frames using lazy loading
+    - Handles flyback frames in volumetric data by ignoring them in the mapping
 
     Current limitations:
     - Does not support datasets with multiple frames per slice (will raise ValueError)
@@ -258,7 +259,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
         complete_cycles_frames = num_acquisition_cycles * frames_per_acquisition_cycle
         global_ifd_indices = np.arange(complete_cycles_frames, dtype=np.uint32)
 
-        # We need to filter out the flyback frames
+        # We need to filter out the flyback frames, we create an index in the acquisition cycle
+        # And filter out those who are not imaging frames
         imaging_frames_in_cycle = num_planes * num_channels
         index_in_acquisition_cycle = global_ifd_indices % frames_per_acquisition_cycle
         is_imaging_frame = index_in_acquisition_cycle < imaging_frames_in_cycle
