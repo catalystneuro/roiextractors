@@ -311,7 +311,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         )
 
         # Calculate total number of entries
-        total_entries = sum(ifds_per_file)
+        num_frames_in_dataset = sum(ifds_per_file)
 
         # Define the sizes for each dimension
         dimension_sizes = {
@@ -329,7 +329,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             current_divisor *= dimension_sizes[dimension]
 
         # Create a linear range of IFD indices
-        indices = np.arange(total_entries)
+        indices = np.arange(num_frames_in_dataset)
 
         # Calculate indices for each dimension
         depth_indices = (indices // dimension_divisors["Z"]) % dimension_sizes["Z"]
@@ -346,11 +346,11 @@ class ScanImageImagingExtractor(ImagingExtractor):
         ifd_indices = np.concatenate([np.arange(num_ifds, dtype=np.uint16) for num_ifds in ifds_per_file])
 
         # Ensure we don't exceed total_entries
-        file_indices = file_indices[:total_entries]
-        ifd_indices = ifd_indices[:total_entries]
+        file_indices = file_indices[:num_frames_in_dataset]
+        ifd_indices = ifd_indices[:num_frames_in_dataset]
 
         # Create the structured array
-        mapping = np.zeros(total_entries, dtype=mapping_dtype)
+        mapping = np.zeros(num_frames_in_dataset, dtype=mapping_dtype)
         mapping["file_index"] = file_indices
         mapping["IFD_index"] = ifd_indices
         mapping["channel_index"] = channel_indices
