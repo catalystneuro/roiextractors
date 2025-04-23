@@ -46,7 +46,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
     Current limitations:
     - Does not support datasets with multiple frames per slice (will raise ValueError)
-    - Does not support datasets with flyback frames (will raise ValueError)
     """
 
     extractor_name = "ScanImageImagingExtractor"
@@ -113,13 +112,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self._frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
 
             self.flyback_frames = self._frames_per_volume_with_flyback - self._frames_per_volume_per_channel
-            if self.flyback_frames > 0:
-                error_msg = (
-                    f"{self.flyback_frames} flyback frames detected. "
-                    "Please open an issue on GitHub roiextractors to request this feature: "
-                )
-                raise ValueError(error_msg)
-
         else:
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanFrameRate"]
             self._num_planes = 1
@@ -186,7 +178,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         image_frames_per_cycle = self._num_channels * self._num_planes
         # Note that there might be frames at the end that do not belong to a full cycle
-        num_acquisition_cycles = self._num_frames_in_dataset // image_frames_per_cycle
+        num_acquisition_cycles = self._num_frames_in_dataset // (image_frames_per_cycle + self.flyback_frames)
 
         #  Every cycle a full sample is acquired for every channel
         self._num_samples = num_acquisition_cycles
@@ -197,6 +189,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             num_planes=self._num_planes,
             num_acquisition_cycles=num_acquisition_cycles,
             ifds_per_file=ifds_per_file,
+            flyback_frames=self.flyback_frames,
         )
 
         # Filter mapping for the specified channel
@@ -262,6 +255,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         num_planes: int,
         num_acquisition_cycles: int,
         ifds_per_file: list[int],
+        flyback_frames: int = 0,
     ) -> np.ndarray:
         """
         Create a table that describes the data layout of the dataset.
@@ -287,6 +281,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Number of acquisition cycles. For ScanImage, this is the number of samples.
         ifds_per_file : list[int]
             Number of IFDs in each file.
+        flyback_frames : int
+            Number of flyback frames.
 
         Returns
         -------
@@ -306,12 +302,20 @@ class ScanImageImagingExtractor(ImagingExtractor):
         )
 
         # Calculate total number of entries
-        frames_per_acquisition_cycle = num_planes * num_channels
+        frames_per_acquisition_cycle = num_planes * num_channels + flyback_frames
 
         # Generate global ifd indices for complete cycles only
         # This ensures we only include frames from complete acquisition cycles
         complete_cycles_frames = num_acquisition_cycles * frames_per_acquisition_cycle
         global_ifd_indices = np.arange(complete_cycles_frames, dtype=np.uint32)
+
+        # We need to filter out the flyback frames
+        imaging_frames_in_cycle = num_planes * num_channels
+        index_in_acquisition_cycle = global_ifd_indices % frames_per_acquisition_cycle
+        is_imaging_frame = index_in_acquisition_cycle < imaging_frames_in_cycle
+
+        global_ifd_indices = global_ifd_indices[is_imaging_frame]
+        index_in_acquisition_cycle = index_in_acquisition_cycle[is_imaging_frame]
 
         # To find their file index we need file boundaries
         file_boundaries = np.zeros(len(ifds_per_file) + 1, dtype=np.uint32)
@@ -327,8 +331,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # Calculate indices for each dimension based on the frame position within the cycle
         # For ScanImage, the order is always CZT which means that the channel index comes first,
         # followed by depth and then acquisition cycle
-        channel_indices = global_ifd_indices % num_channels
-        depth_indices = (global_ifd_indices // num_channels) % num_planes
+        channel_indices = index_in_acquisition_cycle % num_channels
+        depth_indices = (index_in_acquisition_cycle // num_channels) % num_planes
         acquisition_cycle_indices = global_ifd_indices // frames_per_acquisition_cycle
 
         # Create the structured array with the correct size (number of imaging frames after filtering)
