@@ -342,7 +342,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         global_ifd_indices = np.arange(num_imaging_frames_in_dataset)
 
         # To find their file index we need file boundaries
-        file_boundaries = np.zeros(len(ifds_per_file) + 1, dtype=np.uint16)
+        file_boundaries = np.zeros(len(ifds_per_file) + 1, dtype=np.uint32)
         file_boundaries[1:] = np.cumsum(ifds_per_file)
 
         # Find which file each global index belongs to
@@ -391,7 +391,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             would return an array with shape (3, 512, 512, 5).
         """
         start_sample = int(start_sample) if start_sample is not None else 0
-        end_sample = int(end_sample) if end_sample is not None else self._num_samples
+        end_sample = int(end_sample) if end_sample is not None else self.get_num_samples()
 
         samples_in_series = end_sample - start_sample
 
