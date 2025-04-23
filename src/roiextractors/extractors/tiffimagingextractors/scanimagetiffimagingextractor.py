@@ -66,6 +66,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Path to the TIFF file. If this is part of a multi-file series, this should be the first file.
         channel_name : str, optional
             Name of the channel to extract. If None and multiple channels are available, the first channel will be used.
+            Check available channels with `get_available_channel_names`.
         file_paths : list[PathType], optional
             list of file paths to use. If provided, this overrides the automatic
             file detection heuristics. Use this if automatic detection does not work correctly and you know
@@ -204,58 +205,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
         channel_frames_to_ifd_table = full_frame_to_ifds_table[channel_mask]
         self._frames_to_ifd_table = channel_frames_to_ifd_table
 
-    def _find_data_files(self) -> list[PathType]:
-        """Find additional files in the series based on the file naming pattern.
-
-        This method determines which files to include in the dataset using one of these approaches:
-
-        1. If file_paths is provided: Uses the provided list of file paths directly
-        2. If file_pattern is provided: Uses the provided pattern to glob for files
-        3. Otherwise, analyzes the file name and ScanImage metadata to determine if the current file
-           is part of a multi-file dataset. It uses different strategies based on the acquisition mode:
-           - For 'grab' mode with finite frames per file: Uses base_name_acquisition_* pattern
-           - For 'loop' mode: Uses base_name_* pattern
-           - For 'slow' stack mode with volumetric data: Uses base_name_* pattern
-           - Otherwise: Returns only the current file
-
-        This information about ScanImage file naming was shared in a private conversation with
-        Lawrence Niu, who is a developer of ScanImage.
-
-        Returns
-        -------
-        list[PathType]
-            list of paths to all files in the series, sorted naturally (e.g., file_1, file_2, file_10)
-        """
-        # Parse the file name to extract base name, acquisition number, and file index
-        file_stem = self.file_path.stem
-
-        # Can be grab, focus or loop, see
-        # https://docs.scanimage.org/Basic+Features/Acquisitions.html
-        acquisition_state = self._metadata["SI.acqState"]
-        frames_per_file = self._metadata["SI.hScan2D.logFramesPerFile"]
-        stack_mode = self._metadata["SI.hStackManager.stackMode"]
-
-        # This is the happy path that is well specified in the documentation
-        if acquisition_state == "grab" and frames_per_file != float("inf"):
-            base_name, acquisition, file_index = file_stem.split("_")
-            pattern = f"{base_name}_{acquisition}_*{self.file_path.suffix}"
-        # Looped acquisitions also divides the files according to Lawrence Niu in private conversation
-        elif acquisition_state == "loop":  # This also separates the files
-            base_name = "_".join(file_stem.split("_")[:-1])  # Everything before the last _
-            pattern = f"{base_name}_*{self.file_path.suffix}"
-        # This also divided the files according to Lawrence Niu in private conversation
-        elif stack_mode == "slow" and self.is_volumetric:
-            base_name = "_".join(file_stem.split("_")[:-1])  # Everything before the last _
-            pattern = f"{base_name}_*{self.file_path.suffix}"
-        else:
-            files_found = [self.file_path]
-            return files_found
-
-        from natsort import natsorted
-
-        files_found = natsorted(self.file_path.parent.glob(pattern))
-        return files_found
-
     @staticmethod
     def _create_frame_to_ifd_table(
         num_channels: int,
@@ -340,6 +289,58 @@ class ScanImageImagingExtractor(ImagingExtractor):
         mapping["acquisition_cycle_index"] = acquisition_cycle_indices
 
         return mapping
+
+    def _find_data_files(self) -> list[PathType]:
+        """Find additional files in the series based on the file naming pattern.
+
+        This method determines which files to include in the dataset using one of these approaches:
+
+        1. If file_paths is provided: Uses the provided list of file paths directly
+        2. If file_pattern is provided: Uses the provided pattern to glob for files
+        3. Otherwise, analyzes the file name and ScanImage metadata to determine if the current file
+            is part of a multi-file dataset. It uses different strategies based on the acquisition mode:
+            - For 'grab' mode with finite frames per file: Uses base_name_acquisition_* pattern
+            - For 'loop' mode: Uses base_name_* pattern
+            - For 'slow' stack mode with volumetric data: Uses base_name_* pattern
+            - Otherwise: Returns only the current file
+
+        This information about ScanImage file naming was shared in a private conversation with
+        Lawrence Niu, who is a developer of ScanImage.
+
+        Returns
+        -------
+        list[PathType]
+            list of paths to all files in the series, sorted naturally (e.g., file_1, file_2, file_10)
+        """
+        # Parse the file name to extract base name, acquisition number, and file index
+        file_stem = self.file_path.stem
+
+        # Can be grab, focus or loop, see
+        # https://docs.scanimage.org/Basic+Features/Acquisitions.html
+        acquisition_state = self._metadata["SI.acqState"]
+        frames_per_file = self._metadata["SI.hScan2D.logFramesPerFile"]
+        stack_mode = self._metadata["SI.hStackManager.stackMode"]
+
+        # This is the happy path that is well specified in the documentation
+        if acquisition_state == "grab" and frames_per_file != float("inf"):
+            base_name, acquisition, file_index = file_stem.split("_")
+            pattern = f"{base_name}_{acquisition}_*{self.file_path.suffix}"
+        # Looped acquisitions also divides the files according to Lawrence Niu in private conversation
+        elif acquisition_state == "loop":  # This also separates the files
+            base_name = "_".join(file_stem.split("_")[:-1])  # Everything before the last _
+            pattern = f"{base_name}_*{self.file_path.suffix}"
+        # This also divided the files according to Lawrence Niu in private conversation
+        elif stack_mode == "slow" and self.is_volumetric:
+            base_name = "_".join(file_stem.split("_")[:-1])  # Everything before the last _
+            pattern = f"{base_name}_*{self.file_path.suffix}"
+        else:
+            files_found = [self.file_path]
+            return files_found
+
+        from natsort import natsorted
+
+        files_found = natsorted(self.file_path.parent.glob(pattern))
+        return files_found
 
     def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
         """
@@ -540,13 +541,14 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         # Initialize array to store timestamps
         num_samples = self.get_num_samples()
+        num_planes = self.get_num_planes()
         timestamps = np.zeros(num_samples, dtype=np.float64)
 
         # For each sample, extract its timestamp from the corresponding file and IFD
         for sample_index in range(num_samples):
 
             # Get the last frame in this sample to get the timestamps
-            frame_index = sample_index * self._num_planes + (self._num_planes - 1)
+            frame_index = sample_index * num_planes + (num_planes - 1)
             table_row = self._frames_to_ifd_table[frame_index]
             file_index = table_row["file_index"]
             ifd_index = table_row["IFD_index"]
