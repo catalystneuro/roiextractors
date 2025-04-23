@@ -2,7 +2,7 @@
 
 ### Features
 * New `read_scanimage_metadata` for reading scanimage metadata from a file directly as a python dict [#405](https://github.com/catalystneuro/roiextractors/pull/401)
-* Added `ScanImageImagingExtractor` for simplifying reading ScanImage data [#412](https://github.com/catalystneuro/roiextractors/pull/412)
+* Added `ScanImageImagingExtractor` for simplifying reading ScanImage data [PR #412](https://github.com/catalystneuro/roiextractors/pull/412) [PR # 417](https://github.com/catalystneuro/roiextractors/pull/417)
 
 
 ### Fixes
