@@ -338,18 +338,19 @@ class ScanImageImagingExtractor(ImagingExtractor):
         acquisition_cycle_indices = (indices // dimension_divisors["T"]) % dimension_sizes["T"]
         channel_indices = (indices // dimension_divisors["C"]) % dimension_sizes["C"]
 
-        # Generate file_indices and local_ifd_indices
-        # Create arrays of file indices (repeating each file index for the number of IFDs in that file)
-        file_indices = np.concatenate(
-            [np.full(num_ifds, file_idx, dtype=np.uint16) for file_idx, num_ifds in enumerate(ifds_per_file)]
-        )
+        # Generate global ifd indices
+        global_ifd_indices = np.arange(num_imaging_frames_in_dataset)
 
-        # Create arrays of local IFD indices (starting from 0 for each file)
-        ifd_indices = np.concatenate([np.arange(num_ifds, dtype=np.uint16) for num_ifds in ifds_per_file])
+        # To find their file index we need file boundaries
+        file_boundaries = np.zeros(len(ifds_per_file) + 1, dtype=np.uint16)
+        file_boundaries[1:] = np.cumsum(ifds_per_file)
 
-        # Ensure we don't exceed total_entries
-        file_indices = file_indices[:num_imaging_frames_in_dataset]
-        ifd_indices = ifd_indices[:num_imaging_frames_in_dataset]
+        # Find which file each global index belongs to
+        file_indices = np.searchsorted(file_boundaries, global_ifd_indices, side="right") - 1
+
+        # Now, we offset the global IFD indices by the starting position of the file
+        # to get local IFD indices that start at 0 for each file
+        ifd_indices = global_ifd_indices - file_boundaries[file_indices]
 
         # Create the structured array
         mapping = np.zeros(num_imaging_frames_in_dataset, dtype=mapping_dtype)
