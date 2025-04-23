@@ -124,7 +124,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanFrameRate"]
             self._num_planes = 1
             self._frames_per_slice = 1
-            self._frames_per_volume_per_channel = 1
             self.flyback_frames = 0
 
         # This piece of the metadata is the indication that the channel is saved on the data
@@ -185,16 +184,18 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # Note that this includes all the frames for all the channels including flyback frames
         self._num_frames_in_dataset = sum(ifds_per_file)
 
-        image_frames_per_cycle = self._num_channels * self._frames_per_volume_per_channel
-        self._num_samples_per_channel = self._num_frames_in_dataset // image_frames_per_cycle
+        image_frames_per_cycle = self._num_channels * self._num_planes
+        # Note that there might be frames at the end that do not belong to a full cycle
+        num_acquisition_cycles = self._num_frames_in_dataset // image_frames_per_cycle
 
-        num_acquisition_cycles = self._num_samples_per_channel
+        #  Every cycle a full sample is acquired for every channel
+        self._num_samples = num_acquisition_cycles
 
         # Create full mapping for all channels, samples, and depths
         full_frame_to_ifds_table = self._create_frame_to_ifd_table(
             num_channels=self._num_channels,
+            num_planes=self._num_planes,
             num_acquisition_cycles=num_acquisition_cycles,
-            frames_per_volume_per_channel=self._frames_per_volume_per_channel,
             ifds_per_file=ifds_per_file,
         )
 
@@ -258,8 +259,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
     @staticmethod
     def _create_frame_to_ifd_table(
         num_channels: int,
+        num_planes: int,
         num_acquisition_cycles: int,
-        frames_per_volume_per_channel: int,
         ifds_per_file: list[int],
     ) -> np.ndarray:
         """
@@ -279,10 +280,11 @@ class ScanImageImagingExtractor(ImagingExtractor):
         ----------
         num_channels : int
             Number of channels.
+        num_planes: int
+            The number of planes which corresponds to the depth index or the number of frames per volume
+            per channel.
         num_acquisition_cycles : int
             Number of acquisition cycles. For ScanImage, this is the number of samples.
-        frames_per_volume_per_channel : int
-            Number of frames per volume, the number of planes in the volume for a single channel.
         ifds_per_file : list[int]
             Number of IFDs in each file.
 
@@ -304,12 +306,11 @@ class ScanImageImagingExtractor(ImagingExtractor):
         )
 
         # Calculate total number of entries
-        image_frames_per_acquisition = frames_per_volume_per_channel * num_channels
-        frames_per_acquisition = image_frames_per_acquisition
+        frames_per_acquisition_cycle = num_planes * num_channels
 
         # Generate global ifd indices for complete cycles only
         # This ensures we only include frames from complete acquisition cycles
-        complete_cycles_frames = num_acquisition_cycles * frames_per_acquisition
+        complete_cycles_frames = num_acquisition_cycles * frames_per_acquisition_cycle
         global_ifd_indices = np.arange(complete_cycles_frames, dtype=np.uint32)
 
         # To find their file index we need file boundaries
@@ -327,8 +328,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # For ScanImage, the order is always CZT which means that the channel index comes first,
         # followed by depth and then acquisition cycle
         channel_indices = global_ifd_indices % num_channels
-        depth_indices = (global_ifd_indices // num_channels) % frames_per_volume_per_channel
-        acquisition_cycle_indices = global_ifd_indices // frames_per_acquisition
+        depth_indices = (global_ifd_indices // num_channels) % num_planes
+        acquisition_cycle_indices = global_ifd_indices // frames_per_acquisition_cycle
 
         # Create the structured array with the correct size (number of imaging frames after filtering)
         mapping = np.zeros(len(global_ifd_indices), dtype=mapping_dtype)
@@ -374,7 +375,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
         samples_in_series = end_sample - start_sample
 
         # Preallocate output array as volumetric and squeeze if not volumetric before returning
-
         num_rows, num_columns, num_planes = self.get_volume_shape()
         dtype = self.get_dtype()
         samples = np.empty((samples_in_series, num_rows, num_columns, num_planes), dtype=dtype)
@@ -452,7 +452,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         int
             Number of samples in the video.
         """
-        return self._num_samples_per_channel
+        return self._num_samples
 
     def get_sampling_frequency(self) -> float:
         """Get the sampling frequency in Hz.
