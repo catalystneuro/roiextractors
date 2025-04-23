@@ -174,6 +174,34 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
     def test_brukertiffextractor_get_single_frame(self):
         assert_array_equal(self.extractor.get_frames(frame_idxs=[0]), self.test_video[0][np.newaxis, ...])
 
+    def test_is_volumetric_flag(self):
+        """Test that the is_volumetric flag is True for BrukerTiffMultiPlaneImagingExtractor."""
+        assert hasattr(
+            self.extractor, "is_volumetric"
+        ), "BrukerTiffMultiPlaneImagingExtractor should have is_volumetric attribute"
+        assert (
+            self.extractor.is_volumetric is True
+        ), "is_volumetric should be True for BrukerTiffMultiPlaneImagingExtractor"
+
+    def test_get_volume_shape(self):
+        """Test that the get_volume_shape method returns the correct shape."""
+        # Check that the method exists
+        assert hasattr(
+            self.extractor, "get_volume_shape"
+        ), "BrukerTiffMultiPlaneImagingExtractor should have get_volume_shape method"
+
+        # Check that the method returns the correct shape
+        image_shape = self.extractor.get_image_shape()
+        num_planes = self.extractor.get_num_planes()
+        volume_shape = self.extractor.get_volume_shape()
+
+        assert len(volume_shape) == 3, "get_volume_shape should return a 3-tuple"
+        assert volume_shape == (
+            image_shape[0],
+            image_shape[1],
+            num_planes,
+        ), "get_volume_shape should return (num_rows, num_columns, num_planes)"
+
 
 class TestBrukerTiffExtractorDualColorCase(TestCase):
     @classmethod
