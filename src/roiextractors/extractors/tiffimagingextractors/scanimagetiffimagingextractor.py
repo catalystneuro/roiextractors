@@ -683,7 +683,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         return sliced_extractor
 
     @staticmethod
-    def get_slices_per_sample(file_path: PathType) -> int:
+    def get_frames_per_slice(file_path: PathType) -> int:
         """
         Get the number of slices per sample from a ScanImage TIFF file.
 

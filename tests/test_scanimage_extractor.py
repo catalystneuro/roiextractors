@@ -170,7 +170,7 @@ class TestScanImageExtractorVolumetricMultiSample:
         with pytest.raises(ValueError):
             extractor = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4")
 
-        slices_per_sample = ScanImageImagingExtractor.get_slices_per_sample(file_path)
+        slices_per_sample = ScanImageImagingExtractor.get_frames_per_slice(file_path)
         assert slices_per_sample == 2, "File should have 2 slices per sample"
 
         # Test that the extractor works correctly when a valid slice_sample is provided
@@ -280,7 +280,7 @@ class TestScanImageExtractorVolumetricMultiSample:
         with pytest.raises(ValueError):
             extractor = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1")
 
-        slices_per_sample = ScanImageImagingExtractor.get_slices_per_sample(file_path)
+        slices_per_sample = ScanImageImagingExtractor.get_frames_per_slice(file_path)
         assert slices_per_sample == 2, "File should have 2 slices per sample"
 
         # Test that the extractor works correctly when a valid slice_sample is provided
@@ -355,27 +355,27 @@ class TestScanImageExtractorVolumetricMultiSample:
                 )
 
 
-def test_get_slices_per_sample():
+def test_get_frames_per_slice():
     """
-    Test the static get_slices_per_sample method.
+    Test the static get_frames_per_slice method.
 
-    This test verifies that the static get_slices_per_sample method correctly extracts
+    This test verifies that the static get_frames_per_slice method correctly extracts
     the number of slices per sample from ScanImage TIFF files without needing to create
     an extractor instance.
     """
     # Test with single frame per slice file
     single_frame_file = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
-    frames_per_slice = ScanImageImagingExtractor.get_slices_per_sample(single_frame_file)
+    frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(single_frame_file)
     assert frames_per_slice == 10, "File should have 1 frame per slice"
 
     # Test with multiple frames per slice file
     multi_frame_file = SCANIMAGE_PATH / "scanimage_20220801_volume.tif"
-    frames_per_slice = ScanImageImagingExtractor.get_slices_per_sample(multi_frame_file)
+    frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(multi_frame_file)
     assert frames_per_slice == 8, "File should have 8 frames per slice"
 
     # Test with another multiple frames per slice file
     multi_frame_file2 = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
-    frames_per_slice = ScanImageImagingExtractor.get_slices_per_sample(multi_frame_file2)
+    frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(multi_frame_file2)
     assert frames_per_slice == 2, "File should have 2 frames per slice"
 
 
