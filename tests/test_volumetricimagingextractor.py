@@ -163,3 +163,33 @@ def test_depth_slice_twice(volumetric_imaging_extractor):
 def test_frame_slice(volumetric_imaging_extractor):
     with pytest.raises(NotImplementedError):
         volumetric_imaging_extractor.frame_slice(start_frame=0, end_frame=1)
+
+
+def test_is_volumetric_flag(volumetric_imaging_extractor):
+    """Test that the is_volumetric flag is True for VolumetricImagingExtractor."""
+    assert hasattr(
+        volumetric_imaging_extractor, "is_volumetric"
+    ), "VolumetricImagingExtractor should have is_volumetric attribute"
+    assert (
+        volumetric_imaging_extractor.is_volumetric is True
+    ), "is_volumetric should be True for VolumetricImagingExtractor"
+
+
+def test_get_volume_shape(volumetric_imaging_extractor):
+    """Test that the get_volume_shape method returns the correct shape."""
+    # Check that the method exists
+    assert hasattr(
+        volumetric_imaging_extractor, "get_volume_shape"
+    ), "VolumetricImagingExtractor should have get_volume_shape method"
+
+    # Check that the method returns the correct shape
+    image_shape = volumetric_imaging_extractor.get_image_shape()
+    num_planes = volumetric_imaging_extractor.get_num_planes()
+    volume_shape = volumetric_imaging_extractor.get_volume_shape()
+
+    assert len(volume_shape) == 3, "get_volume_shape should return a 3-tuple"
+    assert volume_shape == (
+        image_shape[0],
+        image_shape[1],
+        num_planes,
+    ), "get_volume_shape should return (num_rows, num_columns, num_planes)"
