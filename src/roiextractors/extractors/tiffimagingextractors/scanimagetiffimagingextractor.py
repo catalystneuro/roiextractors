@@ -73,8 +73,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             reflects the temporal order of the frames in the dataset.
         """
         super().__init__()
-        self.file_paths = file_paths if file_paths is not None else [Path(file_path)]
-        self.file_path = self.file_paths[0] if file_paths is not None else file_path
+        self.file_path = file_paths[0] if file_paths is not None else file_path
         assert self.file_path is not None, "file_path or file_paths must be provided"
 
         # Validate file suffix
@@ -93,6 +92,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self._general_metadata = tiff_reader.scanimage_metadata
         self._metadata = self._general_metadata["FrameData"]
 
+        self._num_rows, self._num_columns = tiff_reader.pages[0].shape
+        self._dtype = tiff_reader.pages[0].dtype
+
         # This criteria was confirmed by Lawrence Niu, a developer of ScanImage
         self.is_volumetric = self._metadata["SI.hStackManager.enable"]
         if self.is_volumetric:
@@ -107,8 +109,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 )
                 raise ValueError(error_msg)
 
-            # This includes frames per slice but does not account for multi channel
-            self._frames_per_volume = self._metadata["SI.hStackManager.numFramesPerVolume"]
+            self._frames_per_volume_per_channel = self._metadata["SI.hStackManager.numFramesPerVolume"]
             self._frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
 
             self.flyback_frames = self._frames_per_volume_with_flyback - self._frames_per_volume
@@ -123,7 +124,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanFrameRate"]
             self._num_planes = 1
             self._frames_per_slice = 1
-            self._frames_per_volume = 1
+            self._frames_per_volume_per_channel = 1
+            self.flyback_frames = 0
 
         # This piece of the metadata is the indication that the channel is saved on the data
         channels_available = self._metadata["SI.hChannels.channelSave"]
@@ -177,22 +179,16 @@ class ScanImageImagingExtractor(ImagingExtractor):
                     tiff_reader.close()
                 raise RuntimeError(f"Error opening TIFF file {file_path}: {e}")
 
-        # Get image dimensions from the first IFD of the first file
-        if not self._tiff_readers or not self._tiff_readers[0].pages:
-            raise ValueError("No valid TIFF files or IFDs found")
-
-        first_ifd = self._tiff_readers[0].pages[0]
-        self._num_rows, self._num_columns = first_ifd.shape
-        self._dtype = first_ifd.dtype
-
         # Calculate total IFDs and samples
         ifds_per_file = [len(tiff_reader.pages) for tiff_reader in self._tiff_readers]
+
+        # Note that this includes all the frames for all the channels including flyback frames
         self._num_frames_in_dataset = sum(ifds_per_file)
 
-        frames_per_cycle = self._num_channels * self._frames_per_volume
-        num_acquisition_cycles = self._num_frames_in_dataset // frames_per_cycle
+        image_frames_per_cycle = self._num_channels * self._frames_per_volume_per_channel
+        self._num_samples_per_channel = self._num_frames_in_dataset // image_frames_per_cycle
 
-        self._num_samples = num_acquisition_cycles
+        num_acquisition_cycles = self._num_samples_per_channel
 
         # Create full mapping for all channels, samples, and depths
         # For ScanImage, dimension order is always CZT
@@ -202,7 +198,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             dimension_order=dimension_order,
             num_channels=self._num_channels,
             num_acquisition_cycles=num_acquisition_cycles,
-            frames_per_volume=self._frames_per_volume,
+            frames_per_volume_per_channel=self._frames_per_volume_per_channel,
             ifds_per_file=ifds_per_file,
         )
 
@@ -268,7 +264,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         dimension_order: str,
         num_channels: int,
         num_acquisition_cycles: int,
-        frames_per_volume: int,
+        frames_per_volume_per_channel: int,
         ifds_per_file: List[int],
     ) -> np.ndarray:
         """
@@ -291,8 +287,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
         num_channels : int
             Number of channels.
         num_acquisition_cycles : int
-            Number of acquisition cycles (samples).
-        frames_per_volume : int
+            Number of acquisition cycles. For ScanImage, this is the number of samples.
+        frames_per_volume_per_channel : int
             Number of frames per volume, the number of planes in the volume for a single channel.
         ifds_per_file : List[int]
             Number of IFDs in each file.
@@ -318,7 +314,11 @@ class ScanImageImagingExtractor(ImagingExtractor):
         total_entries = sum(ifds_per_file)
 
         # Define the sizes for each dimension
-        dimension_sizes = {"Z": frames_per_volume, "T": num_acquisition_cycles, "C": num_channels}
+        dimension_sizes = {
+            "Z": frames_per_volume_per_channel,
+            "T": num_acquisition_cycles,
+            "C": num_channels,
+        }
 
         # Calculate divisors for each dimension
         # In dimension order, the first element changes fastest
@@ -393,13 +393,16 @@ class ScanImageImagingExtractor(ImagingExtractor):
         samples_in_series = end_sample - start_sample
 
         # Preallocate output array as volumetric and squeeze if not volumetric before returning
-        samples = np.empty((samples_in_series, self._num_rows, self._num_columns, self._num_planes), dtype=self._dtype)
+
+        num_rows, num_columns, num_planes = self.get_volume_shape()
+        dtype = self.get_dtype()
+        samples = np.empty((samples_in_series, num_rows, num_columns, num_planes), dtype=dtype)
 
         for return_index, sample_index in enumerate(range(start_sample, end_sample)):
-            for depth_position in range(self._num_planes):
+            for depth_position in range(num_planes):
 
                 # Calculate the index in the mapping table array
-                frame_index = sample_index * self._num_planes + depth_position
+                frame_index = sample_index * num_planes + depth_position
                 table_row = self._frames_to_ifd_table[frame_index]
                 file_index = table_row["file_index"]
                 ifd_index = table_row["IFD_index"]
@@ -450,6 +453,16 @@ class ScanImageImagingExtractor(ImagingExtractor):
         else:
             return (self._num_rows, self._num_columns)
 
+    def get_volume_shape(self) -> Tuple[int, int, int]:
+        """Get the shape of a single volume (num_rows, num_columns, num_planes).
+
+        Returns
+        -------
+        tuple
+            Shape of a single volume (num_rows, num_columns, num_planes).
+        """
+        return (self._num_rows, self._num_columns, self._num_planes)
+
     def get_num_samples(self) -> int:
         """Get the number of samples in the video.
 
@@ -458,7 +471,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         int
             Number of samples in the video.
         """
-        return self._num_samples
+        return self._num_samples_per_channel
 
     def get_sampling_frequency(self) -> float:
         """Get the sampling frequency in Hz.
@@ -542,10 +555,11 @@ class ScanImageImagingExtractor(ImagingExtractor):
             return self._times
 
         # Initialize array to store timestamps
-        timestamps = np.zeros(self._num_samples, dtype=np.float64)
+        num_samples = self.get_num_samples()
+        timestamps = np.zeros(num_samples, dtype=np.float64)
 
         # For each sample, extract its timestamp from the corresponding file and IFD
-        for sample_index in range(self._num_samples):
+        for sample_index in range(num_samples):
 
             # Get the last frame in this sample to get the timestamps
             frame_index = sample_index * self._num_planes + (self._num_planes - 1)
@@ -643,7 +657,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         sliced_extractor._frames_to_ifd_table = sliced_extractor._frames_to_ifd_table[depth_mask]
 
         # Update the number of samples
-        sliced_extractor._num_samples = len(sliced_extractor._frames_to_ifd_table)
+        sliced_extractor._num_samples_per_channel = len(sliced_extractor._frames_to_ifd_table)
 
         # Override the is_volumetric flag and num_planes
         sliced_extractor.is_volumetric = False
