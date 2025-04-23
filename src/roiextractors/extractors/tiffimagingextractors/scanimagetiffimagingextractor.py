@@ -211,9 +211,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # Create full mapping for all channels, samples, and depths
         full_frames_to_ifds_table = self._create_frame_to_ifd_table(
             num_channels=self._num_channels,
-            num_planes=self._num_planes * self._frames_per_slice,  # Artificial depth when frames_per_slice > 1
+            num_planes=self._num_planes,
             num_acquisition_cycles=num_acquisition_cycles,
             ifds_per_file=ifds_per_file,
+            num_frames_per_slice=self._frames_per_slice,
         )
 
         # Filter mapping for the specified channel
@@ -222,19 +223,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         self._frames_to_ifd_table = channel_frames_to_ifd_table
 
-        # Filter mapping for the specified slice_sample if frames_per_slice > 1
-        if self.is_volumetric and self._frames_per_slice > 1 and self._slice_sample is not None:
-            # We have removed channel from the mapping, then samples per slice are the fastest changing variable
-            slice_sample_index = channel_frames_to_ifd_table["depth_index"] % self._frames_per_slice
-            slice_sample_mask = slice_sample_index == self._slice_sample
-            slice_frames_to_ifd_table = channel_frames_to_ifd_table[slice_sample_mask]
-
-            # We update depth index to remove the artificial depth
-            slice_frames_to_ifd_table["depth_index"] = (
-                slice_frames_to_ifd_table["depth_index"] // self._frames_per_slice
-            )
-
-            self._frames_to_ifd_table = slice_frames_to_ifd_table
+        # Filter mapping for the specified slice_sample
+        if self.is_volumetric and self._slice_sample is not None:
+            slice_sample_mask = channel_frames_to_ifd_table["slice_sample_index"] == self._slice_sample
+            self._frames_to_ifd_table = channel_frames_to_ifd_table[slice_sample_mask]
 
     @staticmethod
     def _create_frame_to_ifd_table(
@@ -242,6 +234,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         num_planes: int,
         num_acquisition_cycles: int,
         ifds_per_file: list[int],
+        num_frames_per_slice: int = 1,
     ) -> np.ndarray:
         """
         Create a table that describes the data layout of the dataset.
@@ -267,6 +260,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Number of acquisition cycles. For ScanImage, this is the number of samples.
         ifds_per_file : list[int]
             Number of IFDs in each file.
+        num_frames_per_slice : int
+            Number of frames per slice. This is used to determine the slice_sample index.
 
         Returns
         -------
@@ -281,12 +276,13 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 ("IFD_index", np.uint16),
                 ("channel_index", np.uint8),
                 ("depth_index", np.uint8),
+                ("slice_sample_index", np.uint8),
                 ("acquisition_cycle_index", np.uint16),
             ]
         )
 
         # Calculate total number of entries
-        frames_per_acquisition_cycle = num_planes * num_channels
+        frames_per_acquisition_cycle = num_planes * num_frames_per_slice * num_channels
 
         # Generate global ifd indices for complete cycles only
         # This ensures we only include frames from complete acquisition cycles
@@ -308,7 +304,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # For ScanImage, the order is always CZT which means that the channel index comes first,
         # followed by depth and then acquisition cycle
         channel_indices = global_ifd_indices % num_channels
-        depth_indices = (global_ifd_indices // num_channels) % num_planes
+        slice_sample_indices = (global_ifd_indices // num_channels) % num_frames_per_slice
+        depth_indices = (global_ifd_indices // (num_channels * num_frames_per_slice)) % num_planes
         acquisition_cycle_indices = global_ifd_indices // frames_per_acquisition_cycle
 
         # Create the structured array with the correct size (number of imaging frames after filtering)
@@ -316,6 +313,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         mapping["file_index"] = file_indices
         mapping["IFD_index"] = ifd_indices
         mapping["channel_index"] = channel_indices
+        mapping["slice_sample_index"] = slice_sample_indices
         mapping["depth_index"] = depth_indices
         mapping["acquisition_cycle_index"] = acquisition_cycle_indices
 
