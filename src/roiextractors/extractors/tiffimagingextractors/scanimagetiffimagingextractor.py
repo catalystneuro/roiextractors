@@ -191,11 +191,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         num_acquisition_cycles = self._num_samples_per_channel
 
         # Create full mapping for all channels, samples, and depths
-        # For ScanImage, dimension order is always CZT
-        # That is, jump through channels first and then depth and then the pattern is repeated
-        dimension_order = "CZT"
         full_frame_to_ifds_table = self._create_frame_to_ifd_table(
-            dimension_order=dimension_order,
             num_channels=self._num_channels,
             num_acquisition_cycles=num_acquisition_cycles,
             frames_per_volume_per_channel=self._frames_per_volume_per_channel,
@@ -261,7 +257,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
     @staticmethod
     def _create_frame_to_ifd_table(
-        dimension_order: str,
         num_channels: int,
         num_acquisition_cycles: int,
         frames_per_volume_per_channel: int,
@@ -282,8 +277,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         Parameters
         ----------
-        dimension_order : str
-            The order of dimensions in the data.
         num_channels : int
             Number of channels.
         num_acquisition_cycles : int
@@ -311,35 +304,13 @@ class ScanImageImagingExtractor(ImagingExtractor):
         )
 
         # Calculate total number of entries
-        num_frames_in_dataset = sum(ifds_per_file)
-        image_frames_per_volume = frames_per_volume_per_channel * num_channels
-        num_imaging_frames_in_dataset = num_acquisition_cycles * image_frames_per_volume
+        image_frames_per_acquisition = frames_per_volume_per_channel * num_channels
+        frames_per_acquisition = image_frames_per_acquisition
 
-        # Define the sizes for each dimension
-        dimension_sizes = {
-            "Z": frames_per_volume_per_channel,
-            "T": num_acquisition_cycles,
-            "C": num_channels,
-        }
-
-        # Calculate divisors for each dimension
-        # In dimension order, the first element changes fastest
-        dimension_divisors = {}
-        current_divisor = 1
-        for dimension in dimension_order:
-            dimension_divisors[dimension] = current_divisor
-            current_divisor *= dimension_sizes[dimension]
-
-        # Create a linear range of IFD indices
-        indices = np.arange(num_imaging_frames_in_dataset)
-
-        # Calculate indices for each dimension
-        depth_indices = (indices // dimension_divisors["Z"]) % dimension_sizes["Z"]
-        acquisition_cycle_indices = (indices // dimension_divisors["T"]) % dimension_sizes["T"]
-        channel_indices = (indices // dimension_divisors["C"]) % dimension_sizes["C"]
-
-        # Generate global ifd indices
-        global_ifd_indices = np.arange(num_imaging_frames_in_dataset)
+        # Generate global ifd indices for complete cycles only
+        # This ensures we only include frames from complete acquisition cycles
+        complete_cycles_frames = num_acquisition_cycles * frames_per_acquisition
+        global_ifd_indices = np.arange(complete_cycles_frames, dtype=np.uint32)
 
         # To find their file index we need file boundaries
         file_boundaries = np.zeros(len(ifds_per_file) + 1, dtype=np.uint32)
@@ -352,8 +323,15 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # to get local IFD indices that start at 0 for each file
         ifd_indices = global_ifd_indices - file_boundaries[file_indices]
 
-        # Create the structured array
-        mapping = np.zeros(num_imaging_frames_in_dataset, dtype=mapping_dtype)
+        # Calculate indices for each dimension based on the frame position within the cycle
+        # For ScanImage, the order is always CZT which means that the channel index comes first,
+        # followed by depth and then acquisition cycle
+        channel_indices = global_ifd_indices % num_channels
+        depth_indices = (global_ifd_indices // num_channels) % frames_per_volume_per_channel
+        acquisition_cycle_indices = global_ifd_indices // frames_per_acquisition
+
+        # Create the structured array with the correct size (number of imaging frames after filtering)
+        mapping = np.zeros(len(global_ifd_indices), dtype=mapping_dtype)
         mapping["file_index"] = file_indices
         mapping["IFD_index"] = ifd_indices
         mapping["channel_index"] = channel_indices
