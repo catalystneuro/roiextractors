@@ -28,6 +28,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
         self._check_consistency_between_imaging_extractors(imaging_extractors)
         self._imaging_extractors = imaging_extractors
         self._num_planes = len(imaging_extractors)
+        self.is_volumetric = True
 
     @staticmethod
     def _check_consistency_between_imaging_extractors(imaging_extractors: List[ImagingExtractor]):
@@ -237,6 +238,17 @@ class VolumetricImagingExtractor(ImagingExtractor):
 
     def get_dtype(self) -> DtypeType:
         return self._imaging_extractors[0].get_dtype()
+
+    def get_volume_shape(self) -> Tuple[int, int, int]:
+        """Get the shape of the volumetric video (num_rows, num_columns, num_planes).
+
+        Returns
+        -------
+        video_shape: tuple
+            Shape of the volumetric video (num_rows, num_columns, num_planes).
+        """
+        image_shape = self.get_image_shape()
+        return (image_shape[0], image_shape[1], self.get_num_planes())
 
     def depth_slice(self, start_plane: Optional[int] = None, end_plane: Optional[int] = None):
         """Return a new VolumetricImagingExtractor ranging from the start_plane to the end_plane."""

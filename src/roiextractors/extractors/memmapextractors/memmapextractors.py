@@ -156,7 +156,7 @@ class MemmapImagingExtractor(ImagingExtractor):
     def get_dtype(self) -> DtypeType:
         return self.dtype
 
-    def get_video_shape(self) -> Tuple[int, int, int, int]:
+    def get_volume_shape(self) -> Tuple[int, int, int, int]:
         """Return the shape of the video data.
 
         Returns
@@ -203,7 +203,7 @@ class MemmapImagingExtractor(ImagingExtractor):
             raise f"Not enough memory available, {available_memory_in_bytes* 1e9} for buffer size {buffer_size_in_gb}"
 
         num_frames = imaging.get_num_frames()
-        memmap_shape = imaging.get_video_shape()
+        memmap_shape = imaging.get_volume_shape()
         dtype = imaging.get_dtype()
 
         # Load the memmap
