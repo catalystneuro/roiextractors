@@ -78,7 +78,7 @@ class NumpyImagingExtractor(ImagingExtractor):
             self._num_rows,
             self._num_columns,
             self._num_channels,
-        ) = self.get_video_shape(self._video)
+        ) = self.get_volume_shape(self._video)
 
         if len(self._video.shape) == 3:
             # check if this converts to np.ndarray
@@ -92,7 +92,7 @@ class NumpyImagingExtractor(ImagingExtractor):
             self._channel_names = [f"channel_{ch}" for ch in range(self._num_channels)]
 
     @staticmethod
-    def get_video_shape(video) -> Tuple[int, int, int, int]:
+    def get_volume_shape(video) -> Tuple[int, int, int, int]:
         """Get the shape of a video (num_frames, num_rows, num_columns, num_channels).
 
         Parameters
