@@ -354,6 +354,51 @@ class TestScanImageExtractorVolumetricMultiSample:
                     frame_extractor, frame_tiff, f"Sample {sample_index}, frame {frame_index} does not match tiff data"
                 )
 
+    # def test_loading_all_samples_multi_channel_single_file(self):
+    #     """Test with multi-channel volumetric data with frames per slice > 1.
+
+    #     File: scanimage_20220923_roi.tif
+    #     Metadata:
+    #     - Volumetric: True (multiple planes)
+    #     - Channels: Multiple ['Channel 1', 'Channel 4'
+    #     - Frames per slice: 2
+    #     - Frame rate: 29.1248 Hz
+    #     - Volume rate: 7.28119 Hz
+    #     - IFDS/Pages: 24
+    #     - Num slices: 2
+    #     - Image shape: 528 x 256
+
+    #     """
+
+    #     file_path = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
+
+    #     # Test that ValueError is raised when slice_sample is not provided
+    #     with pytest.raises(ValueError):
+    #         extractor = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1")
+
+    #     frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(file_path)
+    #     assert frames_per_slice == 2, "File should have 2 slices per sample"
+
+    #     # Test that the extractor works correctly when a valid slice_sample is provided
+    #     extractor = ScanImageImagingExtractor(
+    #         file_paths=[file_path],
+    #         channel_name="Channel 1",
+    #         load_series_as_contigious_samples=True,
+    #     )
+
+    #     with pytest.raises(ValueError):
+    #         extractor.get_series()
+
+    #     planar_extractor = extractor.get_plane_extractor(plane_index=0)
+    #     assert planar_extractor.is_volumetric == False
+    #     assert planar_extractor.get_image_shape() == (528, 256)
+
+    #     number_of_frames = 24
+    #     number_of_channels = 2  # ['Channel 1', 'Channel 4']
+    #     number_of_planes = 2
+
+    #     assert planar_extractor.get_num_samples() == number_of_frames / (number_of_channels * number_of_planes)
+
 
 def test_get_frames_per_slice():
     """

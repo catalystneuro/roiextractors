@@ -59,6 +59,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         channel_name: Optional[str] = None,
         file_paths: Optional[list[PathType]] = None,
         slice_sample: Optional[int] = None,
+        load_series_as_contigious_samples: bool = False,
     ):
         """
         Initialize the extractor.
@@ -79,11 +80,30 @@ class ScanImageImagingExtractor(ImagingExtractor):
             When frames_per_slice > 1 (multiple frames per slice), this parameter specifies which frame to use
             for each slice. Must be between 0 and frames_per_slice-1. If None and frames_per_slice > 1,
             a ValueError will be raised.
+        load_series_as_contigious_samples : bool
+            False by default.
+
+            When true, all the samples are loaded as they appear in the acquisition cycle:
+
+            depth_1_frame_sample_1
+            depth_1_frame_sample_1
+            depth_1_frame_sample_3
+            depth_2_frame_sample_1
+            depth_2_frame_sample_1
+            depth_2_frame_sample_3
+            depth_3_frame_sample_1
+
+            etc.
+
+            This can be then be used to then extract a planar series for each depth by using `get_plane_extractor` which
+            contains all the samples for that depth in a single planar extractor.
+
         """
         super().__init__()
         self.file_path = file_paths[0] if file_paths is not None else file_path
         assert self.file_path is not None, "file_path or file_paths must be provided"
 
+        self.load_series_as_contigious_samples = load_series_as_contigious_samples
         # Validate file suffix
         valid_suffixes = [".tiff", ".tif", ".TIFF", ".TIF"]
         if self.file_path.suffix not in valid_suffixes:
@@ -111,14 +131,15 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
             self._frames_per_slice = self._metadata["SI.hStackManager.framesPerSlice"]
             if self._frames_per_slice > 1:
-                if slice_sample is None:
+                if slice_sample is None and not load_series_as_contigious_samples:
                     error_msg = (
                         f"Multiple frames per slice detected (frames_per_slice = {self._frames_per_slice}). "
                         f"Please specify a slice_sample between 0 and {self._frames_per_slice - 1} to select which frame to use for each slice."
                     )
                     raise ValueError(error_msg)
 
-                if not (0 <= slice_sample < self._frames_per_slice):
+                slice_sample_is_within_range = slice_sample is not None and 0 <= slice_sample < self._frames_per_slice
+                if not (slice_sample_is_within_range) and not load_series_as_contigious_samples:
                     error_msg = f"slice_sample must be between 0 and {self._frames_per_slice - 1} (frames_per_slice - 1), but got {slice_sample}."
                     raise ValueError(error_msg)
 
@@ -223,7 +244,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self._frames_to_ifd_table = channel_frames_to_ifd_table
 
         # Filter mapping for the specified slice_sample if frames_per_slice > 1
-        if self.is_volumetric and self._frames_per_slice > 1 and self._slice_sample is not None:
+        has_multiple_slices = self.is_volumetric and self._frames_per_slice > 1
+        if has_multiple_slices and self._slice_sample is not None:
             # We have removed channel from the mapping, then samples per slice are the fastest changing variable
             slice_sample_index = channel_frames_to_ifd_table["depth_index"] % self._frames_per_slice
             slice_sample_mask = slice_sample_index == self._slice_sample
@@ -235,6 +257,12 @@ class ScanImageImagingExtractor(ImagingExtractor):
             )
 
             self._frames_to_ifd_table = slice_frames_to_ifd_table
+        elif has_multiple_slices and self._slice_sample is None and load_series_as_contigious_samples:
+            # Adjust depth index to true value so it can be sliced but not drop frames
+            channel_frames_to_ifd_table["depth_index"] = (
+                channel_frames_to_ifd_table["depth_index"] // self._frames_per_slice
+            )
+            self._frames_to_ifd_table = channel_frames_to_ifd_table
 
     @staticmethod
     def _create_frame_to_ifd_table(
@@ -401,6 +429,13 @@ class ScanImageImagingExtractor(ImagingExtractor):
             For a volumetric dataset with 5 planes and 512x512 frames, requesting 3 samples
             would return an array with shape (3, 512, 512, 5).
         """
+        if self.load_series_as_contigious_samples:
+            error_msg = (
+                "get_series cannot be used when all the samples are loaded as they appear in the acquisition cycle. "
+                "Please use the get_plane_extractor method to get the planes or select a single plane using the slice_sample parameter."
+            )
+            raise ValueError(error_msg)
+
         start_sample = int(start_sample) if start_sample is not None else 0
         end_sample = int(end_sample) if end_sample is not None else self.get_num_samples()
 
@@ -625,6 +660,13 @@ class ScanImageImagingExtractor(ImagingExtractor):
         int
             Number of depth planes.
         """
+        if self.load_series_as_contigious_samples:
+            error_msg = (
+                f"number of planes is undefined when all the samples are loaded as they appear in the acquisition cycle. "
+                f"Please use the get_plane_extractor method to get the planes or select a single plane using the slice_sample parameter."
+            )
+            raise ValueError(error_msg)
+
         return self._num_planes
 
     def get_plane_extractor(self, plane_index: int) -> ImagingExtractor:
