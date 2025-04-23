@@ -170,6 +170,9 @@ class TestScanImageExtractorVolumetricMultiSample:
         with pytest.raises(ValueError):
             extractor = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4")
 
+        slices_per_sample = ScanImageImagingExtractor.get_slices_per_sample(file_path)
+        assert slices_per_sample == 2, "File should have 2 slices per sample"
+
         # Test that the extractor works correctly when a valid slice_sample is provided
         extractor_sample_1 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4", slice_sample=0)
 
@@ -178,7 +181,12 @@ class TestScanImageExtractorVolumetricMultiSample:
         assert extractor_sample_1.get_num_planes() == 2
         assert extractor_sample_1.get_sample_shape() == (256, 256, 2)
         assert extractor_sample_1.get_sampling_frequency() == 14.5517
-        expected_samples = 24 // 2 // 2 // 2  # 24 pages, 2 channels, 2 slices and 2 frames per slice
+
+        frames_in_dataset = 24
+        num_channels = len(extractor_sample_1.get_channel_names())
+        num_planes = extractor_sample_1.get_num_planes()
+        frames_in_a_sample = num_channels * num_planes * slices_per_sample
+        expected_samples = frames_in_dataset // frames_in_a_sample
         assert extractor_sample_1.get_num_samples() == expected_samples
 
         extractor_sample_2 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4", slice_sample=1)
@@ -188,7 +196,13 @@ class TestScanImageExtractorVolumetricMultiSample:
         assert extractor_sample_2.get_sample_shape() == (256, 256, 2)
 
         assert extractor_sample_2.get_sampling_frequency() == 14.5517
-        expected_samples_2 = 24 // 2 // 2 // 2  # 24 pages, 2 channels, 2 slices and 2 frames per slice
+
+        frames_in_dataset = 24
+        num_channels = 2  # ['Channel 1', 'Channel 4']
+        num_planes = extractor_sample_2.get_num_planes()
+
+        frames_in_a_sample = num_channels * num_planes * slices_per_sample
+        expected_samples_2 = frames_in_dataset // frames_in_a_sample
         assert extractor_sample_2.get_num_samples() == expected_samples_2
 
         # Compare to tiff library extraction for data integrity:
@@ -266,6 +280,9 @@ class TestScanImageExtractorVolumetricMultiSample:
         with pytest.raises(ValueError):
             extractor = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1")
 
+        slices_per_sample = ScanImageImagingExtractor.get_slices_per_sample(file_path)
+        assert slices_per_sample == 2, "File should have 2 slices per sample"
+
         # Test that the extractor works correctly when a valid slice_sample is provided
         extractor_sample_1 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1", slice_sample=0)
         extractor_sample_2 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1", slice_sample=1)
@@ -273,261 +290,19 @@ class TestScanImageExtractorVolumetricMultiSample:
         assert extractor_sample_1.is_volumetric == True
         assert extractor_sample_1.get_image_shape() == (528, 256)
         assert extractor_sample_1.get_sampling_frequency() == 7.28119
-        expected_samples = 24 // 2 // 2 / 2  # 24 pages, 2 frames per slice, 2 channels and 2 volumes
-        assert extractor_sample_1.get_num_samples() == expected_samples
 
-        assert extractor_sample_2.is_volumetric == True
-        assert extractor_sample_2.get_image_shape() == (528, 256)
-        assert extractor_sample_2.get_sampling_frequency() == 7.28119
-        expected_samples_2 = 24 // 2 // 2 / 2  # 24 pages, 2 frames per slice, 2 channels and 2 volumes
-        assert extractor_sample_2.get_num_samples() == expected_samples_2
-
-        # Compare to tiff library extraction for data integrity:
-        with TiffReader(file_path) as tiff_reader:
-            data = tiff_reader.asarray()
-
-        # Extract the data for both slices
-        data_sample_1 = extractor_sample_1.get_series()
-        data_sample_2 = extractor_sample_2.get_series()
-
-        # Compare all frames for slice sample 0
-        tiff_slice_sample_index = 0
-        tiff_channel_index = 0  # Channel 1 is at index 0 in the tiff data
-
-        # Iterate through all samples (volumes)
-        for sample_index in range(extractor_sample_1.get_num_samples()):
-            sample = data_sample_1[sample_index, ...]  # data is (time, width, height, depth)
-
-            # Iterate through all frames in the sample (depth planes)
-            for frame_index in range(extractor_sample_1.get_num_planes()):
-                frame_extractor = sample[..., frame_index]
-
-                # Calculate the corresponding index in the tiff data
-                # Each sample has 2 frames per slice, and we're using slice_sample=0
-                tiff_frame_index = sample_index * 2 + frame_index
-                frame_tiff = data[tiff_frame_index, tiff_slice_sample_index, tiff_channel_index, ...]
-
-                np.testing.assert_array_equal(
-                    frame_extractor, frame_tiff, f"Sample {sample_index}, frame {frame_index} does not match tiff data"
-                )
-
-        # Compare all frames for slice sample 1
-        tiff_slice_sample_index = 1
-
-        # Iterate through all samples (volumes)
-        for sample_index in range(extractor_sample_2.get_num_samples()):
-            sample = data_sample_2[sample_index, ...]  # data is (time, width, height, depth)
-
-            # Iterate through all frames in the sample (depth planes)
-            for frame_index in range(extractor_sample_2.get_num_planes()):
-                frame_extractor = sample[..., frame_index]
-
-                # Calculate the corresponding index in the tiff data
-                # Each sample has 2 frames per slice, and we're using slice_sample=1
-                tiff_frame_index = sample_index * 2 + frame_index
-                frame_tiff = data[tiff_frame_index, tiff_slice_sample_index, tiff_channel_index, ...]
-
-                np.testing.assert_array_equal(
-                    frame_extractor, frame_tiff, f"Sample {sample_index}, frame {frame_index} does not match tiff data"
-                )
-
-
-def test_get_slices_per_sample():
-    """Test the static get_slices_per_sample method.
-
-    This test verifies that the static get_slices_per_sample method correctly extracts
-    the number of slices per sample from ScanImage TIFF files without needing to create
-    an extractor instance.
-    """
-    # Test with single frame per slice file
-    single_frame_file = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
-    frames_per_slice = ScanImageImagingExtractor.get_slices_per_sample(single_frame_file)
-    assert frames_per_slice == 10, "File should have 1 frame per slice"
-
-    # Test with multiple frames per slice file
-    multi_frame_file = SCANIMAGE_PATH / "scanimage_20220801_volume.tif"
-    frames_per_slice = ScanImageImagingExtractor.get_slices_per_sample(multi_frame_file)
-    assert frames_per_slice == 8, "File should have 8 frames per slice"
-
-    # Test with another multiple frames per slice file
-    multi_frame_file2 = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
-    frames_per_slice = ScanImageImagingExtractor.get_slices_per_sample(multi_frame_file2)
-    assert frames_per_slice == 2, "File should have 2 frames per slice"
-
-
-class TestScanImageExtractorVolumetricMultiSample:
-    """Test the ScanImage extractor classes with files that have multiple frames per slice."""
-
-    def test_volumetric_data_single_channel_single_file(self):
-        """Test with volumetric data that has multiple frames per slice.
-
-        File: scanimage_20220801_volume.tif
-        Metadata:
-        - Acquisition mode: grab
-        - Volumetric: True (20 slices)
-        - Channels: 1 (single channel)
-        - Frames per slice: 8
-        - Frame rate: 30.0141 Hz
-        - Volume rate: 0.187588 Hz
-        - Pages/IDFs: 20
-        - 'num_frames_per_volume': 160
-
-        This file does not have enough samples to do a full slice extraction. It has 20 slices
-        and 8 frames per slice but only 20 pages of data. This means that only data from the first three
-        depths are included. Skipping this test for now
-        """
-
-        return
-
-    def test_volumetric_data_single_channel_single_file_2(self):
-        """Test with a multi-volume ScanImage file with frames per slice > 1.
-
-        File: scanimage_20220801_multivolume.tif
-        Metadata:
-        - Volumetric: True (multiple planes)
-        - Channels: 1 (single channel)
-        - Image shape: 512 x 512
-        - Frames per slice: 8
-        - num_ifds: 20
-        - num_slices: 10
-
-        This test does not have enough samples to do a full slice extraction. It has 20 slices
-        and 8 frames per slice but only 20 pages of data. This means that only data from the first three
-        depths are included. Skipping this test for now.
-        """
-        return
-
-    def test_volumetric_data_multi_channel_single_file(self):
-        """Test with volumetric data acquired in grab mode with multiple frames per depth.
-
-        File: scanimage_20220923_noroi.tif
-        Metadata:
-        - Acquisition mode: grab
-        - Volumetric: True (multiple planes)
-        - Channels: Multiple Channels ['Channel 1', 'Channel 4']
-        - Frames per depth: 2
-        - Frame rate: 29.1248 Hz
-        - Volume rate: 7.28119 Hz
-        - Image shape: 256 x 256
-        - Num_slices: 2
-        - IFDS/Pages: 24
-        """
-        file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
-
-        # Test that ValueError is raised when slice_sample is not provided
-        with pytest.raises(ValueError):
-            extractor = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4")
-
-        # Test that the extractor works correctly when a valid slice_sample is provided
-        extractor_sample_1 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4", slice_sample=0)
-
-        assert extractor_sample_1.is_volumetric == True
-        assert extractor_sample_1.get_frame_shape() == (256, 256)
-        assert extractor_sample_1.get_num_planes() == 2
-        assert extractor_sample_1.get_sample_shape() == (256, 256, 2)
-        assert extractor_sample_1.get_sampling_frequency() == 14.5517
-        expected_samples = 24 // 2 // 2 // 2  # 24 pages, 2 channels, 2 slices and 2 frames per slice
-        assert extractor_sample_1.get_num_samples() == expected_samples
-
-        extractor_sample_2 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4", slice_sample=1)
-        assert extractor_sample_2.is_volumetric == True
-        assert extractor_sample_2.get_frame_shape() == (256, 256)
-        assert extractor_sample_2.get_num_planes() == 2
-        assert extractor_sample_2.get_sample_shape() == (256, 256, 2)
-
-        assert extractor_sample_2.get_sampling_frequency() == 14.5517
-        expected_samples_2 = 24 // 2 // 2 // 2  # 24 pages, 2 channels, 2 slices and 2 frames per slice
-        assert extractor_sample_2.get_num_samples() == expected_samples_2
-
-        # Compare to tiff library extraction for data integrity:
-        with TiffReader(file_path) as tiff_reader:
-            data_tiff = tiff_reader.asarray()
-
-        # Extract the data for the first slice
-        data_sample_1 = extractor_sample_1.get_series()
-        data_sample_2 = extractor_sample_2.get_series()
-
-        # Compare all frames for slice sample 0
-        tiff_slice_sample_index = 0
-        tiff_channel_index = 1  # Channel 4 is at index 1 in the tiff data
-
-        # Iterate through all samples (volumes)
-        num_samples = extractor_sample_1.get_num_samples()
+        frames_in_dataset = 24
+        num_channels = 2  # ['Channel 1', 'Channel 4']
         num_planes = extractor_sample_1.get_num_planes()
-        for sample_index in range(num_samples):
-            sample = data_sample_1[sample_index, ...]  # data is (time, width, height, depth)
 
-            # Iterate through all frames in the sample (depth planes)
-            for frame_index in range(num_planes):
-                frame_extractor = sample[..., frame_index]
-
-                # Calculate the corresponding index in the tiff data
-                # Each sample has 2 frames per slice, and we're using slice_sample=0
-                tiff_frame_index = sample_index * 2 + frame_index
-                frame_tiff = data_tiff[tiff_frame_index, tiff_slice_sample_index, tiff_channel_index, ...]
-
-                np.testing.assert_array_equal(
-                    frame_extractor, frame_tiff, f"Sample {sample_index}, frame {frame_index} does not match tiff data"
-                )
-
-        # Compare all frames for slice sample 1
-        tiff_slice_sample_index = 1
-
-        # Iterate through all samples (volumes)
-        num_samples = extractor_sample_2.get_num_samples()
-        num_planes = extractor_sample_2.get_num_planes()
-        for sample_index in range(num_samples):
-            sample = data_sample_2[sample_index, ...]  # data is (time, width, height, depth)
-
-            # Iterate through all frames in the sample (depth planes)
-            for frame_index in range(num_planes):
-                frame_extractor = sample[..., frame_index]
-
-                # Calculate the corresponding index in the tiff data
-                # Each sample has 2 frames per slice, and we're using slice_sample=1
-                tiff_frame_index = sample_index * 2 + frame_index
-                frame_tiff = data_tiff[tiff_frame_index, tiff_slice_sample_index, tiff_channel_index, ...]
-
-                np.testing.assert_array_equal(
-                    frame_extractor, frame_tiff, f"Sample {sample_index}, frame {frame_index} does not match tiff data"
-                )
-
-    def test_volumetric_data_multi_channel_single_file_2(self):
-        """Test with multi-channel volumetric data with frames per slice > 1.
-
-        File: scanimage_20220923_roi.tif
-        Metadata:
-        - Volumetric: True (multiple planes)
-        - Channels: Multiple ['Channel 1', 'Channel 4'
-        - Frames per slice: 2
-        - Frame rate: 29.1248 Hz
-        - Volume rate: 7.28119 Hz
-        - IFDS/Pages: 24
-        - Num slices: 2
-        - Image shape: 528 x 256
-
-        """
-
-        file_path = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
-
-        # Test that ValueError is raised when slice_sample is not provided
-        with pytest.raises(ValueError):
-            extractor = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1")
-
-        # Test that the extractor works correctly when a valid slice_sample is provided
-        extractor_sample_1 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1", slice_sample=0)
-        extractor_sample_2 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1", slice_sample=1)
-
-        assert extractor_sample_1.is_volumetric == True
-        assert extractor_sample_1.get_image_shape() == (528, 256)
-        assert extractor_sample_1.get_sampling_frequency() == 7.28119
-        expected_samples = 24 // 2 // 2 / 2  # 24 pages, 2 frames per slice, 2 channels and 2 volumes
+        frames_in_a_sample = num_channels * num_planes * slices_per_sample
+        expected_samples = frames_in_dataset // frames_in_a_sample
         assert extractor_sample_1.get_num_samples() == expected_samples
 
         assert extractor_sample_2.is_volumetric == True
         assert extractor_sample_2.get_image_shape() == (528, 256)
         assert extractor_sample_2.get_sampling_frequency() == 7.28119
-        expected_samples_2 = 24 // 2 // 2 / 2  # 24 pages, 2 frames per slice, 2 channels and 2 volumes
+        expected_samples_2 = expected_samples
         assert extractor_sample_2.get_num_samples() == expected_samples_2
 
         # Compare to tiff library extraction for data integrity:

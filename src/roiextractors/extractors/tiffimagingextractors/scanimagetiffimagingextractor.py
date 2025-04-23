@@ -201,7 +201,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # Note that this includes all the frames for all the channels including flyback frames
         self._num_frames_in_dataset = sum(ifds_per_file)
 
-        image_frames_per_cycle = self._num_channels * self._num_planes
+        image_frames_per_cycle = self._num_channels * self._num_planes * self._frames_per_slice
         # Note that there might be frames at the end that do not belong to a full cycle
         num_acquisition_cycles = self._num_frames_in_dataset // image_frames_per_cycle
 
@@ -209,25 +209,32 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self._num_samples = num_acquisition_cycles
 
         # Create full mapping for all channels, samples, and depths
-        full_frame_to_ifds_table = self._create_frame_to_ifd_table(
+        full_frames_to_ifds_table = self._create_frame_to_ifd_table(
             num_channels=self._num_channels,
-            num_planes=self._num_planes,
+            num_planes=self._num_planes * self._frames_per_slice,  # Artificial depth when frames_per_slice > 1
             num_acquisition_cycles=num_acquisition_cycles,
             ifds_per_file=ifds_per_file,
         )
 
         # Filter mapping for the specified channel
-        channel_mask = full_frame_to_ifds_table["channel_index"] == self._channel_index
-        channel_frames_to_ifd_table = full_frame_to_ifds_table[channel_mask]
+        channel_mask = full_frames_to_ifds_table["channel_index"] == self._channel_index
+        channel_frames_to_ifd_table = full_frames_to_ifds_table[channel_mask]
+
+        self._frames_to_ifd_table = channel_frames_to_ifd_table
 
         # Filter mapping for the specified slice_sample if frames_per_slice > 1
         if self.is_volumetric and self._frames_per_slice > 1 and self._slice_sample is not None:
-            # Slicing pattern: slice_sample, slice_sample + frames_per_slice, ...
-            indices = np.arange(len(channel_frames_to_ifd_table))
-            slice_mask = (indices % self._frames_per_slice) == self._slice_sample
-            channel_frames_to_ifd_table = channel_frames_to_ifd_table[slice_mask]
+            # We have removed channel from the mapping, then samples per slice are the fastest changing variable
+            slice_sample_index = channel_frames_to_ifd_table["depth_index"] % self._frames_per_slice
+            slice_sample_mask = slice_sample_index == self._slice_sample
+            slice_frames_to_ifd_table = channel_frames_to_ifd_table[slice_sample_mask]
 
-        self._frames_to_ifd_table = channel_frames_to_ifd_table
+            # We update depth index to remove the artificial depth
+            slice_frames_to_ifd_table["depth_index"] = (
+                slice_frames_to_ifd_table["depth_index"] // self._frames_per_slice
+            )
+
+            self._frames_to_ifd_table = slice_frames_to_ifd_table
 
     @staticmethod
     def _create_frame_to_ifd_table(
