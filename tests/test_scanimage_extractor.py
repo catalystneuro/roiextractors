@@ -170,8 +170,8 @@ class TestScanImageExtractorVolumetricMultiSample:
         with pytest.raises(ValueError):
             extractor = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4")
 
-        slices_per_sample = ScanImageImagingExtractor.get_frames_per_slice(file_path)
-        assert slices_per_sample == 2, "File should have 2 slices per sample"
+        frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(file_path)
+        assert frames_per_slice == 2, "File should have 2 slices per sample"
 
         # Test that the extractor works correctly when a valid slice_sample is provided
         extractor_sample_1 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4", slice_sample=0)
@@ -185,7 +185,7 @@ class TestScanImageExtractorVolumetricMultiSample:
         frames_in_dataset = 24
         num_channels = len(extractor_sample_1.get_channel_names())
         num_planes = extractor_sample_1.get_num_planes()
-        frames_in_a_sample = num_channels * num_planes * slices_per_sample
+        frames_in_a_sample = num_channels * num_planes * frames_per_slice
         expected_samples = frames_in_dataset // frames_in_a_sample
         assert extractor_sample_1.get_num_samples() == expected_samples
 
@@ -201,7 +201,7 @@ class TestScanImageExtractorVolumetricMultiSample:
         num_channels = 2  # ['Channel 1', 'Channel 4']
         num_planes = extractor_sample_2.get_num_planes()
 
-        frames_in_a_sample = num_channels * num_planes * slices_per_sample
+        frames_in_a_sample = num_channels * num_planes * frames_per_slice
         expected_samples_2 = frames_in_dataset // frames_in_a_sample
         assert extractor_sample_2.get_num_samples() == expected_samples_2
 
@@ -280,8 +280,8 @@ class TestScanImageExtractorVolumetricMultiSample:
         with pytest.raises(ValueError):
             extractor = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1")
 
-        slices_per_sample = ScanImageImagingExtractor.get_frames_per_slice(file_path)
-        assert slices_per_sample == 2, "File should have 2 slices per sample"
+        frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(file_path)
+        assert frames_per_slice == 2, "File should have 2 slices per sample"
 
         # Test that the extractor works correctly when a valid slice_sample is provided
         extractor_sample_1 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1", slice_sample=0)
@@ -295,7 +295,7 @@ class TestScanImageExtractorVolumetricMultiSample:
         num_channels = 2  # ['Channel 1', 'Channel 4']
         num_planes = extractor_sample_1.get_num_planes()
 
-        frames_in_a_sample = num_channels * num_planes * slices_per_sample
+        frames_in_a_sample = num_channels * num_planes * frames_per_slice
         expected_samples = frames_in_dataset // frames_in_a_sample
         assert extractor_sample_1.get_num_samples() == expected_samples
 
