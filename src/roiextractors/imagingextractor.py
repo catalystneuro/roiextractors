@@ -28,6 +28,7 @@ class ImagingExtractor(ABC):
         self._kwargs = kwargs
         self._times = None
         self.name = self.__class__.__name__
+        self.is_volumetric = False
 
     def _repr_text(self):
         """Generate text representation of the ImagingExtractor object."""
@@ -135,6 +136,69 @@ class ImagingExtractor(ABC):
             stacklevel=2,
         )
         return self.get_image_shape()
+
+    def get_frame_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        frame_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+
+        Notes
+        -----
+        This method is equivalent to get_image_shape() and is provided for consistency
+        with the naming convention used in volumetric extractors.
+        """
+        return self.get_image_shape()
+
+    def get_num_planes(self) -> int:
+        """Get the number of depth planes.
+
+        Returns
+        -------
+        num_planes: int
+            The number of depth planes.
+
+        Raises
+        ------
+        NotImplementedError
+            If the extractor is not volumetric.
+        """
+        if not self.is_volumetric:
+            raise NotImplementedError(
+                "This extractor is not volumetric. "
+                "The get_num_planes method is only available for volumetric extractors."
+            )
+        raise NotImplementedError("This method must be implemented by volumetric extractor subclasses.")
+
+    def get_video_shape(self) -> Tuple[int, int, int]:
+        """Get the shape of the volumetric video (num_rows, num_columns, num_planes).
+
+        Returns
+        -------
+        video_shape: tuple
+            Shape of the volumetric video (num_rows, num_columns, num_planes).
+
+        Raises
+        ------
+        NotImplementedError
+            If the extractor is not volumetric or does not implement get_num_planes method.
+        """
+        if not self.is_volumetric:
+            raise NotImplementedError(
+                "This extractor is not volumetric. "
+                "The get_video_shape method is only available for volumetric extractors."
+            )
+
+        if not hasattr(self, "get_num_planes") or not callable(getattr(self, "get_num_planes")):
+            raise NotImplementedError(
+                "This extractor does not implement get_num_planes method. "
+                "The get_video_shape method requires the get_num_planes method to be implemented."
+            )
+
+        image_shape = self.get_image_shape()
+        return (image_shape[0], image_shape[1], self.get_num_planes())
 
     @abstractmethod
     def get_num_samples(self) -> int:
@@ -473,6 +537,9 @@ class FrameSliceImagingExtractor(ImagingExtractor):
         if getattr(self._parent_imaging, "_times") is not None:
             self._times = self._parent_imaging._times[start_frame:end_frame]
 
+        # Inherit volumetric properties from parent
+        self.is_volumetric = self._parent_imaging.is_volumetric
+
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
         assert max(frame_idxs) < self._num_samples, "'frame_idxs' range beyond number of available frames!"
         mapped_frame_idxs = np.array(frame_idxs) + self._start_frame
@@ -572,3 +639,23 @@ class FrameSliceImagingExtractor(ImagingExtractor):
             stacklevel=2,
         )
         return self._parent_imaging.get_num_channels()
+
+    def get_num_planes(self) -> int:
+        """Get the number of depth planes.
+
+        Returns
+        -------
+        num_planes: int
+            The number of depth planes.
+
+        Raises
+        ------
+        NotImplementedError
+            If the parent extractor is not volumetric.
+        """
+        if not self.is_volumetric:
+            raise NotImplementedError(
+                "This extractor is not volumetric. "
+                "The get_num_planes method is only available for volumetric extractors."
+            )
+        return self._parent_imaging.get_num_planes()

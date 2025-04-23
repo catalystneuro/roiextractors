@@ -267,6 +267,7 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
 
         self._start_frames = [0] * self._num_planes_per_channel_stream
         self._end_frames = [self._num_samples] * self._num_planes_per_channel_stream
+        self.is_volumetric = True
 
     def get_image_shape(self) -> Tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
@@ -411,6 +412,16 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
             )
 
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
+
+    def get_video_shape(self) -> Tuple[int, int, int]:
+        """Get the shape of the volumetric video (num_rows, num_columns, num_planes).
+
+        Returns
+        -------
+        video_shape: tuple
+            Shape of the volumetric video (num_rows, num_columns, num_planes).
+        """
+        return (self._image_size[0], self._image_size[1], self._num_planes_per_channel_stream)
 
 
 class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
