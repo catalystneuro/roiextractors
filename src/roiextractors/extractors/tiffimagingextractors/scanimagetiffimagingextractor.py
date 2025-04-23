@@ -8,6 +8,7 @@ ScanImageTiffImagingExtractor
 
 from pathlib import Path
 from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List
 import warnings
 from warnings import warn
 import numpy as np
@@ -717,6 +718,18 @@ class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
 
         self._num_planes = imaging_extractors[0].get_num_planes()
         super().__init__(imaging_extractors=imaging_extractors)
+        self.is_volumetric = True
+
+    def get_volume_shape(self) -> Tuple[int, int, int]:
+        """Get the shape of the volumetric video (num_rows, num_columns, num_planes).
+
+        Returns
+        -------
+        video_shape: tuple
+            Shape of the volumetric video (num_rows, num_columns, num_planes).
+        """
+        image_shape = self.get_image_shape()
+        return (image_shape[0], image_shape[1], self.get_num_planes())
 
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
@@ -842,6 +855,18 @@ class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
         assert all(
             imaging_extractor.get_num_planes() == self._num_planes for imaging_extractor in imaging_extractors
         ), "All imaging extractors must have the same number of planes."
+        self.is_volumetric = True
+
+    def get_volume_shape(self) -> Tuple[int, int, int]:
+        """Get the shape of the volumetric video (num_rows, num_columns, num_planes).
+
+        Returns
+        -------
+        video_shape: tuple
+            Shape of the volumetric video (num_rows, num_columns, num_planes).
+        """
+        image_shape = self.get_image_shape()
+        return (image_shape[0], image_shape[1], self.get_num_planes())
 
 
 class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
