@@ -202,7 +202,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         #  Every cycle is a full channel sample either volume or planar
         self._num_samples = num_acquisition_cycles
 
-        # Map IFDs and file_indices to samples anc their corresponding channel, depth and acquisition cycle
+        # Map IFDs and files to frames, channel, depth, and acquisition cycle
         full_frames_to_ifds_table = self._create_frame_to_ifd_table(
             num_channels=self._num_channels,
             num_planes=self._num_planes,
