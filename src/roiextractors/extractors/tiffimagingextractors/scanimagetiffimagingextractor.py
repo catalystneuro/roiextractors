@@ -37,6 +37,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
     and IFD (Image File Directory) location. This mapping enables efficient retrieval of specific frames
     without loading the entire dataset into memory, making it suitable for large datasets.
 
+    For datasets with multiple frames per slice, a slice_sample parameter must be provided.
+
+
     Key features:
     - Handles multi-channel data with channel selection
     - Supports volumetric (multi-plane) imaging data
@@ -45,8 +48,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
     - Efficiently retrieves frames using lazy loading
     - Handles flyback frames in volumetric data by ignoring them in the mapping
 
-    Current limitations:
-    - Does not support datasets with multiple frames per slice (will raise ValueError)
     """
 
     extractor_name = "ScanImageImagingExtractor"
@@ -56,6 +57,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         file_path: Optional[PathType] = None,
         channel_name: Optional[str] = None,
         file_paths: Optional[list[PathType]] = None,
+        slice_sample: Optional[int] = None,
     ):
         """
         Initialize the extractor.
@@ -72,6 +74,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
             file detection heuristics. Use this if automatic detection does not work correctly and you know
             exactly which files should be included.  The file paths should be provided in an order that
             reflects the temporal order of the frames in the dataset.
+        slice_sample : int, optional
+            When frames_per_slice > 1 (multiple frames per slice), this parameter specifies which frame to use
+            for each slice. Must be between 0 and frames_per_slice-1. If None and frames_per_slice > 1,
+            a ValueError will be raised.
         """
         super().__init__()
         self.file_path = file_paths[0] if file_paths is not None else file_path
@@ -102,13 +108,22 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanVolumeRate"]
             self._num_planes = self._metadata["SI.hStackManager.numSlices"]
 
-            self.frames_per_slice = self._metadata["SI.hStackManager.framesPerSlice"]
-            if self.frames_per_slice > 1:
-                error_msg = (
-                    "Multiple frames per slice detected. "
-                    "Please open an issue on GitHub roiextractors to request this feature: "
-                )
-                raise ValueError(error_msg)
+            self._frames_per_slice = self._metadata["SI.hStackManager.framesPerSlice"]
+            if self._frames_per_slice > 1:
+                if slice_sample is None:
+                    error_msg = (
+                        f"Multiple frames per slice detected (frames_per_slice = {self._frames_per_slice}). "
+                        f"Please specify a slice_sample between 0 and {self._frames_per_slice - 1} to select which frame to use for each slice."
+                    )
+                    raise ValueError(error_msg)
+
+                if not (0 <= slice_sample < self._frames_per_slice):
+                    error_msg = f"slice_sample must be between 0 and {self._frames_per_slice - 1} (frames_per_slice - 1), but got {slice_sample}."
+                    raise ValueError(error_msg)
+
+                self._slice_sample = slice_sample
+            else:
+                self._slice_sample = None
 
             self._frames_per_volume_per_channel = self._metadata["SI.hStackManager.numFramesPerVolume"]
             self._frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
@@ -178,7 +193,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # Note that this includes all the frames for all the channels including flyback frames
         self._num_frames_in_dataset = sum(ifds_per_file)
 
-        image_frames_per_cycle = self._num_channels * self._num_planes
+        image_frames_per_cycle = self._num_channels * self._num_planes * self._frames_per_slice
         # Note that there might be frames at the end that do not belong to a full cycle
         num_acquisition_cycles = self._num_frames_in_dataset // (image_frames_per_cycle + self.flyback_frames)
 
@@ -186,18 +201,25 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self._num_samples = num_acquisition_cycles
 
         # Create full mapping for all channels, samples, and depths
-        full_frame_to_ifds_table = self._create_frame_to_ifd_table(
+        full_frames_to_ifds_table = self._create_frame_to_ifd_table(
             num_channels=self._num_channels,
             num_planes=self._num_planes,
             num_acquisition_cycles=num_acquisition_cycles,
             ifds_per_file=ifds_per_file,
+            num_frames_per_slice=self._frames_per_slice,
             flyback_frames=self.flyback_frames,
         )
 
         # Filter mapping for the specified channel
-        channel_mask = full_frame_to_ifds_table["channel_index"] == self._channel_index
-        channel_frames_to_ifd_table = full_frame_to_ifds_table[channel_mask]
+        channel_mask = full_frames_to_ifds_table["channel_index"] == self._channel_index
+        channel_frames_to_ifd_table = full_frames_to_ifds_table[channel_mask]
+
         self._frames_to_ifd_table = channel_frames_to_ifd_table
+
+        # Filter mapping for the specified slice_sample
+        if self.is_volumetric and self._slice_sample is not None:
+            slice_sample_mask = channel_frames_to_ifd_table["slice_sample_index"] == self._slice_sample
+            self._frames_to_ifd_table = channel_frames_to_ifd_table[slice_sample_mask]
 
     @staticmethod
     def _create_frame_to_ifd_table(
@@ -205,6 +227,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         num_planes: int,
         num_acquisition_cycles: int,
         ifds_per_file: list[int],
+        num_frames_per_slice: int = 1,
         flyback_frames: int = 0,
     ) -> np.ndarray:
         """
@@ -231,6 +254,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Number of acquisition cycles. For ScanImage, this is the number of samples.
         ifds_per_file : list[int]
             Number of IFDs in each file.
+        num_frames_per_slice : int
+            Number of frames per slice. This is used to determine the slice_sample index.
         flyback_frames : int
             Number of flyback frames.
 
@@ -247,12 +272,13 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 ("IFD_index", np.uint16),
                 ("channel_index", np.uint8),
                 ("depth_index", np.uint8),
+                ("slice_sample_index", np.uint8),
                 ("acquisition_cycle_index", np.uint16),
             ]
         )
 
         # Calculate total number of entries
-        frames_per_acquisition_cycle = num_planes * num_channels + flyback_frames
+        frames_per_acquisition_cycle = num_planes * num_frames_per_slice * num_channels + flyback_frames
 
         # Generate global ifd indices for complete cycles only
         # This ensures we only include frames from complete acquisition cycles
@@ -281,9 +307,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         # Calculate indices for each dimension based on the frame position within the cycle
         # For ScanImage, the order is always CZT which means that the channel index comes first,
-        # followed by depth and then acquisition cycle
+        # followed by the frames per slice, then depth and finally the acquisition cycle
         channel_indices = index_in_acquisition_cycle % num_channels
-        depth_indices = (index_in_acquisition_cycle // num_channels) % num_planes
+        slice_sample_indices = (index_in_acquisition_cycle // num_channels) % num_frames_per_slice
+        depth_indices = (global_ifd_indices // (num_channels * num_frames_per_slice)) % num_planes
         acquisition_cycle_indices = global_ifd_indices // frames_per_acquisition_cycle
 
         # Create the structured array with the correct size (number of imaging frames after filtering)
@@ -291,6 +318,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         mapping["file_index"] = file_indices
         mapping["IFD_index"] = ifd_indices
         mapping["channel_index"] = channel_indices
+        mapping["slice_sample_index"] = slice_sample_indices
         mapping["depth_index"] = depth_indices
         mapping["acquisition_cycle_index"] = acquisition_cycle_indices
 
@@ -656,6 +684,33 @@ class ScanImageImagingExtractor(ImagingExtractor):
         sliced_extractor._num_planes = 1
 
         return sliced_extractor
+
+    @staticmethod
+    def get_frames_per_slice(file_path: PathType) -> int:
+        """
+        Get the number of frames per slice from a ScanImage TIFF file.
+
+        ScanImage can sample mutiple frames per each slice.
+
+        Parameters
+        ----------
+        file_path : PathType
+            Path to the ScanImage TIFF file.
+
+        Returns
+        -------
+        int
+            Number of frames per slice.
+
+        """
+        from tifffile import read_scanimage_metadata
+
+        with open(file_path, "rb") as fh:
+            all_metadata = read_scanimage_metadata(fh)
+            non_varying_frame_metadata = all_metadata[0]
+
+        frames_per_slice = non_varying_frame_metadata.get("SI.hStackManager.framesPerSlice", 1)
+        return frames_per_slice
 
     def __del__(self):
         """Close file handles when the extractor is garbage collected."""
