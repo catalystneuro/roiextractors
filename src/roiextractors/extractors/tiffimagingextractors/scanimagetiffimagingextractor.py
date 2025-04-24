@@ -193,14 +193,16 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # Note that this includes all the frames for all the channels including flyback frames
         self._num_frames_in_dataset = sum(ifds_per_file)
 
-        image_frames_per_cycle = self._num_channels * self._num_planes * self._frames_per_slice
-        # Note that there might be frames at the end that do not belong to a full cycle
-        num_acquisition_cycles = self._num_frames_in_dataset // (image_frames_per_cycle + self.flyback_frames)
+        image_frames_per_cycle = self._num_planes * self._num_channels * self._frames_per_slice
+        total_frames_per_cycle = image_frames_per_cycle + self.flyback_frames
 
-        #  Every cycle a full sample is acquired for every channel
+        # Note that the acquisition might end without completing the last cycle and we discard those frames
+        num_acquisition_cycles = self._num_frames_in_dataset // (total_frames_per_cycle)
+
+        #  Every cycle is a full channel sample either volume or planar
         self._num_samples = num_acquisition_cycles
 
-        # Create full mapping for all channels, samples, and depths
+        # Map IFDs and file_indices to samples anc their corresponding channel, depth and acquisition cycle
         full_frames_to_ifds_table = self._create_frame_to_ifd_table(
             num_channels=self._num_channels,
             num_planes=self._num_planes,
@@ -278,18 +280,18 @@ class ScanImageImagingExtractor(ImagingExtractor):
         )
 
         # Calculate total number of entries
-        frames_per_acquisition_cycle = num_planes * num_frames_per_slice * num_channels + flyback_frames
+        image_frames_per_cycle = num_planes * num_frames_per_slice * num_channels
+        total_frames_per_cycle = image_frames_per_cycle + flyback_frames
 
         # Generate global ifd indices for complete cycles only
         # This ensures we only include frames from complete acquisition cycles
-        complete_cycles_frames = num_acquisition_cycles * frames_per_acquisition_cycle
-        global_ifd_indices = np.arange(complete_cycles_frames, dtype=np.uint32)
+        num_frames_in_complete_cycles = num_acquisition_cycles * total_frames_per_cycle
+        global_ifd_indices = np.arange(num_frames_in_complete_cycles, dtype=np.uint32)
 
-        # We need to filter out the flyback frames, we create an index in the acquisition cycle
-        # And filter out those who are not imaging frames
-        imaging_frames_in_cycle = num_planes * num_channels
-        index_in_acquisition_cycle = global_ifd_indices % frames_per_acquisition_cycle
-        is_imaging_frame = index_in_acquisition_cycle < imaging_frames_in_cycle
+        # We need to filter out the flyback frames, we create an index within each acquisition cycle
+        # And then filter out the non-image frames (flyback frames)
+        index_in_acquisition_cycle = global_ifd_indices % total_frames_per_cycle
+        is_imaging_frame = index_in_acquisition_cycle < image_frames_per_cycle
 
         global_ifd_indices = global_ifd_indices[is_imaging_frame]
         index_in_acquisition_cycle = index_in_acquisition_cycle[is_imaging_frame]
@@ -311,7 +313,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         channel_indices = index_in_acquisition_cycle % num_channels
         slice_sample_indices = (index_in_acquisition_cycle // num_channels) % num_frames_per_slice
         depth_indices = (global_ifd_indices // (num_channels * num_frames_per_slice)) % num_planes
-        acquisition_cycle_indices = global_ifd_indices // frames_per_acquisition_cycle
+        acquisition_cycle_indices = global_ifd_indices // total_frames_per_cycle
 
         # Create the structured array with the correct size (number of imaging frames after filtering)
         mapping = np.zeros(len(global_ifd_indices), dtype=mapping_dtype)
