@@ -302,7 +302,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         # Calculate indices for each dimension based on the frame position within the cycle
         # For ScanImage, the order is always CZT which means that the channel index comes first,
-        # followed by depth and then acquisition cycle
+        # followed by the frames per slice, then depth and finally the acquisition cycle
         channel_indices = global_ifd_indices % num_channels
         slice_sample_indices = (global_ifd_indices // num_channels) % num_frames_per_slice
         depth_indices = (global_ifd_indices // (num_channels * num_frames_per_slice)) % num_planes
