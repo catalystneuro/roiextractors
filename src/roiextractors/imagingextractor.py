@@ -112,8 +112,7 @@ class ImagingExtractor(ABC):
 
         Notes
         -----
-        This method is equivalent to get_image_shape() and is provided for consistency
-        with the naming convention used in volumetric extractors.
+        This method is equivalent to get_image_shape()
         """
         return self.get_image_shape()
 
@@ -121,8 +120,14 @@ class ImagingExtractor(ABC):
         """
         Get the shape of a single sample elements from the series.
 
-        If the series is volumetric, the shape is the shape of the volume, otherwise
-        thsi returns the shape of a single frame/image.
+        If the series is volumetric, the shape is the shape of the volume and otherwise
+        returns the shape of a single frame/image.
+
+        Returns
+        -------
+        sample_shape: tuple
+            Shape of a single sample from the time series (num_rows, num_columns, num_planes)
+            if volumetric (num_rows, num_columns) otherwise
         """
         if self.is_volumetric:
             return self.get_volume_shape()
