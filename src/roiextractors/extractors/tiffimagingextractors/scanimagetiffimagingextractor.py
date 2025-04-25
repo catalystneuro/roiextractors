@@ -194,7 +194,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self._num_frames_in_dataset = sum(ifds_per_file)
 
         image_frames_per_cycle = self._num_planes * self._num_channels * self._frames_per_slice
-        total_frames_per_cycle = image_frames_per_cycle + self.num_flyback_frames
+        total_frames_per_cycle = image_frames_per_cycle + self.num_flyback_frames * self._num_channels
 
         # Note that the acquisition might end without completing the last cycle and we discard those frames
         num_acquisition_cycles = self._num_frames_in_dataset // (total_frames_per_cycle)
@@ -281,7 +281,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         # Calculate total number of entries
         image_frames_per_cycle = num_planes * num_frames_per_slice * num_channels
-        total_frames_per_cycle = image_frames_per_cycle + num_flyback_frames
+        total_frames_per_cycle = image_frames_per_cycle + num_flyback_frames * num_channels
 
         # Generate global ifd indices for complete cycles only
         # This ensures we only include frames from complete acquisition cycles
