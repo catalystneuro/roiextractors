@@ -1,3 +1,6 @@
+"""Class for some core utilities."""
+
+
 def _convert_seconds_to_str(seconds):
     """Convert seconds to a human-readable string."""
     if seconds < 60:
