@@ -33,7 +33,7 @@ class ImagingExtractor(ABC):
     def _repr_text(self):
         """Generate text representation of the ImagingExtractor object."""
         num_samples = self.get_num_samples()
-        image_size = self.get_image_size()
+        sample_shape = self.get_sample_shape()
         dtype = self.get_dtype()
         sf_hz = self.get_sampling_frequency()
 
@@ -47,27 +47,23 @@ class ImagingExtractor(ABC):
         duration = num_samples / sf_hz
         duration_str = self._convert_seconds_to_str(duration)
 
-        # Check if this is a volumetric extractor
-        is_volumetric_extractor = hasattr(self, "get_num_planes") and callable(getattr(self, "get_num_planes"))
-
         # Calculate memory size using product of all dimensions in image_size
-        memory_size = num_samples * prod(image_size) * dtype.itemsize
+        memory_size = num_samples * prod(sample_shape) * dtype.itemsize
         memory_str = self._convert_bytes_to_str(memory_size)
 
         # Format shape string based on whether it's volumetric or not
-        if is_volumetric_extractor:
-            num_planes = self.get_num_planes()
-            shape_str = (
-                f"[{num_samples:,} samples × {image_size[0]} pixels × {image_size[1]} pixels × {num_planes} planes]"
-            )
-        else:
-            shape_str = f"[{num_samples:,} samples × {image_size[0]} pixels × {image_size[1]} pixels]"
+
+        sample_shape_string = f"{sample_shape[0]} rows x {sample_shape[1]} columns "
+        if self.is_volumetric:
+            sample_shape_string += f"x {sample_shape[2]} planes"
 
         return (
-            f"{self.name} {shape_str}\n"
+            f"{self.name}\n"
+            f"  Number of samples: {num_samples} \n"
+            f"  Sample shape: {sample_shape_string} \n"
             f"  Sampling rate: {sampling_frequency_repr}\n"
             f"  Duration: {duration_str}\n"
-            f"  Memory: {memory_str} ({dtype} dtype)"
+            f"  Imaging data memory: {memory_str} ({dtype} dtype)"
         )
 
     def __repr__(self):
@@ -151,6 +147,18 @@ class ImagingExtractor(ABC):
         with the naming convention used in volumetric extractors.
         """
         return self.get_image_shape()
+
+    def get_sample_shape(self) -> Tuple[int, int] | Tuple[int, int, int]:
+        """
+        Get the shape of a single sample elements from the series.
+
+        If the series is volumetric, the shape is the shape of the volume, otherwise
+        thsi returns the shape of a single frame/image.
+        """
+        if self.is_volumetric:
+            return self.get_volume_shape()
+        else:
+            return self.get_frame_shape()
 
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
