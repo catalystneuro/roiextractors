@@ -327,7 +327,7 @@ class TestScanImageExtractorVolumetricMultiSample:
 
                 # Calculate the corresponding index in the tiff data
                 # Each sample has 2 frames per slice, and we're using slice_sample=0
-                tiff_frame_index = sample_index * 2 + frame_index
+                tiff_frame_index = sample_index * frames_per_slice + frame_index
                 frame_tiff = data[tiff_frame_index, tiff_slice_sample_index, tiff_channel_index, ...]
 
                 np.testing.assert_array_equal(
@@ -347,7 +347,7 @@ class TestScanImageExtractorVolumetricMultiSample:
 
                 # Calculate the corresponding index in the tiff data
                 # Each sample has 2 frames per slice, and we're using slice_sample=1
-                tiff_frame_index = sample_index * 2 + frame_index
+                tiff_frame_index = sample_index * frames_per_slice + frame_index
                 frame_tiff = data[tiff_frame_index, tiff_slice_sample_index, tiff_channel_index, ...]
 
                 np.testing.assert_array_equal(

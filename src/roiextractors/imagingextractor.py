@@ -116,7 +116,7 @@ class ImagingExtractor(ABC):
         """
         return self.get_image_shape()
 
-    def get_sample_shape(self) -> Tuple[int, int] | Tuple[int, int, int]:
+    def get_sample_shape(self) -> Union[Tuple[int, int], Tuple[int, int, int]]:
         """
         Get the shape of a single sample elements from the series.
 
