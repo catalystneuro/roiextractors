@@ -102,8 +102,13 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self._num_rows, self._num_columns = tiff_reader.pages[0].shape
         self._dtype = tiff_reader.pages[0].dtype
 
+        # Check if stack manager is enabled and if there are multiple slices
         # This criteria was confirmed by Lawrence Niu, a developer of ScanImage
-        self.is_volumetric = self._metadata["SI.hStackManager.enable"]
+        # but we need to also check numSlices > 1 because some planar datasets
+        # have SI.hStackManager.enable = True but only one slice
+        stack_enabled = self._metadata["SI.hStackManager.enable"]
+        num_slices = self._metadata["SI.hStackManager.numSlices"]
+        self.is_volumetric = stack_enabled and num_slices > 1
         if self.is_volumetric:
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanVolumeRate"]
             self._num_planes = self._metadata["SI.hStackManager.numSlices"]
