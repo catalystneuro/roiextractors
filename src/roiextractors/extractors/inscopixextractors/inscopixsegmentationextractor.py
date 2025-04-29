@@ -1,6 +1,7 @@
 """Inscopix Segmentation Extractor."""
 
 from typing import Optional
+import platform
 import numpy as np
 
 from ...extraction_tools import PathType, ArrayType
@@ -26,6 +27,13 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         file_path: str
             The location of the folder containing Inscopix *.mat output file.
         """
+        if platform.system() == "Darwin":
+            raise ImportError(
+                "The isx package is currently not natively supported on macOS with Apple Silicon. "
+                "Installation instructions can be found at: "
+                "https://github.com/inscopix/pyisx?tab=readme-ov-file#install"
+            )
+
         import isx
 
         SegmentationExtractor.__init__(self)

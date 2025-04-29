@@ -1,9 +1,14 @@
 import numpy as np
+import pytest
+import platform
 from numpy.testing import assert_array_equal
 from pathlib import Path
 from roiextractors import InscopixSegmentationExtractor
 
 from .setup_paths import OPHYS_DATA_PATH
+
+# Skip all tests in this file on macOS
+pytestmark = pytest.mark.skipif(platform.system() == "Darwin", reason="Inscopix is not natively supported on macOS")
 
 print(f"OPHYS_DATA_PATH: {OPHYS_DATA_PATH}")
 

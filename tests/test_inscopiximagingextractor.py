@@ -1,10 +1,15 @@
 import numpy as np
+import pytest
+import platform
 from numpy import dtype
 from numpy.testing import assert_array_equal
 
 from roiextractors import InscopixImagingExtractor
 
 from tests.setup_paths import OPHYS_DATA_PATH
+
+# Skip all tests in this file on macOS
+pytestmark = pytest.mark.skipif(platform.system() == "Darwin", reason="Inscopix is not natively supported on macOS")
 
 
 def test_inscopiximagingextractor_movie_128x128x100_part1():

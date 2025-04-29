@@ -56,11 +56,6 @@ Finally, if you prefer to avoid `conda` altogether, the following commands provi
 pip install git+https://github.com/catalystneuro/roiextractors.git@main
 ```
 
-For macOS users with Apple Silicon (M1/M2 chips), the `isx` package version 2.0 or higher is currently not natively supported. However, it can be installed directly from GitHub
-```shell
-pip install git+https://github.com/inscopix/py_isx.git@main
-```
-
 ## Documentation
 See our [ReadTheDocs page](https://roiextractors.readthedocs.io/en/latest/) for full documentation, including a gallery of all supported formats.
 
