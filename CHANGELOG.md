@@ -10,7 +10,7 @@
 
 ### Deprecations
 * The `get_video(start_frame, end_frame)` method is deprecated and will be removed in or after September 2025. Use `get_series(start_sample, end_sample)` instead for consistent naming with `get_num_samples`. [PR #416](https://github.com/catalystneuro/roiextractors/pull/416)
-* Python 3.9 is no longer supported [PR #TBD](https://github.com/catalystneuro/roiextractors/pull/TBD)
+* Python 3.9 is no longer supported [PR #423](https://github.com/catalystneuro/roiextractors/pull/423)
 
 ### Improvements
 
