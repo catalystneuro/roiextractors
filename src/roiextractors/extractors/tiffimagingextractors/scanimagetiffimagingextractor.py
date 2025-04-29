@@ -331,7 +331,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # followed by the frames per slice, then depth and finally the acquisition cycle
         channel_indices = index_in_acquisition_cycle % num_channels
         slice_sample_indices = (index_in_acquisition_cycle // num_channels) % num_frames_per_slice
-        depth_indices = (global_ifd_indices // (num_channels * num_frames_per_slice)) % num_planes
+        depth_indices = (index_in_acquisition_cycle // (num_channels * num_frames_per_slice)) % num_planes
         acquisition_cycle_indices = global_ifd_indices // total_frames_per_cycle
 
         # Create the structured array with the correct size (number of imaging frames after filtering)
