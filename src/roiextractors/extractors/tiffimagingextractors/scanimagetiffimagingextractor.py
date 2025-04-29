@@ -188,10 +188,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 raise RuntimeError(f"Error opening TIFF file {file_path}: {e}")
 
         # Calculate total IFDs and samples
-        ifds_per_file = [len(tiff_reader.pages) for tiff_reader in self._tiff_readers]
+        self._ifds_per_file = [len(tiff_reader.pages) for tiff_reader in self._tiff_readers]
 
         # Note that this includes all the frames for all the channels including flyback frames
-        self._num_frames_in_dataset = sum(ifds_per_file)
+        self._num_frames_in_dataset = sum(self._ifds_per_file)
 
         image_frames_per_cycle = self._num_planes * self._num_channels * self._frames_per_slice
         total_frames_per_cycle = image_frames_per_cycle + self.num_flyback_frames * self._num_channels
@@ -209,7 +209,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             num_acquisition_cycles=num_acquisition_cycles,
             num_frames_per_slice=self._frames_per_slice,
             num_flyback_frames=self.num_flyback_frames,
-            ifds_per_file=ifds_per_file,
+            ifds_per_file=self._ifds_per_file,
         )
 
         # Filter mapping for the specified channel
