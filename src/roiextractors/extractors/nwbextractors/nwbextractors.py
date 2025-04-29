@@ -209,6 +209,14 @@ class NwbImagingExtractor(ImagingExtractor):
             frames = frames.squeeze()
         return frames
 
+    def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
+        start_sample = start_sample if start_sample is not None else 0
+        end_sample = end_sample if end_sample is not None else self.get_num_samples()
+
+        series = self.photon_series.data
+        series = series[start_sample:end_sample].transpose([0, 2, 1])
+        return series
+
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
         """Get the video frames.
 
@@ -225,7 +233,17 @@ class NwbImagingExtractor(ImagingExtractor):
         -------
         video: numpy.ndarray
             The video frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
         """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if channel != 0:
             from warnings import warn
 
@@ -234,12 +252,7 @@ class NwbImagingExtractor(ImagingExtractor):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        start_frame = start_frame if start_frame is not None else 0
-        end_frame = end_frame if end_frame is not None else self.get_num_frames()
-
-        video = self.photon_series.data
-        video = video[start_frame:end_frame].transpose([0, 2, 1])
-        return video
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_image_shape(self) -> Tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).

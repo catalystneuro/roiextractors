@@ -84,20 +84,26 @@ class InscopixImagingExtractor(ImagingExtractor):
         warnings.warn("isx only supports single channel videos.")
         return 1
 
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        start_sample = start_sample or 0
+        end_sample = end_sample or self.get_num_samples()
+        return np.array([self.movie.get_frame_data(i) for i in range(start_sample, end_sample)])
+
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
     ) -> np.ndarray:
-
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if channel != 0:
             warnings.warn(
                 "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
                 DeprecationWarning,
                 stacklevel=2,
             )
-
-        start_frame = start_frame or 0
-        end_frame = end_frame or self.get_num_frames()
-        return np.array([self.movie.get_frame_data(i) for i in range(start_frame, end_frame)])
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_dtype(self) -> np.dtype:
         return np.dtype(self.movie.data_type)

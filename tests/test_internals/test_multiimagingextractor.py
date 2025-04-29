@@ -76,42 +76,46 @@ class TestMultiImagingExtractor(TestCase):
     @parameterized.expand(
         [
             param(  # All 3
-                test_start_frame=None,
-                test_end_frame=None,
-                true_video_spans=[(0, None, None), (1, None, None), (2, None, None)],
+                test_start_sample=None,
+                test_end_sample=None,
+                true_series_spans=[(0, None, None), (1, None, None), (2, None, None)],
             ),
-            param(test_start_frame=11, test_end_frame=17, true_video_spans=[(1, 1, 7)]),  # Only the 2nd
-            param(test_start_frame=11, test_end_frame=27, true_video_spans=[(1, 1, None), (2, None, 7)]),  # 2nd and 3rd
+            param(test_start_sample=11, test_end_sample=17, true_series_spans=[(1, 1, 7)]),  # Only the 2nd
+            param(
+                test_start_sample=11, test_end_sample=27, true_series_spans=[(1, 1, None), (2, None, 7)]
+            ),  # 2nd and 3rd
             param(  # 1st to 3rd
-                test_start_frame=5, test_end_frame=27, true_video_spans=[(0, 5, None), (1, None, None), (2, None, 7)]
+                test_start_sample=5, test_end_sample=27, true_series_spans=[(0, 5, None), (1, None, None), (2, None, 7)]
             ),
             param(  # 1st to 2nd, hitting endpoints
-                test_start_frame=9, test_end_frame=20, true_video_spans=[(0, 9, None), (1, None, None)]
+                test_start_sample=9, test_end_sample=20, true_series_spans=[(0, 9, None), (1, None, None)]
             ),
             param(  # 1st to 3rd, hitting endpoints
-                test_start_frame=9, test_end_frame=21, true_video_spans=[(0, 9, None), (1, None, None), (2, None, 1)]
+                test_start_sample=9, test_end_sample=21, true_series_spans=[(0, 9, None), (1, None, None), (2, None, 1)]
             ),
         ],
     )
-    def test_get_video(
+    def test_get_series(
         self,
-        test_start_frame: Optional[int],
-        test_end_frame: Optional[int],
-        true_video_spans: List[Tuple[Optional[int]]],
+        test_start_sample: Optional[int],
+        test_end_sample: Optional[int],
+        true_series_spans: List[Tuple[Optional[int]]],
     ):
-        test_video = self.multi_imaging_extractor.get_video(start_frame=test_start_frame, end_frame=test_end_frame)
-        expected_video = np.concatenate(
+        test_series = self.multi_imaging_extractor.get_series(
+            start_sample=test_start_sample, end_sample=test_end_sample
+        )
+        expected_series = np.concatenate(
             [
-                self.extractors[index].get_video(start_frame=start_frame, end_frame=end_frame)
-                for index, start_frame, end_frame in true_video_spans
+                self.extractors[index].get_series(start_sample=start_sample, end_sample=end_sample)
+                for index, start_sample, end_sample in true_series_spans
             ],
             axis=0,
         )
-        assert_array_equal(test_video, expected_video)
+        assert_array_equal(test_series, expected_series)
 
-    def test_get_video_single_frame(self):
-        test_frames = self.multi_imaging_extractor.get_video(start_frame=10, end_frame=11)
-        expected_frames = self.extractors[1].get_video(start_frame=0, end_frame=1)
+    def test_get_series_single_frame(self):
+        test_frames = self.multi_imaging_extractor.get_series(start_sample=10, end_sample=11)
+        expected_frames = self.extractors[1].get_series(start_sample=0, end_sample=1)
 
         assert_array_equal(test_frames, expected_frames)
 

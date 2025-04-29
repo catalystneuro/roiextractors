@@ -28,6 +28,7 @@ class ImagingExtractor(ABC):
         self._kwargs = kwargs
         self._times = None
         self.name = self.__class__.__name__
+        self.is_volumetric = False
 
     def _repr_text(self):
         """Generate text representation of the ImagingExtractor object."""
@@ -57,10 +58,10 @@ class ImagingExtractor(ABC):
         if is_volumetric_extractor:
             num_planes = self.get_num_planes()
             shape_str = (
-                f"[{num_samples:,} frames × {image_size[0]} pixels × {image_size[1]} pixels × {num_planes} planes]"
+                f"[{num_samples:,} samples × {image_size[0]} pixels × {image_size[1]} pixels × {num_planes} planes]"
             )
         else:
-            shape_str = f"[{num_samples:,} frames × {image_size[0]} pixels × {image_size[1]} pixels]"
+            shape_str = f"[{num_samples:,} samples × {image_size[0]} pixels × {image_size[1]} pixels]"
 
         return (
             f"{self.name} {shape_str}\n"
@@ -135,6 +136,69 @@ class ImagingExtractor(ABC):
             stacklevel=2,
         )
         return self.get_image_shape()
+
+    def get_frame_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        frame_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+
+        Notes
+        -----
+        This method is equivalent to get_image_shape() and is provided for consistency
+        with the naming convention used in volumetric extractors.
+        """
+        return self.get_image_shape()
+
+    def get_num_planes(self) -> int:
+        """Get the number of depth planes.
+
+        Returns
+        -------
+        num_planes: int
+            The number of depth planes.
+
+        Raises
+        ------
+        NotImplementedError
+            If the extractor is not volumetric.
+        """
+        if not self.is_volumetric:
+            raise NotImplementedError(
+                "This extractor is not volumetric. "
+                "The get_num_planes method is only available for volumetric extractors."
+            )
+        raise NotImplementedError("This method must be implemented by volumetric extractor subclasses.")
+
+    def get_volume_shape(self) -> Tuple[int, int, int]:
+        """Get the shape of the volumetric video (num_rows, num_columns, num_planes).
+
+        Returns
+        -------
+        video_shape: tuple
+            Shape of the volumetric video (num_rows, num_columns, num_planes).
+
+        Raises
+        ------
+        NotImplementedError
+            If the extractor is not volumetric or does not implement get_num_planes method.
+        """
+        if not self.is_volumetric:
+            raise NotImplementedError(
+                "This extractor is not volumetric. "
+                "The get_volume_shape method is only available for volumetric extractors."
+            )
+
+        if not hasattr(self, "get_num_planes") or not callable(getattr(self, "get_num_planes")):
+            raise NotImplementedError(
+                "This extractor does not implement get_num_planes method. "
+                "The get_volume_shape method requires the get_num_planes method to be implemented."
+            )
+
+        image_shape = self.get_image_shape()
+        return (image_shape[0], image_shape[1], self.get_num_planes())
 
     @abstractmethod
     def get_num_samples(self) -> int:
@@ -216,9 +280,46 @@ class ImagingExtractor(ABC):
         dtype: dtype
             Data type of the video.
         """
-        return self.get_frames(frame_idxs=[0], channel=0).dtype
+        return self.get_series(start_sample=0, end_sample=2).dtype
 
     @abstractmethod
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        """Get the series of samples.
+
+        Parameters
+        ----------
+        start_sample: int, optional
+            Start sample index (inclusive).
+        end_sample: int, optional
+            End sample index (exclusive).
+
+        Returns
+        -------
+        series: numpy.ndarray
+            The series of samples.
+
+        Notes
+        -----
+        Importantly, we follow the convention that the dimensions of the array are returned in their matrix order,
+        More specifically:
+        (time, height, width)
+
+        Which is equivalent to:
+        (samples, rows, columns)
+
+        For volumetric data, the dimensions are:
+        (time, height, width, planes)
+
+        Which is equivalent to:
+        (samples, rows, columns, planes)
+
+        Note that this does not match the cartesian convention:
+        (t, x, y)
+
+        Where x is the columns width or and y is the rows or height.
+        """
+        pass
+
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
     ) -> np.ndarray:
@@ -238,27 +339,23 @@ class ImagingExtractor(ABC):
         video: numpy.ndarray
             The video frames.
 
-        Notes
-        -----
-        Importantly, we follow the convention that the dimensions of the array are returned in their matrix order,
-        More specifically:
-        (time, height, width)
-
-        Which is equivalent to:
-        (samples, rows, columns)
-
-        Note that this does not match the cartesian convention:
-        (t, x, y)
-
-        Where x is the columns width or and y is the rows or height.
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
         """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if channel != 0:
             warnings.warn(
                 "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
                 DeprecationWarning,
                 stacklevel=2,
             )
-        pass
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
         """Get specific video frames from indices (not necessarily continuous).
@@ -283,9 +380,10 @@ class ImagingExtractor(ABC):
             )
         assert max(frame_idxs) <= self.get_num_samples(), "'frame_idxs' exceed number of samples"
         if np.all(np.diff(frame_idxs) == 0):
-            return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1])
+            return self.get_series(start_sample=frame_idxs[0], end_sample=frame_idxs[-1])
         relative_indices = np.array(frame_idxs) - frame_idxs[0]
-        return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)[relative_indices, ..., channel]
+        series = self.get_series(start_sample=frame_idxs[0], end_sample=frame_idxs[-1] + 1)
+        return series[relative_indices]
 
     def frame_to_time(self, frames: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
         """Convert user-inputted frame indices to times with units of seconds.
@@ -439,20 +537,40 @@ class FrameSliceImagingExtractor(ImagingExtractor):
         if getattr(self._parent_imaging, "_times") is not None:
             self._times = self._parent_imaging._times[start_frame:end_frame]
 
+        # Inherit volumetric properties from parent
+        self.is_volumetric = self._parent_imaging.is_volumetric
+
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
         assert max(frame_idxs) < self._num_samples, "'frame_idxs' range beyond number of available frames!"
         mapped_frame_idxs = np.array(frame_idxs) + self._start_frame
         return self._parent_imaging.get_frames(frame_idxs=mapped_frame_idxs, channel=channel)
 
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        assert start_sample is None or start_sample >= 0, (
+            f"'start_sample' must be greater than or equal to zero! Received '{start_sample}'.\n"
+            "Negative slicing semantics are not supported."
+        )
+        start_sample_shifted = (start_sample or 0) + self._start_frame
+        end_sample_shifted = end_sample
+        if end_sample is not None:
+            end_sample_shifted = end_sample + self._start_frame
+        return self._parent_imaging.get_series(start_sample=start_sample_shifted, end_sample=end_sample_shifted)
+
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
     ) -> np.ndarray:
-        assert start_frame >= 0, (
-            f"'start_frame' must be greater than or equal to zero! Received '{start_frame}'.\n"
-            "Negative slicing semantics are not supported."
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
         )
-        start_frame_shifted = start_frame + self._start_frame
-        return self._parent_imaging.get_video(start_frame=start_frame_shifted, end_frame=end_frame, channel=channel)
+        if channel != 0:
+            warnings.warn(
+                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_image_shape(self) -> Tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
@@ -521,3 +639,23 @@ class FrameSliceImagingExtractor(ImagingExtractor):
             stacklevel=2,
         )
         return self._parent_imaging.get_num_channels()
+
+    def get_num_planes(self) -> int:
+        """Get the number of depth planes.
+
+        Returns
+        -------
+        num_planes: int
+            The number of depth planes.
+
+        Raises
+        ------
+        NotImplementedError
+            If the parent extractor is not volumetric.
+        """
+        if not self.is_volumetric:
+            raise NotImplementedError(
+                "This extractor is not volumetric. "
+                "The get_num_planes method is only available for volumetric extractors."
+            )
+        return self._parent_imaging.get_num_planes()

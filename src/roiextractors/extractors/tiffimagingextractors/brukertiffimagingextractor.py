@@ -267,6 +267,7 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
 
         self._start_frames = [0] * self._num_planes_per_channel_stream
         self._end_frames = [self._num_samples] * self._num_planes_per_channel_stream
+        self.is_volumetric = True
 
     def get_image_shape(self) -> Tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
@@ -354,6 +355,18 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
 
         return frames
 
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        start = start_sample if start_sample is not None else 0
+        stop = end_sample if end_sample is not None else self.get_num_samples()
+
+        series_shape = (stop - start,) + self.get_image_size()
+        series = np.empty(shape=series_shape, dtype=self.get_dtype())
+
+        for plane_ind, extractor in enumerate(self._imaging_extractors):
+            series[..., plane_ind] = extractor.get_series(start_sample=start, end_sample=stop)
+
+        return series
+
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
     ) -> np.ndarray:
@@ -377,11 +390,19 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
         ------
         NotImplementedError
             If channel is not 0, as multiple channels are not yet supported.
-        """
-        if channel != 0:
-            from warnings import warn
 
-            warn(
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
+        """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if channel != 0:
+            warnings.warn(
                 "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
                 DeprecationWarning,
                 stacklevel=2,
@@ -390,16 +411,27 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
                 f"MultiImagingExtractors for multiple channels have not yet been implemented! (Received '{channel}'."
             )
 
-        start = start_frame if start_frame is not None else 0
-        stop = end_frame if end_frame is not None else self.get_num_frames()
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
-        video_shape = (stop - start,) + self.get_image_size()
-        video = np.empty(shape=video_shape, dtype=self.get_dtype())
+    def get_num_planes(self) -> int:
+        """Get the number of depth planes.
 
-        for plane_ind, extractor in enumerate(self._imaging_extractors):
-            video[..., plane_ind] = extractor.get_video(start_frame=start, end_frame=stop)
+        Returns
+        -------
+        num_planes: int
+            The number of depth planes.
+        """
+        return self._num_planes_per_channel_stream
 
-        return video
+    def get_volume_shape(self) -> Tuple[int, int, int]:
+        """Get the shape of the volumetric video (num_rows, num_columns, num_planes).
+
+        Returns
+        -------
+        video_shape: tuple
+            Shape of the volumetric video (num_rows, num_columns, num_planes).
+        """
+        return (self._image_size[0], self._image_size[1], self.get_num_planes())
 
 
 class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
@@ -709,6 +741,23 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
     def get_dtype(self):
         raise NotImplementedError(self.DATA_TYPE_ERROR.format(self.extractor_name))
 
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        with self.tifffile.TiffFile(self.file_path, _multifile=False) as tif:
+            pages = tif.pages
+
+            if start_sample is not None and end_sample is not None and start_sample == end_sample:
+                return pages[start_sample].asarray()
+
+            end_sample = end_sample or self.get_num_samples()
+            start_sample = start_sample or 0
+
+            image_shape = (end_sample - start_sample, *self.get_image_size())
+            series = np.zeros(shape=image_shape, dtype=self._dtype)
+            for page_ind, page in enumerate(islice(pages, start_sample, end_sample)):
+                series[page_ind] = page.asarray()
+
+        return series
+
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
     ) -> np.ndarray:
@@ -727,27 +776,21 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
         -------
         video: numpy.ndarray
             The video frames.
-        """
-        if channel != 0:
-            from warnings import warn
 
-            warn(
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
+        """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if channel != 0:
+            warnings.warn(
                 "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
                 DeprecationWarning,
                 stacklevel=2,
             )
-        with self.tifffile.TiffFile(self.file_path, _multifile=False) as tif:
-            pages = tif.pages
-
-            if start_frame is not None and end_frame is not None and start_frame == end_frame:
-                return pages[start_frame].asarray()
-
-            end_frame = end_frame or self.get_num_frames()
-            start_frame = start_frame or 0
-
-            image_shape = (end_frame - start_frame, *self.get_image_size())
-            video = np.zeros(shape=image_shape, dtype=self._dtype)
-            for page_ind, page in enumerate(islice(pages, start_frame, end_frame)):
-                video[page_ind] = page.asarray()
-
-        return video
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)

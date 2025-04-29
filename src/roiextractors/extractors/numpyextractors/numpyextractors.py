@@ -78,7 +78,7 @@ class NumpyImagingExtractor(ImagingExtractor):
             self._num_rows,
             self._num_columns,
             self._num_channels,
-        ) = self.get_video_shape(self._video)
+        ) = self.get_volume_shape(self._video)
 
         if len(self._video.shape) == 3:
             # check if this converts to np.ndarray
@@ -92,7 +92,7 @@ class NumpyImagingExtractor(ImagingExtractor):
             self._channel_names = [f"channel_{ch}" for ch in range(self._num_channels)]
 
     @staticmethod
-    def get_video_shape(video) -> Tuple[int, int, int, int]:
+    def get_volume_shape(video) -> Tuple[int, int, int, int]:
         """Get the shape of a video (num_frames, num_rows, num_columns, num_channels).
 
         Parameters
@@ -143,6 +143,9 @@ class NumpyImagingExtractor(ImagingExtractor):
 
         return frames
 
+    def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
+        return self._video[start_sample:end_sample, ..., 0]
+
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
         """Get the video frames.
 
@@ -159,7 +162,17 @@ class NumpyImagingExtractor(ImagingExtractor):
         -------
         video: numpy.ndarray
             The video frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
         """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if channel != 0:
             warn(
                 "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
