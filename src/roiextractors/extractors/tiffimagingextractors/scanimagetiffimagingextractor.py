@@ -7,7 +7,7 @@ ScanImageTiffImagingExtractor
 """
 
 from pathlib import Path
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple
 import warnings
 from warnings import warn
 import numpy as np
@@ -46,9 +46,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
     - Automatically detects and loads multi-file datasets based on ScanImage naming conventions
     - Extracts and provides access to ScanImage metadata
     - Efficiently retrieves frames using lazy loading
+    - Handles flyback frames in volumetric data by ignoring them in the mapping
 
-    Current limitations:
-    - Does not support datasets with flyback frames (will raise ValueError)
     """
 
     extractor_name = "ScanImageImagingExtractor"
@@ -129,19 +128,12 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self._frames_per_volume_per_channel = self._metadata["SI.hStackManager.numFramesPerVolume"]
             self._frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
 
-            self.flyback_frames = self._frames_per_volume_with_flyback - self._frames_per_volume_per_channel
-            if self.flyback_frames > 0:
-                error_msg = (
-                    f"{self.flyback_frames} flyback frames detected. "
-                    "Please open an issue on GitHub roiextractors to request this feature: "
-                )
-                raise ValueError(error_msg)
-
+            self.num_flyback_frames = self._frames_per_volume_with_flyback - self._frames_per_volume_per_channel
         else:
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanFrameRate"]
             self._num_planes = 1
             self._frames_per_slice = 1
-            self.flyback_frames = 0
+            self.num_flyback_frames = 0
 
         # This piece of the metadata is the indication that the channel is saved on the data
         channels_available = self._metadata["SI.hChannels.channelSave"]
@@ -196,25 +188,28 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 raise RuntimeError(f"Error opening TIFF file {file_path}: {e}")
 
         # Calculate total IFDs and samples
-        ifds_per_file = [len(tiff_reader.pages) for tiff_reader in self._tiff_readers]
+        self._ifds_per_file = [len(tiff_reader.pages) for tiff_reader in self._tiff_readers]
 
         # Note that this includes all the frames for all the channels including flyback frames
-        self._num_frames_in_dataset = sum(ifds_per_file)
+        self._num_frames_in_dataset = sum(self._ifds_per_file)
 
-        image_frames_per_cycle = self._num_channels * self._num_planes * self._frames_per_slice
-        # Note that there might be frames at the end that do not belong to a full cycle
-        num_acquisition_cycles = self._num_frames_in_dataset // image_frames_per_cycle
+        image_frames_per_cycle = self._num_planes * self._num_channels * self._frames_per_slice
+        total_frames_per_cycle = image_frames_per_cycle + self.num_flyback_frames * self._num_channels
 
-        #  Every cycle a full sample is acquired for every channel
+        # Note that the acquisition might end without completing the last cycle and we discard those frames
+        num_acquisition_cycles = self._num_frames_in_dataset // (total_frames_per_cycle)
+
+        #  Every cycle is a full channel sample either volume or planar
         self._num_samples = num_acquisition_cycles
 
-        # Create full mapping for all channels, samples, and depths
+        # Map IFDs and files to frames, channel, depth, and acquisition cycle
         full_frames_to_ifds_table = self._create_frame_to_ifd_table(
             num_channels=self._num_channels,
             num_planes=self._num_planes,
             num_acquisition_cycles=num_acquisition_cycles,
-            ifds_per_file=ifds_per_file,
             num_frames_per_slice=self._frames_per_slice,
+            num_flyback_frames=self.num_flyback_frames,
+            ifds_per_file=self._ifds_per_file,
         )
 
         # Filter mapping for the specified channel
@@ -235,6 +230,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         num_acquisition_cycles: int,
         ifds_per_file: list[int],
         num_frames_per_slice: int = 1,
+        num_flyback_frames: int = 0,
     ) -> np.ndarray:
         """
         Create a table that describes the data layout of the dataset.
@@ -262,6 +258,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Number of IFDs in each file.
         num_frames_per_slice : int
             Number of frames per slice. This is used to determine the slice_sample index.
+        num_flyback_frames : int
+            Number of flyback frames.
 
         Returns
         -------
@@ -282,12 +280,21 @@ class ScanImageImagingExtractor(ImagingExtractor):
         )
 
         # Calculate total number of entries
-        frames_per_acquisition_cycle = num_planes * num_frames_per_slice * num_channels
+        image_frames_per_cycle = num_planes * num_frames_per_slice * num_channels
+        total_frames_per_cycle = image_frames_per_cycle + num_flyback_frames * num_channels
 
         # Generate global ifd indices for complete cycles only
         # This ensures we only include frames from complete acquisition cycles
-        complete_cycles_frames = num_acquisition_cycles * frames_per_acquisition_cycle
-        global_ifd_indices = np.arange(complete_cycles_frames, dtype=np.uint32)
+        num_frames_in_complete_cycles = num_acquisition_cycles * total_frames_per_cycle
+        global_ifd_indices = np.arange(num_frames_in_complete_cycles, dtype=np.uint32)
+
+        # We need to filter out the flyback frames, we create an index within each acquisition cycle
+        # And then filter out the non-image frames (flyback frames)
+        index_in_acquisition_cycle = global_ifd_indices % total_frames_per_cycle
+        is_imaging_frame = index_in_acquisition_cycle < image_frames_per_cycle
+
+        global_ifd_indices = global_ifd_indices[is_imaging_frame]
+        index_in_acquisition_cycle = index_in_acquisition_cycle[is_imaging_frame]
 
         # To find their file index we need file boundaries
         file_boundaries = np.zeros(len(ifds_per_file) + 1, dtype=np.uint32)
@@ -303,10 +310,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # Calculate indices for each dimension based on the frame position within the cycle
         # For ScanImage, the order is always CZT which means that the channel index comes first,
         # followed by the frames per slice, then depth and finally the acquisition cycle
-        channel_indices = global_ifd_indices % num_channels
-        slice_sample_indices = (global_ifd_indices // num_channels) % num_frames_per_slice
-        depth_indices = (global_ifd_indices // (num_channels * num_frames_per_slice)) % num_planes
-        acquisition_cycle_indices = global_ifd_indices // frames_per_acquisition_cycle
+        channel_indices = index_in_acquisition_cycle % num_channels
+        slice_sample_indices = (index_in_acquisition_cycle // num_channels) % num_frames_per_slice
+        depth_indices = (index_in_acquisition_cycle // (num_channels * num_frames_per_slice)) % num_planes
+        acquisition_cycle_indices = global_ifd_indices // total_frames_per_cycle
 
         # Create the structured array with the correct size (number of imaging frames after filtering)
         mapping = np.zeros(len(global_ifd_indices), dtype=mapping_dtype)
@@ -352,7 +359,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         # This is the happy path that is well specified in the documentation
         if acquisition_state == "grab" and frames_per_file != float("inf"):
-            base_name, acquisition, file_index = file_stem.split("_")
+            name_parts = file_stem.split("_")
+            base_name, acquisition, file_index = "_".join(name_parts[:-2]), name_parts[-2], name_parts[-1]
             pattern = f"{base_name}_{acquisition}_*{self.file_path.suffix}"
         # Looped acquisitions also divides the files according to Lawrence Niu in private conversation
         elif acquisition_state == "loop":  # This also separates the files
