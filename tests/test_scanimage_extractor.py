@@ -49,6 +49,93 @@ class TestScanImageExtractor:
                 start_sample += samples_per_file
                 end_sample += samples_per_file
 
+    def test_planar_two_channels_single_file(self):
+        """Test with planar (non-volumetric) two-channel data in a single file.
+
+        File: planar_two_ch_single_files_00001_00001.tif
+        Metadata:
+        - Acquisition mode: grab
+        - 1000 samples (frames)
+        - Volumetric: False but `SI.hStackManager.enable` is set to `True`
+        - Frame shape: (20, 20)
+        - Channels: 2 (`Channel 1` and `Channel 2`)
+        - Frames per slice: 1
+        - Frame rate: 523.926 Hz
+        - Volume rate: 523.926 Hz
+        - Pages/IDFs: 2000
+
+        This test verifies that the extractor correctly:
+        1. Identifies the data as non-volumetric despite `SI.hStackManager.enable` being True
+        2. Extracts the correct metadata (sampling frequency, frame count, dimensions)
+        3. Retrieves the correct data for both channels
+        """
+        file_path = SCANIMAGE_PATH / "planar_two_channels_single_file" / "planar_two_ch_single_files_00001_00001.tif"
+
+        # Test with Channel 1
+        extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
+
+        assert extractor_ch1.is_volumetric == False
+        assert extractor_ch1.get_sampling_frequency() == 523.926
+        assert extractor_ch1.get_image_shape() == (20, 20)
+        assert extractor_ch1.get_num_samples() == 1000
+
+        # Test with Channel 2
+        extractor_ch2 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
+
+        assert extractor_ch2.is_volumetric == False
+        assert extractor_ch2.get_sampling_frequency() == 523.926
+        assert extractor_ch2.get_image_shape() == (20, 20)
+        assert extractor_ch2.get_num_samples() == 1000
+
+        # Get data from both extractors
+        extractor_data_ch1 = extractor_ch1.get_series()
+        extractor_data_ch2 = extractor_ch2.get_series()
+
+        # Verify that the extractor data has the correct shape
+        # For planar data, shape should be (samples, height, width)
+        expected_shape = (extractor_ch1.get_num_samples(), *extractor_ch1.get_image_shape())
+        assert (
+            extractor_data_ch1.shape == expected_shape
+        ), f"Channel 1: Expected shape {expected_shape}, got {extractor_data_ch1.shape}"
+        assert (
+            extractor_data_ch2.shape == expected_shape
+        ), f"Channel 2: Expected shape {expected_shape}, got {extractor_data_ch2.shape}"
+
+        # Read tiff data for comparison
+        with TiffReader(file_path) as tiff_reader:
+            tiff_data = tiff_reader.asarray()
+
+            # For multi-channel data, tiff_data shape is (frames, channels, height, width)
+            # Verify the shape of the tiff data
+            assert len(tiff_data.shape) == 4, "Multi-channel tiff data should have 4 dimensions"
+            assert tiff_data.shape[1] == 2, "Tiff data should have 2 channels"
+
+            # Compare a subset of the data for each channel
+            # We'll check the first 10 frames
+            num_frames_to_check = 10
+
+            # Get the tiff data for each channel
+            tiff_ch1 = tiff_data[:num_frames_to_check, 0, :, :]  # Channel 1 (index 0)
+            tiff_ch2 = tiff_data[:num_frames_to_check, 1, :, :]  # Channel 2 (index 1)
+
+            # Get the extractor data for the same frames
+            extractor_ch1_subset = extractor_data_ch1[:num_frames_to_check]
+            extractor_ch2_subset = extractor_data_ch2[:num_frames_to_check]
+
+            # Compare the data for Channel 1
+            np.testing.assert_array_equal(
+                extractor_ch1_subset,
+                tiff_ch1,
+                f"Channel 1 data does not match tiff data",
+            )
+
+            # Compare the data for Channel 2
+            np.testing.assert_array_equal(
+                extractor_ch2_subset,
+                tiff_ch2,
+                f"Channel 2 data does not match tiff data",
+            )
+
     def test_planar_multi_channnel_multi_file(self):
         """Test with multi-file planar data acquired in loop acquisition mode.
 
@@ -105,6 +192,357 @@ class TestScanImageExtractor:
 
                 start_sample += samples_per_file
                 end_sample += samples_per_file
+
+
+class TestScanImageVolumetricWithFlybackFrames:
+    """Test the ScanImage extractor classes with files that have flyback frames."""
+
+    def test_volumetric_single_channel_single_file(self):
+        """
+        First File: vol_one_ch_single_files_00002_00001.tif
+        Metadata:
+        - Acquisition mode: grab
+        - Volumetric: True (9 slices and 7 flyback frames)
+        - Frame shape: 20 x 20
+        - Channels: 1 (single channel)
+        - Frames per slice: 1
+        - Frame rate: 523.926 Hz
+        - Volume rate: 32.7454 Hz
+        - Pages/IDFs: 1600
+        """
+        file_path = SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
+
+        extractor = ScanImageImagingExtractor(file_path=file_path)
+
+        assert extractor.is_volumetric == True
+        assert extractor.num_flyback_frames == 7
+        assert extractor.get_sampling_frequency() == 32.7454
+        assert extractor.get_image_shape() == (20, 20)
+        assert extractor.get_num_planes() == 9
+
+        ifds = 1600
+        total_frames_per_cycle = extractor.get_num_planes() + extractor.num_flyback_frames
+        num_acquisition_cycles = ifds // total_frames_per_cycle
+        assert extractor.get_num_samples() == num_acquisition_cycles
+
+        # Get data from extractor
+        extractor_data = extractor.get_series()
+
+        # Verify that the extractor data has the correct shape
+        # For volumetric data, shape should be (samples, height, width, planes)
+        expected_shape = (num_acquisition_cycles, *extractor.get_image_shape(), extractor.get_num_planes())
+        assert extractor_data.shape == expected_shape, f"Expected shape {expected_shape}, got {extractor_data.shape}"
+
+        # Read tiff data for comparison
+        with TiffReader(file_path) as tiff_reader:
+            tiff_data = tiff_reader.asarray()
+
+            # For each sample volume in the extractor data
+            for sample_index in range(num_acquisition_cycles):
+                # Calculate the slice of frames for this sample (excluding flyback frames)
+                start_frame = sample_index * total_frames_per_cycle
+                end_frame = start_frame + extractor.get_num_planes()
+                tiff_volume_frames = tiff_data[start_frame:end_frame]
+
+                # Reshape the extractor data to match the tiff data format for comparison
+                # extractor_data is (samples, height, width, planes)
+                # We need to compare with tiff_volume_frames which is (planes, height, width)
+                extractor_volume = np.moveaxis(extractor_data[sample_index], -1, 0)
+
+                # Compare the data
+                np.testing.assert_array_equal(
+                    extractor_volume, tiff_volume_frames, f"Sample {sample_index} volume does not match tiff data"
+                )
+
+    def test_volumetric_single_channel_multi_file(self):
+        """
+        First File: vol_one_ch_single_files_00002_00001.tif
+        Metadata:
+        - Acquisition mode: grab
+        - Volumetric: True (9 slices and 7 flyback frames)
+        - Frame shape: 20 x 20
+        - Channels: 1 (single channel)
+        - Frames per slice: 1
+        - Frame rate: 523.926 Hz
+        - Volume rate: 32.7454 Hz
+        - Pages/IDFs: 160 in each of the 10 files.
+        """
+        file_path = SCANIMAGE_PATH / "volumetric_single_channel_multi_file" / "vol_one_ch_multi_files_00001_00001.tif"
+
+        extractor = ScanImageImagingExtractor(file_path=file_path)
+
+        assert extractor.is_volumetric == True
+        assert extractor.num_flyback_frames == 7
+        assert extractor.get_sampling_frequency() == 32.7454
+        assert extractor.get_image_shape() == (20, 20)
+        assert extractor.get_num_planes() == 9
+
+        ifds = 160 * 10
+        total_frames_per_cycle = extractor.get_num_planes() + extractor.num_flyback_frames
+        num_acquisition_cycles = ifds // total_frames_per_cycle
+        assert extractor.get_num_samples() == num_acquisition_cycles
+
+        # Get the entire series data from the extractor
+        extractor_data = extractor.get_series()
+
+        # Verify that the extractor data has the correct shape
+        # For volumetric data, shape should be (samples, height, width, planes)
+        expected_shape = (extractor.get_num_samples(), *extractor.get_image_shape(), extractor.get_num_planes())
+        assert extractor_data.shape == expected_shape, f"Expected shape {expected_shape}, got {extractor_data.shape}"
+
+        # For each sample volume in the extractor data
+        for sample_index in range(extractor.get_num_samples()):
+            # Determine which file contains this sample
+            frames_per_file = 160
+            frames_per_sample = total_frames_per_cycle
+            samples_per_file = frames_per_file // frames_per_sample
+            file_index = sample_index // samples_per_file
+
+            # Get the corresponding file path
+            current_file_path = extractor.file_paths[file_index]
+
+            # Calculate the relative sample index within this file
+            relative_sample_index = sample_index % samples_per_file
+
+            # Read tiff data for comparison
+            with TiffReader(current_file_path) as tiff_reader:
+                tiff_data = tiff_reader.asarray()
+
+                # Calculate the slice of frames for this sample (excluding flyback frames)
+                start_frame = relative_sample_index * total_frames_per_cycle
+                end_frame = start_frame + extractor.get_num_planes()
+                tiff_volume_frames = tiff_data[start_frame:end_frame]
+
+                # Reshape the extractor data to match the tiff data format for comparison
+                # extractor_data is (samples, height, width, planes)
+                # We need to compare with tiff_volume_frames which is (planes, height, width)
+                extractor_volume = np.moveaxis(extractor_data[sample_index], -1, 0)
+
+                # Compare the data
+                np.testing.assert_array_equal(
+                    extractor_volume,
+                    tiff_volume_frames,
+                    f"File {file_index}, sample {sample_index} volume does not match tiff data",
+                )
+
+    def test_volumetric_two_channels_single_file(self):
+        """
+        file_name: `vol_two_ch_single_file_00001_00001.tif`
+        Metadata:
+        - Acquisition mode: grab
+        - 100 samples (volumes)
+        - Volumetric: True (9 slices and 7 flyback frames)
+        - Frame shape: 20 x 20
+        - Channels: 2 (`Channel 1` and `Channel 2`)
+        - Frames per slice: 1
+        - Frame rate: 523.926 Hz
+        - Volume rate: 32.7454 Hz
+        - Pages/IDFs: 3200
+        """
+        file_path = SCANIMAGE_PATH / "volumetric_two_channels_single_file" / "vol_two_ch_single_file_00001_00001.tif"
+
+        # Test with Channel 1
+        extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
+
+        assert extractor_ch1.is_volumetric == True
+        assert extractor_ch1.num_flyback_frames == 7
+        assert extractor_ch1.get_sampling_frequency() == 32.7454
+        assert extractor_ch1.get_image_shape() == (20, 20)
+        assert extractor_ch1.get_num_planes() == 9
+
+        ifds = 3200
+        num_channels = 2
+        total_frames_per_cycle = (extractor_ch1.get_num_planes() + extractor_ch1.num_flyback_frames) * num_channels
+        num_acquisition_cycles = ifds // total_frames_per_cycle
+        assert extractor_ch1.get_num_samples() == num_acquisition_cycles
+
+        # Test with Channel 2
+        extractor_ch2 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
+
+        assert extractor_ch2.is_volumetric == True
+        assert extractor_ch2.num_flyback_frames == 7
+        assert extractor_ch2.get_sampling_frequency() == 32.7454
+        assert extractor_ch2.get_image_shape() == (20, 20)
+        assert extractor_ch2.get_num_planes() == 9
+        assert extractor_ch2.get_num_samples() == num_acquisition_cycles
+
+        # Get data from both extractors
+        extractor_data_ch1 = extractor_ch1.get_series()
+        extractor_data_ch2 = extractor_ch2.get_series()
+
+        # Verify that the extractor data has the correct shape
+        # For volumetric data, shape should be (samples, height, width, planes)
+        expected_shape = (
+            extractor_ch1.get_num_samples(),
+            *extractor_ch1.get_image_shape(),
+            extractor_ch1.get_num_planes(),
+        )
+        assert (
+            extractor_data_ch1.shape == expected_shape
+        ), f"Channel 1: Expected shape {expected_shape}, got {extractor_data_ch1.shape}"
+        assert (
+            extractor_data_ch2.shape == expected_shape
+        ), f"Channel 2: Expected shape {expected_shape}, got {extractor_data_ch2.shape}"
+
+        # Read tiff data for comparison
+        with TiffReader(file_path) as tiff_reader:
+            tiff_data = tiff_reader.asarray()
+
+            # For multi-channel data, tiff_data shape is (frames, channels, height, width)
+            # Verify the shape of the tiff data
+            assert len(tiff_data.shape) == 4, "Multi-channel tiff data should have 4 dimensions"
+            assert tiff_data.shape[1] == 2, "Tiff data should have 2 channels"
+
+            # For each sample volume in the extractor data
+            for sample_index in range(num_acquisition_cycles):
+                # Calculate the slice of frames for this sample (excluding flyback frames)
+                # For multi-channel data, we need to select the appropriate frames
+                start_frame = sample_index * total_frames_per_cycle // num_channels
+                end_frame = start_frame + extractor_ch1.get_num_planes()
+
+                # Get the tiff data for each channel
+                tiff_volume_ch1 = tiff_data[start_frame:end_frame, 0, :, :]  # Channel 1 (index 0)
+                tiff_volume_ch2 = tiff_data[start_frame:end_frame, 1, :, :]  # Channel 2 (index 1)
+
+                # Reshape the extractor data to match the tiff data format for comparison
+                # extractor_data is (samples, height, width, planes)
+                # We need to compare with tiff_volume which is (planes, height, width)
+                extractor_volume_ch1 = np.moveaxis(extractor_data_ch1[sample_index], -1, 0)
+                extractor_volume_ch2 = np.moveaxis(extractor_data_ch2[sample_index], -1, 0)
+
+                # Compare the data for Channel 1
+                np.testing.assert_array_equal(
+                    extractor_volume_ch1,
+                    tiff_volume_ch1,
+                    f"Sample {sample_index}, Channel 1 volume does not match tiff data",
+                )
+
+                # Compare the data for Channel 2
+                np.testing.assert_array_equal(
+                    extractor_volume_ch2,
+                    tiff_volume_ch2,
+                    f"Sample {sample_index}, Channel 2 volume does not match tiff data",
+                )
+
+    def test_volumetric_two_channels_multi_file(self):
+        """
+        First File: vol_two_ch_multi_files_00001_00001.tif
+        Metadata:
+        - Acquisition mode: grab
+        - Volumetric: True (9 slices and 7 flyback frames)
+        - Frame shape: 20 x 20
+        - Channels: 2 (`Channel 1` and `Channel 2`)
+        - Frames per slice: 1
+        - Frame rate: 523.926 Hz
+        - Volume rate: 32.7454 Hz
+        - Pages/IDFs: 320 in each of the 10 files.
+        """
+        file_path = SCANIMAGE_PATH / "volumetric_two_channels_multi_file" / "vol_two_ch_multi_files_00001_00001.tif"
+
+        # Test with Channel 1
+        extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
+
+        assert extractor_ch1.is_volumetric == True
+        assert extractor_ch1.num_flyback_frames == 7
+        assert extractor_ch1.get_sampling_frequency() == 32.7454
+        assert extractor_ch1.get_image_shape() == (20, 20)
+        assert extractor_ch1.get_num_planes() == 9
+
+        ifds = 320 * 10
+        num_channels = 2
+        total_frames_per_cycle = (extractor_ch1.get_num_planes() + extractor_ch1.num_flyback_frames) * num_channels
+        num_acquisition_cycles = ifds // total_frames_per_cycle
+        assert extractor_ch1.get_num_samples() == num_acquisition_cycles
+
+        # Test with Channel 2
+        extractor_ch2 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
+
+        assert extractor_ch2.is_volumetric == True
+        assert extractor_ch2.num_flyback_frames == 7
+        assert extractor_ch2.get_sampling_frequency() == 32.7454
+        assert extractor_ch2.get_image_shape() == (20, 20)
+        assert extractor_ch2.get_num_planes() == 9
+        assert extractor_ch2.get_num_samples() == num_acquisition_cycles
+
+        # Get the entire series data from both extractors
+        extractor_data_ch1 = extractor_ch1.get_series()
+        extractor_data_ch2 = extractor_ch2.get_series()
+
+        # Verify that the extractor data has the correct shape
+        # For volumetric data, shape should be (samples, height, width, planes)
+        expected_shape = (
+            extractor_ch1.get_num_samples(),
+            *extractor_ch1.get_image_shape(),
+            extractor_ch1.get_num_planes(),
+        )
+        assert (
+            extractor_data_ch1.shape == expected_shape
+        ), f"Channel 1: Expected shape {expected_shape}, got {extractor_data_ch1.shape}"
+        assert (
+            extractor_data_ch2.shape == expected_shape
+        ), f"Channel 2: Expected shape {expected_shape}, got {extractor_data_ch2.shape}"
+
+        ifds_per_file = 320  # Number of frames in each file
+        samples_per_file = ifds_per_file // total_frames_per_cycle
+
+        # Test only the samples that fit completely within each file
+        for file_index, file_path in enumerate(extractor_ch1.file_paths):
+            with TiffReader(file_path) as tiff_reader:
+                tiff_data = tiff_reader.asarray()
+
+                # For multi-channel data, tiff_data shape is (samples, num_channels, x, y)
+                # Verify the shape of the tiff data
+                assert len(tiff_data.shape) == 4, "Multi-channel tiff data should have 4 dimensions"
+                assert tiff_data.shape[1] == 2, "Tiff data should have 2 channels"
+
+                # Calculate the sample range for this file
+                start_sample = file_index * samples_per_file
+                end_sample = (file_index + 1) * samples_per_file
+
+                # Only test samples that are within the range of the extractor
+                end_sample = min(end_sample, extractor_ch1.get_num_samples())
+
+                # For each sample in this file
+                for sample_index in range(start_sample, end_sample):
+                    # Calculate the relative sample index within this file
+                    relative_sample_index = sample_index - start_sample
+
+                    # Calculate the slice of frames for this sample (excluding flyback frames)
+                    # For multi-channel data, we need to select the appropriate frames
+                    # Each volume has planes * channels frames, with flyback frames at the end
+                    start_frame = relative_sample_index * total_frames_per_cycle // num_channels
+
+                    # Make sure we don't go out of bounds
+                    if start_frame + extractor_ch1.get_num_planes() > tiff_data.shape[0]:
+                        continue
+
+                    # Get the tiff data for each channel
+                    tiff_volume_ch1 = tiff_data[
+                        start_frame : start_frame + extractor_ch1.get_num_planes(), 0, :, :
+                    ]  # Channel 1 (index 0)
+                    tiff_volume_ch2 = tiff_data[
+                        start_frame : start_frame + extractor_ch1.get_num_planes(), 1, :, :
+                    ]  # Channel 2 (index 1)
+
+                    # Reshape the extractor data to match the tiff data format for comparison
+                    # extractor_data is (samples, height, width, planes)
+                    # We need to compare with tiff_volume which is (planes, height, width)
+                    extractor_volume_ch1 = np.moveaxis(extractor_data_ch1[sample_index], -1, 0)
+                    extractor_volume_ch2 = np.moveaxis(extractor_data_ch2[sample_index], -1, 0)
+
+                    # Compare the data for Channel 1
+                    np.testing.assert_array_equal(
+                        extractor_volume_ch1,
+                        tiff_volume_ch1,
+                        f"File {file_index}, Channel 1, sample {sample_index} volume does not match tiff data",
+                    )
+
+                    # Compare the data for Channel 2
+                    np.testing.assert_array_equal(
+                        extractor_volume_ch2,
+                        tiff_volume_ch2,
+                        f"File {file_index}, Channel 2, sample {sample_index} volume does not match tiff data",
+                    )
 
 
 class TestScanImageExtractorVolumetricMultiSample:
