@@ -1,4 +1,14 @@
-# v0.5.12 (Upcoming)
+# v0.5.13 (Upcoming)
+
+### Features
+
+### Fixes
+
+### Deprecations
+
+### Improvements
+
+# v0.5.12 (April 18th, 2025)
 
 ### Features
 
