@@ -7,6 +7,7 @@
 ### Deprecations
 
 ### Improvements
+* Improved criteria for determining if a ScanImage dataset is volumetric by checking both `SI.hStackManager.enable` and `SI.hStackManager.numSlices > 1`[PR #425](https://github.com/catalystneuro/roiextractors/pull/425)
 
 # v0.5.12 (April 18th, 2025)
 
@@ -22,7 +23,7 @@
 * Use `SI.hChannels.channelSave` or `SI.hChannels.channelsave` to determine number of channels for ScanImage extractors when available [#401](https://github.com/catalystneuro/roiextractors/pull/401)
 * Fixes the sampling rate for volumetric `ScanImage` [#405](https://github.com/catalystneuro/roiextractors/pull/401)
 * Fixed `get_series` method in `MemmapImagingExtractor` to preserve channel dimension [#416](https://github.com/catalystneuro/roiextractors/pull/416)
-* Improved criteria for determining if a ScanImage dataset is volumetric by checking both `SI.hStackManager.enable` and `SI.hStackManager.numSlices > 1`
+
 
 ### Deprecations
 * Deprecated `write_imaging` and `write_segmentation` methods: [#403](https://github.com/catalystneuro/roiextractors/pull/403)
