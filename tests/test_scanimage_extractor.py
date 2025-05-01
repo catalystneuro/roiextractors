@@ -49,6 +49,93 @@ class TestScanImageExtractor:
                 start_sample += samples_per_file
                 end_sample += samples_per_file
 
+    def test_planar_two_channels_single_file(self):
+        """Test with planar (non-volumetric) two-channel data in a single file.
+
+        File: planar_two_ch_single_files_00001_00001.tif
+        Metadata:
+        - Acquisition mode: grab
+        - 1000 samples (frames)
+        - Volumetric: False but `SI.hStackManager.enable` is set to `True`
+        - Frame shape: (20, 20)
+        - Channels: 2 (`Channel 1` and `Channel 2`)
+        - Frames per slice: 1
+        - Frame rate: 523.926 Hz
+        - Volume rate: 523.926 Hz
+        - Pages/IDFs: 2000
+
+        This test verifies that the extractor correctly:
+        1. Identifies the data as non-volumetric despite `SI.hStackManager.enable` being True
+        2. Extracts the correct metadata (sampling frequency, frame count, dimensions)
+        3. Retrieves the correct data for both channels
+        """
+        file_path = SCANIMAGE_PATH / "planar_two_channels_single_file" / "planar_two_ch_single_files_00001_00001.tif"
+
+        # Test with Channel 1
+        extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
+
+        assert extractor_ch1.is_volumetric == False
+        assert extractor_ch1.get_sampling_frequency() == 523.926
+        assert extractor_ch1.get_image_shape() == (20, 20)
+        assert extractor_ch1.get_num_samples() == 1000
+
+        # Test with Channel 2
+        extractor_ch2 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
+
+        assert extractor_ch2.is_volumetric == False
+        assert extractor_ch2.get_sampling_frequency() == 523.926
+        assert extractor_ch2.get_image_shape() == (20, 20)
+        assert extractor_ch2.get_num_samples() == 1000
+
+        # Get data from both extractors
+        extractor_data_ch1 = extractor_ch1.get_series()
+        extractor_data_ch2 = extractor_ch2.get_series()
+
+        # Verify that the extractor data has the correct shape
+        # For planar data, shape should be (samples, height, width)
+        expected_shape = (extractor_ch1.get_num_samples(), *extractor_ch1.get_image_shape())
+        assert (
+            extractor_data_ch1.shape == expected_shape
+        ), f"Channel 1: Expected shape {expected_shape}, got {extractor_data_ch1.shape}"
+        assert (
+            extractor_data_ch2.shape == expected_shape
+        ), f"Channel 2: Expected shape {expected_shape}, got {extractor_data_ch2.shape}"
+
+        # Read tiff data for comparison
+        with TiffReader(file_path) as tiff_reader:
+            tiff_data = tiff_reader.asarray()
+
+            # For multi-channel data, tiff_data shape is (frames, channels, height, width)
+            # Verify the shape of the tiff data
+            assert len(tiff_data.shape) == 4, "Multi-channel tiff data should have 4 dimensions"
+            assert tiff_data.shape[1] == 2, "Tiff data should have 2 channels"
+
+            # Compare a subset of the data for each channel
+            # We'll check the first 10 frames
+            num_frames_to_check = 10
+
+            # Get the tiff data for each channel
+            tiff_ch1 = tiff_data[:num_frames_to_check, 0, :, :]  # Channel 1 (index 0)
+            tiff_ch2 = tiff_data[:num_frames_to_check, 1, :, :]  # Channel 2 (index 1)
+
+            # Get the extractor data for the same frames
+            extractor_ch1_subset = extractor_data_ch1[:num_frames_to_check]
+            extractor_ch2_subset = extractor_data_ch2[:num_frames_to_check]
+
+            # Compare the data for Channel 1
+            np.testing.assert_array_equal(
+                extractor_ch1_subset,
+                tiff_ch1,
+                f"Channel 1 data does not match tiff data",
+            )
+
+            # Compare the data for Channel 2
+            np.testing.assert_array_equal(
+                extractor_ch2_subset,
+                tiff_ch2,
+                f"Channel 2 data does not match tiff data",
+            )
+
     def test_planar_multi_channnel_multi_file(self):
         """Test with multi-file planar data acquired in loop acquisition mode.
 
