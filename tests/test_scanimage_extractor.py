@@ -793,7 +793,7 @@ class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
                 )
 
 
-class TestScanImagePlaneIndexParameter:
+class TestScanImageVolumetricPlaneSlicing:
     """Test the plane_index parameter of the ScanImage extractor classes."""
 
     def test_plane_index_parameter_single_channel(self):
