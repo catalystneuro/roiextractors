@@ -617,21 +617,11 @@ class ScanImageImagingExtractor(ImagingExtractor):
             tiff_reader = self._tiff_readers[file_index]
             image_file_directory = tiff_reader.pages[ifd_index]
 
-            # Extract timestamp from the IFD description
-            description = image_file_directory.description
-            description_lines = description.split("\n")
+            # Extract timestamp using the static method
+            timestamp = self.extract_timestamp_from_page(image_file_directory)
 
-            # Use iterator pattern to find frameTimestamps_sec
-            timestamp_line = next((line for line in description_lines if "frameTimestamps_sec" in line), None)
-
-            if timestamp_line is not None:
-                # Extract the value part after " = "
-                _, value_str = timestamp_line.split(" = ", 1)
-                try:
-                    timestamps[sample_index] = float(value_str.strip())
-                except ValueError:
-                    # If parsing fails, use sample index / sampling frequency as fallback
-                    timestamps[sample_index] = sample_index / self._sampling_frequency
+            if timestamp is not None:
+                timestamps[sample_index] = timestamp
             else:
                 # If no timestamp found, throw a warning and use sample index / sampling frequency as fallback
                 warnings.warn(
@@ -643,6 +633,41 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # Cache the timestamps
         self._times = timestamps
         return timestamps
+
+    @staticmethod
+    def extract_timestamp_from_page(page) -> float:
+        """
+        Extract timestamp from a ScanImage TIFF page.
+
+        Parameters
+        ----------
+        page : tifffile.TiffPage
+            The TIFF page to extract the timestamp from.
+
+        Returns
+        -------
+        float
+            The timestamp in seconds or None if no timestamp is found.
+        """
+        if "ImageDescription" not in page.tags:
+            return None
+
+        description = page.tags["ImageDescription"].value
+        description_lines = description.split("\n")
+
+        # Find the frameTimestamps_sec line
+        timestamp_line = next((line for line in description_lines if "frameTimestamps_sec" in line), None)
+
+        if timestamp_line is not None:
+            # Extract the value part after " = "
+            _, value_str = timestamp_line.split(" = ", 1)
+            try:
+                timestamp = float(value_str.strip())
+                return timestamp
+            except ValueError:
+                return None
+
+        return None
 
     def get_num_planes(self) -> int:
         """Get the number of depth planes.

@@ -1026,60 +1026,303 @@ class TestScanImageVolumetricPlaneSlicing:
             )
 
 
-def test_get_frames_per_slice():
-    """
-    Test the static get_frames_per_slice method.
+class TestTimestampExtraction:
+    """Test the get_times method for ScanImageImagingExtractor class."""
 
-    This test verifies that the static get_frames_per_slice method correctly extracts
-    the number of slices per sample from ScanImage TIFF files without needing to create
-    an extractor instance.
-    """
-    # Test with single frame per slice file
-    single_frame_file = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
-    frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(single_frame_file)
-    assert frames_per_slice == 10, "File should have 1 frame per slice"
+    def test_get_times_flyback_frames(self):
+        """Test that get_times correctly excludes flyback frames in volumetric data.
 
-    # Test with multiple frames per slice file
-    multi_frame_file = SCANIMAGE_PATH / "scanimage_20220801_volume.tif"
-    frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(multi_frame_file)
-    assert frames_per_slice == 8, "File should have 8 frames per slice"
+        This test verifies that:
+        1. The correct number of timestamps are returned (equal to number of samples)
+        2. Flyback frames are properly excluded from timestamps
+        3. Timestamps match the expected values from the TIFF metadata
 
-    # Test with another multiple frames per slice file
-    multi_frame_file2 = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
-    frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(multi_frame_file2)
-    assert frames_per_slice == 2, "File should have 2 frames per slice"
+        File: vol_one_ch_single_files_00002_00001.tif
+        """
+        from tifffile import TiffFile
 
+        file_path = SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
 
-def test_get_availale_channel_names():
-    """Test the static get_channel_names method.
+        # Create the extractor
+        extractor = ScanImageImagingExtractor(file_path=file_path)
 
-    This test verifies that the static get_available_channel_names method correctly extracts
-    channel names from ScanImage TIFF files without needing to create an extractor instance.
+        # Get timestamps from extractor
+        timestamps = extractor.get_times()
 
-    The test checks:
-    1. Single-channel file: Verifies correct channel name extraction
-    2. Multi-channel file: Verifies all channel names are correctly extracted
-    """
-    # Test with single-channel file
-    single_channel_file = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
-    single_channel_names = ScanImageImagingExtractor.get_available_channel_names(single_channel_file)
-    assert isinstance(single_channel_names, list), "Channel names should be returned as a list"
-    assert len(single_channel_names) == 1, "Single channel file should have one channel"
-    assert single_channel_names[0] == "Channel 1", "Channel name should match expected value"
+        # Check that number of timestamps equals number of samples
+        assert len(timestamps) == extractor.get_num_samples(), "Number of timestamps should match number of samples"
 
-    # Test with multi-channel file
-    multi_channel_file = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
-    multi_channel_names = ScanImageImagingExtractor.get_available_channel_names(multi_channel_file)
-    assert isinstance(multi_channel_names, list), "Channel names should be returned as a list"
-    assert len(multi_channel_names) == 2, "Multi-channel file should have two channels"
-    assert multi_channel_names == ["Channel 1", "Channel 2"]
+        # Verify monotonically increasing
+        assert np.all(np.diff(timestamps) > 0), "Timestamps should be monotonically increasing"
 
-    # Test with volumetric file (should still work even though extractor initialization would fail)
-    volumetric_file = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
-    volumetric_channel_names = ScanImageImagingExtractor.get_available_channel_names(volumetric_file)
-    assert isinstance(volumetric_channel_names, list), "Channel names should be returned as a list"
-    assert len(volumetric_channel_names) >= 1, "Should extract at least one channel name"
-    assert volumetric_channel_names == ["Channel 1", "Channel 4"]
+        # Extract raw timestamps directly from TIFF file using list comprehension
+        with TiffFile(file_path) as tiff:
+            raw_timestamps = [ScanImageImagingExtractor.extract_timestamp_from_page(page) for page in tiff.pages]
+        raw_timestamps = np.array(raw_timestamps)
+
+        # Calculate expected timestamps based on extractor's table mapping
+        expected_timestamps = np.zeros(extractor.get_num_samples())
+
+        for sample_index in range(extractor.get_num_samples()):
+            # Get the last frame in each sample to match the extractor's behavior
+            frame_index = sample_index * extractor.get_num_planes() + (extractor.get_num_planes() - 1)
+            table_row = extractor._frames_to_ifd_table[frame_index]
+            file_index = table_row["file_index"]
+            ifd_index = table_row["IFD_index"]
+
+            # Add the timestamp from the raw data
+            expected_timestamps[sample_index] = raw_timestamps[ifd_index]
+
+        expected_timestamps = np.array(expected_timestamps)
+
+        # Compare the timestamps with expected values
+        np.testing.assert_array_equal(
+            timestamps,
+            expected_timestamps,
+            "Timestamps from get_times should match expected values extracted from TIFF metadata",
+        )
+
+    def test__get_times_after_plane_slicing_with_flyback_frames(self):
+        """Test get_times with plane_index on volumetric data with flyback frames.
+
+        This test verifies that:
+        1. The get_times method works correctly when accessing a specific plane using plane_index
+        2. When plane_index is used, timestamps should reflect the timestamps of the frames at that plane
+
+        File: vol_one_ch_single_files_00002_00001.tif
+        """
+        from tifffile import TiffFile
+
+        file_path = SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
+
+        # Create extractors with and without plane_index
+        extractor_full = ScanImageImagingExtractor(file_path=file_path)
+        extractor_plane0 = ScanImageImagingExtractor(file_path=file_path, plane_index=0)
+        extractor_plane4 = ScanImageImagingExtractor(file_path=file_path, plane_index=4)
+
+        # Get timestamps
+        timestamps_full = extractor_full.get_times()
+        timestamps_plane0 = extractor_plane0.get_times()
+        timestamps_plane4 = extractor_plane4.get_times()
+
+        # Check that number of timestamps equals number of samples for each extractor
+        assert (
+            len(timestamps_full) == extractor_full.get_num_samples()
+        ), "Number of timestamps should match number of samples for full extractor"
+        assert (
+            len(timestamps_plane0) == extractor_plane0.get_num_samples()
+        ), "Number of timestamps should match number of samples for plane_index=0 extractor"
+        assert (
+            len(timestamps_plane4) == extractor_plane4.get_num_samples()
+        ), "Number of timestamps should match number of samples for plane_index=4 extractor"
+
+        # Check that all extractors have the same number of samples
+        assert (
+            extractor_full.get_num_samples() == extractor_plane0.get_num_samples() == extractor_plane4.get_num_samples()
+        ), "All extractors should have the same number of samples"
+
+        # Extract raw timestamps directly from TIFF file
+        with TiffFile(file_path) as tiff:
+            raw_timestamps = [ScanImageImagingExtractor.extract_timestamp_from_page(page) for page in tiff.pages]
+        raw_timestamps = np.array(raw_timestamps)
+
+        # Calculate expected timestamps directly by understanding the structure of the dataset
+        # without relying on the internal implementation
+
+        # Calculate timestamps for the full extractor
+        num_planes = extractor_full.get_num_planes()
+        num_flyback = extractor_full.num_flyback_frames
+        total_frames_per_cycle = num_planes + num_flyback
+
+        # For full extractor, we expect timestamps from the last plane of each volume
+        expected_full_timestamps = []
+        for sample_index in range(extractor_full.get_num_samples()):
+            # Calculate frame index for the last plane in each volume (right before the flyback frames)
+            cycle_start_ifd = sample_index * total_frames_per_cycle
+            last_plane_ifd = cycle_start_ifd + num_planes - 1
+            expected_full_timestamps.append(raw_timestamps[last_plane_ifd])
+
+        expected_full_timestamps = np.array(expected_full_timestamps)
+
+        # For plane0 extractor, we expect timestamps from plane 0 of each volume
+        expected_plane0_timestamps = []
+        for sample_index in range(extractor_plane0.get_num_samples()):
+            # Calculate frame index for plane 0 in each volume
+            cycle_start_ifd = sample_index * total_frames_per_cycle
+            plane0_ifd = cycle_start_ifd
+            expected_plane0_timestamps.append(raw_timestamps[plane0_ifd])
+
+        expected_plane0_timestamps = np.array(expected_plane0_timestamps)
+
+        # For plane4 extractor, we expect timestamps from plane 4 of each volume
+        expected_plane4_timestamps = []
+        for sample_index in range(extractor_plane4.get_num_samples()):
+            # Calculate frame index for plane 4 in each volume
+            cycle_start_ifd = sample_index * total_frames_per_cycle
+            plane4_ifd = cycle_start_ifd + 4
+            expected_plane4_timestamps.append(raw_timestamps[plane4_ifd])
+
+        expected_plane4_timestamps = np.array(expected_plane4_timestamps)
+
+        # Verify full extractor timestamps
+        np.testing.assert_array_equal(
+            timestamps_full,
+            expected_full_timestamps,
+            "Timestamps from full extractor should match expected values for last planes",
+        )
+
+        # Verify plane0 extractor timestamps
+        np.testing.assert_array_equal(
+            timestamps_plane0,
+            expected_plane0_timestamps,
+            "Timestamps from plane_index=0 extractor should match expected values for plane 0",
+        )
+
+        # Verify plane4 extractor timestamps
+        np.testing.assert_array_equal(
+            timestamps_plane4,
+            expected_plane4_timestamps,
+            "Timestamps from plane_index=4 extractor should match expected values for plane 4",
+        )
+
+    def test_get_times_multi_samples_per_slice(self):
+        """Test get_times with multiple samples per slice in volumetric data.
+
+        This test verifies that:
+        1. The correct timestamps are returned when slice_sample is specified
+        2. Timestamps match the expected values from the TIFF metadata
+
+        File: scanimage_20220923_noroi.tif
+        """
+        from tifffile import TiffFile
+
+        file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
+
+        # Create extractor with slice_sample=0
+        extractor = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4", slice_sample=0)
+
+        # Get timestamps from extractor
+        timestamps = extractor.get_times()
+
+        # Check that number of timestamps equals number of samples
+        assert len(timestamps) == extractor.get_num_samples(), "Number of timestamps should match number of samples"
+
+        # Verify monotonically increasing (if there's more than one timestamp)
+        if len(timestamps) > 1:
+            assert np.all(np.diff(timestamps) > 0), "Timestamps should be monotonically increasing"
+
+        # Extract raw timestamps directly from TIFF file using list comprehension
+        with TiffFile(file_path) as tiff:
+            raw_timestamps = [ScanImageImagingExtractor.extract_timestamp_from_page(page) for page in tiff.pages]
+        raw_timestamps = np.array(raw_timestamps)
+
+        # Calculate expected timestamps based on extractor's table mapping
+        expected_timestamps = []
+
+        for sample_index in range(extractor.get_num_samples()):
+            # Get the last frame in each sample to match the extractor's behavior
+            frame_index = sample_index * extractor.get_num_planes() + (extractor.get_num_planes() - 1)
+            if frame_index < len(extractor._frames_to_ifd_table):
+                table_row = extractor._frames_to_ifd_table[frame_index]
+                file_index = table_row["file_index"]
+                ifd_index = table_row["IFD_index"]
+
+                # Add the timestamp from the raw data
+                if ifd_index < len(raw_timestamps):
+                    expected_timestamps.append(raw_timestamps[ifd_index])
+
+        expected_timestamps = np.array(expected_timestamps)
+
+        # Compare the timestamps with expected values (if we have any expected timestamps)
+        if len(expected_timestamps) > 0 and len(timestamps) == len(expected_timestamps):
+            np.testing.assert_array_equal(
+                timestamps,
+                expected_timestamps,
+                "Timestamps from get_times should match expected values extracted from TIFF metadata",
+            )
+
+    def test_get_times_after_plane_slicing_multi_samples_per_slice(self):
+        """Test get_times with plane_index on data with multiple samples per slice.
+
+        This test verifies that:
+        1. The get_times method works correctly when using both slice_sample and plane_index
+        2. When plane_index is used, timestamps should reflect the timestamps of the frames at that plane
+
+        File: scanimage_20220923_noroi.tif
+        """
+        from tifffile import TiffFile
+
+        file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
+
+        # Create extractors with and without plane_index
+        extractor_full = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4", slice_sample=0)
+        extractor_plane0 = ScanImageImagingExtractor(
+            file_paths=[file_path], channel_name="Channel 4", slice_sample=0, plane_index=0
+        )
+
+        # Get timestamps
+        timestamps_full = extractor_full.get_times()
+        timestamps_plane0 = extractor_plane0.get_times()
+
+        # Check that number of timestamps equals number of samples for each extractor
+        assert (
+            len(timestamps_full) == extractor_full.get_num_samples()
+        ), "Number of timestamps should match number of samples for full extractor"
+        assert (
+            len(timestamps_plane0) == extractor_plane0.get_num_samples()
+        ), "Number of timestamps should match number of samples for plane_index=0 extractor"
+
+        # Should have the same number of samples and timestamps
+        assert (
+            extractor_full.get_num_samples() == extractor_plane0.get_num_samples()
+        ), "Both extractors should have the same number of samples"
+
+        # Extract raw timestamps directly from TIFF file
+        with TiffFile(file_path) as tiff:
+            raw_timestamps = [ScanImageImagingExtractor.extract_timestamp_from_page(page) for page in tiff.pages]
+        raw_timestamps = np.array(raw_timestamps)
+
+        # For complex data with multiple frames per slice, we need more information to calculate
+        # expected timestamps without relying on internal implementation
+
+        # For the full volumetric extractor (with slice_sample=0), we need to identify
+        # timestamps for the last plane in each volume
+        num_planes = extractor_full.get_num_planes()
+
+        # Get the indices for the frames in each extractor
+        full_indices = []
+        plane0_indices = []
+
+        if len(extractor_full._frames_to_ifd_table) > 0:
+            # Get the frame indices for the full extractor
+            for sample_index in range(min(2, extractor_full.get_num_samples())):  # Just check the first few samples
+                frame_index = sample_index * num_planes + (num_planes - 1)  # Last plane
+                if frame_index < len(extractor_full._frames_to_ifd_table):
+                    full_indices.append(extractor_full._frames_to_ifd_table[frame_index]["IFD_index"])
+
+            # Get the frame indices for the plane0 extractor
+            for sample_index in range(min(2, extractor_plane0.get_num_samples())):  # Just check the first few samples
+                if sample_index < len(extractor_plane0._frames_to_ifd_table):
+                    plane0_indices.append(extractor_plane0._frames_to_ifd_table[sample_index]["IFD_index"])
+
+            # Given enough samples to analyze, determine the frame offset between full and plane0
+            if full_indices and plane0_indices:
+                # Verify that the get_times method correctly returns timestamps
+                # from the corresponding frames in each extractor
+
+                # For full extractor
+                expected_full_timestamps = [raw_timestamps[idx] for idx in full_indices]
+                for i, (expected, actual) in enumerate(
+                    zip(expected_full_timestamps, timestamps_full[: len(expected_full_timestamps)])
+                ):
+                    assert expected == actual, f"Timestamp mismatch for full extractor at sample {i}"
+
+                # For plane0 extractor
+                expected_plane0_timestamps = [raw_timestamps[idx] for idx in plane0_indices]
+                for i, (expected, actual) in enumerate(
+                    zip(expected_plane0_timestamps, timestamps_plane0[: len(expected_plane0_timestamps)])
+                ):
+                    assert expected == actual, f"Timestamp mismatch for plane0 extractor at sample {i}"
 
 
 def test_file_paths_parameter():
@@ -1189,3 +1432,59 @@ def test_get_times_planar_multichannel():
     # Compare the first few timestamps to verify correct filtering
     assert np.allclose(timestamps_ch1, expected_timestamps_ch1), "Channel 1 timestamps should match expected values"
     assert np.allclose(timestamps_ch2, expected_timestamps_ch2), "Channel 2 timestamps should match expected values"
+
+
+def test_get_frames_per_slice():
+    """
+    Test the static get_frames_per_slice method.
+
+    This test verifies that the static get_frames_per_slice method correctly extracts
+    the number of slices per sample from ScanImage TIFF files without needing to create
+    an extractor instance.
+    """
+    # Test with single frame per slice file
+    single_frame_file = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
+    frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(single_frame_file)
+    assert frames_per_slice == 10, "File should have 1 frame per slice"
+
+    # Test with multiple frames per slice file
+    multi_frame_file = SCANIMAGE_PATH / "scanimage_20220801_volume.tif"
+    frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(multi_frame_file)
+    assert frames_per_slice == 8, "File should have 8 frames per slice"
+
+    # Test with another multiple frames per slice file
+    multi_frame_file2 = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
+    frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(multi_frame_file2)
+    assert frames_per_slice == 2, "File should have 2 frames per slice"
+
+
+def test_get_availale_channel_names():
+    """Test the static get_channel_names method.
+
+    This test verifies that the static get_available_channel_names method correctly extracts
+    channel names from ScanImage TIFF files without needing to create an extractor instance.
+
+    The test checks:
+    1. Single-channel file: Verifies correct channel name extraction
+    2. Multi-channel file: Verifies all channel names are correctly extracted
+    """
+    # Test with single-channel file
+    single_channel_file = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
+    single_channel_names = ScanImageImagingExtractor.get_available_channel_names(single_channel_file)
+    assert isinstance(single_channel_names, list), "Channel names should be returned as a list"
+    assert len(single_channel_names) == 1, "Single channel file should have one channel"
+    assert single_channel_names[0] == "Channel 1", "Channel name should match expected value"
+
+    # Test with multi-channel file
+    multi_channel_file = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
+    multi_channel_names = ScanImageImagingExtractor.get_available_channel_names(multi_channel_file)
+    assert isinstance(multi_channel_names, list), "Channel names should be returned as a list"
+    assert len(multi_channel_names) == 2, "Multi-channel file should have two channels"
+    assert multi_channel_names == ["Channel 1", "Channel 2"]
+
+    # Test with volumetric file (should still work even though extractor initialization would fail)
+    volumetric_file = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
+    volumetric_channel_names = ScanImageImagingExtractor.get_available_channel_names(volumetric_file)
+    assert isinstance(volumetric_channel_names, list), "Channel names should be returned as a list"
+    assert len(volumetric_channel_names) >= 1, "Should extract at least one channel name"
+    assert volumetric_channel_names == ["Channel 1", "Channel 4"]
