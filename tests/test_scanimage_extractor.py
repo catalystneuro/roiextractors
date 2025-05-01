@@ -545,7 +545,7 @@ class TestScanImageVolumetricWithFlybackFrames:
                     )
 
 
-class TestScanImageExtractorVolumetricMultiSample:
+class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
     """Test the ScanImage extractor classes with files that have multiple frames per slice."""
 
     def test_volumetric_data_single_channel_single_file(self):
@@ -791,6 +791,239 @@ class TestScanImageExtractorVolumetricMultiSample:
                 np.testing.assert_array_equal(
                     frame_extractor, frame_tiff, f"Sample {sample_index}, frame {frame_index} does not match tiff data"
                 )
+
+
+class TestScanImageVolumetricPlaneSlicing:
+    """Test the plane_index parameter of the ScanImage extractor classes."""
+
+    def test_plane_index_parameter_single_channel(self):
+        """Test the plane_index parameter with volumetric single channel data.
+
+        File: vol_one_ch_single_files_00002_00001.tif
+        Metadata:
+        - Acquisition mode: grab
+        - Volumetric: True (9 slices and 7 flyback frames)
+        - Frame shape: 20 x 20
+        - Channels: 1 (single channel)
+        - Frames per slice: 1
+        - Frame rate: 523.926 Hz
+        - Volume rate: 32.7454 Hz
+        - Pages/IDFs: 1600
+
+        This test verifies that the plane_index parameter correctly extracts a specific plane
+        from volumetric data and behaves as if the data is not volumetric. It tests:
+        1. Extracting the first plane (plane_index=0)
+        2. Extracting a middle plane (plane_index=4)
+        3. Extracting the last plane (plane_index=8)
+        4. Comparing the extracted planes with the corresponding planes in the full volumetric data
+        """
+        file_path = SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
+
+        # Create an extractor with plane_index=0 (first plane)
+        extractor_plane0 = ScanImageImagingExtractor(file_path=file_path, plane_index=0)
+
+        # Create an extractor with plane_index=4 (middle plane)
+        extractor_plane4 = ScanImageImagingExtractor(file_path=file_path, plane_index=4)
+
+        # Create an extractor with plane_index=8 (last plane)
+        extractor_plane8 = ScanImageImagingExtractor(file_path=file_path, plane_index=8)
+
+        # Create a regular extractor for comparison
+        extractor_full = ScanImageImagingExtractor(file_path=file_path)
+
+        # Verify that the extractors with plane_index are not volumetric
+        assert extractor_plane0.is_volumetric == False, "Extractor with plane_index should not be volumetric"
+        assert extractor_plane4.is_volumetric == False, "Extractor with plane_index should not be volumetric"
+        assert extractor_plane8.is_volumetric == False, "Extractor with plane_index should not be volumetric"
+
+        # Verify that the full extractor is volumetric
+        assert extractor_full.is_volumetric == True, "Full extractor should be volumetric"
+
+        # Verify that the extractors with plane_index have num_planes=1
+        assert extractor_plane0.get_num_planes() == 1, "Extractor with plane_index should have num_planes=1"
+        assert extractor_plane4.get_num_planes() == 1, "Extractor with plane_index should have num_planes=1"
+        assert extractor_plane8.get_num_planes() == 1, "Extractor with plane_index should have num_planes=1"
+
+        # Verify that the full extractor has num_planes=9
+        assert extractor_full.get_num_planes() == 9, "Full extractor should have num_planes=9"
+
+        # Get data from all extractors
+        data_plane0 = extractor_plane0.get_series()
+        data_plane4 = extractor_plane4.get_series()
+        data_plane8 = extractor_plane8.get_series()
+        data_full = extractor_full.get_series()
+
+        # Predefine expected shapes for easier readability
+        expected_shape_plane = (extractor_plane0.get_num_samples(), 20, 20)
+        expected_shape_full = (extractor_full.get_num_samples(), 20, 20, 9)
+
+        # Verify the shape of the data
+        assert data_plane0.shape == expected_shape_plane, f"Data shape should be {expected_shape_plane}"
+        assert data_plane4.shape == expected_shape_plane, f"Data shape should be {expected_shape_plane}"
+        assert data_plane8.shape == expected_shape_plane, f"Data shape should be {expected_shape_plane}"
+        assert data_full.shape == expected_shape_full, f"Data shape should be {expected_shape_full}"
+
+        # Verify that the data from the plane extractors matches the corresponding plane in the full extractor
+        # Use assert_allclose instead of assert_array_equal to allow for small differences
+        # Compare the full series at once
+        np.testing.assert_allclose(
+            data_plane0,
+            data_full[:, :, :, 0],
+            rtol=1e-5,
+            atol=1e-5,
+            err_msg="Data from plane 0 extractor does not match plane 0 in full extractor",
+        )
+        np.testing.assert_allclose(
+            data_plane4,
+            data_full[:, :, :, 4],
+            rtol=1e-5,
+            atol=1e-5,
+            err_msg="Data from plane 4 extractor does not match plane 4 in full extractor",
+        )
+        np.testing.assert_allclose(
+            data_plane8,
+            data_full[:, :, :, 8],
+            rtol=1e-5,
+            atol=1e-5,
+            err_msg="Data from plane 8 extractor does not match plane 8 in full extractor",
+        )
+
+    def test_plane_index_with_multiple_frames_per_slice(self):
+        """Test the plane_index parameter with slice_sample for multi-channel volumetric data.
+
+        File: scanimage_20220923_noroi.tif
+        Metadata:
+        - Acquisition mode: grab
+        - Volumetric: True (2 planes)
+        - Channels: Multiple Channels ['Channel 1', 'Channel 4']
+        - Frames per slice: 2
+        - Frame rate: 29.1248 Hz
+        - Volume rate: 7.28119 Hz
+        - Image shape: 256 x 256
+        - IFDS/Pages: 24
+
+        This test verifies that the plane_index parameter works correctly when combined with
+        the slice_sample parameter for volumetric data with multiple frames per slice. It tests:
+        1. Extracting plane 0 with slice_sample=0
+        2. Extracting plane 1 with slice_sample=0
+        3. Extracting plane 0 with slice_sample=1
+        4. Extracting plane 1 with slice_sample=1
+        5. Comparing the extracted data with the corresponding planes in the regular extractors
+        """
+        file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
+
+        # Create extractors with different combinations of slice_sample and plane_index
+        extractor_slice_sample_0_plane_0 = ScanImageImagingExtractor(
+            file_paths=[file_path],
+            channel_name="Channel 4",
+            slice_sample=0,
+            plane_index=0,
+        )
+
+        extractor_slice_sample_0_plane_1 = ScanImageImagingExtractor(
+            file_paths=[file_path],
+            channel_name="Channel 4",
+            slice_sample=0,
+            plane_index=1,
+        )
+
+        extractor_slice_sample_1_plane_0 = ScanImageImagingExtractor(
+            file_paths=[file_path],
+            channel_name="Channel 4",
+            slice_sample=1,
+            plane_index=0,
+        )
+
+        extractor_slice_sample_1_plane_1 = ScanImageImagingExtractor(
+            file_paths=[file_path],
+            channel_name="Channel 4",
+            slice_sample=1,
+            plane_index=1,
+        )
+
+        # Create regular extractors for comparison
+        extractor_slice_sample_0 = ScanImageImagingExtractor(
+            file_paths=[file_path],
+            channel_name="Channel 4",
+            slice_sample=0,
+        )
+
+        extractor_slice_sample_1 = ScanImageImagingExtractor(
+            file_paths=[file_path],
+            channel_name="Channel 4",
+            slice_sample=1,
+        )
+        # Define the error message for easier readability
+        error_message = "Extractor with plane_index should not be volumetric"
+        # Verify that the extractors with plane_index are not volumetric
+        assert extractor_slice_sample_0_plane_0.is_volumetric == False, error_message
+        assert extractor_slice_sample_0_plane_1.is_volumetric == False, error_message
+        assert extractor_slice_sample_1_plane_0.is_volumetric == False, error_message
+        assert extractor_slice_sample_1_plane_1.is_volumetric == False, error_message
+
+        # Verify that the regular extractors are volumetric
+        assert extractor_slice_sample_0.is_volumetric == True, "Regular extractor should be volumetric"
+        assert extractor_slice_sample_1.is_volumetric == True, "Regular extractor should be volumetric"
+
+        # Verify that the extractors with plane_index have num_planes=1
+        error_message = "Extractor with plane_index should have num_planes=1"
+        assert extractor_slice_sample_0_plane_0.get_num_planes() == 1, error_message
+        assert extractor_slice_sample_0_plane_1.get_num_planes() == 1, error_message
+        assert extractor_slice_sample_1_plane_0.get_num_planes() == 1, error_message
+        assert extractor_slice_sample_1_plane_1.get_num_planes() == 1, error_message
+
+        # Verify that the regular extractors have num_planes=2
+        assert extractor_slice_sample_0.get_num_planes() == 2, "Regular extractor should have num_planes=2"
+        assert extractor_slice_sample_1.get_num_planes() == 2, "Regular extractor should have num_planes=2"
+
+        # Get data from all extractors
+        data_slice_sample_0_plane_0 = extractor_slice_sample_0_plane_0.get_series()
+        data_slice_sample_0_plane_1 = extractor_slice_sample_0_plane_1.get_series()
+        data_slice_sample_1_plane_0 = extractor_slice_sample_1_plane_0.get_series()
+        data_slice_sample_1_plane_1 = extractor_slice_sample_1_plane_1.get_series()
+        data_slice_sample_0 = extractor_slice_sample_0.get_series()
+        data_slice_sample_1 = extractor_slice_sample_1.get_series()
+
+        # Predefine expected shapes for easier readability
+        expected_shape_plane = (extractor_slice_sample_0_plane_0.get_num_samples(), 256, 256)
+        expected_shape_full = (extractor_slice_sample_0.get_num_samples(), 256, 256, 2)
+
+        # Verify the shape of the data
+        assert data_slice_sample_0_plane_0.shape == expected_shape_plane, f"Data shape should be {expected_shape_plane}"
+        assert data_slice_sample_0_plane_1.shape == expected_shape_plane, f"Data shape should be {expected_shape_plane}"
+        assert data_slice_sample_1_plane_0.shape == expected_shape_plane, f"Data shape should be {expected_shape_plane}"
+        assert data_slice_sample_1_plane_1.shape == expected_shape_plane, f"Data shape should be {expected_shape_plane}"
+        assert data_slice_sample_0.shape == expected_shape_full, f"Data shape should be {expected_shape_full}"
+        assert data_slice_sample_1.shape == expected_shape_full, f"Data shape should be {expected_shape_full}"
+
+        # Verify that the data from the plane extractors matches the corresponding plane in the regular extractors
+        for sample_index in range(
+            min(extractor_slice_sample_0_plane_0.get_num_samples(), extractor_slice_sample_0.get_num_samples())
+        ):
+            np.testing.assert_array_equal(
+                data_slice_sample_0_plane_0[sample_index],
+                data_slice_sample_0[sample_index, :, :, 0],
+                f"Data from slice_sample_0_plane_0 extractor does not match plane 0 in slice_sample_0 extractor for sample {sample_index}",
+            )
+            np.testing.assert_array_equal(
+                data_slice_sample_0_plane_1[sample_index],
+                data_slice_sample_0[sample_index, :, :, 1],
+                f"Data from slice_sample_0_plane_1 extractor does not match plane 1 in slice_sample_0 extractor for sample {sample_index}",
+            )
+
+        for sample_index in range(
+            min(extractor_slice_sample_1_plane_0.get_num_samples(), extractor_slice_sample_1.get_num_samples())
+        ):
+            np.testing.assert_array_equal(
+                data_slice_sample_1_plane_0[sample_index],
+                data_slice_sample_1[sample_index, :, :, 0],
+                f"Data from slice_sample_1_plane_0 extractor does not match plane 0 in slice_sample_1 extractor for sample {sample_index}",
+            )
+            np.testing.assert_array_equal(
+                data_slice_sample_1_plane_1[sample_index],
+                data_slice_sample_1[sample_index, :, :, 1],
+                f"Data from slice_sample_1_plane_1 extractor does not match plane 1 in slice_sample_1 extractor for sample {sample_index}",
+            )
 
 
 def test_get_frames_per_slice():
