@@ -1491,17 +1491,11 @@ class TestTimestampExtraction:
         timestamps_plane0 = extractor_plane0.get_times()
 
         # Check that number of timestamps equals number of samples for each extractor
-        assert (
-            len(timestamps_full) == extractor_full.get_num_samples()
-        ), "Number of timestamps should match number of samples for full extractor"
-        assert (
-            len(timestamps_plane0) == extractor_plane0.get_num_samples()
-        ), "Number of timestamps should match number of samples for plane_index=0 extractor"
+        assert len(timestamps_full) == extractor_full.get_num_samples()
+        assert len(timestamps_plane0) == extractor_plane0.get_num_samples()
 
         # Should have the same number of samples and timestamps
-        assert (
-            extractor_full.get_num_samples() == extractor_plane0.get_num_samples()
-        ), "Both extractors should have the same number of samples"
+        assert extractor_full.get_num_samples() == extractor_plane0.get_num_samples()
 
         # Extract raw timestamps directly from TIFF file
         with TiffFile(file_path) as tiff:
