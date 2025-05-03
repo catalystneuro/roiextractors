@@ -43,7 +43,7 @@ jobs:
         id: cache-ophys-datasets
         with:
           path: ./ophys_testing_data
-          key: ophys-datasets-042023-ubuntu-latest-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
+          key: ophys-datasets-2025-05-ubuntu-latest-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
 
       - name: Run NeuroConv tests
         run: |
