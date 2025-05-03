@@ -1165,18 +1165,10 @@ class TestTimestampExtraction:
         timestamps_plane8 = extractor_plane8.get_times()
 
         # Check that number of timestamps equals number of samples for each extractor
-        assert (
-            len(timestamps_full) == extractor_full.get_num_samples()
-        ), "Number of timestamps should match number of samples for full extractor"
-        assert (
-            len(timestamps_plane0) == extractor_plane0.get_num_samples()
-        ), "Number of timestamps should match number of samples for plane_index=0 extractor"
-        assert (
-            len(timestamps_plane4) == extractor_plane4.get_num_samples()
-        ), "Number of timestamps should match number of samples for plane_index=4 extractor"
-        assert (
-            len(timestamps_plane8) == extractor_plane8.get_num_samples()
-        ), "Number of timestamps should match number of samples for plane_index=8 extractor"
+        assert len(timestamps_full) == extractor_full.get_num_samples()
+        assert len(timestamps_plane0) == extractor_plane0.get_num_samples()
+        assert len(timestamps_plane4) == extractor_plane4.get_num_samples()
+        assert len(timestamps_plane8) == extractor_plane8.get_num_samples()
 
         # Check that all extractors have the same number of samples
         assert (
