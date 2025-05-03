@@ -38,7 +38,7 @@ class TestScanImageExtractor:
         # This is frame per slice 24 and should fail
         file_path = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
 
-        extractor = ScanImageImagingExtractor(file_path=file_path)
+        extractor = ScanImageImagingExtractor(file_path=str(file_path))
 
         assert extractor.is_volumetric == False
         assert extractor.get_num_samples() == 3
