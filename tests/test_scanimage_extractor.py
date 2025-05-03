@@ -193,6 +193,32 @@ class TestScanImageExtractor:
                 start_sample += samples_per_file
                 end_sample += samples_per_file
 
+    def test_volumetric_single_channel_single_file(self):
+        """Test with volumetric data in a single file.
+
+        File: vol_no_flyback_00001_00001_stub.tif
+        Metadata:
+        - Acquisition state: grab
+        - Volumetric: True (9 slices per volume)
+        - Frame shape: 20 x 20
+        - Channels saved: 1 (single channel)
+        - Frames per slice: 1
+        - Frame rate: 79.8033 Hz
+        - Volume rate: 8.86703 Hz
+        - Number of volumes: 10
+        - Pages/IDFs: 90
+        """
+        file_path = (
+            SCANIMAGE_PATH / "volumetric_single_channel_single_file_no_flyback" / "vol_no_flyback_00001_00001_stub.tif"
+        )
+
+        extractor = ScanImageImagingExtractor(file_path=file_path)
+
+        assert extractor.is_volumetric == True
+        assert extractor.get_num_samples() == 100
+        assert extractor.get_image_shape() == (20, 20)
+        assert extractor.get_sampling_frequency() == 32.7454
+
 
 class TestScanImageVolumetricWithFlybackFrames:
     """Test the ScanImage extractor classes with files that have flyback frames."""
