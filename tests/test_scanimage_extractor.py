@@ -13,6 +13,14 @@ from .setup_paths import OPHYS_DATA_PATH
 SCANIMAGE_PATH = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
 
 
+def test_old_scan_image_version():
+    """Test that an error informative error is raised when using an old ScanImage version."""
+    file_path = SCANIMAGE_PATH / "sample_scanimage_version_3_8.tiff"
+
+    with pytest.raises(ValueError):
+        ScanImageImagingExtractor(file_path=file_path)
+
+
 class TestScanImageExtractor:
     """Test the ScanImage extractor classes with various ScanImage files."""
 
@@ -30,7 +38,7 @@ class TestScanImageExtractor:
         # This is frame per slice 24 and should fail
         file_path = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
 
-        extractor = ScanImageImagingExtractor(file_path=file_path)
+        extractor = ScanImageImagingExtractor(file_path=str(file_path))
 
         assert extractor.is_volumetric == False
         assert extractor.get_num_samples() == 3
