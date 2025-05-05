@@ -1369,13 +1369,27 @@ class TestTimestampExtraction:
         2. Timestamps match the expected values from the TIFF metadata
 
         File: scanimage_20220923_noroi.tif
+
+        Metadata:
+        - Acquisition mode: grab
+        - Volumetric: True (multiple planes)
+        - Channels: Multiple Channels ['Channel 1', 'Channel 4']
+        - Frames per depth: 2
+        - Frame rate: 29.1248 Hz
+        - Volume rate: 7.28119 Hz
+        - Image shape: 256 x 256
+        - Num_slices: 2
+        - IFDS/Pages: 24
         """
         from tifffile import TiffFile
 
         file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
 
         # Create extractor with slice_sample=0
-        extractor = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4", slice_sample=0)
+        slice_sample = 0
+        extractor = ScanImageImagingExtractor(
+            file_paths=[file_path], channel_name="Channel 4", slice_sample=slice_sample
+        )
 
         # Get timestamps from extractor
         timestamps = extractor.get_times()
@@ -1392,30 +1406,33 @@ class TestTimestampExtraction:
             raw_timestamps = [ScanImageImagingExtractor.extract_timestamp_from_page(page) for page in tiff.pages]
         raw_timestamps = np.array(raw_timestamps)
 
-        # Calculate expected timestamps based on extractor's table mapping
-        expected_timestamps = []
+        # For the flyback frames case, the timestamp assigned is the
+        # last timestamp before the flyback frames
+        num_planes = extractor.get_num_planes()
+        num_flyback_frames_per_channel = extractor.num_flyback_frames_per_channel
+        num_samples_volumetric = extractor.get_num_samples()
 
-        for sample_index in range(extractor.get_num_samples()):
-            # Get the last frame in each sample to match the extractor's behavior
-            frame_index = sample_index * extractor.get_num_planes() + (extractor.get_num_planes() - 1)
-            if frame_index < len(extractor._frames_to_ifd_table):
-                table_row = extractor._frames_to_ifd_table[frame_index]
-                file_index = table_row["file_index"]
-                ifd_index = table_row["IFD_index"]
+        num_frames_per_slice = extractor._frames_per_slice
+        num_channels = len(extractor.channel_names)
+        image_frames_per_cycle = num_planes * num_frames_per_slice * num_channels
+        flyback_frames = num_flyback_frames_per_channel * num_channels
+        total_frames_per_cycle = image_frames_per_cycle + flyback_frames
 
-                # Add the timestamp from the raw data
-                if ifd_index < len(raw_timestamps):
-                    expected_timestamps.append(raw_timestamps[ifd_index])
+        # As a timestamp we get every last frame before the flyback frames
+        sample_indices = np.arange(0, num_samples_volumetric, dtype=int)
+        last_volume_offset = image_frames_per_cycle - num_channels * num_frames_per_slice
+        channel_offset = extractor._channel_index
+        slice_offset = slice_sample * num_channels
 
-        expected_timestamps = np.array(expected_timestamps)
+        timestamp_indices = sample_indices * total_frames_per_cycle + last_volume_offset + channel_offset + slice_offset
+        expected_timestamps = raw_timestamps[timestamp_indices]
 
-        # Compare the timestamps with expected values (if we have any expected timestamps)
-        if len(expected_timestamps) > 0 and len(timestamps) == len(expected_timestamps):
-            np.testing.assert_array_equal(
-                timestamps,
-                expected_timestamps,
-                "Timestamps from get_times should match expected values extracted from TIFF metadata",
-            )
+        # Compare the timestamps with expected values
+        np.testing.assert_array_equal(
+            timestamps,
+            expected_timestamps,
+            "Timestamps from get_times should match expected values extracted from TIFF metadata",
+        )
 
     def test_get_times_after_plane_slicing_multi_samples_per_slice(self):
         """Test get_times with plane_index on data with multiple samples per slice.
