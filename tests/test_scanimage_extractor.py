@@ -273,13 +273,13 @@ class TestScanImageVolumetricWithFlybackFrames:
         extractor = ScanImageImagingExtractor(file_path=file_path)
 
         assert extractor.is_volumetric == True
-        assert extractor.num_flyback_frames == 7
+        assert extractor.num_flyback_frames_per_channel == 7
         assert extractor.get_sampling_frequency() == 32.7454
         assert extractor.get_image_shape() == (20, 20)
         assert extractor.get_num_planes() == 9
 
         ifds = 1600
-        total_frames_per_cycle = extractor.get_num_planes() + extractor.num_flyback_frames
+        total_frames_per_cycle = extractor.get_num_planes() + extractor.num_flyback_frames_per_channel
         num_acquisition_cycles = ifds // total_frames_per_cycle
         assert extractor.get_num_samples() == num_acquisition_cycles
 
@@ -330,13 +330,13 @@ class TestScanImageVolumetricWithFlybackFrames:
         extractor = ScanImageImagingExtractor(file_path=file_path)
 
         assert extractor.is_volumetric == True
-        assert extractor.num_flyback_frames == 7
+        assert extractor.num_flyback_frames_per_channel == 7
         assert extractor.get_sampling_frequency() == 32.7454
         assert extractor.get_image_shape() == (20, 20)
         assert extractor.get_num_planes() == 9
 
         ifds = 160 * 10
-        total_frames_per_cycle = extractor.get_num_planes() + extractor.num_flyback_frames
+        total_frames_per_cycle = extractor.get_num_planes() + extractor.num_flyback_frames_per_channel
         num_acquisition_cycles = ifds // total_frames_per_cycle
         assert extractor.get_num_samples() == num_acquisition_cycles
 
@@ -1123,12 +1123,12 @@ class TestTimestampExtraction:
         # Calculate expected timestamps based on extractor's behavior
         # For volumetric data we use the last plane of each volume
         num_samples = extractor.get_num_samples()
-        expected_timestamps = np.zeros(num_samples)
         num_planes = extractor.get_num_planes()
-        for sample_index in range(num_samples):
-            # Calculate the index of the last plane in each volume
-            last_plane_index = (sample_index + 1) * num_planes - 1
-            expected_timestamps[sample_index] = raw_timestamps[last_plane_index]
+        sample_indices = np.arange(0, num_samples, dtype=int)
+        total_frames_per_cycle = num_planes
+        last_volume_offset = num_planes - 1
+        timestamps_indices = sample_indices * total_frames_per_cycle + last_volume_offset
+        expected_timestamps = raw_timestamps[timestamps_indices]
 
         # Compare the timestamps with expected values
         np.testing.assert_array_equal(
@@ -1164,19 +1164,13 @@ class TestTimestampExtraction:
         timestamps_plane4 = extractor_plane4.get_times()
         timestamps_plane8 = extractor_plane8.get_times()
 
-        # Check that number of timestamps equals number of samples for each extractor
-        assert len(timestamps_full) == extractor_full.get_num_samples()
-        assert len(timestamps_plane0) == extractor_plane0.get_num_samples()
-        assert len(timestamps_plane4) == extractor_plane4.get_num_samples()
-        assert len(timestamps_plane8) == extractor_plane8.get_num_samples()
+        num_samples_volumetric = extractor_full.get_num_samples()
 
-        # Check that all plane slices have the same number of samples
-        assert (
-            extractor_full.get_num_samples()
-            == extractor_plane0.get_num_samples()
-            == extractor_plane4.get_num_samples()
-            == extractor_plane8.get_num_samples()
-        ), "All plane slices should have the same number of samples"
+        # Check that number of timestamps equals number of samples for each extractor
+        assert len(timestamps_full) == num_samples_volumetric
+        assert len(timestamps_plane0) == num_samples_volumetric
+        assert len(timestamps_plane4) == num_samples_volumetric
+        assert len(timestamps_plane8) == num_samples_volumetric
 
         # Extract raw timestamps directly from TIFF file
         with TiffFile(file_path) as tiff:
@@ -1225,6 +1219,16 @@ class TestTimestampExtraction:
         3. Timestamps match the expected values from the TIFF metadata
 
         File: vol_one_ch_single_files_00002_00001.tif
+
+        Metadata:
+        - Acquisition mode: grab
+        - Volumetric: True (9 slices and 7 flyback frames)
+        - Frame shape: 20 x 20
+        - Channels: 1 (single channel)
+        - Frames per slice: 1
+        - Frame rate: 523.926 Hz
+        - Volume rate: 32.7454 Hz
+        - Pages/IDFs: 1600
         """
         from tifffile import TiffFile
 
@@ -1236,8 +1240,9 @@ class TestTimestampExtraction:
         # Get timestamps from extractor
         timestamps = extractor.get_times()
 
+        num_samples_volumetric = extractor.get_num_samples()
         # Check that number of timestamps equals number of samples
-        assert len(timestamps) == extractor.get_num_samples(), "Number of timestamps should match number of samples"
+        assert len(timestamps) == num_samples_volumetric, "Number of timestamps should match number of samples"
 
         # Verify monotonically increasing
         assert np.all(np.diff(timestamps) > 0), "Timestamps should be monotonically increasing"
@@ -1247,14 +1252,24 @@ class TestTimestampExtraction:
             raw_timestamps = [ScanImageImagingExtractor.extract_timestamp_from_page(page) for page in tiff.pages]
         raw_timestamps = np.array(raw_timestamps)
 
-        # Calculate expected timestamps based on extractor's table mapping
-        expected_timestamps = np.zeros(extractor.get_num_samples())
+        # For the flyback frames case, the timestamp assigned is the
+        # last timestamp before the flyback frames
         num_planes = extractor.get_num_planes()
+        num_flyback_frames_per_channel = extractor.num_flyback_frames_per_channel
 
-        for sample_index in range(extractor.get_num_samples()):
-            # Get the last frame in each sample to match the extractor's behavior
-            last_plane_index = sample_index * num_planes + (num_planes - 1)
-            expected_timestamps[sample_index] = raw_timestamps[last_plane_index]
+        num_frames_per_slice = extractor._frames_per_slice
+        num_channels = len(extractor.channel_names)
+        image_frames_per_cycle = num_planes * num_frames_per_slice * num_channels
+        flyback_frames = num_flyback_frames_per_channel * num_channels
+        total_frames_per_cycle = image_frames_per_cycle + flyback_frames
+
+        # As a timestamp we get every last frame before the flyback frames
+        sample_indices = np.arange(0, num_samples_volumetric, dtype=int)
+        last_volume_offset = image_frames_per_cycle - num_channels
+        channel_offset = extractor._channel_index
+
+        timestamp_indices = sample_indices * total_frames_per_cycle + last_volume_offset + channel_offset
+        expected_timestamps = raw_timestamps[timestamp_indices]
 
         # Compare the timestamps with expected values
         np.testing.assert_array_equal(
@@ -1263,7 +1278,7 @@ class TestTimestampExtraction:
             "Timestamps from get_times should match expected values extracted from TIFF metadata",
         )
 
-    def test_get_times_after_plane_slicing_with_flyback_frames(self):
+    def test_get_times_after_plane_slicing_flyback_frames(self):
         """Test get_times with plane_index on volumetric data with flyback frames.
 
         This test verifies that:
@@ -1278,29 +1293,21 @@ class TestTimestampExtraction:
 
         # Create extractors with and without plane_index
         extractor_full = ScanImageImagingExtractor(file_path=file_path)
-        extractor_plane0 = ScanImageImagingExtractor(file_path=file_path, plane_index=0)
-        extractor_plane4 = ScanImageImagingExtractor(file_path=file_path, plane_index=4)
+        plane_index_0 = 0
+        plane_index_4 = 4
+        extractor_plane0 = ScanImageImagingExtractor(file_path=file_path, plane_index=plane_index_0)
+        extractor_plane4 = ScanImageImagingExtractor(file_path=file_path, plane_index=plane_index_4)
 
         # Get timestamps
         timestamps_full = extractor_full.get_times()
         timestamps_plane0 = extractor_plane0.get_times()
         timestamps_plane4 = extractor_plane4.get_times()
 
-        # Check that number of timestamps equals number of samples for each extractor
-        assert (
-            len(timestamps_full) == extractor_full.get_num_samples()
-        ), "Number of timestamps should match number of samples for full extractor"
-        assert (
-            len(timestamps_plane0) == extractor_plane0.get_num_samples()
-        ), "Number of timestamps should match number of samples for plane_index=0 extractor"
-        assert (
-            len(timestamps_plane4) == extractor_plane4.get_num_samples()
-        ), "Number of timestamps should match number of samples for plane_index=4 extractor"
-
-        # Check that all extractors have the same number of samples
-        assert (
-            extractor_full.get_num_samples() == extractor_plane0.get_num_samples() == extractor_plane4.get_num_samples()
-        ), "All extractors should have the same number of samples"
+        num_samples_volumetric = extractor_full.get_num_samples()
+        assert len(timestamps_full) == num_samples_volumetric
+        assert len(timestamps_plane0) == num_samples_volumetric
+        assert len(timestamps_plane4) == num_samples_volumetric
+        assert len(timestamps_plane0) == len(timestamps_plane4)
 
         # Extract raw timestamps directly from TIFF file
         with TiffFile(file_path) as tiff:
@@ -1310,47 +1317,27 @@ class TestTimestampExtraction:
         # Calculate expected timestamps directly by understanding the structure of the dataset
         # without relying on the internal implementation
 
-        # Calculate timestamps for the full extractor
+        num_frames_per_slice = extractor_full._frames_per_slice
+        num_channels = len(extractor_full.channel_names)
         num_planes = extractor_full.get_num_planes()
-        num_flyback = extractor_full.num_flyback_frames
-        total_frames_per_cycle = num_planes + num_flyback
+        num_flyback_frames_per_channel = extractor_full.num_flyback_frames_per_channel
+        num_samples_volumetric = extractor_full.get_num_samples()
 
-        # For full extractor, we expect timestamps from the last plane of each volume
-        expected_full_timestamps = []
-        for sample_index in range(extractor_full.get_num_samples()):
-            # Calculate frame index for the last plane in each volume (right before the flyback frames)
-            cycle_start_ifd = sample_index * total_frames_per_cycle
-            last_plane_ifd = cycle_start_ifd + num_planes - 1
-            expected_full_timestamps.append(raw_timestamps[last_plane_ifd])
+        num_frames_per_slice = extractor_full._frames_per_slice
+        num_channels = len(extractor_full.channel_names)
+        image_frames_per_cycle = num_planes * num_frames_per_slice * num_channels
+        flyback_frames = num_flyback_frames_per_channel * num_channels
 
-        expected_full_timestamps = np.array(expected_full_timestamps)
+        # As a timestamp we get every last frame before the flyback frames
+        sample_indices = np.arange(0, num_samples_volumetric, dtype=int)
 
-        # For plane0 extractor, we expect timestamps from plane 0 of each volume
-        expected_plane0_timestamps = []
-        for sample_index in range(extractor_plane0.get_num_samples()):
-            # Calculate frame index for plane 0 in each volume
-            cycle_start_ifd = sample_index * total_frames_per_cycle
-            plane0_ifd = cycle_start_ifd
-            expected_plane0_timestamps.append(raw_timestamps[plane0_ifd])
-
-        expected_plane0_timestamps = np.array(expected_plane0_timestamps)
-
-        # For plane4 extractor, we expect timestamps from plane 4 of each volume
-        expected_plane4_timestamps = []
-        for sample_index in range(extractor_plane4.get_num_samples()):
-            # Calculate frame index for plane 4 in each volume
-            cycle_start_ifd = sample_index * total_frames_per_cycle
-            plane4_ifd = cycle_start_ifd + 4
-            expected_plane4_timestamps.append(raw_timestamps[plane4_ifd])
-
-        expected_plane4_timestamps = np.array(expected_plane4_timestamps)
-
-        # Verify full extractor timestamps
-        np.testing.assert_array_equal(
-            timestamps_full,
-            expected_full_timestamps,
-            "Timestamps from full extractor should match expected values for last planes",
-        )
+        # For the plane we don't take the last frame before the flyback frames
+        # But the one corresponding to the channel
+        plane_slice_offset = plane_index_0
+        channel_offset = extractor_full._channel_index
+        total_frames_per_cycle = image_frames_per_cycle + flyback_frames
+        timestamp_indices = sample_indices * total_frames_per_cycle + plane_slice_offset + channel_offset
+        expected_plane0_timestamps = raw_timestamps[timestamp_indices]
 
         # Verify plane0 extractor timestamps
         np.testing.assert_array_equal(
@@ -1358,6 +1345,14 @@ class TestTimestampExtraction:
             expected_plane0_timestamps,
             "Timestamps from plane_index=0 extractor should match expected values for plane 0",
         )
+
+        # For the plane we don't take the last frame before the flyback frames
+        # But the one corresponding to the channel
+        plane_slice_offset = plane_index_4
+        channel_offset = extractor_full._channel_index
+        total_frames_per_cycle = image_frames_per_cycle + flyback_frames
+        timestamp_indices = sample_indices * total_frames_per_cycle + plane_slice_offset + channel_offset
+        expected_plane4_timestamps = raw_timestamps[timestamp_indices]
 
         # Verify plane4 extractor timestamps
         np.testing.assert_array_equal(

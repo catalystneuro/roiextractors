@@ -138,12 +138,14 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self._frames_per_volume_per_channel = self._metadata["SI.hStackManager.numFramesPerVolume"]
             self._frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
 
-            self.num_flyback_frames = self._frames_per_volume_with_flyback - self._frames_per_volume_per_channel
+            self.num_flyback_frames_per_channel = (
+                self._frames_per_volume_with_flyback - self._frames_per_volume_per_channel
+            )
         else:
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanFrameRate"]
             self._num_planes = 1
             self._frames_per_slice = 1
-            self.num_flyback_frames = 0
+            self.num_flyback_frames_per_channel = 0
 
         # This piece of the metadata is the indication that the channel is saved on the data
         channels_available = self._metadata["SI.hChannels.channelSave"]
@@ -204,7 +206,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self._num_frames_in_dataset = sum(self._ifds_per_file)
 
         image_frames_per_cycle = self._num_planes * self._num_channels * self._frames_per_slice
-        total_frames_per_cycle = image_frames_per_cycle + self.num_flyback_frames * self._num_channels
+        total_frames_per_cycle = image_frames_per_cycle + self.num_flyback_frames_per_channel * self._num_channels
 
         # Note that the acquisition might end without completing the last cycle and we discard those frames
         num_acquisition_cycles = self._num_frames_in_dataset // (total_frames_per_cycle)
@@ -218,7 +220,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             num_planes=self._num_planes,
             num_acquisition_cycles=num_acquisition_cycles,
             num_frames_per_slice=self._frames_per_slice,
-            num_flyback_frames=self.num_flyback_frames,
+            num_flyback_frames_per_channel=self.num_flyback_frames_per_channel,
             ifds_per_file=self._ifds_per_file,
         )
 
@@ -254,7 +256,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         num_acquisition_cycles: int,
         ifds_per_file: list[int],
         num_frames_per_slice: int = 1,
-        num_flyback_frames: int = 0,
+        num_flyback_frames_per_channel: int = 0,
     ) -> np.ndarray:
         """
         Create a table that describes the data layout of the dataset.
@@ -282,7 +284,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Number of IFDs in each file.
         num_frames_per_slice : int
             Number of frames per slice. This is used to determine the slice_sample index.
-        num_flyback_frames : int
+        num_flyback_frames_per_channel : int
             Number of flyback frames.
 
         Returns
@@ -305,7 +307,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         # Calculate total number of entries
         image_frames_per_cycle = num_planes * num_frames_per_slice * num_channels
-        total_frames_per_cycle = image_frames_per_cycle + num_flyback_frames * num_channels
+        flyback_frames = num_flyback_frames_per_channel * num_channels
+        total_frames_per_cycle = image_frames_per_cycle + flyback_frames
 
         # Generate global ifd indices for complete cycles only
         # This ensures we only include frames from complete acquisition cycles
