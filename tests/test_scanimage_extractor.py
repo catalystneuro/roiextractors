@@ -246,7 +246,9 @@ class TestScanImageExtractor:
 
                 # Compare the data
                 np.testing.assert_array_equal(
-                    extractor_volume, tiff_volume_frames, f"Sample {sample_index} volume does not match tiff data"
+                    extractor_volume,
+                    tiff_volume_frames,
+                    f"Sample {sample_index} volume does not match tiff data",
                 )
 
 
@@ -1085,8 +1087,8 @@ class TestScanImageVolumetricPlaneSlicing:
 class TestTimestampExtraction:
     """Test the get_times method for ScanImageImagingExtractor class."""
 
-    def test_get_times_volumetric_no_flyback(self):
-        """Test get_times with volumetric data without flyback frames.
+    def test_get_times_volumetric(self):
+        """Test get_times with volumetric data
 
         This test verifies that:
         1. The correct number of timestamps are returned (equal to number of samples)
@@ -1119,16 +1121,14 @@ class TestTimestampExtraction:
         raw_timestamps = np.array(raw_timestamps)
 
         # Calculate expected timestamps based on extractor's behavior
-        # For volumetric data without flyback frames, we expect timestamps from the last plane of each volume
-        expected_timestamps = []
+        # For volumetric data we use the last plane of each volume
+        num_samples = extractor.get_num_samples()
+        expected_timestamps = np.zeros(num_samples)
         num_planes = extractor.get_num_planes()
-
-        for sample_index in range(extractor.get_num_samples()):
+        for sample_index in range(num_samples):
             # Calculate the index of the last plane in each volume
             last_plane_index = (sample_index + 1) * num_planes - 1
-            expected_timestamps.append(raw_timestamps[last_plane_index])
-
-        expected_timestamps = np.array(expected_timestamps)
+            expected_timestamps[sample_index] = raw_timestamps[last_plane_index]
 
         # Compare the timestamps with expected values
         np.testing.assert_array_equal(
@@ -1137,8 +1137,8 @@ class TestTimestampExtraction:
             "Timestamps from get_times should match expected values extracted from TIFF metadata",
         )
 
-    def test_get_times_after_plane_slicing_no_flyback(self):
-        """Test get_times with plane_index on volumetric data without flyback frames.
+    def test_get_times_after_plane_slicing(self):
+        """Test get_times with plane_index on volumetric data
 
         This test verifies that:
         1. The get_times method works correctly when accessing a specific plane using plane_index
@@ -1170,61 +1170,30 @@ class TestTimestampExtraction:
         assert len(timestamps_plane4) == extractor_plane4.get_num_samples()
         assert len(timestamps_plane8) == extractor_plane8.get_num_samples()
 
-        # Check that all extractors have the same number of samples
+        # Check that all plane slices have the same number of samples
         assert (
             extractor_full.get_num_samples()
             == extractor_plane0.get_num_samples()
             == extractor_plane4.get_num_samples()
             == extractor_plane8.get_num_samples()
-        ), "All extractors should have the same number of samples"
+        ), "All plane slices should have the same number of samples"
 
         # Extract raw timestamps directly from TIFF file
         with TiffFile(file_path) as tiff:
             raw_timestamps = [ScanImageImagingExtractor.extract_timestamp_from_page(page) for page in tiff.pages]
         raw_timestamps = np.array(raw_timestamps)
 
-        # Calculate expected timestamps directly by understanding the structure of the dataset
-        # without relying on the internal implementation
-        num_planes = extractor_full.get_num_planes()
+        num_planes = ScanImageImagingExtractor.get_available_num_planes(file_path)
 
-        # For full extractor, we expect timestamps from the last plane of each volume
-        expected_full_timestamps = []
-        for sample_index in range(extractor_full.get_num_samples()):
-            # Calculate frame index for the last plane in each volume
-            last_plane_index = (sample_index + 1) * num_planes - 1
-            expected_full_timestamps.append(raw_timestamps[last_plane_index])
-        expected_full_timestamps = np.array(expected_full_timestamps)
+        # Calculate indices for plane 0, plane 4, and plane 8
+        plane0_indices = np.arange(0, extractor_plane0.get_num_samples()) * num_planes
+        plane4_indices = plane0_indices + 4
+        plane8_indices = plane0_indices + 8
 
-        # For plane0 extractor, we expect timestamps from plane 0 of each volume
-        expected_plane0_timestamps = []
-        for sample_index in range(extractor_plane0.get_num_samples()):
-            # Calculate frame index for plane 0 in each volume
-            plane0_index = sample_index * num_planes
-            expected_plane0_timestamps.append(raw_timestamps[plane0_index])
-        expected_plane0_timestamps = np.array(expected_plane0_timestamps)
-
-        # For plane4 extractor, we expect timestamps from plane 4 of each volume
-        expected_plane4_timestamps = []
-        for sample_index in range(extractor_plane4.get_num_samples()):
-            # Calculate frame index for plane 4 in each volume
-            plane4_index = sample_index * num_planes + 4
-            expected_plane4_timestamps.append(raw_timestamps[plane4_index])
-        expected_plane4_timestamps = np.array(expected_plane4_timestamps)
-
-        # For plane8 extractor, we expect timestamps from plane 8 of each volume
-        expected_plane8_timestamps = []
-        for sample_index in range(extractor_plane8.get_num_samples()):
-            # Calculate frame index for plane 8 in each volume
-            plane8_index = sample_index * num_planes + 8
-            expected_plane8_timestamps.append(raw_timestamps[plane8_index])
-        expected_plane8_timestamps = np.array(expected_plane8_timestamps)
-
-        # Verify full extractor timestamps
-        np.testing.assert_array_equal(
-            timestamps_full,
-            expected_full_timestamps,
-            "Timestamps from full extractor should match expected values for last planes",
-        )
+        # Extract expected timestamps using indexing
+        expected_plane0_timestamps = raw_timestamps[plane0_indices]
+        expected_plane4_timestamps = raw_timestamps[plane4_indices]
+        expected_plane8_timestamps = raw_timestamps[plane8_indices]
 
         # Verify plane0 extractor timestamps
         np.testing.assert_array_equal(
@@ -1280,18 +1249,12 @@ class TestTimestampExtraction:
 
         # Calculate expected timestamps based on extractor's table mapping
         expected_timestamps = np.zeros(extractor.get_num_samples())
+        num_planes = extractor.get_num_planes()
 
         for sample_index in range(extractor.get_num_samples()):
             # Get the last frame in each sample to match the extractor's behavior
-            frame_index = sample_index * extractor.get_num_planes() + (extractor.get_num_planes() - 1)
-            table_row = extractor._frames_to_ifd_table[frame_index]
-            file_index = table_row["file_index"]
-            ifd_index = table_row["IFD_index"]
-
-            # Add the timestamp from the raw data
-            expected_timestamps[sample_index] = raw_timestamps[ifd_index]
-
-        expected_timestamps = np.array(expected_timestamps)
+            last_plane_index = sample_index * num_planes + (num_planes - 1)
+            expected_timestamps[sample_index] = raw_timestamps[last_plane_index]
 
         # Compare the timestamps with expected values
         np.testing.assert_array_equal(

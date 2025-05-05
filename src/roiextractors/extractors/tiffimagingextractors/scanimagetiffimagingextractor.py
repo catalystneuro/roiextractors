@@ -529,6 +529,19 @@ class ScanImageImagingExtractor(ImagingExtractor):
     def get_channel_names(self):
         return self.channel_names
 
+    def get_num_planes(self) -> int:
+        """Get the number of depth planes.
+
+        For volumetric data, this returns the number of Z-planes in each volume.
+        For planar data, this returns 1.
+
+        Returns
+        -------
+        int
+            Number of depth planes.
+        """
+        return self._num_planes
+
     @staticmethod
     def get_available_channel_names(file_path: PathType) -> list:
         """Get the channel names available in a ScanImage TIFF file.
@@ -669,18 +682,33 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         return None
 
-    def get_num_planes(self) -> int:
-        """Get the number of depth planes.
+    @staticmethod
+    def get_available_num_planes(file_path: PathType) -> int:
+        """
+        Get the number of depth planes from a ScanImage TIFF file.
 
         For volumetric data, this returns the number of Z-planes in each volume.
         For planar data, this returns 1.
+
+        Parameters
+        ----------
+        file_path : PathType
+            Path to the ScanImage TIFF file.
 
         Returns
         -------
         int
             Number of depth planes.
+
         """
-        return self._num_planes
+        from tifffile import read_scanimage_metadata
+
+        with open(file_path, "rb") as fh:
+            all_metadata = read_scanimage_metadata(fh)
+            non_varying_frame_metadata = all_metadata[0]
+
+        num_planes = non_varying_frame_metadata.get("SI.hStackManager.numSlices", 1)
+        return num_planes
 
     @staticmethod
     def get_frames_per_slice(file_path: PathType) -> int:
