@@ -87,6 +87,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         super().__init__()
         self.file_path = file_paths[0] if file_paths is not None else file_path
         assert self.file_path is not None, "file_path or file_paths must be provided"
+        self.file_path = Path(self.file_path)
 
         # Validate file suffix
         valid_suffixes = [".tiff", ".tif", ".TIFF", ".TIF"]
@@ -97,11 +98,19 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 f"The {self.extractor_name} Extractor may not be appropriate for the file."
             )
 
-        # Open the
+        # Open the TIFF file
         tifffile = get_package(package_name="tifffile")
         tiff_reader = tifffile.TiffReader(self.file_path)
 
         self._general_metadata = tiff_reader.scanimage_metadata
+        non_valid_metadata = self._general_metadata is None or len(self._general_metadata) == 0
+        if non_valid_metadata:
+            error_msg = (
+                f"Invalid metadata for file with name {file_path.name}. \n"
+                "The metadata is either None or empty which probably indictes that the tiff file "
+                "Is not a ScanImage file or it could be an older version."
+            )
+            raise ValueError("Invalid metadata: The metadata is either None or empty.")
         self._metadata = self._general_metadata["FrameData"]
 
         self._num_rows, self._num_columns = tiff_reader.pages[0].shape
