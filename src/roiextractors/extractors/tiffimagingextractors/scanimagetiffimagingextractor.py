@@ -58,6 +58,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         channel_name: Optional[str] = None,
         file_paths: Optional[list[PathType]] = None,
         slice_sample: Optional[int] = None,
+        plane_index: Optional[int] = None,
     ):
         """
         Initialize the extractor.
@@ -78,10 +79,15 @@ class ScanImageImagingExtractor(ImagingExtractor):
             When frames_per_slice > 1 (multiple frames per slice), this parameter specifies which frame to use
             for each slice. Must be between 0 and frames_per_slice-1. If None and frames_per_slice > 1,
             a ValueError will be raised.
+        plane_index : int, optional
+            When data is volumetric (multiple planes), this parameter specifies which plane to extract.
+            Must be between 0 and num_planes-1. If specified, the extractor will only return data for the
+            specified plane and will behave as if the data is not volumetric.
         """
         super().__init__()
         self.file_path = file_paths[0] if file_paths is not None else file_path
         assert self.file_path is not None, "file_path or file_paths must be provided"
+        self.file_path = Path(self.file_path)
 
         # Validate file suffix
         valid_suffixes = [".tiff", ".tif", ".TIFF", ".TIF"]
@@ -92,11 +98,19 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 f"The {self.extractor_name} Extractor may not be appropriate for the file."
             )
 
-        # Open the
+        # Open the TIFF file
         tifffile = get_package(package_name="tifffile")
         tiff_reader = tifffile.TiffReader(self.file_path)
 
         self._general_metadata = tiff_reader.scanimage_metadata
+        non_valid_metadata = self._general_metadata is None or len(self._general_metadata) == 0
+        if non_valid_metadata:
+            error_msg = (
+                f"Invalid metadata for file with name {file_path.name}. \n"
+                "The metadata is either None or empty which probably indictes that the tiff file "
+                "Is not a ScanImage file or it could be an older version."
+            )
+            raise ValueError("Invalid metadata: The metadata is either None or empty.")
         self._metadata = self._general_metadata["FrameData"]
 
         self._num_rows, self._num_columns = tiff_reader.pages[0].shape
@@ -227,6 +241,20 @@ class ScanImageImagingExtractor(ImagingExtractor):
         if self.is_volumetric and self._slice_sample is not None:
             slice_sample_mask = channel_frames_to_ifd_table["slice_sample_index"] == self._slice_sample
             self._frames_to_ifd_table = channel_frames_to_ifd_table[slice_sample_mask]
+
+        # Filter mapping for the specified plane_index
+        if self.is_volumetric and plane_index is not None:
+            # Validate plane_index
+            if plane_index < 0 or plane_index >= self._num_planes:
+                raise ValueError(f"plane_index ({plane_index}) must be between 0 and {self._num_planes - 1}")
+
+            # Filter the frames_to_ifd_table to only include entries for the specified depth plane
+            depth_mask = self._frames_to_ifd_table["depth_index"] == plane_index
+            self._frames_to_ifd_table = self._frames_to_ifd_table[depth_mask]
+
+            # Override the is_volumetric flag and num_planes
+            self.is_volumetric = False
+            self._num_planes = 1
 
     @staticmethod
     def _create_frame_to_ifd_table(
@@ -637,61 +665,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Number of depth planes.
         """
         return self._num_planes
-
-    def get_plane_extractor(self, plane_index: int) -> ImagingExtractor:
-        """Extract a specific depth plane from volumetric data.
-
-        This method allows for extracting a specific depth plane from volumetric imaging data,
-        returning a modified version of the extractor that only returns data for the specified plane.
-
-        Parameters
-        ----------
-        plane_index: int
-            Index of the depth plane to extract (0-indexed).
-
-        Returns
-        -------
-        extractor: ImagingExtractor
-            A modified version of the extractor that only returns data for the specified plane.
-
-        Raises
-        ------
-        ValueError
-            If the data is not volumetric (has only one plane).
-            If plane_index is out of range.
-
-        Examples
-        --------
-        >>> extractor = ScanImageImagingExtractor('path/to/volumetric_file.tif')
-        >>> # Get only the first plane
-        >>> first_plane = extractor.depth_slice(plane_index=0)
-        >>> # Get the second plane
-        >>> second_plane = extractor.depth_slice(plane_index=1)
-        """
-        if not self.is_volumetric:
-            raise ValueError("Cannot depth slice non-volumetric data. This data has only one plane.")
-
-        # Validate parameters
-        if plane_index < 0 or plane_index >= self._num_planes:
-            raise ValueError(f"plane_index ({plane_index}) must be between 0 and {self._num_planes - 1}")
-
-        # Create a copy of the current extractor
-        import copy
-
-        sliced_extractor = copy.deepcopy(self)
-
-        # Filter the frames_to_ifd_table to only include entries for the specified depth plane
-        depth_mask = sliced_extractor._frames_to_ifd_table["depth_index"] == plane_index
-        sliced_extractor._frames_to_ifd_table = sliced_extractor._frames_to_ifd_table[depth_mask]
-
-        # Update the number of samples
-        sliced_extractor._num_samples_per_channel = len(sliced_extractor._frames_to_ifd_table)
-
-        # Override the is_volumetric flag and num_planes
-        sliced_extractor.is_volumetric = False
-        sliced_extractor._num_planes = 1
-
-        return sliced_extractor
 
     @staticmethod
     def get_frames_per_slice(file_path: PathType) -> int:
