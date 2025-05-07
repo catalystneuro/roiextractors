@@ -267,28 +267,29 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self._frames_to_ifd_table = channel_frames_to_ifd_table
 
         # Filter mapping for the specified slice_sample or reorder for all slice samples
-        if self.is_volumetric:
-            if self._slice_sample is not None:
-                # Filter for the specified slice_sample
-                slice_sample_mask = channel_frames_to_ifd_table["slice_sample_index"] == self._slice_sample
-                self._frames_to_ifd_table = channel_frames_to_ifd_table[slice_sample_mask]
-            elif self._frames_per_slice > 1:
-                # Re-order to interleave samples from different slice_samples
-                # For each acquisition cycle, include all slice_samples in sequence
-                sorted_indices = np.lexsort(
-                    (
-                        channel_frames_to_ifd_table["depth_index"],
-                        channel_frames_to_ifd_table["slice_sample_index"],
-                        channel_frames_to_ifd_table["acquisition_cycle_index"],
-                    )
+        if self.is_volumetric and self._slice_sample is None:
+
+            # Re-order to interleave samples from different slice_samples
+            # For each acquisition cycle, include all slice_samples in sequence
+            sorted_indices = np.lexsort(
+                (
+                    channel_frames_to_ifd_table["depth_index"],
+                    channel_frames_to_ifd_table["slice_sample_index"],
+                    channel_frames_to_ifd_table["acquisition_cycle_index"],
                 )
-                self._frames_to_ifd_table = channel_frames_to_ifd_table[sorted_indices]
+            )
+            self._frames_to_ifd_table = channel_frames_to_ifd_table[sorted_indices]
 
-                # Adjust the number of samples to account for interleaving of slice samples
-                # Each acquisition cycle now produces frames_per_slice samples (one for each slice_sample)
-                self._num_samples = self._num_samples * self._frames_per_slice
+            # Adjust the number of samples to account for interleaving of slice samples
+            # Each acquisition cycle now produces frames_per_slice x samples (one for each slice_sample)
+            self._num_samples = self._num_samples * self._frames_per_slice
 
-        # Filter mapping for the specified plane_index
+        if self.is_volumetric and self._slice_sample is not None:
+            # Filter for the specified slice_sample
+            slice_sample_mask = channel_frames_to_ifd_table["slice_sample_index"] == self._slice_sample
+            self._frames_to_ifd_table = channel_frames_to_ifd_table[slice_sample_mask]
+
+        # Finally, if a planar extractor is requested, we filter the samples for that plane
         if self.is_volumetric and plane_index is not None:
             # Validate plane_index
             if plane_index < 0 or plane_index >= self._num_planes:
