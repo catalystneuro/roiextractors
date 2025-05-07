@@ -24,7 +24,7 @@ class InscopixImagingExtractor(ImagingExtractor):
         file_path : PathType
             Path to the Inscopix file.
         """
-        if platform.system() == "Darwin":
+        if platform.system() == "Darwin" and platform.machine() == "arm64":
             raise ImportError(
                 "The isx package is currently not natively supported on macOS with Apple Silicon. "
                 "Installation instructions can be found at: "
@@ -116,14 +116,3 @@ class InscopixImagingExtractor(ImagingExtractor):
     def get_dtype(self) -> np.dtype:
         return np.dtype(self.movie.data_type)
 
-    def get_raw_data(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
-        """Get raw data from the video frames.
-
-        Returns
-        -------
-        np.ndarray : The raw data from the specified frames.
-        """
-        start_frame = start_frame or 0
-        end_frame = end_frame or self.get_num_frames()
-        raw_data = np.array([self.movie.get_frame_data(i) for i in range(start_frame, end_frame)])
-        return raw_data

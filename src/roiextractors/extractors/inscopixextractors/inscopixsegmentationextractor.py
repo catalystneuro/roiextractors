@@ -27,7 +27,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         file_path: str
             The location of the folder containing Inscopix *.mat output file.
         """
-        if platform.system() == "Darwin":
+        if platform.system() == "Darwin" and platform.machine() == "arm64":
             raise ImportError(
                 "The isx package is currently not natively supported on macOS with Apple Silicon. "
                 "Installation instructions can be found at: "
@@ -59,16 +59,16 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         return [self.cell_set.get_cell_name(x) for x in range(self.get_num_rois())]
 
     def get_image_size(self) -> ArrayType:
-        try:
+        if hasattr(self.cell_set, "spacing"):
             # Swap dimensions to return (width, height)
             pixels = self.cell_set.spacing.num_pixels
             return (pixels[1], pixels[0])
-        except AttributeError:
+        else:
             if self.get_num_rois() > 0:
                 shape = self.cell_set.get_cell_image_data(0).shape
                 # Swap dimensions to return (width, height)
                 return (shape[1], shape[0])
-            return None
+            raise ValueError("No ROIs found in the segmentation. Unable to determine image size.")
 
     def get_accepted_list(self) -> list:
         return [id for x, id in enumerate(self.get_roi_ids()) if self.cell_set.get_cell_status(x) == "accepted"]
