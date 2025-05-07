@@ -115,4 +115,3 @@ class InscopixImagingExtractor(ImagingExtractor):
 
     def get_dtype(self) -> np.dtype:
         return np.dtype(self.movie.data_type)
-

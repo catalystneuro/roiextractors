@@ -25,7 +25,7 @@ def test_inscopix_segmentation_extractor():
     - Frame rate: ~9.9987 Hz
     - Volumetric: True (3 active planes: 400 µm, 700 µm, 1000 µm)
     - Frame shape: (366, 398)
-    - Pixel size: 6 µm x 6 µm   
+    - Pixel size: 6 µm x 6 µm
     - Signal units: dF over noise (analog)
     - Cell status:
         - C0: Rejected
@@ -71,7 +71,7 @@ def test_inscopix_segmentation_extractor_part1():
     - 100 samples (frames)
     - Frame rate: 10.0 Hz
     - Volumetric: False
-    - Frame shape: (21, 21) 
+    - Frame shape: (21, 21)
     - Pixel size: 6 µm x 6 µm
     - Footprint offset (top-left): (216, 156) in original movie
     - Signal units: dF over noise (analog)
@@ -112,7 +112,7 @@ def test_inscopix_segmentation_extractor_empty():
     - 7 samples (frames)
     - Frame rate: 40.0 Hz
     - Volumetric: False
-    - Frame shape: (4, 5) 
+    - Frame shape: (4, 5)
     - Pixel size: 3 µm x 3 µm
 
 

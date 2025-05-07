@@ -9,26 +9,30 @@ from roiextractors import InscopixImagingExtractor
 from tests.setup_paths import OPHYS_DATA_PATH
 
 # Skip all tests in this file on macOS
-pytestmark = pytest.mark.skipif(platform.system() == "Darwin" and platform.machine() == "arm64", reason="Inscopix is not natively supported on macOS ARM")
+pytestmark = pytest.mark.skipif(
+    platform.system() == "Darwin" and platform.machine() == "arm64",
+    reason="Inscopix is not natively supported on macOS ARM",
+)
+
 
 def test_inscopiximagingextractor_movie_128x128x100_part1():
     """
-    Test with a small movie file (128x128 resolution, 100 frames).
+     Test with a small movie file (128x128 resolution, 100 frames).
 
-    File: movie_128x128x100_part1.isxd
-    Metadata:
-   - Source: Movie file (Inscopix isxcore v1.8.0)
-    - 100 samples (frames)
-    - Frame rate: 10.0 Hz
-    - Volumetric: False
-    - Frame shape: (128, 128) pixels
-    - Pixel size: 3 µm x 3 µm
-    - Spatial offset (top-left): (0, 0) in global image space
-    - Channels: 1 (isx format supports only single channel)
+     File: movie_128x128x100_part1.isxd
+     Metadata:
+    - Source: Movie file (Inscopix isxcore v1.8.0)
+     - 100 samples (frames)
+     - Frame rate: 10.0 Hz
+     - Volumetric: False
+     - Frame shape: (128, 128) pixels
+     - Pixel size: 3 µm x 3 µm
+     - Spatial offset (top-left): (0, 0) in global image space
+     - Channels: 1 (isx format supports only single channel)
 
-    This test verifies that the extractor correctly:
-    1. Loads the file and extracts metadata (frame count, resolution, data type, etc.).
-    2. Retrieves the video data and raw data with correct shape and type.
+     This test verifies that the extractor correctly:
+     1. Loads the file and extracts metadata (frame count, resolution, data type, etc.).
+     2. Retrieves the video data and raw data with correct shape and type.
     """
     file_path = OPHYS_DATA_PATH / "imaging_datasets" / "inscopix" / "movie_128x128x100_part1.isxd"
     extractor = InscopixImagingExtractor(file_path=file_path)
