@@ -11,12 +11,13 @@ FrameSliceImagingExtractor
 from abc import ABC, abstractmethod
 from typing import Union, Optional, Tuple
 from copy import deepcopy
+from math import prod
 import warnings
 
 import numpy as np
 
-from .extraction_tools import ArrayType, PathType, DtypeType, FloatType
-from math import prod
+from .extraction_tools import ArrayType, DtypeType, FloatType
+from .core_utils import _convert_bytes_to_str, _convert_seconds_to_str
 
 
 class ImagingExtractor(ABC):
@@ -30,10 +31,10 @@ class ImagingExtractor(ABC):
         self.name = self.__class__.__name__
         self.is_volumetric = False
 
-    def _repr_text(self):
+    def _repr_text(self) -> str:
         """Generate text representation of the ImagingExtractor object."""
         num_samples = self.get_num_samples()
-        image_size = self.get_image_size()
+        sample_shape = self.get_sample_shape()
         dtype = self.get_dtype()
         sf_hz = self.get_sampling_frequency()
 
@@ -45,64 +46,28 @@ class ImagingExtractor(ABC):
 
         # Calculate duration
         duration = num_samples / sf_hz
-        duration_str = self._convert_seconds_to_str(duration)
-
-        # Check if this is a volumetric extractor
-        is_volumetric_extractor = hasattr(self, "get_num_planes") and callable(getattr(self, "get_num_planes"))
+        duration_repr = _convert_seconds_to_str(duration)
 
         # Calculate memory size using product of all dimensions in image_size
-        memory_size = num_samples * prod(image_size) * dtype.itemsize
-        memory_str = self._convert_bytes_to_str(memory_size)
+        memory_size = num_samples * prod(sample_shape) * dtype.itemsize
+        memory_repr = _convert_bytes_to_str(memory_size)
 
-        # Format shape string based on whether it's volumetric or not
-        if is_volumetric_extractor:
-            num_planes = self.get_num_planes()
-            shape_str = (
-                f"[{num_samples:,} samples × {image_size[0]} pixels × {image_size[1]} pixels × {num_planes} planes]"
-            )
-        else:
-            shape_str = f"[{num_samples:,} samples × {image_size[0]} pixels × {image_size[1]} pixels]"
+        # Format shape string based on whether data is volumetric or not
+        sample_shape_repr = f"{sample_shape[0]} rows x {sample_shape[1]} columns "
+        if self.is_volumetric:
+            sample_shape_repr += f"x {sample_shape[2]} planes"
 
         return (
-            f"{self.name} {shape_str}\n"
+            f"{self.name}\n"
+            f"  Number of samples: {num_samples:,} \n"
+            f"  Sample shape: {sample_shape_repr} \n"
             f"  Sampling rate: {sampling_frequency_repr}\n"
-            f"  Duration: {duration_str}\n"
-            f"  Memory: {memory_str} ({dtype} dtype)"
+            f"  Duration: {duration_repr}\n"
+            f"  Imaging data memory: {memory_repr} ({dtype} dtype)"
         )
 
     def __repr__(self):
         return self._repr_text()
-
-    def _convert_seconds_to_str(self, seconds):
-        """Convert seconds to a human-readable string."""
-        if seconds < 60:
-            return f"{seconds:.1f}s"
-        elif seconds < 3600:
-            minutes = seconds / 60
-            return f"{minutes:.1f}min"
-        else:
-            hours = seconds / 3600
-            return f"{hours:.1f}h"
-
-    def _convert_bytes_to_str(self, size_in_bytes):
-        """
-        Convert bytes to a human-readable string.
-
-        Convert bytes to a human-readable string using IEC binary prefixes (KiB, MiB, GiB).
-        Note that RAM memory is typically measured in IEC binary prefixes  while disk storage is typically
-        measured in SI binary prefixes.
-        """
-        if size_in_bytes < 1024:
-            return f"{size_in_bytes}B"
-        elif size_in_bytes < 1024 * 1024:
-            size_kb = size_in_bytes / 1024
-            return f"{size_kb:.1f}KiB"
-        elif size_in_bytes < 1024 * 1024 * 1024:
-            size_mb = size_in_bytes / (1024 * 1024)
-            return f"{size_mb:.1f}MiB"
-        else:
-            size_gb = size_in_bytes / (1024 * 1024 * 1024)
-            return f"{size_gb:.1f}GiB"
 
     @abstractmethod
     def get_image_shape(self) -> Tuple[int, int]:
@@ -147,10 +112,27 @@ class ImagingExtractor(ABC):
 
         Notes
         -----
-        This method is equivalent to get_image_shape() and is provided for consistency
-        with the naming convention used in volumetric extractors.
+        This method is equivalent to get_image_shape()
         """
         return self.get_image_shape()
+
+    def get_sample_shape(self) -> Union[Tuple[int, int], Tuple[int, int, int]]:
+        """
+        Get the shape of a single sample elements from the series.
+
+        If the series is volumetric, the shape is the shape of the volume and otherwise
+        returns the shape of a single frame/image.
+
+        Returns
+        -------
+        sample_shape: tuple
+            Shape of a single sample from the time series (num_rows, num_columns, num_planes)
+            if volumetric (num_rows, num_columns) otherwise
+        """
+        if self.is_volumetric:
+            return self.get_volume_shape()
+        else:
+            return self.get_frame_shape()
 
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
