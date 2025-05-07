@@ -35,7 +35,6 @@
 * Change `get_num_frames` for `get_num_samples` [#411](https://github.com/catalystneuro/roiextractors/pull/411)
 
 ### Improvements
-* Added `get_raw_data` method to `InscopixImagingExtractor` and updated the corresponding tests for retrieving raw video frame data.
 * Removed unused installed attribute [#410](https://github.com/catalystneuro/roiextractors/pull/410)
 
 # v0.5.11 (March 5th, 2025)
