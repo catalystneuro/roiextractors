@@ -37,7 +37,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
     and IFD (Image File Directory) location. This mapping enables efficient retrieval of specific frames
     without loading the entire dataset into memory, making it suitable for large datasets.
 
-    For datasets with multiple frames per slice, a slice_sample parameter must be provided.
+    For datasets with multiple frames per slice, either a slice_sample parameter must be provided
+    or interleave_slice_samples must be set to True to explicitly opt into interleaving behavior.
 
 
     Key features:
@@ -59,30 +60,70 @@ class ScanImageImagingExtractor(ImagingExtractor):
         file_paths: Optional[list[PathType]] = None,
         slice_sample: Optional[int] = None,
         plane_index: Optional[int] = None,
+        interleave_slice_samples: bool = False,
     ):
         """
-        Initialize the extractor.
+        Initialize the ScanImageImagingExtractor.
 
         Parameters
         ----------
-        file_path : PathType
-            Path to the TIFF file. If this is part of a multi-file series, this should be the first file.
+        file_path : PathType, optional
+            Path to the ScanImage TIFF file. If this is part of a multi-file series, this should be the first file.
+            Either `file_path` or `file_paths` must be provided.
         channel_name : str, optional
-            Name of the channel to extract. If None and multiple channels are available, the first channel will be used.
-            Check available channels with `get_available_channel_names`.
+            Name of the channel to extract (e.g., "Channel 1", "Channel 2").
+            - If None and only one channel is available, that channel will be used.
+            - If None and multiple channels are available, an error will be raised.
+            - Use `get_available_channel_names(file_path)` to see available channels before creating the extractor.
         file_paths : list[PathType], optional
-            list of file paths to use. If provided, this overrides the automatic
-            file detection heuristics. Use this if automatic detection does not work correctly and you know
-            exactly which files should be included.  The file paths should be provided in an order that
-            reflects the temporal order of the frames in the dataset.
+            List of file paths to use. If provided, this overrides the automatic file detection heuristics.
+            Use this parameter when:
+            - Automatic detection doesn't work correctly
+            - You need to specify a custom subset of files
+            - You need to control the exact order of files
+            The file paths must be provided in the temporal order of the frames in the dataset.
         slice_sample : int, optional
-            When frames_per_slice > 1 (multiple frames per slice), this parameter specifies which frame to use
-            for each slice. Must be between 0 and frames_per_slice-1. If None and frames_per_slice > 1,
-            a ValueError will be raised.
+            Controls how to handle multiple frames per slice in volumetric data:
+            - If an integer (0 to frames_per_slice-1): Uses only that specific frame for each slice,
+              effectively selecting a single sample from each acquisition.
+            - If None (default): Requires interleave_slice_samples=True when frames_per_slice > 1.
+            - This parameter has no effect when frames_per_slice = 1.
+            - Use `get_frames_per_slice(file_path)` to check the number of frames per slice.
+        interleave_slice_samples : bool, optional
+            Controls whether to interleave all slice samples as separate time points when frames_per_slice > 1:
+            - If True: Interleaves all slice samples as separate time points, increasing the effective
+              number of samples by frames_per_slice. This treats each slice_sample as a distinct sample.
+            - If False (default): Requires a specific slice_sample to be provided when frames_per_slice > 1.
+            - This parameter has no effect when frames_per_slice = 1 or when slice_sample is provided.
         plane_index : int, optional
-            When data is volumetric (multiple planes), this parameter specifies which plane to extract.
-            Must be between 0 and num_planes-1. If specified, the extractor will only return data for the
-            specified plane and will behave as if the data is not volumetric.
+            Must be between 0 and num_planes-1. Used to extract a specific plane from volumetric data.
+            When provided:
+            - The resulting extractor will be planar (is_volumetric = False)
+            - Each sample will contain only data for the specified plane
+            - The shape of returned data will be (samples, height, width) instead of (samples, height, width, planes)
+            - This parameter has no effect on planar (non-volumetric) data.
+
+        Examples
+        --------
+        # Basic usage with a single file, single channel
+        >>> extractor = ScanImageImagingExtractor(file_path='path/to/file.tif')
+
+        # Multi-channel data, selecting a specific channel
+        >>> channel_names = ScanImageImagingExtractor.get_available_channel_names('path/to/file.tif')
+        >>> extractor = ScanImageImagingExtractor(file_path='path/to/file.tif', channel_name=channel_names[0])
+
+        # Volumetric data with multiple frames per slice, selecting a specific slice sample
+        >>> frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice('path/to/file.tif')
+        >>> extractor = ScanImageImagingExtractor(file_path='path/to/file.tif', slice_sample=0)
+
+        # Volumetric data, extracting a specific plane
+        >>> extractor = ScanImageImagingExtractor(file_path='path/to/file.tif', plane_index=2)
+
+        # Explicitly specifying multiple files
+        >>> extractor = ScanImageImagingExtractor(
+        ...     file_paths=['path/to/file1.tif', 'path/to/file2.tif', 'path/to/file3.tif'],
+        ...     channel_name='Channel 1'
+        ... )
         """
         super().__init__()
         self.file_path = file_paths[0] if file_paths is not None else file_path
@@ -128,21 +169,25 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self._num_planes = self._metadata["SI.hStackManager.numSlices"]
 
             self._frames_per_slice = self._metadata["SI.hStackManager.framesPerSlice"]
-            if self._frames_per_slice > 1:
-                if slice_sample is None:
-                    error_msg = (
-                        f"Multiple frames per slice detected (frames_per_slice = {self._frames_per_slice}). "
-                        f"Please specify a slice_sample between 0 and {self._frames_per_slice - 1} to select which frame to use for each slice."
-                    )
-                    raise ValueError(error_msg)
 
+            if self._frames_per_slice == 1:
+                self._slice_sample = None
+            elif slice_sample is not None:
                 if not (0 <= slice_sample < self._frames_per_slice):
                     error_msg = f"slice_sample must be between 0 and {self._frames_per_slice - 1} (frames_per_slice - 1), but got {slice_sample}."
                     raise ValueError(error_msg)
-
                 self._slice_sample = slice_sample
-            else:
+            # Case: multiple frames per slice, no slice_sample, but interleaving explicitly enabled
+            elif interleave_slice_samples:
                 self._slice_sample = None
+            # Error case: multiple frames per slice, no slice_sample, interleaving not enabled
+            else:
+                error_msg = (
+                    f"Multiple frames per slice detected ({self._frames_per_slice}), but no slice_sample specified. "
+                    f"Either provide a specific slice_sample (0 to {self._frames_per_slice - 1}) or set "
+                    f"interleave_slice_samples=True to explicitly opt into interleaving all slice samples as separate time points."
+                )
+                raise ValueError(error_msg)
 
             self._frames_per_volume_per_channel = self._metadata["SI.hStackManager.numFramesPerVolume"]
             self._frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
@@ -239,12 +284,30 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         self._frames_to_ifd_table = channel_frames_to_ifd_table
 
-        # Filter mapping for the specified slice_sample
+        # Filter mapping for the specified slice_sample or reorder for all slice samples
+        if self.is_volumetric and interleave_slice_samples:
+
+            # Re-order to interleave samples from different slice_samples
+            # For each acquisition cycle, include all slice_samples in sequence
+            sorted_indices = np.lexsort(
+                (
+                    channel_frames_to_ifd_table["depth_index"],
+                    channel_frames_to_ifd_table["slice_sample_index"],
+                    channel_frames_to_ifd_table["acquisition_cycle_index"],
+                )
+            )
+            self._frames_to_ifd_table = channel_frames_to_ifd_table[sorted_indices]
+
+            # Adjust the number of samples to account for interleaving of slice samples
+            # Each acquisition cycle now produces frames_per_slice x samples (one for each slice_sample)
+            self._num_samples = self._num_samples * self._frames_per_slice
+
         if self.is_volumetric and self._slice_sample is not None:
+            # Filter for the specified slice_sample
             slice_sample_mask = channel_frames_to_ifd_table["slice_sample_index"] == self._slice_sample
             self._frames_to_ifd_table = channel_frames_to_ifd_table[slice_sample_mask]
 
-        # Filter mapping for the specified plane_index
+        # Finally, if a planar extractor is requested, we filter the samples for that plane
         if self.is_volumetric and plane_index is not None:
             # Validate plane_index
             if plane_index < 0 or plane_index >= self._num_planes:

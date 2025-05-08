@@ -630,7 +630,7 @@ class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
         - Frame rate: 30.0141 Hz
         - Volume rate: 0.187588 Hz
         - Pages/IDFs: 20
-        - 'num_frames_per_volume': 160
+        - num_frames_per_volume: 160
 
         This file does not have enough samples to do a full slice extraction. It has 20 slices
         and 8 frames per slice but only 20 pages of data. This means that only data from the first three
@@ -674,12 +674,12 @@ class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
         """
         file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
 
-        # Test that ValueError is raised when slice_sample is not provided
-        with pytest.raises(ValueError):
-            extractor = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4")
-
         frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(file_path)
         assert frames_per_slice == 2, "File should have 2 slices per sample"
+
+        # Test that an error is raised when neither slice_sample nor interleave_slice_samples is provided
+        with pytest.raises(ValueError):
+            ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4")
 
         # Test that the extractor works correctly when a valid slice_sample is provided
         extractor_sample_1 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4", slice_sample=0)
@@ -784,12 +784,12 @@ class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
 
         file_path = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
 
-        # Test that ValueError is raised when slice_sample is not provided
-        with pytest.raises(ValueError):
-            extractor = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1")
-
         frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(file_path)
         assert frames_per_slice == 2, "File should have 2 slices per sample"
+
+        # Test that an error is raised when neither slice_sample nor interleave_slice_samples is provided
+        with pytest.raises(ValueError):
+            ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1")
 
         # Test that the extractor works correctly when a valid slice_sample is provided
         extractor_sample_1 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1", slice_sample=0)
@@ -861,6 +861,125 @@ class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
                 np.testing.assert_array_equal(
                     frame_extractor, frame_tiff, f"Sample {sample_index}, frame {frame_index} does not match tiff data"
                 )
+
+
+class TestScanImageExtractorVMultiSamplesPerDepthAsOneVolumetricSeries:
+    """Test the ScanImage extractor's ability to interleave multiple slice samples into a single volumetric series.
+
+    When interleave_slice_samples=True and frames_per_slice > 1, the extractor will interleave samples
+    from different slice_samples to create a continuous volumetric series. This is useful when you want
+    to treat each slice_sample as a separate time point rather than selecting a specific slice_sample.
+    """
+
+    def test_volumetric_data_multi_channel_single_file(self):
+        """Test interleaving of slice samples with volumetric data.
+
+        File: scanimage_20220923_noroi.tif
+        Metadata:
+        - Acquisition mode: grab
+        - Volumetric: True (multiple planes)
+        - Channels: Multiple Channels ['Channel 1', 'Channel 4']
+        - Frames per depth: 2
+        - Frame rate: 29.1248 Hz
+        - Volume rate: 7.28119 Hz
+        - Image shape: 256 x 256
+        - Num_slices: 2
+        - IFDS/Pages: 24
+
+        This test verifies that:
+        1. When slice_sample is None, all slice samples are interleaved in the output
+        2. The interleaved data matches the individual slice_sample data in the correct order
+        3. The number of samples is multiplied by frames_per_slice
+        """
+        file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
+
+        # Create extractors with and without slice_sample
+        extractor_full = ScanImageImagingExtractor(
+            file_paths=[file_path],
+            channel_name="Channel 1",
+            interleave_slice_samples=True,
+        )
+        extractor_slice_sample0 = ScanImageImagingExtractor(
+            file_paths=[file_path],
+            channel_name="Channel 1",
+            slice_sample=0,
+        )
+        extractor_slice_sample1 = ScanImageImagingExtractor(
+            file_paths=[file_path],
+            channel_name="Channel 1",
+            slice_sample=1,
+        )
+
+        # Get data from all extractors
+        full_series = extractor_full.get_series()
+        series_slice_sample0 = extractor_slice_sample0.get_series()
+        series_slice_sample1 = extractor_slice_sample1.get_series()
+
+        # Verify that the full extractor has frames_per_slice times more samples
+        frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(file_path)
+        assert extractor_full.get_num_samples() == extractor_slice_sample0.get_num_samples() * frames_per_slice
+
+        # Verify that the data is interleaved correctly
+        # The pattern should be: slice_sample0[0], slice_sample1[0], slice_sample0[1], slice_sample1[1], ...
+        assert np.allclose(full_series[0], series_slice_sample0[0])
+        assert np.allclose(full_series[1], series_slice_sample1[0])
+        assert np.allclose(full_series[2], series_slice_sample0[1])
+        assert np.allclose(full_series[3], series_slice_sample1[1])
+        assert np.allclose(full_series[4], series_slice_sample0[2])
+        assert np.allclose(full_series[5], series_slice_sample1[2])
+        # These are all the samples here
+
+    def test_volumetric_data_multi_channel_single_file_2(self):
+        """Test with multi-channel volumetric data with frames per slice > 1.
+
+        File: scanimage_20220923_roi.tif
+        Metadata:
+        - Volumetric: True (multiple planes)
+        - Channels: Multiple ['Channel 1', 'Channel 4'
+        - Frames per slice: 2
+        - Frame rate: 29.1248 Hz
+        - Volume rate: 7.28119 Hz
+        - IFDS/Pages: 24
+        - Num slices: 2
+        - Image shape: 528 x 256
+
+        """
+
+        file_path = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
+        extractor_full = ScanImageImagingExtractor(
+            file_paths=[file_path],
+            channel_name="Channel 1",
+            interleave_slice_samples=True,
+        )
+        extractor_slice_sample0 = ScanImageImagingExtractor(
+            file_paths=[file_path],
+            channel_name="Channel 1",
+            slice_sample=0,
+        )
+        extractor_slice_sample1 = ScanImageImagingExtractor(
+            file_paths=[file_path],
+            channel_name="Channel 1",
+            slice_sample=1,
+        )
+
+        # Verify that the full extractor has frames_per_slice times more samples
+        frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(file_path)
+        assert extractor_full.get_num_samples() == extractor_slice_sample0.get_num_samples() * frames_per_slice
+
+        # Get data from all extractors
+        full_series = extractor_full.get_series()
+        series_slice_sample0 = extractor_slice_sample0.get_series()
+        series_slice_sample1 = extractor_slice_sample1.get_series()
+
+        # Verify that the data is interleaved correctly
+        # The pattern should be: slice_sample0[0], slice_sample1[0], slice_sample0[1], slice_sample1[1], ...
+        assert np.allclose(full_series[0], series_slice_sample0[0])
+        assert np.allclose(full_series[1], series_slice_sample1[0])
+        assert np.allclose(full_series[2], series_slice_sample0[1])
+        assert np.allclose(full_series[3], series_slice_sample1[1])
+        assert np.allclose(full_series[4], series_slice_sample0[2])
+        assert np.allclose(full_series[5], series_slice_sample1[2])
+        # These are all the samples here
 
 
 class TestScanImageVolumetricPlaneSlicing:
