@@ -13,6 +13,14 @@ from .setup_paths import OPHYS_DATA_PATH
 SCANIMAGE_PATH = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
 
 
+def test_old_scan_image_version():
+    """Test that an error informative error is raised when using an old ScanImage version."""
+    file_path = SCANIMAGE_PATH / "sample_scanimage_version_3_8.tiff"
+
+    with pytest.raises(ValueError):
+        ScanImageImagingExtractor(file_path=file_path)
+
+
 class TestScanImageExtractor:
     """Test the ScanImage extractor classes with various ScanImage files."""
 
@@ -30,7 +38,7 @@ class TestScanImageExtractor:
         # This is frame per slice 24 and should fail
         file_path = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
 
-        extractor = ScanImageImagingExtractor(file_path=file_path)
+        extractor = ScanImageImagingExtractor(file_path=str(file_path))
 
         assert extractor.is_volumetric == False
         assert extractor.get_num_samples() == 3
@@ -193,6 +201,64 @@ class TestScanImageExtractor:
                 start_sample += samples_per_file
                 end_sample += samples_per_file
 
+    def test_volumetric_single_channel_single_file(self):
+        """Test with volumetric data in a single file.
+
+        File: vol_no_flyback_00001_00001.tif
+        Metadata:
+        - Acquisition state: grab
+        - Volumetric: True (9 slices per volume)
+        - Frame shape: 20 x 20
+        - Channels saved: 1 (single channel)
+        - Frames per slice: 1
+        - Frame rate: 79.8033 Hz
+        - Volume rate: 8.86703 Hz
+        - Number of volumes: 10
+        - Pages/IDFs: 90
+        """
+        file_path = (
+            SCANIMAGE_PATH / "volumetric_single_channel_single_file_no_flyback" / "vol_no_flyback_00001_00001.tif"
+        )
+
+        extractor = ScanImageImagingExtractor(file_path=file_path)
+
+        assert extractor.is_volumetric == True
+        assert extractor.get_num_samples() == 10
+        assert extractor.get_image_shape() == (20, 20)
+        assert extractor.get_sampling_frequency() == 8.86703
+        assert extractor.get_num_planes() == 9
+
+        # Get data from extractor
+        extractor_data = extractor.get_series()
+
+        # Verify that the extractor data has the correct shape
+        # For volumetric data, shape should be (samples, height, width, planes)
+        expected_shape = (extractor.get_num_samples(), *extractor.get_image_shape(), extractor.get_num_planes())
+        assert extractor_data.shape == expected_shape, f"Expected shape {expected_shape}, got {extractor_data.shape}"
+
+        # Read tiff data for comparison
+        with TiffReader(file_path) as tiff_reader:
+            tiff_data = tiff_reader.asarray()
+
+            # For each sample volume in the extractor data
+            for sample_index in range(extractor.get_num_samples()):
+                # Calculate the slice of frames for this sample
+                start_frame = sample_index * extractor.get_num_planes()
+                end_frame = start_frame + extractor.get_num_planes()
+                tiff_volume_frames = tiff_data[start_frame:end_frame]
+
+                # Reshape the extractor data to match the tiff data format for comparison
+                # extractor_data is (samples, height, width, planes)
+                # We need to compare with tiff_volume_frames which is (planes, height, width)
+                extractor_volume = np.moveaxis(extractor_data[sample_index], -1, 0)
+
+                # Compare the data
+                np.testing.assert_array_equal(
+                    extractor_volume,
+                    tiff_volume_frames,
+                    f"Sample {sample_index} volume does not match tiff data",
+                )
+
 
 class TestScanImageVolumetricWithFlybackFrames:
     """Test the ScanImage extractor classes with files that have flyback frames."""
@@ -215,13 +281,13 @@ class TestScanImageVolumetricWithFlybackFrames:
         extractor = ScanImageImagingExtractor(file_path=file_path)
 
         assert extractor.is_volumetric == True
-        assert extractor.num_flyback_frames == 7
+        assert extractor.num_flyback_frames_per_channel == 7
         assert extractor.get_sampling_frequency() == 32.7454
         assert extractor.get_image_shape() == (20, 20)
         assert extractor.get_num_planes() == 9
 
         ifds = 1600
-        total_frames_per_cycle = extractor.get_num_planes() + extractor.num_flyback_frames
+        total_frames_per_cycle = extractor.get_num_planes() + extractor.num_flyback_frames_per_channel
         num_acquisition_cycles = ifds // total_frames_per_cycle
         assert extractor.get_num_samples() == num_acquisition_cycles
 
@@ -272,13 +338,13 @@ class TestScanImageVolumetricWithFlybackFrames:
         extractor = ScanImageImagingExtractor(file_path=file_path)
 
         assert extractor.is_volumetric == True
-        assert extractor.num_flyback_frames == 7
+        assert extractor.num_flyback_frames_per_channel == 7
         assert extractor.get_sampling_frequency() == 32.7454
         assert extractor.get_image_shape() == (20, 20)
         assert extractor.get_num_planes() == 9
 
         ifds = 160 * 10
-        total_frames_per_cycle = extractor.get_num_planes() + extractor.num_flyback_frames
+        total_frames_per_cycle = extractor.get_num_planes() + extractor.num_flyback_frames_per_channel
         num_acquisition_cycles = ifds // total_frames_per_cycle
         assert extractor.get_num_samples() == num_acquisition_cycles
 
@@ -345,14 +411,16 @@ class TestScanImageVolumetricWithFlybackFrames:
         extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
 
         assert extractor_ch1.is_volumetric == True
-        assert extractor_ch1.num_flyback_frames == 7
+        assert extractor_ch1.num_flyback_frames_per_channel == 7
         assert extractor_ch1.get_sampling_frequency() == 32.7454
         assert extractor_ch1.get_image_shape() == (20, 20)
         assert extractor_ch1.get_num_planes() == 9
 
         ifds = 3200
         num_channels = 2
-        total_frames_per_cycle = (extractor_ch1.get_num_planes() + extractor_ch1.num_flyback_frames) * num_channels
+        total_frames_per_cycle = (
+            extractor_ch1.get_num_planes() + extractor_ch1.num_flyback_frames_per_channel
+        ) * num_channels
         num_acquisition_cycles = ifds // total_frames_per_cycle
         assert extractor_ch1.get_num_samples() == num_acquisition_cycles
 
@@ -360,7 +428,7 @@ class TestScanImageVolumetricWithFlybackFrames:
         extractor_ch2 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
 
         assert extractor_ch2.is_volumetric == True
-        assert extractor_ch2.num_flyback_frames == 7
+        assert extractor_ch2.num_flyback_frames_per_channel == 7
         assert extractor_ch2.get_sampling_frequency() == 32.7454
         assert extractor_ch2.get_image_shape() == (20, 20)
         assert extractor_ch2.get_num_planes() == 9
@@ -443,14 +511,16 @@ class TestScanImageVolumetricWithFlybackFrames:
         extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
 
         assert extractor_ch1.is_volumetric == True
-        assert extractor_ch1.num_flyback_frames == 7
+        assert extractor_ch1.num_flyback_frames_per_channel == 7
         assert extractor_ch1.get_sampling_frequency() == 32.7454
         assert extractor_ch1.get_image_shape() == (20, 20)
         assert extractor_ch1.get_num_planes() == 9
 
         ifds = 320 * 10
         num_channels = 2
-        total_frames_per_cycle = (extractor_ch1.get_num_planes() + extractor_ch1.num_flyback_frames) * num_channels
+        total_frames_per_cycle = (
+            extractor_ch1.get_num_planes() + extractor_ch1.num_flyback_frames_per_channel
+        ) * num_channels
         num_acquisition_cycles = ifds // total_frames_per_cycle
         assert extractor_ch1.get_num_samples() == num_acquisition_cycles
 
@@ -458,7 +528,7 @@ class TestScanImageVolumetricWithFlybackFrames:
         extractor_ch2 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
 
         assert extractor_ch2.is_volumetric == True
-        assert extractor_ch2.num_flyback_frames == 7
+        assert extractor_ch2.num_flyback_frames_per_channel == 7
         assert extractor_ch2.get_sampling_frequency() == 32.7454
         assert extractor_ch2.get_image_shape() == (20, 20)
         assert extractor_ch2.get_num_planes() == 9
@@ -765,7 +835,7 @@ class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
 
                 # Calculate the corresponding index in the tiff data
                 # Each sample has 2 frames per slice, and we're using slice_sample=0
-                tiff_frame_index = sample_index * 2 + frame_index
+                tiff_frame_index = sample_index * frames_per_slice + frame_index
                 frame_tiff = data[tiff_frame_index, tiff_slice_sample_index, tiff_channel_index, ...]
 
                 np.testing.assert_array_equal(
@@ -785,7 +855,7 @@ class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
 
                 # Calculate the corresponding index in the tiff data
                 # Each sample has 2 frames per slice, and we're using slice_sample=1
-                tiff_frame_index = sample_index * 2 + frame_index
+                tiff_frame_index = sample_index * frames_per_slice + frame_index
                 frame_tiff = data[tiff_frame_index, tiff_slice_sample_index, tiff_channel_index, ...]
 
                 np.testing.assert_array_equal(
@@ -1026,6 +1096,437 @@ class TestScanImageVolumetricPlaneSlicing:
             )
 
 
+class TestTimestampExtraction:
+    """Test the get_times method for ScanImageImagingExtractor class."""
+
+    def test_get_times_planar_multichannel(self):
+        """Test the get_times method.
+
+        This test verifies that the get_times method correctly extracts timestamps
+        from ScanImage TIFF files for the selected channel.
+
+        The test checks that for multi-channel data, the timestamps are correctly
+        filtered for the selected channel.
+        """
+
+        file_path = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
+
+        extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
+        extractor_ch2 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
+
+        # Get timestamps for each channel
+        timestamps_ch1 = extractor_ch1.get_times()
+        timestamps_ch2 = extractor_ch2.get_times()
+
+        # Check basic properties
+        assert (
+            len(timestamps_ch1) == extractor_ch1.get_num_samples()
+        ), "Should have one timestamp per frame for channel 1"
+        assert (
+            len(timestamps_ch2) == extractor_ch2.get_num_samples()
+        ), "Should have one timestamp per frame for channel 2"
+
+        # Extract all timestamps from the file to compare
+        from tifffile import TiffFile
+
+        all_file_paths = [
+            "scanimage_20240320_multifile_00001.tif",
+            "scanimage_20240320_multifile_00002.tif",
+            "scanimage_20240320_multifile_00003.tif",
+        ]
+
+        all_timestamps = []
+        for file_name in all_file_paths:
+            file_path = SCANIMAGE_PATH / file_name
+            if not file_path.exists():
+                raise FileNotFoundError(f"File {file_path} does not exist.")
+            # Read the metadata from the TIFF file
+            with TiffFile(file_path) as tiff:
+                for page in tiff.pages:
+                    if "ImageDescription" not in page.tags:
+                        continue
+
+                    metadata_str = page.tags["ImageDescription"].value
+
+                    # Look for the timestamp line
+                    for line in metadata_str.strip().split("\n"):
+                        if line.startswith("frameTimestamps_sec"):
+                            # Extract the value part after " = "
+                            _, value_str = line.split(" = ", 1)
+                            try:
+                                timestamp = float(value_str.strip())
+                                all_timestamps.append(timestamp)
+                            except ValueError:
+                                all_timestamps.append(None)
+                            break
+
+        all_timestamps = np.asarray(all_timestamps)
+        assert len(all_timestamps) == len(timestamps_ch1) + len(
+            timestamps_ch2
+        ), "Total timestamps should match the sum of both channels"
+        # Verify that the timestamps for each channel are correctly filtered from all timestamps
+        # For a 2-channel recording, channel 3 should have timestamps from even indices (0, 2, 4...)
+        # and channel 4 should have timestamps from odd indices (1, 3, 5...)
+        ch1_indices = np.arange(0, len(all_timestamps), 2)
+        ch2_indices = np.arange(1, len(all_timestamps), 2)
+
+        expected_timestamps_ch1 = np.array(all_timestamps)[ch1_indices]
+        expected_timestamps_ch2 = np.array(all_timestamps)[ch2_indices]
+
+        # Compare the first few timestamps to verify correct filtering
+        assert np.allclose(timestamps_ch1, expected_timestamps_ch1), "Channel 1 timestamps should match expected values"
+        assert np.allclose(timestamps_ch2, expected_timestamps_ch2), "Channel 2 timestamps should match expected values"
+
+    def test_get_times_volumetric_data(self):
+        """Test get_times with volumetric data (with and without plane_index)
+
+        This test verifies that:
+        1. For volumetric data:
+           - The correct number of timestamps are returned (equal to number of samples)
+           - Timestamps are monotonically increasing
+           - Timestamps match the expected values from the TIFF metadata
+
+        2. For plane-sliced data:
+           - The get_times method works correctly when accessing a specific plane using plane_index
+           - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
+
+        File: vol_no_flyback_00001_00001.tif
+        """
+
+        # Test file path - volumetric data without flyback frames
+        file_path = (
+            SCANIMAGE_PATH / "volumetric_single_channel_single_file_no_flyback" / "vol_no_flyback_00001_00001.tif"
+        )
+
+        # Get raw timestamps for reference
+        with TiffReader(file_path) as tiff:
+            raw_timestamps = [ScanImageImagingExtractor.extract_timestamp_from_page(page) for page in tiff.pages]
+        raw_timestamps = np.asarray(raw_timestamps)
+
+        # Create the extractor and get timestamps
+        volumetric_extractor = ScanImageImagingExtractor(file_path=file_path)
+        volumetric_timestamps = volumetric_extractor.get_times()
+
+        # Basic validation
+        num_samples = volumetric_extractor.get_num_samples()
+        assert len(volumetric_timestamps) == num_samples, "Number of timestamps should match number of samples"
+        assert np.all(np.diff(volumetric_timestamps) > 0), "Timestamps should be monotonically increasing"
+
+        # Calculate expected timestamps for volumetric data
+        # For volumetric data without flyback frames, we use the last plane of each volume
+        num_planes = volumetric_extractor.get_num_planes()
+        sample_indices = np.arange(num_samples, dtype=int)
+
+        # Each volume has num_planes frames, and we want the last frame of each volume
+        last_plane_offset = num_planes - 1
+        expected_indices = sample_indices * num_planes + last_plane_offset
+        expected_timestamps = raw_timestamps[expected_indices]
+
+        # Verify timestamps match expected values
+        np.testing.assert_array_equal(
+            volumetric_timestamps,
+            expected_timestamps,
+            "Volumetric timestamps should match expected values from TIFF metadata",
+        )
+
+        # Test that plane slicing timestamps are extracted correctly
+        plane_indices = [0, 4, 8]
+        # Calculate expected timestamps for each plane first plane (0), middle plane (4), and last plane (8)
+        for plane_idx in plane_indices:
+            plane_timestamps = ScanImageImagingExtractor(file_path=file_path, plane_index=plane_idx).get_times()
+            assert len(plane_timestamps) == num_samples, "Number of timestamps should match number of samples"
+
+            # For each plane, we need to select frames at positions: plane_index, plane_index + num_planes, ...
+            plane_frame_indices = sample_indices * num_planes + plane_idx
+            expected_plane_timestamps = raw_timestamps[plane_frame_indices]
+
+            # Verify timestamps match expected values
+            np.testing.assert_array_equal(
+                plane_timestamps,
+                expected_plane_timestamps,
+                f"Timestamps for plane_index={plane_idx} should match expected values",
+            )
+
+    def test_get_times_volumetric_with_flyback_frames(self):
+        """Test get_times with volumetric data with flyback frames (with and without plane_index)
+
+        This test verifies that:
+        1. For volumetric data with flyback frames:
+           - The correct number of timestamps are returned (equal to number of samples)
+           - Flyback frames are properly excluded from timestamps
+           - Timestamps match the expected values from the TIFF metadata
+
+        2. For plane-sliced data with flyback frames:
+           - The get_times method works correctly when accessing a specific plane using plane_index
+           - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
+
+        File: vol_one_ch_single_files_00002_00001.tif
+
+        Metadata:
+        - Acquisition mode: grab
+        - Volumetric: True (9 slices and 7 flyback frames)
+        - Frame shape: 20 x 20
+        - Channels: 1 (single channel)
+        - Frames per slice: 1
+        - Frame rate: 523.926 Hz
+        - Volume rate: 32.7454 Hz
+        - Pages/IDFs: 1600
+        """
+
+        # Test file path - volumetric data with flyback frames
+        file_path = SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
+
+        # Extract raw timestamps directly from TIFF file
+        with TiffReader(file_path) as tiff:
+            raw_timestamps = [ScanImageImagingExtractor.extract_timestamp_from_page(page) for page in tiff.pages]
+        raw_timestamps = np.array(raw_timestamps)
+
+        # Create the extractor and get timestamps
+        volumetric_extractor = ScanImageImagingExtractor(file_path=file_path)
+        volumetric_timestamps = volumetric_extractor.get_times()
+
+        # Basic validation
+        num_samples = volumetric_extractor.get_num_samples()
+        assert len(volumetric_timestamps) == num_samples, "Number of timestamps should match number of samples"
+        assert np.all(np.diff(volumetric_timestamps) > 0), "Timestamps should be monotonically increasing"
+
+        # Calculate frame cycle parameters for volumetric data with flyback frames
+        num_planes = volumetric_extractor.get_num_planes()
+        num_flyback_frames = volumetric_extractor.num_flyback_frames_per_channel
+        frames_per_slice = volumetric_extractor._frames_per_slice
+        num_channels = len(volumetric_extractor.channel_names)
+        channel_index = volumetric_extractor._channel_index
+
+        # Calculate derived parameters
+        image_frames_per_cycle = num_planes * frames_per_slice * num_channels
+        flyback_frames_total = num_flyback_frames * num_channels
+        total_frames_per_cycle = image_frames_per_cycle + flyback_frames_total
+
+        # Calculate expected timestamps for volumetric data
+        # For volumetric data with flyback frames, we use the last frame before flyback frames
+        sample_indices = np.arange(num_samples, dtype=int)
+        last_frame_offset = image_frames_per_cycle - num_channels
+
+        # Calculate indices for expected timestamps
+        timestamp_indices = sample_indices * total_frames_per_cycle + last_frame_offset + channel_index
+        expected_timestamps = raw_timestamps[timestamp_indices]
+
+        # Verify timestamps match expected values
+        np.testing.assert_array_equal(
+            volumetric_timestamps,
+            expected_timestamps,
+            "Volumetric timestamps should match expected values from TIFF metadata",
+        )
+
+        # Create extractors with plane_index
+        plane_index_0 = 0
+        plane_index_4 = 4
+
+        plane0_extractor = ScanImageImagingExtractor(file_path=file_path, plane_index=plane_index_0)
+        plane4_extractor = ScanImageImagingExtractor(file_path=file_path, plane_index=plane_index_4)
+
+        # Get timestamps from plane extractors
+        plane0_timestamps = plane0_extractor.get_times()
+        plane4_timestamps = plane4_extractor.get_times()
+
+        # Verify all extractors have the same number of samples and timestamps
+        assert len(plane0_timestamps) == num_samples, "Plane 0 timestamps count should match number of samples"
+        assert len(plane4_timestamps) == num_samples, "Plane 4 timestamps count should match number of samples"
+
+        # Calculate expected timestamps for plane 0
+        # For plane-sliced data, we use the frame at the specified plane index
+        plane0_offset = plane_index_0
+        plane0_timestamp_indices = sample_indices * total_frames_per_cycle + plane0_offset + channel_index
+        expected_plane0_timestamps = raw_timestamps[plane0_timestamp_indices]
+
+        # Calculate expected timestamps for plane 4
+        plane4_offset = plane_index_4
+        plane4_timestamp_indices = sample_indices * total_frames_per_cycle + plane4_offset + channel_index
+        expected_plane4_timestamps = raw_timestamps[plane4_timestamp_indices]
+
+        # Verify plane0 extractor timestamps match expected values
+        np.testing.assert_array_equal(
+            plane0_timestamps,
+            expected_plane0_timestamps,
+            "Timestamps for plane_index=0 should match expected values",
+        )
+
+        # Verify plane4 extractor timestamps match expected values
+        np.testing.assert_array_equal(
+            plane4_timestamps,
+            expected_plane4_timestamps,
+            "Timestamps for plane_index=4 should match expected values",
+        )
+
+    def test_get_times_multi_samples_per_slice_data(self):
+        """Test get_times with multiple samples per slice in volumetric data (with and without plane_index)
+
+        This test verifies that:
+        1. For volumetric data with multiple samples per slice:
+           - The correct timestamps are returned when slice_sample is specified
+           - Timestamps match the expected values from the TIFF metadata
+
+        2. For plane-sliced data with multiple samples per slice:
+           - The get_times method works correctly when using both slice_sample and plane_index
+           - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
+
+        File: scanimage_20220923_noroi.tif
+
+        Metadata:
+        - Acquisition mode: grab
+        - Volumetric: True (multiple planes)
+        - Channels: Multiple Channels ['Channel 1', 'Channel 4']
+        - Frames per depth: 2
+        - Frame rate: 29.1248 Hz
+        - Volume rate: 7.28119 Hz
+        - Image shape: 256 x 256
+        - Num_slices: 2
+        - IFDS/Pages: 24
+        """
+
+        file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
+
+        # Part 1: Test with regular volumetric extractor
+        # Create extractor with slice_sample=0
+        slice_sample = 0
+        extractor = ScanImageImagingExtractor(
+            file_paths=[file_path], channel_name="Channel 4", slice_sample=slice_sample
+        )
+
+        # Get timestamps from extractor
+        timestamps = extractor.get_times()
+
+        # Check that number of timestamps equals number of samples
+        assert len(timestamps) == extractor.get_num_samples(), "Number of timestamps should match number of samples"
+
+        # Verify monotonically increasing (if there's more than one timestamp)
+        if len(timestamps) > 1:
+            assert np.all(np.diff(timestamps) > 0), "Timestamps should be monotonically increasing"
+
+        # Extract raw timestamps directly from TIFF file using list comprehension
+        with TiffReader(file_path) as tiff:
+            raw_timestamps = [ScanImageImagingExtractor.extract_timestamp_from_page(page) for page in tiff.pages]
+        raw_timestamps = np.array(raw_timestamps)
+
+        # For the flyback frames case, the timestamp assigned is the
+        # last timestamp before the flyback frames
+        num_planes = extractor.get_num_planes()
+        num_flyback_frames_per_channel = extractor.num_flyback_frames_per_channel
+        num_samples_volumetric = extractor.get_num_samples()
+
+        num_frames_per_slice = extractor._frames_per_slice
+        num_channels = len(extractor.channel_names)
+        image_frames_per_cycle = num_planes * num_frames_per_slice * num_channels
+        flyback_frames = num_flyback_frames_per_channel * num_channels
+        total_frames_per_cycle = image_frames_per_cycle + flyback_frames
+
+        # As a timestamp we get every last frame before the flyback frames
+        sample_indices = np.arange(0, num_samples_volumetric, dtype=int)
+        last_volume_offset = image_frames_per_cycle - num_channels * num_frames_per_slice
+        channel_offset = extractor._channel_index
+        slice_offset = slice_sample * num_channels
+
+        timestamp_indices = sample_indices * total_frames_per_cycle + last_volume_offset + channel_offset + slice_offset
+        expected_timestamps = raw_timestamps[timestamp_indices]
+
+        # Compare the timestamps with expected values
+        np.testing.assert_array_equal(
+            timestamps,
+            expected_timestamps,
+            "Timestamps from get_times should match expected values extracted from TIFF metadata",
+        )
+
+        # Part 2: Test with plane_index
+        # Create extractors with and without plane_index
+        slice_sample = 1
+        plane_index = 1
+        volumetric_extractor = ScanImageImagingExtractor(
+            file_paths=[file_path],
+            channel_name="Channel 4",
+            slice_sample=slice_sample,
+        )
+        planarized_extractor = ScanImageImagingExtractor(
+            file_paths=[file_path],
+            channel_name="Channel 4",
+            slice_sample=slice_sample,
+            plane_index=plane_index,
+        )
+
+        # Get timestamps
+        timestamps_full = volumetric_extractor.get_times()
+        planarized_timestamps = planarized_extractor.get_times()
+
+        # Check that number of timestamps equals number of samples for each extractor
+        assert len(timestamps_full) == volumetric_extractor.get_num_samples()
+        assert len(planarized_timestamps) == planarized_extractor.get_num_samples()
+
+        # Should have the same number of samples and timestamps
+        assert volumetric_extractor.get_num_samples() == planarized_extractor.get_num_samples()
+
+        # Calculate expected timestamps for the planarized extractor
+        num_planes = volumetric_extractor.get_num_planes()
+        num_flyback_frames_per_channel = volumetric_extractor.num_flyback_frames_per_channel
+        num_samples_volumetric = volumetric_extractor.get_num_samples()
+
+        num_frames_per_slice = volumetric_extractor._frames_per_slice
+        num_channels = len(volumetric_extractor.channel_names)
+        image_frames_per_cycle = num_planes * num_frames_per_slice * num_channels
+        flyback_frames = num_flyback_frames_per_channel * num_channels
+        total_frames_per_cycle = image_frames_per_cycle + flyback_frames
+
+        # As a timestamp we get every last frame before the flyback frames
+        sample_indices = np.arange(0, num_samples_volumetric, dtype=int)
+        plane_slice_offset = plane_index * num_channels * num_frames_per_slice
+        frames_per_slice_offset = slice_sample * num_channels
+        channel_offset = planarized_extractor._channel_index
+
+        timestamp_indices = (
+            sample_indices * total_frames_per_cycle + plane_slice_offset + frames_per_slice_offset + channel_offset
+        )
+        expected_planarized_timestamps = raw_timestamps[timestamp_indices]
+
+        # Verify planarized extractor timestamps
+        np.testing.assert_array_equal(
+            planarized_timestamps,
+            expected_planarized_timestamps,
+            "Timestamps for plane 1 should match expected values extracted from TIFF metadata",
+        )
+
+
+def test_file_paths_parameter():
+    """Test the file_paths parameter for direct file specification.
+
+    This test verifies that the extractor correctly uses the provided file_paths
+    parameter instead of relying on automatic file detection heuristics.
+
+    The test checks:
+    1. Explicitly providing file paths works correctly
+    2. The extractor loads the correct number of files
+    3. The files are loaded in the correct order
+    """
+    # Get the paths to the multi-file dataset
+    file_paths = [
+        SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif",
+        SCANIMAGE_PATH / "scanimage_20240320_multifile_00002.tif",
+        SCANIMAGE_PATH / "scanimage_20240320_multifile_00003.tif",
+    ]
+
+    # Create extractor with explicit file_paths parameter
+    extractor = ScanImageImagingExtractor(file_paths=file_paths, channel_name="Channel 1")
+
+    # Verify the correct files were loaded
+    assert len(extractor.file_paths) == 3, "Should load all 3 files"
+
+    # Verify the files are in the correct order
+    expected_file_names = [Path(p).name for p in file_paths]
+    actual_file_names = [Path(p).name for p in extractor.file_paths]
+    assert actual_file_names == expected_file_names, "Files should be loaded in the provided order"
+
+    # Verify the data is loaded correctly
+    assert extractor.get_num_samples() == 10 * 3, "Should have 10 samples per file"
+    assert extractor.get_image_shape() == (512, 512), "Image shape should be correct"
+
+
 def test_get_frames_per_slice():
     """
     Test the static get_frames_per_slice method.
@@ -1080,112 +1581,3 @@ def test_get_availale_channel_names():
     assert isinstance(volumetric_channel_names, list), "Channel names should be returned as a list"
     assert len(volumetric_channel_names) >= 1, "Should extract at least one channel name"
     assert volumetric_channel_names == ["Channel 1", "Channel 4"]
-
-
-def test_file_paths_parameter():
-    """Test the file_paths parameter for direct file specification.
-
-    This test verifies that the extractor correctly uses the provided file_paths
-    parameter instead of relying on automatic file detection heuristics.
-
-    The test checks:
-    1. Explicitly providing file paths works correctly
-    2. The extractor loads the correct number of files
-    3. The files are loaded in the correct order
-    """
-    # Get the paths to the multi-file dataset
-    file_paths = [
-        SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif",
-        SCANIMAGE_PATH / "scanimage_20240320_multifile_00002.tif",
-        SCANIMAGE_PATH / "scanimage_20240320_multifile_00003.tif",
-    ]
-
-    # Create extractor with explicit file_paths parameter
-    extractor = ScanImageImagingExtractor(file_paths=file_paths, channel_name="Channel 1")
-
-    # Verify the correct files were loaded
-    assert len(extractor.file_paths) == 3, "Should load all 3 files"
-
-    # Verify the files are in the correct order
-    expected_file_names = [Path(p).name for p in file_paths]
-    actual_file_names = [Path(p).name for p in extractor.file_paths]
-    assert actual_file_names == expected_file_names, "Files should be loaded in the provided order"
-
-    # Verify the data is loaded correctly
-    assert extractor.get_num_samples() == 10 * 3, "Should have 10 samples per file"
-    assert extractor.get_image_shape() == (512, 512), "Image shape should be correct"
-
-
-def test_get_times_planar_multichannel():
-    """Test the get_times method.
-
-    This test verifies that the get_times method correctly extracts timestamps
-    from ScanImage TIFF files for the selected channel.
-
-    The test checks that for multi-channel data, the timestamps are correctly
-    filtered for the selected channel.
-    """
-
-    file_path = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
-
-    extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
-    extractor_ch2 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
-
-    # Get timestamps for each channel
-    timestamps_ch1 = extractor_ch1.get_times()
-    timestamps_ch2 = extractor_ch2.get_times()
-
-    # Check basic properties
-    assert len(timestamps_ch1) == extractor_ch1.get_num_samples(), "Should have one timestamp per frame for channel 1"
-    assert len(timestamps_ch2) == extractor_ch2.get_num_samples(), "Should have one timestamp per frame for channel 2"
-
-    # Extract all timestamps from the file to compare
-    from tifffile import TiffFile
-
-    all_file_paths = [
-        "scanimage_20240320_multifile_00001.tif",
-        "scanimage_20240320_multifile_00002.tif",
-        "scanimage_20240320_multifile_00003.tif",
-    ]
-
-    all_timestamps = []
-    for file_name in all_file_paths:
-        file_path = SCANIMAGE_PATH / file_name
-        if not file_path.exists():
-            raise FileNotFoundError(f"File {file_path} does not exist.")
-        # Read the metadata from the TIFF file
-        with TiffFile(file_path) as tiff:
-            for page in tiff.pages:
-                if "ImageDescription" not in page.tags:
-                    continue
-
-                metadata_str = page.tags["ImageDescription"].value
-
-                # Look for the timestamp line
-                for line in metadata_str.strip().split("\n"):
-                    if line.startswith("frameTimestamps_sec"):
-                        # Extract the value part after " = "
-                        _, value_str = line.split(" = ", 1)
-                        try:
-                            timestamp = float(value_str.strip())
-                            all_timestamps.append(timestamp)
-                        except ValueError:
-                            all_timestamps.append(None)
-                        break
-
-    all_timestamps = np.asarray(all_timestamps)
-    assert len(all_timestamps) == len(timestamps_ch1) + len(
-        timestamps_ch2
-    ), "Total timestamps should match the sum of both channels"
-    # Verify that the timestamps for each channel are correctly filtered from all timestamps
-    # For a 2-channel recording, channel 3 should have timestamps from even indices (0, 2, 4...)
-    # and channel 4 should have timestamps from odd indices (1, 3, 5...)
-    ch1_indices = np.arange(0, len(all_timestamps), 2)
-    ch2_indices = np.arange(1, len(all_timestamps), 2)
-
-    expected_timestamps_ch1 = np.array(all_timestamps)[ch1_indices]
-    expected_timestamps_ch2 = np.array(all_timestamps)[ch2_indices]
-
-    # Compare the first few timestamps to verify correct filtering
-    assert np.allclose(timestamps_ch1, expected_timestamps_ch1), "Channel 1 timestamps should match expected values"
-    assert np.allclose(timestamps_ch2, expected_timestamps_ch2), "Channel 2 timestamps should match expected values"

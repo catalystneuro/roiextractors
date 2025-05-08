@@ -87,6 +87,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         super().__init__()
         self.file_path = file_paths[0] if file_paths is not None else file_path
         assert self.file_path is not None, "file_path or file_paths must be provided"
+        self.file_path = Path(self.file_path)
 
         # Validate file suffix
         valid_suffixes = [".tiff", ".tif", ".TIFF", ".TIF"]
@@ -97,11 +98,19 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 f"The {self.extractor_name} Extractor may not be appropriate for the file."
             )
 
-        # Open the
+        # Open the TIFF file
         tifffile = get_package(package_name="tifffile")
         tiff_reader = tifffile.TiffReader(self.file_path)
 
         self._general_metadata = tiff_reader.scanimage_metadata
+        non_valid_metadata = self._general_metadata is None or len(self._general_metadata) == 0
+        if non_valid_metadata:
+            error_msg = (
+                f"Invalid metadata for file with name {file_path.name}. \n"
+                "The metadata is either None or empty which probably indictes that the tiff file "
+                "Is not a ScanImage file or it could be an older version."
+            )
+            raise ValueError("Invalid metadata: The metadata is either None or empty.")
         self._metadata = self._general_metadata["FrameData"]
 
         self._num_rows, self._num_columns = tiff_reader.pages[0].shape
@@ -138,12 +147,14 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self._frames_per_volume_per_channel = self._metadata["SI.hStackManager.numFramesPerVolume"]
             self._frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
 
-            self.num_flyback_frames = self._frames_per_volume_with_flyback - self._frames_per_volume_per_channel
+            self.num_flyback_frames_per_channel = (
+                self._frames_per_volume_with_flyback - self._frames_per_volume_per_channel
+            )
         else:
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanFrameRate"]
             self._num_planes = 1
             self._frames_per_slice = 1
-            self.num_flyback_frames = 0
+            self.num_flyback_frames_per_channel = 0
 
         # This piece of the metadata is the indication that the channel is saved on the data
         channels_available = self._metadata["SI.hChannels.channelSave"]
@@ -204,7 +215,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self._num_frames_in_dataset = sum(self._ifds_per_file)
 
         image_frames_per_cycle = self._num_planes * self._num_channels * self._frames_per_slice
-        total_frames_per_cycle = image_frames_per_cycle + self.num_flyback_frames * self._num_channels
+        total_frames_per_cycle = image_frames_per_cycle + self.num_flyback_frames_per_channel * self._num_channels
 
         # Note that the acquisition might end without completing the last cycle and we discard those frames
         num_acquisition_cycles = self._num_frames_in_dataset // (total_frames_per_cycle)
@@ -218,7 +229,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             num_planes=self._num_planes,
             num_acquisition_cycles=num_acquisition_cycles,
             num_frames_per_slice=self._frames_per_slice,
-            num_flyback_frames=self.num_flyback_frames,
+            num_flyback_frames_per_channel=self.num_flyback_frames_per_channel,
             ifds_per_file=self._ifds_per_file,
         )
 
@@ -254,7 +265,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         num_acquisition_cycles: int,
         ifds_per_file: list[int],
         num_frames_per_slice: int = 1,
-        num_flyback_frames: int = 0,
+        num_flyback_frames_per_channel: int = 0,
     ) -> np.ndarray:
         """
         Create a table that describes the data layout of the dataset.
@@ -282,7 +293,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Number of IFDs in each file.
         num_frames_per_slice : int
             Number of frames per slice. This is used to determine the slice_sample index.
-        num_flyback_frames : int
+        num_flyback_frames_per_channel : int
             Number of flyback frames.
 
         Returns
@@ -305,7 +316,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         # Calculate total number of entries
         image_frames_per_cycle = num_planes * num_frames_per_slice * num_channels
-        total_frames_per_cycle = image_frames_per_cycle + num_flyback_frames * num_channels
+        flyback_frames = num_flyback_frames_per_channel * num_channels
+        total_frames_per_cycle = image_frames_per_cycle + flyback_frames
 
         # Generate global ifd indices for complete cycles only
         # This ensures we only include frames from complete acquisition cycles
@@ -529,6 +541,19 @@ class ScanImageImagingExtractor(ImagingExtractor):
     def get_channel_names(self):
         return self.channel_names
 
+    def get_num_planes(self) -> int:
+        """Get the number of depth planes.
+
+        For volumetric data, this returns the number of Z-planes in each volume.
+        For planar data, this returns 1.
+
+        Returns
+        -------
+        int
+            Number of depth planes.
+        """
+        return self._num_planes
+
     @staticmethod
     def get_available_channel_names(file_path: PathType) -> list:
         """Get the channel names available in a ScanImage TIFF file.
@@ -617,21 +642,11 @@ class ScanImageImagingExtractor(ImagingExtractor):
             tiff_reader = self._tiff_readers[file_index]
             image_file_directory = tiff_reader.pages[ifd_index]
 
-            # Extract timestamp from the IFD description
-            description = image_file_directory.description
-            description_lines = description.split("\n")
+            # Extract timestamp using the static method
+            timestamp = self.extract_timestamp_from_page(image_file_directory)
 
-            # Use iterator pattern to find frameTimestamps_sec
-            timestamp_line = next((line for line in description_lines if "frameTimestamps_sec" in line), None)
-
-            if timestamp_line is not None:
-                # Extract the value part after " = "
-                _, value_str = timestamp_line.split(" = ", 1)
-                try:
-                    timestamps[sample_index] = float(value_str.strip())
-                except ValueError:
-                    # If parsing fails, use sample index / sampling frequency as fallback
-                    timestamps[sample_index] = sample_index / self._sampling_frequency
+            if timestamp is not None:
+                timestamps[sample_index] = timestamp
             else:
                 # If no timestamp found, throw a warning and use sample index / sampling frequency as fallback
                 warnings.warn(
@@ -644,18 +659,68 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self._times = timestamps
         return timestamps
 
-    def get_num_planes(self) -> int:
-        """Get the number of depth planes.
+    @staticmethod
+    def extract_timestamp_from_page(page) -> float:
+        """
+        Extract timestamp from a ScanImage TIFF page.
+
+        Parameters
+        ----------
+        page : tifffile.TiffPage
+            The TIFF page to extract the timestamp from.
+
+        Returns
+        -------
+        float
+            The timestamp in seconds or None if no timestamp is found.
+        """
+        if "ImageDescription" not in page.tags:
+            return None
+
+        description = page.tags["ImageDescription"].value
+        description_lines = description.split("\n")
+
+        # Find the frameTimestamps_sec line
+        timestamp_line = next((line for line in description_lines if "frameTimestamps_sec" in line), None)
+
+        if timestamp_line is not None:
+            # Extract the value part after " = "
+            _, value_str = timestamp_line.split(" = ", 1)
+            try:
+                timestamp = float(value_str.strip())
+                return timestamp
+            except ValueError:
+                return None
+
+        return None
+
+    @staticmethod
+    def get_available_num_planes(file_path: PathType) -> int:
+        """
+        Get the number of depth planes from a ScanImage TIFF file.
 
         For volumetric data, this returns the number of Z-planes in each volume.
         For planar data, this returns 1.
+
+        Parameters
+        ----------
+        file_path : PathType
+            Path to the ScanImage TIFF file.
 
         Returns
         -------
         int
             Number of depth planes.
+
         """
-        return self._num_planes
+        from tifffile import read_scanimage_metadata
+
+        with open(file_path, "rb") as fh:
+            all_metadata = read_scanimage_metadata(fh)
+            non_varying_frame_metadata = all_metadata[0]
+
+        num_planes = non_varying_frame_metadata.get("SI.hStackManager.numSlices", 1)
+        return num_planes
 
     @staticmethod
     def get_frames_per_slice(file_path: PathType) -> int:

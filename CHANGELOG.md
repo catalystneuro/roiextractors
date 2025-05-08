@@ -7,9 +7,13 @@
 * Added support for flyback frames to `ScanImageImagingExtractor` [PR #419](https://github.com/catalystneuro/roiextractors/pull/419)
 * Added InscopixSegmentationExtractor for reading .isxd segmentation files [#407](https://github.com/catalystneuro/roiextractors/pull/407)
 * Add `plane_index` to `ScanImageImagingExtractor` to obtain a planar extractor across a plane [PR #424](https://github.com/catalystneuro/roiextractors/pull/424)
+* Add testing to timestamp extraction on `ScanImageImagingExtractor` [PR #426](https://github.com/catalystneuro/
+* Add paths as string support to `ScanImageImagingExtractor` [PR #427](https://github.com/catalystneuro/roiextractors/pull/427)
+* Add informative error for old ScanImage files with `ScanImageImagingExtractor` [PR #427](https://github.com/catalystneuro/roiextractors/pull/427)
 
 ### Fixes
 * Fixed `get_series` method in `MemmapImagingExtractor` to preserve channel dimension [PR #416](https://github.com/catalystneuro/roiextractors/pull/416)
+* Fix memory estimation for volumetric imaging extractors in their `_repr_` [PR #422](https://github.com/catalystneuro/roiextractors/pull/433)
 
 ### Deprecations
 * The `get_video(start_frame, end_frame)` method is deprecated and will be removed in or after September 2025. Use `get_series(start_sample, end_sample)` instead for consistent naming with `get_num_samples`. [PR #416](https://github.com/catalystneuro/roiextractors/pull/416)
@@ -24,10 +28,8 @@
 * New `read_scanimage_metadata` for reading scanimage metadata from a file directly as a python dict [PR #405](https://github.com/catalystneuro/roiextractors/pull/401)
 
 ### Fixes
-* Use `SI.hChannels.channelSave` or `SI.hChannels.channelsave` to determine number of channels for ScanImage extractors when available [#401](https://github.com/catalystneuro/roiextractors/pull/401)
+* Use `SI.hChannels.channelSave` or `SI.hChannels.channelsave` to determine number of channels for ScanImage extractors when available [PR #401](https://github.com/catalystneuro/roiextractors/pull/401)
 * Fixes the sampling rate for volumetric `ScanImage` [#405](https://github.com/catalystneuro/roiextractors/pull/401)
-
-
 
 ### Deprecations
 * Deprecated `write_imaging` and `write_segmentation` methods: [#403](https://github.com/catalystneuro/roiextractors/pull/403)
