@@ -170,10 +170,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
             self._frames_per_slice = self._metadata["SI.hStackManager.framesPerSlice"]
 
-            # Default case: single frame per slice or not volumetric
-            if self._frames_per_slice <= 1:
+            if self._frames_per_slice == 1:
                 self._slice_sample = None
-            # Case: specific slice sample provided
             elif slice_sample is not None:
                 if not (0 <= slice_sample < self._frames_per_slice):
                     error_msg = f"slice_sample must be between 0 and {self._frames_per_slice - 1} (frames_per_slice - 1), but got {slice_sample}."
@@ -287,7 +285,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self._frames_to_ifd_table = channel_frames_to_ifd_table
 
         # Filter mapping for the specified slice_sample or reorder for all slice samples
-        if self.is_volumetric and self._slice_sample is None:
+        if self.is_volumetric and interleave_slice_samples:
 
             # Re-order to interleave samples from different slice_samples
             # For each acquisition cycle, include all slice_samples in sequence
