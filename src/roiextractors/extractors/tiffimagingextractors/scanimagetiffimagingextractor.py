@@ -37,7 +37,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
     and IFD (Image File Directory) location. This mapping enables efficient retrieval of specific frames
     without loading the entire dataset into memory, making it suitable for large datasets.
 
-    For datasets with multiple frames per slice, a slice_sample parameter must be provided.
+    For datasets with multiple frames per slice, either a slice_sample parameter must be provided
+    or interleave_slice_samples must be set to True to explicitly opt into interleaving behavior.
 
 
     Key features:
@@ -59,6 +60,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         file_paths: Optional[list[PathType]] = None,
         slice_sample: Optional[int] = None,
         plane_index: Optional[int] = None,
+        interleave_slice_samples: bool = False,
     ):
         """
         Initialize the ScanImageImagingExtractor.
@@ -84,11 +86,15 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Controls how to handle multiple frames per slice in volumetric data:
             - If an integer (0 to frames_per_slice-1): Uses only that specific frame for each slice,
               effectively selecting a single sample from each acquisition.
-            - If None (default): Interleaves all slice samples as separate time points, treating each
-              slice_sample as a distinct sample. This increases the effective number of samples by
-              frames_per_slice and allows accessing all acquired data.
+            - If None (default): Requires interleave_slice_samples=True when frames_per_slice > 1.
             - This parameter has no effect when frames_per_slice = 1.
             - Use `get_frames_per_slice(file_path)` to check the number of frames per slice.
+        interleave_slice_samples : bool, optional
+            Controls whether to interleave all slice samples as separate time points when frames_per_slice > 1:
+            - If True: Interleaves all slice samples as separate time points, increasing the effective
+              number of samples by frames_per_slice. This treats each slice_sample as a distinct sample.
+            - If False (default): Requires a specific slice_sample to be provided when frames_per_slice > 1.
+            - This parameter has no effect when frames_per_slice = 1 or when slice_sample is provided.
         plane_index : int, optional
             Must be between 0 and num_planes-1. Used to extract a specific plane from volumetric data.
             When provided:
@@ -163,15 +169,27 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self._num_planes = self._metadata["SI.hStackManager.numSlices"]
 
             self._frames_per_slice = self._metadata["SI.hStackManager.framesPerSlice"]
-            if self._frames_per_slice > 1:
-                if slice_sample is not None:
-                    if not (0 <= slice_sample < self._frames_per_slice):
-                        error_msg = f"slice_sample must be between 0 and {self._frames_per_slice - 1} (frames_per_slice - 1), but got {slice_sample}."
-                        raise ValueError(error_msg)
 
-                self._slice_sample = slice_sample
-            else:
+            # Default case: single frame per slice or not volumetric
+            if self._frames_per_slice <= 1:
                 self._slice_sample = None
+            # Case: specific slice sample provided
+            elif slice_sample is not None:
+                if not (0 <= slice_sample < self._frames_per_slice):
+                    error_msg = f"slice_sample must be between 0 and {self._frames_per_slice - 1} (frames_per_slice - 1), but got {slice_sample}."
+                    raise ValueError(error_msg)
+                self._slice_sample = slice_sample
+            # Case: multiple frames per slice, no slice_sample, but interleaving explicitly enabled
+            elif interleave_slice_samples:
+                self._slice_sample = None
+            # Error case: multiple frames per slice, no slice_sample, interleaving not enabled
+            else:
+                error_msg = (
+                    f"Multiple frames per slice detected ({self._frames_per_slice}), but no slice_sample specified. "
+                    f"Either provide a specific slice_sample (0 to {self._frames_per_slice - 1}) or set "
+                    f"interleave_slice_samples=True to explicitly opt into interleaving all slice samples as separate time points."
+                )
+                raise ValueError(error_msg)
 
             self._frames_per_volume_per_channel = self._metadata["SI.hStackManager.numFramesPerVolume"]
             self._frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]

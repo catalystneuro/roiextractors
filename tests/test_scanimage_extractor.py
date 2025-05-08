@@ -677,6 +677,10 @@ class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
         frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(file_path)
         assert frames_per_slice == 2, "File should have 2 slices per sample"
 
+        # Test that an error is raised when neither slice_sample nor interleave_slice_samples is provided
+        with pytest.raises(ValueError):
+            ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4")
+
         # Test that the extractor works correctly when a valid slice_sample is provided
         extractor_sample_1 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4", slice_sample=0)
 
@@ -783,6 +787,10 @@ class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
         frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(file_path)
         assert frames_per_slice == 2, "File should have 2 slices per sample"
 
+        # Test that an error is raised when neither slice_sample nor interleave_slice_samples is provided
+        with pytest.raises(ValueError):
+            ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1")
+
         # Test that the extractor works correctly when a valid slice_sample is provided
         extractor_sample_1 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1", slice_sample=0)
         extractor_sample_2 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1", slice_sample=1)
@@ -858,7 +866,7 @@ class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
 class TestScanImageExtractorVMultiSamplesPerDepthAsOneVolumetricSeries:
     """Test the ScanImage extractor's ability to interleave multiple slice samples into a single volumetric series.
 
-    When slice_sample is not provided and frames_per_slice > 1, the extractor will interleave samples
+    When interleave_slice_samples=True and frames_per_slice > 1, the extractor will interleave samples
     from different slice_samples to create a continuous volumetric series. This is useful when you want
     to treat each slice_sample as a separate time point rather than selecting a specific slice_sample.
     """
@@ -886,7 +894,11 @@ class TestScanImageExtractorVMultiSamplesPerDepthAsOneVolumetricSeries:
         file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
 
         # Create extractors with and without slice_sample
-        extractor_full = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1")
+        extractor_full = ScanImageImagingExtractor(
+            file_paths=[file_path],
+            channel_name="Channel 1",
+            interleave_slice_samples=True,
+        )
         extractor_slice_sample0 = ScanImageImagingExtractor(
             file_paths=[file_path],
             channel_name="Channel 1",
@@ -934,7 +946,11 @@ class TestScanImageExtractorVMultiSamplesPerDepthAsOneVolumetricSeries:
         """
 
         file_path = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
-        extractor_full = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1")
+        extractor_full = ScanImageImagingExtractor(
+            file_paths=[file_path],
+            channel_name="Channel 1",
+            interleave_slice_samples=True,
+        )
         extractor_slice_sample0 = ScanImageImagingExtractor(
             file_paths=[file_path],
             channel_name="Channel 1",
