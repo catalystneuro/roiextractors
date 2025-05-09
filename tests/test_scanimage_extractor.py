@@ -1646,6 +1646,76 @@ def test_file_paths_parameter():
     assert extractor.get_image_shape() == (512, 512), "Image shape should be correct"
 
 
+def test_missing_file_detection():
+    """Test that a warning is thrown when a file in the middle of a sequence is missing.
+
+    This test creates a temporary directory with symbolic links to files 1 and 3,
+    but not file 2, and verifies that a warning is thrown when the extractor is
+    initialized with the first file.
+    """
+    import tempfile
+    import os
+
+    # Set up temporary directory
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir_path = Path(temp_dir)
+
+        # Create symbolic links to files 1 and 3 (skip file 2)
+        source_files = ["scanimage_20240320_multifile_00001.tif", "scanimage_20240320_multifile_00003.tif"]
+
+        for file_name in source_files:
+            source_path = SCANIMAGE_PATH / file_name
+            link_path = temp_dir_path / file_name
+            os.symlink(source_path, link_path)
+
+        # Initialize extractor with first file and check for warning
+        with pytest.warns(UserWarning, match="Missing files detected.*00002.tif"):
+            extractor = ScanImageImagingExtractor(file_path=temp_dir_path / source_files[0], channel_name="Channel 1")
+
+            # Verify that the extractor still works with the available files
+            assert len(extractor.file_paths) == 2
+            assert all(Path(fp).name in source_files for fp in extractor.file_paths)
+
+
+def test_non_integer_file_warning():
+    """Test that a warning is thrown when a file with a non-integer index is found.
+
+    This test creates a temporary directory with symbolic links to all normal files (1, 2, 3)
+    plus a file with a non-integer index, and verifies that a warning is thrown
+    about the non-integer file.
+    """
+    import tempfile
+    import os
+    import shutil
+
+    # Set up temporary directory
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir_path = Path(temp_dir)
+
+        # Create symbolic links to all normal files (1, 2, 3)
+        source_files = [
+            "scanimage_20240320_multifile_00001.tif",
+            "scanimage_20240320_multifile_00002.tif",
+            "scanimage_20240320_multifile_00003.tif",
+        ]
+
+        for file_name in source_files:
+            source_path = SCANIMAGE_PATH / file_name
+            link_path = temp_dir_path / file_name
+            os.symlink(source_path, link_path)
+
+        # Create a file with a non-integer index
+        non_integer_file = "scanimage_20240320_multifile_abc.tif"
+        shutil.copy(SCANIMAGE_PATH / source_files[0], temp_dir_path / non_integer_file)
+
+        # Initialize extractor with first file and check for warning about non-integer file
+        with pytest.warns(UserWarning, match=f"Files with non-integer indices detected: {non_integer_file}"):
+            extractor = ScanImageImagingExtractor(file_path=temp_dir_path / source_files[0], channel_name="Channel 1")
+
+            # Verify that the extractor still works with the available files (only integer files)
+            assert len(extractor.file_paths) == 3
+
+
 def test_get_frames_per_slice():
     """
     Test the static get_frames_per_slice method.

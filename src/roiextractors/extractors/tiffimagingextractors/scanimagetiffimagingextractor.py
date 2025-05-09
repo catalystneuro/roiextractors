@@ -439,6 +439,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
             - For 'slow' stack mode with volumetric data: Uses base_name_* pattern
             - Otherwise: Returns only the current file
 
+        This method also checks for missing files in the sequence and warns the user if any are detected.
+        It also identifies and removes files with non-integer indices, warning the user that they can be
+        included explicitly using the file_paths parameter.
+
         This information about ScanImage file naming was shared in a private conversation with
         Lawrence Niu, who is a developer of ScanImage.
 
@@ -455,28 +459,103 @@ class ScanImageImagingExtractor(ImagingExtractor):
         acquisition_state = self._metadata["SI.acqState"]
         frames_per_file = self._metadata["SI.hScan2D.logFramesPerFile"]
         stack_mode = self._metadata["SI.hStackManager.stackMode"]
-
+        extension = self.file_path.suffix
         # This is the happy path that is well specified in the documentation
         if acquisition_state == "grab" and frames_per_file != float("inf"):
             name_parts = file_stem.split("_")
             base_name, acquisition, file_index = "_".join(name_parts[:-2]), name_parts[-2], name_parts[-1]
-            pattern = f"{base_name}_{acquisition}_*{self.file_path.suffix}"
+            pattern_prefix = f"{base_name}_{acquisition}_"
         # Looped acquisitions also divides the files according to Lawrence Niu in private conversation
         elif acquisition_state == "loop":  # This also separates the files
             base_name = "_".join(file_stem.split("_")[:-1])  # Everything before the last _
-            pattern = f"{base_name}_*{self.file_path.suffix}"
+            pattern_prefix = f"{base_name}_"
         # This also divided the files according to Lawrence Niu in private conversation
         elif stack_mode == "slow" and self.is_volumetric:
             base_name = "_".join(file_stem.split("_")[:-1])  # Everything before the last _
-            pattern = f"{base_name}_*{self.file_path.suffix}"
+            pattern_prefix = f"{base_name}_"
         else:
-            files_found = [self.file_path]
-            return files_found
+            file_paths_found = [self.file_path]
+            return file_paths_found
 
         from natsort import natsorted
 
-        files_found = natsorted(self.file_path.parent.glob(pattern))
-        return files_found
+        glob_pattern = f"{pattern_prefix}*{extension}"
+        file_paths_found = natsorted(self.file_path.parent.glob(glob_pattern))
+
+        # Early return if only one file is found
+        if len(file_paths_found) == 1:
+            return file_paths_found
+
+        file_paths_found_filtered = self._check_for_missing_and_excess_files(
+            file_paths_found,
+            pattern_prefix,
+        )
+
+        return file_paths_found_filtered
+
+    def _check_for_missing_and_excess_files(
+        self,
+        file_paths_found: list[PathType],
+        pattern_prefix: str,
+    ) -> list[PathType]:
+        """Check for missing and/or excess files in the sequences of files that was found."""
+        # Extract the varying part from each filename using the pattern_prefix
+        suffix = self.file_path.suffix
+        excess_files = []
+        valid_indices = []
+        valid_file_paths = []
+
+        # First we exclude excess files that are not part of the sequence
+        for file_path in file_paths_found:
+            file_name = file_path.name
+            # Extract the part between the pattern_prefix and suffix
+            varying_part = file_name[len(pattern_prefix) : -len(suffix)]
+            if varying_part.isdigit():
+                file_index = int(varying_part)
+                valid_indices.append(file_index)
+                valid_file_paths.append(file_path)
+            else:
+                excess_files.append(file_name)
+                continue
+
+        # Warn about non-integer files that will be excluded
+        if excess_files:
+            warnings.warn(
+                f"Files with non-integer indices detected: {', '.join(excess_files)}. "
+                f"These files will be excluded from the dataset. "
+                f"If you need to include these files, use the file_paths parameter.",
+                UserWarning,
+            )
+
+        # Check for gaps in the sequence
+        if len(valid_indices) > 1:
+            valid_indices.sort()
+            min_index = min(valid_indices)
+            max_index = max(valid_indices)
+            expected_indices = set(range(min_index, max_index + 1))
+            missing_indices = expected_indices - set(valid_indices)
+
+            if missing_indices:
+                # Determine the format of the index (e.g., 00001, 01, etc.)
+                # by looking at the first file's index format
+                first_file = file_paths_found[0]
+                varying_part = first_file.name[len(pattern_prefix) : -len(suffix)]
+
+                # Format the missing file names
+                missing_files = []
+                for index in missing_indices:
+                    # Format the index with the same number of digits
+                    formatted_index = f"{index:0{len(varying_part)}d}"
+                    missing_file = f"{pattern_prefix}{formatted_index}{suffix}"
+                    missing_files.append(missing_file)
+
+                warnings.warn(
+                    f"Missing files detected in the sequence: {', '.join(missing_files)}. "
+                    f"This may affect data integrity and analysis results.",
+                    UserWarning,
+                )
+
+        return valid_file_paths
 
     def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
         """
