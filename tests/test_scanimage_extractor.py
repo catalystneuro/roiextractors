@@ -1,7 +1,6 @@
 import pytest
 import numpy as np
 from pathlib import Path
-import tempfile
 import shutil
 
 from numpy.testing import assert_array_equal
@@ -1649,7 +1648,7 @@ def test_file_paths_parameter():
     assert extractor.get_image_shape() == (512, 512), "Image shape should be correct"
 
 
-def test_missing_file_detection():
+def test_missing_file_detection(tmp_path):
     """Test that a warning is thrown when a file in the middle of a sequence is missing.
 
     This test creates a temporary directory with copies of files 1 and 3,
@@ -1657,98 +1656,76 @@ def test_missing_file_detection():
     initialized with the first file.
     """
 
-    # Set up temporary directory
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_dir_path = Path(temp_dir)
+    # Create copies of files 1 and 3 (skip file 2)
+    source_files = ["scanimage_20240320_multifile_00001.tif", "scanimage_20240320_multifile_00003.tif"]
 
-        # Create copies of files 1 and 3 (skip file 2)
-        source_files = ["scanimage_20240320_multifile_00001.tif", "scanimage_20240320_multifile_00003.tif"]
+    # Copy the files, resolving any symlinks to avoid problems with git-annex
+    for file_name in source_files:
+        source_path = (SCANIMAGE_PATH / file_name).resolve()
+        dest_path = tmp_path / file_name
+        shutil.copy(source_path, dest_path)
 
-        # Copy the files, resolving any symlinks to avoid problems with git-annex
-        for file_name in source_files:
-            source_path = (SCANIMAGE_PATH / file_name).resolve()
-            dest_path = temp_dir_path / file_name
-            shutil.copy(source_path, dest_path)
+        # Verify the file was copied correctly
+        assert dest_path.exists(), f"File {dest_path} was not copied correctly"
+        assert dest_path.stat().st_size > 0, f"File {dest_path} is empty"
 
-            # Verify the file was copied correctly
-            assert dest_path.exists(), f"File {dest_path} was not copied correctly"
-            assert dest_path.stat().st_size > 0, f"File {dest_path} is empty"
+    #  Check the copies were created correctly
+    all_files = list(tmp_path.glob("*.tif"))
+    assert len(all_files) == 2, f"Expected 2 files in directory, found {len(all_files)}: {[f.name for f in all_files]}"
 
-        #  Check the copies were created correctly
-        all_files = list(temp_dir_path.glob("*.tif"))
-        assert (
-            len(all_files) == 2
-        ), f"Expected 2 files in directory, found {len(all_files)}: {[f.name for f in all_files]}"
+    # Initialize extractor with first file and check for warning
+    with pytest.warns(UserWarning, match="Missing files detected.*00002.tif"):
+        extractor = ScanImageImagingExtractor(file_path=tmp_path / source_files[0], channel_name="Channel 1")
 
-        # Initialize extractor with first file and check for warning
-        with pytest.warns(UserWarning, match="Missing files detected.*00002.tif"):
-            extractor = ScanImageImagingExtractor(file_path=temp_dir_path / source_files[0], channel_name="Channel 1")
-
-            # Verify that the extractor still works with the available files
-            assert len(extractor.file_paths) == 2
-            assert all(Path(fp).name in source_files for fp in extractor.file_paths)
-
-            # Explicitly close the extractor to release file handles to avoid windows error
-            for tiff_reader in extractor._tiff_readers:
-                tiff_reader.close()
-            extractor._tiff_readers = []
+        # Verify that the extractor still works with the available files
+        assert len(extractor.file_paths) == 2
+        assert all(Path(fp).name in source_files for fp in extractor.file_paths)
 
 
-def test_non_integer_file_warning():
+def test_non_integer_file_warning(tmp_path):
     """Test that a warning is thrown when a file with a non-integer index is found.
 
     This test creates a temporary directory with copies of all normal files (1, 2, 3)
     plus a file with a non-integer index, and verifies that a warning is thrown
     about the non-integer file.
     """
-    # Set up temporary directory
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_dir_path = Path(temp_dir)
+    # Create copies of all normal files (1, 2, 3)
+    source_files = [
+        "scanimage_20240320_multifile_00001.tif",
+        "scanimage_20240320_multifile_00002.tif",
+        "scanimage_20240320_multifile_00003.tif",
+    ]
 
-        # Create copies of all normal files (1, 2, 3)
-        source_files = [
-            "scanimage_20240320_multifile_00001.tif",
-            "scanimage_20240320_multifile_00002.tif",
-            "scanimage_20240320_multifile_00003.tif",
-        ]
+    # Copy the files, resolving any symlinks to ensure cross-platform compatibility
+    for file_name in source_files:
+        source_path = (SCANIMAGE_PATH / file_name).resolve()
+        dest_path = tmp_path / file_name
+        shutil.copy(source_path, dest_path)
 
-        # Copy the files, resolving any symlinks to ensure cross-platform compatibility
-        for file_name in source_files:
-            source_path = (SCANIMAGE_PATH / file_name).resolve()
-            dest_path = temp_dir_path / file_name
-            shutil.copy(source_path, dest_path)
+        # Verify the file was copied correctly
+        assert dest_path.exists(), f"File {dest_path} was not copied correctly"
+        assert dest_path.stat().st_size > 0, f"File {dest_path} is empty"
 
-            # Verify the file was copied correctly
-            assert dest_path.exists(), f"File {dest_path} was not copied correctly"
-            assert dest_path.stat().st_size > 0, f"File {dest_path} is empty"
+    # Create a file that does not follow the integer sequence
+    non_integer_file = "scanimage_20240320_multifile_abc.tif"
+    non_integer_path = tmp_path / non_integer_file
+    shutil.copy((SCANIMAGE_PATH / source_files[0]).resolve(), non_integer_path)
 
-        # Create a file that does not follow the integer sequence
-        non_integer_file = "scanimage_20240320_multifile_abc.tif"
-        non_integer_path = temp_dir_path / non_integer_file
-        shutil.copy((SCANIMAGE_PATH / source_files[0]).resolve(), non_integer_path)
+    # Verify the the copy was created correctly
+    assert non_integer_path.exists(), f"Non-integer file {non_integer_path} was not created correctly"
+    assert non_integer_path.stat().st_size > 0, f"Non-integer file {non_integer_path} is empty"
 
-        # Verify the the copy was created correctly
-        assert non_integer_path.exists(), f"Non-integer file {non_integer_path} was not created correctly"
-        assert non_integer_path.stat().st_size > 0, f"Non-integer file {non_integer_path} is empty"
+    # List all files in the directory to confirm setup
+    all_files = list(tmp_path.glob("*.tif"))
+    assert len(all_files) == 4, f"Expected 4 files in directory, found {len(all_files)}: {[f.name for f in all_files]}"
 
-        # List all files in the directory to confirm setup
-        all_files = list(temp_dir_path.glob("*.tif"))
-        assert (
-            len(all_files) == 4
-        ), f"Expected 4 files in directory, found {len(all_files)}: {[f.name for f in all_files]}"
+    # Initialize extractor with first file and check for warning about non-sequence files
+    with pytest.warns(UserWarning, match="Non-sequence files detected"):
+        extractor = ScanImageImagingExtractor(file_path=tmp_path / source_files[0], channel_name="Channel 1")
 
-        # Initialize extractor with first file and check for warning about non-sequence files
-        with pytest.warns(UserWarning, match="Non-sequence files detected"):
-            extractor = ScanImageImagingExtractor(file_path=temp_dir_path / source_files[0], channel_name="Channel 1")
-
-            # Verify that the extractor still works with the available files (only integer files)
-            assert len(extractor.file_paths) == 3
-            assert all(Path(fp).name in source_files for fp in extractor.file_paths), "Unexpected files in extractor"
-
-            # Explicitly close the extractor to release file handles to avoid windows error
-            for tiff_reader in extractor._tiff_readers:
-                tiff_reader.close()
-            extractor._tiff_readers = []
+        # Verify that the extractor still works with the available files (only integer files)
+        assert len(extractor.file_paths) == 3
+        assert all(Path(fp).name in source_files for fp in extractor.file_paths), "Unexpected files in extractor"
 
 
 def test_get_frames_per_slice():
