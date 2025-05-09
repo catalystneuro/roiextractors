@@ -1649,24 +1649,36 @@ def test_file_paths_parameter():
 def test_missing_file_detection():
     """Test that a warning is thrown when a file in the middle of a sequence is missing.
 
-    This test creates a temporary directory with symbolic links to files 1 and 3,
+    This test creates a temporary directory with copies of files 1 and 3,
     but not file 2, and verifies that a warning is thrown when the extractor is
     initialized with the first file.
     """
     import tempfile
     import os
+    import shutil
 
     # Set up temporary directory
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir_path = Path(temp_dir)
 
-        # Create symbolic links to files 1 and 3 (skip file 2)
+        # Create copies of files 1 and 3 (skip file 2)
         source_files = ["scanimage_20240320_multifile_00001.tif", "scanimage_20240320_multifile_00003.tif"]
 
+        # Copy the files, resolving any symlinks to ensure cross-platform compatibility
         for file_name in source_files:
-            source_path = SCANIMAGE_PATH / file_name
-            link_path = temp_dir_path / file_name
-            os.symlink(source_path, link_path)
+            source_path = (SCANIMAGE_PATH / file_name).resolve()
+            dest_path = temp_dir_path / file_name
+            shutil.copy(source_path, dest_path)
+
+            # Verify the file was copied correctly
+            assert dest_path.exists(), f"File {dest_path} was not copied correctly"
+            assert dest_path.stat().st_size > 0, f"File {dest_path} is empty"
+
+        # List all files in the directory to confirm setup
+        all_files = list(temp_dir_path.glob("*.tif"))
+        assert (
+            len(all_files) == 2
+        ), f"Expected 2 files in directory, found {len(all_files)}: {[f.name for f in all_files]}"
 
         # Initialize extractor with first file and check for warning
         with pytest.warns(UserWarning, match="Missing files detected.*00002.tif"):
@@ -1699,9 +1711,9 @@ def test_non_integer_file_warning():
             "scanimage_20240320_multifile_00003.tif",
         ]
 
-        # Copy the files instead of creating symbolic links to ensure cross-platform compatibility
+        # Copy the files, resolving any symlinks to ensure cross-platform compatibility
         for file_name in source_files:
-            source_path = SCANIMAGE_PATH / file_name
+            source_path = (SCANIMAGE_PATH / file_name).resolve()
             dest_path = temp_dir_path / file_name
             shutil.copy(source_path, dest_path)
 
@@ -1712,7 +1724,7 @@ def test_non_integer_file_warning():
         # Create a file with a non-integer index
         non_integer_file = "scanimage_20240320_multifile_abc.tif"
         non_integer_path = temp_dir_path / non_integer_file
-        shutil.copy(SCANIMAGE_PATH / source_files[0], non_integer_path)
+        shutil.copy((SCANIMAGE_PATH / source_files[0]).resolve(), non_integer_path)
 
         # Verify the non-integer file was created correctly
         assert non_integer_path.exists(), f"Non-integer file {non_integer_path} was not created correctly"
