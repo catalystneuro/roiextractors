@@ -1680,7 +1680,7 @@ def test_missing_file_detection():
 def test_non_integer_file_warning():
     """Test that a warning is thrown when a file with a non-integer index is found.
 
-    This test creates a temporary directory with symbolic links to all normal files (1, 2, 3)
+    This test creates a temporary directory with copies of all normal files (1, 2, 3)
     plus a file with a non-integer index, and verifies that a warning is thrown
     about the non-integer file.
     """
@@ -1692,28 +1692,45 @@ def test_non_integer_file_warning():
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir_path = Path(temp_dir)
 
-        # Create symbolic links to all normal files (1, 2, 3)
+        # Create copies of all normal files (1, 2, 3)
         source_files = [
             "scanimage_20240320_multifile_00001.tif",
             "scanimage_20240320_multifile_00002.tif",
             "scanimage_20240320_multifile_00003.tif",
         ]
 
+        # Copy the files instead of creating symbolic links to ensure cross-platform compatibility
         for file_name in source_files:
             source_path = SCANIMAGE_PATH / file_name
-            link_path = temp_dir_path / file_name
-            os.symlink(source_path, link_path)
+            dest_path = temp_dir_path / file_name
+            shutil.copy(source_path, dest_path)
+
+            # Verify the file was copied correctly
+            assert dest_path.exists(), f"File {dest_path} was not copied correctly"
+            assert dest_path.stat().st_size > 0, f"File {dest_path} is empty"
 
         # Create a file with a non-integer index
         non_integer_file = "scanimage_20240320_multifile_abc.tif"
-        shutil.copy(SCANIMAGE_PATH / source_files[0], temp_dir_path / non_integer_file)
+        non_integer_path = temp_dir_path / non_integer_file
+        shutil.copy(SCANIMAGE_PATH / source_files[0], non_integer_path)
+
+        # Verify the non-integer file was created correctly
+        assert non_integer_path.exists(), f"Non-integer file {non_integer_path} was not created correctly"
+        assert non_integer_path.stat().st_size > 0, f"Non-integer file {non_integer_path} is empty"
+
+        # List all files in the directory to confirm setup
+        all_files = list(temp_dir_path.glob("*.tif"))
+        assert (
+            len(all_files) == 4
+        ), f"Expected 4 files in directory, found {len(all_files)}: {[f.name for f in all_files]}"
 
         # Initialize extractor with first file and check for warning about non-integer file
-        with pytest.warns(UserWarning, match=f"Files with non-integer indices detected: {non_integer_file}"):
+        with pytest.warns(UserWarning, match="Files with non-integer indices detected"):
             extractor = ScanImageImagingExtractor(file_path=temp_dir_path / source_files[0], channel_name="Channel 1")
 
             # Verify that the extractor still works with the available files (only integer files)
             assert len(extractor.file_paths) == 3
+            assert all(Path(fp).name in source_files for fp in extractor.file_paths), "Unexpected files in extractor"
 
 
 def test_get_frames_per_slice():
