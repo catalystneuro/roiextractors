@@ -1304,13 +1304,13 @@ class TestTimestampExtraction:
 
         This test verifies that:
         1. For volumetric data:
-           - The correct number of timestamps are returned (equal to number of samples)
-           - Timestamps are monotonically increasing
-           - Timestamps match the expected values from the TIFF metadata
+            - The correct number of timestamps are returned (equal to number of samples)
+            - Timestamps are monotonically increasing
+            - Timestamps match the expected values from the TIFF metadata
 
         2. For plane-sliced data:
-           - The get_times method works correctly when accessing a specific plane using plane_index
-           - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
+            - The get_times method works correctly when accessing a specific plane using plane_index
+            - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
 
         File: vol_no_flyback_00001_00001.tif
         """
@@ -1374,13 +1374,13 @@ class TestTimestampExtraction:
 
         This test verifies that:
         1. For volumetric data with flyback frames:
-           - The correct number of timestamps are returned (equal to number of samples)
-           - Flyback frames are properly excluded from timestamps
-           - Timestamps match the expected values from the TIFF metadata
+            - The correct number of timestamps are returned (equal to number of samples)
+            - Flyback frames are properly excluded from timestamps
+            - Timestamps match the expected values from the TIFF metadata
 
         2. For plane-sliced data with flyback frames:
-           - The get_times method works correctly when accessing a specific plane using plane_index
-           - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
+            - The get_times method works correctly when accessing a specific plane using plane_index
+            - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
 
         File: vol_one_ch_single_files_00002_00001.tif
 
@@ -1485,12 +1485,12 @@ class TestTimestampExtraction:
 
         This test verifies that:
         1. For volumetric data with multiple samples per slice:
-           - The correct timestamps are returned when slice_sample is specified
-           - Timestamps match the expected values from the TIFF metadata
+            - The correct timestamps are returned when slice_sample is specified
+            - Timestamps match the expected values from the TIFF metadata
 
         2. For plane-sliced data with multiple samples per slice:
-           - The get_times method works correctly when using both slice_sample and plane_index
-           - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
+            - The get_times method works correctly when using both slice_sample and plane_index
+            - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
 
         File: scanimage_20220923_noroi.tif
 
@@ -1688,13 +1688,18 @@ def test_missing_file_detection():
             assert len(extractor.file_paths) == 2
             assert all(Path(fp).name in source_files for fp in extractor.file_paths)
 
+            # Explicitly close the extractor to release file handles to avoid windows error
+            for tiff_reader in extractor._tiff_readers:
+                tiff_reader.close()
+            extractor._tiff_readers = []
+
 
 def test_non_integer_file_warning():
     """Test that a warning is thrown when a file with a non-integer index is found.
 
     This test creates a temporary directory with copies of all normal files (1, 2, 3)
-    plus a file with a different sequence pattern and verifies that a warning is thrown
-    about the excess file.
+    plus a file with a non-integer index, and verifies that a warning is thrown
+    about the non-integer file.
     """
     # Set up temporary directory
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -1732,13 +1737,18 @@ def test_non_integer_file_warning():
             len(all_files) == 4
         ), f"Expected 4 files in directory, found {len(all_files)}: {[f.name for f in all_files]}"
 
-        # Initialize extractor with first file and check for warning about non-integer file
-        with pytest.warns(UserWarning, match="Files with non-integer indices detected"):
+        # Initialize extractor with first file and check for warning about non-sequence files
+        with pytest.warns(UserWarning, match="Non-sequence files detected"):
             extractor = ScanImageImagingExtractor(file_path=temp_dir_path / source_files[0], channel_name="Channel 1")
 
             # Verify that the extractor still works with the available files (only integer files)
             assert len(extractor.file_paths) == 3
             assert all(Path(fp).name in source_files for fp in extractor.file_paths), "Unexpected files in extractor"
+
+            # Explicitly close the extractor to release file handles to avoid windows error
+            for tiff_reader in extractor._tiff_readers:
+                tiff_reader.close()
+            extractor._tiff_readers = []
 
 
 def test_get_frames_per_slice():

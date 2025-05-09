@@ -518,10 +518,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 excess_files.append(file_name)
                 continue
 
-        # Warn about non-integer files that will be excluded
+        # Warn about files that don't belong in the sequence
         if excess_files:
             warnings.warn(
-                f"Files with non-integer indices detected: {', '.join(excess_files)}. "
+                f"Non-sequence files detected: {', '.join(excess_files)}. "
                 f"These files will be excluded from the dataset. "
                 f"If you need to include these files, use the file_paths parameter.",
                 UserWarning,
