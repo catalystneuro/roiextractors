@@ -1,6 +1,9 @@
 import pytest
 import numpy as np
 from pathlib import Path
+import tempfile
+import shutil
+
 from numpy.testing import assert_array_equal
 from tifffile import TiffReader
 
@@ -1653,9 +1656,6 @@ def test_missing_file_detection():
     but not file 2, and verifies that a warning is thrown when the extractor is
     initialized with the first file.
     """
-    import tempfile
-    import os
-    import shutil
 
     # Set up temporary directory
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -1664,7 +1664,7 @@ def test_missing_file_detection():
         # Create copies of files 1 and 3 (skip file 2)
         source_files = ["scanimage_20240320_multifile_00001.tif", "scanimage_20240320_multifile_00003.tif"]
 
-        # Copy the files, resolving any symlinks to ensure cross-platform compatibility
+        # Copy the files, resolving any symlinks to avoid problems with git-annex
         for file_name in source_files:
             source_path = (SCANIMAGE_PATH / file_name).resolve()
             dest_path = temp_dir_path / file_name
@@ -1674,7 +1674,7 @@ def test_missing_file_detection():
             assert dest_path.exists(), f"File {dest_path} was not copied correctly"
             assert dest_path.stat().st_size > 0, f"File {dest_path} is empty"
 
-        # List all files in the directory to confirm setup
+        #  Check the copies were created correctly
         all_files = list(temp_dir_path.glob("*.tif"))
         assert (
             len(all_files) == 2
@@ -1693,13 +1693,9 @@ def test_non_integer_file_warning():
     """Test that a warning is thrown when a file with a non-integer index is found.
 
     This test creates a temporary directory with copies of all normal files (1, 2, 3)
-    plus a file with a non-integer index, and verifies that a warning is thrown
-    about the non-integer file.
+    plus a file with a different sequence pattern and verifies that a warning is thrown
+    about the excess file.
     """
-    import tempfile
-    import os
-    import shutil
-
     # Set up temporary directory
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir_path = Path(temp_dir)
@@ -1721,12 +1717,12 @@ def test_non_integer_file_warning():
             assert dest_path.exists(), f"File {dest_path} was not copied correctly"
             assert dest_path.stat().st_size > 0, f"File {dest_path} is empty"
 
-        # Create a file with a non-integer index
+        # Create a file that does not follow the integer sequence
         non_integer_file = "scanimage_20240320_multifile_abc.tif"
         non_integer_path = temp_dir_path / non_integer_file
         shutil.copy((SCANIMAGE_PATH / source_files[0]).resolve(), non_integer_path)
 
-        # Verify the non-integer file was created correctly
+        # Verify the the copy was created correctly
         assert non_integer_path.exists(), f"Non-integer file {non_integer_path} was not created correctly"
         assert non_integer_path.stat().st_size > 0, f"Non-integer file {non_integer_path} is empty"
 

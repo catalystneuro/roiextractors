@@ -1360,7 +1360,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
     def get_image_size(self) -> Tuple[int, int]:
         warnings.warn(
             "get_image_size() is deprecated and will be removed in or after September 2025. "
-            "Use get_image_shape() instead for` consistent behavior across all extractors.",
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
             DeprecationWarning,
             stacklevel=2,
         )
