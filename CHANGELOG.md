@@ -10,6 +10,7 @@
 * Add testing to timestamp extraction on `ScanImageImagingExtractor` [PR #426](https://github.com/catalystneuro/
 * Add paths as string support to `ScanImageImagingExtractor` [PR #427](https://github.com/catalystneuro/roiextractors/pull/427)
 * Add informative error for old ScanImage files with `ScanImageImagingExtractor` [PR #427](https://github.com/catalystneuro/roiextractors/pull/427)
+* Add the option to read interleaved data in `ScanImageImagingExtractor` [PR #428](https://github.com/catalystneuro/roiextractors/pull/428)
 
 ### Fixes
 * Fixed `get_series` method in `MemmapImagingExtractor` to preserve channel dimension [PR #416](https://github.com/catalystneuro/roiextractors/pull/416)
