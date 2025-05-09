@@ -263,11 +263,26 @@ class VolumetricImagingExtractor(ImagingExtractor):
 
         return DepthSliceVolumetricImagingExtractor(parent_extractor=self, start_plane=start_plane, end_plane=end_plane)
 
-    def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
-        """Return a new VolumetricImagingExtractor with a subset of frames."""
+    def slice_samples(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None):
+        """Return a new VolumetricImagingExtractor with a subset of samples."""
         raise NotImplementedError(
-            "frame_slice is not implemented for VolumetricImagingExtractor due to conflicts with get_video()."
+            "slice_samples is not implemented for VolumetricImagingExtractor due to conflicts with get_series()."
         )
+
+    def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
+        """Return a new VolumetricImagingExtractor with a subset of frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after October 2025.
+        Use slice_samples() instead.
+        """
+        warnings.warn(
+            "frame_slice() is deprecated and will be removed in or after October 2025. " "Use slice_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.slice_samples(start_sample=start_frame, end_sample=end_frame)
 
 
 class DepthSliceVolumetricImagingExtractor(VolumetricImagingExtractor):
