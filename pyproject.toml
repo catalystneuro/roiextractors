@@ -52,7 +52,7 @@ full = [
     "neuroconv[video]>=0.4.6",
     "opencv-python-headless>=4.8.1.78",
     "natsort>=8.3.1",
-    "isx>=1.0.4"
+    "isx>=2.0; sys_platform != 'darwin' or platform_machine != 'arm64'"
 ]
 test = [
     "pytest",
