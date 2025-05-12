@@ -1397,9 +1397,7 @@ class ScanImageLegacyImagingExtractor(ImagingExtractor):
     Please use ScanImageTiffSinglePlaneImagingExtractor or ScanImageTiffMultiPlaneImagingExtractor instead.
     """
 
-    extractor_name = "ScanImageTiffImaging"
-    is_writable = True
-    mode = "file"
+    extractor_name = "ScanImageLegacyImagingExtractor"
 
     def __init__(
         self,
@@ -1419,12 +1417,6 @@ class ScanImageLegacyImagingExtractor(ImagingExtractor):
         sampling_frequency : float
             The frequency at which the frames were sampled, in Hz.
         """
-        deprecation_message = """
-        This extractor is being deprecated on or after December 2023 in favor of
-        ScanImageTiffMultiPlaneImagingExtractor or ScanImageTiffSinglePlaneImagingExtractor.  Please use one of these
-        extractors instead.
-        """
-        warn(deprecation_message, category=FutureWarning)
         ScanImageTiffReader = _get_scanimage_reader()
 
         super().__init__()
@@ -1433,10 +1425,11 @@ class ScanImageLegacyImagingExtractor(ImagingExtractor):
         valid_suffixes = [".tiff", ".tif", ".TIFF", ".TIF"]
         if self.file_path.suffix not in valid_suffixes:
             suffix_string = ", ".join(valid_suffixes[:-1]) + f", or {valid_suffixes[-1]}"
-            warn(
+            warning_message = (
                 f"Suffix ({self.file_path.suffix}) is not of type {suffix_string}! "
-                f"The {self.extractor_name}Extractor may not be appropriate for the file."
+                f"The {self.extractor_name} may not be appropriate for the file."
             )
+            warn(warning_message, UserWarning, stacklevel=2)
 
         with ScanImageTiffReader(str(self.file_path)) as io:
             shape = io.shape()  # [frames, rows, columns]
