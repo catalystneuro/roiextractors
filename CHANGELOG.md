@@ -6,7 +6,7 @@
 * Added support for multiple samples per slice to `ScanImageIMagingExtractor` [PR # 417](https://github.com/catalystneuro/roiextractors/pull/417)
 * Added support for flyback frames to `ScanImageImagingExtractor` [PR #419](https://github.com/catalystneuro/roiextractors/pull/419)
 * Add `plane_index` to `ScanImageImagingExtractor` to obtain a planar extractor across a plane [PR #424](https://github.com/catalystneuro/roiextractors/pull/424)
-* Add testing to timestamp extraction on `ScanImageImagingExtractor` [PR #426](https://github.com/catalystneuro/
+* Add testing to timestamp extraction on `ScanImageImagingExtractor` [PR #426](https://github.com/catalystneuro/roiextractors/pull/426)
 * Add paths as string support to `ScanImageImagingExtractor` [PR #427](https://github.com/catalystneuro/roiextractors/pull/427)
 * Add informative error for old ScanImage files with `ScanImageImagingExtractor` [PR #427](https://github.com/catalystneuro/roiextractors/pull/427)
 * Add the option to read interleaved data in `ScanImageImagingExtractor` [PR #428](https://github.com/catalystneuro/roiextractors/pull/428)
@@ -19,6 +19,11 @@
 ### Deprecations And Removals
 * The `get_video(start_frame, end_frame)` method is deprecated and will be removed in or after September 2025. Use `get_series(start_sample, end_sample)` instead for consistent naming with `get_num_samples`. [PR #416](https://github.com/catalystneuro/roiextractors/pull/416)
 * Python 3.9 is no longer supported [PR #423](https://github.com/catalystneuro/roiextractors/pull/423)
+* The `time_to_frame()` method is deprecated and will be removed in or after October 2025. Use `time_to_sample_indices()` instead for consistent terminology between planar and volumetric data. [PR #430](https://github.com/catalystneuro/roiextractors/pull/430)
+* The `frame_to_time()` method is deprecated and will be removed in or after October 2025. Use `sample_indices_to_time()` instead for consistent terminology between planar and volumetric data. [PR #430](https://github.com/catalystneuro/roiextractors/pull/430)
+* The `frame_slice()` method is deprecated and will be removed in or after October 2025. Use `slice_samples()` instead for consistent terminology between planar and volumetric data. [PR #430](https://github.com/catalystneuro/roiextractors/pull/430)
+* The `FrameSliceImagingExtractor` class is deprecated and will be removed in or after October 2025. Use `SampleSlicedImagingExtractor` instead for consistent terminology between planar and volumetric data.
+[PR #430](https://github.com/catalystneuro/roiextractors/pull/430)
 * Long deprecated `ScanImageTiffImagingExtractor` is removed. For ScanImage legacy data use `ScanImageLegacyImagingExtractor` [PR #431](https://github.com/catalystneuro/roiextractors/pull/431)
 * Deprecated `ScanImageTiffMultiPlaneMultiFileImagingExtractor`, `ScanImageTiffSinglePlaneMultiFileImagingExtractor`, `ScanImageTiffMultiPlaneImagingExtractor`, and `ScanImageTiffSinglePlaneImagingExtractor` classes. These will be removed on or after October 2025. Use `ScanImageImagingExtractor` instead. [PR #432](https://github.com/catalystneuro/roiextractors/pull/432)
 
