@@ -2,7 +2,7 @@
 
 Classes
 -------
-ScanImageTiffImagingExtractor
+ScanImageLegacyImagingExtractor
     Specialized extractor for reading TIFF files produced via ScanImage.
 """
 
@@ -1469,23 +1469,21 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         return raw_index
 
 
-class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extractor on/after December 2023
+class ScanImageLegacyImagingExtractor(ImagingExtractor):
     """Specialized extractor for reading TIFF files produced via ScanImage.
 
     This implementation is for legacy purposes and is not recommended for use.
     Please use ScanImageTiffSinglePlaneImagingExtractor or ScanImageTiffMultiPlaneImagingExtractor instead.
     """
 
-    extractor_name = "ScanImageTiffImaging"
-    is_writable = True
-    mode = "file"
+    extractor_name = "ScanImageLegacyImagingExtractor"
 
     def __init__(
         self,
         file_path: PathType,
         sampling_frequency: FloatType,
     ):
-        """Create a ScanImageTiffImagingExtractor instance from a TIFF file produced by ScanImage.
+        """Create a ScanImageLegacyImagingExtractor instance from a TIFF file produced by ScanImage.
 
         This extractor allows for lazy accessing of slices, unlike
         :py:class:`~roiextractors.extractors.tiffimagingextractors.TiffImagingExtractor`.
@@ -1498,12 +1496,6 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extr
         sampling_frequency : float
             The frequency at which the frames were sampled, in Hz.
         """
-        deprecation_message = """
-        This extractor is being deprecated on or after December 2023 in favor of
-        ScanImageTiffMultiPlaneImagingExtractor or ScanImageTiffSinglePlaneImagingExtractor.  Please use one of these
-        extractors instead.
-        """
-        warn(deprecation_message, category=FutureWarning)
         ScanImageTiffReader = _get_scanimage_reader()
 
         super().__init__()
@@ -1512,10 +1504,11 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extr
         valid_suffixes = [".tiff", ".tif", ".TIFF", ".TIF"]
         if self.file_path.suffix not in valid_suffixes:
             suffix_string = ", ".join(valid_suffixes[:-1]) + f", or {valid_suffixes[-1]}"
-            warn(
+            warning_message = (
                 f"Suffix ({self.file_path.suffix}) is not of type {suffix_string}! "
-                f"The {self.extractor_name}Extractor may not be appropriate for the file."
+                f"The {self.extractor_name} may not be appropriate for the file."
             )
+            warn(warning_message, UserWarning, stacklevel=2)
 
         with ScanImageTiffReader(str(self.file_path)) as io:
             shape = io.shape()  # [frames, rows, columns]
