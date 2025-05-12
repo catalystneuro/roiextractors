@@ -8,7 +8,10 @@ from roiextractors import InscopixSegmentationExtractor
 from .setup_paths import OPHYS_DATA_PATH
 
 # Skip all tests in this file on macOS
-pytestmark = pytest.mark.skipif(platform.system() == "Darwin", reason="Inscopix is not natively supported on macOS")
+pytestmark = pytest.mark.skipif(
+    platform.system() == "Darwin" and platform.machine() == "arm64",
+    reason="Inscopix is not natively supported on macOS ARM",
+)
 
 print(f"OPHYS_DATA_PATH: {OPHYS_DATA_PATH}")
 
