@@ -1,6 +1,7 @@
 """Inscopix Imaging Extractor."""
 
 import warnings
+import platform
 from typing import Optional, Tuple
 
 import numpy as np
@@ -23,6 +24,13 @@ class InscopixImagingExtractor(ImagingExtractor):
         file_path : PathType
             Path to the Inscopix file.
         """
+        if platform.system() == "Darwin" and platform.machine() == "arm64":
+            raise ImportError(
+                "The isx package is currently not natively supported on macOS with Apple Silicon. "
+                "Installation instructions can be found at: "
+                "https://github.com/inscopix/pyisx?tab=readme-ov-file#install"
+            )
+
         import isx
 
         super().__init__(file_path=file_path)

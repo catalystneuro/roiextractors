@@ -28,12 +28,14 @@ from .extractors.tiffimagingextractors import (
 )
 from .extractors.sbximagingextractor import SbxImagingExtractor
 from .extractors.inscopixextractors import InscopixImagingExtractor
+from .extractors.inscopixextractors import InscopixSegmentationExtractor
 from .extractors.memmapextractors import NumpyMemmapImagingExtractor
 from .extractors.memmapextractors import MemmapImagingExtractor
 from .extractors.miniscopeimagingextractor import MiniscopeImagingExtractor
 from .multisegmentationextractor import MultiSegmentationExtractor
 from .multiimagingextractor import MultiImagingExtractor
 from .volumetricimagingextractor import VolumetricImagingExtractor
+
 
 imaging_extractor_full_list = [
     NumpyImagingExtractor,
@@ -66,6 +68,7 @@ segmentation_extractor_full_list = [
     ExtractSegmentationExtractor,
     SimaSegmentationExtractor,
     CaimanSegmentationExtractor,
+    InscopixSegmentationExtractor,
 ]
 
 imaging_extractor_dict = {imaging_class.extractor_name: imaging_class for imaging_class in imaging_extractor_full_list}

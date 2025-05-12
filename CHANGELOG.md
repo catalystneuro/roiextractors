@@ -5,6 +5,7 @@
 * Added volumetric imaging support with `is_volumetric` flag, `get_frame_shape`, `get_num_planes`, and `get_volume_shape` methods [PR #418](https://github.com/catalystneuro/roiextractors/pull/418)
 * Added support for multiple samples per slice to `ScanImageIMagingExtractor` [PR # 417](https://github.com/catalystneuro/roiextractors/pull/417)
 * Added support for flyback frames to `ScanImageImagingExtractor` [PR #419](https://github.com/catalystneuro/roiextractors/pull/419)
+* Added InscopixSegmentationExtractor for reading .isxd segmentation files [#407](https://github.com/catalystneuro/roiextractors/pull/407)
 * Add `plane_index` to `ScanImageImagingExtractor` to obtain a planar extractor across a plane [PR #424](https://github.com/catalystneuro/roiextractors/pull/424)
 * Add testing to timestamp extraction on `ScanImageImagingExtractor` [PR #426](https://github.com/catalystneuro/roiextractors/pull/426)
 * Add paths as string support to `ScanImageImagingExtractor` [PR #427](https://github.com/catalystneuro/roiextractors/pull/427)
@@ -33,7 +34,6 @@
 # v0.5.12 (April 18th, 2025)
 
 ### Features
-
 * New `read_scanimage_metadata` for reading scanimage metadata from a file directly as a python dict [PR #405](https://github.com/catalystneuro/roiextractors/pull/401)
 
 ### Fixes
