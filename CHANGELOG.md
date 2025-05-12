@@ -1,4 +1,16 @@
-# v0.5.13 (Upcoming)
+# v0.5.14 (Upcoming)
+
+### Features
+
+### Fixes
+
+### Deprecations And Removals
+
+### Improvements
+
+
+
+# v0.5.13 (May 12th, 2025)
 
 ### Features
 * Added `ScanImageImagingExtractor` for simplifying reading ScanImage data [PR #412](https://github.com/catalystneuro/roiextractors/pull/412)
@@ -30,6 +42,7 @@
 
 ### Improvements
 * Improved criteria for determining if a ScanImage dataset is volumetric by checking both `SI.hStackManager.enable` and `SI.hStackManager.numSlices > 1`[PR #425](https://github.com/catalystneuro/roiextractors/pull/425)
+
 
 # v0.5.12 (April 18th, 2025)
 
