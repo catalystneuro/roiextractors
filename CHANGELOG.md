@@ -25,6 +25,7 @@
 * The `FrameSliceImagingExtractor` class is deprecated and will be removed in or after October 2025. Use `SampleSlicedImagingExtractor` instead for consistent terminology between planar and volumetric data.
 [PR #430](https://github.com/catalystneuro/roiextractors/pull/430)
 * Long deprecated `ScanImageTiffImagingExtractor` is removed. For ScanImage legacy data use `ScanImageLegacyImagingExtractor` [PR #431](https://github.com/catalystneuro/roiextractors/pull/431)
+* Deprecated `ScanImageTiffMultiPlaneMultiFileImagingExtractor`, `ScanImageTiffSinglePlaneMultiFileImagingExtractor`, `ScanImageTiffMultiPlaneImagingExtractor`, and `ScanImageTiffSinglePlaneImagingExtractor` classes. These will be removed on or after October 2025. Use `ScanImageImagingExtractor` instead. [PR #432](https://github.com/catalystneuro/roiextractors/pull/432)
 
 ### Improvements
 * Improved criteria for determining if a ScanImage dataset is volumetric by checking both `SI.hStackManager.enable` and `SI.hStackManager.numSlices > 1`[PR #425](https://github.com/catalystneuro/roiextractors/pull/425)

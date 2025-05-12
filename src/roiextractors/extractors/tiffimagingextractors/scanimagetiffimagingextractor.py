@@ -912,6 +912,11 @@ class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
     def __init__(
         self, folder_path: PathType, file_pattern: str, channel_name: str, extract_all_metadata: bool = True
     ) -> None:
+        warnings.warn(
+            f"{self.__class__.__name__} is deprecated and will be removed on or after October 2025.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         """Create a ScanImageTiffMultiPlaneMultiFileImagingExtractor instance from a folder of TIFF files produced by ScanImage.
 
         Parameters
@@ -990,6 +995,11 @@ class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
         plane_name: str,
         extract_all_metadata: bool = True,
     ) -> None:
+        warnings.warn(
+            f"{self.__class__.__name__} is deprecated and will be removed on or after October 2025.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         """Create a ScanImageTiffSinglePlaneMultiFileImagingExtractor instance from a folder of TIFF files produced by ScanImage.
 
         Parameters
@@ -1044,6 +1054,11 @@ class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
         metadata: Optional[dict] = None,
         parsed_metadata: Optional[dict] = None,
     ) -> None:
+        warnings.warn(
+            f"{self.__class__.__name__} is deprecated and will be removed on or after October 2025.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         """Create a ScanImageTiffMultPlaneImagingExtractor instance from a volumetric TIFF file produced by ScanImage.
 
         Parameters
@@ -1156,6 +1171,11 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         metadata: Optional[dict] = None,
         parsed_metadata: Optional[dict] = None,
     ) -> None:
+        warnings.warn(
+            f"{self.__class__.__name__} is deprecated and will be removed on or after October 2025.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         """Create a ScanImageTiffImagingExtractor instance from a TIFF file produced by ScanImage.
 
         The underlying data is stored in a round-robin format collapsed into 3 dimensions (frames, rows, columns).
