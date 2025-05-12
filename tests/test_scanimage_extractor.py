@@ -1,6 +1,8 @@
 import pytest
 import numpy as np
 from pathlib import Path
+import shutil
+
 from numpy.testing import assert_array_equal
 from tifffile import TiffReader
 
@@ -1301,13 +1303,13 @@ class TestTimestampExtraction:
 
         This test verifies that:
         1. For volumetric data:
-           - The correct number of timestamps are returned (equal to number of samples)
-           - Timestamps are monotonically increasing
-           - Timestamps match the expected values from the TIFF metadata
+            - The correct number of timestamps are returned (equal to number of samples)
+            - Timestamps are monotonically increasing
+            - Timestamps match the expected values from the TIFF metadata
 
         2. For plane-sliced data:
-           - The get_times method works correctly when accessing a specific plane using plane_index
-           - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
+            - The get_times method works correctly when accessing a specific plane using plane_index
+            - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
 
         File: vol_no_flyback_00001_00001.tif
         """
@@ -1371,13 +1373,13 @@ class TestTimestampExtraction:
 
         This test verifies that:
         1. For volumetric data with flyback frames:
-           - The correct number of timestamps are returned (equal to number of samples)
-           - Flyback frames are properly excluded from timestamps
-           - Timestamps match the expected values from the TIFF metadata
+            - The correct number of timestamps are returned (equal to number of samples)
+            - Flyback frames are properly excluded from timestamps
+            - Timestamps match the expected values from the TIFF metadata
 
         2. For plane-sliced data with flyback frames:
-           - The get_times method works correctly when accessing a specific plane using plane_index
-           - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
+            - The get_times method works correctly when accessing a specific plane using plane_index
+            - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
 
         File: vol_one_ch_single_files_00002_00001.tif
 
@@ -1482,12 +1484,12 @@ class TestTimestampExtraction:
 
         This test verifies that:
         1. For volumetric data with multiple samples per slice:
-           - The correct timestamps are returned when slice_sample is specified
-           - Timestamps match the expected values from the TIFF metadata
+            - The correct timestamps are returned when slice_sample is specified
+            - Timestamps match the expected values from the TIFF metadata
 
         2. For plane-sliced data with multiple samples per slice:
-           - The get_times method works correctly when using both slice_sample and plane_index
-           - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
+            - The get_times method works correctly when using both slice_sample and plane_index
+            - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
 
         File: scanimage_20220923_noroi.tif
 
@@ -1644,6 +1646,86 @@ def test_file_paths_parameter():
     # Verify the data is loaded correctly
     assert extractor.get_num_samples() == 10 * 3, "Should have 10 samples per file"
     assert extractor.get_image_shape() == (512, 512), "Image shape should be correct"
+
+
+def test_missing_file_detection(tmp_path):
+    """Test that a warning is thrown when a file in the middle of a sequence is missing.
+
+    This test creates a temporary directory with copies of files 1 and 3,
+    but not file 2, and verifies that a warning is thrown when the extractor is
+    initialized with the first file.
+    """
+
+    # Create copies of files 1 and 3 (skip file 2)
+    source_files = ["scanimage_20240320_multifile_00001.tif", "scanimage_20240320_multifile_00003.tif"]
+
+    # Copy the files, resolving any symlinks to avoid problems with git-annex
+    for file_name in source_files:
+        source_path = (SCANIMAGE_PATH / file_name).resolve()
+        dest_path = tmp_path / file_name
+        shutil.copy(source_path, dest_path)
+
+        # Verify the file was copied correctly
+        assert dest_path.exists(), f"File {dest_path} was not copied correctly"
+        assert dest_path.stat().st_size > 0, f"File {dest_path} is empty"
+
+    #  Check the copies were created correctly
+    all_files = list(tmp_path.glob("*.tif"))
+    assert len(all_files) == 2, f"Expected 2 files in directory, found {len(all_files)}: {[f.name for f in all_files]}"
+
+    # Initialize extractor with first file and check for warning
+    with pytest.warns(UserWarning, match="Missing files detected.*00002.tif"):
+        extractor = ScanImageImagingExtractor(file_path=tmp_path / source_files[0], channel_name="Channel 1")
+
+        # Verify that the extractor still works with the available files
+        assert len(extractor.file_paths) == 2
+        assert all(Path(fp).name in source_files for fp in extractor.file_paths)
+
+
+def test_non_integer_file_warning(tmp_path):
+    """Test that a warning is thrown when a file with a non-integer index is found.
+
+    This test creates a temporary directory with copies of all normal files (1, 2, 3)
+    plus a file with a non-integer index, and verifies that a warning is thrown
+    about the non-integer file.
+    """
+    # Create copies of all normal files (1, 2, 3)
+    source_files = [
+        "scanimage_20240320_multifile_00001.tif",
+        "scanimage_20240320_multifile_00002.tif",
+        "scanimage_20240320_multifile_00003.tif",
+    ]
+
+    # Copy the files, resolving any symlinks to ensure cross-platform compatibility
+    for file_name in source_files:
+        source_path = (SCANIMAGE_PATH / file_name).resolve()
+        dest_path = tmp_path / file_name
+        shutil.copy(source_path, dest_path)
+
+        # Verify the file was copied correctly
+        assert dest_path.exists(), f"File {dest_path} was not copied correctly"
+        assert dest_path.stat().st_size > 0, f"File {dest_path} is empty"
+
+    # Create a file that does not follow the integer sequence
+    non_integer_file = "scanimage_20240320_multifile_abc.tif"
+    non_integer_path = tmp_path / non_integer_file
+    shutil.copy((SCANIMAGE_PATH / source_files[0]).resolve(), non_integer_path)
+
+    # Verify the the copy was created correctly
+    assert non_integer_path.exists(), f"Non-integer file {non_integer_path} was not created correctly"
+    assert non_integer_path.stat().st_size > 0, f"Non-integer file {non_integer_path} is empty"
+
+    # List all files in the directory to confirm setup
+    all_files = list(tmp_path.glob("*.tif"))
+    assert len(all_files) == 4, f"Expected 4 files in directory, found {len(all_files)}: {[f.name for f in all_files]}"
+
+    # Initialize extractor with first file and check for warning about non-sequence files
+    with pytest.warns(UserWarning, match="Non-sequence files detected"):
+        extractor = ScanImageImagingExtractor(file_path=tmp_path / source_files[0], channel_name="Channel 1")
+
+        # Verify that the extractor still works with the available files (only integer files)
+        assert len(extractor.file_paths) == 3
+        assert all(Path(fp).name in source_files for fp in extractor.file_paths), "Unexpected files in extractor"
 
 
 def test_get_frames_per_slice():
