@@ -16,7 +16,7 @@
 * Fixed `get_series` method in `MemmapImagingExtractor` to preserve channel dimension [PR #416](https://github.com/catalystneuro/roiextractors/pull/416)
 * Fix memory estimation for volumetric imaging extractors in their `_repr_` [PR #422](https://github.com/catalystneuro/roiextractors/pull/433)
 
-### Deprecations
+### Deprecations And Removals
 * The `get_video(start_frame, end_frame)` method is deprecated and will be removed in or after September 2025. Use `get_series(start_sample, end_sample)` instead for consistent naming with `get_num_samples`. [PR #416](https://github.com/catalystneuro/roiextractors/pull/416)
 * Python 3.9 is no longer supported [PR #423](https://github.com/catalystneuro/roiextractors/pull/423)
 * The `time_to_frame()` method is deprecated and will be removed in or after October 2025. Use `time_to_sample_indices()` instead for consistent terminology between planar and volumetric data. [PR #430](https://github.com/catalystneuro/roiextractors/pull/430)
@@ -24,6 +24,7 @@
 * The `frame_slice()` method is deprecated and will be removed in or after October 2025. Use `slice_samples()` instead for consistent terminology between planar and volumetric data. [PR #430](https://github.com/catalystneuro/roiextractors/pull/430)
 * The `FrameSliceImagingExtractor` class is deprecated and will be removed in or after October 2025. Use `SampleSlicedImagingExtractor` instead for consistent terminology between planar and volumetric data.
 [PR #430](https://github.com/catalystneuro/roiextractors/pull/430)
+* Long deprecated `ScanImageTiffImagingExtractor` is removed. For ScanImage legacy data use `ScanImageLegacyImagingExtractor` [PR #431](https://github.com/catalystneuro/roiextractors/pull/431)
 
 ### Improvements
 * Improved criteria for determining if a ScanImage dataset is volumetric by checking both `SI.hStackManager.enable` and `SI.hStackManager.numSlices > 1`[PR #425](https://github.com/catalystneuro/roiextractors/pull/425)
