@@ -17,7 +17,7 @@ Classes
 -------
 TiffImagingExtractor
     A ImagingExtractor for TIFF files.
-ScanImageTiffImagingExtractor
+ScanImageLegacyImagingExtractor
     Legacy extractor for reading TIFF files produced via ScanImage v3.8.
 ScanImageTiffSinglePlaneImagingExtractor
     Specialized extractor for reading single-plane TIFF files produced via ScanImage.
@@ -39,7 +39,7 @@ ThorTiffImagingExtractor
 
 from .tiffimagingextractor import TiffImagingExtractor
 from .scanimagetiffimagingextractor import (
-    ScanImageTiffImagingExtractor,
+    ScanImageLegacyImagingExtractor,
     ScanImageTiffMultiPlaneImagingExtractor,
     ScanImageTiffSinglePlaneImagingExtractor,
     ScanImageTiffSinglePlaneMultiFileImagingExtractor,

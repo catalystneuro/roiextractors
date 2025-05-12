@@ -15,7 +15,7 @@ from .extractors.simaextractor import SimaSegmentationExtractor
 from .extractors.suite2p import Suite2pSegmentationExtractor
 from .extractors.tiffimagingextractors import (
     TiffImagingExtractor,
-    ScanImageTiffImagingExtractor,
+    ScanImageLegacyImagingExtractor,
     ScanImageTiffSinglePlaneImagingExtractor,
     ScanImageTiffMultiPlaneImagingExtractor,
     ScanImageTiffSinglePlaneMultiFileImagingExtractor,
@@ -39,7 +39,7 @@ imaging_extractor_full_list = [
     NumpyImagingExtractor,
     Hdf5ImagingExtractor,
     TiffImagingExtractor,
-    ScanImageTiffImagingExtractor,
+    ScanImageLegacyImagingExtractor,
     ScanImageTiffSinglePlaneImagingExtractor,
     ScanImageTiffMultiPlaneImagingExtractor,
     ScanImageTiffSinglePlaneMultiFileImagingExtractor,

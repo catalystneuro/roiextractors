@@ -2,7 +2,7 @@
 
 Classes
 -------
-ScanImageTiffImagingExtractor
+ScanImageLegacyImagingExtractor
     Specialized extractor for reading TIFF files produced via ScanImage.
 """
 
@@ -1390,7 +1390,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         return raw_index
 
 
-class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extractor on/after December 2023
+class ScanImageLegacyImagingExtractor(ImagingExtractor):
     """Specialized extractor for reading TIFF files produced via ScanImage.
 
     This implementation is for legacy purposes and is not recommended for use.
@@ -1406,7 +1406,7 @@ class ScanImageTiffImagingExtractor(ImagingExtractor):  # TODO: Remove this extr
         file_path: PathType,
         sampling_frequency: FloatType,
     ):
-        """Create a ScanImageTiffImagingExtractor instance from a TIFF file produced by ScanImage.
+        """Create a ScanImageLegacyImagingExtractor instance from a TIFF file produced by ScanImage.
 
         This extractor allows for lazy accessing of slices, unlike
         :py:class:`~roiextractors.extractors.tiffimagingextractors.TiffImagingExtractor`.
