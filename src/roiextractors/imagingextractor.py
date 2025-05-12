@@ -515,10 +515,10 @@ class ImagingExtractor(ABC):
 
         Returns
         -------
-        imaging: SliceSamplesImagingExtractor
+        imaging: SampleSlicedImagingExtractor
             The sliced ImagingExtractor object.
         """
-        return SliceSamplesImagingExtractor(parent_imaging=self, start_sample=start_sample, end_sample=end_sample)
+        return SampleSlicedImagingExtractor(parent_imaging=self, start_sample=start_sample, end_sample=end_sample)
 
     def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
         """Return a new ImagingExtractor ranging from the start_frame to the end_frame.
@@ -548,15 +548,13 @@ class ImagingExtractor(ABC):
         return self.slice_samples(start_sample=start_frame, end_sample=end_frame)
 
 
-class SliceSamplesImagingExtractor(ImagingExtractor):
+class SampleSlicedImagingExtractor(ImagingExtractor):
     """Class to get a lazy sample slice.
 
     Do not use this class directly but use `.slice_samples(...)` on an ImagingExtractor object.
     """
 
-    extractor_name = "SliceSamplesImagingExtractor"
-    is_writable = True
-    installation_mesg = ""
+    extractor_name = "SampleSlicedImagingExtractor"
 
     def __init__(
         self, parent_imaging: ImagingExtractor, start_sample: Optional[int] = None, end_sample: Optional[int] = None
@@ -721,7 +719,7 @@ class SliceSamplesImagingExtractor(ImagingExtractor):
         return self._parent_imaging.get_num_planes()
 
 
-class FrameSliceImagingExtractor(SliceSamplesImagingExtractor):
+class FrameSliceImagingExtractor(SampleSlicedImagingExtractor):
     """Class to get a lazy frame slice.
 
     Do not use this class directly but use `.frame_slice(...)` on an ImagingExtractor object.
@@ -729,7 +727,7 @@ class FrameSliceImagingExtractor(SliceSamplesImagingExtractor):
     Deprecated
     ----------
     This class will be removed in or after October 2025.
-    Use SliceSamplesImagingExtractor instead.
+    Use SampleSlicedImagingExtractor instead.
     """
 
     extractor_name = "FrameSliceImagingExtractor"
@@ -756,11 +754,11 @@ class FrameSliceImagingExtractor(SliceSamplesImagingExtractor):
         Deprecated
         ----------
         This class will be removed in or after October 2025.
-        Use SliceSamplesImagingExtractor instead.
+        Use SampleSlicedImagingExtractor instead.
         """
         warnings.warn(
             "FrameSliceImagingExtractor is deprecated and will be removed in or after October 2025. "
-            "Use SliceSamplesImagingExtractor instead.",
+            "Use SampleSlicedImagingExtractor instead.",
             DeprecationWarning,
             stacklevel=2,
         )
