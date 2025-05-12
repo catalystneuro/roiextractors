@@ -18,7 +18,7 @@
 ### Deprecations
 * The `get_video(start_frame, end_frame)` method is deprecated and will be removed in or after September 2025. Use `get_series(start_sample, end_sample)` instead for consistent naming with `get_num_samples`. [PR #416](https://github.com/catalystneuro/roiextractors/pull/416)
 * Python 3.9 is no longer supported [PR #423](https://github.com/catalystneuro/roiextractors/pull/423)
-* `ScanImageTiffImagingExtractor` is deprecated. For ScanImage legacy data use `ScanImageLegacyImagingExtractor` [PR #](https://github.com/catalystneuro/roiextractors/pull/)
+* `ScanImageTiffImagingExtractor` is deprecated. For ScanImage legacy data use `ScanImageLegacyImagingExtractor` [PR #431](https://github.com/catalystneuro/roiextractors/pull/431)
 
 ### Improvements
 * Improved criteria for determining if a ScanImage dataset is volumetric by checking both `SI.hStackManager.enable` and `SI.hStackManager.numSlices > 1`[PR #425](https://github.com/catalystneuro/roiextractors/pull/425)
