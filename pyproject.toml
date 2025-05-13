@@ -16,7 +16,7 @@ authors = [
     { name = "Alessio Buccino" },
     { name = "Paul Adkisson" },
     { name = "Alessandra Trapani" },
-    { name = "Daphne Dequatrebarbes" },
+    { name = "Daphné de Quatrebarbes" },
 ]
 keywords = ["ROI", "extraction", "optical physiology"]
 classifiers = [
