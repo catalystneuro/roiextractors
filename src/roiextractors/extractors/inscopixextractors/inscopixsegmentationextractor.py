@@ -24,7 +24,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
         Parameters
         ----------
-        file_path: str
+        file_path: str or PathType
             The location of the folder containing Inscopix *.mat output file.
         """
         if platform.system() == "Darwin" and platform.machine() == "arm64":
@@ -36,7 +36,9 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
         SegmentationExtractor.__init__(self)
         self.file_path = file_path
-        self.cell_set = isx.CellSet.read(file_path)
+        file_path_str = str(file_path)
+
+        self.cell_set = isx.CellSet.read(file_path_str)
 
         # Create mappings between original IDs and integer IDs
         self._original_ids = [self.cell_set.get_cell_name(x) for x in range(self.cell_set.num_cells)]
