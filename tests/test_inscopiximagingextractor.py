@@ -8,12 +8,11 @@ from roiextractors import InscopixImagingExtractor
 
 from tests.setup_paths import OPHYS_DATA_PATH
 
-# Skip all tests in this file on macOS
+# Warn about macOS ARM64 environment
 pytestmark = pytest.mark.skipif(
     platform.system() == "Darwin" and platform.machine() == "arm64",
-    reason="Inscopix is not natively supported on macOS ARM",
+    reason="For macOS ARM64, please use a special conda environment setup. See README for instructions.",
 )
-
 
 def test_inscopiximagingextractor_movie_128x128x100_part1():
     """

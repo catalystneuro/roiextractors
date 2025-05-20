@@ -56,6 +56,21 @@ Finally, if you prefer to avoid `conda` altogether, the following commands provi
 pip install git+https://github.com/catalystneuro/roiextractors.git@main
 ```
 
+### Special Setup for macOS ARM64
+When using ROIExtractors with Inscopix (`isx`) on Apple Silicon (i.e., macOS arm64 architecture), the `isx` package is currently not natively supported. However, it's possible to use Anaconda to configure an x86 environment to use the project.
+
+First, install `isx` using the special conda setup:
+```shell
+git clone https://github.com/catalystneuro/roiextractors
+cd roiextractors
+CONDA_SUBDIR=osx-64 conda create -n roiextractors_env python=<p>
+conda activate <roiextractors_env>
+conda config --env --set subdir osx-64
+pip install -e .
+```
+Replace <p> with the python version to use (Python >3.9, <3.13 is required).
+For more information about the isx package, visit [isx Pypi](https://pypi.org/project/isx/)
+
 ## Documentation
 See our [ReadTheDocs page](https://roiextractors.readthedocs.io/en/latest/) for full documentation, including a gallery of all supported formats.
 

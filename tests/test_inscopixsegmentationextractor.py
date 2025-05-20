@@ -7,10 +7,10 @@ from roiextractors import InscopixSegmentationExtractor
 
 from .setup_paths import OPHYS_DATA_PATH
 
-# Skip all tests in this file on macOS
+# Warn about macOS ARM64 environment
 pytestmark = pytest.mark.skipif(
     platform.system() == "Darwin" and platform.machine() == "arm64",
-    reason="Inscopix is not natively supported on macOS ARM",
+    reason="For macOS ARM64, please use a special conda environment setup. See README for instructions.",
 )
 
 print(f"OPHYS_DATA_PATH: {OPHYS_DATA_PATH}")
@@ -49,18 +49,36 @@ def test_inscopix_segmentation_extractor():
     file_path = OPHYS_DATA_PATH / "segmentation_datasets" / "inscopix" / "cellset.isxd"
     extractor = InscopixSegmentationExtractor(file_path=str(file_path))
 
+    # Test basic properties
     assert extractor.get_num_rois() == 4
-    assert extractor.get_roi_ids() == ["C0", "C1", "C2", "C3"]
-    assert extractor.get_accepted_list() == ["C0", "C1", "C2"]
-    assert extractor.get_rejected_list() == ["C3"]
+    assert extractor.get_roi_ids() == [0, 1, 2, 3]
+    assert extractor.get_original_roi_ids() == ["C0", "C1", "C2", "C3"]
+    
+    # Test status lists
+    # Based on actual implementation, these match the original test
+    assert extractor.get_accepted_list() == [0, 1, 2]
+    assert extractor.get_rejected_list() == [3]
+    
+    # Test image properties
     assert extractor.get_image_size() == (398, 366)
     assert extractor.get_num_frames() == 5444
-    img = extractor.get_roi_image_masks(["C1"])
+    
+    # Test image masks (using integer ID instead of string)
+    img = extractor.get_roi_image_masks([1])
     assert img.shape == (366, 398)
+    
+    # Test pixel masks
+    pixel_masks = extractor.get_roi_pixel_masks([1])
+    assert len(pixel_masks) == 1
+    assert pixel_masks[0].shape[1] == 3  # Each row should have (x, y, weight)
+    
+    # Test sampling frequency
     np.testing.assert_allclose(extractor.get_sampling_frequency(), 9.998700168978033)
+    
+    # Test trace extraction
     assert extractor.get_traces().shape == (4, 5444)
     assert extractor.get_traces(start_frame=10, end_frame=20).shape == (4, 10)
-    assert extractor.get_traces(start_frame=10, end_frame=20, roi_ids=["C1"]).shape == (1, 10)
+    assert extractor.get_traces(start_frame=10, end_frame=20, roi_ids=[1]).shape == (1, 10)
 
 
 def test_inscopix_segmentation_extractor_part1():
@@ -90,18 +108,36 @@ def test_inscopix_segmentation_extractor_part1():
     file_path = OPHYS_DATA_PATH / "segmentation_datasets" / "inscopix" / "cellset_series_part1.isxd"
     extractor = InscopixSegmentationExtractor(file_path=str(file_path))
 
+    # Test basic properties
     assert extractor.get_num_rois() == 6
-    assert extractor.get_roi_ids() == ["C0", "C1", "C2", "C3", "C4", "C5"]
+    assert extractor.get_roi_ids() == [0, 1, 2, 3, 4, 5]
+    assert extractor.get_original_roi_ids() == ["C0", "C1", "C2", "C3", "C4", "C5"]
+    
+    # Test status lists (based on CellStatuses: [1, 1, 1, 1, 1, 1] in the metadata,
+    # all cells have the same status, which doesn't map directly to accepted/rejected)
     assert extractor.get_accepted_list() == []
     assert extractor.get_rejected_list() == []
+    
+    # Test image properties
     assert extractor.get_image_size() == (21, 21)
-    img = extractor.get_roi_image_masks(["C1"])
+    
+    # Test image masks
+    img = extractor.get_roi_image_masks([1])
     assert img.shape == (21, 21)
+    
+    # Test pixel masks
+    pixel_masks = extractor.get_roi_pixel_masks([1])
+    assert len(pixel_masks) == 1
+    assert pixel_masks[0].shape[1] == 3  # Each row should have (x, y, weight)
+    
+    # Test sampling frequency and frames
     assert extractor.get_sampling_frequency() == 10.0
+    assert extractor.get_num_frames() == 100
+    
+    # Test trace extraction
     assert extractor.get_traces().shape == (6, 100)
     assert extractor.get_traces(start_frame=10, end_frame=20).shape == (6, 10)
-    assert extractor.get_traces(start_frame=10, end_frame=20, roi_ids=["C1"]).shape == (1, 10)
-    assert extractor.get_num_frames() == 100
+    assert extractor.get_traces(start_frame=10, end_frame=20, roi_ids=[1]).shape == (1, 10)
 
 
 def test_inscopix_segmentation_extractor_empty():
@@ -118,7 +154,6 @@ def test_inscopix_segmentation_extractor_empty():
     - Frame shape: (4, 5)
     - Pixel size: 3 µm x 3 µm
 
-
     This test verifies that the extractor correctly:
     1. Handles datasets with no ROIs
     2. Extracts metadata (image size, frame count, etc.)
@@ -127,10 +162,18 @@ def test_inscopix_segmentation_extractor_empty():
     file_path = OPHYS_DATA_PATH / "segmentation_datasets" / "inscopix" / "empty_cellset.isxd"
     extractor = InscopixSegmentationExtractor(file_path=str(file_path))
 
+    # Test basic properties
     assert extractor.get_num_rois() == 0
     assert extractor.get_roi_ids() == []
+    assert extractor.get_original_roi_ids() == []
+    
+    # Test status lists
     assert extractor.get_accepted_list() == []
     assert extractor.get_rejected_list() == []
+    
+    # Test image properties
     assert extractor.get_image_size() == (5, 4)
+    
+    # Test sampling frequency and frames
     assert extractor.get_sampling_frequency() == 40.0
     assert extractor.get_num_frames() == 7

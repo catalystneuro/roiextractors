@@ -26,9 +26,8 @@ class InscopixImagingExtractor(ImagingExtractor):
         """
         if platform.system() == "Darwin" and platform.machine() == "arm64":
             raise ImportError(
-                "The isx package is currently not natively supported on macOS with Apple Silicon. "
-                "Installation instructions can be found at: "
-                "https://github.com/inscopix/pyisx?tab=readme-ov-file#install"
+                "For macOS ARM64, please use a special conda environment setup. " 
+                "See README for instructions."
             )
 
         import isx
