@@ -53,28 +53,28 @@ def test_inscopix_segmentation_extractor():
     assert extractor.get_num_rois() == 4
     assert extractor.get_roi_ids() == [0, 1, 2, 3]
     assert extractor.get_original_roi_ids() == ["C0", "C1", "C2", "C3"]
-    
+
     # Test status lists
     # Based on actual implementation, these match the original test
     assert extractor.get_accepted_list() == [0, 1, 2]
     assert extractor.get_rejected_list() == [3]
-    
+
     # Test image properties
     assert extractor.get_image_size() == (398, 366)
     assert extractor.get_num_frames() == 5444
-    
+
     # Test image masks (using integer ID instead of string)
     img = extractor.get_roi_image_masks([1])
     assert img.shape == (366, 398)
-    
+
     # Test pixel masks
     pixel_masks = extractor.get_roi_pixel_masks([1])
     assert len(pixel_masks) == 1
     assert pixel_masks[0].shape[1] == 3  # Each row should have (x, y, weight)
-    
+
     # Test sampling frequency
     np.testing.assert_allclose(extractor.get_sampling_frequency(), 9.998700168978033)
-    
+
     # Test trace extraction
     assert extractor.get_traces().shape == (4, 5444)
     assert extractor.get_traces(start_frame=10, end_frame=20).shape == (4, 10)
@@ -112,28 +112,28 @@ def test_inscopix_segmentation_extractor_part1():
     assert extractor.get_num_rois() == 6
     assert extractor.get_roi_ids() == [0, 1, 2, 3, 4, 5]
     assert extractor.get_original_roi_ids() == ["C0", "C1", "C2", "C3", "C4", "C5"]
-    
+
     # Test status lists (based on CellStatuses: [1, 1, 1, 1, 1, 1] in the metadata,
     # all cells have the same status, which doesn't map directly to accepted/rejected)
     assert extractor.get_accepted_list() == []
     assert extractor.get_rejected_list() == []
-    
+
     # Test image properties
     assert extractor.get_image_size() == (21, 21)
-    
+
     # Test image masks
     img = extractor.get_roi_image_masks([1])
     assert img.shape == (21, 21)
-    
+
     # Test pixel masks
     pixel_masks = extractor.get_roi_pixel_masks([1])
     assert len(pixel_masks) == 1
     assert pixel_masks[0].shape[1] == 3  # Each row should have (x, y, weight)
-    
+
     # Test sampling frequency and frames
     assert extractor.get_sampling_frequency() == 10.0
     assert extractor.get_num_frames() == 100
-    
+
     # Test trace extraction
     assert extractor.get_traces().shape == (6, 100)
     assert extractor.get_traces(start_frame=10, end_frame=20).shape == (6, 10)
@@ -166,14 +166,14 @@ def test_inscopix_segmentation_extractor_empty():
     assert extractor.get_num_rois() == 0
     assert extractor.get_roi_ids() == []
     assert extractor.get_original_roi_ids() == []
-    
+
     # Test status lists
     assert extractor.get_accepted_list() == []
     assert extractor.get_rejected_list() == []
-    
+
     # Test image properties
     assert extractor.get_image_size() == (5, 4)
-    
+
     # Test sampling frequency and frames
     assert extractor.get_sampling_frequency() == 40.0
     assert extractor.get_num_frames() == 7

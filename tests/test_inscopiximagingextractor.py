@@ -14,6 +14,7 @@ pytestmark = pytest.mark.skipif(
     reason="For macOS ARM64, please use a special conda environment setup. See README for instructions.",
 )
 
+
 def test_inscopiximagingextractor_movie_128x128x100_part1():
     """
      Test with a small movie file (128x128 resolution, 100 frames).

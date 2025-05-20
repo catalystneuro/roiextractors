@@ -29,8 +29,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         """
         if platform.system() == "Darwin" and platform.machine() == "arm64":
             raise ImportError(
-                "For macOS ARM64, please use a special conda environment setup. " 
-                "See README for instructions."
+                "For macOS ARM64, please use a special conda environment setup. " "See README for instructions."
             )
 
         import isx
@@ -38,7 +37,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         SegmentationExtractor.__init__(self)
         self.file_path = file_path
         self.cell_set = isx.CellSet.read(file_path)
-        
+
         # Create mappings between original IDs and integer IDs
         self._original_ids = [self.cell_set.get_cell_name(x) for x in range(self.cell_set.num_cells)]
         self._id_to_index = {id: i for i, id in enumerate(self._original_ids)}
@@ -49,12 +48,12 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
     def _get_roi_indices(self, roi_ids=None) -> List[int]:
         """Convert ROI IDs to indices (positions in the original CellSet).
-        
+
         Handle both string IDs (e.g., 'C0') and integer IDs (e.g., 0).
         """
         if roi_ids is None:
             return list(range(self.get_num_rois()))
-        
+
         indices = []
         for roi_id in roi_ids:
             if isinstance(roi_id, int) and roi_id in self._index_to_id:
@@ -68,39 +67,39 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
                 indices.append(idx)
             else:
                 raise ValueError(f"ROI ID {roi_id} not found in segmentation data")
-                
+
         return indices
 
     def get_roi_image_masks(self, roi_ids=None) -> np.ndarray:
         """Get image masks for the specified ROIs.
-        
+
         Parameters
         ----------
         roi_ids : list or None
             List of ROI IDs (can be integers or original string IDs)
-            
+
         Returns
         -------
         np.ndarray
             Image masks for the specified ROIs
         """
         roi_indices = self._get_roi_indices(roi_ids)
-        
+
         masks = [self.cell_set.get_cell_image_data(roi_idx) for roi_idx in roi_indices]
         if len(masks) == 1:
             return masks[0]
         return np.stack(masks)
-        
+
     def get_roi_pixel_masks(self, roi_ids=None) -> List[np.ndarray]:
         """Get pixel masks for the specified ROIs.
-        
+
         This converts the image masks to pixel masks with the format expected by the NWB standard.
-        
+
         Parameters
         ----------
         roi_ids : list or None
             List of ROI IDs (can be integers or original string IDs)
-            
+
         Returns
         -------
         list
@@ -109,17 +108,17 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         """
         # Get image masks
         image_masks = self.get_roi_image_masks(roi_ids=roi_ids)
-        
+
         # Handle case when only one ROI ID is specified
         if roi_ids is not None and (not isinstance(roi_ids, list) or len(roi_ids) == 1):
             image_masks = [image_masks]
-        
+
         # Convert image masks to pixel masks
         pixel_masks = []
         for mask in image_masks:
             # Find non-zero pixels in the mask
             y_indices, x_indices = np.where(mask > 0)
-            
+
             if len(x_indices) > 0:
                 # Use the mask values as weights
                 weights = mask[y_indices, x_indices]
@@ -128,15 +127,15 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             else:
                 # For empty ROIs, create a dummy pixel mask with correct shape
                 pixel_mask = np.array([[0, 0, 1.0]])
-                
+
             pixel_masks.append(pixel_mask)
-            
+
         return pixel_masks
 
     def get_roi_ids(self) -> list:
         """Get ROI IDs as integers (0, 1, 2, ...)."""
         return list(range(self.get_num_rois()))
-    
+
     def get_original_roi_ids(self) -> list:
         """Get original ROI IDs from the CellSet."""
         return self._original_ids.copy()
@@ -173,7 +172,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
     def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="raw") -> ArrayType:
         """Get traces for the specified ROIs.
-        
+
         Parameters
         ----------
         roi_ids : list or None
@@ -184,18 +183,15 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             End frame index
         name : str
             Name of the trace type
-            
+
         Returns
         -------
         np.ndarray
             Traces for the specified ROIs
         """
         roi_indices = self._get_roi_indices(roi_ids)
-        
-        return np.vstack([
-            self.cell_set.get_cell_trace_data(roi_idx)[start_frame:end_frame] 
-            for roi_idx in roi_indices
-        ])
+
+        return np.vstack([self.cell_set.get_cell_trace_data(roi_idx)[start_frame:end_frame] for roi_idx in roi_indices])
 
     def get_num_frames(self) -> int:
         try:
