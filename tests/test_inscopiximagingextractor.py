@@ -11,7 +11,9 @@ from tests.setup_paths import OPHYS_DATA_PATH
 # Warn about macOS ARM64 environment
 pytestmark = pytest.mark.skipif(
     platform.system() == "Darwin" and platform.machine() == "arm64",
-    reason="For macOS ARM64, please use a special conda environment setup refer to isx ReadMe for instructions.",
+    reason="The isx package is currently not natively supported on macOS with Apple Silicon. "
+                "Installation instructions can be found at: "
+                "https://github.com/inscopix/pyisx?tab=readme-ov-file#install",
 )
 
 
