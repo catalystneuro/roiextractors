@@ -11,9 +11,8 @@ from tests.setup_paths import OPHYS_DATA_PATH
 # Warn about macOS ARM64 environment
 pytestmark = pytest.mark.skipif(
     platform.system() == "Darwin" and platform.machine() == "arm64",
-    reason="For macOS ARM64, please use a special conda environment setup. See README for instructions.",
+    reason="For macOS ARM64, please use a special conda environment setup refer to isx ReadMe for instructions.",
 )
-
 
 def test_inscopiximagingextractor_movie_128x128x100_part1():
     """

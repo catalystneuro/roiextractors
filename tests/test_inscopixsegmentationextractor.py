@@ -10,7 +10,7 @@ from .setup_paths import OPHYS_DATA_PATH
 # Warn about macOS ARM64 environment
 pytestmark = pytest.mark.skipif(
     platform.system() == "Darwin" and platform.machine() == "arm64",
-    reason="For macOS ARM64, please use a special conda environment setup. See README for instructions.",
+    reason="For macOS ARM64, please use a special conda environment setup refer to isx ReadMe for instructions.",
 )
 
 print(f"OPHYS_DATA_PATH: {OPHYS_DATA_PATH}")
