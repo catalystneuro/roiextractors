@@ -8,10 +8,12 @@ from roiextractors import InscopixImagingExtractor
 
 from tests.setup_paths import OPHYS_DATA_PATH
 
-# Skip all tests in this file on macOS
+# Warn about macOS ARM64 environment
 pytestmark = pytest.mark.skipif(
     platform.system() == "Darwin" and platform.machine() == "arm64",
-    reason="Inscopix is not natively supported on macOS ARM",
+    reason="The isx package is currently not natively supported on macOS with Apple Silicon. "
+    "Installation instructions can be found at: "
+    "https://github.com/inscopix/pyisx?tab=readme-ov-file#install",
 )
 
 

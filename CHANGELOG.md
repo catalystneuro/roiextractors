@@ -3,11 +3,10 @@
 ### Features
 
 ### Fixes
-
+* Fixed ROI ID management to allow both integer and original string IDs ('C0','C1',...) throughout the API, ensuring NWB compatibility and consistent behavior with other extractors. [#407](https://github.com/catalystneuro/roiextractors/pull/407)
 ### Deprecations And Removals
 
 ### Improvements
-
 
 
 # v0.5.13 (May 12th, 2025)
