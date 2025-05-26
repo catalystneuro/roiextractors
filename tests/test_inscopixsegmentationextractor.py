@@ -42,7 +42,6 @@ def test_inscopix_segmentation_extractor():
     - Channel: Green, Exposure: 33 ms, Gain: 6
     - LED Power: 1.3, Focus: 1000 µm
     - Acquisition date: 2021-04-01 12:03:53.290011
-    - Duration: 544.40 seconds
 
     This test verifies that the extractor correctly:
     1. Loads the dataset and extracts metadata (ROI count, image size, etc.)
@@ -148,7 +147,6 @@ def test_inscopix_segmentation_extractor_part1():
     - Activity present in all cells (`CellActivity = True`)
     - Additional fields: cellMetrics, CellColors, Matches, PairScores
     - Start time: 1970-01-01 00:00:00 (epoch time)
-    - Duration: 10.00 seconds
 
     This test verifies that the extractor correctly:
     1. Loads the dataset and extracts metadata (ROI count, image size, etc.)
@@ -204,7 +202,7 @@ def test_inscopix_segmentation_extractor_empty():
     - Frame shape: (4, 5)
     - Pixel size: 3 µm x 3 µm
     - Start time: 1970-01-01 00:00:00 (epoch time)
-    - Duration: 0.17 seconds
+
 
     This test verifies that the extractor correctly:
     1. Handles datasets with no ROIs

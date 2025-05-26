@@ -1,6 +1,6 @@
 """Inscopix Segmentation Extractor."""
 
-from typing import Optional, List, Union
+from typing import Optional, List
 import platform
 import numpy as np
 from datetime import datetime
@@ -13,10 +13,6 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
     """A segmentation extractor for Inscopix."""
 
     extractor_name = "InscopixSegmentationExtractor"
-    installed = True
-    is_writable = False
-    mode = "file"
-    installation_mesg = ""
 
     def __init__(self, file_path: PathType, verbose: bool = True):
         """Initialize a InscopixSegmentationExtractor instance.
