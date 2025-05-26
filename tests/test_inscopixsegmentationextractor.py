@@ -11,8 +11,8 @@ from .setup_paths import OPHYS_DATA_PATH
 pytestmark = pytest.mark.skipif(
     platform.system() == "Darwin" and platform.machine() == "arm64",
     reason="The isx package is currently not natively supported on macOS with Apple Silicon. "
-                "Installation instructions can be found at: "
-                "https://github.com/inscopix/pyisx?tab=readme-ov-file#install",
+    "Installation instructions can be found at: "
+    "https://github.com/inscopix/pyisx?tab=readme-ov-file#install",
 )
 
 print(f"OPHYS_DATA_PATH: {OPHYS_DATA_PATH}")
