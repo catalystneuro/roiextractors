@@ -233,7 +233,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
                     / 1000,
                     "num_samples": self.cell_set.timing.num_samples,
                     "sampling_period_ms": self.cell_set.timing.period.to_msecs(),
-                    "sampling_rate_hz": 1000 / self.cell_set.timing.period.to_msecs(),
+                    "sampling_rate_hz": self.get_sampling_frequency(),
                 }
 
             # Imaging info
