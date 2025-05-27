@@ -55,23 +55,38 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         """Convert ROI IDs to indices (positions in the original CellSet).
 
         Handle both string IDs (e.g., 'C0') and integer IDs (e.g., 0).
+    
+        Parameters
+        ----------
+        roi_ids : list or None
+            List of ROI IDs (can be integers or original string IDs)
+        
+        Returns
+        -------
+        List[int]
+            List of indices corresponding to the ROI IDs
+        
+
         """
         if roi_ids is None:
             return list(range(self.get_num_rois()))
 
         indices = []
+        max_rois = self.get_num_rois()
+
         for roi_id in roi_ids:
-            if isinstance(roi_id, int) and roi_id in self._index_to_id:
-                # If it's an integer ID from our mapping
-                original_id = self._index_to_id[roi_id]
-                idx = self._original_ids.index(original_id)
-                indices.append(idx)
-            elif roi_id in self._original_ids:
-                # If it's an original string ID
-                idx = self._original_ids.index(roi_id)
-                indices.append(idx)
+            if isinstance(roi_id, int):
+                if 0 <= roi_id < max_rois:
+                    indices.append(roi_id)
+                else:
+                    raise ValueError(f"ROI index {roi_id} out of range [0, {max_rois-1}]")
+            elif isinstance(roi_id, str):
+                if roi_id in self._id_to_index:
+                    indices.append(self._id_to_index[roi_id])
+                else:
+                    raise ValueError(f"ROI ID '{roi_id}' not found. Available IDs: {list(self._id_to_index.keys())[:5]}...")
             else:
-                raise ValueError(f"ROI ID {roi_id} not found in segmentation data")
+                raise ValueError(f"ROI ID must be int or str, got {type(roi_id)}: {roi_id}")
 
         return indices
 
