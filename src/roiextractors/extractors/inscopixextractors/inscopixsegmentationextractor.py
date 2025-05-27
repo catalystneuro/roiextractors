@@ -55,17 +55,17 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         """Convert ROI IDs to indices (positions in the original CellSet).
 
         Handle both string IDs (e.g., 'C0') and integer IDs (e.g., 0).
-    
+
         Parameters
         ----------
         roi_ids : list or None
             List of ROI IDs (can be integers or original string IDs)
-        
+
         Returns
         -------
         List[int]
             List of indices corresponding to the ROI IDs
-        
+
 
         """
         if roi_ids is None:
@@ -84,7 +84,9 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
                 if roi_id in self._id_to_index:
                     indices.append(self._id_to_index[roi_id])
                 else:
-                    raise ValueError(f"ROI ID '{roi_id}' not found. Available IDs: {list(self._id_to_index.keys())[:5]}...")
+                    raise ValueError(
+                        f"ROI ID '{roi_id}' not found. Available IDs: {list(self._id_to_index.keys())[:5]}..."
+                    )
             else:
                 raise ValueError(f"ROI ID must be int or str, got {type(roi_id)}: {roi_id}")
 
