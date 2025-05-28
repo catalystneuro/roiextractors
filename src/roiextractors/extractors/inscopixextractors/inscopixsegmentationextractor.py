@@ -266,15 +266,17 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             info["field_of_view_pixels"] = self.cell_set.spacing.num_pixels
             info["num_cells"] = self.cell_set.num_cells
         acq_info = self.cell_set.get_acquisition_info()
-        info.update({
-            "exposure_time_ms": acq_info.get("Exposure Time (ms)"),
-            "microscope_focus": acq_info.get("Microscope Focus"),
-            "microscope_gain": acq_info.get("Microscope Gain"),
-            "channel": acq_info.get("channel"),
-            "efocus": acq_info.get("efocus"),
-            "led_power_1_mw_per_mm2": acq_info.get("Microscope EX LED 1 Power (mw/mm^2)"),
-            "led_power_2_mw_per_mm2": acq_info.get("Microscope EX LED 2 Power (mw/mm^2)"),
-        })
+        info.update(
+            {
+                "exposure_time_ms": acq_info.get("Exposure Time (ms)"),
+                "microscope_focus": acq_info.get("Microscope Focus"),
+                "microscope_gain": acq_info.get("Microscope Gain"),
+                "channel": acq_info.get("channel"),
+                "efocus": acq_info.get("efocus"),
+                "led_power_1_mw_per_mm2": acq_info.get("Microscope EX LED 1 Power (mw/mm^2)"),
+                "led_power_2_mw_per_mm2": acq_info.get("Microscope EX LED 2 Power (mw/mm^2)"),
+            }
+        )
         return info
 
     def get_subject_info(self) -> dict:
@@ -301,18 +303,24 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         """Get session information."""
         info = {}
         if hasattr(self.cell_set, "timing") and self.cell_set.timing:
-            info.update({
-                "start_time": self.cell_set.timing.start,
-                "duration_seconds": self.cell_set.timing.num_samples * self.cell_set.timing.period.to_msecs() / 1000,
-                "num_samples": self.cell_set.timing.num_samples,
-                "sampling_period_ms": self.cell_set.timing.period.to_msecs(),
-                "sampling_rate_hz": self.get_sampling_frequency(),
-            })
+            info.update(
+                {
+                    "start_time": self.cell_set.timing.start,
+                    "duration_seconds": self.cell_set.timing.num_samples
+                    * self.cell_set.timing.period.to_msecs()
+                    / 1000,
+                    "num_samples": self.cell_set.timing.num_samples,
+                    "sampling_period_ms": self.cell_set.timing.period.to_msecs(),
+                    "sampling_rate_hz": self.get_sampling_frequency(),
+                }
+            )
         acq_info = self.cell_set.get_acquisition_info()
-        info.update({
-            "session_name": acq_info.get("Session Name"),
-            "experimenter_name": acq_info.get("Experimenter Name"),
-        })
+        info.update(
+            {
+                "session_name": acq_info.get("Session Name"),
+                "experimenter_name": acq_info.get("Experimenter Name"),
+            }
+        )
         return info
 
     def get_probe_info(self) -> dict:
@@ -326,4 +334,8 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             "Probe Rotation (degrees)",
             "Probe Type",
         ]
-        return {field: acq_info.get(field) for field in probe_fields if acq_info.get(field) not in (None, "", 0, "None", "none")}
+        return {
+            field: acq_info.get(field)
+            for field in probe_fields
+            if acq_info.get(field) not in (None, "", 0, "None", "none")
+        }
