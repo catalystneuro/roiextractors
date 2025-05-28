@@ -138,4 +138,3 @@ class InscopixImagingExtractor(ImagingExtractor):
             This may be a custom object or a string, depending on the isx API.
         """
         return self.movie.timing.start
-

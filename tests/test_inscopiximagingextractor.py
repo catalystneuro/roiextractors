@@ -56,7 +56,6 @@ def test_inscopiximagingextractor_movie_128x128x100_part1():
     assert str(extractor.get_session_start_time()) == "1970-01-01 00:00:00"
 
 
-
 def test_inscopiximagingextractor_movie_longer_than_3_min():
     """
     Test with a movie longer than 3 minutes.
