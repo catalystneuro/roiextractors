@@ -51,6 +51,11 @@ def test_inscopiximagingextractor_movie_128x128x100_part1():
     assert raw_data.shape == (100, 128, 128)
     assert raw_data.dtype == extractor.get_dtype()
 
+    assert extractor.get_acquisition_info() is None
+
+    assert str(extractor.get_session_start_time()) == "1970-01-01 00:00:00"
+
+
 
 def test_inscopiximagingextractor_movie_longer_than_3_min():
     """
@@ -94,6 +99,19 @@ def test_inscopiximagingextractor_movie_longer_than_3_min():
     assert raw_data.shape == (1248, 33, 29)
     assert raw_data.dtype == extractor.get_dtype()
 
+    acq_info = extractor.get_acquisition_info()
+    assert isinstance(acq_info, dict)
+    assert acq_info["Acquisition SW Version"] == "1.3.0"
+    assert acq_info["Microscope Serial Number"] == "FA-11092903"
+    assert acq_info["Microscope Type"] == "NVista3"
+    assert acq_info["Session Name"] == "4D_SAAV_PFC_IM7_20191007"
+    assert acq_info["Exposure Time (ms)"] == 20
+    assert acq_info["Microscope Gain"] == 5.9
+    assert acq_info["Animal Sex"] == "m"
+    assert acq_info["efocus"] == 370
+
+    assert str(extractor.get_session_start_time()) == "2019-10-07 16:22:01.524186"
+
 
 def test_inscopiximagingextractor_movie_u8():
     """
@@ -130,3 +148,7 @@ def test_inscopiximagingextractor_movie_u8():
     raw_data = extractor.get_series()
     assert raw_data.shape == (5, 3, 4)
     assert raw_data.dtype == extractor.get_dtype()
+
+    assert extractor.get_acquisition_info() is None
+
+    assert str(extractor.get_session_start_time()) == "1970-01-01 00:00:00"

@@ -115,3 +115,27 @@ class InscopixImagingExtractor(ImagingExtractor):
 
     def get_dtype(self) -> np.dtype:
         return np.dtype(self.movie.data_type)
+
+    def get_acquisition_info(self):
+        """
+        Get acquisition information from the movie, if available.
+
+        Returns
+        -------
+        acquisition_info : Any
+            Acquisition information if available, otherwise None.
+        """
+        return self.movie.get_acquisition_info()
+
+    def get_session_start_time(self):
+        """
+        Get the session start time from the movie metadata.
+
+        Returns
+        -------
+        start_time : Any
+            The start time object as provided by isx.Movie.timing.start.
+            This may be a custom object or a string, depending on the isx API.
+        """
+        return self.movie.timing.start
+
