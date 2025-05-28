@@ -229,141 +229,12 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         except AttributeError:
             return None
 
-    def _get_inscopix_metadata(self) -> dict:
-        """Extract comprehensive metadata from the Inscopix file.
-
-        Returns
-        -------
-        dict
-            Dictionary containing all available metadata from the Inscopix file.
-        """
-
-        try:
-            metadata = {}
-
-            # Session timing info
-            if self.cell_set.timing:
-                metadata["session"] = {
-                    "start_time": self.cell_set.timing.start,
-                    "duration_seconds": self.cell_set.timing.num_samples
-                    * self.cell_set.timing.period.to_msecs()
-                    / 1000,
-                    "num_samples": self.cell_set.timing.num_samples,
-                    "sampling_period_ms": self.cell_set.timing.period.to_msecs(),
-                    "sampling_rate_hz": self.get_sampling_frequency(),
-                }
-
-            # Imaging info
-            if self.cell_set.spacing:
-                metadata["imaging"] = {
-                    "field_of_view_pixels": self.cell_set.spacing.num_pixels,
-                    "num_cells": self.cell_set.num_cells,
-                }
-
-            # Acquisition info
-            try:
-                acq_info = self.cell_set.get_acquisition_info()
-
-                # Device info
-                metadata["device"] = {
-                    "device_name": acq_info.get("Microscope Type"),
-                    "device_serial_number": acq_info.get("Microscope Serial Number"),
-                    "acquisition_software_version": acq_info.get("Acquisition SW Version"),
-                }
-
-                # update imaging info
-                if "imaging" not in metadata:
-                    metadata["imaging"] = {}
-                metadata["imaging"].update(
-                    {
-                        "exposure_time_ms": acq_info.get("Exposure Time (ms)"),
-                        "microscope_focus": acq_info.get("Microscope Focus"),
-                        "microscope_gain": acq_info.get("Microscope Gain"),
-                        "channel": acq_info.get("channel"),
-                        "efocus": acq_info.get("efocus"),
-                        "led_power_1_mw_per_mm2": acq_info.get("Microscope EX LED 1 Power (mw/mm^2)"),
-                        "led_power_2_mw_per_mm2": acq_info.get("Microscope EX LED 2 Power (mw/mm^2)"),
-                    }
-                )
-
-                # update session info
-                if "session" not in metadata:
-                    metadata["session"] = {}
-                metadata["session"].update(
-                    {
-                        "session_name": acq_info.get("Session Name"),
-                        "experimenter_name": acq_info.get("Experimenter Name"),
-                    }
-                )
-
-                # Subject info
-                metadata["subject"] = {
-                    "animal_id": acq_info.get("Animal ID"),
-                    "species_strain": acq_info.get("Animal Species"),
-                    "sex": acq_info.get("Animal Sex"),
-                    "weight": acq_info.get("Animal Weight"),
-                    "date_of_birth": acq_info.get("Animal Date of Birth"),
-                    "description": acq_info.get("Animal Description"),
-                }
-
-                # Analysis info
-                metadata["analysis"] = {
-                    "cell_identification_method": acq_info.get("Cell Identification Method"),
-                    "trace_units": acq_info.get("Trace Units"),
-                }
-
-                # Probe info
-                probe_fields = [
-                    "Probe Diameter (mm)",
-                    "Probe Flip",
-                    "Probe Length (mm)",
-                    "Probe Pitch",
-                    "Probe Rotation (degrees)",
-                    "Probe Type",
-                ]
-                probe_info = {}
-                for field in probe_fields:
-                    value = acq_info.get(field)
-                    if value not in (None, "", 0, "None", "none"):
-                        probe_info[field] = value
-                if probe_info:
-                    metadata["probe"] = probe_info
-
-            except Exception as e:
-                if self.verbose:
-                    print(f"Warning: Could not extract acquisition info: {e}")
-                # empty dicts for missing sections
-                metadata.update(
-                    {
-                        "device": {},
-                        "subject": {},
-                        "analysis": {},
-                    }
-                )
-
-            self._metadata_cache = metadata
-            return metadata
-
-        except Exception as e:
-            if self.verbose:
-                print(f"Warning: Could not extract Inscopix metadata: {e}")
-            return {}
-
     def get_session_start_time(self) -> Optional[datetime]:
-        """Get the session start time as a datetime object.
-
-        Returns
-        -------
-        datetime or None
-            Session start time, or None if not available or cannot be parsed.
-        """
-        metadata = self._get_inscopix_metadata()
-        session_info = metadata.get("session", {})
+        """Get the session start time as a datetime object."""
+        session_info = self.get_session_info()
         start_time = session_info.get("start_time")
-
         if not start_time:
             return None
-
         try:
             if isinstance(start_time, str):
                 if "T" in start_time:
@@ -380,61 +251,79 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         return None
 
     def get_device_info(self) -> dict:
-        """Get device-specific information.
-
-        Returns
-        -------
-        dict
-            Device information including microscope details.
-        """
-        return self._get_inscopix_metadata().get("device", {})
+        """Get device-specific information."""
+        acq_info = self.cell_set.get_acquisition_info()
+        return {
+            "device_name": acq_info.get("Microscope Type"),
+            "device_serial_number": acq_info.get("Microscope Serial Number"),
+            "acquisition_software_version": acq_info.get("Acquisition SW Version"),
+        }
 
     def get_imaging_info(self) -> dict:
-        """Get imaging parameters.
-
-        Returns
-        -------
-        dict
-            Imaging parameters including field of view, exposure, etc.
-        """
-        return self._get_inscopix_metadata().get("imaging", {})
+        """Get imaging parameters."""
+        info = {}
+        if hasattr(self.cell_set, "spacing"):
+            info["field_of_view_pixels"] = self.cell_set.spacing.num_pixels
+            info["num_cells"] = self.cell_set.num_cells
+        acq_info = self.cell_set.get_acquisition_info()
+        info.update({
+            "exposure_time_ms": acq_info.get("Exposure Time (ms)"),
+            "microscope_focus": acq_info.get("Microscope Focus"),
+            "microscope_gain": acq_info.get("Microscope Gain"),
+            "channel": acq_info.get("channel"),
+            "efocus": acq_info.get("efocus"),
+            "led_power_1_mw_per_mm2": acq_info.get("Microscope EX LED 1 Power (mw/mm^2)"),
+            "led_power_2_mw_per_mm2": acq_info.get("Microscope EX LED 2 Power (mw/mm^2)"),
+        })
+        return info
 
     def get_subject_info(self) -> dict:
-        """Get subject/animal information.
-
-        Returns
-        -------
-        dict
-            Subject information including animal ID, species, etc.
-        """
-        return self._get_inscopix_metadata().get("subject", {})
+        """Get subject/animal information."""
+        acq_info = self.cell_set.get_acquisition_info()
+        return {
+            "animal_id": acq_info.get("Animal ID"),
+            "species_strain": acq_info.get("Animal Species"),
+            "sex": acq_info.get("Animal Sex"),
+            "weight": acq_info.get("Animal Weight"),
+            "date_of_birth": acq_info.get("Animal Date of Birth"),
+            "description": acq_info.get("Animal Description"),
+        }
 
     def get_analysis_info(self) -> dict:
-        """Get analysis method information.
-
-        Returns
-        -------
-        dict
-            Analysis information including cell identification method.
-        """
-        return self._get_inscopix_metadata().get("analysis", {})
+        """Get analysis method information."""
+        acq_info = self.cell_set.get_acquisition_info()
+        return {
+            "cell_identification_method": acq_info.get("Cell Identification Method"),
+            "trace_units": acq_info.get("Trace Units"),
+        }
 
     def get_session_info(self) -> dict:
-        """Get session information.
-
-        Returns
-        -------
-        dict
-            Session information including timing, experimenter, etc.
-        """
-        return self._get_inscopix_metadata().get("session", {})
+        """Get session information."""
+        info = {}
+        if hasattr(self.cell_set, "timing") and self.cell_set.timing:
+            info.update({
+                "start_time": self.cell_set.timing.start,
+                "duration_seconds": self.cell_set.timing.num_samples * self.cell_set.timing.period.to_msecs() / 1000,
+                "num_samples": self.cell_set.timing.num_samples,
+                "sampling_period_ms": self.cell_set.timing.period.to_msecs(),
+                "sampling_rate_hz": self.get_sampling_frequency(),
+            })
+        acq_info = self.cell_set.get_acquisition_info()
+        info.update({
+            "session_name": acq_info.get("Session Name"),
+            "experimenter_name": acq_info.get("Experimenter Name"),
+        })
+        return info
 
     def get_probe_info(self) -> dict:
-        """Get probe information.
-
-        Returns
-        -------
-        dict
-            Probe information including diameter, length, etc.
-        """
-        return self._get_inscopix_metadata().get("probe", {})
+        """Get probe information."""
+        acq_info = self.cell_set.get_acquisition_info()
+        probe_fields = [
+            "Probe Diameter (mm)",
+            "Probe Flip",
+            "Probe Length (mm)",
+            "Probe Pitch",
+            "Probe Rotation (degrees)",
+            "Probe Type",
+        ]
+        return {field: acq_info.get(field) for field in probe_fields if acq_info.get(field) not in (None, "", 0, "None", "none")}

@@ -161,7 +161,6 @@ def test_inscopix_segmentation_extractor_part1():
     assert extractor.get_roi_ids() == [0, 1, 2, 3, 4, 5]
     assert extractor.get_original_roi_ids() == ["C0", "C1", "C2", "C3", "C4", "C5"]
 
-    # Test status lists (based on CellStatuses: [1, 1, 1, 1, 1, 1] in the metadata,
     # all cells have the same status, which doesn't map directly to accepted/rejected)
     assert extractor.get_accepted_list() == []
     assert extractor.get_rejected_list() == []
