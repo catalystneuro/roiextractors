@@ -93,6 +93,7 @@ def _determine_imaging_is_volumetric(folder_path: PathType) -> bool:
         "TSeries Timed Element": False,  # XYT
         "ZSeries": True,  # ZT (not a time series)
         "Single": False,  # Single image (not a time series)
+        "BrightnessOverTime": False,  # XYT (not a volumetric series)
     }
 
     is_volumetric = False
