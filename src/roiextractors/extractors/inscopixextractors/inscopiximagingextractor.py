@@ -80,6 +80,7 @@ class InscopixImagingExtractor(ImagingExtractor):
             stacklevel=2,
         )
         return self.get_num_samples()
+    ()
 
     def get_sampling_frequency(self) -> float:
         return 1 / self.movie.timing.period.secs_float
@@ -115,7 +116,7 @@ class InscopixImagingExtractor(ImagingExtractor):
 
     def get_dtype(self) -> np.dtype:
         return np.dtype(self.movie.data_type)
-
+    
     def get_acquisition_info(self):
         """
         Get acquisition information from the movie, if available.
@@ -125,16 +126,15 @@ class InscopixImagingExtractor(ImagingExtractor):
         acquisition_info : Any
             Acquisition information if available, otherwise None.
         """
-        return self.movie.get_acquisition_info()
+        return self.movie.get_acquisition_info()    
 
-    def get_session_start_time(self):
+    def get_timing(self):
         """
-        Get the session start time from the movie metadata.
+        Get acquisition information from the movie, if available.
 
         Returns
         -------
-        start_time : Any
-            The start time object as provided by isx.Movie.timing.start.
-            This may be a custom object or a string, depending on the isx API.
+        acquisition_info : Any
+            Acquisition information if available, otherwise None.
         """
-        return self.movie.timing.start
+        return self.movie.timing
