@@ -7,7 +7,7 @@
 ### Deprecations And Removals
 
 ### Improvements
-
+* Bruker series can now read sequences of type `BrightnessOverTime` [PR #448](https://github.com/catalystneuro/roiextractors/pull/448)
 
 
 # v0.5.13 (May 12th, 2025)
