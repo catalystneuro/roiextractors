@@ -240,12 +240,12 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         """
         session_info = self.get_session_info()
         start_time = session_info.get("start_time")
-        
+
         if not start_time:
             return None
-        
+
         return datetime.fromisoformat(str(start_time))
-    
+
     def get_device_info(self) -> dict:
         """
         Get device-specific information including hardware settings and imaging parameters.
@@ -259,7 +259,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         """
         acq_info = self.cell_set.get_acquisition_info()
         device_info = {}
-        
+
         # Basic device identification
         if acq_info.get("Microscope Type"):
             device_info["device_name"] = acq_info.get("Microscope Type")
@@ -267,11 +267,11 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             device_info["device_serial_number"] = acq_info.get("Microscope Serial Number")
         if acq_info.get("Acquisition SW Version"):
             device_info["acquisition_software_version"] = acq_info.get("Acquisition SW Version")
-        
+
         # Imaging/acquisition parameters
         if hasattr(self.cell_set, "spacing") and self.cell_set.spacing:
             device_info["field_of_view_pixels"] = self.cell_set.spacing.num_pixels
-        
+
         # Hardware/optical settings
         if acq_info.get("Exposure Time (ms)"):
             device_info["exposure_time_ms"] = acq_info.get("Exposure Time (ms)")
@@ -287,7 +287,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             device_info["led_power_1_mw_per_mm2"] = acq_info.get("Microscope EX LED 1 Power (mw/mm^2)")
         if acq_info.get("Microscope EX LED 2 Power (mw/mm^2)"):
             device_info["led_power_2_mw_per_mm2"] = acq_info.get("Microscope EX LED 2 Power (mw/mm^2)")
-        
+
         return device_info
 
     def get_subject_info(self) -> dict:
@@ -301,9 +301,9 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             date of birth, and description.
         """
         acq_info = self.cell_set.get_acquisition_info()
-        
+
         subject_info = {}
-        
+
         if acq_info.get("Animal ID"):
             subject_info["animal_id"] = acq_info.get("Animal ID")
         if acq_info.get("Animal Species"):
@@ -316,9 +316,9 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             subject_info["date_of_birth"] = acq_info.get("Animal Date of Birth")
         if acq_info.get("Animal Description"):
             subject_info["description"] = acq_info.get("Animal Description")
-        
+
         return subject_info
-    
+
     def get_analysis_info(self) -> dict:
         """
         Get analysis method information specific to Inscopix Segmentation.
@@ -329,14 +329,14 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             Dictionary containing analysis information such as cell identification method and trace units.
         """
         acq_info = self.cell_set.get_acquisition_info()
-        
+
         analysis_info = {}
-    
+
         if acq_info.get("Cell Identification Method"):
             analysis_info["cell_identification_method"] = acq_info.get("Cell Identification Method")
         if acq_info.get("Trace Units"):
             analysis_info["trace_units"] = acq_info.get("Trace Units")
-        
+
         return analysis_info
 
     def get_session_info(self) -> dict:
@@ -355,13 +355,12 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         if timing and getattr(timing, "start", None):
             info["start_time"] = timing.start
 
-        
         acq_info = self.cell_set.get_acquisition_info()
         if acq_info.get("Session Name"):
             info["session_name"] = acq_info.get("Session Name")
         if acq_info.get("Experimenter Name"):
             info["experimenter_name"] = acq_info.get("Experimenter Name")
-        
+
         return info
 
     def get_probe_info(self) -> dict:
@@ -376,7 +375,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         """
         probe_info = {}
         acq_info = self.cell_set.get_acquisition_info()
-        
+
         probe_fields = [
             "Probe Diameter (mm)",
             "Probe Flip",
@@ -385,11 +384,11 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             "Probe Rotation (degrees)",
             "Probe Type",
         ]
-        
+
         for field in probe_fields:
             value = acq_info.get(field)
             # Include value if it's not None, empty string, 0, or string variations of "none"
             if value is not None and value != "" and value != 0 and str(value).lower() != "none":
                 probe_info[field] = value
-        
+
         return probe_info
