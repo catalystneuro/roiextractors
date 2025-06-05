@@ -1,4 +1,5 @@
 """Inscopix Imaging Extractor."""
+
 import warnings
 import platform
 from typing import Optional, Tuple
@@ -125,10 +126,10 @@ class InscopixImagingExtractor(ImagingExtractor):
 
         timing = getattr(self.movie, "timing", None)
         start_time = getattr(timing, "start", None) if timing else None
-        
+
         if not start_time:
             return None
-        
+
         return datetime.fromisoformat(str(start_time))
 
     def get_device_info(self) -> dict:

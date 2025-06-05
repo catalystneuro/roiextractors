@@ -57,7 +57,7 @@ def test_inscopiximagingextractor_movie_128x128x100_part1():
     assert raw_data.shape == (100, 128, 128)
     assert raw_data.dtype == extractor.get_dtype()
 
-    # Test session start time 
+    # Test session start time
     assert extractor.get_session_start_time() == datetime(1970, 1, 1, 0, 0, 0)
 
     # Test session info for file with no acquisition info
@@ -128,7 +128,6 @@ def test_inscopiximagingextractor_movie_longer_than_3_min():
 
     # Test session start time
     assert extractor.get_session_start_time() == datetime(2019, 10, 7, 16, 22, 1, 524186)
-    
 
     # Test session info
     session_info = extractor.get_session_info()
@@ -154,16 +153,17 @@ def test_inscopiximagingextractor_movie_longer_than_3_min():
     subject_info = extractor.get_subject_info()
     assert isinstance(subject_info, dict)
     assert subject_info["sex"] == "m"
-    assert "animal_id" not in subject_info  
-    assert "species" not in subject_info    
-    assert "weight" not in subject_info    
-    assert "date_of_birth" not in subject_info  
-    assert "description" not in subject_info    
-    
+    assert "animal_id" not in subject_info
+    assert "species" not in subject_info
+    assert "weight" not in subject_info
+    assert "date_of_birth" not in subject_info
+    assert "description" not in subject_info
+
     # Test probe info - should be empty since all probe values are 0/"none"/"None"
     probe_info = extractor.get_probe_info()
     assert isinstance(probe_info, dict)
-    assert len(probe_info) == 0  
+    assert len(probe_info) == 0
+
 
 def test_inscopiximagingextractor_movie_u8():
     """
@@ -203,7 +203,7 @@ def test_inscopiximagingextractor_movie_u8():
     assert raw_data.shape == (5, 3, 4)
     assert raw_data.dtype == extractor.get_dtype()
 
-    # Test session start time 
+    # Test session start time
     assert extractor.get_session_start_time() == datetime(1970, 1, 1, 0, 0, 0)
 
     # Test session info for file with no acquisition info
