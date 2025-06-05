@@ -123,7 +123,6 @@ class InscopixImagingExtractor(ImagingExtractor):
         Optional[datetime]
             The session start time if available, otherwise None.
         """
-
         timing = getattr(self.movie, "timing", None)
         start_time = getattr(timing, "start", None) if timing else None
 
