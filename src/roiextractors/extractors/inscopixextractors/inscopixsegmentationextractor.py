@@ -228,7 +228,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         except AttributeError:
             return None
 
-    def get_session_start_time(self) ->  datetime | None:
+    def get_session_start_time(self) -> datetime | None:
         """
         Get the session start time as a datetime object.
 
@@ -258,7 +258,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         """
         acq_info = self.cell_set.get_acquisition_info()
         device_info = {}
-        
+
         # Handle case where acquisition info is None (empty cell sets)
         if acq_info is None:
             return device_info
@@ -305,7 +305,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         """
         acq_info = self.cell_set.get_acquisition_info()
         subject_info = {}
-        
+
         # Handle case where acquisition info is None (empty cell sets)
         if acq_info is None:
             return subject_info
@@ -336,7 +336,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         """
         acq_info = self.cell_set.get_acquisition_info()
         analysis_info = {}
-        
+
         # Handle case where acquisition info is None (empty cell sets)
         if acq_info is None:
             return analysis_info
@@ -358,13 +358,13 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             Dictionary containing session information such as session name, and experimenter name.
         """
         info = {}
-        
+
         acq_info = self.cell_set.get_acquisition_info()
-        
+
         # Handle case where acquisition info is None (empty cell sets)
         if acq_info is None:
             return info
-        
+
         if acq_info.get("Session Name"):
             info["session_name"] = acq_info.get("Session Name")
         if acq_info.get("Experimenter Name"):
@@ -384,7 +384,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         """
         probe_info = {}
         acq_info = self.cell_set.get_acquisition_info()
-        
+
         # Handle case where acquisition info is None (empty cell sets)
         if acq_info is None:
             return probe_info
