@@ -1,6 +1,6 @@
 """Inscopix Segmentation Extractor."""
 
-from typing import Optional, List
+from typing import List
 import platform
 import numpy as np
 from datetime import datetime
@@ -14,7 +14,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
     extractor_name = "InscopixSegmentationExtractor"
 
-    def __init__(self, file_path: PathType, verbose: bool = True):
+    def __init__(self, file_path: PathType):
         """Initialize a InscopixSegmentationExtractor instance.
 
         Main class for extracting segmentation data from Inscopix format.
@@ -35,7 +35,6 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
         SegmentationExtractor.__init__(self)
         self.file_path = file_path
-        self.verbose = verbose
         file_path_str = str(file_path)
 
         self.cell_set = isx.CellSet.read(file_path_str)
@@ -51,7 +50,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
     def get_num_rois(self) -> int:
         return self.cell_set.num_cells
 
-    def _get_roi_indices(self, roi_ids=None) -> List[int]:
+    def _get_roi_indices(self, roi_ids=None) -> list[int]:
         """Convert ROI IDs to indices (positions in the original CellSet).
 
         Handle both string IDs (e.g., 'C0') and integer IDs (e.g., 0).
@@ -229,7 +228,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         except AttributeError:
             return None
 
-    def get_session_start_time(self) -> Optional[datetime]:
+    def get_session_start_time(self) ->  datetime | None:
         """
         Get the session start time as a datetime object.
 
@@ -238,8 +237,8 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         Optional[datetime]
             The session start time if available, otherwise None.
         """
-        session_info = self.get_session_info()
-        start_time = session_info.get("start_time")
+        timing = getattr(self.cell_set, "timing", None)
+        start_time = getattr(timing, "start", None) if timing else None
 
         if not start_time:
             return None
@@ -346,15 +345,10 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         Returns
         -------
         dict
-            Dictionary containing session information such as start time, session name, and experimenter name.
+            Dictionary containing session information such as session name, and experimenter name.
         """
         info = {}
-
-        # Add timing information if available
-        timing = getattr(self.cell_set, "timing", None)
-        if timing and getattr(timing, "start", None):
-            info["start_time"] = timing.start
-
+        
         acq_info = self.cell_set.get_acquisition_info()
         if acq_info.get("Session Name"):
             info["session_name"] = acq_info.get("Session Name")

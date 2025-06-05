@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from datetime import datetime
 import platform
 from numpy.testing import assert_array_equal
 from pathlib import Path
@@ -14,8 +15,6 @@ pytestmark = pytest.mark.skipif(
     "Installation instructions can be found at: "
     "https://github.com/inscopix/pyisx?tab=readme-ov-file#install",
 )
-
-print(f"OPHYS_DATA_PATH: {OPHYS_DATA_PATH}")
 
 
 def test_inscopix_segmentation_extractor():
@@ -59,12 +58,11 @@ def test_inscopix_segmentation_extractor():
     assert extractor.get_roi_ids() == [0, 1, 2, 3]
     assert extractor.get_original_roi_ids() == ["C0", "C1", "C2", "C3"]
 
-    # Test status lists - Make more flexible as status interpretation may vary
+    # Test status lists 
     accepted_list = extractor.get_accepted_list()
     rejected_list = extractor.get_rejected_list()
     assert isinstance(accepted_list, list)
     assert isinstance(rejected_list, list)
-    # Just check that total doesn't exceed number of ROIs
     assert len(accepted_list) + len(rejected_list) <= 4
 
     # Test image properties
@@ -88,20 +86,16 @@ def test_inscopix_segmentation_extractor():
     assert extractor.get_traces(start_frame=10, end_frame=20).shape == (4, 10)
     assert extractor.get_traces(start_frame=10, end_frame=20, roi_ids=[1]).shape == (1, 10)
 
-    # Test comprehensive metadata extraction
 
     # Test session information
     session_info = extractor.get_session_info()
     assert session_info["session_name"] == "FV4581_Ret"
     assert session_info["experimenter_name"] == "Bei-Xuan"
 
-    # Test session start time (returns datetime object)
-    start_time = extractor.get_session_start_time()
-    assert start_time is not None
-    assert start_time.year == 2021
-    assert start_time.month == 4
+    # Test session start time 
+    assert extractor.get_session_start_time() == datetime(2021, 4, 1, 12, 3, 53, 290011)
 
-    # Test device information (includes hardware and acquisition settings)
+    # Test device information 
     device_info = extractor.get_device_info()
     assert device_info["device_name"] == "NVista3"
     assert device_info["device_serial_number"] == "11132301"
@@ -182,11 +176,14 @@ def test_inscopix_segmentation_extractor_part1():
     # Test pixel masks
     pixel_masks = extractor.get_roi_pixel_masks([1])
     assert len(pixel_masks) == 1
-    assert pixel_masks[0].shape[1] == 3  # Each row should have (x, y, weight)
+    assert pixel_masks[0].shape[1] == 3 
 
     # Test sampling frequency and frames
     assert extractor.get_sampling_frequency() == 10.0
     assert extractor.get_num_frames() == 100
+
+    # Test session start time
+    assert extractor.get_session_start_time() == datetime(1970, 1, 1, 0, 0, 0)
 
     # Test trace extraction
     assert extractor.get_traces().shape == (6, 100)
@@ -218,6 +215,9 @@ def test_inscopix_segmentation_extractor_empty():
     file_path = OPHYS_DATA_PATH / "segmentation_datasets" / "inscopix" / "empty_cellset.isxd"
     extractor = InscopixSegmentationExtractor(file_path=str(file_path))
 
+    # Test session start time
+    assert extractor.get_session_start_time() == datetime(1970, 1, 1, 0, 0, 0)
+
     # Test basic properties
     assert extractor.get_num_rois() == 0
     assert extractor.get_roi_ids() == []
@@ -227,9 +227,9 @@ def test_inscopix_segmentation_extractor_empty():
     assert extractor.get_accepted_list() == []
     assert extractor.get_rejected_list() == []
 
-    # Test image properties - corrected dimensions based on actual metadata
+    # Test image properties
     assert extractor.get_image_size() == (5, 4)
 
-    # Test sampling frequency and frames - corrected to match actual 25ms period (40 Hz)
+    # Test sampling frequency and frames 
     assert extractor.get_sampling_frequency() == 40.0
     assert extractor.get_num_frames() == 7

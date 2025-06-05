@@ -3,7 +3,7 @@
 ### Features
 
 ### Fixes
-* Fixed ROI ID management to allow both integer and original string IDs ('C0','C1',...) throughout the API, ensuring NWB compatibility and consistent behavior with other extractors. [#407](https://github.com/catalystneuro/roiextractors/pull/407)
+* Fixed ROI ID management to allow both integer and original string IDs ('C0','C1',...) throughout the API, ensuring NWB compatibility and consistent behavior with other extractors. [PR #435](https://github.com/catalystneuro/roiextractors/pull/435)
 ### Deprecations And Removals
 
 ### Improvements
