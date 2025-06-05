@@ -228,7 +228,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         except AttributeError:
             return None
 
-    def get_session_start_time(self) ->  datetime | None:
+    def get_session_start_time(self) -> datetime | None:
         """
         Get the session start time as a datetime object.
 
@@ -348,7 +348,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             Dictionary containing session information such as session name, and experimenter name.
         """
         info = {}
-        
+
         acq_info = self.cell_set.get_acquisition_info()
         if acq_info.get("Session Name"):
             info["session_name"] = acq_info.get("Session Name")

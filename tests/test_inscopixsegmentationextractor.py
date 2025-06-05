@@ -58,7 +58,7 @@ def test_inscopix_segmentation_extractor():
     assert extractor.get_roi_ids() == [0, 1, 2, 3]
     assert extractor.get_original_roi_ids() == ["C0", "C1", "C2", "C3"]
 
-    # Test status lists 
+    # Test status lists
     accepted_list = extractor.get_accepted_list()
     rejected_list = extractor.get_rejected_list()
     assert isinstance(accepted_list, list)
@@ -86,16 +86,15 @@ def test_inscopix_segmentation_extractor():
     assert extractor.get_traces(start_frame=10, end_frame=20).shape == (4, 10)
     assert extractor.get_traces(start_frame=10, end_frame=20, roi_ids=[1]).shape == (1, 10)
 
-
     # Test session information
     session_info = extractor.get_session_info()
     assert session_info["session_name"] == "FV4581_Ret"
     assert session_info["experimenter_name"] == "Bei-Xuan"
 
-    # Test session start time 
+    # Test session start time
     assert extractor.get_session_start_time() == datetime(2021, 4, 1, 12, 3, 53, 290011)
 
-    # Test device information 
+    # Test device information
     device_info = extractor.get_device_info()
     assert device_info["device_name"] == "NVista3"
     assert device_info["device_serial_number"] == "11132301"
@@ -176,7 +175,7 @@ def test_inscopix_segmentation_extractor_part1():
     # Test pixel masks
     pixel_masks = extractor.get_roi_pixel_masks([1])
     assert len(pixel_masks) == 1
-    assert pixel_masks[0].shape[1] == 3 
+    assert pixel_masks[0].shape[1] == 3
 
     # Test sampling frequency and frames
     assert extractor.get_sampling_frequency() == 10.0
@@ -230,6 +229,6 @@ def test_inscopix_segmentation_extractor_empty():
     # Test image properties
     assert extractor.get_image_size() == (5, 4)
 
-    # Test sampling frequency and frames 
+    # Test sampling frequency and frames
     assert extractor.get_sampling_frequency() == 40.0
     assert extractor.get_num_frames() == 7
