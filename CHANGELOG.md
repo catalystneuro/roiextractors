@@ -3,12 +3,11 @@
 ### Features
 
 ### Fixes
-
+* Fixed ROI ID management to allow both integer and original string IDs ('C0','C1',...) throughout the API, ensuring NWB compatibility and consistent behavior with other extractors. [PR #435](https://github.com/catalystneuro/roiextractors/pull/435)
 ### Deprecations And Removals
 
 ### Improvements
 * Bruker series can now read sequences of type `BrightnessOverTime` [PR #448](https://github.com/catalystneuro/roiextractors/pull/448)
-
 
 # v0.5.13 (May 12th, 2025)
 

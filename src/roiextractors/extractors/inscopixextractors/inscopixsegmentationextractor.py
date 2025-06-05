@@ -1,8 +1,9 @@
 """Inscopix Segmentation Extractor."""
 
-from typing import Optional
+from typing import List
 import platform
 import numpy as np
+from datetime import datetime
 
 from ...extraction_tools import PathType, ArrayType
 from ...segmentationextractor import SegmentationExtractor
@@ -12,10 +13,6 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
     """A segmentation extractor for Inscopix."""
 
     extractor_name = "InscopixSegmentationExtractor"
-    installed = True
-    is_writable = False
-    mode = "file"
-    installation_mesg = ""
 
     def __init__(self, file_path: PathType):
         """Initialize a InscopixSegmentationExtractor instance.
@@ -24,39 +21,145 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
         Parameters
         ----------
-        file_path: str
+        file_path: str or PathType
             The location of the folder containing Inscopix *.mat output file.
+        verbose: bool, default True
+            Whether to print verbose output for warnings and errors.
         """
         if platform.system() == "Darwin" and platform.machine() == "arm64":
             raise ImportError(
-                "The isx package is currently not natively supported on macOS with Apple Silicon. "
-                "Installation instructions can be found at: "
-                "https://github.com/inscopix/pyisx?tab=readme-ov-file#install"
+                "For macOS ARM64, please use a special conda environment setup. " "See README for instructions."
             )
 
         import isx
 
         SegmentationExtractor.__init__(self)
         self.file_path = file_path
-        self.cell_set = isx.CellSet.read(file_path)
+        file_path_str = str(file_path)
+
+        self.cell_set = isx.CellSet.read(file_path_str)
+
+        # Create mappings between original IDs and integer IDs
+        self._original_ids = [self.cell_set.get_cell_name(x) for x in range(self.cell_set.num_cells)]
+        self._id_to_index = {id: i for i, id in enumerate(self._original_ids)}
+        self._index_to_id = {i: id for id, i in self._id_to_index.items()}
+
+        # Cache for metadata to avoid repeated extraction
+        self._metadata_cache = None
 
     def get_num_rois(self) -> int:
         return self.cell_set.num_cells
 
-    def get_roi_image_masks(self, roi_ids=None) -> np.ndarray:
-        if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
-        else:
-            all_ids = self.get_roi_ids()
-            roi_idx_ = [all_ids.index(i) for i in roi_ids]
+    def _get_roi_indices(self, roi_ids=None) -> list[int]:
+        """Convert ROI IDs to indices (positions in the original CellSet).
 
-        masks = [self.cell_set.get_cell_image_data(roi_id) for roi_id in roi_idx_]
+        Handle both string IDs (e.g., 'C0') and integer IDs (e.g., 0).
+
+        Parameters
+        ----------
+        roi_ids : list or None
+            List of ROI IDs (can be integers or original string IDs)
+
+        Returns
+        -------
+        List[int]
+            List of indices corresponding to the ROI IDs
+
+
+        """
+        if roi_ids is None:
+            return list(range(self.get_num_rois()))
+
+        indices = []
+        max_rois = self.get_num_rois()
+
+        for roi_id in roi_ids:
+            if isinstance(roi_id, int):
+                if 0 <= roi_id < max_rois:
+                    indices.append(roi_id)
+                else:
+                    raise ValueError(f"ROI index {roi_id} out of range [0, {max_rois-1}]")
+            elif isinstance(roi_id, str):
+                if roi_id in self._id_to_index:
+                    indices.append(self._id_to_index[roi_id])
+                else:
+                    raise ValueError(
+                        f"ROI ID '{roi_id}' not found. Available IDs: {list(self._id_to_index.keys())[:5]}..."
+                    )
+            else:
+                raise ValueError(f"ROI ID must be int or str, got {type(roi_id)}: {roi_id}")
+
+        return indices
+
+    def get_roi_image_masks(self, roi_ids=None) -> np.ndarray:
+        """Get image masks for the specified ROIs.
+
+        Parameters
+        ----------
+        roi_ids : list or None
+            List of ROI IDs (can be integers or original string IDs)
+
+        Returns
+        -------
+        np.ndarray
+            Image masks for the specified ROIs
+        """
+        roi_indices = self._get_roi_indices(roi_ids)
+
+        masks = [self.cell_set.get_cell_image_data(roi_idx) for roi_idx in roi_indices]
         if len(masks) == 1:
             return masks[0]
         return np.stack(masks)
 
+    def get_roi_pixel_masks(self, roi_ids=None) -> List[np.ndarray]:
+        """Get pixel masks for the specified ROIs.
+
+        This converts the image masks to pixel masks with the format expected by the NWB standard.
+
+        Parameters
+        ----------
+        roi_ids : list or None
+            List of ROI IDs (can be integers or original string IDs)
+
+        Returns
+        -------
+        list
+            List of pixel masks, each with shape (N, 3) where N is the number of pixels in the ROI.
+            Each row is (x, y, weight).
+        """
+        # Get image masks
+        image_masks = self.get_roi_image_masks(roi_ids=roi_ids)
+
+        # Handle case when only one ROI ID is specified
+        if roi_ids is not None and (not isinstance(roi_ids, list) or len(roi_ids) == 1):
+            image_masks = [image_masks]
+
+        # Convert image masks to pixel masks
+        pixel_masks = []
+        for mask in image_masks:
+            # Find non-zero pixels in the mask
+            y_indices, x_indices = np.where(mask > 0)
+
+            if len(x_indices) > 0:
+                # Use the mask values as weights
+                weights = mask[y_indices, x_indices]
+                # Create pixel mask with (x, y, weight) format
+                pixel_mask = np.column_stack((x_indices, y_indices, weights))
+            else:
+                # For empty ROIs, create a dummy pixel mask with correct shape
+                pixel_mask = np.array([[0, 0, 1.0]])
+
+            pixel_masks.append(pixel_mask)
+
+        return pixel_masks
+
     def get_roi_ids(self) -> list:
-        return [self.cell_set.get_cell_name(x) for x in range(self.get_num_rois())]
+        """Get ROI IDs as integers (0, 1, 2, ...)."""
+        return list(range(self.get_num_rois()))
+
+    def get_original_roi_ids(self) -> list:
+        """Get original ROI IDs from the CellSet."""
+        return self._original_ids.copy()
 
     def get_image_size(self) -> ArrayType:
         if hasattr(self.cell_set, "spacing"):
@@ -71,18 +174,45 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             raise ValueError("No ROIs found in the segmentation. Unable to determine image size.")
 
     def get_accepted_list(self) -> list:
-        return [id for x, id in enumerate(self.get_roi_ids()) if self.cell_set.get_cell_status(x) == "accepted"]
+        """Get list of accepted ROI IDs (as integers)."""
+        accepted = []
+        for i, original_id in enumerate(self._original_ids):
+            idx = self._original_ids.index(original_id)
+            if self.cell_set.get_cell_status(idx) == "accepted":
+                accepted.append(i)  # Return integer IDs
+        return accepted
 
     def get_rejected_list(self) -> list:
-        return [id for x, id in enumerate(self.get_roi_ids()) if self.cell_set.get_cell_status(x) == "rejected"]
+        """Get list of rejected ROI IDs (as integers)."""
+        rejected = []
+        for i, original_id in enumerate(self._original_ids):
+            idx = self._original_ids.index(original_id)
+            if self.cell_set.get_cell_status(idx) == "rejected":
+                rejected.append(i)  # Return integer IDs
+        return rejected
 
     def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="raw") -> ArrayType:
-        if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
-        else:
-            all_ids = self.get_roi_ids()
-            roi_idx_ = [all_ids.index(i) for i in roi_ids]
-        return np.vstack([self.cell_set.get_cell_trace_data(roi_id)[start_frame:end_frame] for roi_id in roi_idx_])
+        """Get traces for the specified ROIs.
+
+        Parameters
+        ----------
+        roi_ids : list or None
+            List of ROI IDs (can be integers or original string IDs)
+        start_frame : int or None
+            Start frame index
+        end_frame : int or None
+            End frame index
+        name : str
+            Name of the trace type
+
+        Returns
+        -------
+        np.ndarray
+            Traces for the specified ROIs
+        """
+        roi_indices = self._get_roi_indices(roi_ids)
+
+        return np.vstack([self.cell_set.get_cell_trace_data(roi_idx)[start_frame:end_frame] for roi_idx in roi_indices])
 
     def get_num_frames(self) -> int:
         try:
@@ -97,3 +227,181 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             return 1 / self.cell_set.timing.period.secs_float
         except AttributeError:
             return None
+
+    def get_session_start_time(self) -> datetime | None:
+        """
+        Get the session start time as a datetime object.
+
+        Returns
+        -------
+        Optional[datetime]
+            The session start time if available, otherwise None.
+        """
+        timing = getattr(self.cell_set, "timing", None)
+        start_time = getattr(timing, "start", None) if timing else None
+
+        if not start_time:
+            return None
+
+        return datetime.fromisoformat(str(start_time))
+
+    def get_device_info(self) -> dict:
+        """
+        Get device-specific information including hardware settings and imaging parameters.
+
+        Returns
+        -------
+        dict
+            Dictionary containing device information such as microscope type, serial number,
+            acquisition software version, field of view, exposure time, focus, gain, channel,
+            efocus, and LED power settings.
+        """
+        acq_info = self.cell_set.get_acquisition_info()
+        device_info = {}
+
+        # Handle case where acquisition info is None (empty cell sets)
+        if acq_info is None:
+            return device_info
+
+        # Basic device identification
+        if acq_info.get("Microscope Type"):
+            device_info["device_name"] = acq_info.get("Microscope Type")
+        if acq_info.get("Microscope Serial Number"):
+            device_info["device_serial_number"] = acq_info.get("Microscope Serial Number")
+        if acq_info.get("Acquisition SW Version"):
+            device_info["acquisition_software_version"] = acq_info.get("Acquisition SW Version")
+
+        # Imaging/acquisition parameters
+        if hasattr(self.cell_set, "spacing") and self.cell_set.spacing:
+            device_info["field_of_view_pixels"] = self.cell_set.spacing.num_pixels
+
+        # Hardware/optical settings
+        if acq_info.get("Exposure Time (ms)"):
+            device_info["exposure_time_ms"] = acq_info.get("Exposure Time (ms)")
+        if acq_info.get("Microscope Focus"):
+            device_info["microscope_focus"] = acq_info.get("Microscope Focus")
+        if acq_info.get("Microscope Gain"):
+            device_info["microscope_gain"] = acq_info.get("Microscope Gain")
+        if acq_info.get("channel"):
+            device_info["channel"] = acq_info.get("channel")
+        if acq_info.get("efocus"):
+            device_info["efocus"] = acq_info.get("efocus")
+        if acq_info.get("Microscope EX LED 1 Power (mw/mm^2)"):
+            device_info["led_power_1_mw_per_mm2"] = acq_info.get("Microscope EX LED 1 Power (mw/mm^2)")
+        if acq_info.get("Microscope EX LED 2 Power (mw/mm^2)"):
+            device_info["led_power_2_mw_per_mm2"] = acq_info.get("Microscope EX LED 2 Power (mw/mm^2)")
+
+        return device_info
+
+    def get_subject_info(self) -> dict:
+        """
+        Get subject/animal information from the acquisition metadata.
+
+        Returns
+        -------
+        dict
+            Dictionary containing subject information such as animal ID, species, sex, weight,
+            date of birth, and description.
+        """
+        acq_info = self.cell_set.get_acquisition_info()
+        subject_info = {}
+
+        # Handle case where acquisition info is None (empty cell sets)
+        if acq_info is None:
+            return subject_info
+
+        if acq_info.get("Animal ID"):
+            subject_info["animal_id"] = acq_info.get("Animal ID")
+        if acq_info.get("Animal Species"):
+            subject_info["species"] = acq_info.get("Animal Species")
+        if acq_info.get("Animal Sex"):
+            subject_info["sex"] = acq_info.get("Animal Sex")
+        if acq_info.get("Animal Weight"):
+            subject_info["weight"] = acq_info.get("Animal Weight")
+        if acq_info.get("Animal Date of Birth"):
+            subject_info["date_of_birth"] = acq_info.get("Animal Date of Birth")
+        if acq_info.get("Animal Description"):
+            subject_info["description"] = acq_info.get("Animal Description")
+
+        return subject_info
+
+    def get_analysis_info(self) -> dict:
+        """
+        Get analysis method information specific to Inscopix Segmentation.
+
+        Returns
+        -------
+        dict
+            Dictionary containing analysis information such as cell identification method and trace units.
+        """
+        acq_info = self.cell_set.get_acquisition_info()
+        analysis_info = {}
+
+        # Handle case where acquisition info is None (empty cell sets)
+        if acq_info is None:
+            return analysis_info
+
+        if acq_info.get("Cell Identification Method"):
+            analysis_info["cell_identification_method"] = acq_info.get("Cell Identification Method")
+        if acq_info.get("Trace Units"):
+            analysis_info["trace_units"] = acq_info.get("Trace Units")
+
+        return analysis_info
+
+    def get_session_info(self) -> dict:
+        """
+        Get session information from the acquisition metadata.
+
+        Returns
+        -------
+        dict
+            Dictionary containing session information such as session name, and experimenter name.
+        """
+        info = {}
+
+        acq_info = self.cell_set.get_acquisition_info()
+
+        # Handle case where acquisition info is None (empty cell sets)
+        if acq_info is None:
+            return info
+
+        if acq_info.get("Session Name"):
+            info["session_name"] = acq_info.get("Session Name")
+        if acq_info.get("Experimenter Name"):
+            info["experimenter_name"] = acq_info.get("Experimenter Name")
+
+        return info
+
+    def get_probe_info(self) -> dict:
+        """
+        Get probe information from the acquisition metadata.
+
+        Returns
+        -------
+        dict
+            Dictionary containing probe information such as diameter, flip, length, pitch, rotation, and type.
+            Only includes fields with non-empty, non-zero, and non-'none' values.
+        """
+        probe_info = {}
+        acq_info = self.cell_set.get_acquisition_info()
+
+        # Handle case where acquisition info is None (empty cell sets)
+        if acq_info is None:
+            return probe_info
+
+        probe_fields = [
+            "Probe Diameter (mm)",
+            "Probe Flip",
+            "Probe Length (mm)",
+            "Probe Pitch",
+            "Probe Rotation (degrees)",
+            "Probe Type",
+        ]
+
+        for field in probe_fields:
+            value = acq_info.get(field)
+            # Include value if it's not None, empty string, 0, or string variations of "none"
+            if value is not None and value != "" and value != 0 and str(value).lower() != "none":
+                probe_info[field] = value
+
+        return probe_info
