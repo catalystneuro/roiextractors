@@ -113,7 +113,7 @@ class InscopixImagingExtractor(ImagingExtractor):
     def get_dtype(self) -> np.dtype:
         return np.dtype(self.movie.data_type)
 
-    def get_session_start_time(self) -> Optional[datetime]:
+    def get_session_start_time(self) -> datetime | None:
         """
         Get the session start time as a datetime object.
 
@@ -122,8 +122,9 @@ class InscopixImagingExtractor(ImagingExtractor):
         Optional[datetime]
             The session start time if available, otherwise None.
         """
-        session_info = self.get_session_info()
-        start_time = session_info.get("start_time")
+
+        timing = getattr(self.movie, "timing", None)
+        start_time = getattr(timing, "start", None) if timing else None
         
         if not start_time:
             return None
@@ -211,13 +212,9 @@ class InscopixImagingExtractor(ImagingExtractor):
         Returns
         -------
         dict
-            Dictionary containing session information such as start time, session name, and experimenter name.
+            Dictionary containing session information : session name, and experimenter name.
         """
         info = {}
-
-        timing = getattr(self.movie, "timing", None)
-        if timing and getattr(timing, "start", None):
-            info["start_time"] = timing.start
 
         acq_info = self.movie.get_acquisition_info()
         if acq_info is not None:

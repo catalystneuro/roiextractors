@@ -58,19 +58,10 @@ def test_inscopiximagingextractor_movie_128x128x100_part1():
     assert raw_data.dtype == extractor.get_dtype()
 
     # Test session start time 
-    assert str(extractor.get_session_start_time()) == "1970-01-01 00:00:00"
+    assert extractor.get_session_start_time() == datetime(1970, 1, 1, 0, 0, 0)
 
     # Test session info for file with no acquisition info
     session_info = extractor.get_session_info()
-    start_time = session_info.get("start_time")
-    if start_time is not None:
-        if hasattr(start_time, 'to_datetime'):
-            datetime_obj = start_time.to_datetime()
-        elif hasattr(start_time, 'secs_float'):
-            datetime_obj = datetime.fromtimestamp(start_time.secs_float)
-        else:
-            datetime_obj = start_time
-        assert datetime_obj == datetime(1970, 1, 1, 0, 0, 0)
     assert "session_name" not in session_info
     assert "experimenter_name" not in session_info
 
@@ -136,20 +127,12 @@ def test_inscopiximagingextractor_movie_longer_than_3_min():
     assert raw_data.dtype == extractor.get_dtype()
 
     # Test session start time
-    assert str(extractor.get_session_start_time()) == "2019-10-07 16:22:01.524186"
+    assert extractor.get_session_start_time() == datetime(2019, 10, 7, 16, 22, 1, 524186)
+    
 
     # Test session info
     session_info = extractor.get_session_info()
     start_time = session_info.get("start_time")
-    if start_time is not None:
-        # Convert ISX time to datetime for comparison
-        if hasattr(start_time, 'to_datetime'):
-            datetime_obj = start_time.to_datetime()
-        elif hasattr(start_time, 'secs_float'):
-            datetime_obj = datetime.fromtimestamp(start_time.secs_float)
-        else:
-            datetime_obj = start_time
-        assert datetime_obj == datetime(2019, 10, 7, 16, 22, 1, 524186)
     assert session_info["session_name"] == "4D_SAAV_PFC_IM7_20191007"
     assert "experimenter_name" not in session_info
 
@@ -221,19 +204,10 @@ def test_inscopiximagingextractor_movie_u8():
     assert raw_data.dtype == extractor.get_dtype()
 
     # Test session start time 
-    assert str(extractor.get_session_start_time()) == "1970-01-01 00:00:00"
+    assert extractor.get_session_start_time() == datetime(1970, 1, 1, 0, 0, 0)
 
     # Test session info for file with no acquisition info
     session_info = extractor.get_session_info()
-    start_time = session_info.get("start_time")
-    if start_time is not None:
-        if hasattr(start_time, 'to_datetime'):
-            datetime_obj = start_time.to_datetime()
-        elif hasattr(start_time, 'secs_float'):
-            datetime_obj = datetime.fromtimestamp(start_time.secs_float)
-        else:
-            datetime_obj = start_time
-        assert datetime_obj == datetime(1970, 1, 1, 0, 0, 0)
     assert "session_name" not in session_info
     assert "experimenter_name" not in session_info
 
