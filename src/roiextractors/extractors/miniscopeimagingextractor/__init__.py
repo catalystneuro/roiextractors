@@ -12,3 +12,4 @@ MiniscopeImagingExtractor
 """
 
 from .miniscopeimagingextractor import MiniscopeImagingExtractor, MiniscopeMultiRecordingImagingExtractor
+from .miniscope_utils import get_miniscope_files_from_folder, validate_miniscope_files, load_miniscope_config
