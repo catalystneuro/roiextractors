@@ -183,7 +183,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self._image_masks = _image_mask_extractor(
             self.get_roi_pixel_masks(),
             roi_indices,
-            self.get_image_size(),
+            self.get_frame_shape(),
         )
 
     def _load_npy(self, file_name: str, mmap_mode=None, transpose: bool = False, require: bool = False):
