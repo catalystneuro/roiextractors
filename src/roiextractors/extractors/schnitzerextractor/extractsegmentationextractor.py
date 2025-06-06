@@ -272,7 +272,7 @@ class NewExtractSegmentationExtractor(
 
     def get_image_size(self) -> ArrayType:
         warnings.warn(
-            "get_image_size is deprecated and will be removed on or after January 2025. "
+            "get_image_size is deprecated and will be removed on or after January 2026. "
             "Use get_frame_shape instead.",
             FutureWarning,
             stacklevel=2,
@@ -406,7 +406,7 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
 
     def get_image_size(self):
         warnings.warn(
-            "get_image_size is deprecated and will be removed on or after January 2025. "
+            "get_image_size is deprecated and will be removed on or after January 2026. "
             "Use get_frame_shape instead.",
             FutureWarning,
             stacklevel=2,
