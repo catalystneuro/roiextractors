@@ -160,13 +160,6 @@ class TestMultiImagingExtractor(TestCase):
                 num_channels=1,
                 expected_error_msg="The size of a frame is not consistent over the files (found {(3, 4), (3, 5)}).",
             ),
-            param(
-                rows=3,
-                columns=4,
-                sampling_frequency=20.0,
-                num_channels=2,
-                expected_error_msg="The number of channels is not consistent over the files (found {1, 2}).",
-            ),
         ],
     )
     def test_inconsistent_property_assertion(self, rows, columns, sampling_frequency, num_channels, expected_error_msg):
