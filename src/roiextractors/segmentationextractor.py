@@ -433,7 +433,6 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "FrameSliceSegmentationExtractor"
-    is_writable = True
 
     def __init__(
         self,

@@ -28,7 +28,6 @@ class TiffImagingExtractor(ImagingExtractor):
     """A ImagingExtractor for TIFF files."""
 
     extractor_name = "TiffImaging"
-    is_writable = True
     mode = "file"
 
     def __init__(self, file_path: PathType, sampling_frequency: FloatType):

@@ -127,7 +127,6 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
     """
 
     extractor_name = "BrukerTiffMultiPlaneImaging"
-    is_writable = True
     mode = "folder"
 
     @classmethod
@@ -262,8 +261,8 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
 
         super().__init__(imaging_extractors=imaging_extractors)
 
-        self._num_samples = self._imaging_extractors[0].get_num_frames()
-        self._image_size = *self._imaging_extractors[0].get_image_size(), self._num_planes_per_channel_stream
+        self._num_samples = self._imaging_extractors[0].get_num_samples()
+        self._image_size = *self._imaging_extractors[0].get_frame_shape(), self._num_planes_per_channel_stream
         self.xml_metadata = self._imaging_extractors[0].xml_metadata
 
         self._start_frames = [0] * self._num_planes_per_channel_stream
@@ -439,7 +438,6 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
     """A MultiImagingExtractor for TIFF files produced by Bruker with only 1 plane."""
 
     extractor_name = "BrukerTiffSinglePlaneImaging"
-    is_writable = True
     mode = "folder"
 
     @classmethod
@@ -663,7 +661,6 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
     """
 
     extractor_name = "_BrukerTiffSinglePlaneImaging"
-    is_writable = True
     mode = "file"
 
     SAMPLING_FREQ_ERROR = "The {}Extractor does not support retrieving the imaging rate."
