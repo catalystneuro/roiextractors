@@ -158,7 +158,7 @@ class TestMultiImagingExtractor(TestCase):
                 columns=5,
                 sampling_frequency=20.0,
                 num_channels=1,
-                expected_error_msg="The size of a frame is not consistent over the files (found {(3, 4), (3, 5)}).",
+                expected_error_msg="The shape of a sample is not consistent over the files (found {(3, 4), (3, 5)}).",
             ),
         ],
     )
