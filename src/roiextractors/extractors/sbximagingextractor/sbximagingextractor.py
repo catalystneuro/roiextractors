@@ -10,6 +10,7 @@ from multiprocessing.sharedctypes import Value
 import os
 from pathlib import Path
 from typing import Tuple, Optional
+import warnings
 
 import numpy as np
 
@@ -127,7 +128,7 @@ class SbxImagingExtractor(ImagingExtractor):
             info["resfreq"] / info["config"]["lines"] * (2 - info["scanmode"]) * info["fov_repeats"]
         )
         # SIMA:
-        info["nsamples"] = info["sz"][1] * info["recordsPerBuffer"] * info["nChan"] * 2
+        info["nsamples"] = int(info["sz"][1]) * int(info["recordsPerBuffer"]) * int(info["nChan"] * 2)
         # SIMA:
         if ("volscan" in info and info["volscan"] > 0) or ("volscan" not in info and len(info.get("otwave", []))):
             info["nplanes"] = len(info["otwave"])
@@ -135,7 +136,7 @@ class SbxImagingExtractor(ImagingExtractor):
             info["nplanes"] = 1
         # SIMA:
         if info.get("scanbox_version", -1) >= 2:
-            info["max_idx"] = os.path.getsize(self.sbx_file_path) // info["nsamples"] - 1
+            info["max_idx"] = os.path.getsize(self.sbx_file_path) // int(info["nsamples"]) - 1
         else:
             info["max_idx"] = os.path.getsize(self.sbx_file_path) // info["bytesPerBuffer"] * factor - 1
         # SIMA: Fix for old scanbox versions
@@ -152,7 +153,7 @@ class SbxImagingExtractor(ImagingExtractor):
             The numpy array containing the data from the `.sbx` file.
         """
         nrows = self._info["recordsPerBuffer"]
-        ncols = self._info["sz"][1]
+        ncols = int(self._info["sz"][1])
         nchannels = self._info["nChan"]
         nplanes = self._info["nplanes"]
         nframes = (self._info["max_idx"] + 1) // nplanes
@@ -165,19 +166,114 @@ class SbxImagingExtractor(ImagingExtractor):
         return np_data
 
     def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> np.array:
-        frame_out = np.iinfo("uint16").max - self._data.transpose(4, 2, 1, 0, 3)[frame_idxs, :, :, channel, 0]
+        """Get specific video frames from indices.
 
+        Parameters
+        ----------
+        frame_idxs: array-like
+            Indices of frames to return.
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        frames: numpy.ndarray
+            The video frames.
+        """
+        if channel != 0:
+            from warnings import warn
+
+            warn(
+                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        frame_out = np.iinfo("uint16").max - self._data.transpose(4, 2, 1, 0, 3)[frame_idxs, :, :, channel, 0]
         return frame_out
 
-    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
-        frame_out = np.iinfo("uint16").max - self._data[channel, :, :, 0, start_frame:end_frame]
+    def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
+        frame_out = np.iinfo("uint16").max - self._data[0, :, :, 0, start_sample:end_sample]
         return frame_out.transpose(2, 1, 0)
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+        """Get the video frames.
+
+        Parameters
+        ----------
+        start_frame: int, optional
+            Start frame index (inclusive).
+        end_frame: int, optional
+            End frame index (exclusive).
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        video: numpy.ndarray
+            The video frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
+        """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if channel != 0:
+            from warnings import warn
+
+            warn(
+                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
+
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
         return tuple(self._info["sz"])
 
-    def get_num_frames(self) -> int:
+    def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return tuple(self._info["sz"])
+
+    def get_num_samples(self) -> int:
         return (self._info["max_idx"] + 1) // self._info["nplanes"]
+
+    def get_num_frames(self) -> int:
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
@@ -205,4 +301,11 @@ class SbxImagingExtractor(ImagingExtractor):
         -----
         This function is not implemented yet.
         """
+        from warnings import warn
+
+        warn(
+            "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         raise NotImplementedError

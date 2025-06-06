@@ -7,6 +7,9 @@ MemmapImagingExtractor
 """
 
 from pathlib import Path
+import warnings
+from warnings import warn
+import warnings
 
 import numpy as np
 import psutil
@@ -38,6 +41,27 @@ class MemmapImagingExtractor(ImagingExtractor):
         super().__init__()
 
     def get_frames(self, frame_idxs=None, channel: Optional[int] = 0) -> np.ndarray:
+        """Get specific video frames from indices.
+
+        Parameters
+        ----------
+        frame_idxs: array-like, optional
+            Indices of frames to return. If None, returns all frames.
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        frames: numpy.ndarray
+            The video frames.
+        """
+        if channel != 0:
+            warn(
+                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         if frame_idxs is None:
             frame_idxs = [frame for frame in range(self.get_num_frames())]
 
@@ -47,17 +71,73 @@ class MemmapImagingExtractor(ImagingExtractor):
 
         return frames
 
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self._num_samples
+        frame_idxs = range(start_sample, end_sample)
+        # Use channel=None to preserve the channel dimension
+        return self._video.take(indices=list(frame_idxs), axis=0)
+
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
     ) -> np.ndarray:
-        frame_idxs = range(start_frame, end_frame)
-        return self.get_frames(frame_idxs=frame_idxs, channel=channel)
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if channel != 0:
+            warn(
+                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
         return (self._num_rows, self._num_columns)
 
+    def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return (self._num_rows, self._num_columns)
+
+    def get_num_samples(self) -> int:
+        return self._num_samples
+
     def get_num_frames(self) -> int:
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
@@ -66,20 +146,25 @@ class MemmapImagingExtractor(ImagingExtractor):
         pass
 
     def get_num_channels(self) -> int:
+        warn(
+            "get_num_channels() is deprecated and will be removed in or after August 2025.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._num_channels
 
     def get_dtype(self) -> DtypeType:
         return self.dtype
 
-    def get_video_shape(self) -> Tuple[int, int, int, int]:
+    def get_volume_shape(self) -> Tuple[int, int, int, int]:
         """Return the shape of the video data.
 
         Returns
         -------
         video_shape: Tuple[int, int, int, int]
-            The shape of the video data (num_frames, num_rows, num_columns, num_channels).
+            The shape of the video data (num_samples, num_rows, num_columns, num_channels).
         """
-        return (self._num_frames, self._num_rows, self._num_columns, self._num_channels)
+        return (self._num_samples, self._num_rows, self._num_columns, self._num_channels)
 
     @staticmethod
     def write_imaging(
@@ -101,6 +186,11 @@ class MemmapImagingExtractor(ImagingExtractor):
         buffer_size_in_gb: float
             The size of the buffer in Gigabytes. The default of None results in buffering over one frame at a time.
         """
+        warnings.warn(
+            "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         # The base and default case is to load one image at a time.
         if buffer_size_in_gb is None:
             buffer_size_in_gb = 0
@@ -113,7 +203,7 @@ class MemmapImagingExtractor(ImagingExtractor):
             raise f"Not enough memory available, {available_memory_in_bytes* 1e9} for buffer size {buffer_size_in_gb}"
 
         num_frames = imaging.get_num_frames()
-        memmap_shape = imaging.get_video_shape()
+        memmap_shape = imaging.get_volume_shape()
         dtype = imaging.get_dtype()
 
         # Load the memmap
@@ -133,7 +223,7 @@ class MemmapImagingExtractor(ImagingExtractor):
             type_size = np.dtype(dtype).itemsize
 
             n_channels = imaging.get_num_channels()
-            pixels_per_frame = n_channels * np.product(imaging.get_image_size())
+            pixels_per_frame = n_channels * np.prod(imaging.get_image_size())
             bytes_per_frame = type_size * pixels_per_frame
             frames_in_buffer = buffer_size_in_bytes // bytes_per_frame
 

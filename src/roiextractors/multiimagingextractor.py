@@ -10,6 +10,7 @@ from collections import defaultdict
 from typing import Tuple, List, Iterable, Optional
 
 import numpy as np
+import warnings
 
 from .extraction_tools import ArrayType, NumpyArray
 from .imagingextractor import ImagingExtractor
@@ -19,7 +20,6 @@ class MultiImagingExtractor(ImagingExtractor):
     """Class to combine multiple ImagingExtractor objects by frames."""
 
     extractor_name = "MultiImagingExtractor"
-    installed = True
     installation_mesg = ""
 
     def __init__(self, imaging_extractors: List[ImagingExtractor]):
@@ -39,12 +39,12 @@ class MultiImagingExtractor(ImagingExtractor):
         self._check_consistency_between_imaging_extractors()
 
         self._start_frames, self._end_frames = [], []
-        num_frames = 0
+        num_samples = 0
         for imaging_extractor in self._imaging_extractors:
-            self._start_frames.append(num_frames)
-            num_frames = num_frames + imaging_extractor.get_num_frames()
-            self._end_frames.append(num_frames)
-        self._num_frames = num_frames
+            self._start_frames.append(num_samples)
+            num_samples = num_samples + imaging_extractor.get_num_samples()
+            self._end_frames.append(num_samples)
+        self._num_samples = num_samples
 
         if any((getattr(imaging_extractor, "_times") is not None for imaging_extractor in self._imaging_extractors)):
             times = self._get_times()
@@ -72,7 +72,8 @@ class MultiImagingExtractor(ImagingExtractor):
             get_image_size="The size of a frame",
             get_num_channels="The number of channels",
             get_channel_names="The name of the channels",
-            get_dtype="The data type.",
+            get_dtype="The data type",
+            get_num_samples="The number of samples",
         )
         for method, property_message in properties_to_check.items():
             values = [getattr(extractor, method)() for extractor in self._imaging_extractors]
@@ -122,10 +123,30 @@ class MultiImagingExtractor(ImagingExtractor):
         return self._imaging_extractors[0].get_dtype()
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> NumpyArray:
+        """Get specific video frames from indices.
+
+        Parameters
+        ----------
+        frame_idxs: array-like
+            Indices of frames to return.
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        frames: numpy.ndarray
+            The video frames.
+        """
+        if channel != 0:
+            warnings.warn(
+                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if isinstance(frame_idxs, (int, np.integer)):
             frame_idxs = [frame_idxs]
         frame_idxs = np.array(frame_idxs)
-        assert np.all(frame_idxs < self.get_num_frames()), "'frame_idxs' exceed number of frames"
+        assert np.all(frame_idxs < self.get_num_samples()), "'frame_idxs' exceed number of samples"
         extractor_indices = np.searchsorted(self._end_frames, frame_idxs, side="right")
         relative_frame_indices = frame_idxs - np.array(self._start_frames)[extractor_indices]
         # Match frame_idxs to imaging extractors
@@ -147,16 +168,23 @@ class MultiImagingExtractor(ImagingExtractor):
         frames = np.concatenate(frames_to_concatenate, axis=0)
         return frames
 
-    def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
-    ) -> np.ndarray:
-        if channel != 0:
-            raise NotImplementedError(
-                f"MultiImagingExtractors for multiple channels have not yet been implemented! (Received '{channel}'."
-            )
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        """Get the video frames.
 
-        start = start_frame if start_frame is not None else 0
-        stop = end_frame if end_frame is not None else self.get_num_frames()
+        Parameters
+        ----------
+        start_sample: int, optional
+            Start sample index (inclusive).
+        end_sample: int, optional
+            End sample index (exclusive).
+
+        Returns
+        -------
+        series: numpy.ndarray
+            The video frames.
+        """
+        start = start_sample if start_sample is not None else 0
+        stop = end_sample if end_sample is not None else self.get_num_samples()
         extractors_range = np.searchsorted(self._end_frames, (start, stop - 1), side="right")
         extractors_spanned = list(
             range(extractors_range[0], min(extractors_range[-1] + 1, len(self._imaging_extractors)))
@@ -167,20 +195,20 @@ class MultiImagingExtractor(ImagingExtractor):
             relative_start = start - self._start_frames[extractors_spanned[0]]
             relative_stop = stop - start + relative_start
 
-            return self._imaging_extractors[extractors_spanned[0]].get_video(
-                start_frame=relative_start, end_frame=relative_stop
+            return self._imaging_extractors[extractors_spanned[0]].get_series(
+                start_sample=relative_start, end_sample=relative_stop
             )
 
-        video_shape = (stop - start,) + self._imaging_extractors[0].get_image_size()
-        video = np.empty(shape=video_shape, dtype=self.get_dtype())
+        series_shape = (stop - start,) + self._imaging_extractors[0].get_image_size()
+        series = np.empty(shape=series_shape, dtype=self.get_dtype())
         current_frame = 0
 
         # Left endpoint; since more than one extractor is spanned, only care about indexing first start frame
         relative_start = start - self._start_frames[extractors_spanned[0]]
         relative_span = self._end_frames[extractors_spanned[0]] - start
         array_frame_slice = slice(current_frame, relative_span)
-        video[array_frame_slice, ...] = self._imaging_extractors[extractors_spanned[0]].get_video(
-            start_frame=relative_start
+        series[array_frame_slice, ...] = self._imaging_extractors[extractors_spanned[0]].get_series(
+            start_sample=relative_start
         )
         current_frame += relative_span
 
@@ -188,23 +216,101 @@ class MultiImagingExtractor(ImagingExtractor):
         for extractor_index in extractors_spanned[1:-1]:
             relative_span = self._end_frames[extractor_index] - self._start_frames[extractor_index]
             array_frame_slice = slice(current_frame, current_frame + relative_span)
-            video[array_frame_slice, ...] = self._imaging_extractors[extractor_index].get_video()
+            series[array_frame_slice, ...] = self._imaging_extractors[extractor_index].get_series()
             current_frame += relative_span
 
         # Right endpoint; since more than one extractor is spanned, only care about indexing final end frame
         relative_stop = stop - self._start_frames[extractors_spanned[-1]]
         array_frame_slice = slice(current_frame, None)
-        video[array_frame_slice, ...] = self._imaging_extractors[extractors_spanned[-1]].get_video(
-            end_frame=relative_stop
+        series[array_frame_slice, ...] = self._imaging_extractors[extractors_spanned[-1]].get_series(
+            end_sample=relative_stop
         )
 
-        return video
+        return series
+
+    def get_video(
+        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
+    ) -> np.ndarray:
+        """Get the video frames.
+
+        Parameters
+        ----------
+        start_frame: int, optional
+            Start frame index (inclusive).
+        end_frame: int, optional
+            End frame index (exclusive).
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        video: numpy.ndarray
+            The video frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
+        """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if channel != 0:
+            warnings.warn(
+                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            raise NotImplementedError(
+                f"MultiImagingExtractors for multiple channels have not yet been implemented! (Received '{channel}'."
+            )
+
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
+
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._imaging_extractors[0].get_image_shape()
 
     def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._imaging_extractors[0].get_image_size()
 
+    def get_num_samples(self) -> int:
+        return self._num_samples
+
     def get_num_frames(self) -> int:
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._imaging_extractors[0].get_sampling_frequency()
@@ -213,4 +319,9 @@ class MultiImagingExtractor(ImagingExtractor):
         return self._imaging_extractors[0].get_channel_names()
 
     def get_num_channels(self) -> int:
+        warnings.warn(
+            "get_num_channels() is deprecated and will be removed in or after August 2025.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._imaging_extractors[0].get_num_channels()

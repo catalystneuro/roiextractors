@@ -372,7 +372,7 @@ def check_imaging_equal(
 ):
     """Check that two imaging extractors have equal fields."""
     # assert equality:
-    assert imaging_extractor1.get_num_frames() == imaging_extractor2.get_num_frames()
+    assert imaging_extractor1.get_num_samples() == imaging_extractor2.get_num_samples()
     assert imaging_extractor1.get_num_channels() == imaging_extractor2.get_num_channels()
     assert np.isclose(imaging_extractor1.get_sampling_frequency(), imaging_extractor2.get_sampling_frequency())
     assert_array_equal(imaging_extractor1.get_image_size(), imaging_extractor2.get_image_size())
@@ -381,12 +381,12 @@ def check_imaging_equal(
         assert_array_equal(imaging_extractor1.get_channel_names(), imaging_extractor2.get_channel_names())
 
     assert_array_equal(
-        imaging_extractor1.get_video(start_frame=0, end_frame=1),
-        imaging_extractor2.get_video(start_frame=0, end_frame=1),
+        imaging_extractor1.get_series(start_sample=0, end_sample=1),
+        imaging_extractor2.get_series(start_sample=0, end_sample=1),
     )
     assert_array_almost_equal(
-        imaging_extractor1.frame_to_time(np.arange(imaging_extractor1.get_num_frames())),
-        imaging_extractor2.frame_to_time(np.arange(imaging_extractor2.get_num_frames())),
+        imaging_extractor1.frame_to_time(np.arange(imaging_extractor1.get_num_samples())),
+        imaging_extractor2.frame_to_time(np.arange(imaging_extractor2.get_num_samples())),
     )
 
 
@@ -424,7 +424,7 @@ def assert_get_frames_return_shape(imaging_extractor: ImagingExtractor):
 
 def check_imaging_return_types(img_ex: ImagingExtractor):
     """Check that the return types of the imaging extractor are correct."""
-    assert isinstance(img_ex.get_num_frames(), inttype)
+    assert isinstance(img_ex.get_num_samples(), inttype)
     assert isinstance(img_ex.get_num_channels(), inttype)
     assert isinstance(img_ex.get_sampling_frequency(), floattype)
     _assert_iterable_complete(

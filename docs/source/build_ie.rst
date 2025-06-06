@@ -5,7 +5,7 @@ To build your custom ImagingExtractor to interface with a new raw image storage 
 
 * `get_channel_names()`: returns a list of channel names
 * `get_num_channels()`: returns the number of channels used in the recording
-* `get_num_frames()`: the number of image frames recorded
+* `get_num_samples()`: the number of image frames recorded
 * `get_image_size()`: the y,x dim of the image(the resolution)
 * `get_frames()`: return specific requested image frames
 
@@ -41,7 +41,7 @@ To build your custom ImagingExtractor to interface with a new raw image storage 
             # define method to find the number of channels
             # returns int
 
-        def get_num_frames(self):
+        def get_num_samples(self):
 
             # Fill code to get the number of frames (samples) in the recordings.
 
@@ -59,10 +59,3 @@ To build your custom ImagingExtractor to interface with a new raw image storage 
         def get_image_size(self)
 
             # returns something like self._data.shape[1:]
-
-        @staticmethod
-        def write_imaging(imaging_obj, save_path, other_params):
-            '''
-            This is an example of a function that is not abstract so it is optional if you want to override it.
-            It allows other ImageExtractors to use your new ImageExtractors to convert their  data into your this file format.
-            '''

@@ -326,7 +326,7 @@ def check_get_frames_args(func):
             frame_idxs = [frame_idxs]
         if not isinstance(frame_idxs, slice):
             frame_idxs = np.array(frame_idxs)
-            assert np.all(frame_idxs < imaging.get_num_frames()), "'frame_idxs' exceed number of frames"
+            assert np.all(frame_idxs < imaging.get_num_samples()), "'frame_idxs' exceed number of frames"
         get_frames_correct_arg = func(imaging, frame_idxs, channel)
 
         if len(frame_idxs) == 1:
@@ -408,19 +408,19 @@ def check_get_videos_args(func):
     @wraps(func)
     def corrected_args(imaging, start_frame=None, end_frame=None, channel=0):
         if start_frame is not None:
-            if start_frame > imaging.get_num_frames():
-                raise Exception(f"'start_frame' exceeds number of frames {imaging.get_num_frames()}!")
+            if start_frame > imaging.get_num_samples():
+                raise Exception(f"'start_frame' exceeds number of frames {imaging.get_num_samples()}!")
             elif start_frame < 0:
-                start_frame = imaging.get_num_frames() + start_frame
+                start_frame = imaging.get_num_samples() + start_frame
         else:
             start_frame = 0
         if end_frame is not None:
-            if end_frame > imaging.get_num_frames():
-                raise Exception(f"'end_frame' exceeds number of frames {imaging.get_num_frames()}!")
+            if end_frame > imaging.get_num_samples():
+                raise Exception(f"'end_frame' exceeds number of frames {imaging.get_num_samples()}!")
             elif end_frame < 0:
-                end_frame = imaging.get_num_frames() + end_frame
+                end_frame = imaging.get_num_samples() + end_frame
         else:
-            end_frame = imaging.get_num_frames()
+            end_frame = imaging.get_num_samples()
         assert end_frame - start_frame > 0, "'start_frame' must be less than 'end_frame'!"
 
         start_frame, end_frame = _cast_start_end_frame(start_frame, end_frame)
@@ -483,7 +483,7 @@ def write_to_h5_dataset_format(
             # when suffix is already raw/bin/dat do not change it.
             save_path = save_path.parent / (save_path.name + ".h5")
     num_channels = imaging.get_num_channels()
-    num_frames = imaging.get_num_frames()
+    num_frames = imaging.get_num_samples()
     size_x, size_y = imaging.get_image_size()
 
     if file_handle is not None:
@@ -569,7 +569,7 @@ def show_video(imaging, ax=None):
     anim = animation.FuncAnimation(
         fig,
         animate_func,
-        frames=imaging.get_num_frames(),
+        frames=imaging.get_num_samples(),
         fargs=(imaging, im, ax),
         interval=interval,
         blit=False,

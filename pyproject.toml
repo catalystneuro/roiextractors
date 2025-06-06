@@ -1,3 +1,86 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "roiextractors"
+version = "0.5.14"
+description = "Python module for extracting optical physiology ROIs and traces for various file types and formats"
+readme = "README.md"
+license = { file = "LICENSE.txt" }
+authors = [
+    { name = "Heberto Mayorquin" },
+    { name = "Szonja Weigl" },
+    { name = "Cody Baker" },
+    { name = "Ben Dichter", email = "ben.dichter@gmail.com" },
+    { name = "Alessio Buccino" },
+    { name = "Paul Adkisson" },
+    { name = "Alessandra Trapani" },
+    { name = "Daphné de Quatrebarbes" },
+]
+keywords = ["ROI", "extraction", "optical physiology"]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "License :: OSI Approved :: BSD License",
+]
+requires-python = ">=3.10"
+
+dependencies = [
+  "h5py>=2.10.0",
+  "pynwb>=2.0.1",
+  "tqdm>=4.48.2",
+  "lazy_ops>=0.2.0",
+  "dill>=0.3.2",
+  "scipy>=1.5.2",
+  "psutil>=5.8.0",
+  "PyYAML",
+  "lxml",
+  "packaging",
+  "zarr>=2,<3",
+  "numcodecs<0.16.0",
+]
+
+[project.optional-dependencies]
+full = [
+    "tifffile>=2018.11.6",
+    "scanimage-tiff-reader>=1.4.1.4",
+    "neuroconv[video]>=0.4.6",
+    "opencv-python-headless>=4.8.1.78",
+    "natsort>=8.3.1",
+    "isx>=2.0; sys_platform != 'darwin' or platform_machine != 'arm64'"
+]
+test = [
+    "pytest",
+    "pytest-cov",
+    "parameterized==0.8.1",
+    "spikeinterface>=0.100.7",
+    "pytest-xdist"
+]
+docs = [
+    "Jinja2",
+    "Sphinx",
+    "sphinx_rtd_theme",
+    "readthedocs-sphinx-search",
+    "sphinx-toggleprompt",
+    "sphinx-copybutton",
+    "pydata_sphinx_theme"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/catalystneuro/roiextractors"
+"Documentation" = "https://roiextractors.readthedocs.io//"
+"Changelog" = "https://github.com/catalystneuro/roiextractors/blob/main/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+
 
 [tool.black]
 line-length = 120

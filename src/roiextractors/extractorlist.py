@@ -15,17 +15,20 @@ from .extractors.simaextractor import SimaSegmentationExtractor
 from .extractors.suite2p import Suite2pSegmentationExtractor
 from .extractors.tiffimagingextractors import (
     TiffImagingExtractor,
-    ScanImageTiffImagingExtractor,
+    ScanImageLegacyImagingExtractor,
     ScanImageTiffSinglePlaneImagingExtractor,
     ScanImageTiffMultiPlaneImagingExtractor,
     ScanImageTiffSinglePlaneMultiFileImagingExtractor,
     ScanImageTiffMultiPlaneMultiFileImagingExtractor,
+    ScanImageImagingExtractor,
     BrukerTiffMultiPlaneImagingExtractor,
     BrukerTiffSinglePlaneImagingExtractor,
     MicroManagerTiffImagingExtractor,
+    ThorTiffImagingExtractor,
 )
 from .extractors.sbximagingextractor import SbxImagingExtractor
 from .extractors.inscopixextractors import InscopixImagingExtractor
+from .extractors.inscopixextractors import InscopixSegmentationExtractor
 from .extractors.memmapextractors import NumpyMemmapImagingExtractor
 from .extractors.memmapextractors import MemmapImagingExtractor
 from .extractors.minian import MinianSegmentationExtractor
@@ -34,18 +37,21 @@ from .multisegmentationextractor import MultiSegmentationExtractor
 from .multiimagingextractor import MultiImagingExtractor
 from .volumetricimagingextractor import VolumetricImagingExtractor
 
+
 imaging_extractor_full_list = [
     NumpyImagingExtractor,
     Hdf5ImagingExtractor,
     TiffImagingExtractor,
-    ScanImageTiffImagingExtractor,
+    ScanImageLegacyImagingExtractor,
     ScanImageTiffSinglePlaneImagingExtractor,
     ScanImageTiffMultiPlaneImagingExtractor,
     ScanImageTiffSinglePlaneMultiFileImagingExtractor,
     ScanImageTiffMultiPlaneMultiFileImagingExtractor,
+    ScanImageImagingExtractor,
     BrukerTiffMultiPlaneImagingExtractor,
     BrukerTiffSinglePlaneImagingExtractor,
     MicroManagerTiffImagingExtractor,
+    ThorTiffImagingExtractor,
     MiniscopeImagingExtractor,
     NwbImagingExtractor,
     SbxImagingExtractor,
@@ -63,6 +69,7 @@ segmentation_extractor_full_list = [
     ExtractSegmentationExtractor,
     SimaSegmentationExtractor,
     CaimanSegmentationExtractor,
+    InscopixSegmentationExtractor,
     MinianSegmentationExtractor,
 ]
 

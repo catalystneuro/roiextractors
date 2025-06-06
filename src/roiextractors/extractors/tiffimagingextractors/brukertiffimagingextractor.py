@@ -17,6 +17,7 @@ from types import ModuleType
 from typing import Optional, Tuple, Union, List, Dict
 from xml.etree import ElementTree
 from lxml import etree
+import warnings
 
 import numpy as np
 
@@ -92,6 +93,7 @@ def _determine_imaging_is_volumetric(folder_path: PathType) -> bool:
         "TSeries Timed Element": False,  # XYT
         "ZSeries": True,  # ZT (not a time series)
         "Single": False,  # Single image (not a time series)
+        "BrightnessOverTime": False,  # XYT (not a volumetric series)
     }
 
     is_volumetric = False
@@ -260,24 +262,87 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
 
         super().__init__(imaging_extractors=imaging_extractors)
 
-        self._num_frames = self._imaging_extractors[0].get_num_frames()
+        self._num_samples = self._imaging_extractors[0].get_num_frames()
         self._image_size = *self._imaging_extractors[0].get_image_size(), self._num_planes_per_channel_stream
         self.xml_metadata = self._imaging_extractors[0].xml_metadata
 
         self._start_frames = [0] * self._num_planes_per_channel_stream
-        self._end_frames = [self._num_frames] * self._num_planes_per_channel_stream
+        self._end_frames = [self._num_samples] * self._num_planes_per_channel_stream
+        self.is_volumetric = True
+
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._image_size[0], self._image_size[1]
 
     # TODO: fix this method so that it is consistent with base multiimagingextractor method (i.e. num_rows, num_columns)
     def get_image_size(self) -> Tuple[int, int, int]:
+        import warnings
+
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._image_size
 
+    def get_num_samples(self) -> int:
+        return self._imaging_extractors[0].get_num_samples()
+
     def get_num_frames(self) -> int:
-        return self._imaging_extractors[0].get_num_frames()
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._imaging_extractors[0].get_sampling_frequency() * self._num_planes_per_channel_stream
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
+        """Get specific frames from the video.
+
+        Parameters
+        ----------
+        frame_idxs: ArrayType
+            The indices of the frames to get.
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        frames: numpy.ndarray
+            The requested frames.
+        """
+        if channel != 0:
+            from warnings import warn
+
+            warn(
+                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         if isinstance(frame_idxs, (int, np.integer)):
             frame_idxs = [frame_idxs]
         frame_idxs = np.array(frame_idxs)
@@ -291,24 +356,83 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
 
         return frames
 
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        start = start_sample if start_sample is not None else 0
+        stop = end_sample if end_sample is not None else self.get_num_samples()
+
+        series_shape = (stop - start,) + self.get_image_size()
+        series = np.empty(shape=series_shape, dtype=self.get_dtype())
+
+        for plane_ind, extractor in enumerate(self._imaging_extractors):
+            series[..., plane_ind] = extractor.get_series(start_sample=start, end_sample=stop)
+
+        return series
+
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
     ) -> np.ndarray:
+        """Get a chunk of video.
+
+        Parameters
+        ----------
+        start_frame: int, optional
+            Start frame index (inclusive).
+        end_frame: int, optional
+            End frame index (exclusive).
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        video: numpy.ndarray
+            The video chunk.
+
+        Raises
+        ------
+        NotImplementedError
+            If channel is not 0, as multiple channels are not yet supported.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
+        """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if channel != 0:
+            warnings.warn(
+                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             raise NotImplementedError(
                 f"MultiImagingExtractors for multiple channels have not yet been implemented! (Received '{channel}'."
             )
 
-        start = start_frame if start_frame is not None else 0
-        stop = end_frame if end_frame is not None else self.get_num_frames()
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
-        video_shape = (stop - start,) + self.get_image_size()
-        video = np.empty(shape=video_shape, dtype=self.get_dtype())
+    def get_num_planes(self) -> int:
+        """Get the number of depth planes.
 
-        for plane_ind, extractor in enumerate(self._imaging_extractors):
-            video[..., plane_ind] = extractor.get_video(start_frame=start, end_frame=stop)
+        Returns
+        -------
+        num_planes: int
+            The number of depth planes.
+        """
+        return self._num_planes_per_channel_stream
 
-        return video
+    def get_volume_shape(self) -> Tuple[int, int, int]:
+        """Get the shape of the volumetric video (num_rows, num_columns, num_planes).
+
+        Returns
+        -------
+        video_shape: tuple
+            Shape of the volumetric video (num_rows, num_columns, num_planes).
+        """
+        return (self._image_size[0], self._image_size[1], self.get_num_planes())
 
 
 class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
@@ -440,9 +564,9 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         file_counts = Counter(file_names_for_stream)
 
         imaging_extractors = []
-        for file_name, num_frames in file_counts.items():
+        for file_name, num_samples in file_counts.items():
             extractor = _BrukerTiffSinglePlaneImagingExtractor(file_path=str(Path(folder_path) / file_name))
-            extractor._num_frames = num_frames
+            extractor._num_samples = num_samples
             extractor._image_size = (self._height, self._width)
             extractor._dtype = self._dtype
             imaging_extractors.append(extractor)
@@ -498,7 +622,23 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         """Override the parent class method as none of the properties that are checked are from the sub-imaging extractors."""
         return True
 
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._height, self._width
+
     def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._height, self._width
 
     def get_sampling_frequency(self) -> float:
@@ -543,17 +683,54 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
 
         super().__init__()
 
-        self._num_frames = None
+        self._num_samples = None
         self._image_size = None
         self._dtype = None
 
+    def get_num_samples(self) -> int:
+        return self._num_samples
+
     def get_num_frames(self) -> int:
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_num_channels(self) -> int:
         return 1
 
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._image_size
+
     def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._image_size
 
     def get_sampling_frequency(self):
@@ -565,21 +742,56 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
     def get_dtype(self):
         raise NotImplementedError(self.DATA_TYPE_ERROR.format(self.extractor_name))
 
-    def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
-    ) -> np.ndarray:
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
         with self.tifffile.TiffFile(self.file_path, _multifile=False) as tif:
             pages = tif.pages
 
-            if start_frame is not None and end_frame is not None and start_frame == end_frame:
-                return pages[start_frame].asarray()
+            if start_sample is not None and end_sample is not None and start_sample == end_sample:
+                return pages[start_sample].asarray()
 
-            end_frame = end_frame or self.get_num_frames()
-            start_frame = start_frame or 0
+            end_sample = end_sample or self.get_num_samples()
+            start_sample = start_sample or 0
 
-            image_shape = (end_frame - start_frame, *self.get_image_size())
-            video = np.zeros(shape=image_shape, dtype=self._dtype)
-            for page_ind, page in enumerate(islice(pages, start_frame, end_frame)):
-                video[page_ind] = page.asarray()
+            image_shape = (end_sample - start_sample, *self.get_image_size())
+            series = np.zeros(shape=image_shape, dtype=self._dtype)
+            for page_ind, page in enumerate(islice(pages, start_sample, end_sample)):
+                series[page_ind] = page.asarray()
 
-        return video
+        return series
+
+    def get_video(
+        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
+    ) -> np.ndarray:
+        """Get the video frames.
+
+        Parameters
+        ----------
+        start_frame: int, optional
+            Start frame index (inclusive).
+        end_frame: int, optional
+            End frame index (exclusive).
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        video: numpy.ndarray
+            The video frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
+        """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if channel != 0:
+            warnings.warn(
+                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)

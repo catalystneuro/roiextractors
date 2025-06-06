@@ -10,6 +10,8 @@ NumpySegmentationExtractor
 
 from pathlib import Path
 from typing import Optional, Tuple
+import warnings
+from warnings import warn
 
 import numpy as np
 
@@ -22,7 +24,6 @@ class NumpyImagingExtractor(ImagingExtractor):
     """An ImagingExtractor specified by timeseries .npy file, sampling frequency, and channel names."""
 
     extractor_name = "NumpyImagingExtractor"
-    installed = True
     is_writable = True
     installation_mesg = ""  # error message when not installed
 
@@ -73,11 +74,11 @@ class NumpyImagingExtractor(ImagingExtractor):
         self._channel_names = channel_names
 
         (
-            self._num_frames,
+            self._num_samples,
             self._num_rows,
             self._num_columns,
             self._num_channels,
-        ) = self.get_video_shape(self._video)
+        ) = self.get_volume_shape(self._video)
 
         if len(self._video.shape) == 3:
             # check if this converts to np.ndarray
@@ -91,7 +92,7 @@ class NumpyImagingExtractor(ImagingExtractor):
             self._channel_names = [f"channel_{ch}" for ch in range(self._num_channels)]
 
     @staticmethod
-    def get_video_shape(video) -> Tuple[int, int, int, int]:
+    def get_volume_shape(video) -> Tuple[int, int, int, int]:
         """Get the shape of a video (num_frames, num_rows, num_columns, num_channels).
 
         Parameters
@@ -113,6 +114,26 @@ class NumpyImagingExtractor(ImagingExtractor):
         return num_frames, num_rows, num_columns, num_channels
 
     def get_frames(self, frame_idxs=None, channel: Optional[int] = 0) -> np.ndarray:
+        """Get specific video frames from indices.
+
+        Parameters
+        ----------
+        frame_idxs: array-like, optional
+            Indices of frames to return. If None, returns all frames.
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        frames: numpy.ndarray
+            The video frames.
+        """
+        if channel != 0:
+            warn(
+                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if frame_idxs is None:
             frame_idxs = [frame for frame in range(self.get_num_frames())]
 
@@ -122,14 +143,86 @@ class NumpyImagingExtractor(ImagingExtractor):
 
         return frames
 
+    def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
+        return self._video[start_sample:end_sample, ..., 0]
+
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+        """Get the video frames.
+
+        Parameters
+        ----------
+        start_frame: int, optional
+            Start frame index (inclusive).
+        end_frame: int, optional
+            End frame index (exclusive).
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        video: numpy.ndarray
+            The video frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
+        """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if channel != 0:
+            warn(
+                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         return self._video[start_frame:end_frame, ..., channel]
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
         return (self._num_rows, self._num_columns)
 
+    def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return (self._num_rows, self._num_columns)
+
+    def get_num_samples(self):
+        return self._num_samples
+
     def get_num_frames(self):
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self):
         return self._sampling_frequency
@@ -153,6 +246,11 @@ class NumpyImagingExtractor(ImagingExtractor):
         overwrite: bool
             If True, overwrite file if it already exists.
         """
+        warn(
+            "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         save_path = Path(save_path)
         assert save_path.suffix == ".npy", "'save_path' should have a .npy extension"
 
@@ -174,7 +272,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "NumpySegmentationExtractor"
-    installed = True  # check at class level if installed or not
     is_writable = True
     mode = "file"
     installation_mesg = ""  # error message when not installed
@@ -376,6 +473,11 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         -----
         This method is not implemented yet.
         """
+        warn(
+            "The write_segmentation function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         raise NotImplementedError
 
     # defining the abstract class informed methods:
@@ -385,5 +487,21 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         else:
             return self._roi_ids
 
+    def get_image_shape(self):
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._movie_dims
+
     def get_image_size(self):
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._movie_dims

@@ -37,11 +37,11 @@ jobs:
         id: ophys
         run: echo "::set-output name=HASH_OPHYS_DATASET::$(git ls-remote https://gin.g-node.org/CatalystNeuro/ophys_testing_data.git HEAD | cut -f1)"
       - name: Cache ophys dataset - ${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         id: cache-ophys-datasets
         with:
           path: ./ophys_testing_data
-          key: ophys-datasets-042023-${{ matrix.os }}-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
+          key: ophys-datasets-2025-05-${{ matrix.os }}-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
       - if: steps.cache-ophys-datasets.outputs.cache-hit == false
         name: Install and configure AWS CLI
         run: |

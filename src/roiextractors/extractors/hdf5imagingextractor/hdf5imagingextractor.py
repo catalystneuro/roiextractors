@@ -8,6 +8,7 @@ Hdf5ImagingExtractor
 
 from pathlib import Path
 from typing import Optional, Tuple
+import warnings
 from warnings import warn
 
 import numpy as np
@@ -90,7 +91,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
             self.metadata = metadata
 
         # The test data has four dimensions and the first axis is channels
-        self._num_channels, self._num_frames, self._num_rows, self._num_cols = self._video.shape
+        self._num_channels, self._num_samples, self._num_rows, self._num_cols = self._video.shape
         self._video = self._video.lazy_transpose([1, 2, 3, 0])
 
         if self._channel_names is not None:
@@ -112,6 +113,26 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         self._file.close()
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0):
+        """Get specific video frames from indices.
+
+        Parameters
+        ----------
+        frame_idxs: array-like
+            Indices of frames to return.
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        frames: numpy.ndarray
+            The video frames.
+        """
+        if channel != 0:
+            warn(
+                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         squeeze_data = False
         if isinstance(frame_idxs, int):
             squeeze_data = True
@@ -123,14 +144,86 @@ class Hdf5ImagingExtractor(ImagingExtractor):
             frames = frames.squeeze()
         return frames
 
-    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
-        return self._video.lazy_slice[start_frame:end_frame, :, :, channel].dsetread()
+    def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
+        return self._video.lazy_slice[start_sample:end_sample, :, :, 0].dsetread()
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+        """Get the video frames.
+
+        Parameters
+        ----------
+        start_frame: int, optional
+            Start frame index (inclusive).
+        end_frame: int, optional
+            End frame index (exclusive).
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        video: numpy.ndarray
+            The video frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
+        """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if channel != 0:
+            warn(
+                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
+
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
         return self._num_rows, self._num_cols
 
+    def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._num_rows, self._num_cols
+
+    def get_num_samples(self):
+        return self._num_samples
+
     def get_num_frames(self):
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self):
         return self._sampling_frequency
@@ -171,6 +264,11 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         FileExistsError
             If the file already exists and overwrite is False.
         """
+        warn(
+            "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         save_path = Path(save_path)
         assert save_path.suffix in [
             ".h5",

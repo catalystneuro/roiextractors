@@ -10,12 +10,14 @@ brukertiffimagingextractor
     Specialized extractor for reading TIFF files produced via Bruker.
 micromanagertiffimagingextractor
     Specialized extractor for reading TIFF files produced via Micro-Manager.
+thortiffimagingextractor
+    Specialized extractor for reading TIFF files produced via Thor.
 
 Classes
 -------
 TiffImagingExtractor
     A ImagingExtractor for TIFF files.
-ScanImageTiffImagingExtractor
+ScanImageLegacyImagingExtractor
     Legacy extractor for reading TIFF files produced via ScanImage v3.8.
 ScanImageTiffSinglePlaneImagingExtractor
     Specialized extractor for reading single-plane TIFF files produced via ScanImage.
@@ -31,15 +33,19 @@ BrukerTiffSinglePlaneImagingExtractor
     Specialized extractor for reading TIFF files produced via Bruker.
 MicroManagerTiffImagingExtractor
     Specialized extractor for reading TIFF files produced via Micro-Manager.
+ThorTiffImagingExtractor
+    Specialized extractor for reading TIFF files produced via Thor.
 """
 
 from .tiffimagingextractor import TiffImagingExtractor
 from .scanimagetiffimagingextractor import (
-    ScanImageTiffImagingExtractor,
+    ScanImageLegacyImagingExtractor,
     ScanImageTiffMultiPlaneImagingExtractor,
     ScanImageTiffSinglePlaneImagingExtractor,
     ScanImageTiffSinglePlaneMultiFileImagingExtractor,
     ScanImageTiffMultiPlaneMultiFileImagingExtractor,
+    ScanImageImagingExtractor,
 )
 from .brukertiffimagingextractor import BrukerTiffMultiPlaneImagingExtractor, BrukerTiffSinglePlaneImagingExtractor
 from .micromanagertiffimagingextractor import MicroManagerTiffImagingExtractor
+from .thortiffimagingextractor import ThorTiffImagingExtractor

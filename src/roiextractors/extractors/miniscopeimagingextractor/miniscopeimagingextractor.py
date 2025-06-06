@@ -10,6 +10,7 @@ import json
 import re
 from pathlib import Path
 from typing import Optional, Tuple, List
+import warnings
 
 import numpy as np
 
@@ -18,19 +19,43 @@ from ...multiimagingextractor import MultiImagingExtractor
 from ...extraction_tools import PathType, DtypeType, get_package
 
 
-class MiniscopeImagingExtractor(MultiImagingExtractor):  # TODO: rename to MiniscopeMultiImagingExtractor
-    """An ImagingExtractor for the Miniscope video (.avi) format.
+class MiniscopeMultiRecordingImagingExtractor(MultiImagingExtractor):
+    """
+    ImagingExtractor processes multiple separate Miniscope recordings within the same session.
 
-    This format consists of video (.avi) file(s) and configuration files (.json).
-    One _MiniscopeImagingExtractor is created for each video file and then combined into the MiniscopeImagingExtractor.
+    Important, this extractor consolidates the recordings as a single continuous dataset.
+
+    Expected directory structure:
+
+    .
+    ├── C6-J588_Disc5
+    │   ├── 15_03_28  (timestamp)
+    │   │   ├── BehavCam_2
+    │   │   ├── metaData.json
+    │   │   └── Miniscope
+    │   ├── 15_06_28 (timestamp)
+    │   │   ├── BehavCam_2
+    │   │   ├── metaData.json
+    │   │   └── Miniscope
+    │   └── 15_07_58 (timestamp)
+    │       ├── BehavCam_2
+    │       ├── metaData.json
+    │       └── Miniscope
+    └──
+
+    Where the Miniscope folders contain a collection of .avi files and a metaData.json file.
+
+    For each video file, a _MiniscopeSingleVideoExtractor is created. These individual extractors
+    are then combined into the MiniscopeMultiRecordingImagingExtractor to handle the session's recordings
+    as a unified, continuous dataset.
     """
 
-    extractor_name = "MiniscopeImaging"
+    extractor_name = "MiniscopeMultiRecordingImagingExtractor"
     is_writable = True
     mode = "folder"
 
     def __init__(self, folder_path: PathType):
-        """Create a MiniscopeImagingExtractor instance from a folder path.
+        """Create a MiniscopeMultiRecordingImagingExtractor instance from a folder path.
 
         Parameters
         ----------
@@ -58,24 +83,36 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):  # TODO: rename to Minis
 
         imaging_extractors = []
         for file_path in miniscope_avi_file_paths:
-            extractor = _MiniscopeImagingExtractor(file_path=file_path)
+            extractor = _MiniscopeSingleVideoExtractor(file_path=file_path)
             extractor._sampling_frequency = self._sampling_frequency
             imaging_extractors.append(extractor)
 
         super().__init__(imaging_extractors=imaging_extractors)
 
 
-class _MiniscopeImagingExtractor(ImagingExtractor):
-    """An ImagingExtractor for the Miniscope video (.avi) format.
+# Temporary renaming to keep backwards compatibility
+class MiniscopeImagingExtractor(MiniscopeMultiRecordingImagingExtractor):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            "MiniscopeImagingExtractor is unstable and might change its signature. "
+            "Please use MiniscopeMultiRecordingImagingExtractor instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(*args, **kwargs)
 
-    This format consists of a single video (.avi) file and configuration file (.json).
-    Multiple _MiniscopeImagingExtractor are combined into the MiniscopeImagingExtractor for public access.
+
+class _MiniscopeSingleVideoExtractor(ImagingExtractor):
+    """An auxiliar extractor to get data from a single Miniscope video (.avi) file.
+
+    This format consists of a single video (.avi)
+    Multiple _MiniscopeSingleVideoExtractor are combined by downstream extractors to extract the data
     """
 
-    extractor_name = "_MiniscopeImaging"
+    extractor_name = "_MiniscopeSingleVideo"
 
     def __init__(self, file_path: PathType):
-        """Create a _MiniscopeImagingExtractor instance from a file path.
+        """Create a _MiniscopeSingleVideoExtractor instance from a file path.
 
         Parameters
         ----------
@@ -90,19 +127,56 @@ class _MiniscopeImagingExtractor(ImagingExtractor):
         super().__init__()
 
         with self._video_capture(file_path=str(file_path)) as video_obj:
-            self._num_frames = video_obj.get_video_frame_count()
+            self._num_samples = video_obj.get_video_frame_count()
             self._image_size = video_obj.get_frame_shape()
             self._dtype = video_obj.get_video_frame_dtype()
 
         self._sampling_frequency = None
 
+    def get_num_samples(self) -> int:
+        return self._num_samples
+
     def get_num_frames(self) -> int:
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_num_channels(self) -> int:
         return 1
 
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._image_size[:-1]
+
     def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._image_size[:-1]
 
     def get_sampling_frequency(self):
@@ -114,8 +188,22 @@ class _MiniscopeImagingExtractor(ImagingExtractor):
     def get_channel_names(self) -> List[str]:
         return ["OpticalChannel"]
 
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        end_sample = end_sample or self.get_num_samples()
+        start_sample = start_sample or 0
+
+        series = np.empty(shape=(end_sample - start_sample, *self.get_image_size()), dtype=self.get_dtype())
+        with self._video_capture(file_path=str(self.file_path)) as video_obj:
+            # Set the starting frame position
+            video_obj.current_frame = start_sample
+            for frame_number in range(end_sample - start_sample):
+                frame = next(video_obj)
+                series[frame_number] = self._cv2.cvtColor(frame, self._cv2.COLOR_RGB2GRAY)
+
+        return series
+
     def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
+        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
     ) -> np.ndarray:
         """Get the video frames.
 
@@ -137,21 +225,20 @@ class _MiniscopeImagingExtractor(ImagingExtractor):
         -----
         The grayscale conversion is based on minian
         https://github.com/denisecailab/minian/blob/f64c456ca027200e19cf40a80f0596106918fd09/minian/utilities.py#LL272C12-L272C12
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
         """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if channel != 0:
             raise NotImplementedError(
                 f"The {self.extractor_name}Extractor does not currently support multiple color channels."
             )
 
-        end_frame = end_frame or self.get_num_frames()
-        start_frame = start_frame or 0
-
-        video = np.empty(shape=(end_frame - start_frame, *self.get_image_size()), dtype=self.get_dtype())
-        with self._video_capture(file_path=str(self.file_path)) as video_obj:
-            # Set the starting frame position
-            video_obj.current_frame = start_frame
-            for frame_number in range(end_frame - start_frame):
-                frame = next(video_obj)
-                video[frame_number] = self._cv2.cvtColor(frame, self._cv2.COLOR_RGB2GRAY)
-
-        return video
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
