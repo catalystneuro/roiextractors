@@ -69,7 +69,7 @@ class MultiImagingExtractor(ImagingExtractor):
         """
         properties_to_check = dict(
             get_sampling_frequency="The sampling frequency",
-            get_sample_shape="The size of a frame",
+            get_sample_shape="The shape of a sample",
             get_channel_names="The name of the channels",
             get_dtype="The data type",
             get_num_samples="The number of samples",

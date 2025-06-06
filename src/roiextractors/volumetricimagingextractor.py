@@ -57,7 +57,6 @@ class VolumetricImagingExtractor(ImagingExtractor):
         properties_to_check = dict(
             get_sampling_frequency="The sampling frequency",
             get_image_shape="The shape of a frame",
-            get_image_size="The size of a frame",
             get_num_channels="The number of channels",
             get_channel_names="The name of the channels",
             get_dtype="The data type",
@@ -88,7 +87,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
         if end_sample <= start_sample:
             raise ValueError(f"end_sample {end_sample} is less than or equal to start_sample {start_sample}")
 
-        series = np.zeros((end_sample - start_sample, *self.get_image_size()), self.get_dtype())
+        series = np.zeros((end_sample - start_sample, *self.get_sample_shape()), self.get_dtype())
         for i, imaging_extractor in enumerate(self._imaging_extractors):
             series[..., i] = imaging_extractor.get_series(start_sample, end_sample)
         return series
@@ -149,7 +148,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
 
         # Note np.all([]) returns True so not all(np.diff(frame_idxs) == 1) returns False if frame_idxs is a single int
         if not all(np.diff(frame_idxs) == 1):
-            frames = np.zeros((len(frame_idxs), *self.get_image_size()), self.get_dtype())
+            frames = np.zeros((len(frame_idxs), *self.get_sample_shape()), self.get_dtype())
             for i, imaging_extractor in enumerate(self._imaging_extractors):
                 frames[..., i] = imaging_extractor.get_frames(frame_idxs, channel=channel)
             return frames
@@ -185,7 +184,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
             DeprecationWarning,
             stacklevel=2,
         )
-        image_size = (*self._imaging_extractors[0].get_image_size(), self.get_num_planes())
+        image_size = (*self._imaging_extractors[0].get_frame_shape(), self.get_num_planes())
         return image_size
 
     def get_num_planes(self) -> int:
