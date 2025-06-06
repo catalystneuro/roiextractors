@@ -14,7 +14,7 @@ from tests.setup_paths import OPHYS_DATA_PATH
 class TestMinianSegmentationExtractor(TestCase):
     @classmethod
     def setUpClass(cls):
-        folder_path = str(OPHYS_DATA_PATH / "segmentation_datasets" / "minian")
+        folder_path = str(OPHYS_DATA_PATH / "segmentation_datasets" / "minian" / "segmented_data_3units_100frames")
 
         cls.folder_path = Path(folder_path)
         extractor = MinianSegmentationExtractor(folder_path=cls.folder_path)
