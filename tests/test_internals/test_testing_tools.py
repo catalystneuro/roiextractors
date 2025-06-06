@@ -105,7 +105,7 @@ class TestDummySegmentationExtractor(TestCase):
         times_to_set = np.round(np.arange(num_frames - 1) / sampling_frequency, 6)
         with self.assertRaisesWith(
             exc_type=AssertionError,
-            exc_msg="'times' should have the same length of the number of frames!",
+            exc_msg="'times' should have the same length of the number of samples!",
         ):
             segmentation_extractor.set_times(times_to_set)
 
