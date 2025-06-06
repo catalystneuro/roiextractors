@@ -80,9 +80,9 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         ids = self._dataset_file["estimates"]["A"]["indptr"]
         image_mask_in = csc_matrix(
             (masks, roi_ids, ids),
-            shape=(np.prod(self.get_image_size()), self.get_num_rois()),
+            shape=(np.prod(self.get_image_shape()), self.get_num_rois()),
         ).toarray()
-        image_masks = np.reshape(image_mask_in, (*self.get_image_size(), -1), order="F")
+        image_masks = np.reshape(image_mask_in, (*self.get_image_shape(), -1), order="F")
         return image_masks
 
     def _background_image_mask_read(self):
@@ -95,7 +95,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         """
         if self._dataset_file["estimates"].get("b"):
             background_image_mask_in = self._dataset_file["estimates"]["b"]
-            background_image_masks = np.reshape(background_image_mask_in, (*self.get_image_size(), -1), order="F")
+            background_image_masks = np.reshape(background_image_mask_in, (*self.get_image_shape(), -1), order="F")
             return background_image_masks
 
     def _trace_extractor_read(self, field):
@@ -245,7 +245,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             f.create_dataset("dims", data=segmentation_object.get_image_size())
 
     def get_frame_shape(self):
-        return self._image_dims
+        return self._dataset_file["params"]["data"]["dims"][()]
 
     def get_image_size(self):
         warnings.warn(
