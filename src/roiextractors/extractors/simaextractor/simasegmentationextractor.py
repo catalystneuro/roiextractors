@@ -173,5 +173,15 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     def get_rejected_list(self):
         return [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
 
+    def get_frame_shape(self):
+        """Get the frame shape (height, width) of the movie.
+
+        Returns
+        -------
+        tuple
+            The frame shape as (height, width).
+        """
+        return self._image_masks.shape[0:2]
+
     def get_image_size(self):
         return self._image_masks.shape[0:2]

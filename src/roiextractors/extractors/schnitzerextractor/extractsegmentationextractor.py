@@ -260,6 +260,16 @@ class NewExtractSegmentationExtractor(
     def get_roi_ids(self) -> list:
         return list(range(self.get_num_rois()))
 
+    def get_frame_shape(self) -> ArrayType:
+        """Get the frame shape (height, width) of the movie.
+
+        Returns
+        -------
+        ArrayType
+            The frame shape as (height, width).
+        """
+        return self._image_masks.shape[:-1]
+
     def get_image_size(self) -> ArrayType:
         return self._image_masks.shape[:-1]
 
@@ -378,6 +388,16 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
     def get_rejected_list(self):
         ac_set = set(self.get_accepted_list())
         return [a for a in range(self.get_num_rois()) if a not in ac_set]
+
+    def get_frame_shape(self):
+        """Get the frame shape (height, width) of the movie.
+
+        Returns
+        -------
+        tuple
+            The frame shape as (height, width).
+        """
+        return self._image_masks.shape[0:2]
 
     def get_image_size(self):
         return self._image_masks.shape[0:2]

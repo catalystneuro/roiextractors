@@ -462,6 +462,16 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         tranpose_image_convention = (1, 0) if len(self.get_image_size()) == 2 else (1, 0, 2)
         return np.array(self._roi_locs.data)[roi_idxs, tranpose_image_convention].T  # h5py fancy indexing is slow
 
+    def get_frame_shape(self):
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        frame_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._image_masks.shape[:2]
+
     def get_image_shape(self):
         """Get the shape of the video frame (num_rows, num_columns).
 

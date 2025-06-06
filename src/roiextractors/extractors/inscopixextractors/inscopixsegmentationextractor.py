@@ -58,6 +58,18 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
     def get_roi_ids(self) -> list:
         return [self.cell_set.get_cell_name(x) for x in range(self.get_num_rois())]
 
+    def get_frame_shape(self) -> ArrayType:
+        if hasattr(self.cell_set, "spacing"):
+            # Swap dimensions to return (width, height)
+            pixels = self.cell_set.spacing.num_pixels
+            return (pixels[1], pixels[0])
+        else:
+            if self.get_num_rois() > 0:
+                shape = self.cell_set.get_cell_image_data(0).shape
+                # Swap dimensions to return (width, height)
+                return (shape[1], shape[0])
+            raise ValueError("No ROIs found in the segmentation. Unable to determine image size.")
+
     def get_image_size(self) -> ArrayType:
         if hasattr(self.cell_set, "spacing"):
             # Swap dimensions to return (width, height)

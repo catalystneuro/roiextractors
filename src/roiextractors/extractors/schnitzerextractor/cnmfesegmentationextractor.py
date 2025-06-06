@@ -128,6 +128,16 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         ac_set = set(self.get_accepted_list())
         return [a for a in range(self.get_num_rois()) if a not in ac_set]
 
+    def get_frame_shape(self):
+        """Get the frame shape (height, width) of the movie.
+
+        Returns
+        -------
+        tuple
+            The frame shape as (height, width).
+        """
+        return self._image_masks.shape[0:2]
+
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite: bool = True):
         """Write a segmentation object to a .mat file.

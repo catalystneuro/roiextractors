@@ -160,6 +160,9 @@ class MultiSegmentationExtractor(SegmentationExtractor):
                 return_dict.update({f"{trace_name}_Plane{i}": trace})
         return return_dict
 
+    def get_frame_shape(self) -> tuple[int, int]:
+        return self._segmentations[0].get_frame_shape()
+
     def get_image_size(self) -> tuple[int, int]:
         return self._segmentations[0].get_image_size()
 

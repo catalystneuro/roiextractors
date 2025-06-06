@@ -551,7 +551,7 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
         return tuple(self._parent_segmentation.get_frame_shape())
 
     def get_image_size(self) -> Tuple[int, int]:
-        return tuple(self._parent_segmentation.get_image_size())
+        return tuple(self._parent_segmentation.get_frame_shape())
 
     def get_num_samples(self) -> int:
         return self._num_frames
