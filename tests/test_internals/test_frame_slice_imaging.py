@@ -51,16 +51,16 @@ class TestFrameSliceImaging(TestCase):
     def test_get_num_channels(self):
         assert self.frame_sliced_imaging.get_num_channels() == 1
 
-    def test_get_frames_assertion(self):
+    def test_get_samples_assertion(self):
         with self.assertRaisesWith(
-            exc_type=AssertionError, exc_msg="'frame_idxs' range beyond number of available frames!"
+            exc_type=AssertionError, exc_msg="'sample_indices' range beyond number of available samples!"
         ):
-            self.frame_sliced_imaging.get_frames(frame_idxs=[6])
+            self.frame_sliced_imaging.get_samples(sample_indices=[6])
 
-    def test_get_frames(self):
+    def test_get_samples(self):
         assert_array_equal(
-            self.frame_sliced_imaging.get_frames(frame_idxs=[2, 4]),
-            self.toy_imaging_example.get_frames(frame_idxs=[4, 6]),
+            self.frame_sliced_imaging.get_samples(sample_indices=[2, 4]),
+            self.toy_imaging_example.get_samples(sample_indices=[4, 6]),
         )
 
     def test_get_dtype(self):

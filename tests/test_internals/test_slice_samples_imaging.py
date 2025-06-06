@@ -55,11 +55,11 @@ def test_get_num_channels():
     assert sample_sliced_imaging.get_num_channels() == 1
 
 
-def test_get_frames_assertion():
+def test_get_samples_assertion():
     imaging_extractor = generate_dummy_imaging_extractor(num_frames=10, num_rows=5, num_columns=4, num_channels=1)
     sample_sliced_imaging = imaging_extractor.slice_samples(start_sample=2, end_sample=7)
-    with pytest.raises(AssertionError, match="'frame_idxs' range beyond number of available frames!"):
-        sample_sliced_imaging.get_frames(frame_idxs=[6])
+    with pytest.raises(AssertionError, match="'sample_indices' range beyond number of available samples!"):
+        sample_sliced_imaging.get_samples(sample_indices=[6])
 
 
 def test_get_frames():
