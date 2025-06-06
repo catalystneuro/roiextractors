@@ -11,19 +11,93 @@ from typing import List, Tuple
 from ...extraction_tools import PathType, get_package
 
 
-def get_miniscope_files_from_folder(folder_path: PathType) -> Tuple[List[PathType], PathType]:
+def get_miniscope_files_from_multi_timestamp_subfolders(
+    folder_path: PathType, miniscopeDeviceName: str = "Miniscope"
+) -> Tuple[List[PathType], PathType]:
     """
-    Automatically retrieve .avi file paths and configuration file path from a folder.
+    Retrieve Miniscope files from a multi-session folder structure.
 
-    This function scans the provided folder for Miniscope .avi files and configuration
-    files, supporting the common Miniscope folder structures.
+    This function handles the Tye Lab format where multiple recordings
+    are organized in timestamp subfolders, each containing a Miniscope subfolder.
+
+    Expected folder structure:
+    ```
+    parent_folder/
+    ├── 15_03_28/  (timestamp folder)
+    │   ├── Miniscope/
+    │   │   ├── 0.avi
+    │   │   ├── 1.avi
+    │   │   └── metaData.json
+    │   ├── BehavCam_2/
+    │   └── metaData.json
+    ├── 15_06_28/  (timestamp folder)
+    │   ├── Miniscope/
+    │   │   ├── 0.avi
+    │   │   └── metaData.json
+    │   └── BehavCam_2/
+    └── 15_12_28/  (timestamp folder)
+        └── Miniscope/
+            ├── 0.avi
+            └── metaData.json
+    ```
 
     Parameters
     ----------
     folder_path : PathType
-        The folder path containing Miniscope data. This can be either:
-        - A parent folder containing multiple timestamp subfolders with Miniscope data
-        - A direct path to a folder containing .avi files and metaData.json
+        Path to the parent folder containing timestamp subfolders.
+    miniscopeDeviceName : str, optional
+        Name of the Miniscope device subfolder. Defaults to "Miniscope".
+
+    Returns
+    -------
+    Tuple[List[PathType], PathType]
+        A tuple containing:
+        - List of .avi file paths sorted naturally
+        - Path to the first configuration file found (metaData.json)
+
+    Raises
+    ------
+    AssertionError
+        If no .avi files or configuration files are found.
+    """
+    natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
+
+    folder_path = Path(folder_path)
+    configuration_file_name = "metaData.json"
+
+    miniscope_avi_file_paths = natsort.natsorted(list(folder_path.glob(f"*/{miniscopeDeviceName}/*.avi")))
+    miniscope_config_files = natsort.natsorted(
+        list(folder_path.glob(f"*/{miniscopeDeviceName}/{configuration_file_name}"))
+    )
+
+    assert miniscope_avi_file_paths, f"No Miniscope .avi files found at '{folder_path}'"
+    assert miniscope_config_files, f"No Miniscope configuration files found at '{folder_path}'"
+
+    return miniscope_avi_file_paths, miniscope_config_files[0]
+
+
+def get_miniscope_files_from_direct_folder(folder_path: PathType) -> Tuple[List[PathType], PathType]:
+    """
+    Retrieve Miniscope files from a folder containing .avi files directly.
+
+    This function handles cases where .avi files and metaData.json are located
+    directly in the specified folder without subfolders.
+
+    Expected folder structure:
+    ```
+    folder/
+    ├── 0.avi
+    ├── 1.avi
+    ├── 2.avi
+    ├── metaData.json
+    ├── timeStamps.csv
+    └── headOrientation.csv
+    ```
+
+    Parameters
+    ----------
+    folder_path : PathType
+        Path to the folder containing .avi files and metaData.json directly.
 
     Returns
     -------
@@ -35,38 +109,18 @@ def get_miniscope_files_from_folder(folder_path: PathType) -> Tuple[List[PathTyp
     Raises
     ------
     AssertionError
-        If no .avi files or configuration files are found in the specified folder.
-
-    Examples
-    --------
-    >>> file_paths, config_path = get_miniscope_files_from_folder("/path/to/miniscope/data")
-    >>> extractor = MiniscopeMultiRecordingImagingExtractor(file_paths, config_path)
+        If no .avi files or configuration files are found.
     """
     natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
 
     folder_path = Path(folder_path)
     configuration_file_name = "metaData.json"
 
-    # Try to find .avi files in the current folder structure
-    # Pattern 1: Parent folder with timestamp subfolders containing Miniscope folders
-    miniscope_avi_file_paths = natsort.natsorted(list(folder_path.glob("*/Miniscope/*.avi")))
-    miniscope_config_files = natsort.natsorted(list(folder_path.glob(f"*/Miniscope/{configuration_file_name}")))
+    miniscope_avi_file_paths = natsort.natsorted(list(folder_path.glob("*.avi")))
+    miniscope_config_files = natsort.natsorted(list(folder_path.glob(configuration_file_name)))
 
-    # Pattern 2: Direct folder containing .avi files
-    if not miniscope_avi_file_paths:
-        miniscope_avi_file_paths = natsort.natsorted(list(folder_path.glob("*.avi")))
-        miniscope_config_files = natsort.natsorted(list(folder_path.glob(configuration_file_name)))
-
-    # Pattern 3: Folder with Miniscope subfolder
-    if not miniscope_avi_file_paths:
-        miniscope_avi_file_paths = natsort.natsorted(list(folder_path.glob("Miniscope/*.avi")))
-        miniscope_config_files = natsort.natsorted(list(folder_path.glob(f"Miniscope/{configuration_file_name}")))
-
-    # Validate that files were found
-    assert miniscope_avi_file_paths, f"The Miniscope movies (.avi files) are missing from '{folder_path}'."
-    assert (
-        miniscope_config_files
-    ), f"The configuration files ({configuration_file_name} files) are missing from '{folder_path}'."
+    assert miniscope_avi_file_paths, f"No .avi files found in direct folder structure at '{folder_path}'"
+    assert miniscope_config_files, f"No configuration file found in direct folder structure at '{folder_path}'"
 
     return miniscope_avi_file_paths, miniscope_config_files[0]
 
