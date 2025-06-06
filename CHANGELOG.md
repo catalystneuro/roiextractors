@@ -10,7 +10,7 @@
 
 ### Deprecations And Removals
 * Removed unused `is_writable` class attributes from all extractor classes [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
-* `get_frames` is not `get_samples`, `get_samples` will be deprecated in or after January 2026 [PR #TBD](https://github.com/catalystneuro/roiextractors/pull/TBD)
+* `get_frames` is not `get_samples`, `get_samples` will be deprecated in or after January 2026 [PR #444](https://github.com/catalystneuro/roiextractors/pull/444)
 
 ### Improvements
 * Bruker series can now read sequences of type `BrightnessOverTime` [PR #448](https://github.com/catalystneuro/roiextractors/pull/448)
