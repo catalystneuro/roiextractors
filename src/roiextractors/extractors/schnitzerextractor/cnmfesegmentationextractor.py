@@ -7,6 +7,7 @@ CnmfeSegmentationExtractor
 """
 
 from pathlib import Path
+import warnings
 from warnings import warn
 
 import h5py
@@ -212,4 +213,10 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
                 inputoptions.create_dataset("Fs", data=segmentation_object.get_sampling_frequency())
 
     def get_image_size(self):
-        return self._image_masks.shape[0:2]
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2025. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()

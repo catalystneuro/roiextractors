@@ -2,6 +2,7 @@
 
 from typing import Optional
 import platform
+import warnings
 import numpy as np
 
 from ...extraction_tools import PathType, ArrayType
@@ -71,16 +72,13 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             raise ValueError("No ROIs found in the segmentation. Unable to determine image size.")
 
     def get_image_size(self) -> ArrayType:
-        if hasattr(self.cell_set, "spacing"):
-            # Swap dimensions to return (width, height)
-            pixels = self.cell_set.spacing.num_pixels
-            return (pixels[1], pixels[0])
-        else:
-            if self.get_num_rois() > 0:
-                shape = self.cell_set.get_cell_image_data(0).shape
-                # Swap dimensions to return (width, height)
-                return (shape[1], shape[0])
-            raise ValueError("No ROIs found in the segmentation. Unable to determine image size.")
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()
 
     def get_accepted_list(self) -> list:
         return [id for x, id in enumerate(self.get_roi_ids()) if self.cell_set.get_cell_status(x) == "accepted"]

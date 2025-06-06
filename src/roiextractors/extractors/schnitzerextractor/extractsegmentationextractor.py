@@ -13,6 +13,7 @@ LegacyExtractSegmentationExtractor
 from abc import ABC
 from pathlib import Path
 from typing import Optional
+import warnings
 
 import numpy as np
 from lazy_ops import DatasetView
@@ -271,7 +272,13 @@ class NewExtractSegmentationExtractor(
         return self._image_masks.shape[:-1]
 
     def get_image_size(self) -> ArrayType:
-        return self._image_masks.shape[:-1]
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2025. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()
 
     def get_images_dict(self):
         images_dict = super().get_images_dict()
@@ -400,4 +407,10 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         return self._image_masks.shape[0:2]
 
     def get_image_size(self):
-        return self._image_masks.shape[0:2]
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2025. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()

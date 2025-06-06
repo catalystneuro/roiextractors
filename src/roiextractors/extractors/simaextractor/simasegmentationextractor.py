@@ -12,6 +12,7 @@ import pickle
 import re
 from shutil import copyfile
 from warnings import warn
+import warnings
 
 import numpy as np
 
@@ -184,4 +185,10 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         return self._image_masks.shape[0:2]
 
     def get_image_size(self):
-        return self._image_masks.shape[0:2]
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()

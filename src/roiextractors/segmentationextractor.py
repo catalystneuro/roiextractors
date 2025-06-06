@@ -84,7 +84,7 @@ class SegmentationExtractor(ABC):
     def get_image_size(self) -> ArrayType:
         """Get frame size of movie (height, width).
 
-        .. deprecated:: on or after January 2025
+        .. deprecated:: on or after January 2026
            Use :meth:`get_frame_shape` instead.
 
         Returns
@@ -93,7 +93,7 @@ class SegmentationExtractor(ABC):
             2-D array: image height x image width
         """
         warnings.warn(
-            "get_image_size is deprecated and will be removed on or after January 2025. "
+            "get_image_size is deprecated and will be removed on or after January 2026. "
             "Use get_frame_shape instead.",
             FutureWarning,
             stacklevel=2,
@@ -115,7 +115,7 @@ class SegmentationExtractor(ABC):
     def get_num_frames(self) -> int:
         """Get the number of frames in the recording (duration of recording).
 
-        .. deprecated:: on or after January 2025
+        .. deprecated:: on or after January 2026
            Use :meth:`get_num_samples` instead.
 
         Returns
@@ -124,7 +124,7 @@ class SegmentationExtractor(ABC):
             Number of frames in the recording.
         """
         warnings.warn(
-            "get_num_frames is deprecated and will be removed on or after January 2025. "
+            "get_num_frames is deprecated and will be removed on or after January 2026. "
             "Use get_num_samples instead.",
             FutureWarning,
             stacklevel=2,
