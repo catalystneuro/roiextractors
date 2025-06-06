@@ -128,7 +128,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             return np.expand_dims(dataset[field], axis=1)
 
     def _read_timestamps_from_csv(self):
-        """Extract timestamps corresponding to frame numbers of the stored denoised trace
+        """Extract timestamps corresponding to frame numbers of the stored denoised trace.
 
         Returns
         -------
