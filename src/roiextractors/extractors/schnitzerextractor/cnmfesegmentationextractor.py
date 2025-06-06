@@ -28,7 +28,6 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "CnmfeSegmentation"
-    is_writable = False
     mode = "file"
 
     def __init__(self, file_path: PathType):

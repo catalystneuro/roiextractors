@@ -28,7 +28,6 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "CaimanSegmentation"
-    is_writable = True
     mode = "file"
 
     def __init__(self, file_path: PathType):
