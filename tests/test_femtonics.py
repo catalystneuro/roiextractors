@@ -62,6 +62,11 @@ def test_femtonicsimagingextractor_p29_mesc():
     assert channels == ["UG", "UR"]
     assert len(channels) == 2
 
+    # Test session info (number of MUnits and session UUID)
+    session_info = extractor.get_session_uuid()
+    expected_uuid = np.array([102, 213, 51, 146, 143, 154, 66, 41, 182, 97, 30, 169, 181, 145, 82, 30], dtype=session_info.dtype)
+    assert np.array_equal(session_info, expected_uuid)
+
     # Test channel selection by name
     extractor_ug = FemtonicsImagingExtractor(file_path=file_path, channel_name="UG")
     extractor_ur = FemtonicsImagingExtractor(file_path=file_path, channel_name="UR")
