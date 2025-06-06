@@ -85,7 +85,7 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         self._ome_metadata = first_tif.ome_metadata
         ome_metadata_root = self._get_ome_xml_root()
 
-        schema_name = re.findall("\{(.*)\}", ome_metadata_root.tag)[0]
+        schema_name = re.findall(r"\{(.*)\}", ome_metadata_root.tag)[0]
         pixels_element = ome_metadata_root.find(f"{{{schema_name}}}Image/{{{schema_name}}}Pixels")
         self._num_samples = int(pixels_element.attrib["SizeT"])
         self._dtype = np.dtype(pixels_element.attrib["Type"])
@@ -226,7 +226,6 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
     """
 
     extractor_name = "_MicroManagerTiffImaging"
-    is_writable = True
     mode = "file"
 
     SAMPLING_FREQ_ERROR = "The {}Extractor does not support retrieving the imaging rate."
@@ -312,7 +311,7 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
 
         end_sample = end_sample or self.get_num_samples()
         start_sample = start_sample or 0
-        series = np.zeros(shape=(end_sample - start_sample, *self.get_image_size()), dtype=self.get_dtype())
+        series = np.zeros(shape=(end_sample - start_sample, *self.get_sample_shape()), dtype=self.get_dtype())
         for page_ind, page in enumerate(islice(self.pages, start_sample, end_sample)):
             series[page_ind] = page.asarray()
         return series

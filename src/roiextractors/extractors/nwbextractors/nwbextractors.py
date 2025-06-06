@@ -54,7 +54,6 @@ class NwbImagingExtractor(ImagingExtractor):
     """
 
     extractor_name = "NwbImaging"
-    is_writable = True
     mode = "file"
 
     def __init__(self, file_path: PathType, optical_series_name: Optional[str] = "TwoPhotonSeries"):
@@ -331,7 +330,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     """An segmentation extractor for NWB files."""
 
     extractor_name = "NwbSegmentationExtractor"
-    is_writable = False
     mode = "file"
     installation_mesg = ""  # error message when not installed
 

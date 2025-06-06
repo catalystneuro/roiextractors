@@ -24,7 +24,6 @@ class SbxImagingExtractor(ImagingExtractor):
     """Imaging extractor for the Scanbox image format."""
 
     extractor_name = "SbxImaging"
-    is_writable = True
     mode = "folder"
 
     def __init__(self, file_path: PathType, sampling_frequency: Optional[float] = None):

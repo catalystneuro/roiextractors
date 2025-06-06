@@ -29,7 +29,6 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "SimaSegmentation"
-    is_writable = False
     mode = "file"
     # error message when not installed
     installation_mesg = "To use the SimaSegmentationExtractor install sima and dill: \n\n pip install sima/dill\n\n"

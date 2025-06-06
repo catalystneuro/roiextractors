@@ -24,7 +24,6 @@ class NumpyImagingExtractor(ImagingExtractor):
     """An ImagingExtractor specified by timeseries .npy file, sampling frequency, and channel names."""
 
     extractor_name = "NumpyImagingExtractor"
-    is_writable = True
     installation_mesg = ""  # error message when not installed
 
     def __init__(
@@ -272,7 +271,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "NumpySegmentationExtractor"
-    is_writable = True
     mode = "file"
     installation_mesg = ""  # error message when not installed
 

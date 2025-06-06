@@ -52,25 +52,25 @@ class TestThorTiffImagingExtractor:
         """Test the data type property."""
         assert self.extractor.get_dtype() == self.test_data.dtype
 
-    def test_thor_tiff_extractor_get_video(self):
-        """Test the get_video method."""
-        video = self.extractor.get_video()
-        assert video.shape[0] == self.test_data.shape[0]  # Same number of frames
-        assert video.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
-        assert video.dtype == self.test_data.dtype  # Same data type
+    def test_thor_tiff_extractor_get_series(self):
+        """Test the get_series method."""
+        series = self.extractor.get_series()
+        assert series.shape[0] == self.test_data.shape[0]  # Same number of frames
+        assert series.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
+        assert series.dtype == self.test_data.dtype  # Same data type
 
         # Compare with the entire test_data
-        assert_array_equal(video, self.test_data)
+        assert_array_equal(series, self.test_data)
 
         # Test with start and end frame
-        start_frame = 0
-        end_frame = 2
-        video_slice = self.extractor.get_video(start_frame=start_frame, end_frame=end_frame)
-        assert video_slice.shape[0] == end_frame - start_frame  # Correct number of frames
-        assert video_slice.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
+        start_sample = 0
+        end_sample = 2
+        series_slice = self.extractor.get_series(start_sample=start_sample, end_sample=end_sample)
+        assert series_slice.shape[0] == end_sample - start_sample  # Correct number of frames
+        assert series_slice.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
 
         # Compare with the corresponding slice of test_data
-        assert_array_equal(video_slice, self.test_data[start_frame:end_frame])
+        assert_array_equal(series_slice, self.test_data[start_sample:end_sample])
 
     def test_thor_tiff_extractor_get_frames(self):
         """Test the get_frames method."""
