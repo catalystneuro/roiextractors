@@ -749,7 +749,7 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
             end_sample = end_sample or self.get_num_samples()
             start_sample = start_sample or 0
 
-            image_shape = (end_sample - start_sample, *self.get_image_size())
+            image_shape = (end_sample - start_sample, *self.get_image_shape())
             series = np.zeros(shape=image_shape, dtype=self._dtype)
             for page_ind, page in enumerate(islice(pages, start_sample, end_sample)):
                 series[page_ind] = page.asarray()

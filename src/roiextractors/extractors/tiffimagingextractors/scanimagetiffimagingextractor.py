@@ -1255,6 +1255,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         timestamps = extract_timestamps_from_file(file_path)
         index = [self.frame_to_raw_index(iframe) for iframe in range(self._num_samples)]
         self._times = timestamps[index]
+        self.is_volumetric = False
 
     def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
         """Get specific video frames from indices (not necessarily continuous).
