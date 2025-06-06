@@ -56,7 +56,7 @@ def generate_dummy_imaging_extractor(
     dtype: DtypeType = "uint16",
     channel_names: Optional[List[str]] = None,
     seed: int = 0,
-    num_samples=None,  # This parameter is not used in the function but can be added for future flexibility
+    num_samples=None,
 ):
     """Generate a dummy imaging extractor for testing.
 
