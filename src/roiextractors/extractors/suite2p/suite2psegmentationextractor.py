@@ -229,7 +229,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
     def get_num_frames(self) -> int:
         warnings.warn(
-            "get_num_frames is deprecated and will be removed on or after January 2025. "
+            "get_num_frames is deprecated and will be removed on or after January 2026. "
             "Use get_num_samples instead.",
             FutureWarning,
             stacklevel=2,
