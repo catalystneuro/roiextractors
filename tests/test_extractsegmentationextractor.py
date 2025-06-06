@@ -126,10 +126,10 @@ class TestNewExtractSegmentationExtractor(TestCase):
             self.assertEqual(self.extractor._sampling_frequency, self.sampling_frequency)
             self.assertIsInstance(self.extractor.get_sampling_frequency(), float)
 
-            assert_array_equal(self.extractor.get_image_size(), [50, 50])
+            assert_array_equal(self.extractor.get_frame_shape(), [50, 50])
 
             self.assertEqual(self.extractor.get_num_rois(), 20)
-            self.assertEqual(self.extractor.get_num_frames(), 2000)
+            self.assertEqual(self.extractor.get_num_samples(), 2000)
 
             self.assertEqual(self.extractor.get_rejected_list(), [])
             self.assertEqual(self.extractor.get_accepted_list(), list(range(20)))

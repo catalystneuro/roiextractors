@@ -12,6 +12,7 @@ import pickle
 import re
 from shutil import copyfile
 from warnings import warn
+import warnings
 
 import numpy as np
 
@@ -172,5 +173,21 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     def get_rejected_list(self):
         return [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
 
-    def get_image_size(self):
+    def get_frame_shape(self):
+        """Get the frame shape (height, width) of the movie.
+
+        Returns
+        -------
+        tuple
+            The frame shape as (height, width).
+        """
         return self._image_masks.shape[0:2]
+
+    def get_image_size(self):
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()

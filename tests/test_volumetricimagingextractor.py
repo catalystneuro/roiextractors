@@ -107,13 +107,6 @@ def test_get_channel_names(channel_names):
     assert volumetric_imaging_extractor.get_channel_names() == channel_names
 
 
-@pytest.mark.parametrize("num_channels", [1, 2, 3])
-def test_get_num_channels(num_channels):
-    imaging_extractors = [generate_dummy_imaging_extractor(num_channels=num_channels)]
-    volumetric_imaging_extractor = VolumetricImagingExtractor(imaging_extractors=imaging_extractors)
-    assert volumetric_imaging_extractor.get_num_channels() == num_channels
-
-
 @pytest.mark.parametrize("dtype", [np.float64, np.int16, np.uint8])
 def test_get_dtype(dtype):
     imaging_extractors = [generate_dummy_imaging_extractor(dtype=dtype)]

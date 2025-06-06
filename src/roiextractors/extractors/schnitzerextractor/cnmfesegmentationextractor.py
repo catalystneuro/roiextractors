@@ -7,6 +7,7 @@ CnmfeSegmentationExtractor
 """
 
 from pathlib import Path
+import warnings
 from warnings import warn
 
 import h5py
@@ -127,6 +128,16 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         ac_set = set(self.get_accepted_list())
         return [a for a in range(self.get_num_rois()) if a not in ac_set]
 
+    def get_frame_shape(self):
+        """Get the frame shape (height, width) of the movie.
+
+        Returns
+        -------
+        tuple
+            The frame shape as (height, width).
+        """
+        return self._image_masks.shape[0:2]
+
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite: bool = True):
         """Write a segmentation object to a .mat file.
@@ -201,4 +212,10 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
                 inputoptions.create_dataset("Fs", data=segmentation_object.get_sampling_frequency())
 
     def get_image_size(self):
-        return self._image_masks.shape[0:2]
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()

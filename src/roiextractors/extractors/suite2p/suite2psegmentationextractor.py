@@ -10,6 +10,7 @@ import shutil
 from pathlib import Path
 from typing import Optional
 from warnings import warn
+import warnings
 import numpy as np
 
 from ...extraction_tools import PathType
@@ -182,7 +183,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self._image_masks = _image_mask_extractor(
             self.get_roi_pixel_masks(),
             roi_indices,
-            self.get_image_size(),
+            self.get_frame_shape(),
         )
 
     def _load_npy(self, file_name: str, mmap_mode=None, transpose: bool = False, require: bool = False):
@@ -215,8 +216,24 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
         return data
 
-    def get_num_frames(self) -> int:
+    def get_num_samples(self) -> int:
+        """Get the number of samples in the recording (duration of recording).
+
+        Returns
+        -------
+        num_samples: int
+            Number of samples in the recording.
+        """
         return self._num_frames
+
+    def get_num_frames(self) -> int:
+        warnings.warn(
+            "get_num_frames is deprecated and will be removed on or after January 2026. "
+            "Use get_num_samples instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_accepted_list(self) -> list[int]:
         return list(np.where(self.iscell[:, 0] == 1)[0])
@@ -272,8 +289,17 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
         return [pixel_mask[i] for i in roi_idx_]
 
-    def get_image_size(self) -> tuple[int, int]:
+    def get_frame_shape(self) -> tuple[int, int]:
         return self._image_size
+
+    def get_image_size(self) -> tuple[int, int]:
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()
 
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite=True):
