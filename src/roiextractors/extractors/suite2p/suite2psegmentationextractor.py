@@ -23,7 +23,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     """A segmentation extractor for Suite2p."""
 
     extractor_name = "Suite2pSegmentationExtractor"
-    is_writable = False
     mode = "folder"
     installation_mesg = ""  # error message when not installed
 

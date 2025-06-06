@@ -13,7 +13,6 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
     extractor_name = "InscopixSegmentationExtractor"
     installed = True
-    is_writable = False
     mode = "file"
     installation_mesg = ""
 

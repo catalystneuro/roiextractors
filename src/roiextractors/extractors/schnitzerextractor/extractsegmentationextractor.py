@@ -151,7 +151,6 @@ class NewExtractSegmentationExtractor(
     """
 
     extractor_name = "NewExtractSegmentation"
-    is_writable = False
     mode = "file"
 
     def __init__(
@@ -293,7 +292,6 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "LegacyExtractSegmentation"
-    is_writable = False
     mode = "file"
 
     def __init__(
