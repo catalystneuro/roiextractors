@@ -30,7 +30,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
     ):
         """Create a FemtonicsImagingExtractor from a .mesc file.
 
-        # Will remove this section in the future - here let you know 
+        # Will remove this section in the future - here let you know
         Differences from Hdf5ImagingExtractor:
         - Removes 'mov_field': Femtonics uses fixed hierarchy MSession_X/MUnit_X/Channel_X
         - Removes 'channel_names': Channel names auto-extracted from Femtonics metadata
@@ -44,7 +44,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         munit : int, optional
             Index of the measurement unit to extract. The default is 0.
         channel_name : str, optional
-            Name of the channel to extract (e.g., 'UG', 'UR'). 
+            Name of the channel to extract (e.g., 'UG', 'UR').
             If provided, takes precedence over channel_index.
         channel_index : int, optional
             Index of the channel to extract (0 or 1). The default is 0.
@@ -184,8 +184,8 @@ class FemtonicsImagingExtractor(ImagingExtractor):
             The session UUID.
         """
         attrs = dict(self._file.attrs)
-        return attrs.get('Uuid')
-    
+        return attrs.get("Uuid")
+
     def get_pixel_size(self) -> Tuple[float, float]:
         """Get pixel size in micrometers."""
         session_key = f"MSession_{self._munit}"
@@ -234,9 +234,9 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         attrs = dict(self._file[session_key][munit_key].attrs)
 
         return {
-            'username': self._decode_string(attrs.get('ExperimenterUsername', [])),
-            'setup_id': self._decode_string(attrs.get('ExperimenterSetupID', [])),
-            'hostname': self._decode_string(attrs.get('ExperimenterHostname', [])), 
+            "username": self._decode_string(attrs.get("ExperimenterUsername", [])),
+            "setup_id": self._decode_string(attrs.get("ExperimenterSetupID", [])),
+            "hostname": self._decode_string(attrs.get("ExperimenterHostname", [])),
         }
 
     def get_geometric_transformations(self) -> Dict[str, np.ndarray]:
