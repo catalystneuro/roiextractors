@@ -14,7 +14,7 @@ def test_femtonicsimagingextractor_p29_mesc():
     File: p29.mesc
     Metadata (note: metadata vs actual data mismatch):
     - Source: Femtonics .mesc file (MESc 3.3)
-    - Metadata claims: 56250 samples (frames) 
+    - Metadata claims: 56250 samples (frames)
     - Actual data contains: 5 samples (frames) - this appears to be a preview/subset
     - Frame rate: ~30.96 Hz (32.297 ms per frame)
     - Frame shape: (512, 512) pixels
@@ -30,7 +30,7 @@ def test_femtonicsimagingextractor_p29_mesc():
     3. Tests Femtonics-specific functionality like channel selection and metadata extraction.
     4. Handles metadata vs actual data mismatches gracefully.
 
-    Note : the actual data only contains 5 frames, not the 56250 claimed in metadata likely due to being truncated for testing. 
+    Note : the actual data only contains 5 frames, not the 56250 claimed in metadata likely due to being truncated for testing.
     """
     file_path = OPHYS_DATA_PATH / "imaging_datasets" / "Femtonics" / "moser_lab_mec" / "p29.mesc"
     extractor = FemtonicsImagingExtractor(file_path=file_path)
@@ -40,19 +40,19 @@ def test_femtonicsimagingextractor_p29_mesc():
     print(f"Metadata claims: 56250 frames")
     print(f"Actual HDF5 data: 5 frames")
     print(f"This is a metadata vs actual data mismatch!")
-    
+
     # Basic properties - test against ACTUAL data, not metadata claims
     assert extractor.get_image_shape() == (512, 512)
     assert extractor.get_num_samples() == 5  # Test actual data, not metadata
 
     # Test metadata claims
-    assert extractor.get_image_shape_metadata() == (512, 512, 56250) 
+    assert extractor.get_image_shape_metadata() == (512, 512, 56250)
 
     # Test sampling frequency calculation (should still work from metadata)
-    expected_freq = 1000.0 / 32.29672617170252 
+    expected_freq = 1000.0 / 32.29672617170252
     actual_freq = extractor.get_sampling_frequency()
     assert abs(actual_freq - expected_freq) < 0.01  # ~30.96 Hz
-    
+
     assert extractor.get_channel_names() == ["UG"]  # Default first channel
     assert extractor.get_num_channels() == 1  # Single channel extraction
     assert extractor.extractor_name == "FemtonicsImaging"
@@ -65,7 +65,7 @@ def test_femtonicsimagingextractor_p29_mesc():
     # Test channel selection by name
     extractor_ug = FemtonicsImagingExtractor(file_path=file_path, channel_name="UG")
     extractor_ur = FemtonicsImagingExtractor(file_path=file_path, channel_name="UR")
-    
+
     assert extractor_ug.get_channel_names() == ["UG"]
     assert extractor_ur.get_channel_names() == ["UR"]
 
@@ -87,22 +87,21 @@ def test_femtonicsimagingextractor_p29_mesc():
     # Test experimenter info - using new getter method
     experimenter_info = extractor.get_experimenter_info()
     assert isinstance(experimenter_info, dict)
-    assert experimenter_info['username'] == 'flaviod'
-    assert experimenter_info['setup_id'] == 'SN20150066006-MBMoser_1'
-    assert experimenter_info['hostname'] == 'KI-FEMTO-0185'
+    assert experimenter_info["username"] == "flaviod"
+    assert experimenter_info["setup_id"] == "SN20150066006-MBMoser_1"
+    assert experimenter_info["hostname"] == "KI-FEMTO-0185"
 
     # Test MESc version info - using new getter method
     version_info = extractor.get_mesc_version_info()
     assert isinstance(version_info, dict)
-    assert version_info['version'] == 'MESc 3.3'
-    assert version_info['revision'] == 4356
+    assert version_info["version"] == "MESc 3.3"
+    assert version_info["revision"] == 4356
 
     # Test geometric transformations
     geo = extractor.get_geometric_transformations()
-    assert np.allclose(geo['translation'], np.array([-456.221198,-456.221198, -11608.54]))
-    assert np.allclose(geo['rotation'], np.array([0., 0., 0., 1.]))
-    assert np.allclose(geo['labeling_origin'], np.array([0.,0.,-11474.34]))
-
+    assert np.allclose(geo["translation"], np.array([-456.221198, -456.221198, -11608.54]))
+    assert np.allclose(geo["rotation"], np.array([0.0, 0.0, 0.0, 1.0]))
+    assert np.allclose(geo["labeling_origin"], np.array([0.0, 0.0, -11474.34]))
 
     # Test PMT settings (should match XML)
     pmt_settings = extractor.get_pmt_settings()
@@ -136,10 +135,9 @@ def test_femtonicsimagingextractor_p29_mesc():
         # Test series - all 5 frames
         series = extractor.get_series(start_sample=0, end_sample=5)
         assert series.shape == (5,) + extractor.get_image_shape()
-        
+
         # Test that different channels give same dimensions
         series_ug = extractor_ug.get_series(start_sample=0, end_sample=5)
         series_ur = extractor_ur.get_series(start_sample=0, end_sample=5)
         assert series_ug.shape == series_ur.shape
         assert series_ug.shape == (5,) + extractor.get_image_shape()
- 
