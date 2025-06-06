@@ -390,7 +390,7 @@ class ImagingExtractor(ABC):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        return self.get_samples(sample_idxs=frame_idxs)
+        return self.get_samples(sample_indices=frame_idxs)
 
     def sample_indices_to_time(self, sample_indices: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
         """Convert user-inputted sample indices to times with units of seconds.
@@ -623,10 +623,10 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         # Inherit volumetric properties from parent
         self.is_volumetric = self._parent_imaging.is_volumetric
 
-    def get_samples(self, sample_idxs: ArrayType) -> np.ndarray:
-        assert max(sample_idxs) < self._num_samples, "'sample_idxs' range beyond number of available samples!"
-        mapped_sample_idxs = np.array(sample_idxs) + self._start_frame
-        return self._parent_imaging.get_samples(sample_idxs=mapped_sample_idxs)
+    def get_samples(self, sample_indices: ArrayType) -> np.ndarray:
+        assert max(sample_indices) < self._num_samples, "'sample_indices' range beyond number of available samples!"
+        mapped_sample_indices = np.array(sample_indices) + self._start_frame
+        return self._parent_imaging.get_samples(sample_indices=mapped_sample_indices)
 
     def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
         warnings.warn(
@@ -640,7 +640,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        return self.get_samples(sample_idxs=frame_idxs)
+        return self.get_samples(sample_indices=frame_idxs)
 
     def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
         assert start_sample is None or start_sample >= 0, (
