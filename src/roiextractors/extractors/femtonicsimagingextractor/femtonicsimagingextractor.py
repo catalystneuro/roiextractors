@@ -118,7 +118,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
     def get_num_samples(self) -> int:
         """Get the number of samples (frames) in the video."""
         return self._video.shape[0]
-    
+
     def get_channel_names(self) -> List[str]:
         """Get the channel names."""
         return [self._selected_channel_name]
@@ -135,7 +135,9 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         session_key = f"MSession_{self._munit}"
         munit_key = f"MUnit_{self._munit}"
         attrs = dict(self._file[session_key][munit_key].attrs)
-        return attrs.get("ZAxisConversionConversionLinearScale") #ZAxisConversionConversionLinearScale gives the duration of one frame in milliseconds.
+        return attrs.get(
+            "ZAxisConversionConversionLinearScale"
+        )  # ZAxisConversionConversionLinearScale gives the duration of one frame in milliseconds.
 
     def get_dtype(self) -> np.dtype:
         """Get the data type of the video."""
@@ -147,10 +149,10 @@ class FemtonicsImagingExtractor(ImagingExtractor):
             warn("Femtonics extractor extracts one channel at a time. Channel parameter ignored.")
 
         squeeze_data = False
-        if isinstance(frame_idxs, int): # Single frame index
+        if isinstance(frame_idxs, int):  # Single frame index
             squeeze_data = True
             frame_idxs = [frame_idxs]
-        elif isinstance(frame_idxs, np.ndarray): # Numpy array of indices
+        elif isinstance(frame_idxs, np.ndarray):  # Numpy array of indices
             frame_idxs = frame_idxs.tolist()
 
         frames = self._video.lazy_slice[frame_idxs, :, :].dsetread()
