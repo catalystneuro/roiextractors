@@ -12,6 +12,7 @@ FrameSliceSegmentationExtractor
 
 from abc import ABC, abstractmethod
 from typing import Union, Optional, Tuple, Iterable, List
+import warnings
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -69,27 +70,66 @@ class SegmentationExtractor(ABC):
         pass
 
     @abstractmethod
+    def get_frame_shape(self) -> ArrayType:
+        """Get frame size of movie (height, width).
+
+        Returns
+        -------
+        frame_shape: array_like
+            2-D array: image height x image width
+        """
+        pass
+
+    @abstractmethod
     def get_image_size(self) -> ArrayType:
         """Get frame size of movie (height, width).
+
+        .. deprecated:: on or after January 2025
+           Use :meth:`get_frame_shape` instead.
 
         Returns
         -------
         no_rois: array_like
             2-D array: image height x image width
         """
-        pass
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2025. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()
+
+    def get_num_samples(self) -> int:
+        """Get the number of samples in the recording (duration of recording).
+
+        Returns
+        -------
+        num_samples: int
+            Number of samples in the recording.
+        """
+        for trace in self.get_traces_dict().values():
+            if trace is not None and len(trace.shape) > 0:
+                return trace.shape[0]
 
     def get_num_frames(self) -> int:
         """Get the number of frames in the recording (duration of recording).
+
+        .. deprecated:: on or after January 2025
+           Use :meth:`get_num_samples` instead.
 
         Returns
         -------
         num_frames: int
             Number of frames in the recording.
         """
-        for trace in self.get_traces_dict().values():
-            if trace is not None and len(trace.shape) > 0:
-                return trace.shape[0]
+        warnings.warn(
+            "get_num_frames is deprecated and will be removed on or after January 2025. "
+            "Use get_num_samples instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_roi_locations(self, roi_ids=None) -> np.ndarray:
         """Get the locations of the Regions of Interest (ROIs).
@@ -394,7 +434,7 @@ class SegmentationExtractor(ABC):
         -----
         Operates on _times attribute of the SegmentationExtractor object.
         """
-        assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames!"
+        assert len(times) == self.get_num_samples(), "'times' should have the same length of the number of samples!"
         self._times = np.array(times, dtype=np.float64)
 
     def has_time_vector(self) -> bool:
@@ -433,7 +473,6 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "FrameSliceSegmentationExtractor"
-    is_writable = True
 
     def __init__(
         self,
@@ -454,7 +493,7 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
         """
         self._parent_segmentation = parent_segmentation
         self._start_frame = start_frame or 0
-        self._end_frame = end_frame or self._parent_segmentation.get_num_frames()
+        self._end_frame = end_frame or self._parent_segmentation.get_num_samples()
         self._num_frames = self._end_frame - self._start_frame
 
         if hasattr(self._parent_segmentation, "_image_masks"):  # otherwise, do not set attribute at all
@@ -463,7 +502,7 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
         if hasattr(self._parent_segmentation, "_background_image_masks"):  # otherwise, do not set attribute at all
             self._background_image_masks = self._parent_segmentation._background_image_masks
 
-        parent_size = self._parent_segmentation.get_num_frames()
+        parent_size = self._parent_segmentation.get_num_samples()
         if start_frame is None:
             start_frame = 0
         else:
@@ -508,8 +547,14 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
             for trace_name, trace in self._parent_segmentation.get_traces_dict().items()
         }
 
+    def get_frame_shape(self) -> Tuple[int, int]:
+        return tuple(self._parent_segmentation.get_frame_shape())
+
     def get_image_size(self) -> Tuple[int, int]:
         return tuple(self._parent_segmentation.get_image_size())
+
+    def get_num_samples(self) -> int:
+        return self._num_frames
 
     def get_num_frames(self) -> int:
         return self._num_frames
