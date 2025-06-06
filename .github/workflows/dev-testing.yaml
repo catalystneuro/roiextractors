@@ -47,4 +47,4 @@ jobs:
 
       - name: Run NeuroConv tests
         run: |
-            pytest -n auto --dist loadscope neuroconv/tests/test_ophys neuroconv/tests/test_on_data/ophys/test_imaging_interfaces.py neuroconv/tests/test_on_data/ophys/test_segmentation_interfaces.py
+            pytest -n auto --dist loadscope neuroconv/tests/test_modalities/test_ophys neuroconv/tests/test_on_data/ophys/test_imaging_interfaces.py neuroconv/tests/test_on_data/ophys/test_segmentation_interfaces.py
