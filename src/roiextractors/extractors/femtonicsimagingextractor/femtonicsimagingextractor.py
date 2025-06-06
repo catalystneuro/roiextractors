@@ -30,13 +30,6 @@ class FemtonicsImagingExtractor(ImagingExtractor):
     ):
         """Create a FemtonicsImagingExtractor from a .mesc file.
 
-        # Will remove this section in the future - here let you know
-        Differences from Hdf5ImagingExtractor:
-        - Removes 'mov_field': Femtonics uses fixed hierarchy MSession_X/MUnit_X/Channel_X
-        - Removes 'channel_names': Channel names auto-extracted from Femtonics metadata
-        - Adds 'munit': Femtonics files can contain multiple measurement units
-        - Adds 'channel_name'/'channel_index': Extracts one channel at a time for cleaner data handling
-
         Parameters
         ----------
         file_path : str or Path
@@ -65,7 +58,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         self._setup_video_data()
 
     def _setup_channel_selection(self):
-        """Determine which channel to extract."""
+        """Determine which channel to extract using either name or index."""
         available_channels = self.get_available_channels_from_file()
 
         if self._channel_name is not None:
@@ -80,7 +73,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
             self._selected_channel_name = available_channels[self._channel_index]
 
     def _setup_video_data(self):
-        """Setup access to the video dataset."""
+        """Setup access to the actual imagon data  for the selected measurement unit and chanel."""
         session_key = f"MSession_{self._munit}"
         munit_key = f"MUnit_{self._munit}"
         channel_key = f"Channel_{self._selected_channel_index}"
@@ -125,11 +118,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
     def get_num_samples(self) -> int:
         """Get the number of samples (frames) in the video."""
         return self._video.shape[0]
-
-    def get_num_channels(self) -> int:
-        """Get the number of channels (always 1 for this extractor)."""
-        return 1
-
+    
     def get_channel_names(self) -> List[str]:
         """Get the channel names."""
         return [self._selected_channel_name]
@@ -137,16 +126,16 @@ class FemtonicsImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self) -> float:
         """Get the sampling frequency in Hz."""
         time_per_frame_ms = self._get_time_per_frame()
-        if time_per_frame_ms is not None:
-            return 1000.0 / time_per_frame_ms
-        return 30.0  # fallback
+        if time_per_frame_ms is None:
+            raise ValueError("Sampling frequency could not be determined from metadata.")
+        return 1000.0 / time_per_frame_ms
 
     def _get_time_per_frame(self) -> Optional[float]:
         """Get time per frame from metadata."""
         session_key = f"MSession_{self._munit}"
         munit_key = f"MUnit_{self._munit}"
         attrs = dict(self._file[session_key][munit_key].attrs)
-        return attrs.get("ZAxisConversionConversionLinearScale")
+        return attrs.get("ZAxisConversionConversionLinearScale") #ZAxisConversionConversionLinearScale gives the duration of one frame in milliseconds.
 
     def get_dtype(self) -> np.dtype:
         """Get the data type of the video."""
@@ -158,10 +147,10 @@ class FemtonicsImagingExtractor(ImagingExtractor):
             warn("Femtonics extractor extracts one channel at a time. Channel parameter ignored.")
 
         squeeze_data = False
-        if isinstance(frame_idxs, int):
+        if isinstance(frame_idxs, int): # Single frame index
             squeeze_data = True
             frame_idxs = [frame_idxs]
-        elif isinstance(frame_idxs, np.ndarray):
+        elif isinstance(frame_idxs, np.ndarray): # Numpy array of indices
             frame_idxs = frame_idxs.tolist()
 
         frames = self._video.lazy_slice[frame_idxs, :, :].dsetread()

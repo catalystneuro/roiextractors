@@ -54,7 +54,6 @@ def test_femtonicsimagingextractor_p29_mesc():
     assert abs(actual_freq - expected_freq) < 0.01  # ~30.96 Hz
 
     assert extractor.get_channel_names() == ["UG"]  # Default first channel
-    assert extractor.get_num_channels() == 1  # Single channel extraction
     assert extractor.extractor_name == "FemtonicsImaging"
 
     # Test available channels static method
