@@ -4,6 +4,8 @@
 
 ### Fixes
 * Added missing function to retrieve inscopix metadata [PR #436](https://github.com/catalystneuro/roiextractors/pull/436)
+* Added MinianSegmentationExtractor: [PR #368](https://github.com/catalystneuro/roiextractors/pull/368)
+
 ### Deprecations And Removals
 
 ### Improvements
