@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import dtype
 from numpy.testing import assert_array_equal
-from datetime import datetime
+from datetime import datetime, timezone
 
 from roiextractors.extractors.femtonicsimagingextractor import FemtonicsImagingExtractor
 from .setup_paths import OPHYS_DATA_PATH
@@ -87,7 +87,7 @@ def test_femtonicsimagingextractor_p29_mesc():
 
     # Test measurement date - using new getter method
     measurement_date = extractor.get_measurement_date()
-    assert measurement_date == datetime(2017, 9, 29, 9, 53, 0, 903594)
+    assert measurement_date == datetime(2017, 9, 29, 7, 53, 0, 903594, tzinfo=timezone.utc)
 
     # Test experimenter info - using new getter method
     experimenter_info = extractor.get_experimenter_info()

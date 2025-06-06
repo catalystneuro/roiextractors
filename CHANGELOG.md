@@ -1,6 +1,7 @@
 # v0.5.14 (Upcoming)
 
 ### Features
+* Added `FemtonicsImagingExtractor` for reading and extracting metadata and imaging data from Femtonics MESc files.[PR #440](https://github.com/catalystneuro/roiextractors/pull/440)
 
 ### Fixes
 

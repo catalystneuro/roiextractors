@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Optional, Tuple, Dict, Any, List
 from warnings import warn
-from datetime import datetime
+from datetime import datetime, timezone
 import xml.etree.ElementTree as ET
 
 import numpy as np
@@ -214,7 +214,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         return (x_dim, y_dim, z_dim)
 
     def get_measurement_date(self) -> Optional[datetime]:
-        """Get measurement date."""
+        """Get measurement date as a timezone-aware UTC datetime."""
         session_key = f"MSession_{self._munit}"
         munit_key = f"MUnit_{self._munit}"
         attrs = dict(self._file[session_key][munit_key].attrs)
@@ -223,7 +223,8 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         nano_secs = attrs.get("MeasurementDateNanoSecs", 0)
 
         if posix_time is not None:
-            return datetime.fromtimestamp(posix_time + nano_secs / 1e9)
+            # Return as UTC
+            return datetime.fromtimestamp(posix_time + nano_secs / 1e9, tz=timezone.utc)
         return None
 
     def get_experimenter_info(self) -> Dict[str, str]:
