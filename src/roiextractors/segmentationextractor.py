@@ -80,7 +80,6 @@ class SegmentationExtractor(ABC):
         """
         pass
 
-    @abstractmethod
     def get_image_size(self) -> ArrayType:
         """Get frame size of movie (height, width).
 

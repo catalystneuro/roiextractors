@@ -503,7 +503,14 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         image_shape: tuple
             Shape of the video frame (num_rows, num_columns).
         """
-        return self._movie_dims
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
+        return self.get_frame_shape()
 
     def get_num_samples(self):
         """Get the number of samples in the recording (duration of recording).
