@@ -23,8 +23,8 @@ class TestDummySegmentationExtractor(TestCase):
 
         # Test basic shape
         assert segmentation_extractor.get_num_rois() == self.num_rois
-        assert segmentation_extractor.get_num_frames() == self.num_frames
-        assert segmentation_extractor.get_image_size() == (self.num_rows, self.num_columns)
+        assert segmentation_extractor.get_num_samples() == self.num_frames
+        assert segmentation_extractor.get_frame_shape() == (self.num_rows, self.num_columns)
         assert segmentation_extractor.get_sampling_frequency() == self.sampling_frequency
         assert segmentation_extractor.get_roi_ids() == list(range(self.num_rois))
         assert segmentation_extractor.get_accepted_list() == segmentation_extractor.get_roi_ids()
@@ -55,8 +55,8 @@ class TestDummySegmentationExtractor(TestCase):
 
         # Test basic shape
         assert segmentation_extractor.get_num_rois() == self.num_rois
-        assert segmentation_extractor.get_num_frames() == self.num_frames
-        assert segmentation_extractor.get_image_size() == (self.num_rows, self.num_columns)
+        assert segmentation_extractor.get_num_samples() == self.num_frames
+        assert segmentation_extractor.get_frame_shape() == (self.num_rows, self.num_columns)
         assert segmentation_extractor.get_sampling_frequency() == self.sampling_frequency
         assert segmentation_extractor.get_roi_ids() == list(range(self.num_rois))
         assert segmentation_extractor.get_accepted_list() == segmentation_extractor.get_roi_ids()
@@ -82,7 +82,7 @@ class TestDummySegmentationExtractor(TestCase):
 
         segmentation_extractor = generate_dummy_segmentation_extractor()
 
-        num_frames = segmentation_extractor.get_num_frames()
+        num_frames = segmentation_extractor.get_num_samples()
         sampling_frequency = segmentation_extractor.get_sampling_frequency()
 
         # Check that times have not been set yet
@@ -105,7 +105,7 @@ class TestDummySegmentationExtractor(TestCase):
         times_to_set = np.round(np.arange(num_frames - 1) / sampling_frequency, 6)
         with self.assertRaisesWith(
             exc_type=AssertionError,
-            exc_msg="'times' should have the same length of the number of frames!",
+            exc_msg="'times' should have the same length of the number of samples!",
         ):
             segmentation_extractor.set_times(times_to_set)
 

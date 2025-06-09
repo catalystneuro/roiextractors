@@ -93,10 +93,10 @@ class TestSuite2pSegmentationExtractor(TestCase):
         self.assertEqual(traces_dict["deconvolved"], None)
 
     def test_image_size(self):
-        self.assertEqual(self.extractor.get_image_size(), self.image_size)
+        self.assertEqual(self.extractor.get_frame_shape(), self.image_size)
 
     def test_num_frames(self):
-        self.assertEqual(self.extractor.get_num_frames(), 250)
+        self.assertEqual(self.extractor.get_num_samples(), 250)
 
     def test_sampling_frequency(self):
         self.assertEqual(self.extractor.get_sampling_frequency(), 10.0)
