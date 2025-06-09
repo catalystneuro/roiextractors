@@ -57,7 +57,7 @@ pip install git+https://github.com/catalystneuro/roiextractors.git@main
 ```
 ### Special Setup for macOS ARM64
 
-When using ROIExtractors with Inscopix (`isx`) on Apple Silicon (macOS arm64 architecture), note that the `isx` package is not natively supported. The instructions are located at the [Inscopix installation guide](https://pypi.org/project/isx/).
+When using ROIExtractors with Inscopix (`isx`) on Apple Silicon (macOS arm64 architecture), note that the `isx` package is not natively supported. The installation instructions are located at the [Inscopix installation guide](https://pypi.org/project/isx/).
 
 ## Documentation
 See our [ReadTheDocs page](https://roiextractors.readthedocs.io/en/latest/) for full documentation, including a gallery of all supported formats.

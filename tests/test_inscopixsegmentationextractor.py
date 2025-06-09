@@ -8,7 +8,7 @@ from roiextractors import InscopixSegmentationExtractor
 
 from .setup_paths import OPHYS_DATA_PATH
 
-# Warn about macOS ARM64 environment
+# Skip all tests in this file on macOS
 pytestmark = pytest.mark.skipif(
     platform.system() == "Darwin" and platform.machine() == "arm64",
     reason="The isx package is currently not natively supported on macOS with Apple Silicon. "

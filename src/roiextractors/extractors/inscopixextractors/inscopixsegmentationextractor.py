@@ -23,12 +23,12 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         ----------
         file_path: str or Path
             The location of the folder containing Inscopix *.mat output file.
-        verbose: bool, default True
-            Whether to print verbose output for warnings and errors.
         """
         if platform.system() == "Darwin" and platform.machine() == "arm64":
             raise ImportError(
-                "For macOS ARM64, please use a special conda environment setup. " "See README for instructions."
+                "The isx package is currently not natively supported on macOS with Apple Silicon. "
+                "Installation instructions can be found at: "
+                "https://github.com/inscopix/pyisx?tab=readme-ov-file#install"
             )
 
         import isx
@@ -50,7 +50,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
     def get_num_rois(self) -> int:
         return self.cell_set.num_cells
 
-    def _get_roi_indices(self, roi_ids=None) -> list[int]:
+    def _get_roi_indices(self, roi_ids: list | None = None) -> list[int]:
         """Convert ROI IDs to indices (positions in the original CellSet).
 
         Handle both string IDs (e.g., 'C0') and integer IDs (e.g., 0).
@@ -111,7 +111,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             return masks[0]
         return np.stack(masks)
 
-    def get_roi_pixel_masks(self, roi_ids=None) -> List[np.ndarray]:
+    def get_roi_pixel_masks(self, roi_ids=None) -> list[np.ndarray]:
         """Get pixel masks for the specified ROIs.
 
         This converts the image masks to pixel masks with the format expected by the NWB standard.
