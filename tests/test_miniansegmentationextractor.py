@@ -25,7 +25,7 @@ class TestMinianSegmentationExtractor(TestCase):
         # denoised traces
         dataset = zarr.open(folder_path + "/C.zarr")
         cls.denoised_traces = np.transpose(dataset["C"])
-        cls.num_frames = len(dataset["frame"][:])
+        cls.num_frames = 100
         # deconvolved traces
         dataset = zarr.open(folder_path + "/S.zarr")
         cls.deconvolved_traces = np.transpose(dataset["S"])
@@ -39,8 +39,8 @@ class TestMinianSegmentationExtractor(TestCase):
         # ROIs masks
         dataset = zarr.open(folder_path + "/A.zarr")
         cls.image_masks = np.transpose(dataset["A"], (1, 2, 0))
-        cls.image_size = (dataset["height"].shape[0], dataset["width"].shape[0])
-        cls.num_rois = dataset["unit_id"].shape[0]
+        cls.image_size = (608, 608)
+        cls.num_rois = 3
         # background mask
         dataset = zarr.open(folder_path + "/b.zarr")
         cls.background_image_mask = np.expand_dims(dataset["b"], axis=2)
