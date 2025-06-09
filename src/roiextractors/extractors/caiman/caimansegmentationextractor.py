@@ -8,6 +8,7 @@ CaimanSegmentationExtractor
 
 from pathlib import Path
 from warnings import warn
+import warnings
 
 import h5py
 
@@ -79,9 +80,9 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         ids = self._dataset_file["estimates"]["A"]["indptr"]
         image_mask_in = csc_matrix(
             (masks, roi_ids, ids),
-            shape=(np.prod(self.get_image_size()), self.get_num_rois()),
+            shape=(np.prod(self.get_frame_shape()), self.get_num_rois()),
         ).toarray()
-        image_masks = np.reshape(image_mask_in, (*self.get_image_size(), -1), order="F")
+        image_masks = np.reshape(image_mask_in, (*self.get_frame_shape(), -1), order="F")
         return image_masks
 
     def _background_image_mask_read(self):
@@ -94,7 +95,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         """
         if self._dataset_file["estimates"].get("b"):
             background_image_mask_in = self._dataset_file["estimates"]["b"]
-            background_image_masks = np.reshape(background_image_mask_in, (*self.get_image_size(), -1), order="F")
+            background_image_masks = np.reshape(background_image_mask_in, (*self.get_frame_shape(), -1), order="F")
             return background_image_masks
 
     def _trace_extractor_read(self, field):
@@ -153,6 +154,9 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         else:
             rejected = list(rejected[:])
         return rejected
+
+    def get_frame_shape(self):
+        return self._dataset_file["params"]["data"]["dims"][()]
 
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite: bool = True):
@@ -244,4 +248,10 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             f.create_dataset("dims", data=segmentation_object.get_image_size())
 
     def get_image_size(self):
-        return self._dataset_file["params"]["data"]["dims"][()]
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()
