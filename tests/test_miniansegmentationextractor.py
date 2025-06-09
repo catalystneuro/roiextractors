@@ -20,8 +20,6 @@ class TestMinianSegmentationExtractor(TestCase):
         extractor = MinianSegmentationExtractor(folder_path=cls.folder_path)
         cls.extractor = extractor
 
-        cls.test_dir = Path(tempfile.mkdtemp())
-
         # denoised traces
         dataset = zarr.open(folder_path + "/C.zarr")
         cls.denoised_traces = np.transpose(dataset["C"])
@@ -47,37 +45,35 @@ class TestMinianSegmentationExtractor(TestCase):
         # summary image: maximum projection
         cls.maximum_projection_image = np.array(zarr.open(folder_path + "/max_proj.zarr/max_proj"))
 
-    @classmethod
-    def tearDownClass(cls):
-        # remove the temporary directory and its contents
-        shutil.rmtree(cls.test_dir)
-
     def test_incomplete_extractor_load(self):
         """Check extractor can be initialized when not all traces are available."""
-        # temporary directory for testing assertion when some of the files are missing
-        folders_to_copy = [
-            "A.zarr",
-            "C.zarr",
-            "b0.zarr",
-            "b.zarr",
-            "f.zarr",
-            "max_proj.zarr",
-            ".zgroup",
-            "timeStamps.csv",
-        ]
-        self.test_dir.mkdir(exist_ok=True)
+        # Use temporary directory context manager for automatic cleanup
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
 
-        for folder in folders_to_copy:
-            src = Path(self.folder_path) / folder
-            dst = self.test_dir / folder
-            if src.is_dir():
-                shutil.copytree(src, dst, dirs_exist_ok=True)
-            else:
-                shutil.copy(src, dst)
+            # temporary directory for testing assertion when some of the files are missing
+            folders_to_copy = [
+                "A.zarr",
+                "C.zarr",
+                "b0.zarr",
+                "b.zarr",
+                "f.zarr",
+                "max_proj.zarr",
+                ".zgroup",
+                "timeStamps.csv",
+            ]
 
-        extractor = MinianSegmentationExtractor(folder_path=self.test_dir)
-        traces_dict = extractor.get_traces_dict()
-        self.assertEqual(traces_dict["deconvolved"], None)
+            for folder in folders_to_copy:
+                src = Path(self.folder_path) / folder
+                dst = tmp_path / folder
+                if src.is_dir():
+                    shutil.copytree(src, dst, dirs_exist_ok=True)
+                else:
+                    shutil.copy(src, dst)
+
+            extractor = MinianSegmentationExtractor(folder_path=tmp_path)
+            traces_dict = extractor.get_traces_dict()
+            self.assertEqual(traces_dict["deconvolved"], None)
 
     def test_image_size(self):
         self.assertEqual(self.extractor.get_image_size(), self.image_size)
