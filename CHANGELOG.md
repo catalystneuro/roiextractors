@@ -9,6 +9,8 @@
 * Fixed deprecation warning about invalid escape sequence in micromanager TIFF extractor [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
 
 ### Deprecations And Removals
+* The `get_image_size()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_frame_shape()` instead. [PR #443](https://github.com/catalystneuro/roiextractors/pull/443)
+* The `get_num_frames()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_num_samples()` instead. [PR #443](https://github.com/catalystneuro/roiextractors/pull/443)
 * Removed unused `is_writable` class attributes from all extractor classes [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
 * `get_frames` is not `get_samples`, `get_samples` will be deprecated in or after January 2026 [PR #444](https://github.com/catalystneuro/roiextractors/pull/444)
 
