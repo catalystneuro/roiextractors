@@ -86,7 +86,7 @@ class TestMinianSegmentationExtractor(TestCase):
         self.assertEqual(self.extractor.get_num_frames(), self.num_frames)
 
     def test_frame_to_time(self):
-        self.assertEqual(self.extractor.frame_to_time(frames=[0]), 0.328)
+        self.assertEqual(self.extractor.frame_to_time(frames=[0]), [0.329])
 
     def test_num_channels(self):
         self.assertEqual(self.extractor.get_num_channels(), 1)
@@ -112,3 +112,14 @@ class TestMinianSegmentationExtractor(TestCase):
         """Test that the mean image is correctly loaded from the extractor."""
         images_dict = self.extractor.get_images_dict()
         assert_array_equal(images_dict["maximum_projection"], self.maximum_projection_image)
+
+    def test_read_timestamps_from_csv(self):
+        """Test that timestamps are correctly read from CSV file."""
+        # Get timestamps using the extractor
+        timestamps = self.extractor._read_timestamps_from_csv()
+
+        # First timestamp should match the expected value
+        self.assertEqual(timestamps[0], [0.329])
+
+        # Length should match number of frames
+        self.assertEqual(len(timestamps), self.num_frames)
