@@ -42,7 +42,6 @@ class ThorTiffImagingExtractor(ImagingExtractor):
     """
 
     extractor_name = "ThorTiffImaging"
-    is_writable = False
 
     # Named tuple to hold page mapping details.
     PageMapping = namedtuple("PageMapping", ["page_index", "channel_index", "depth_index"])

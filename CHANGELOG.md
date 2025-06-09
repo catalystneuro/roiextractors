@@ -2,11 +2,16 @@
 
 ### Features
 
+
 ### Fixes
 * Added missing function to retrieve inscopix metadata [PR #436](https://github.com/catalystneuro/roiextractors/pull/436)
 * Added MinianSegmentationExtractor: [PR #368](https://github.com/catalystneuro/roiextractors/pull/368)
 
+* Fixed deprecated scipy import warning by updating `mat_struct` import path [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
+* Fixed deprecation warning about invalid escape sequence in micromanager TIFF extractor [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
+
 ### Deprecations And Removals
+* Removed unused `is_writable` class attributes from all extractor classes [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
 
 ### Improvements
 * Bruker series can now read sequences of type `BrightnessOverTime` [PR #448](https://github.com/catalystneuro/roiextractors/pull/448)

@@ -51,7 +51,6 @@ class MiniscopeMultiRecordingImagingExtractor(MultiImagingExtractor):
     """
 
     extractor_name = "MiniscopeMultiRecordingImagingExtractor"
-    is_writable = True
     mode = "folder"
 
     def __init__(self, folder_path: PathType):
@@ -192,7 +191,7 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
         end_sample = end_sample or self.get_num_samples()
         start_sample = start_sample or 0
 
-        series = np.empty(shape=(end_sample - start_sample, *self.get_image_size()), dtype=self.get_dtype())
+        series = np.empty(shape=(end_sample - start_sample, *self.get_sample_shape()), dtype=self.get_dtype())
         with self._video_capture(file_path=str(self.file_path)) as video_obj:
             # Set the starting frame position
             video_obj.current_frame = start_sample
