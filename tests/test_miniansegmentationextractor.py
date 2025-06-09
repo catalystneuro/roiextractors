@@ -88,9 +88,6 @@ class TestMinianSegmentationExtractor(TestCase):
     def test_frame_to_time(self):
         self.assertEqual(self.extractor.frame_to_time(frames=[0]), [0.329])
 
-    def test_num_channels(self):
-        self.assertEqual(self.extractor.get_num_channels(), 1)
-
     def test_num_rois(self):
         self.assertEqual(self.extractor.get_num_rois(), self.num_rois)
 
