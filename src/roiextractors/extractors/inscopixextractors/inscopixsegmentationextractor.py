@@ -26,7 +26,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         verbose: bool, default True
             Whether to print verbose output for warnings and errors.
         """
-        
+
         if platform.system() == "Darwin" and platform.machine() == "arm64":
             raise ImportError(
                 "For macOS ARM64, please use a special conda environment setup. " "See README for instructions."
