@@ -161,7 +161,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         """Get original ROI IDs from the CellSet."""
         return self._original_ids.copy()
 
-    def get_image_size(self) -> ArrayType:
+    def get_frame_shape(self) -> ArrayType:
         if hasattr(self.cell_set, "spacing"):
             # Swap dimensions to return (width, height)
             pixels = self.cell_set.spacing.num_pixels
@@ -214,7 +214,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
         return np.vstack([self.cell_set.get_cell_trace_data(roi_idx)[start_frame:end_frame] for roi_idx in roi_indices])
 
-    def get_num_frames(self) -> int:
+    def get_num_samples(self) -> int:
         try:
             return self.cell_set.timing.num_samples
         except AttributeError:

@@ -66,8 +66,8 @@ def test_inscopix_segmentation_extractor():
     assert len(accepted_list) + len(rejected_list) <= 4
 
     # Test image properties
-    assert extractor.get_image_size() == (398, 366)
-    assert extractor.get_num_frames() == 5444
+    assert extractor.get_frame_shape() == (398, 366)
+    assert extractor.get_num_samples() == 5444
 
     # Test image masks (using integer ID instead of string)
     img = extractor.get_roi_image_masks([1])
@@ -166,7 +166,7 @@ def test_inscopix_segmentation_extractor_part1():
     assert isinstance(rejected_list, list)
 
     # Test image properties
-    assert extractor.get_image_size() == (21, 21)
+    assert extractor.get_frame_shape() == (21, 21)
 
     # Test image masks
     img = extractor.get_roi_image_masks([1])
@@ -179,7 +179,7 @@ def test_inscopix_segmentation_extractor_part1():
 
     # Test sampling frequency and frames
     assert extractor.get_sampling_frequency() == 10.0
-    assert extractor.get_num_frames() == 100
+    assert extractor.get_num_samples() == 100
 
     # Test session start time
     assert extractor.get_session_start_time() == datetime(1970, 1, 1, 0, 0, 0)
@@ -227,8 +227,8 @@ def test_inscopix_segmentation_extractor_empty():
     assert extractor.get_rejected_list() == []
 
     # Test image properties
-    assert extractor.get_image_size() == (5, 4)
+    assert extractor.get_frame_shape() == (5, 4)
 
     # Test sampling frequency and frames
     assert extractor.get_sampling_frequency() == 40.0
-    assert extractor.get_num_frames() == 7
+    assert extractor.get_num_samples() == 7
