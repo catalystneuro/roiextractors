@@ -70,8 +70,8 @@ class BaseTestFrameSlicesegmentation(TestCase):
     )
     def test_get_traces(self, name: str):
         assert_array_equal(
-            x=self.frame_sliced_segmentation.get_traces(name=name),
-            y=self.toy_segmentation_example.get_traces(start_frame=2, end_frame=7, name=name),
+            self.frame_sliced_segmentation.get_traces(name=name),
+            self.toy_segmentation_example.get_traces(start_frame=2, end_frame=7, name=name),
         )
 
     def test_get_traces_dict(self):
