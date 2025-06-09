@@ -2,9 +2,15 @@
 
 ### Features
 
+
 ### Fixes
 * Fixed ROI ID management to allow both integer and original string IDs ('C0','C1',...) throughout the API, ensuring NWB compatibility and consistent behavior with other extractors. [PR #435](https://github.com/catalystneuro/roiextractors/pull/435)
+* Added missing function to retrieve inscopix metadata [PR #436](https://github.com/catalystneuro/roiextractors/pull/436)
+* Fixed deprecated scipy import warning by updating `mat_struct` import path [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
+* Fixed deprecation warning about invalid escape sequence in micromanager TIFF extractor [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
+
 ### Deprecations And Removals
+* Removed unused `is_writable` class attributes from all extractor classes [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
 
 ### Improvements
 * Bruker series can now read sequences of type `BrightnessOverTime` [PR #448](https://github.com/catalystneuro/roiextractors/pull/448)
@@ -27,6 +33,7 @@
 ### Fixes
 * Fixed `get_series` method in `MemmapImagingExtractor` to preserve channel dimension [PR #416](https://github.com/catalystneuro/roiextractors/pull/416)
 * Fix memory estimation for volumetric imaging extractors in their `_repr_` [PR #422](https://github.com/catalystneuro/roiextractors/pull/433)
+
 
 ### Deprecations And Removals
 * The `get_video(start_frame, end_frame)` method is deprecated and will be removed in or after September 2025. Use `get_series(start_sample, end_sample)` instead for consistent naming with `get_num_samples`. [PR #416](https://github.com/catalystneuro/roiextractors/pull/416)

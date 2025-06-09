@@ -906,7 +906,6 @@ class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
     """Specialized extractor for reading multi-file (buffered) TIFF files produced via ScanImage."""
 
     extractor_name = "ScanImageTiffMultiPlaneMultiFileImaging"
-    is_writable = True
     mode = "folder"
 
     def __init__(
@@ -984,7 +983,6 @@ class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
     """Specialized extractor for reading multi-file (buffered) TIFF files produced via ScanImage."""
 
     extractor_name = "ScanImageTiffSinglePlaneMultiFileImaging"
-    is_writable = True
     mode = "folder"
 
     def __init__(
@@ -1044,7 +1042,6 @@ class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
     """Specialized extractor for reading multi-plane (volumetric) TIFF files produced via ScanImage."""
 
     extractor_name = "ScanImageTiffMultiPlaneImaging"
-    is_writable = True
     mode = "file"
 
     def __init__(
@@ -1121,7 +1118,6 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
     """Specialized extractor for reading TIFF files produced via ScanImage."""
 
     extractor_name = "ScanImageTiffImaging"
-    is_writable = True
     mode = "file"
 
     @classmethod
@@ -1259,6 +1255,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         timestamps = extract_timestamps_from_file(file_path)
         index = [self.frame_to_raw_index(iframe) for iframe in range(self._num_samples)]
         self._times = timestamps[index]
+        self.is_volumetric = False
 
     def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
         """Get specific video frames from indices (not necessarily continuous).
