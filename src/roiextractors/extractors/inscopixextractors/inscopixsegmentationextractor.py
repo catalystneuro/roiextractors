@@ -2,6 +2,7 @@
 
 from typing import List
 import platform
+import warnings
 import numpy as np
 from datetime import datetime
 
@@ -173,6 +174,15 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
                 return (shape[1], shape[0])
             raise ValueError("No ROIs found in the segmentation. Unable to determine image size.")
 
+    def get_image_size(self) -> ArrayType:
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()
+
     def get_accepted_list(self) -> list:
         """Get list of accepted ROI IDs (as integers)."""
         accepted = []
@@ -215,12 +225,28 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         return np.vstack([self.cell_set.get_cell_trace_data(roi_idx)[start_frame:end_frame] for roi_idx in roi_indices])
 
     def get_num_samples(self) -> int:
+        """Get the number of samples in the recording (duration of recording).
+
+        Returns
+        -------
+        num_samples: int
+            Number of samples in the recording.
+        """
         try:
             return self.cell_set.timing.num_samples
         except AttributeError:
             if self.get_num_rois() > 0:
                 return len(self.cell_set.get_cell_trace_data(0))
             return 0
+
+    def get_num_frames(self) -> int:
+        warnings.warn(
+            "get_num_frames is deprecated and will be removed on or after January 2026. "
+            "Use get_num_samples instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         try:
