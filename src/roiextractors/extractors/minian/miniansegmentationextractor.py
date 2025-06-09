@@ -51,8 +51,6 @@ class MinianSegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "MinianSegmentation"
-    is_writable = True
-    mode = "file"
 
     def __init__(self, folder_path: PathType):
         """Initialize a MinianSegmentationExtractor instance.
