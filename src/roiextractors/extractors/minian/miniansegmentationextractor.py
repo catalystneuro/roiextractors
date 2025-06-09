@@ -181,7 +181,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
         Returns
         -------
-        _roi_response_dict: dict
+        roi_response_dict: dict
             dictionary with key, values representing different types of RoiResponseSeries:
                 Raw Fluorescence, DeltaFOverF, Denoised, Neuropil, Deconvolved, Background, etc.
         """
