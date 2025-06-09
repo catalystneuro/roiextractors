@@ -21,7 +21,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
         Parameters
         ----------
-        file_path: str or PathType
+        file_path: str or Path
             The location of the folder containing Inscopix *.mat output file.
         verbose: bool, default True
             Whether to print verbose output for warnings and errors.
