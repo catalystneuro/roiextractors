@@ -23,7 +23,7 @@ class TestMinianSegmentationExtractor(TestCase):
         # denoised traces
         dataset = zarr.open(folder_path + "/C.zarr")
         cls.denoised_traces = np.transpose(dataset["C"])
-        cls.num_frames = 100
+        cls.num_samples = 100
         # deconvolved traces
         dataset = zarr.open(folder_path + "/S.zarr")
         cls.deconvolved_traces = np.transpose(dataset["S"])
@@ -37,7 +37,7 @@ class TestMinianSegmentationExtractor(TestCase):
         # ROIs masks
         dataset = zarr.open(folder_path + "/A.zarr")
         cls.image_masks = np.transpose(dataset["A"], (1, 2, 0))
-        cls.image_size = (608, 608)
+        cls.frame_shape = (608, 608)
         cls.num_rois = 3
         # background mask
         dataset = zarr.open(folder_path + "/b.zarr")
@@ -75,11 +75,11 @@ class TestMinianSegmentationExtractor(TestCase):
             traces_dict = extractor.get_traces_dict()
             self.assertEqual(traces_dict["deconvolved"], None)
 
-    def test_image_size(self):
-        self.assertEqual(self.extractor.get_image_size(), self.image_size)
+    def test_frame_shape(self):
+        self.assertEqual(self.extractor.get_frame_shape(), self.frame_shape)
 
-    def test_num_frames(self):
-        self.assertEqual(self.extractor.get_num_frames(), self.num_frames)
+    def test_num_samples(self):
+        self.assertEqual(self.extractor.get_num_samples(), self.num_samples)
 
     def test_frame_to_time(self):
         self.assertEqual(self.extractor.frame_to_time(frames=[0]), [0.329])
@@ -115,4 +115,4 @@ class TestMinianSegmentationExtractor(TestCase):
         self.assertEqual(timestamps[0], [0.329])
 
         # Length should match number of frames
-        self.assertEqual(len(timestamps), self.num_frames)
+        self.assertEqual(len(timestamps), self.num_samples)
