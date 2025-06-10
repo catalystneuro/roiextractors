@@ -38,7 +38,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         self.file_path = file_path
         file_path_str = str(file_path)
 
-        self.cell_set = isx.CellSet.read(file_path_str)
+        self.cell_set = isx.CellSet.read(file_path_str, read_only=True)
 
         # Create mappings between original IDs and integer IDs
         self._original_ids = [self.cell_set.get_cell_name(x) for x in range(self.cell_set.num_cells)]
