@@ -2,6 +2,7 @@ import numpy as np
 from numpy import dtype
 from numpy.testing import assert_array_equal
 from datetime import datetime, timezone
+import pytest
 
 from roiextractors.extractors.femtonicsimagingextractor import FemtonicsImagingExtractor
 from .setup_paths import OPHYS_DATA_PATH
@@ -33,7 +34,18 @@ def test_femtonicsimagingextractor_p29_mesc():
     Note : the actual data only contains 5 frames, not the 56250 claimed in metadata likely due to being truncated for testing.
     """
     file_path = OPHYS_DATA_PATH / "imaging_datasets" / "Femtonics" / "moser_lab_mec" / "p29.mesc"
-    extractor = FemtonicsImagingExtractor(file_path=file_path)
+
+    # Test available channels static method
+    available_channels = FemtonicsImagingExtractor.get_available_channels(file_path)
+    assert available_channels == ["UG", "UR"]
+    assert len(available_channels) == 2
+
+    # Test that extractor throws error when multiple channels exist and none specified
+    with pytest.raises(ValueError, match="Multiple channels found in file"):
+        FemtonicsImagingExtractor(file_path=file_path)
+
+    # Create extractor with explicit channel selection for the rest of the test
+    extractor = FemtonicsImagingExtractor(file_path=file_path, channel_name="UG")
 
     # Debug: The actual data has only 5 frames, not 56250 as claimed in metadata
     print(f"\n=== IMPORTANT FINDING ===")
@@ -46,23 +58,18 @@ def test_femtonicsimagingextractor_p29_mesc():
     assert extractor.get_num_samples() == 5  # Test actual data, not metadata
 
     # Test metadata claims
-    assert extractor.get_image_shape_metadata() == (512, 512, 56250)
+    assert extractor._get_image_shape_metadata() == (512, 512, 56250)
 
     # Test sampling frequency calculation (should still work from metadata)
     expected_freq = 1000.0 / 32.29672617170252
     actual_freq = extractor.get_sampling_frequency()
     assert abs(actual_freq - expected_freq) < 0.01  # ~30.96 Hz
 
-    assert extractor.get_channel_names() == ["UG"]  # Default first channel
+    assert extractor.get_channel_names() == ["UG"]  # Selected channel
     assert extractor.extractor_name == "FemtonicsImaging"
 
-    # Test available channels static method
-    channels = FemtonicsImagingExtractor.get_available_channels(file_path)
-    assert channels == ["UG", "UR"]
-    assert len(channels) == 2
-
     # Test session info (number of MUnits and session UUID)
-    session_info = extractor.get_session_uuid()
+    session_info = extractor._get_session_uuid()
     expected_uuid = np.array(
         [102, 213, 51, 146, 143, 154, 66, 41, 182, 97, 30, 169, 181, 145, 82, 30], dtype=session_info.dtype
     )
@@ -75,42 +82,42 @@ def test_femtonicsimagingextractor_p29_mesc():
     assert extractor_ug.get_channel_names() == ["UG"]
     assert extractor_ur.get_channel_names() == ["UR"]
 
-    # Test channel selection by index
-    extractor_by_index = FemtonicsImagingExtractor(file_path=file_path, channel_index=1)
-    assert extractor_by_index.get_channel_names() == ["UR"]
+    # Test invalid channel name
+    with pytest.raises(ValueError, match="Channel 'InvalidChannel' not found"):
+        FemtonicsImagingExtractor(file_path=file_path, channel_name="InvalidChannel")
 
     # Test pixel size extraction - should be exactly 1.782 µm
-    pixel_size = extractor.get_pixel_size()
+    pixel_size = extractor._get_pixel_size()
     assert isinstance(pixel_size, tuple)
     assert len(pixel_size) == 2
     assert pixel_size[0] == 1.7821140546875  # Exact value from metadata
     assert pixel_size[1] == 1.7821140546875  # Exact value from metadata
 
     # Test measurement date - using new getter method
-    measurement_date = extractor.get_measurement_date()
+    measurement_date = extractor._get_measurement_date()
     assert measurement_date == datetime(2017, 9, 29, 7, 53, 0, 903594, tzinfo=timezone.utc)
 
     # Test experimenter info - using new getter method
-    experimenter_info = extractor.get_experimenter_info()
+    experimenter_info = extractor._get_experimenter_info()
     assert isinstance(experimenter_info, dict)
     assert experimenter_info["username"] == "flaviod"
     assert experimenter_info["setup_id"] == "SN20150066006-MBMoser_1"
     assert experimenter_info["hostname"] == "KI-FEMTO-0185"
 
     # Test MESc version info - using new getter method
-    version_info = extractor.get_mesc_version_info()
+    version_info = extractor._get_mesc_version_info()
     assert isinstance(version_info, dict)
     assert version_info["version"] == "MESc 3.3"
     assert version_info["revision"] == 4356
 
     # Test geometric transformations
-    geo = extractor.get_geometric_transformations()
+    geo = extractor._get_geometric_transformations()
     assert np.allclose(geo["translation"], np.array([-456.221198, -456.221198, -11608.54]))
     assert np.allclose(geo["rotation"], np.array([0.0, 0.0, 0.0, 1.0]))
     assert np.allclose(geo["labeling_origin"], np.array([0.0, 0.0, -11474.34]))
 
     # Test PMT settings (should match XML)
-    pmt_settings = extractor.get_pmt_settings()
+    pmt_settings = extractor._get_pmt_settings()
     assert isinstance(pmt_settings, dict)
     assert "UG" in pmt_settings
     assert "UR" in pmt_settings
@@ -120,7 +127,7 @@ def test_femtonicsimagingextractor_p29_mesc():
     assert pmt_settings["UR"]["warmup_time"] == -0.2
 
     # Test scan parameters (should match XML)
-    scan_params = extractor.get_scan_parameters()
+    scan_params = extractor._get_scan_parameters()
     assert isinstance(scan_params, dict)
     assert scan_params["SizeX"] == 512
     assert scan_params["SizeY"] == 512
@@ -134,13 +141,17 @@ def test_femtonicsimagingextractor_p29_mesc():
 
     # Test data retrieval with the actual 5 frames
     if extractor.get_num_samples() > 0:
-        # Test single frame
-        frame = extractor.get_frames(frame_idxs=0)
-        assert frame.shape == extractor.get_image_shape()
+        # Test single frame using get_series
+        frame = extractor.get_series(start_sample=0, end_sample=1)
+        assert frame.shape == (1,) + extractor.get_image_shape()
 
         # Test series - all 5 frames
         series = extractor.get_series(start_sample=0, end_sample=5)
         assert series.shape == (5,) + extractor.get_image_shape()
+
+        # Test partial series
+        partial_series = extractor.get_series(start_sample=1, end_sample=4)
+        assert partial_series.shape == (3,) + extractor.get_image_shape()
 
         # Test that different channels give same dimensions
         series_ug = extractor_ug.get_series(start_sample=0, end_sample=5)

@@ -1,17 +1,14 @@
-"""
-Femtonics Imaging Extractor
----------------------------
+"""An imaging extractor for Femtonics MESc files.
 
-This module initializes the FemtonicsImagingExtractor package, which provides
-tools for reading and extracting imaging data from Femtonics microscope files.
+Modules
+-------
+femtonicsimagingextractor
+    An imaging extractor for Femtonics MESc files.
 
-Typical usage:
-    from roiextractors.extractors.femtonicsimagingextractor import FemtonicsImagingExtractor
-
-Available classes:
-    - FemtonicsImagingExtractor: Main class for extracting imaging data.
-
-This package is part of the roiextractors_femtomics project.
+Classes
+-------
+FemtonicsImagingExtractor
+    A class for extracting imaging data and metadata from Femtonics MESc files.
 """
 
 from .femtonicsimagingextractor import FemtonicsImagingExtractor
