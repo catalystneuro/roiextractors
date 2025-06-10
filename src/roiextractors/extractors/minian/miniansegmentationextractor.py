@@ -64,6 +64,45 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         self._image_maximum_projection = np.array(self._read_zarr_group("/max_proj.zarr/max_proj"))
         self._image_masks = self._read_roi_image_mask_from_zarr()
         self._background_image_masks = self._read_background_image_mask_from_zarr()
+        # Check for spatial-temporal component mismatches
+        if (
+            self._image_masks is not None
+            and self._roi_response_denoised is None
+            and self._roi_response_deconvolved is None
+            and self._roi_response_baseline is None
+        ):
+            warnings.warn(
+                "Spatial components (A.zarr) are available but no temporal components (C.zarr, S.zarr, b0.zarr) are associated. "
+                "This means ROI masks exist but without any corresponding fluorescence traces.",
+                UserWarning,
+            )
+
+        if self._background_image_masks is not None and self._roi_response_neuropil is None:
+            warnings.warn(
+                "Background spatial components (b.zarr) are available but no background temporal component (f.zarr) is associated. "
+                "This means background masks exist but without corresponding temporal dynamics.",
+                UserWarning,
+            )
+
+        # Check for reverse problem: temporal components exist but spatial components are missing
+        if self._image_masks is None and (
+            self._roi_response_denoised is not None
+            or self._roi_response_deconvolved is not None
+            or self._roi_response_baseline is not None
+        ):
+            warnings.warn(
+                "Temporal components (C.zarr, S.zarr, or b0.zarr) are available but no spatial components (A.zarr) are associated. "
+                "This means fluorescence traces exist but without corresponding ROI masks.",
+                UserWarning,
+            )
+
+        if self._background_image_masks is None and self._roi_response_neuropil is not None:
+            warnings.warn(
+                "Background temporal component (f.zarr) is available but no background spatial component (b.zarr) is associated. "
+                "This means background temporal dynamics exist but without corresponding spatial masks.",
+                UserWarning,
+            )
+
         self._times = self._read_timestamps_from_csv()
 
     def _read_zarr_group(self, zarr_group=""):
