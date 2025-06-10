@@ -71,7 +71,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
         Returns
         -------
-        zarr.open
+        zarr.Group
             The zarr object specified by self.folder_path.
         """
         if zarr_group not in zarr.open(self.folder_path, mode="r"):
