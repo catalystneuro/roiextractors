@@ -43,11 +43,6 @@ class MinianSegmentationExtractor(SegmentationExtractor):
     - Provides access to timestamps corresponding to calcium traces.
     - Retrieves maximum projection image.
 
-    Parameters
-    ----------
-    folder_path: str
-        Path to the folder containing Minian .zarr output files.
-
     """
 
     extractor_name = "MinianSegmentation"
