@@ -54,7 +54,6 @@ class NwbImagingExtractor(ImagingExtractor):
     """
 
     extractor_name = "NwbImaging"
-    is_writable = True
     mode = "file"
 
     def __init__(self, file_path: PathType, optical_series_name: Optional[str] = "TwoPhotonSeries"):
@@ -331,7 +330,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     """An segmentation extractor for NWB files."""
 
     extractor_name = "NwbSegmentationExtractor"
-    is_writable = False
     mode = "file"
     installation_mesg = ""  # error message when not installed
 
@@ -461,6 +459,16 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         # ROIExtractors uses height x width x (depth), but NWB uses width x height x depth
         tranpose_image_convention = (1, 0) if len(self.get_image_size()) == 2 else (1, 0, 2)
         return np.array(self._roi_locs.data)[roi_idxs, tranpose_image_convention].T  # h5py fancy indexing is slow
+
+    def get_frame_shape(self):
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        frame_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._image_masks.shape[:2]
 
     def get_image_shape(self):
         """Get the shape of the video frame (num_rows, num_columns).

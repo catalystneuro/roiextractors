@@ -2,6 +2,7 @@
 
 from typing import Optional
 import platform
+import warnings
 import numpy as np
 
 from ...extraction_tools import PathType, ArrayType
@@ -13,7 +14,6 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
     extractor_name = "InscopixSegmentationExtractor"
     installed = True
-    is_writable = False
     mode = "file"
     installation_mesg = ""
 
@@ -58,7 +58,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
     def get_roi_ids(self) -> list:
         return [self.cell_set.get_cell_name(x) for x in range(self.get_num_rois())]
 
-    def get_image_size(self) -> ArrayType:
+    def get_frame_shape(self) -> ArrayType:
         if hasattr(self.cell_set, "spacing"):
             # Swap dimensions to return (width, height)
             pixels = self.cell_set.spacing.num_pixels
@@ -69,6 +69,15 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
                 # Swap dimensions to return (width, height)
                 return (shape[1], shape[0])
             raise ValueError("No ROIs found in the segmentation. Unable to determine image size.")
+
+    def get_image_size(self) -> ArrayType:
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()
 
     def get_accepted_list(self) -> list:
         return [id for x, id in enumerate(self.get_roi_ids()) if self.cell_set.get_cell_status(x) == "accepted"]
@@ -84,13 +93,29 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             roi_idx_ = [all_ids.index(i) for i in roi_ids]
         return np.vstack([self.cell_set.get_cell_trace_data(roi_id)[start_frame:end_frame] for roi_id in roi_idx_])
 
-    def get_num_frames(self) -> int:
+    def get_num_samples(self) -> int:
+        """Get the number of samples in the recording (duration of recording).
+
+        Returns
+        -------
+        num_samples: int
+            Number of samples in the recording.
+        """
         try:
             return self.cell_set.timing.num_samples
         except AttributeError:
             if self.get_num_rois() > 0:
                 return len(self.cell_set.get_cell_trace_data(0))
             return 0
+
+    def get_num_frames(self) -> int:
+        warnings.warn(
+            "get_num_frames is deprecated and will be removed on or after January 2026. "
+            "Use get_num_samples instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         try:

@@ -24,7 +24,6 @@ class NumpyImagingExtractor(ImagingExtractor):
     """An ImagingExtractor specified by timeseries .npy file, sampling frequency, and channel names."""
 
     extractor_name = "NumpyImagingExtractor"
-    is_writable = True
     installation_mesg = ""  # error message when not installed
 
     def __init__(
@@ -272,7 +271,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "NumpySegmentationExtractor"
-    is_writable = True
     mode = "file"
     installation_mesg = ""  # error message when not installed
 
@@ -487,6 +485,16 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         else:
             return self._roi_ids
 
+    def get_frame_shape(self):
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        frame_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._movie_dims
+
     def get_image_shape(self):
         """Get the shape of the video frame (num_rows, num_columns).
 
@@ -495,13 +503,32 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         image_shape: tuple
             Shape of the video frame (num_rows, num_columns).
         """
-        return self._movie_dims
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
+        return self.get_frame_shape()
+
+    def get_num_samples(self):
+        """Get the number of samples in the recording (duration of recording).
+
+        Returns
+        -------
+        num_samples: int
+            Number of samples in the recording.
+        """
+        for trace in self.get_traces_dict().values():
+            if trace is not None and len(trace.shape) > 0:
+                return trace.shape[0]
 
     def get_image_size(self):
         warnings.warn(
-            "get_image_size() is deprecated and will be removed in or after September 2025. "
-            "Use get_image_shape() instead for consistent behavior across all extractors.",
-            DeprecationWarning,
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
             stacklevel=2,
         )
-        return self._movie_dims
+        return self.get_frame_shape()

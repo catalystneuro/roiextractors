@@ -84,11 +84,11 @@ def test_get_num_planes(num_planes):
     assert volumetric_imaging_extractor.get_num_planes() == num_planes
 
 
-@pytest.mark.parametrize("num_frames", [1, 2, 3])
-def test_get_num_frames(num_frames):
-    imaging_extractors = [generate_dummy_imaging_extractor(num_frames=num_frames)]
+@pytest.mark.parametrize("num_samples", [1, 2, 3])
+def test_get_num_samples(num_samples):
+    imaging_extractors = [generate_dummy_imaging_extractor(num_samples=num_samples)]
     volumetric_imaging_extractor = VolumetricImagingExtractor(imaging_extractors=imaging_extractors)
-    assert volumetric_imaging_extractor.get_num_frames() == num_frames
+    assert volumetric_imaging_extractor.get_num_samples() == num_samples
 
 
 @pytest.mark.parametrize("sampling_frequency", [1, 2, 3])
@@ -107,13 +107,6 @@ def test_get_channel_names(channel_names):
     assert volumetric_imaging_extractor.get_channel_names() == channel_names
 
 
-@pytest.mark.parametrize("num_channels", [1, 2, 3])
-def test_get_num_channels(num_channels):
-    imaging_extractors = [generate_dummy_imaging_extractor(num_channels=num_channels)]
-    volumetric_imaging_extractor = VolumetricImagingExtractor(imaging_extractors=imaging_extractors)
-    assert volumetric_imaging_extractor.get_num_channels() == num_channels
-
-
 @pytest.mark.parametrize("dtype", [np.float64, np.int16, np.uint8])
 def test_get_dtype(dtype):
     imaging_extractors = [generate_dummy_imaging_extractor(dtype=dtype)]
@@ -128,8 +121,8 @@ def test_depth_slice(volumetric_imaging_extractor, start_plane, end_plane):
     sliced_extractor = volumetric_imaging_extractor.depth_slice(start_plane=start_plane, end_plane=end_plane)
 
     assert sliced_extractor.get_num_planes() == end_plane - start_plane
-    assert sliced_extractor.get_image_size() == (
-        *volumetric_imaging_extractor.get_image_size()[:2],
+    assert sliced_extractor.get_sample_shape() == (
+        *volumetric_imaging_extractor.get_frame_shape(),
         end_plane - start_plane,
     )
     series = volumetric_imaging_extractor.get_series()

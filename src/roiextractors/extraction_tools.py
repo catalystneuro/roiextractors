@@ -598,7 +598,7 @@ def check_keys(dict_: dict) -> dict:
     AssertionError
         If scipy is not installed.
     """
-    from scipy.io.matlab.mio5_params import mat_struct
+    from scipy.io.matlab import mat_struct
 
     for key in dict_:
         if isinstance(dict_[key], mat_struct):
@@ -619,10 +619,9 @@ def todict(matobj):
     dict: dict
         Dictionary with mat-objects converted to nested dictionaries.
     """
-    from scipy.io.matlab.mio5_params import mat_struct
+    from scipy.io.matlab import mat_struct
 
     dict_ = {}
-    from scipy.io.matlab.mio5_params import mat_struct
 
     for strg in matobj._fieldnames:
         elem = matobj.__dict__[strg]
