@@ -67,8 +67,8 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         self._roi_response_neuropil = self._read_trace_from_zarr_field(field="f")
         self._roi_response_deconvolved = self._read_trace_from_zarr_field(field="S")
         self._image_maximum_projection = np.array(self._read_zarr_group("/max_proj.zarr/max_proj"))
-        self._image_masks = self._read_roi_image_mask_from_zarr_field()
-        self._background_image_masks = self._read_background_image_mask_from_zarr_filed()
+        self._image_masks = self._read_roi_image_mask_from_zarr()
+        self._background_image_masks = self._read_background_image_mask_from_zarr()
         self._times = self._read_timestamps_from_csv()
 
     def _read_zarr_group(self, zarr_group=""):
@@ -85,7 +85,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         else:
             return zarr.open(str(self.folder_path) + f"/{zarr_group}", "r")
 
-    def _read_roi_image_mask_from_zarr_field(self):
+    def _read_roi_image_mask_from_zarr(self):
         """Read the image masks from the zarr output.
 
         Returns
@@ -99,7 +99,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         else:
             return np.transpose(dataset["A"], (1, 2, 0))
 
-    def _read_background_image_mask_from_zarr_filed(self):
+    def _read_background_image_mask_from_zarr(self):
         """Read the image masks from the zarr output.
 
         Returns
