@@ -67,12 +67,18 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         self._times = self._read_timestamps_from_csv()
 
     def _read_zarr_group(self, zarr_group=""):
-        """Read the zarr.
+        """Read the zarr group.
+
+        Parameters
+        ----------
+        zarr_group : str, optional
+            The zarr group path to read, by default ""
 
         Returns
         -------
-        zarr.Group
-            The zarr object specified by self.folder_path.
+        zarr.Group or None
+            The zarr group object specified by self.folder_path and zarr_group,
+            or None if the group is not found.
         """
         if zarr_group not in zarr.open(self.folder_path, mode="r"):
             warnings.warn(f"Group '{zarr_group}' not found in the Zarr store.", UserWarning)
@@ -145,8 +151,20 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
         return filtered_df["Time Stamp (ms)"].to_numpy()
 
-    def get_image_size(self):
+    def get_frame_shape(self) -> tuple[int, int] | None:
+        """Get the frame shape (height, width) from the zarr dataset.
+
+        Returns
+        -------
+        tuple[int, int] or None
+            The frame shape as (height, width), or None if the dataset is not available.
+        """
         dataset = self._read_zarr_group("/A.zarr")
+        if dataset is None or "height" not in dataset or "width" not in dataset:
+            warnings.warn(
+                "Cannot determine frame shape: A.zarr dataset or height/width dimensions not found.", UserWarning
+            )
+            return None
         height = dataset["height"].shape[0]
         width = dataset["width"].shape[0]
         return (height, width)
