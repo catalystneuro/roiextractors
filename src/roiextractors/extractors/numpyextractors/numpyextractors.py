@@ -411,7 +411,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         if roi_ids is None:
             self._roi_ids = list(np.arange(image_masks.shape[2]))
         else:
-            assert all([isinstance(roi_id, (int, np.integer)) for roi_id in roi_ids]), "'roi_ids' must be int!"
             self._roi_ids = roi_ids
         self._roi_locs = roi_locations
         self._sampling_frequency = sampling_frequency
@@ -432,13 +431,13 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     def get_accepted_list(self):
         if self._accepted_list is None:
-            return list(range(self.get_num_rois()))
+            return self.get_roi_ids()
         else:
             return self._accepted_list
 
     def get_rejected_list(self):
         if self._rejected_list is None:
-            return [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
+            return [a for a in self.get_roi_ids() if a not in set(self.get_accepted_list())]
         else:
             return self._rejected_list
 

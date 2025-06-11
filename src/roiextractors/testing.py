@@ -177,7 +177,10 @@ def generate_dummy_segmentation_extractor(
     correlation_image = rng.random((num_rows, num_columns)) if has_summary_images else None
 
     # Rois
-    roi_ids = [id for id in range(num_rois)]
+    width = len(
+        str(num_rois - 1)
+    )  # e.g., width=2 for 10 ROIs (roi_00, roi_01, ..., roi_09), width=3 for 100 ROIs (roi_000, roi_001, ..., roi_099)
+    roi_ids = [f"roi_{id:0{width}d}" for id in range(num_rois)]
     roi_locations_rows = rng.integers(low=0, high=num_rows, size=num_rois)
     roi_locations_columns = rng.integers(low=0, high=num_columns, size=num_rois)
     roi_locations = np.vstack((roi_locations_rows, roi_locations_columns))
@@ -327,7 +330,6 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
         seg.get_roi_ids(),
         dtypes=(list,),
         shape=(seg.get_num_rois(),),
-        element_dtypes=inttype,
     )
     assert isinstance(seg.get_roi_pixel_masks(roi_ids=seg.get_roi_ids()[:2]), list)
     _assert_iterable_complete(
@@ -346,13 +348,11 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
     _assert_iterable_complete(
         seg.get_accepted_list(),
         dtypes=(list, NoneType),
-        element_dtypes=inttype,
         shape_max=(seg.get_num_rois(),),
     )
     _assert_iterable_complete(
         seg.get_rejected_list(),
         dtypes=(list, NoneType),
-        element_dtypes=inttype,
         shape_max=(seg.get_num_rois(),),
     )
     _assert_iterable_complete(
