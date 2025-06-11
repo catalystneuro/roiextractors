@@ -1,7 +1,7 @@
-"""A Femtonics imaging extractor with simplified initialization."""
+"""A Femtonics imaging extractor with corrected MSession/MUnit hierarchy handling."""
 
 from pathlib import Path
-from typing import Optional, Tuple, Dict, Any, List
+from typing import Optional, Dict, Any
 from warnings import warn
 from datetime import datetime, timezone
 import xml.etree.ElementTree as ET
@@ -11,34 +11,40 @@ import h5py
 from lazy_ops import DatasetView
 
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import PathType, FloatType, ArrayType
+from ...extraction_tools import PathType
 
 
 class FemtonicsImagingExtractor(ImagingExtractor):
-    """A Femtonics imaging extractor with simplified initialization."""
+    """A Femtonics imaging extractor with corrected MSession/MUnit hierarchy handling."""
 
     extractor_name = "FemtonicsImaging"
-    mode = "file"
 
     def __init__(
         self,
         file_path: PathType,
-        munit: int = 0,
+        session_index: int = 0,
+        munit_index: int = 0,
         channel_name: Optional[str] = None,
     ):
-        """Create a FemtonicsImagingExtractor from a .mesc file.
+        """Create a FemtonicsImagingExtractor from a MESc (.mesc) file.
+
+        MESc (Measurement Session Container) is the HDF5-based file format used by Femtonics two-photon microscopes.
+        A MESc file (.mesc) contains imaging data, experiment metadata, scan parameters, and hardware configuration
+        for one or more imaging runs ("Measurement Units", or MUnits).
 
         Parameters
         ----------
         file_path : str or Path
             Path to the .mesc file.
-        munit : int, optional
-            Index of the measurement unit to extract. The default is 0.
+        session_index : int, optional
+            Index of the MSession to use (0-based). Default is 0.
+        munit_index : int, optional
+            Index of the MUnit within the specified session (0-based). Default is 0.
 
             In Femtonics MESc files, an MUnit ("Measurement Unit") represents a single imaging acquisition or experiment,
-            including all associated imaging data and metadata. A single MESc file can contain multiple MUnits,
+            including all associated imaging data and metadata. A single MSession can contain multiple MUnits,
             each corresponding to a separate imaging run/experiment performed during the session.
-            MUnits are indexed (0, 1, 2, ...) and are stored in the HDF5 hierarchy as /MSession_X/MUnit_0/ ; /MSession_X/MUnit_1/ ...
+            MUnits are indexed (0, 1, 2, ...) within each session.
 
         channel_name : str, optional
             Name of the channel to extract (e.g., 'UG', 'UR').
@@ -48,71 +54,102 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         super().__init__(file_path=file_path)
 
         self.file_path = Path(file_path)
-        self._munit = munit
+        self._session_index = session_index
+        self._munit_index = munit_index
         self._channel_name = channel_name
 
         if self.file_path.suffix != ".mesc":
             warn("File is not a .mesc file")
 
         # Open file and setup basic access
-        self._file = h5py.File(file_path, "r")
+        self._file_handle = h5py.File(file_path, "r")
+        self._setup_hierarchy_access()
         self._setup_channel_selection()
         self._setup_video_data()
+        self._setup_sampling_frequency()
+
+    def _setup_hierarchy_access(self):
+        """Set up proper MSession/MUnit hierarchy access."""
+        # Validate session exists
+        self._session_key = f"MSession_{self._session_index}"
+        if self._session_key not in self._file_handle:
+            available_sessions = [k for k in self._file_handle.keys() if k.startswith("MSession_")]
+            raise ValueError(
+                f"Session index {self._session_index} not found. " f"Available sessions: {available_sessions}"
+            )
+
+        # Get available units in this session
+        session_group = self._file_handle[self._session_key]
+        available_units = [k for k in session_group.keys() if k.startswith("MUnit_")]
+
+        if self._munit_index >= len(available_units):
+            raise ValueError(
+                f"Unit index {self._munit_index} not found in {self._session_key}. "
+                f"Available units: {available_units}"
+            )
+
+        # Set the actual unit key (not assuming index matches)
+        self._munit_key = available_units[self._munit_index]
 
     def _setup_channel_selection(self):
         """
-        Select the channel to extract.
+        Select the channel to extract with proper hierarchy handling.
 
-        - Gets available channels for the selected MUnit.
+        - Gets available channels for the selected MSession/MUnit combination.
         - If no channels, raises an error.
         - If channel_name is not given and multiple channels exist, raises an error listing options.
         - If channel_name is given, checks it exists; otherwise, raises an error.
         - If only one channel, selects it automatically.
         """
-        available_channels = self.get_available_channels_from_file()
+        available_channels = self._get_available_channels_from_file()
         if not available_channels:
-            raise ValueError("No channels found in the file.")
+            raise ValueError(f"No channels found in {self._session_key}/{self._munit_key}.")
 
         if self._channel_name is None:
             if len(available_channels) > 1:
                 raise ValueError(
-                    f"Multiple channels found in file: {available_channels}. "
+                    f"Multiple channels found in {self._session_key}/{self._munit_key}: {available_channels}. "
                     "Please specify 'channel_name' to select one."
                 )
             self._selected_channel_name = available_channels[0]
         else:
             if self._channel_name not in available_channels:
-                raise ValueError(f"Channel '{self._channel_name}' not found. Available: {available_channels}")
+                raise ValueError(
+                    f"Channel '{self._channel_name}' not found in {self._session_key}/{self._munit_key}. "
+                    f"Available: {available_channels}"
+                )
             self._selected_channel_name = self._channel_name
 
     def _setup_video_data(self):
-        """Set up access to the actual imagon data for the selected measurement unit and channel."""
-        session_key = f"MSession_{self._munit}"
-        munit_key = f"MUnit_{self._munit}"
-
+        """Set up access to the actual imaging data for the selected session, unit, and channel."""
         # Find the channel index by looking for the channel name in the HDF5 structure
-        available_channels = self.get_available_channels_from_file()
+        available_channels = self._get_available_channels_from_file()
         channel_index = available_channels.index(self._selected_channel_name)
         channel_key = f"Channel_{channel_index}"
 
-        if (
-            session_key in self._file
-            and munit_key in self._file[session_key]
-            and channel_key in self._file[session_key][munit_key]
-        ):
-            self._video = DatasetView(self._file[session_key][munit_key][channel_key])
+        channel_path = f"{self._session_key}/{self._munit_key}/{channel_key}"
+
+        if channel_key in self._file_handle[self._session_key][self._munit_key]:
+            self._video = DatasetView(self._file_handle[self._session_key][self._munit_key][channel_key])
         else:
-            raise Exception(f"Cannot find data at {session_key}/{munit_key}/{channel_key}")
+            raise Exception(f"Cannot find data at {channel_path}")
 
-    def get_available_channels_from_file(self) -> List[str]:
-        """Get available channels from the current file."""
-        session_key = f"MSession_{self._munit}"
-        munit_key = f"MUnit_{self._munit}"
+    def _setup_sampling_frequency(self):
+        """Cache the sampling frequency during initialization to avoid repeated file access."""
+        time_per_frame_ms = self._get_frame_duration_in_milliseconds()
+        if time_per_frame_ms is None:
+            raise ValueError(
+                f"Sampling frequency could not be determined from metadata in "
+                f"{self._session_key}/{self._munit_key}."
+            )
+        self._sampling_frequency = 1000.0 / time_per_frame_ms
 
-        if session_key not in self._file or munit_key not in self._file[session_key]:
-            raise ValueError(f"MUnit {self._munit} not found in file")
+    def _get_available_channels_from_file(self) -> list[str]:
+        """Get available channels from the current session/unit combination."""
+        if self._session_key not in self._file_handle or self._munit_key not in self._file_handle[self._session_key]:
+            raise ValueError(f"Session {self._session_index}/Unit {self._munit_index} not found in file")
 
-        attrs = dict(self._file[session_key][munit_key].attrs)
+        attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
         num_channels = attrs.get("VecChannelsSize", 2)
 
         channels = []
@@ -128,7 +165,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
             return ""
         return "".join(chr(x) for x in arr if x != 0)
 
-    def get_image_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns)."""
         return self._video.shape[1], self._video.shape[2]  # (height, width)
 
@@ -136,33 +173,18 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         """Get the number of samples (frames) in the video."""
         return self._video.shape[0]
 
-    def get_channel_names(self) -> List[str]:
+    def get_channel_names(self) -> list[str]:
         """Get the channel names."""
         return [self._selected_channel_name]
 
     def get_sampling_frequency(self) -> float:
         """Get the sampling frequency in Hz."""
-        time_per_frame_ms = self._get_time_per_frame()
-        if time_per_frame_ms is None:
-            raise ValueError("Sampling frequency could not be determined from metadata.")
-        return 1000.0 / time_per_frame_ms
+        return self._sampling_frequency
 
-    def _get_time_per_frame(self) -> Optional[float]:
+    def _get_frame_duration_in_milliseconds(self) -> Optional[float]:
         """Get time per frame from metadata."""
-        session_key = f"MSession_{self._munit}"
-        munit_key = f"MUnit_{self._munit}"
-        attrs = dict(self._file[session_key][munit_key].attrs)
-        return attrs.get(
-            "ZAxisConversionConversionLinearScale"
-        )  # ZAxisConversionConversionLinearScale gives the duration of one frame in milliseconds.
-
-    def get_dtype(self) -> np.dtype:
-        """Get the data type of the video."""
-        return self._video.dtype
-
-    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
-        """Get a series of frames."""
-        return self._video.lazy_slice[start_sample:end_sample, :, :].dsetread()
+        attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
+        return attrs.get("ZAxisConversionConversionLinearScale")
 
     # Femtonics-specific getter methods
     def _get_session_uuid(self):
@@ -174,20 +196,35 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         uuid : array or value
             The session UUID.
         """
-        attrs = dict(self._file.attrs)
+        attrs = dict(self._file_handle.attrs)
         return attrs.get("Uuid")
 
-    def _get_pixel_size(self) -> Tuple[float, float]:
+    def _get_pixel_size_in_micrometers(self) -> tuple[float, float]:
         """Get pixel size in micrometers."""
-        session_key = f"MSession_{self._munit}"
-        munit_key = f"MUnit_{self._munit}"
-        attrs = dict(self._file[session_key][munit_key].attrs)
+        attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
 
         x_size = attrs.get("XAxisConversionConversionLinearScale", 1.0)
         y_size = attrs.get("YAxisConversionConversionLinearScale", 1.0)
+
+        # Check units and warn if not micrometers
+        x_units = self._decode_string(attrs.get("XAxisConversionUnitName", []))
+        y_units = self._decode_string(attrs.get("YAxisConversionUnitName", []))
+
+        def is_micrometers(unit_str):
+            if not unit_str:
+                warn("No X/Y axis unit specified in metadata; assuming micrometers (μm).")
+                return True  # Assume micrometers if no unit specified
+            unit_lower = unit_str.lower()
+            return any(um_variant in unit_lower for um_variant in ["μm", "µm", "um", "microm", "micro", "micrometer"])
+
+        if x_units and not is_micrometers(x_units):
+            warn(f"X-axis units are '{x_units}', expected micrometers")
+        if y_units and not is_micrometers(y_units):
+            warn(f"Y-axis units are '{y_units}', expected micrometers")
+
         return x_size, y_size
 
-    def _get_image_shape_metadata(self) -> Tuple[int, int, int]:
+    def _get_image_shape_metadata(self) -> tuple[int, int, int]:
         """
         Get the image shape metadata (X, Y, Z dimensions) from the measurement unit attributes.
 
@@ -196,19 +233,15 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         shape : tuple
             (XDim, YDim, ZDim) as (num_columns, num_rows, num_frames)
         """
-        session_key = f"MSession_{self._munit}"
-        munit_key = f"MUnit_{self._munit}"
-        munit_attrs = dict(self._file[session_key][munit_key].attrs)
+        munit_attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
         x_dim = munit_attrs.get("XDim")
         y_dim = munit_attrs.get("YDim")
         z_dim = munit_attrs.get("ZDim")
         return (x_dim, y_dim, z_dim)
 
-    def _get_measurement_date(self) -> Optional[datetime]:
+    def _get_session_start_time(self) -> Optional[datetime]:
         """Get measurement date as a timezone-aware UTC datetime."""
-        session_key = f"MSession_{self._munit}"
-        munit_key = f"MUnit_{self._munit}"
-        attrs = dict(self._file[session_key][munit_key].attrs)
+        attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
 
         posix_time = attrs.get("MeasurementDatePosix")
         nano_secs = attrs.get("MeasurementDateNanoSecs", 0)
@@ -220,9 +253,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
 
     def _get_experimenter_info(self) -> Dict[str, str]:
         """Get experimenter information."""
-        session_key = f"MSession_{self._munit}"
-        munit_key = f"MUnit_{self._munit}"
-        attrs = dict(self._file[session_key][munit_key].attrs)
+        attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
 
         return {
             "username": self._decode_string(attrs.get("ExperimenterUsername", [])),
@@ -238,9 +269,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         -------
         dict with keys 'translation', 'rotation', 'labeling_origin'
         """
-        session_key = f"MSession_{self._munit}"
-        munit_key = f"MUnit_{self._munit}"
-        attrs = dict(self._file[session_key][munit_key].attrs)
+        attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
         return {
             "translation": attrs.get("GeomTransTransl"),
             "rotation": attrs.get("GeomTransRot"),
@@ -248,10 +277,8 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         }
 
     def _get_mesc_version_info(self) -> Dict[str, Any]:
-        """Get MESc software version information."""
-        session_key = f"MSession_{self._munit}"
-        munit_key = f"MUnit_{self._munit}"
-        attrs = dict(self._file[session_key][munit_key].attrs)
+        """Get MESc (Measurement Session Container) software version information."""
+        attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
 
         return {
             "version": self._decode_string(attrs.get("CreatingMEScVersion", [])),
@@ -259,11 +286,9 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         }
 
     def _get_pmt_settings(self) -> Dict[str, Dict[str, float]]:
-        """Get PMT settings if available from XML metadata."""
+        """Get photomultiplier tube (PMT) settings if available from XML metadata."""
         try:
-            session_key = f"MSession_{self._munit}"
-            munit_key = f"MUnit_{self._munit}"
-            attrs = dict(self._file[session_key][munit_key].attrs)
+            attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
 
             xml_data = attrs.get("MeasurementParamsXML")
             if xml_data is None:
@@ -289,9 +314,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
     def _get_scan_parameters(self) -> Dict[str, Any]:
         """Get scan parameters from XML metadata."""
         try:
-            session_key = f"MSession_{self._munit}"
-            munit_key = f"MUnit_{self._munit}"
-            attrs = dict(self._file[session_key][munit_key].attrs)
+            attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
 
             xml_data = attrs.get("MeasurementParamsXML")
             if xml_data is None:
@@ -315,20 +338,45 @@ class FemtonicsImagingExtractor(ImagingExtractor):
             return {}
 
     @staticmethod
-    def get_available_channels(file_path: PathType, munit: int = 0) -> List[str]:
-        """Get available channels in the file."""
-        with h5py.File(file_path, "r") as f:
-            session_key = f"MSession_{munit}"
-            munit_key = f"MUnit_{munit}"
+    def get_available_channels(file_path: PathType, session_index: int = 0, munit_index: int = 0) -> list[str]:
+        """
+        Get available channels in the specified session/unit combination.
 
-            if session_key not in f or munit_key not in f[session_key]:
-                raise ValueError(f"MUnit {munit} not found in file")
+        Parameters
+        ----------
+        file_path : str or Path
+            Path to the .mesc file.
+        session_index : int, optional
+            Index of the MSession to use. Default is 0.
+        munit_index : int, optional
+            Index of the MUnit within the session. Default is 0.
+
+        Returns
+        -------
+        list of str
+            List of available channel names.
+        """
+        with h5py.File(file_path, "r") as f:
+            session_key = f"MSession_{session_index}"
+
+            if session_key not in f:
+                raise ValueError(f"Session index {session_index} not found in file")
+
+            # Get available units in this session
+            session_group = f[session_key]
+            available_units = [k for k in session_group.keys() if k.startswith("MUnit_")]
+
+            if munit_index >= len(available_units):
+                raise ValueError(
+                    f"Unit index {munit_index} not found in {session_key}. " f"Available units: {available_units}"
+                )
+
+            munit_key = available_units[munit_index]
 
             attrs = dict(f[session_key][munit_key].attrs)
             num_channels = attrs.get("VecChannelsSize", 2)
 
-            def decode_string(arr):
-                return "".join(chr(x) for x in arr if x != 0) if len(arr) > 0 else ""
+            decode_string = lambda arr: "".join(chr(x) for x in arr if x != 0) if len(arr) > 0 else ""
 
             channels = []
             for i in range(num_channels):
@@ -337,7 +385,34 @@ class FemtonicsImagingExtractor(ImagingExtractor):
                 channels.append(name)
             return channels
 
+    @staticmethod
+    def get_available_sessions(file_path: PathType) -> list[str]:
+        """Get list of available session keys in the file."""
+        with h5py.File(file_path, "r") as f:
+            return [k for k in f.keys() if k.startswith("MSession_")]
+
+    @staticmethod
+    def get_available_units(file_path: PathType, session_index: int = 0) -> list[str]:
+        """Get list of available unit keys in the specified session."""
+        with h5py.File(file_path, "r") as f:
+            session_key = f"MSession_{session_index}"
+            if session_key not in f:
+                return []
+            return [k for k in f[session_key].keys() if k.startswith("MUnit_")]
+
+    def get_dtype(self) -> np.dtype:
+        """Get the data type of the samples."""
+        return self._video.dtype
+
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        """Get a series of samples."""
+        return self._video.lazy_slice[start_sample:end_sample, :, :].dsetread()
+
+    def get_samples(self, sample_indices) -> np.ndarray:
+        """Get specific samples by indices."""
+        return self._video.lazy_slice[sample_indices, :, :].dsetread()
+
     def __del__(self):
         """Close the HDF5 file."""
-        if hasattr(self, "_file"):
-            self._file.close()
+        if hasattr(self, "_file_handle"):
+            self._file_handle.close()
