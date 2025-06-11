@@ -190,20 +190,32 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
         return filtered_df["Time Stamp (ms)"].to_numpy()
 
-    def get_frame_shape(self) -> tuple[int, int] | None:
+    def get_frame_shape(self) -> tuple[int, int]:
         """Get the frame shape (height, width) from the zarr dataset.
 
         Returns
         -------
-        tuple[int, int] or None
-            The frame shape as (height, width), or None if the dataset is not available.
+        tuple[int, int]
+            The frame shape as (height, width).
+
+        Raises
+        ------
+        ValueError
+            If the A.zarr dataset or height/width dimensions are not found.
         """
+        # First try to get frame shape from the zarr dataset
         dataset = self._read_zarr_group("/A.zarr")
         if dataset is None or "height" not in dataset or "width" not in dataset:
-            warnings.warn(
-                "Cannot determine frame shape: A.zarr dataset or height/width dimensions not found.", UserWarning
-            )
-            return None
+            # Fallback: try to infer from image masks if available
+            if self._image_masks is not None:
+                height, width, _ = self._image_masks.shape
+                return (height, width)
+            else:
+                raise ValueError(
+                    "Cannot determine frame shape: height/width dimensions not found, "
+                    "and no image masks are available to infer frame shape."
+                )
+
         height = dataset["height"].shape[0]
         width = dataset["width"].shape[0]
         return (height, width)
