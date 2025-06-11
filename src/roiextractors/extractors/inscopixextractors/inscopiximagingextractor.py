@@ -2,9 +2,12 @@
 
 import warnings
 import platform
-from typing import Optional, Tuple
-from datetime import datetime
+import sys
 import numpy as np
+
+from typing import Optional
+from datetime import datetime
+
 from ...imagingextractor import ImagingExtractor
 from ...extraction_tools import PathType
 
@@ -23,9 +26,17 @@ class InscopixImagingExtractor(ImagingExtractor):
         file_path : PathType
             Path to the Inscopix file.
         """
+        if sys.version_info < (3, 9) or sys.version_info >= (3, 13):
+            raise ImportError(
+                "The isx package only supports Python versions 3.9 to 3.12. "
+                f"Your Python version is {sys.version_info.major}.{sys.version_info.minor}. "
+                "See https://github.com/inscopix/pyisx for details."
+            )
         if platform.system() == "Darwin" and platform.machine() == "arm64":
             raise ImportError(
-                "For macOS ARM64, please use a special conda environment setup. " "See README for instructions."
+                "The isx package is currently not natively supported on macOS with Apple Silicon. "
+                "Installation instructions can be found at: "
+                "https://github.com/inscopix/pyisx?tab=readme-ov-file#install"
             )
 
         import isx
@@ -33,7 +44,7 @@ class InscopixImagingExtractor(ImagingExtractor):
         super().__init__(file_path=file_path)
         self.movie = isx.Movie.read(str(file_path))
 
-    def get_image_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
         Returns
@@ -44,7 +55,7 @@ class InscopixImagingExtractor(ImagingExtractor):
         num_pixels = self.movie.spacing.num_pixels
         return num_pixels
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_size(self) -> tuple[int, int]:
         warnings.warn(
             "get_image_size() is deprecated and will be removed in or after September 2025. "
             "Use get_image_shape() instead for consistent behavior across all extractors.",
@@ -129,7 +140,7 @@ class InscopixImagingExtractor(ImagingExtractor):
 
         return datetime.fromisoformat(str(start_time))
 
-    def get_device_info(self) -> dict:
+    def _get_device_info(self) -> dict:
         """
         Get device-specific information including hardware settings and imaging parameters.
 
@@ -174,7 +185,7 @@ class InscopixImagingExtractor(ImagingExtractor):
 
         return device_info
 
-    def get_subject_info(self) -> dict:
+    def _get_subject_info(self) -> dict:
         """
         Get subject/animal information from the acquisition metadata.
 
@@ -203,7 +214,7 @@ class InscopixImagingExtractor(ImagingExtractor):
 
         return subject_info
 
-    def get_session_info(self) -> dict:
+    def _get_session_info(self) -> dict:
         """
         Get session information from the acquisition metadata.
 
@@ -223,7 +234,7 @@ class InscopixImagingExtractor(ImagingExtractor):
 
         return info
 
-    def get_probe_info(self) -> dict:
+    def _get_probe_info(self) -> dict:
         """
         Get probe information from the acquisition metadata.
 

@@ -1,20 +1,26 @@
 import numpy as np
 import pytest
 import platform
+import sys
+
 from numpy import dtype
-from numpy.testing import assert_array_equal
 from datetime import datetime
 
 from roiextractors import InscopixImagingExtractor
-
 from tests.setup_paths import OPHYS_DATA_PATH
 
-# Warn about macOS ARM64 environment
+# Skip all tests in this file on macOS anf Python 3.13
 pytestmark = pytest.mark.skipif(
     platform.system() == "Darwin" and platform.machine() == "arm64",
     reason="The isx package is currently not natively supported on macOS with Apple Silicon. "
     "Installation instructions can be found at: "
     "https://github.com/inscopix/pyisx?tab=readme-ov-file#install",
+)
+pytestmark = pytest.mark.skipif(
+    sys.version_info < (3, 9) or sys.version_info >= (3, 13),
+    reason="Tests are skipped on Python 3.13 because of incompatibility with the 'isx' module "
+    "Requires: Python <3.13, >=3.9)"
+    "See:https://github.com/inscopix/pyisx/issues",
 )
 
 
@@ -61,11 +67,11 @@ def test_inscopiximagingextractor_movie_128x128x100_part1():
     assert extractor.get_session_start_time() == datetime(1970, 1, 1, 0, 0, 0)
 
     # Test session info for file with no acquisition info
-    session_info = extractor.get_session_info()
+    session_info = extractor._get_session_info()
     assert "session_name" not in session_info
     assert "experimenter_name" not in session_info
 
-    device_info = extractor.get_device_info()
+    device_info = extractor._get_device_info()
     assert isinstance(device_info, dict)
     assert "field_of_view_pixels" in device_info
     assert device_info["field_of_view_pixels"] == (128, 128)
@@ -73,11 +79,11 @@ def test_inscopiximagingextractor_movie_128x128x100_part1():
     assert "device_serial_number" not in device_info
     assert "acquisition_software_version" not in device_info
 
-    subject_info = extractor.get_subject_info()
+    subject_info = extractor._get_subject_info()
     assert isinstance(subject_info, dict)
     assert len(subject_info) == 0
 
-    probe_info = extractor.get_probe_info()
+    probe_info = extractor._get_probe_info()
     assert isinstance(probe_info, dict)
     assert len(probe_info) == 0
 
@@ -130,13 +136,13 @@ def test_inscopiximagingextractor_movie_longer_than_3_min():
     assert extractor.get_session_start_time() == datetime(2019, 10, 7, 16, 22, 1, 524186)
 
     # Test session info
-    session_info = extractor.get_session_info()
+    session_info = extractor._get_session_info()
     start_time = session_info.get("start_time")
     assert session_info["session_name"] == "4D_SAAV_PFC_IM7_20191007"
     assert "experimenter_name" not in session_info
 
     # Test device info
-    device_info = extractor.get_device_info()
+    device_info = extractor._get_device_info()
     assert isinstance(device_info, dict)
     assert device_info["device_name"] == "NVista3"
     assert device_info["device_serial_number"] == "FA-11092903"
@@ -150,7 +156,7 @@ def test_inscopiximagingextractor_movie_longer_than_3_min():
     assert device_info["led_power_og_mw_per_mm2"] == 0.2
 
     # Test subject info - only sex should be included (other fields are empty or 0)
-    subject_info = extractor.get_subject_info()
+    subject_info = extractor._get_subject_info()
     assert isinstance(subject_info, dict)
     assert subject_info["sex"] == "m"
     assert "animal_id" not in subject_info
@@ -160,7 +166,7 @@ def test_inscopiximagingextractor_movie_longer_than_3_min():
     assert "description" not in subject_info
 
     # Test probe info - should be empty since all probe values are 0/"none"/"None"
-    probe_info = extractor.get_probe_info()
+    probe_info = extractor._get_probe_info()
     assert isinstance(probe_info, dict)
     assert len(probe_info) == 0
 
@@ -207,12 +213,12 @@ def test_inscopiximagingextractor_movie_u8():
     assert extractor.get_session_start_time() == datetime(1970, 1, 1, 0, 0, 0)
 
     # Test session info for file with no acquisition info
-    session_info = extractor.get_session_info()
+    session_info = extractor._get_session_info()
     assert "session_name" not in session_info
     assert "experimenter_name" not in session_info
 
     # Device info should have minimal content for this file
-    device_info = extractor.get_device_info()
+    device_info = extractor._get_device_info()
     assert isinstance(device_info, dict)
     assert "field_of_view_pixels" in device_info
     assert device_info["field_of_view_pixels"] == (3, 4)
@@ -221,11 +227,11 @@ def test_inscopiximagingextractor_movie_u8():
     assert "acquisition_software_version" not in device_info
 
     # Subject info should be empty for this file (no acquisition info)
-    subject_info = extractor.get_subject_info()
+    subject_info = extractor._get_subject_info()
     assert isinstance(subject_info, dict)
     assert len(subject_info) == 0
 
     # Probe info should be empty for this file (no acquisition info)
-    probe_info = extractor.get_probe_info()
+    probe_info = extractor._get_probe_info()
     assert isinstance(probe_info, dict)
     assert len(probe_info) == 0

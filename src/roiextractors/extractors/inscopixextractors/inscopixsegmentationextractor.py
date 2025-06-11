@@ -1,10 +1,12 @@
 """Inscopix Segmentation Extractor."""
 
-from typing import List
 import platform
 import warnings
+import sys
 import numpy as np
+
 from datetime import datetime
+from typing import Optional
 
 from ...extraction_tools import PathType, ArrayType
 from ...segmentationextractor import SegmentationExtractor
@@ -25,6 +27,12 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         file_path: str or Path
             The location of the folder containing Inscopix *.mat output file.
         """
+        if sys.version_info < (3, 9) or sys.version_info >= (3, 13):
+            raise ImportError(
+                "The isx package only supports Python versions 3.9 to 3.12. "
+                f"Your Python version is {sys.version_info.major}.{sys.version_info.minor}. "
+                "See https://github.com/inscopix/pyisx for details."
+            )
         if platform.system() == "Darwin" and platform.machine() == "arm64":
             raise ImportError(
                 "The isx package is currently not natively supported on macOS with Apple Silicon. "
@@ -112,7 +120,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             return masks[0]
         return np.stack(masks)
 
-    def get_roi_pixel_masks(self, roi_ids=None) -> list[np.ndarray]:
+    def get_roi_pixel_masks(self, roi_ids: Optional[list] = None) -> list[np.ndarray]:
         """Get pixel masks for the specified ROIs.
 
         This converts the image masks to pixel masks with the format expected by the NWB standard.
@@ -271,7 +279,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
         return datetime.fromisoformat(str(start_time))
 
-    def get_device_info(self) -> dict:
+    def _get_device_info(self) -> dict:
         """
         Get device-specific information including hardware settings and imaging parameters.
 
@@ -319,7 +327,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
         return device_info
 
-    def get_subject_info(self) -> dict:
+    def _get_subject_info(self) -> dict:
         """
         Get subject/animal information from the acquisition metadata.
 
@@ -351,7 +359,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
         return subject_info
 
-    def get_analysis_info(self) -> dict:
+    def _get_analysis_info(self) -> dict:
         """
         Get analysis method information specific to Inscopix Segmentation.
 
@@ -374,7 +382,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
         return analysis_info
 
-    def get_session_info(self) -> dict:
+    def _get_session_info(self) -> dict:
         """
         Get session information from the acquisition metadata.
 
@@ -398,7 +406,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
         return info
 
-    def get_probe_info(self) -> dict:
+    def _get_probe_info(self) -> dict:
         """
         Get probe information from the acquisition metadata.
 

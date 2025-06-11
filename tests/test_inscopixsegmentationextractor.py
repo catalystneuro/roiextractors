@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
-from datetime import datetime
 import platform
-from numpy.testing import assert_array_equal
-from pathlib import Path
-from roiextractors import InscopixSegmentationExtractor
+import sys
 
+from datetime import datetime
+
+from roiextractors import InscopixSegmentationExtractor
 from .setup_paths import OPHYS_DATA_PATH
 
 # Skip all tests in this file on macOS
@@ -14,6 +14,12 @@ pytestmark = pytest.mark.skipif(
     reason="The isx package is currently not natively supported on macOS with Apple Silicon. "
     "Installation instructions can be found at: "
     "https://github.com/inscopix/pyisx?tab=readme-ov-file#install",
+)
+pytestmark = pytest.mark.skipif(
+    sys.version_info < (3, 9) or sys.version_info >= (3, 13),
+    reason="Tests are skipped on Python 3.13 because of incompatibility with the 'isx' module "
+    "Requires: Python <3.13, >=3.9)"
+    "See:https://github.com/inscopix/pyisx/issues",
 )
 
 
@@ -87,7 +93,7 @@ def test_inscopix_segmentation_extractor():
     assert extractor.get_traces(start_frame=10, end_frame=20, roi_ids=[1]).shape == (1, 10)
 
     # Test session information
-    session_info = extractor.get_session_info()
+    session_info = extractor._get_session_info()
     assert session_info["session_name"] == "FV4581_Ret"
     assert session_info["experimenter_name"] == "Bei-Xuan"
 
@@ -95,7 +101,7 @@ def test_inscopix_segmentation_extractor():
     assert extractor.get_session_start_time() == datetime(2021, 4, 1, 12, 3, 53, 290011)
 
     # Test device information
-    device_info = extractor.get_device_info()
+    device_info = extractor._get_device_info()
     assert device_info["device_name"] == "NVista3"
     assert device_info["device_serial_number"] == "11132301"
     assert device_info["acquisition_software_version"] == "1.5.2"
@@ -109,19 +115,19 @@ def test_inscopix_segmentation_extractor():
     assert device_info["led_power_2_mw_per_mm2"] == 0.2
 
     # Test subject information
-    subject_info = extractor.get_subject_info()
+    subject_info = extractor._get_subject_info()
     assert subject_info["animal_id"] == "FV4581"
     assert subject_info["species"] == "CaMKIICre"
     assert subject_info["sex"] == "m"
     assert subject_info["description"] == "Retrieval day"
 
     # Test analysis information
-    analysis_info = extractor.get_analysis_info()
+    analysis_info = extractor._get_analysis_info()
     assert analysis_info["cell_identification_method"] == "cnmfe"
     assert analysis_info["trace_units"] == "dF over noise"
 
     # Test probe information (returns empty dict for this dataset)
-    probe_info = extractor.get_probe_info()
+    probe_info = extractor._get_probe_info()
     assert isinstance(probe_info, dict)  # Most values are 0/"none" for this dataset
 
 
