@@ -192,6 +192,9 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         np.ndarray
             The timestamps of the denoised trace.
         """
+        if self._times is not None:
+            return self._times
+
         csv_file = self.folder_path / "timeStamps.csv"
         df = pd.read_csv(csv_file)
         frame_numbers = self._read_zarr_group("/C.zarr/frame")
