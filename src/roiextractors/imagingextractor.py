@@ -392,6 +392,10 @@ class ImagingExtractor(ABC):
             )
         return self.get_samples(sample_indices=frame_idxs)
 
+    @abstractmethod
+    def get_native_timestamp(self, sample_indices: ArrayType) -> Optional[np.ndarray]:
+        pass
+
     def sample_indices_to_time(self, sample_indices: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
         """Convert user-inputted sample indices to times with units of seconds.
 
@@ -406,10 +410,17 @@ class ImagingExtractor(ABC):
             The corresponding times in seconds.
         """
         # Default implementation
-        if self._times is None:
-            return sample_indices / self.get_sampling_frequency()
-        else:
+
+        # Always use cached timestamps if ava
+        if self._times is not None:
             return self._times[sample_indices]
+
+        native_timestamps = self.get_native_timestamp(sample_indices)
+        if native_timestamps is not None:
+            self._times = native_timestamps
+            return native_timestamps
+        else:
+            return sample_indices / self.get_sampling_frequency()
 
     def frame_to_time(self, frames: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
         """Convert user-inputted frame indices to times with units of seconds.
