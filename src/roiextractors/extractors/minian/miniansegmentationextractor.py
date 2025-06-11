@@ -140,12 +140,21 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             return np.transpose(dataset["A"], (1, 2, 0))
 
     def _read_background_image_mask_from_zarr(self):
-        """Read the image masks from the zarr output.
+        """Read the background image masks (b) from the zarr output.
+        b.zarr structure is expected to be like:
+        ├── b.zarr
+        │   ├── animal () <U7
+        │   ├── b (608, 608) float64
+        │   ├── height (608,) int64
+        │   ├── session () <U14
+        │   ├── session_id () <U9
+        │   ├── unit_id () int64
+        │   └── width (608,) in
 
-        Returns
-        -------
-        image_masks: numpy.ndarray
-            The image masks for each background components.
+               Returns
+               -------
+               image_masks: numpy.ndarray
+                   The image masks for each background components.
         """
         dataset = self._read_zarr_group("/b.zarr")
         if dataset is None or "b" not in dataset:
