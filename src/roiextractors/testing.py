@@ -187,9 +187,9 @@ def generate_dummy_segmentation_extractor(
 
     rejected_list = rejected_list if rejected_list else None
 
-    accepeted_list = roi_ids
+    accepted_list = roi_ids
     if rejected_list is not None:
-        accepeted_list = list(set(accepeted_list).difference(rejected_list))
+        accepted_list = list(set(accepted_list).difference(rejected_list))
 
     dummy_segmentation_extractor = NumpySegmentationExtractor(
         sampling_frequency=sampling_frequency,
@@ -202,7 +202,6 @@ def generate_dummy_segmentation_extractor(
         correlation_image=correlation_image,
         roi_ids=roi_ids,
         roi_locations=roi_locations,
-        accepted_lst=accepeted_list,
         rejected_list=rejected_list,
         movie_dims=movie_dims,
         channel_names=["channel_num_0"],
