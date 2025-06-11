@@ -904,8 +904,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         ----------
         plane_index : int, optional
             Which plane to use for frame index calculation in volumetric data.
-            If None, uses the convention of using the last plane as its the default for
-            volumetric data. It must be less than the total number of planes.
+            If None, plane_index is set to the last plane in the volume. This is because the timestamp of the acquisition of the last plane in a volume is typically set as the timestamp of the volume as a whole. It must be less than the total number of planes.
 
         Returns
         -------
@@ -934,8 +933,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
         **Examples:**
 
         For a 3-sample volumetric dataset with 5 planes per volume:
-        - Default behavior returns indices [4, 9, 14] (last plane of each volume)
-        - With plane_index=0 returns indices [0, 5, 10] (first plane of each volume)
+        - Default behavior returns indices [4, 9, 14] (last plane of each volumetric sample)
+        - With plane_index=0 returns indices [0, 5, 10] (first plane of each volumetric sample)
         """
         num_planes = self.get_num_planes()
         if plane_index is not None:
