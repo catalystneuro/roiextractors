@@ -61,7 +61,7 @@ class TestMiniscopeExtractor(TestCase):
             MiniscopeImagingExtractor(folder_path=self.test_dir)
 
     def test_miniscopeextractor_num_samples(self):
-        self.assertEqual(self.extractor.get_num_samples(), self.num_samples)
+        self.assertEqual(self.extractor.get_num_samples(), self.num_frames)
 
     def test_miniscopeextractor_image_size(self):
         self.assertEqual(self.extractor.get_image_size(), self.image_size)
