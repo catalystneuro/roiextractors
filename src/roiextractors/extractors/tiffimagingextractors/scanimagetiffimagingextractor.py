@@ -953,8 +953,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
             frame_index = sample_index * num_planes + plane_index
             table_row = self._frames_to_ifd_table[frame_index]
 
-            file_index = table_row["file_index"]
-            ifd_index = table_row["IFD_index"]
+            file_index = int(table_row["file_index"])
+            ifd_index = int(table_row["IFD_index"])
 
             # The ifds are local within a file, so we need to add and offset
             # equal to the number of IFDs in the previous files
