@@ -185,8 +185,6 @@ def generate_dummy_segmentation_extractor(
     roi_locations_columns = rng.integers(low=0, high=num_columns, size=num_rois)
     roi_locations = np.vstack((roi_locations_rows, roi_locations_columns))
 
-    rejected_list = rejected_list if rejected_list else None
-
     accepted_list = roi_ids
     if rejected_list is not None:
         accepted_list = list(set(accepted_list).difference(rejected_list))
@@ -202,6 +200,7 @@ def generate_dummy_segmentation_extractor(
         correlation_image=correlation_image,
         roi_ids=roi_ids,
         roi_locations=roi_locations,
+        accepted_list=accepted_list,
         rejected_list=rejected_list,
         movie_dims=movie_dims,
         channel_names=["channel_num_0"],

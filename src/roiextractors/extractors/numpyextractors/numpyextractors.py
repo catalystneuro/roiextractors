@@ -290,6 +290,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         rejected_list=None,
         channel_names=None,
         movie_dims=None,
+        accepted_list=None,
     ):
         """Create a NumpySegmentationExtractor from a .npy file.
 
@@ -322,6 +323,15 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         movie_dims: tuple
             height x width of the movie
         """
+        accepted_list = accepted_lst if accepted_lst is not None else accepted_list
+        if accepted_lst is not None:
+            warnings.warn(
+                "The 'accepted_lst' parameter is deprecated and will be removed on or after January 2026. "
+                "Use 'accepted_list' instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         SegmentationExtractor.__init__(self)
         if isinstance(image_masks, (str, Path)):
             image_masks = Path(image_masks)
@@ -416,7 +426,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         self._sampling_frequency = sampling_frequency
         self._channel_names = channel_names
         self._rejected_list = rejected_list
-        self._accepted_list = accepted_lst
+        self._accepted_list = accepted_list
 
     @property
     def image_dims(self):
