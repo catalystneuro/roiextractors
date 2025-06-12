@@ -61,10 +61,8 @@ def test_femtonicsimagingextractor_p29_mesc():
 
     # Test session info (number of MUnits and session UUID)
     session_info = extractor._get_session_uuid()
-    expected_uuid = np.array(
-        [102, 213, 51, 146, 143, 154, 66, 41, 182, 97, 30, 169, 181, 145, 82, 30], dtype=session_info.dtype
-    )
-    assert np.array_equal(session_info, expected_uuid)
+    expected_uuid = "66d53392-8f9a-4229-b661-1ea9b591521e"
+    assert session_info == expected_uuid
 
     # Test channel selection by name
     extractor_ug = FemtonicsImagingExtractor(file_path=file_path, session_index=0, munit_index=0, channel_name="UG")
@@ -78,11 +76,12 @@ def test_femtonicsimagingextractor_p29_mesc():
         FemtonicsImagingExtractor(file_path=file_path, session_index=0, munit_index=0, channel_name="InvalidChannel")
 
     # Test pixel size extraction - should be exactly 1.782 µm
-    pixel_size = extractor._get_pixel_size_in_micrometers()
-    assert isinstance(pixel_size, tuple)
-    assert len(pixel_size) == 2
-    assert pixel_size[0] == 1.7821140546875  # Exact value from metadata
-    assert pixel_size[1] == 1.7821140546875  # Exact value from metadata
+    pixel_size = extractor._get_pixels_sizes_and_units()
+    assert isinstance(pixel_size, dict)
+    assert pixel_size["x_size"] == 1.7821140546875
+    assert pixel_size["y_size"] == 1.7821140546875
+    assert pixel_size["x_units"] == "µm"
+    assert pixel_size["y_units"] == "µm"
 
     # Test measurement date - using new getter method
     measurement_date = extractor._get_session_start_time()
@@ -126,29 +125,67 @@ def test_femtonicsimagingextractor_p29_mesc():
     assert scan_params["PixelSizeY"] == 1.7821140546875001
     assert scan_params["Pixelclock"] == 8.116736e6
 
+    # Test get_metadata
+    metadata = extractor._get_metadata()
+    assert isinstance(metadata, dict)
+
+    assert metadata["session_index"] == 0
+    assert metadata["munit_index"] == 0
+    assert metadata["selected_channel"] == "UG"
+    assert metadata["available_channels"] == ["UG", "UR"]
+
+    expected_keys = [
+        "session_index",
+        "munit_index",
+        "selected_channel",
+        "available_channels",
+        "session_uuid",
+        "pixel_size_micrometers",
+        "image_shape_metadata",
+        "session_start_time",
+        "experimenter_info",
+        "geometric_transformations",
+        "mesc_version_info",
+        "pmt_settings",
+        "scan_parameters",
+        "frame_duration_ms",
+        "sampling_frequency_hz",
+    ]
+    for key in expected_keys:
+        assert key in metadata, f"Key '{key}' missing from metadata"
+
+    assert np.array_equal(metadata["session_uuid"], session_info)
+    assert metadata["pixel_size_micrometers"] == pixel_size
+    assert metadata["image_shape_metadata"] == (512, 512, 5)
+    assert metadata["session_start_time"] == measurement_date
+    assert metadata["experimenter_info"] == experimenter_info
+    assert metadata["mesc_version_info"] == version_info
+    assert metadata["pmt_settings"] == pmt_settings
+    assert metadata["scan_parameters"] == scan_params
+    assert metadata["frame_duration_ms"] == 32.29672617170252
+    assert abs(metadata["sampling_frequency_hz"] - expected_freq) < 0.01
+
     # Test data type
     data_type = extractor.get_dtype()
     assert isinstance(data_type, np.dtype)
 
-    # Test data retrieval with the actual 5 frames
-    if extractor.get_num_samples() > 0:
-        # Test single frame using get_series
-        frame = extractor.get_series(start_sample=0, end_sample=1)
-        assert frame.shape == (1,) + extractor.get_image_shape()
+    # Test single frame using get_series
+    frame = extractor.get_series(start_sample=0, end_sample=1)
+    assert frame.shape == (1,) + extractor.get_image_shape()
 
-        # Test series - all 5 frames
-        series = extractor.get_series(start_sample=0, end_sample=5)
-        assert series.shape == (5,) + extractor.get_image_shape()
+    # Test series - all 5 frames
+    series = extractor.get_series(start_sample=0, end_sample=5)
+    assert series.shape == (5,) + extractor.get_image_shape()
 
-        # Test partial series
-        partial_series = extractor.get_series(start_sample=1, end_sample=4)
-        assert partial_series.shape == (3,) + extractor.get_image_shape()
+    # Test partial series
+    partial_series = extractor.get_series(start_sample=1, end_sample=4)
+    assert partial_series.shape == (3,) + extractor.get_image_shape()
 
-        # Test that different channels give same dimensions
-        series_ug = extractor_ug.get_series(start_sample=0, end_sample=5)
-        series_ur = extractor_ur.get_series(start_sample=0, end_sample=5)
-        assert series_ug.shape == series_ur.shape
-        assert series_ug.shape == (5,) + extractor.get_image_shape()
+    # Test that different channels give same dimensions
+    series_ug = extractor_ug.get_series(start_sample=0, end_sample=5)
+    series_ur = extractor_ur.get_series(start_sample=0, end_sample=5)
+    assert series_ug.shape == series_ur.shape
+    assert series_ug.shape == (5,) + extractor.get_image_shape()
 
 
 def test_femtonicsimagingextractor_p30_mesc():
@@ -202,10 +239,8 @@ def test_femtonicsimagingextractor_p30_mesc():
 
     # Test session info (number of MUnits and session UUID)
     session_info = extractor._get_session_uuid()
-    expected_uuid = np.array(
-        [7, 28, 27, 145, 166, 138, 70, 179, 135, 2, 182, 25, 177, 189, 180, 155], dtype=session_info.dtype
-    )
-    assert np.array_equal(session_info, expected_uuid)
+    expected_uuid = "071c1b91-a68a-46b3-8702-b619b1bdb49b"
+    assert session_info == expected_uuid
 
     # Test channel selection by name
     extractor_ug = FemtonicsImagingExtractor(file_path=file_path, session_index=0, munit_index=0, channel_name="UG")
@@ -219,12 +254,12 @@ def test_femtonicsimagingextractor_p30_mesc():
         FemtonicsImagingExtractor(file_path=file_path, session_index=0, munit_index=0, channel_name="InvalidChannel")
 
     # Test pixel size extraction - should be exactly 1.782 µm
-    pixel_size = extractor._get_pixel_size_in_micrometers()
-    assert isinstance(pixel_size, tuple)
-    assert len(pixel_size) == 2
-    assert pixel_size[0] == 1.7821140546875  # Exact value from metadata
-    assert pixel_size[1] == 1.7821140546875  # Exact value from metadata
-
+    pixel_size = extractor._get_pixels_sizes_and_units()
+    assert isinstance(pixel_size, dict)
+    assert pixel_size["x_size"] == 1.7821140546875
+    assert pixel_size["y_size"] == 1.7821140546875
+    assert pixel_size["x_units"] == "µm"
+    assert pixel_size["y_units"] == "µm"
     # Test measurement date - using new getter method
     measurement_date = extractor._get_session_start_time()
     assert measurement_date == datetime(2017, 9, 30, 9, 36, 12, 98727, tzinfo=timezone.utc)
@@ -267,26 +302,62 @@ def test_femtonicsimagingextractor_p30_mesc():
     assert scan_params["PixelSizeY"] == 1.7821140546875001
     assert scan_params["Pixelclock"] == 8.116736e6
 
+    # Test get_metadata
+    metadata = extractor._get_metadata()
+    assert isinstance(metadata, dict)
+
+    assert metadata["session_index"] == 0
+    assert metadata["munit_index"] == 0
+    assert metadata["available_channels"] == ["UG", "UR"]
+
+    expected_keys = [
+        "session_index",
+        "munit_index",
+        "selected_channel",
+        "available_channels",
+        "session_uuid",
+        "pixel_size_micrometers",
+        "image_shape_metadata",
+        "session_start_time",
+        "experimenter_info",
+        "geometric_transformations",
+        "mesc_version_info",
+        "pmt_settings",
+        "scan_parameters",
+        "frame_duration_ms",
+        "sampling_frequency_hz",
+    ]
+    for key in expected_keys:
+        assert key in metadata, f"Key '{key}' missing from metadata"
+
+    assert np.array_equal(metadata["session_uuid"], session_info)
+    assert metadata["pixel_size_micrometers"] == pixel_size
+    assert metadata["image_shape_metadata"] == (512, 512, 5)
+    assert metadata["session_start_time"] == measurement_date
+    assert metadata["experimenter_info"] == experimenter_info
+    assert metadata["mesc_version_info"] == version_info
+    assert metadata["pmt_settings"] == pmt_settings
+    assert metadata["scan_parameters"] == scan_params
+    assert metadata["frame_duration_ms"] == 32.29672617170252
+    assert abs(metadata["sampling_frequency_hz"] - expected_freq) < 0.01
+
     # Test data type
     data_type = extractor.get_dtype()
     assert isinstance(data_type, np.dtype)
 
-    # Test data retrieval with the actual 5 frames
-    if extractor.get_num_samples() > 0:
-        # Test single frame using get_series
-        frame = extractor.get_series(start_sample=0, end_sample=1)
-        assert frame.shape == (1,) + extractor.get_image_shape()
+    frame = extractor.get_series(start_sample=0, end_sample=1)
+    assert frame.shape == (1,) + extractor.get_image_shape()
 
-        # Test series - all 5 frames
-        series = extractor.get_series(start_sample=0, end_sample=5)
-        assert series.shape == (5,) + extractor.get_image_shape()
+    # Test series - all 5 frames
+    series = extractor.get_series(start_sample=0, end_sample=5)
+    assert series.shape == (5,) + extractor.get_image_shape()
 
-        # Test partial series
-        partial_series = extractor.get_series(start_sample=1, end_sample=4)
-        assert partial_series.shape == (3,) + extractor.get_image_shape()
+    # Test partial series
+    partial_series = extractor.get_series(start_sample=1, end_sample=4)
+    assert partial_series.shape == (3,) + extractor.get_image_shape()
 
-        # Test that different channels give same dimensions
-        series_ug = extractor_ug.get_series(start_sample=0, end_sample=5)
-        series_ur = extractor_ur.get_series(start_sample=0, end_sample=5)
-        assert series_ug.shape == series_ur.shape
-        assert series_ug.shape == (5,) + extractor.get_image_shape()
+    # Test that different channels give same dimensions
+    series_ug = extractor_ug.get_series(start_sample=0, end_sample=5)
+    series_ur = extractor_ur.get_series(start_sample=0, end_sample=5)
+    assert series_ug.shape == series_ur.shape
+    assert series_ug.shape == (5,) + extractor.get_image_shape()

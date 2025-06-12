@@ -181,48 +181,157 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         """Get the sampling frequency in Hz."""
         return self._sampling_frequency
 
-    def _get_frame_duration_in_milliseconds(self) -> Optional[float]:
-        """Get time per frame from metadata."""
-        attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
-        return attrs.get("ZAxisConversionConversionLinearScale")
-
-    # Femtonics-specific getter methods
-    def _get_session_uuid(self):
+    def _get_metadata(self) -> Dict[str, Any]:
         """
-        Get the session UUID from the root attributes.
+        Get all available metadata in a single dictionary.
+
+        This method consolidates all metadata extraction methods into one call
+        for convenience when extracting metadata in neuroconv.
 
         Returns
         -------
-        uuid : array or value
-            The session UUID.
+        Dict[str, Any]
+            Dictionary containing all extractable metadata including:
+            - session_uuid: Session UUID
+            - pixel_size_micrometers: (x_size, y_size) in micrometers
+            - image_shape_metadata: (XDim, YDim, ZDim) from metadata
+            - session_start_time: Measurement start time as datetime
+            - experimenter_info: Dict with username, setup_id, hostname
+            - geometric_transformations: Dict with translation, rotation, labeling_origin
+            - mesc_version_info: Dict with version and revision
+            - pmt_settings: Dict with PMT settings per channel
+            - scan_parameters: Dict with scan parameters from XML
+            - frame_duration_ms: Time per frame in milliseconds
+            - sampling_frequency_hz: Sampling frequency in Hz
+            - selected_channel: Currently selected channel name
+            - available_channels: List of all available channels
+            - session_index: Current session index
+            - munit_index: Current MUnit index
         """
-        attrs = dict(self._file_handle.attrs)
-        return attrs.get("Uuid")
+        metadata = {}
 
-    def _get_pixel_size_in_micrometers(self) -> tuple[float, float]:
-        """Get pixel size in micrometers."""
+        # Basic identifiers
+        metadata["session_index"] = self._session_index
+        metadata["munit_index"] = self._munit_index
+        metadata["selected_channel"] = self._selected_channel_name
+        metadata["available_channels"] = self._get_available_channels_from_file()
+
+        # Session UUID
+        try:
+            metadata["session_uuid"] = self._get_session_uuid()
+        except Exception:
+            metadata["session_uuid"] = None
+
+        # Pixel size
+        try:
+            metadata["pixel_size_micrometers"] = self._get_pixels_sizes_and_units()
+        except Exception:
+            metadata["pixel_size_micrometers"] = None
+
+        # Image shape from metadata
+        try:
+            metadata["image_shape_metadata"] = self._get_image_shape_metadata()
+        except Exception:
+            metadata["image_shape_metadata"] = None
+
+        # Session start time
+        try:
+            metadata["session_start_time"] = self._get_session_start_time()
+        except Exception:
+            metadata["session_start_time"] = None
+
+        # Experimenter info
+        try:
+            metadata["experimenter_info"] = self._get_experimenter_info()
+        except Exception:
+            metadata["experimenter_info"] = {}
+
+        # Geometric transformations
+        try:
+            metadata["geometric_transformations"] = self._get_geometric_transformations()
+        except Exception:
+            metadata["geometric_transformations"] = {}
+
+        # MESc version info
+        try:
+            metadata["mesc_version_info"] = self._get_mesc_version_info()
+        except Exception:
+            metadata["mesc_version_info"] = {}
+
+        # PMT settings
+        try:
+            metadata["pmt_settings"] = self._get_pmt_settings()
+        except Exception:
+            metadata["pmt_settings"] = {}
+
+        # Scan parameters
+        try:
+            metadata["scan_parameters"] = self._get_scan_parameters()
+        except Exception:
+            metadata["scan_parameters"] = {}
+
+        # Timing information
+        try:
+            metadata["frame_duration_ms"] = self._get_frame_duration_in_milliseconds()
+        except Exception:
+            metadata["frame_duration_ms"] = None
+
+        metadata["sampling_frequency_hz"] = self._sampling_frequency
+
+        return metadata
+
+    # Femtonics-specific getter methods
+    def _get_session_uuid(self) -> Optional[str]:
+        """Get the session UUID from the root attributes as a hex string."""
+        attrs = dict(self._file_handle.attrs)
+        uuid_arr = attrs.get("Uuid")
+        if uuid_arr is not None:
+            # Convert to hex format
+            hex_str = "".join(f"{x:02x}" for x in uuid_arr)
+            return f"{hex_str[:8]}-{hex_str[8:12]}-{hex_str[12:16]}-{hex_str[16:20]}-{hex_str[20:32]}"
+        return None
+
+    def _get_frame_duration_in_milliseconds(self) -> Optional[float]:
+        """Get time per frame from metadata, ensuring units are in milliseconds."""
+        attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
+
+        frame_duration = attrs.get("ZAxisConversionConversionLinearScale")
+        if frame_duration is None:
+            return None
+
+        # Check units to ensure they are milliseconds
+        z_units = self._decode_string(attrs.get("ZAxisConversionUnitName", []))
+
+        if z_units:
+            z_units_lower = z_units.lower()
+            is_milliseconds = any(
+                ms_variant in z_units_lower for ms_variant in ["ms", "millisec", "millisecond", "msec"]
+            )
+
+            if not is_milliseconds:
+                raise ValueError(
+                    f"Z-axis (time) units are '{z_units}', expected milliseconds. "
+                    f"Cannot reliably calculate sampling frequency. "
+                    f"Frame duration value: {frame_duration}"
+                )
+        else:
+            # If no units specified, warn but assume milliseconds for backward compatibility
+            warn(
+                "No Z-axis (time) unit specified in metadata; assuming milliseconds (ms) for sampling frequency calculation."
+            )
+
+        return frame_duration
+
+    def _get_pixels_sizes_and_units(self) -> Dict[str, Any]:
+        """Get pixel size and units from metadata."""
         attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
 
         x_size = attrs.get("XAxisConversionConversionLinearScale", 1.0)
         y_size = attrs.get("YAxisConversionConversionLinearScale", 1.0)
-
-        # Check units and warn if not micrometers
         x_units = self._decode_string(attrs.get("XAxisConversionUnitName", []))
         y_units = self._decode_string(attrs.get("YAxisConversionUnitName", []))
 
-        def is_micrometers(unit_str):
-            if not unit_str:
-                warn("No X/Y axis unit specified in metadata; assuming micrometers (μm).")
-                return True  # Assume micrometers if no unit specified
-            unit_lower = unit_str.lower()
-            return any(um_variant in unit_lower for um_variant in ["μm", "µm", "um", "microm", "micro", "micrometer"])
-
-        if x_units and not is_micrometers(x_units):
-            warn(f"X-axis units are '{x_units}', expected micrometers")
-        if y_units and not is_micrometers(y_units):
-            warn(f"Y-axis units are '{y_units}', expected micrometers")
-
-        return x_size, y_size
+        return {"x_size": x_size, "y_size": y_size, "x_units": x_units, "y_units": y_units}
 
     def _get_image_shape_metadata(self) -> tuple[int, int, int]:
         """
@@ -234,9 +343,9 @@ class FemtonicsImagingExtractor(ImagingExtractor):
             (XDim, YDim, ZDim) as (num_columns, num_rows, num_frames)
         """
         munit_attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
-        x_dim = munit_attrs.get("XDim")
-        y_dim = munit_attrs.get("YDim")
-        z_dim = munit_attrs.get("ZDim")
+        x_dim = int(munit_attrs.get("XDim"))
+        y_dim = int(munit_attrs.get("YDim"))
+        z_dim = int(munit_attrs.get("ZDim"))
         return (x_dim, y_dim, z_dim)
 
     def _get_session_start_time(self) -> Optional[datetime]:
@@ -311,7 +420,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         except Exception:
             return {}
 
-    def _get_scan_parameters(self) -> Dict[str, Any]:
+    def _get_scan_parameters(self) -> dict[str, Any]:
         """Get scan parameters from XML metadata."""
         try:
             attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
