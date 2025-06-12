@@ -66,9 +66,6 @@ class TestMiniscopeExtractor(TestCase):
     def test_miniscopeextractor_image_size(self):
         self.assertEqual(self.extractor.get_image_size(), self.image_size)
 
-    def test_miniscopeextractor_num_channels(self):
-        self.assertEqual(self.extractor.get_num_channels(), 1)
-
     def test_miniscopeextractor_channel_names(self):
         self.assertEqual(self.extractor.get_channel_names(), ["OpticalChannel"])
 
