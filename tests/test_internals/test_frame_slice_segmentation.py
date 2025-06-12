@@ -59,7 +59,10 @@ class BaseTestFrameSlicesegmentation(TestCase):
         assert self.frame_sliced_segmentation.get_num_rois() == 10
 
     def test_get_accepted_list(self):
-        return assert_array_equal(self.frame_sliced_segmentation.get_accepted_list(), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+        return assert_array_equal(
+            self.frame_sliced_segmentation.get_accepted_list(),
+            ["roi_0", "roi_1", "roi_2", "roi_3", "roi_4", "roi_5", "roi_6", "roi_7", "roi_8", "roi_9"],
+        )
 
     def test_get_rejected_list(self):
         return assert_array_equal(self.frame_sliced_segmentation.get_rejected_list(), [])
