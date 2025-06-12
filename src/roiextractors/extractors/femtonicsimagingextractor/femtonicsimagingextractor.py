@@ -1,7 +1,7 @@
 """A Femtonics imaging extractor with corrected MSession/MUnit hierarchy handling."""
 
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Any
 from warnings import warn
 from datetime import datetime, timezone
 import xml.etree.ElementTree as ET
@@ -181,7 +181,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         """Get the sampling frequency in Hz."""
         return self._sampling_frequency
 
-    def _get_metadata(self) -> Dict[str, Any]:
+    def _get_metadata(self) -> dict[str, Any]:
         """
         Get all available metadata in a single dictionary.
 
@@ -322,7 +322,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
 
         return frame_duration
 
-    def _get_pixels_sizes_and_units(self) -> Dict[str, Any]:
+    def _get_pixels_sizes_and_units(self) -> dict[str, Any]:
         """Get pixel size and units from metadata."""
         attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
 
@@ -360,7 +360,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
             return datetime.fromtimestamp(posix_time + nano_secs / 1e9, tz=timezone.utc)
         return None
 
-    def _get_experimenter_info(self) -> Dict[str, str]:
+    def _get_experimenter_info(self) -> dict[str, str]:
         """Get experimenter information."""
         attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
 
@@ -370,7 +370,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
             "hostname": self._decode_string(attrs.get("ExperimenterHostname", [])),
         }
 
-    def _get_geometric_transformations(self) -> Dict[str, np.ndarray]:
+    def _get_geometric_transformations(self) -> dict[str, np.ndarray]:
         """
         Get geometric transformations: translation, rotation, and labeling origin.
 
@@ -385,7 +385,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
             "labeling_origin": attrs.get("LabelingOriginTransl"),
         }
 
-    def _get_mesc_version_info(self) -> Dict[str, Any]:
+    def _get_mesc_version_info(self) -> dict[str, Any]:
         """Get MESc (Measurement Session Container) software version information."""
         attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
 
@@ -394,7 +394,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
             "revision": attrs.get("CreatingMEScRevision"),
         }
 
-    def _get_pmt_settings(self) -> Dict[str, Dict[str, float]]:
+    def _get_pmt_settings(self) -> dict[str, dict[str, float]]:
         """Get photomultiplier tube (PMT) settings if available from XML metadata."""
         try:
             attrs = dict(self._file_handle[self._session_key][self._munit_key].attrs)
