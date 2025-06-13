@@ -264,6 +264,13 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         width = dataset["width"].shape[0]
         return (height, width)
 
+    def get_roi_ids(self) -> list:
+        dataset = self._read_zarr_group("/A.zarr")
+        if dataset is None or "unit_id" not in dataset:
+            warnings.warn("No ROI ids found in A.zarr dataset. A range of indexes will be used as ROI ids", UserWarning)
+            return super().get_roi_ids()  # Fallback to default implementation
+        return list(dataset["unit_id"])
+
     def get_accepted_list(self) -> list:
         """Get a list of accepted ROI ids.
 

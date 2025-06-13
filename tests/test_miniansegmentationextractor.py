@@ -68,6 +68,7 @@ def expected_properties():
         frame_shape=(608, 608),
         num_rois=3,
         first_timestamp=[0.329],
+        roi_ids=[0, 1, 2],
     )
 
 
@@ -106,8 +107,8 @@ def test_num_samples(extractor, expected_properties):
     assert extractor.get_num_samples() == expected_properties["num_samples"]
 
 
-def test_sample_indices_to_time(extractor):
-    assert extractor.sample_indices_to_time(sample_indices=[0]) == [0.329]
+def test_sample_indices_to_time(extractor, expected_properties):
+    assert extractor.sample_indices_to_time(sample_indices=[0]) == expected_properties["first_timestamp"]
 
 
 def test_num_rois(extractor, expected_properties):
@@ -148,3 +149,14 @@ def test_get_original_timestamps(extractor, expected_properties):
 
     # Length should match number of frames
     assert len(timestamps) == expected_properties["num_samples"]
+
+
+def test_get_roi_ids(extractor, expected_properties):
+    """Test that ROI IDs are correctly retrieved."""
+    roi_ids = extractor.get_roi_ids()
+
+    # Test the number of ROIs
+    assert len(roi_ids) == expected_properties["num_rois"]
+
+    # Test that ROI IDs match expected values
+    assert roi_ids == expected_properties["roi_ids"]
