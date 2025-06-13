@@ -106,8 +106,8 @@ def test_num_samples(extractor, expected_properties):
     assert extractor.get_num_samples() == expected_properties["num_samples"]
 
 
-def test_frame_to_time(extractor):
-    assert extractor.frame_to_time(frames=[0]) == [0.329]
+def test_sample_indices_to_time(extractor):
+    assert extractor.sample_indices_to_time(sample_indices=[0]) == [0.329]
 
 
 def test_num_rois(extractor, expected_properties):
@@ -138,10 +138,10 @@ def test_maximum_projection_image(extractor, maximum_projection_image):
     assert_array_equal(images_dict["maximum_projection"], maximum_projection_image)
 
 
-def test_read_timestamps_from_csv(extractor, expected_properties):
+def test_get_original_timestamps(extractor, expected_properties):
     """Test that timestamps are correctly read from CSV file."""
     # Get timestamps using the extractor
-    timestamps = extractor._read_timestamps_from_csv()
+    timestamps = extractor.get_original_timestamps()
 
     # First timestamp should match the expected value
     assert timestamps[0] == expected_properties["first_timestamp"]

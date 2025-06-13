@@ -7,13 +7,14 @@ MinianSegmentationExtractor
 """
 
 from pathlib import Path
+from typing import Union
 
 import zarr
 import warnings
 import numpy as np
 import pandas as pd
 
-from ...extraction_tools import PathType
+from ...extraction_tools import PathType, FloatType
 from ...segmentationextractor import SegmentationExtractor
 
 
@@ -103,8 +104,6 @@ class MinianSegmentationExtractor(SegmentationExtractor):
                 UserWarning,
             )
 
-        self._times = self._read_timestamps_from_csv()
-
     def _read_zarr_group(self, zarr_group=""):
         """Read the zarr group.
 
@@ -185,7 +184,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             return np.expand_dims(dataset[field], axis=1)
 
     def _read_timestamps_from_csv(self):
-        """Extract timestamps corresponding to frame numbers of the stored denoised trace.
+        """Extract timestamps corresponding to frame indexes (not downsampled) of the stored denoised trace.
 
         Returns
         -------
@@ -197,10 +196,42 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
         csv_file = self.folder_path / "timeStamps.csv"
         df = pd.read_csv(csv_file)
-        frame_numbers = self._read_zarr_group("/C.zarr/frame")
-        filtered_df = df[df["Frame Number"].isin(frame_numbers)]
+        frame_indexes = self._read_zarr_group("/C.zarr/frame")
+        filtered_df = df[df["Frame Number"].isin(frame_indexes)]
 
         return filtered_df["Time Stamp (ms)"].to_numpy() * 1e-3
+
+    def get_original_timestamps(self) -> np.ndarray:
+        """Get the original timestamps from the CSV file.
+
+        Returns
+        -------
+        np.ndarray
+            The original timestamps in seconds.
+        """
+        if self._times is not None:
+            return self._times
+
+        return self._read_timestamps_from_csv()
+
+    def sample_indices_to_time(self, sample_indices: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
+        """Convert user-inputted sample indices to times with units of seconds.
+
+        Parameters
+        ----------
+        sample_indices: int or array-like
+            The sample indices to be converted to times.
+
+        Returns
+        -------
+        times: float or array-like
+            The corresponding times in seconds.
+        """
+        # Default implementation
+        if self._times is None:
+            self._times = self.get_original_timestamps()
+
+        return self._times[sample_indices]
 
     def get_frame_shape(self) -> tuple[int, int]:
         """Get the frame shape (height, width) from the zarr dataset.
