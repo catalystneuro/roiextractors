@@ -265,6 +265,19 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         return (height, width)
 
     def get_roi_ids(self) -> list:
+        """Get a list of ROI ids from the A.zarr dataset.
+
+        Returns
+        -------
+        roi_ids: list
+            List of ROI ids.
+
+        Raises
+        ------
+        Warnings
+            If the A.zarr dataset is not found or does not contain 'unit_id'.
+        """
+
         dataset = self._read_zarr_group("/A.zarr")
         if dataset is None or "unit_id" not in dataset:
             warnings.warn("No ROI ids found in A.zarr dataset. A range of indexes will be used as ROI ids", UserWarning)
@@ -329,9 +342,17 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         -------
         session_id: str
             The session id.
+
+        Raises
+        ------
+        Warnings
+            If the A.zarr dataset is not found or does not contain 'session_id'.
         """
         dataset = self._read_zarr_group("/A.zarr")
         if dataset is None or "session_id" not in dataset:
+            warnings.warn(
+                "No 'session_id' found in A.zarr dataset. Returning an empty string for 'session_id'.", UserWarning
+            )
             return ""
         return dataset["session_id"][()]
 
@@ -341,9 +362,17 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         Returns
         -------
         subject_id: str
-            The subject id.
+            The subject id.session_id
+
+        Raises
+        ------
+        Warnings
+            If the A.zarr dataset is not found or does not contain 'animal'.
         """
         dataset = self._read_zarr_group("/A.zarr")
         if dataset is None or "animal" not in dataset:
+            warnings.warn(
+                "No 'animal' found in A.zarr dataset. Returning an empty string for 'subject_id'.", UserWarning
+            )
             return ""
         return dataset["animal"][()]
