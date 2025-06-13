@@ -61,8 +61,7 @@ def test_inscopix_segmentation_extractor():
 
     # Test basic properties
     assert extractor.get_num_rois() == 4
-    assert extractor.get_roi_ids() == [0, 1, 2, 3]
-    assert extractor.get_original_roi_ids() == ["C0", "C1", "C2", "C3"]
+    assert extractor.get_roi_ids() == ["C0", "C1", "C2", "C3"]
 
     # Test status lists
     accepted_list = extractor.get_accepted_list()
@@ -76,11 +75,11 @@ def test_inscopix_segmentation_extractor():
     assert extractor.get_num_samples() == 5444
 
     # Test image masks (using integer ID instead of string)
-    img = extractor.get_roi_image_masks([1])
+    img = extractor.get_roi_image_masks(["C1"])
     assert img.shape == (366, 398)
 
     # Test pixel masks
-    pixel_masks = extractor.get_roi_pixel_masks([1])
+    pixel_masks = extractor.get_roi_pixel_masks(["C1"])
     assert len(pixel_masks) == 1
     assert pixel_masks[0].shape[1] == 3
 
@@ -90,7 +89,7 @@ def test_inscopix_segmentation_extractor():
     # Test trace extraction
     assert extractor.get_traces().shape == (4, 5444)
     assert extractor.get_traces(start_frame=10, end_frame=20).shape == (4, 10)
-    assert extractor.get_traces(start_frame=10, end_frame=20, roi_ids=[1]).shape == (1, 10)
+    assert extractor.get_traces(start_frame=10, end_frame=20, roi_ids=["C1"]).shape == (1, 10)
 
     # Test session information
     session_info = extractor._get_session_info()
@@ -162,8 +161,8 @@ def test_inscopix_segmentation_extractor_part1():
 
     # Test basic properties
     assert extractor.get_num_rois() == 6
-    assert extractor.get_roi_ids() == [0, 1, 2, 3, 4, 5]
-    assert extractor.get_original_roi_ids() == ["C0", "C1", "C2", "C3", "C4", "C5"]
+    assert extractor.get_roi_ids() == ["C0", "C1", "C2", "C3", "C4", "C5"]
+    # assert extractor.get_original_roi_ids() == ["C0", "C1", "C2", "C3", "C4", "C5"]
 
     # Test status lists (limited metadata may result in empty lists)
     accepted_list = extractor.get_accepted_list()
@@ -175,11 +174,11 @@ def test_inscopix_segmentation_extractor_part1():
     assert extractor.get_frame_shape() == (21, 21)
 
     # Test image masks
-    img = extractor.get_roi_image_masks([1])
+    img = extractor.get_roi_image_masks(["C1"])
     assert img.shape == (21, 21)
 
     # Test pixel masks
-    pixel_masks = extractor.get_roi_pixel_masks([1])
+    pixel_masks = extractor.get_roi_pixel_masks(["C1"])
     assert len(pixel_masks) == 1
     assert pixel_masks[0].shape[1] == 3
 
@@ -193,7 +192,7 @@ def test_inscopix_segmentation_extractor_part1():
     # Test trace extraction
     assert extractor.get_traces().shape == (6, 100)
     assert extractor.get_traces(start_frame=10, end_frame=20).shape == (6, 10)
-    assert extractor.get_traces(start_frame=10, end_frame=20, roi_ids=[1]).shape == (1, 10)
+    assert extractor.get_traces(start_frame=10, end_frame=20, roi_ids=["C1"]).shape == (1, 10)
 
 
 def test_inscopix_segmentation_extractor_empty():
@@ -226,7 +225,7 @@ def test_inscopix_segmentation_extractor_empty():
     # Test basic properties
     assert extractor.get_num_rois() == 0
     assert extractor.get_roi_ids() == []
-    assert extractor.get_original_roi_ids() == []
+    # assert extractor.get_original_roi_ids() == []
 
     # Test status lists
     assert extractor.get_accepted_list() == []

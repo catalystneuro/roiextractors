@@ -48,10 +48,8 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
         self.cell_set = isx.CellSet.read(file_path_str, read_only=True)
 
-        # Create mappings between original IDs and integer IDs
-        self._original_ids = [self.cell_set.get_cell_name(x) for x in range(self.cell_set.num_cells)]
-        self._id_to_index = {id: i for i, id in enumerate(self._original_ids)}
-        self._index_to_id = {i: id for id, i in self._id_to_index.items()}
+        # Get original IDs directly from CellSet
+        self._roi_ids = [self.cell_set.get_cell_name(x) for x in range(self.cell_set.num_cells)]
 
         # Cache for metadata to avoid repeated extraction
         self._metadata_cache = None
@@ -59,61 +57,25 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
     def get_num_rois(self) -> int:
         return self.cell_set.num_cells
 
-    def _get_roi_indices(self, roi_ids: list | None = None) -> list[int]:
-        """Convert ROI IDs to indices (positions in the original CellSet).
-
-        Handle both string IDs (e.g., 'C0') and integer IDs (e.g., 0).
-
-        Parameters
-        ----------
-        roi_ids : list or None
-            List of ROI IDs (can be integers or original string IDs)
-
-        Returns
-        -------
-        List[int]
-            List of indices corresponding to the ROI IDs
-
-
-        """
-        if roi_ids is None:
-            return list(range(self.get_num_rois()))
-
-        indices = []
-        max_rois = self.get_num_rois()
-
-        for roi_id in roi_ids:
-            if isinstance(roi_id, int):
-                if 0 <= roi_id < max_rois:
-                    indices.append(roi_id)
-                else:
-                    raise ValueError(f"ROI index {roi_id} out of range [0, {max_rois-1}]")
-            elif isinstance(roi_id, str):
-                if roi_id in self._id_to_index:
-                    indices.append(self._id_to_index[roi_id])
-                else:
-                    raise ValueError(
-                        f"ROI ID '{roi_id}' not found. Available IDs: {list(self._id_to_index.keys())[:5]}..."
-                    )
-            else:
-                raise ValueError(f"ROI ID must be int or str, got {type(roi_id)}: {roi_id}")
-
-        return indices
-
-    def get_roi_image_masks(self, roi_ids=None) -> np.ndarray:
+    def get_roi_image_masks(self, roi_ids: Optional[list] = None) -> np.ndarray:
         """Get image masks for the specified ROIs.
 
         Parameters
         ----------
         roi_ids : list or None
             List of ROI IDs (can be integers or original string IDs)
+        If None, all ROIs will be returned.
 
         Returns
         -------
         np.ndarray
             Image masks for the specified ROIs
         """
-        roi_indices = self._get_roi_indices(roi_ids)
+        if roi_ids is None:
+            roi_indices = list(range(self.get_num_rois()))
+        else:
+            all_roi_ids = self.get_roi_ids()
+            roi_indices = [all_roi_ids.index(roi_id) for roi_id in roi_ids]
 
         masks = [self.cell_set.get_cell_image_data(roi_idx) for roi_idx in roi_indices]
         if len(masks) == 1:
@@ -136,11 +98,14 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             List of pixel masks, each with shape (N, 3) where N is the number of pixels in the ROI.
             Each row is (x, y, weight).
         """
+        if roi_ids is None:
+            roi_ids = self.get_roi_ids()
+
         # Get image masks
         image_masks = self.get_roi_image_masks(roi_ids=roi_ids)
 
         # Handle case when only one ROI ID is specified
-        if roi_ids is not None and (not isinstance(roi_ids, list) or len(roi_ids) == 1):
+        if len(roi_ids) == 1:
             image_masks = [image_masks]
 
         # Convert image masks to pixel masks
@@ -163,12 +128,8 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         return pixel_masks
 
     def get_roi_ids(self) -> list:
-        """Get ROI IDs as integers (0, 1, 2, ...)."""
-        return list(range(self.get_num_rois()))
-
-    def get_original_roi_ids(self) -> list:
-        """Get original ROI IDs from the CellSet."""
-        return self._original_ids.copy()
+        """Get ROI IDs as original string IDs from the CellSet."""
+        return self._roi_ids.copy()
 
     def get_frame_shape(self) -> ArrayType:
         if hasattr(self.cell_set, "spacing"):
@@ -192,21 +153,19 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         return self.get_frame_shape()
 
     def get_accepted_list(self) -> list:
-        """Get list of accepted ROI IDs (as integers)."""
+        """Get list of accepted ROI IDs (as string IDs)."""
         accepted = []
-        for i, original_id in enumerate(self._original_ids):
-            idx = self._original_ids.index(original_id)
-            if self.cell_set.get_cell_status(idx) == "accepted":
-                accepted.append(i)  # Return integer IDs
+        for i, original_id in enumerate(self._roi_ids):
+            if self.cell_set.get_cell_status(i) == "accepted":
+                accepted.append(original_id)  # Return string IDs
         return accepted
 
     def get_rejected_list(self) -> list:
-        """Get list of rejected ROI IDs (as integers)."""
+        """Get list of rejected ROI IDs (as string IDs)."""
         rejected = []
-        for i, original_id in enumerate(self._original_ids):
-            idx = self._original_ids.index(original_id)
-            if self.cell_set.get_cell_status(idx) == "rejected":
-                rejected.append(i)  # Return integer IDs
+        for i, original_id in enumerate(self._roi_ids):
+            if self.cell_set.get_cell_status(i) == "rejected":
+                rejected.append(original_id)  # Return string IDs
         return rejected
 
     def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="raw") -> ArrayType:
@@ -215,7 +174,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         Parameters
         ----------
         roi_ids : list or None
-            List of ROI IDs (can be integers or original string IDs)
+            List of ROI IDs (can be integers or string IDs)
         start_frame : int or None
             Start frame index
         end_frame : int or None
@@ -228,7 +187,11 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         np.ndarray
             Traces for the specified ROIs
         """
-        roi_indices = self._get_roi_indices(roi_ids)
+        if roi_ids is None:
+            roi_indices = list(range(self.get_num_rois()))
+        else:
+            all_roi_ids = self.get_roi_ids()
+            roi_indices = [all_roi_ids.index(roi_id) for roi_id in roi_ids]
 
         return np.vstack([self.cell_set.get_cell_trace_data(roi_idx)[start_frame:end_frame] for roi_idx in roi_indices])
 
