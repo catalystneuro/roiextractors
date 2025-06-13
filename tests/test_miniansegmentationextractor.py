@@ -74,11 +74,38 @@ def expected_properties():
     )
 
 
-def test_incomplete_extractor_load(folder_path, tmp_path):
+def test_incomplete_extractor_load_temporal_components(folder_path, tmp_path):
     """Check extractor can be initialized when not all traces are available."""
     # temporary directory for testing assertion when some of the files are missing
     folders_to_copy = [
         "A.zarr",
+        "b.zarr",
+        "f.zarr",
+        "max_proj.zarr",
+        ".zgroup",
+        "timeStamps.csv",
+    ]
+
+    for folder in folders_to_copy:
+        src = Path(folder_path) / folder
+        dst = tmp_path / folder
+        if src.is_dir():
+            shutil.copytree(src, dst, dirs_exist_ok=True)
+        else:
+            shutil.copy(src, dst)
+    with pytest.raises(
+        ValueError,
+        match=r"Spatial components \(A\.zarr\) are available but no temporal components \(C\.zarr, S\.zarr, b0\.zarr\) are associated\. "
+        r"This means ROI masks exist but without any corresponding fluorescence traces\.",
+    ):
+        MinianSegmentationExtractor(folder_path=tmp_path)
+
+
+def test_incomplete_extractor_load_spatial_component(folder_path, tmp_path):
+    """Check extractor can be initialized when not all spatial components are available."""
+    # temporary directory for testing assertion when some of the files are missing
+    folders_to_copy = [
+        "S.zarr",
         "C.zarr",
         "b0.zarr",
         "b.zarr",
@@ -96,9 +123,8 @@ def test_incomplete_extractor_load(folder_path, tmp_path):
         else:
             shutil.copy(src, dst)
 
-    extractor = MinianSegmentationExtractor(folder_path=tmp_path)
-    traces_dict = extractor.get_traces_dict()
-    assert traces_dict["deconvolved"] is None
+    with pytest.raises(ValueError, match="No image masks found in A.zarr dataset."):
+        MinianSegmentationExtractor(folder_path=tmp_path)
 
 
 def test_frame_shape(extractor, expected_properties):

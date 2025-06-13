@@ -72,36 +72,15 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             and self._roi_response_deconvolved is None
             and self._roi_response_baseline is None
         ):
-            warnings.warn(
+            raise ValueError(
                 "Spatial components (A.zarr) are available but no temporal components (C.zarr, S.zarr, b0.zarr) are associated. "
-                "This means ROI masks exist but without any corresponding fluorescence traces.",
-                UserWarning,
+                "This means ROI masks exist but without any corresponding fluorescence traces."
             )
 
         if self._background_image_masks is not None and self._roi_response_neuropil is None:
-            warnings.warn(
+            raise ValueError(
                 "Background spatial components (b.zarr) are available but no background temporal component (f.zarr) is associated. "
-                "This means background masks exist but without corresponding temporal dynamics.",
-                UserWarning,
-            )
-
-        # Check for reverse problem: temporal components exist but spatial components are missing
-        if self._image_masks is None and (
-            self._roi_response_denoised is not None
-            or self._roi_response_deconvolved is not None
-            or self._roi_response_baseline is not None
-        ):
-            warnings.warn(
-                "Temporal components (C.zarr, S.zarr, or b0.zarr) are available but no spatial components (A.zarr) are associated. "
-                "This means fluorescence traces exist but without corresponding ROI masks.",
-                UserWarning,
-            )
-
-        if self._background_image_masks is None and self._roi_response_neuropil is not None:
-            warnings.warn(
-                "Background temporal component (f.zarr) is available but no background spatial component (b.zarr) is associated. "
-                "This means background temporal dynamics exist but without corresponding spatial masks.",
-                UserWarning,
+                "This means background masks exist but without corresponding temporal dynamics."
             )
 
     def _read_zarr_group(self, zarr_group=""):
@@ -134,7 +113,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         """
         dataset = self._read_zarr_group("/A.zarr")
         if dataset is None or "A" not in dataset:
-            return None
+            raise ValueError("No image masks found in A.zarr dataset.")
         else:
             return np.transpose(dataset["A"], (1, 2, 0))
 
@@ -158,7 +137,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         """
         dataset = self._read_zarr_group("/b.zarr")
         if dataset is None or "b" not in dataset:
-            return None
+            raise ValueError("No background image masks found in b.zarr dataset.")
         else:
             return np.expand_dims(dataset["b"], axis=2)
 
