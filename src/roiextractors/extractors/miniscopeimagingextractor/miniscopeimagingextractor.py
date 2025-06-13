@@ -13,15 +13,16 @@ import warnings
 
 import numpy as np
 
+
 from ...imagingextractor import ImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor
 from ...extraction_tools import PathType, DtypeType, get_package
 from .miniscope_utils import validate_miniscope_files, load_miniscope_config
 
 
-class MiniscopeMultiRecordingImagingExtractor(MultiImagingExtractor):
+class MiniscopeImagingExtractor(MultiImagingExtractor):
     """
-    ImagingExtractor processes multiple separate Miniscope recordings within the same session.
+    MiniscopeImagingExtractor processes .avi files within the same session.
 
     This extractor consolidates the recordings as a single continuous dataset.
 
@@ -38,34 +39,23 @@ class MiniscopeMultiRecordingImagingExtractor(MultiImagingExtractor):
     >>> # Direct file specification
     >>> file_paths = ["/path/to/video1.avi", "/path/to/video2.avi"]
     >>> config_path = "/path/to/metaData.json"
-    >>> extractor = MiniscopeMultiRecordingImagingExtractor(file_paths, config_path)
+    >>> extractor = MiniscopeImagingExtractor(file_paths, config_path)
 
     >>> # Using utility function for automatic discovery
     >>> from .miniscope_utils import get_miniscope_files_from_folder
     >>> file_paths, config_path = get_miniscope_files_from_folder("/path/to/folder")
-    >>> extractor = MiniscopeMultiRecordingImagingExtractor(file_paths, config_path)
+    >>> extractor = MiniscopeImagingExtractor(file_paths, config_path)
 
     Notes
     -----
     For each video file, a _MiniscopeSingleVideoExtractor is created. These individual extractors
-    are then combined into the MiniscopeMultiRecordingImagingExtractor to handle the session's recordings
+    are then combined into the MiniscopeImagingExtractor to handle the session's recordings
     as a unified, continuous dataset.
     """
 
-    extractor_name = "MiniscopeMultiRecordingImagingExtractor"
-    is_writable = True
-    mode = "file"
-
     def __init__(self, file_paths: List[PathType], configuration_file_path: PathType):
-        """Create a MiniscopeMultiRecordingImagingExtractor instance from file paths.
+        """Create a MiniscopeImagingExtractor instance from file paths."""
 
-        Parameters
-        ----------
-        file_paths : List[PathType]
-            List of .avi file paths to be processed.
-        configuration_file_path : PathType
-            Path to the metaData.json configuration file.
-        """
         # Validate input files
         validate_miniscope_files(file_paths, configuration_file_path)
 
@@ -87,15 +77,60 @@ class MiniscopeMultiRecordingImagingExtractor(MultiImagingExtractor):
 
 
 # Temporary renaming to keep backwards compatibility
-class MiniscopeImagingExtractor(MiniscopeMultiRecordingImagingExtractor):
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            "MiniscopeImagingExtractor is unstable and might change its signature. "
-            "Please use MiniscopeMultiRecordingImagingExtractor instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__init__(*args, **kwargs)
+class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
+    """
+    MiniscopeMultiRecordingImagingExtractor processes multiple separate Miniscope recordings within the same session.
+
+    This extractor consolidates the recordings as a single continuous dataset.
+
+    Parameters
+    ----------
+        folder_path : PathType
+            The folder path containing the Miniscope video (.avi) files and the metaData.json configuration file.
+
+    Notes
+    -----
+    This extractor is designed to handle the Tye Lab format, where multiple recordings
+    are organized in timestamp subfolders, each containing a Miniscope subfolder.
+    The expected folder structure is as follows:
+    ```
+    parent_folder/
+    ├── 15_03_28/  (timestamp folder)
+    │   ├── Miniscope/
+    │   │   ├── 0.avi
+    │   │   ├── 1.avi
+    │   │   └── metaData.json
+    │   ├── BehavCam_2/
+    │   └── metaData.json
+    ├── 15_06_28/  (timestamp folder)
+    │   ├── Miniscope/
+    │   │   ├── 0.avi
+    │   │   └── metaData.json
+    │   └── BehavCam_2/
+    └── 15_12_28/  (timestamp folder)
+        └── Miniscope/
+            ├── 0.avi
+            └── metaData.json
+    ```
+    This extractor will automatically find all the .avi files and the metaData.json configuration file
+    within the specified folder and its subfolders, and create a _MiniscopeSingleVideoExtractor for each .avi file.
+    The individual extractors are then combined into the MiniscopeMultiRecordingImagingExtractor to handle
+    the session's recordings as a unified, continuous dataset.
+    """
+
+    extractor_name = "MiniscopeMultiRecordingImagingExtractor"
+    is_writable = True
+    mode = "file"
+
+    def __init__(self, folder_path: PathType):
+        """Create a MiniscopeMultiRecordingImagingExtractor instance from folder_path."""
+        # Import necessary packages
+        from .miniscope_utils import get_miniscope_files_from_multi_timestamp_subfolders
+
+        # Get file paths and configuration file path
+        file_paths, configuration_file_path = get_miniscope_files_from_multi_timestamp_subfolders(folder_path)
+
+        super().__init__(file_paths=file_paths, configuration_file_path=configuration_file_path)
 
 
 class _MiniscopeSingleVideoExtractor(ImagingExtractor):
