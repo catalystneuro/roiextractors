@@ -125,10 +125,10 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
     def __init__(self, folder_path: PathType):
         """Create a MiniscopeMultiRecordingImagingExtractor instance from folder_path."""
         # Import necessary packages
-        from .miniscope_utils import get_miniscope_files_from_multi_timestamp_subfolders
+        from .miniscope_utils import get_miniscope_files_from_multi_recordings_subfolders
 
         # Get file paths and configuration file path
-        file_paths, configuration_file_path = get_miniscope_files_from_multi_timestamp_subfolders(folder_path)
+        file_paths, configuration_file_path = get_miniscope_files_from_multi_recordings_subfolders(folder_path)
 
         super().__init__(file_paths=file_paths, configuration_file_path=configuration_file_path)
 

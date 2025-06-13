@@ -11,7 +11,7 @@ from typing import List, Tuple
 from ...extraction_tools import PathType, get_package
 
 
-def get_miniscope_files_from_multi_timestamp_subfolders(
+def get_miniscope_files_from_multi_recordings_subfolders(
     folder_path: PathType, miniscopeDeviceName: str = "Miniscope"
 ) -> Tuple[List[PathType], PathType]:
     """

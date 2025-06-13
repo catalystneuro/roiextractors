@@ -11,7 +11,7 @@ from numpy.testing import assert_array_equal
 from roiextractors import MiniscopeImagingExtractor
 from roiextractors.extractors.miniscopeimagingextractor import (
     MiniscopeMultiRecordingImagingExtractor,
-    get_miniscope_files_from_multi_timestamp_subfolders,
+    get_miniscope_files_from_multi_recordings_subfolders,
     get_miniscope_files_from_direct_folder,
     validate_miniscope_files,
     load_miniscope_config,
@@ -32,7 +32,7 @@ class TestMiniscopeExtractor(TestCase):
         cls.num_frames = 15
 
         # Get absolute file paths and configuration file using utility function
-        cls.file_paths, cls.configuration_file_path = get_miniscope_files_from_multi_timestamp_subfolders(
+        cls.file_paths, cls.configuration_file_path = get_miniscope_files_from_multi_recordings_subfolders(
             cls.folder_path
         )
 
@@ -174,8 +174,8 @@ class TestMiniscopeExtractor(TestCase):
         with self.assertRaises(FileNotFoundError):
             load_miniscope_config("nonexistent.json")
 
-    def test_get_miniscope_files_from_multi_timestamp_subfolders(self):
-        file_paths, config_path = get_miniscope_files_from_multi_timestamp_subfolders(self.folder_path)
+    def test_get_miniscope_files_from_multi_recordings_subfolders(self):
+        file_paths, config_path = get_miniscope_files_from_multi_recordings_subfolders(self.folder_path)
         self.assertEqual(len(file_paths), 3)
         self.assertTrue(all(str(fp).endswith(".avi") for fp in file_paths))
         self.assertTrue(str(config_path).endswith("metaData.json"))
