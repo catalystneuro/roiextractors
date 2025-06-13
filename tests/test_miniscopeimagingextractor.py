@@ -43,9 +43,7 @@ class TestMiniscopeExtractor(TestCase):
         shutil.copy(cls.folder_path / cls.relative_file_paths[0], cls.test_dir / cls.relative_file_paths[0])
 
         # Create extractors using both old and new interfaces
-        cls.multi_recording_extractor = MiniscopeMultiRecordingImagingExtractor(
-            cls.file_paths, cls.configuration_file_path
-        )
+        cls.multi_recording_extractor = MiniscopeMultiRecordingImagingExtractor(cls.folder_path)
         cls.extractor = MiniscopeImagingExtractor(cls.file_paths, cls.configuration_file_path)
 
         cls.video = cls._get_test_video()
@@ -67,11 +65,11 @@ class TestMiniscopeExtractor(TestCase):
 
     def test_avi_files_are_missing_assertion(self):
         with self.assertRaises(AssertionError):
-            get_miniscope_files_from_multi_timestamp_subfolders("test")
+            get_miniscope_files_from_multi_recordings_subfolders("test")
 
     def test_json_files_are_missing_assertion(self):
         with self.assertRaises(AssertionError):
-            get_miniscope_files_from_multi_timestamp_subfolders(self.test_dir)
+            get_miniscope_files_from_multi_recordings_subfolders(self.test_dir)
 
     def test_miniscopeextractor_num_frames(self):
         self.assertEqual(self.extractor.get_num_frames(), self.num_frames)
