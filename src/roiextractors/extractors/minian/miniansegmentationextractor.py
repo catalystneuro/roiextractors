@@ -140,6 +140,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
     def _read_background_image_mask_from_zarr(self):
         """Read the background image masks (b) from the zarr output.
+
         b.zarr structure is expected to be like:
         ├── b.zarr
         │   ├── animal () <U7
@@ -150,10 +151,10 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         │   ├── unit_id () int64
         │   └── width (608,) in
 
-               Returns
-               -------
-               image_masks: numpy.ndarray
-                   The image masks for each background components.
+        Returns
+        -------
+        image_masks: numpy.ndarray
+            The image masks for each background components.
         """
         dataset = self._read_zarr_group("/b.zarr")
         if dataset is None or "b" not in dataset:
