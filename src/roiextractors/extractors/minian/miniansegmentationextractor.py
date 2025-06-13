@@ -213,6 +213,11 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
         return self._times[sample_indices]
 
+    def has_time_vector(self) -> bool:
+        if self._times is None:
+            self._times = self.get_original_timestamps()
+        return True  # The MinianSegmentationExtractor always has a time vector from the timestamps CSV.
+
     def get_frame_shape(self) -> tuple[int, int]:
         """Get the frame shape (height, width) from the zarr dataset.
 
