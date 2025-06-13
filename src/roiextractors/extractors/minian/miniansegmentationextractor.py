@@ -277,7 +277,6 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         Warnings
             If the A.zarr dataset is not found or does not contain 'unit_id'.
         """
-
         dataset = self._read_zarr_group("/A.zarr")
         if dataset is None or "unit_id" not in dataset:
             warnings.warn("No ROI ids found in A.zarr dataset. A range of indexes will be used as ROI ids", UserWarning)
