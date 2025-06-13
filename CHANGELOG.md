@@ -1,7 +1,7 @@
 # v0.5.14 (Upcoming)
 
 ### Features
-
+* Added `get_original_frame_indices()` method to `ScanImageImagingExtractor` for mapping extractor samples back to original frame indices in raw microscopy data. This method can be used to synchronize with other data sources or for advanced analysis that requires knowledge of the original frame indices. [PR #445](https://github.com/catalystneuro/roiextractors/pull/445)
 
 ### Fixes
 * Added missing function to retrieve inscopix metadata [PR #436](https://github.com/catalystneuro/roiextractors/pull/436)
@@ -13,6 +13,7 @@
 ### Deprecations And Removals
 * The `get_image_size()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_frame_shape()` instead. [PR #443](https://github.com/catalystneuro/roiextractors/pull/443)
 * The `get_num_frames()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_num_samples()` instead. [PR #443](https://github.com/catalystneuro/roiextractors/pull/443)
+* The `frame_to_time()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `sample_indices_to_time()` instead. [PR TBD](https://github.com/catalystneuro/roiextractors/pull/TBD)
 * Removed unused `is_writable` class attributes from all extractor classes [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
 * `get_frames` is now `get_samples`. `get_frames` will be deprecated in or after January 2026 [PR #444](https://github.com/catalystneuro/roiextractors/pull/444)
 
