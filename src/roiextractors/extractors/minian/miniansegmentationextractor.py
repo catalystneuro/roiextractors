@@ -198,9 +198,9 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         csv_file = self.folder_path / "timeStamps.csv"
         df = pd.read_csv(csv_file)
         frame_numbers = self._read_zarr_group("/C.zarr/frame")
-        filtered_df = df[df["Frame Number"].isin(frame_numbers)] * 1e-3
+        filtered_df = df[df["Frame Number"].isin(frame_numbers)]
 
-        return filtered_df["Time Stamp (ms)"].to_numpy()
+        return filtered_df["Time Stamp (ms)"].to_numpy() * 1e-3
 
     def get_frame_shape(self) -> tuple[int, int]:
         """Get the frame shape (height, width) from the zarr dataset.
