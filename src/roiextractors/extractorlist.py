@@ -1,6 +1,7 @@
 """Listing of available formats for extraction."""
 
 from .extractors.caiman import CaimanSegmentationExtractor
+from .extractors.femtonicsimagingextractor import FemtonicsImagingExtractor
 from .extractors.hdf5imagingextractor import Hdf5ImagingExtractor
 from .extractors.numpyextractors import (
     NumpyImagingExtractor,
@@ -39,6 +40,7 @@ from .volumetricimagingextractor import VolumetricImagingExtractor
 
 
 imaging_extractor_full_list = [
+    FemtonicsImagingExtractor,
     NumpyImagingExtractor,
     Hdf5ImagingExtractor,
     TiffImagingExtractor,
