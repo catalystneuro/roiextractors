@@ -18,5 +18,7 @@ from .miniscope_utils import (
     validate_miniscope_files,
     load_miniscope_config,
     get_recording_start_time,
-    read_times_from_csv_file,
+    read_timestamps_from_csv_file,
+    get_recording_start_times_for_multi_recordings,
+    get_timestamps_for_multi_recordings,
 )

@@ -253,23 +253,110 @@ def get_recording_start_time(file_path: PathType) -> datetime.datetime:
     return session_start_time
 
 
-def read_times_from_csv_file(file_path: PathType) -> List[float]:
+def read_timestamps_from_csv_file(file_path: PathType) -> List[float]:
     """
-    Retrieve the times from a CSV file.
+    Retrieve the timestamps from a CSV file.
 
     Parameters
     ----------
     file_path : PathType
-        Path to the CSV file containing the times relative to the recording start.
+        Path to the CSV file containing the timestamps relative to the recording start.
 
     Returns
     -------
-    times
-        The times extracted from the CSV file.
+    timestamps
+        The timestamps extracted from the CSV file.
     """
     import pandas as pd
 
     file_path = str(file_path)
-    times = pd.read_csv(file_path)["Time Stamp (ms)"].values.astype(float)
-    times /= 1000
-    return times
+    timestamps = pd.read_csv(file_path)["Time Stamp (ms)"].values.astype(float)
+    timestamps /= 1000
+    return timestamps
+
+
+def get_recording_start_times_for_multi_recordings(
+    folder_path: PathType, miniscopeDeviceName: str = "Miniscope"
+) -> List[datetime.datetime]:
+    """
+    Retrieve recording start times for multiple recordings in a multi-session folder structure.
+
+    Parameters
+    ----------
+    folder_path : PathType
+        Path to the parent folder containing timestamp subfolders.
+    miniscopeDeviceName : str, optional
+        Name of the Miniscope device subfolder. Defaults to "Miniscope".
+
+    Returns
+    -------
+    List[datetime.datetime]
+        A list of datetime objects representing the start times of each recording.
+
+    Raises
+    ------
+    AssertionError
+        If no configuration files are found.
+    """
+    natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
+
+    folder_path = Path(folder_path)
+    configuration_file_name = "metaData.json"
+
+    miniscope_config_files = natsort.natsorted(
+        list(folder_path.glob(f"*/{miniscopeDeviceName}/{configuration_file_name}"))
+    )
+
+    assert miniscope_config_files, f"No Miniscope configuration files found at '{folder_path}'"
+
+    start_times = []
+    for config_file in miniscope_config_files:
+        start_time = get_recording_start_time(config_file)
+        start_times.append(start_time)
+
+    return start_times
+
+
+def get_timestamps_for_multi_recordings(
+    folder_path: PathType, miniscopeDeviceName: str = "Miniscope"
+) -> List[List[float]]:
+    """
+    Retrieve timestamps for multiple recordings in a multi-recordings folder structure.
+
+    Parameters
+    ----------
+    folder_path : PathType
+        Path to the parent folder containing multi-recordings subfolders.
+    miniscopeDeviceName : str, optional
+        Name of the Miniscope device subfolder. Defaults to "Miniscope".
+
+    Returns
+    -------
+    List[List[float]]
+        A list of lists, where each inner list contains the times for a recording.
+
+    Raises
+    ------
+    AssertionError
+        If no time files are found.
+    """
+    natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
+
+    folder_path = Path(folder_path)
+    time_file_name = "timeStamps.csv"
+
+    timestamps_file_paths = natsort.natsorted(list(folder_path.glob(f"*/{miniscopeDeviceName}/{time_file_name}")))
+
+    assert timestamps_file_paths, f"No time files found at '{folder_path}'"
+
+    recording_start_times = get_recording_start_times_for_multi_recordings(folder_path=folder_path)
+    timestamps = []
+    for file_ind, file_path in enumerate(timestamps_file_paths):
+        timestamps_per_file = read_timestamps_from_csv_file(file_path=file_path)
+        if recording_start_times:
+            offset = (recording_start_times[file_ind] - recording_start_times[0]).total_seconds()
+            timestamps_per_file += offset
+
+        timestamps.extend(timestamps_per_file)
+
+    return timestamps
