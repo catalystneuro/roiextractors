@@ -69,6 +69,8 @@ def expected_properties():
         num_rois=3,
         first_timestamp=[0.329],
         roi_ids=[0, 1, 2],
+        subject_id="Ca_EEG3",
+        session_id="Ca_EEG3-4",
     )
 
 
@@ -160,3 +162,15 @@ def test_get_roi_ids(extractor, expected_properties):
 
     # Test that ROI IDs match expected values
     assert roi_ids == expected_properties["roi_ids"]
+
+
+def test_get_subject_id(extractor, expected_properties):
+    """Test that subject ID is correctly retrieved."""
+    subject_id = extractor.get_subject_id()
+    assert subject_id == expected_properties["subject_id"]
+
+
+def test_get_session_id(extractor, expected_properties):
+    """Test that session ID is correctly retrieved."""
+    session_id = extractor.get_session_id()
+    assert session_id == expected_properties["session_id"]

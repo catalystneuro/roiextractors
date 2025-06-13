@@ -321,3 +321,29 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             correlation=self._image_correlation,
             maximum_projection=self._image_maximum_projection,
         )
+
+    def get_session_id(self) -> str:
+        """Get the session id from the A.zarr group.
+
+        Returns
+        -------
+        session_id: str
+            The session id.
+        """
+        dataset = self._read_zarr_group("/A.zarr")
+        if dataset is None or "session_id" not in dataset:
+            return ""
+        return dataset["session_id"][()]
+
+    def get_subject_id(self) -> str:
+        """Get the subject id from the A.zarr group.
+
+        Returns
+        -------
+        subject_id: str
+            The subject id.
+        """
+        dataset = self._read_zarr_group("/A.zarr")
+        if dataset is None or "animal" not in dataset:
+            return ""
+        return dataset["animal"][()]
