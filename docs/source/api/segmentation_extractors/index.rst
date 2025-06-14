@@ -9,5 +9,6 @@ SegmentationExtractors
   caimansegmentationextractor
   cnmfesegmentationextractor
   extractsegmentationextractors
+  inscopixsegmentationextractor
   simasegmentationextractor
   suite2psegmentationextractor
