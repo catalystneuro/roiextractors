@@ -26,7 +26,8 @@ class TestDummySegmentationExtractor(TestCase):
         assert segmentation_extractor.get_num_samples() == self.num_frames
         assert segmentation_extractor.get_frame_shape() == (self.num_rows, self.num_columns)
         assert segmentation_extractor.get_sampling_frequency() == self.sampling_frequency
-        assert segmentation_extractor.get_roi_ids() == list(range(self.num_rois))
+        expected_roi_ids = [f"roi_{i}" for i in range(self.num_rois)]
+        assert segmentation_extractor.get_roi_ids() == expected_roi_ids
         assert segmentation_extractor.get_accepted_list() == segmentation_extractor.get_roi_ids()
         assert segmentation_extractor.get_rejected_list() == []
         assert segmentation_extractor.get_roi_locations().shape == (2, self.num_rois)
@@ -58,7 +59,8 @@ class TestDummySegmentationExtractor(TestCase):
         assert segmentation_extractor.get_num_samples() == self.num_frames
         assert segmentation_extractor.get_frame_shape() == (self.num_rows, self.num_columns)
         assert segmentation_extractor.get_sampling_frequency() == self.sampling_frequency
-        assert segmentation_extractor.get_roi_ids() == list(range(self.num_rois))
+        expected_roi_ids = [f"roi_{i}" for i in range(self.num_rois)]
+        assert segmentation_extractor.get_roi_ids() == expected_roi_ids
         assert segmentation_extractor.get_accepted_list() == segmentation_extractor.get_roi_ids()
         assert segmentation_extractor.get_rejected_list() == []
         assert segmentation_extractor.get_roi_locations().shape == (2, self.num_rois)
