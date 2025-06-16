@@ -549,6 +549,9 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
             self._background_image_masks = self._parent_segmentation._background_image_masks
 
         super().__init__()
+        # Preserve parent's channel names and other attributes
+        self._channel_names = self._parent_segmentation.get_channel_names()
+        self._num_planes = self._parent_segmentation.get_num_planes()
         if getattr(self._parent_segmentation, "_times") is not None:
             self._times = self._parent_segmentation._times[start_sample:end_sample]
 
@@ -594,10 +597,20 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
             f"'start_frame' must be greater than or equal to zero! Received '{start_frame}'.\n"
             "Negative slicing semantics are not supported."
         )
-        start_frame_shifted = (start_frame or 0) + self._start_sample
-        end_frame_shifted = end_frame
-        if end_frame is not None:
-            end_frame_shifted = end_frame + self._start_sample
+
+        # If no start_frame/end_frame specified, return the full sliced range
+        if start_frame is None and end_frame is None:
+            start_frame_shifted = self._start_sample
+            end_frame_shifted = self._end_sample
+        else:
+            # If start_frame/end_frame are specified, they are relative to the sliced range
+            start_frame_shifted = (start_frame or 0) + self._start_sample
+            end_frame_shifted = end_frame
+            if end_frame is not None:
+                end_frame_shifted = end_frame + self._start_sample
+            else:
+                end_frame_shifted = self._end_sample
+
         return self._parent_segmentation.get_traces(
             roi_ids=roi_ids,
             start_frame=start_frame_shifted,
