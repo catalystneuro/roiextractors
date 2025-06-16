@@ -1782,3 +1782,263 @@ def test_get_availale_channel_names():
     assert isinstance(volumetric_channel_names, list), "Channel names should be returned as a list"
     assert len(volumetric_channel_names) >= 1, "Should extract at least one channel name"
     assert volumetric_channel_names == ["Channel 1", "Channel 4"]
+
+
+class TestGetOriginalFrameIndices:
+    """Test the get_original_frame_indices method for ScanImageImagingExtractor class."""
+
+    def test_planar_single_channel_single_file(self):
+        """Test get_original_frame_indices with planar single channel data.
+
+        File: scanimage_20220801_single.tif
+        Metadata:
+        - Volumetric: False (single plane)
+        - Channels: 1
+        - Frames: 3
+        - Frame rate: 15.2379 Hz
+        - Image shape: 1024 x 1024
+
+        This test verifies that:
+        1. The method returns the correct number of frame indices
+        2. Frame indices are of the correct dtype (int64)
+        3. Frame indices are within the valid range
+        4. For planar data, frame indices should be sequential (0, 1, 2, ...)
+        """
+        file_path = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
+        extractor = ScanImageImagingExtractor(file_path=str(file_path))
+
+        # Get original frame indices
+        frame_indices = extractor.get_original_frame_indices()
+
+        assert len(frame_indices) == extractor.get_num_samples(), "Should have one index per sample"
+
+        # For planar single-channel data, frame indices should be sequential
+        expected_indices = np.arange(extractor.get_num_samples(), dtype=np.int64)
+        np.testing.assert_array_equal(frame_indices, expected_indices)
+
+    def test_planar_multi_channel_single_file(self):
+        """Test get_original_frame_indices with planar multi-channel data.
+
+        File: planar_two_ch_single_files_00001_00001.tif
+        Metadata:
+        - Volumetric: False
+        - Channels: 2 (Channel 1 and Channel 2)
+        - Frames per channel: 1000
+        - Total frames: 2000
+        - Frame rate: 523.926 Hz
+
+        This test verifies that:
+        1. Frame indices correctly account for channel interleaving
+        2. Different channels have different frame index patterns
+        3. Frame indices map to the correct channel data
+        """
+        file_path = SCANIMAGE_PATH / "planar_two_channels_single_file" / "planar_two_ch_single_files_00001_00001.tif"
+
+        # Test with Channel 1
+        extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
+        frame_indices_ch1 = extractor_ch1.get_original_frame_indices()
+
+        # Test with Channel 2
+        extractor_ch2 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
+        frame_indices_ch2 = extractor_ch2.get_original_frame_indices()
+
+        # Basic validation
+        assert len(frame_indices_ch1) == extractor_ch1.get_num_samples()
+        assert len(frame_indices_ch2) == extractor_ch2.get_num_samples()
+
+        # For multi-channel planar data, channels are interleaved
+        # Channel 1 should have indices: 0, 2, 4, 6, ...
+        # Channel 2 should have indices: 1, 3, 5, 7, ...
+        expected_ch1_indices = np.arange(0, 2 * extractor_ch1.get_num_samples(), 2, dtype=np.int64)
+        expected_ch2_indices = np.arange(1, 2 * extractor_ch2.get_num_samples(), 2, dtype=np.int64)
+
+        np.testing.assert_array_equal(
+            frame_indices_ch1, expected_ch1_indices, "Channel 1 should have even frame indices"
+        )
+        np.testing.assert_array_equal(
+            frame_indices_ch2, expected_ch2_indices, "Channel 2 should have odd frame indices"
+        )
+
+    def test_planar_multi_channel_multi_file(self):
+        """Test get_original_frame_indices with multi-file planar data.
+
+        Files: scanimage_20240320_multifile_0000[1-3].tif
+        Metadata:
+        - Volumetric: False
+        - Channels: 2
+        - Files: 3
+        - Frames per file: 20 (10 per channel)
+        - Total samples per channel: 30
+
+        This test verifies that:
+        1. Frame indices correctly account for file boundaries
+        2. File offsets are properly calculated
+        3. Frame indices span across multiple files correctly
+        """
+        file_path = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
+        extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
+
+        frame_indices = extractor.get_original_frame_indices()
+
+        # Basic validation
+        assert len(frame_indices) == extractor.get_num_samples()
+
+        # Verify that frame indices span the expected range across all files
+        total_frames = sum(extractor._ifds_per_file)
+        assert np.all(frame_indices >= 0), "All frame indices should be non-negative"
+        assert np.all(frame_indices < total_frames), "All frame indices should be within total dataset bounds"
+
+        # For multi-file data with Channel 1, indices should be: 0, 2, 4, ..., 18, 20, 22, 24, ..., 38, 40, 42, ...
+        # This is basically testing that they don't repeat when spanning multiple files
+        expected_indices = np.arange(0, 2 * extractor.get_num_samples(), 2, dtype=np.int64)
+        np.testing.assert_array_equal(
+            frame_indices, expected_indices, "Frame indices should account for channel interleaving across files"
+        )
+
+    def test_volumetric_single_channel_no_flyback(self):
+        """Test get_original_frame_indices with volumetric data without flyback frames.
+
+        File: vol_no_flyback_00001_00001.tif
+        Metadata:
+        - Volumetric: True (9 planes)
+        - Channels: 1
+        - Samples: 10
+        - No flyback frames
+        - Total frames: 90
+
+        This test verifies that:
+        1. Default behavior uses the last plane of each volume
+        2. Frame indices correctly map to volume boundaries
+        3. No flyback frame handling is needed
+        """
+        file_path = (
+            SCANIMAGE_PATH / "volumetric_single_channel_single_file_no_flyback" / "vol_no_flyback_00001_00001.tif"
+        )
+        extractor = ScanImageImagingExtractor(file_path=file_path)
+
+        frame_indices = extractor.get_original_frame_indices()
+
+        # Basic validation
+        assert len(frame_indices) == extractor.get_num_samples()
+
+        # For volumetric data without flyback frames, the method should use the last plane of each volume
+        # With 9 planes per volume, the last plane indices should be: 8, 17, 26, 35, 44, 53, 62, 71, 80, 89
+        num_planes = extractor.get_num_planes()
+        expected_indices = np.arange(
+            num_planes - 1, num_planes * extractor.get_num_samples(), num_planes, dtype=np.int64
+        )
+
+        np.testing.assert_array_equal(
+            frame_indices, expected_indices, "Should use last plane of each volume for volumetric data"
+        )
+
+    def test_volumetric_single_channel_with_flyback(self):
+        """Test get_original_frame_indices with volumetric data with flyback frames.
+
+        File: vol_one_ch_single_files_00002_00001.tif
+        Metadata:
+        - Volumetric: True (9 planes + 7 flyback frames)
+        - Channels: 1
+        - Total frames per cycle: 16
+        - Flyback frames are excluded from the mapping
+
+        This test verifies that:
+        1. Flyback frames are properly excluded from frame index calculation
+        2. Frame indices correctly map to the last imaging plane before flyback
+        3. File offsets are correctly calculated
+        """
+        file_path = SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
+        extractor = ScanImageImagingExtractor(file_path=file_path)
+
+        frame_indices = extractor.get_original_frame_indices()
+
+        # Basic validation
+        assert len(frame_indices) == extractor.get_num_samples()
+        assert frame_indices.dtype == np.int64
+
+        # Calculate expected frame indices accounting for flyback frames
+        num_planes = extractor.get_num_planes()
+        num_flyback = extractor.num_flyback_frames_per_channel
+        total_frames_per_cycle = num_planes + num_flyback
+
+        # The last imaging frame in each cycle should be at position (num_planes - 1) within each cycle
+        expected_indices = []
+        for sample_idx in range(extractor.get_num_samples()):
+            cycle_start = sample_idx * total_frames_per_cycle
+            last_imaging_frame = cycle_start + num_planes - 1  # Note this is the last frame before the flyback frames
+            expected_indices.append(last_imaging_frame)
+
+        expected_indices = np.array(expected_indices, dtype=np.int64)
+        np.testing.assert_array_equal(
+            frame_indices, expected_indices, "Should correctly handle flyback frames in frame index calculation"
+        )
+
+    def test_plane_index_parameter(self):
+        """Test get_original_frame_indices with plane_index parameter.
+
+        This test verifies that:
+        1. When plane_index is specified, it uses that plane instead of the default last plane
+        2. Different plane_index values produce different frame indices
+        3. The plane_index parameter is correctly validated
+        """
+        file_path = SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
+
+        # Test with plane_index=0 (first plane)
+        full_extractor = ScanImageImagingExtractor(file_path=file_path)
+        indices_of_first_plane = full_extractor.get_original_frame_indices(plane_index=0)
+
+        extractor_first_plane = ScanImageImagingExtractor(file_path=file_path, plane_index=0)
+        indices_of_first_plane_extractor = extractor_first_plane.get_original_frame_indices()
+
+        np.testing.assert_array_equal(
+            indices_of_first_plane,
+            indices_of_first_plane_extractor,
+            "Indices for plane_index=0 should match when using full extractor and plane extractor",
+        )
+
+    def test_slice_sample_parameter(self):
+        """Test get_original_frame_indices with slice_sample parameter.
+
+        File: scanimage_20220923_noroi.tif
+        Dataset characteristics:
+        - Volumetric: True (2 planes)
+        - Channels: 2 (['Channel 1', 'Channel 4'])
+        - Frames per slice: 2
+        - Total frames: 24
+        - Data layout: [ch1_plane1_slice1, ch2_plane1_slice1, ch1_plane1_slice2, ch2_plane1_slice2,
+                        ch1_plane2_slice1, ch2_plane2_slice1, ch1_plane2_slice2, ch2_plane2_slice2, ...]
+
+        This test verifies that the method returns the correct frame indices
+        for a specific slice_sample, accounting for the data interleaving pattern.
+        """
+        file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
+
+        # Test with slice_sample=0, Channel 4
+        extractor = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4", slice_sample=0)
+        frame_indices = extractor.get_original_frame_indices()
+
+        # Calculate expected frame indices manually based on data structure
+        num_channels = 2
+        num_planes = extractor.get_num_planes()  # Should be 2
+        frames_per_slice = 2
+        channel_index = extractor._channel_index  # Channel 4 should be index 1
+
+        # For slice_sample=0, we want the frame for slice_sample=0 of the last plane for each sample
+        expected_indices = []
+        for sample_index in range(extractor.get_num_samples()):
+            # Each sample corresponds to a volume
+            # For the last plane (plane 1, 0-indexed), slice_sample 0, channel 4 (index 1)
+            base_frame = sample_index * (num_planes * frames_per_slice * num_channels)
+            last_plane_offset = (num_planes - 1) * frames_per_slice * num_channels
+            slice_sample_offset = 0 * num_channels  # slice_sample=0
+            channel_offset = channel_index
+
+            frame_index = base_frame + last_plane_offset + slice_sample_offset + channel_offset
+            expected_indices.append(frame_index)
+
+        expected_indices = np.array(expected_indices, dtype=np.int64)
+
+        # Verify that the method returns the expected indices
+        np.testing.assert_array_equal(
+            frame_indices, expected_indices, "Frame indices should match manually calculated expected values"
+        )

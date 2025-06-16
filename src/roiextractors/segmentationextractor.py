@@ -144,15 +144,13 @@ class SegmentationExtractor(ABC):
             2-D array: 2 X no_ROIs. The pixel ids (x,y) where the centroid of the ROI is.
         """
         if roi_ids is None:
-            roi_idx_ = list(range(self.get_num_rois()))
-        else:
-            all_ids = self.get_roi_ids()
-            roi_idx_ = [all_ids.index(i) for i in roi_ids]
-        roi_location = np.zeros([2, len(roi_idx_)], dtype="int")
-        for c, i in enumerate(roi_idx_):
-            image_mask = self.get_roi_image_masks(roi_ids=[i])
+            roi_ids = self.get_roi_ids()
+
+        roi_location = np.zeros([2, len(roi_ids)], dtype="int")
+        for roi_index, roi_id in enumerate(roi_ids):
+            image_mask = self.get_roi_image_masks(roi_ids=[roi_id])
             temp = np.where(image_mask == np.amax(image_mask))
-            roi_location[:, c] = np.array([np.median(temp[0]), np.median(temp[1])]).T
+            roi_location[:, roi_index] = np.array([np.median(temp[0]), np.median(temp[1])]).T
         return roi_location
 
     def get_roi_ids(self) -> list:
@@ -179,11 +177,12 @@ class SegmentationExtractor(ABC):
             3-D array(val 0 or 1): image_height X image_width X length(roi_ids)
         """
         if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
+            roi_indices = range(self.get_num_rois())
         else:
-            all_ids = self.get_roi_ids()
-            roi_idx_ = [all_ids.index(i) for i in roi_ids]
-        return np.stack([self._image_masks[:, :, k] for k in roi_idx_], 2)
+            all_roi_ids = self.get_roi_ids()
+            roi_indices = [all_roi_ids.index(roi_id) for roi_id in roi_ids]
+
+        return np.stack([self._image_masks[:, :, k] for k in roi_indices], 2)
 
     def get_roi_pixel_masks(self, roi_ids=None) -> np.array:
         """Get the weights applied to each of the pixels of the mask.
@@ -458,11 +457,41 @@ class SegmentationExtractor(ABC):
         -------
         times: float or array-like
             The corresponding times in seconds
+
+        Deprecated
+        ----------
+        This method will be removed on or after January 2026.
+        Use sample_indices_to_time() instead.
         """
+        warnings.warn(
+            "frame_to_time() is deprecated and will be removed on or after January 2026. "
+            "Use sample_indices_to_time() instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         if self._times is None:
             return frames / self.get_sampling_frequency()
         else:
             return self._times[frames]
+
+    def sample_indices_to_time(self, sample_indices: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
+        """Convert user-inputted sample indices to times with units of seconds.
+
+        Parameters
+        ----------
+        sample_indices: int or array-like
+            The sample indices to be converted to times.
+
+        Returns
+        -------
+        times: float or array-like
+            The corresponding times in seconds.
+        """
+        # Default implementation
+        if self._times is None:
+            return sample_indices / self.get_sampling_frequency()
+        else:
+            return self._times[sample_indices]
 
 
 class FrameSliceSegmentationExtractor(SegmentationExtractor):
