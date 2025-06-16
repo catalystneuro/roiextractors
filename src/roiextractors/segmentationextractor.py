@@ -488,11 +488,41 @@ class SegmentationExtractor(ABC):
         -------
         times: float or array-like
             The corresponding times in seconds
+
+        Deprecated
+        ----------
+        This method will be removed on or after January 2026.
+        Use sample_indices_to_time() instead.
         """
+        warnings.warn(
+            "frame_to_time() is deprecated and will be removed on or after January 2026. "
+            "Use sample_indices_to_time() instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         if self._times is None:
             return frames / self.get_sampling_frequency()
         else:
             return self._times[frames]
+
+    def sample_indices_to_time(self, sample_indices: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
+        """Convert user-inputted sample indices to times with units of seconds.
+
+        Parameters
+        ----------
+        sample_indices: int or array-like
+            The sample indices to be converted to times.
+
+        Returns
+        -------
+        times: float or array-like
+            The corresponding times in seconds.
+        """
+        # Default implementation
+        if self._times is None:
+            return sample_indices / self.get_sampling_frequency()
+        else:
+            return self._times[sample_indices]
 
 
 class SampleSlicedSegmentationExtractor(SegmentationExtractor):
