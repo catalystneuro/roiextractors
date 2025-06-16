@@ -28,13 +28,13 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             The location of the folder containing Inscopix *.mat output file.
         """
         if sys.version_info < (3, 9) or sys.version_info >= (3, 13):
-            warnings.warn(
+            raise ImportError(
                 "The isx package only supports Python versions 3.9 to 3.12. "
                 f"Your Python version is {sys.version_info.major}.{sys.version_info.minor}. "
                 "See https://github.com/inscopix/pyisx for details."
             )
         if platform.system() == "Darwin" and platform.machine() == "arm64":
-            warnings.warn(
+            raise ImportError(
                 "The isx package is currently not natively supported on macOS with Apple Silicon. "
                 "Installation instructions can be found at: "
                 "https://github.com/inscopix/pyisx?tab=readme-ov-file#install"

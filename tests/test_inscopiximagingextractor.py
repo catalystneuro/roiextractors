@@ -9,7 +9,8 @@ from datetime import datetime
 from roiextractors import InscopixImagingExtractor
 from tests.setup_paths import OPHYS_DATA_PATH
 
-# Skip all tests in this file on macOS anf Python 3.13
+# Skip all tests in this file on macOS and Python 3.13
+pytest.importorskip("isx", reason="isx package is required for these tests.")
 pytestmark = pytest.mark.skipif(
     platform.system() == "Darwin" and platform.machine() == "arm64",
     reason="The isx package is currently not natively supported on macOS with Apple Silicon. "

@@ -9,6 +9,7 @@ from roiextractors import InscopixSegmentationExtractor
 from .setup_paths import OPHYS_DATA_PATH
 
 # Skip all tests in this file on macOS
+pytest.importorskip("isx", reason="isx package is required for these tests.")
 pytestmark = pytest.mark.skipif(
     platform.system() == "Darwin" and platform.machine() == "arm64",
     reason="The isx package is currently not natively supported on macOS with Apple Silicon. "
