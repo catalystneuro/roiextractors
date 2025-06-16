@@ -27,9 +27,9 @@ class InscopixImagingExtractor(ImagingExtractor):
             Path to the Inscopix file.
         """
         python_version = sys.version_info
-        if python_version < (3, 10) or python_version >= (3, 13):
+        if python_version >= (3, 13):
             raise ImportError(
-                "The isx package only supports Python versions 3.10 to 3.13. "
+                "The isx package only supports Python versions 3.9 to 3.13. "
                 f"Your Python version is {python_version.major}.{python_version.minor}. "
                 "See https://github.com/inscopix/pyisx for details."
             )
@@ -56,38 +56,8 @@ class InscopixImagingExtractor(ImagingExtractor):
         num_pixels = self.movie.spacing.num_pixels
         return num_pixels
 
-    # def get_image_size(self) -> tuple[int, int]:
-    #     warnings.warn(
-    #         "get_image_size() is deprecated and will be removed in or after September 2025. "
-    #         "Use get_image_shape() instead for consistent behavior across all extractors.",
-    #         DeprecationWarning,
-    #         stacklevel=2,
-    #     )
-    #     return self.get_image_shape()
-
     def get_num_samples(self) -> int:
         return self.movie.timing.num_samples
-
-    # def get_num_frames(self) -> int:
-    #     """Get the number of frames in the video.
-
-    #     Returns
-    #     -------
-    #     num_frames: int
-    #         Number of frames in the video.
-
-    #     Deprecated
-    #     ----------
-    #     This method will be removed in or after September 2025.
-    #     Use get_num_samples() instead.
-    #     """
-    #     warnings.warn(
-    #         "get_num_frames() is deprecated and will be removed in or after September 2025. "
-    #         "Use get_num_samples() instead.",
-    #         DeprecationWarning,
-    #         stacklevel=2,
-    #     )
-    #     return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return 1 / self.movie.timing.period.secs_float
@@ -104,22 +74,6 @@ class InscopixImagingExtractor(ImagingExtractor):
         start_sample = start_sample or 0
         end_sample = end_sample or self.get_num_samples()
         return np.array([self.movie.get_frame_data(i) for i in range(start_sample, end_sample)])
-
-    # def get_video(
-    #     self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
-    # ) -> np.ndarray:
-    #     warnings.warn(
-    #         "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
-    #         DeprecationWarning,
-    #         stacklevel=2,
-    #     )
-    #     if channel != 0:
-    #         warnings.warn(
-    #             "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
-    #             DeprecationWarning,
-    #             stacklevel=2,
-    #         )
-    #     return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_dtype(self) -> np.dtype:
         return np.dtype(self.movie.data_type)

@@ -28,9 +28,9 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             The location of the folder containing Inscopix *.mat output file.
         """
         python_version = sys.version_info
-        if python_version < (3, 10) or python_version >= (3, 13):
+        if python_version >= (3, 13):
             raise ImportError(
-                "The isx package only supports Python versions 3.10 to 3.13. "
+                "The isx package only supports Python versions 3.9 to 3.13. "
                 f"Your Python version is {python_version.major}.{python_version.minor}. "
                 "See https://github.com/inscopix/pyisx for details."
             )

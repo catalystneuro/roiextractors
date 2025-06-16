@@ -17,9 +17,8 @@ pytestmark = pytest.mark.skipif(
     "https://github.com/inscopix/pyisx?tab=readme-ov-file#install",
 )
 pytestmark = pytest.mark.skipif(
-    sys.version_info < (3, 10) or sys.version_info >= (3, 13),
-    reason="Tests are skipped on Python 3.13 because of incompatibility with the 'isx' module "
-    "Requires: Python <3.13, >=3.10)"
+    sys.version_info >= (3, 13),
+    reason="Tests are skipped on Python 3.13 because of incompatibility with the 'isx' module"
     "See:https://github.com/inscopix/pyisx/issues",
 )
 
