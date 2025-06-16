@@ -641,7 +641,7 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
     def get_sampling_frequency(self) -> float:
         return self._parent_segmentation.get_sampling_frequency()
 
-    def get_channel_names(self) -> List[str]:
+    def get_channel_names(self) -> list[str]:
         return self._parent_segmentation.get_channel_names()
 
     def get_num_channels(self) -> int:
@@ -650,10 +650,10 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
     def get_num_planes(self) -> int:
         return self._parent_segmentation.get_num_planes()
 
-    def get_roi_pixel_masks(self, roi_ids: Optional[ArrayLike] = None) -> List[np.ndarray]:
+    def get_roi_pixel_masks(self, roi_ids: Optional[ArrayLike] = None) -> list[np.ndarray]:
         return self._parent_segmentation.get_roi_pixel_masks(roi_ids=roi_ids)
 
-    def get_background_pixel_masks(self, background_ids: Optional[ArrayLike] = None) -> List[np.ndarray]:
+    def get_background_pixel_masks(self, background_ids: Optional[ArrayLike] = None) -> list[np.ndarray]:
         return self._parent_segmentation.get_background_pixel_masks(background_ids=background_ids)
 
 

@@ -14,7 +14,7 @@
 * The `get_num_frames()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_num_samples()` instead. [PR #443](https://github.com/catalystneuro/roiextractors/pull/443)
 * Removed unused `is_writable` class attributes from all extractor classes [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
 * `get_frames` is now `get_samples`. `get_frames` will be deprecated in or after January 2026 [PR #444](https://github.com/catalystneuro/roiextractors/pull/444)
-* The `frame_slice()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `slice_samples()` instead. [PR #451](https://github.com/catalystneuro/roiextractors/pull/451)
+* The `frame_slice()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use ``slice_samples`()` instead. [PR #451](https://github.com/catalystneuro/roiextractors/pull/451)
 * The `FrameSliceSegmentationExtractor` class is deprecated and will be removed on or after January 2026. Use `SampleSlicedSegmentationExtractor` instead. [PR #451](https://github.com/catalystneuro/roiextractors/pull/451)
 
 ### Improvements
