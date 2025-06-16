@@ -225,7 +225,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         except AttributeError:
             return None
 
-    def get_session_start_time(self) -> datetime | None:
+    def _get_session_start_time(self) -> datetime | None:
         """
         Get the session start time as a datetime object.
 

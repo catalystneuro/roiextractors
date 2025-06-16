@@ -50,12 +50,12 @@ def test_inscopix_segmentation_extractor():
     2. Retrieves ROI masks and traces with correct dimensions
     3. Handles frame slicing and ROI-specific trace extraction
     4. Extracts comprehensive metadata via specialized getter methods:
-       - get_device_info(): Hardware and acquisition settings
-       - get_subject_info(): Animal/specimen information
-       - get_session_info(): Session and timing information
-       - get_analysis_info(): Processing method information
-       - get_probe_info(): Probe specifications (if applicable)
-       - get_session_start_time(): Datetime object for session start
+       - _get_device_info(): Hardware and acquisition settings
+       - _get_subject_info(): Animal/specimen information
+       - _get_session_info(): Session and timing information
+       - _get_analysis_info(): Processing method information
+       - _get_probe_info(): Probe specifications (if applicable)
+       - _get_session_start_time(): Datetime object for session start
     """
     file_path = OPHYS_DATA_PATH / "segmentation_datasets" / "inscopix" / "cellset.isxd"
     extractor = InscopixSegmentationExtractor(file_path=str(file_path))
@@ -98,7 +98,7 @@ def test_inscopix_segmentation_extractor():
     assert session_info["experimenter_name"] == "Bei-Xuan"
 
     # Test session start time
-    assert extractor.get_session_start_time() == datetime(2021, 4, 1, 12, 3, 53, 290011)
+    assert extractor._get_session_start_time() == datetime(2021, 4, 1, 12, 3, 53, 290011)
 
     # Test device information
     device_info = extractor._get_device_info()
@@ -188,7 +188,7 @@ def test_inscopix_segmentation_extractor_part1():
     assert extractor.get_num_samples() == 100
 
     # Test session start time
-    assert extractor.get_session_start_time() == datetime(1970, 1, 1, 0, 0, 0)
+    assert extractor._get_session_start_time() == datetime(1970, 1, 1, 0, 0, 0)
 
     # Test trace extraction
     assert extractor.get_traces().shape == (6, 100)
@@ -221,7 +221,7 @@ def test_inscopix_segmentation_extractor_empty():
     extractor = InscopixSegmentationExtractor(file_path=str(file_path))
 
     # Test session start time
-    assert extractor.get_session_start_time() == datetime(1970, 1, 1, 0, 0, 0)
+    assert extractor._get_session_start_time() == datetime(1970, 1, 1, 0, 0, 0)
 
     # Test basic properties
     assert extractor.get_num_rois() == 0

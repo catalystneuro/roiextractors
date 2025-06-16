@@ -123,7 +123,7 @@ class InscopixImagingExtractor(ImagingExtractor):
     def get_dtype(self) -> np.dtype:
         return np.dtype(self.movie.data_type)
 
-    def get_session_start_time(self) -> datetime | None:
+    def _get_session_start_time(self) -> datetime | None:
         """
         Get the session start time as a datetime object.
 

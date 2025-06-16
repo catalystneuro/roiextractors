@@ -65,7 +65,7 @@ def test_inscopiximagingextractor_movie_128x128x100_part1():
     assert raw_data.dtype == extractor.get_dtype()
 
     # Test session start time
-    assert extractor.get_session_start_time() == datetime(1970, 1, 1, 0, 0, 0)
+    assert extractor._get_session_start_time() == datetime(1970, 1, 1, 0, 0, 0)
 
     # Test session info for file with no acquisition info
     session_info = extractor._get_session_info()
@@ -134,7 +134,7 @@ def test_inscopiximagingextractor_movie_longer_than_3_min():
     assert raw_data.dtype == extractor.get_dtype()
 
     # Test session start time
-    assert extractor.get_session_start_time() == datetime(2019, 10, 7, 16, 22, 1, 524186)
+    assert extractor._get_session_start_time() == datetime(2019, 10, 7, 16, 22, 1, 524186)
 
     # Test session info
     session_info = extractor._get_session_info()
@@ -211,7 +211,7 @@ def test_inscopiximagingextractor_movie_u8():
     assert raw_data.dtype == extractor.get_dtype()
 
     # Test session start time
-    assert extractor.get_session_start_time() == datetime(1970, 1, 1, 0, 0, 0)
+    assert extractor._get_session_start_time() == datetime(1970, 1, 1, 0, 0, 0)
 
     # Test session info for file with no acquisition info
     session_info = extractor._get_session_info()
