@@ -17,9 +17,9 @@ pytestmark = pytest.mark.skipif(
     "https://github.com/inscopix/pyisx?tab=readme-ov-file#install",
 )
 pytestmark = pytest.mark.skipif(
-    sys.version_info < (3, 9) or sys.version_info >= (3, 13),
+    sys.version_info < (3, 10) or sys.version_info >= (3, 13),
     reason="Tests are skipped on Python 3.13 because of incompatibility with the 'isx' module "
-    "Requires: Python <3.13, >=3.9)"
+    "Requires: Python <3.13, >=3.10)"
     "See:https://github.com/inscopix/pyisx/issues",
 )
 
@@ -130,6 +130,12 @@ def test_inscopix_segmentation_extractor():
     probe_info = extractor._get_probe_info()
     assert isinstance(probe_info, dict)  # Most values are 0/"none" for this dataset
 
+    metadata = extractor._get_metadata()
+    # Check that all expected keys are present
+    expected_keys = ["device", "subject", "analysis", "session", "probe", "session_start_time"]
+    for key in expected_keys:
+        assert key in metadata
+
 
 def test_inscopix_segmentation_extractor_part1():
     """
@@ -163,7 +169,6 @@ def test_inscopix_segmentation_extractor_part1():
     # Test basic properties
     assert extractor.get_num_rois() == 6
     assert extractor.get_roi_ids() == ["C0", "C1", "C2", "C3", "C4", "C5"]
-    # assert extractor.get_original_roi_ids() == ["C0", "C1", "C2", "C3", "C4", "C5"]
 
     # Test status lists (limited metadata may result in empty lists)
     accepted_list = extractor.get_accepted_list()
@@ -194,6 +199,12 @@ def test_inscopix_segmentation_extractor_part1():
     assert extractor.get_traces().shape == (6, 100)
     assert extractor.get_traces(start_frame=10, end_frame=20).shape == (6, 10)
     assert extractor.get_traces(start_frame=10, end_frame=20, roi_ids=["C1"]).shape == (1, 10)
+
+    metadata = extractor._get_metadata()
+    # Check that all expected keys are present
+    expected_keys = ["device", "subject", "analysis", "session", "probe", "session_start_time"]
+    for key in expected_keys:
+        assert key in metadata
 
 
 def test_inscopix_segmentation_extractor_empty():
@@ -226,7 +237,6 @@ def test_inscopix_segmentation_extractor_empty():
     # Test basic properties
     assert extractor.get_num_rois() == 0
     assert extractor.get_roi_ids() == []
-    # assert extractor.get_original_roi_ids() == []
 
     # Test status lists
     assert extractor.get_accepted_list() == []
@@ -238,3 +248,9 @@ def test_inscopix_segmentation_extractor_empty():
     # Test sampling frequency and frames
     assert extractor.get_sampling_frequency() == 40.0
     assert extractor.get_num_samples() == 7
+
+    metadata = extractor._get_metadata()
+    # Check that all expected keys are present
+    expected_keys = ["device", "subject", "analysis", "session", "probe", "session_start_time"]
+    for key in expected_keys:
+        assert key in metadata

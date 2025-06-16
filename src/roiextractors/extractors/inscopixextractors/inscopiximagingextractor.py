@@ -5,7 +5,7 @@ import platform
 import sys
 import numpy as np
 
-from typing import Optional
+from typing import Optional, Any
 from datetime import datetime
 
 from ...imagingextractor import ImagingExtractor
@@ -26,10 +26,11 @@ class InscopixImagingExtractor(ImagingExtractor):
         file_path : PathType
             Path to the Inscopix file.
         """
-        if sys.version_info < (3, 9) or sys.version_info >= (3, 13):
+        python_version = sys.version_info
+        if python_version < (3, 10) or python_version >= (3, 13):
             raise ImportError(
-                "The isx package only supports Python versions 3.9 to 3.12. "
-                f"Your Python version is {sys.version_info.major}.{sys.version_info.minor}. "
+                "The isx package only supports Python versions 3.10 to 3.13. "
+                f"Your Python version is {python_version.major}.{python_version.minor}. "
                 "See https://github.com/inscopix/pyisx for details."
             )
         if platform.system() == "Darwin" and platform.machine() == "arm64":
@@ -55,38 +56,38 @@ class InscopixImagingExtractor(ImagingExtractor):
         num_pixels = self.movie.spacing.num_pixels
         return num_pixels
 
-    def get_image_size(self) -> tuple[int, int]:
-        warnings.warn(
-            "get_image_size() is deprecated and will be removed in or after September 2025. "
-            "Use get_image_shape() instead for consistent behavior across all extractors.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.get_image_shape()
+    # def get_image_size(self) -> tuple[int, int]:
+    #     warnings.warn(
+    #         "get_image_size() is deprecated and will be removed in or after September 2025. "
+    #         "Use get_image_shape() instead for consistent behavior across all extractors.",
+    #         DeprecationWarning,
+    #         stacklevel=2,
+    #     )
+    #     return self.get_image_shape()
 
     def get_num_samples(self) -> int:
         return self.movie.timing.num_samples
 
-    def get_num_frames(self) -> int:
-        """Get the number of frames in the video.
+    # def get_num_frames(self) -> int:
+    #     """Get the number of frames in the video.
 
-        Returns
-        -------
-        num_frames: int
-            Number of frames in the video.
+    #     Returns
+    #     -------
+    #     num_frames: int
+    #         Number of frames in the video.
 
-        Deprecated
-        ----------
-        This method will be removed in or after September 2025.
-        Use get_num_samples() instead.
-        """
-        warnings.warn(
-            "get_num_frames() is deprecated and will be removed in or after September 2025. "
-            "Use get_num_samples() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.get_num_samples()
+    #     Deprecated
+    #     ----------
+    #     This method will be removed in or after September 2025.
+    #     Use get_num_samples() instead.
+    #     """
+    #     warnings.warn(
+    #         "get_num_frames() is deprecated and will be removed in or after September 2025. "
+    #         "Use get_num_samples() instead.",
+    #         DeprecationWarning,
+    #         stacklevel=2,
+    #     )
+    #     return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return 1 / self.movie.timing.period.secs_float
@@ -104,21 +105,21 @@ class InscopixImagingExtractor(ImagingExtractor):
         end_sample = end_sample or self.get_num_samples()
         return np.array([self.movie.get_frame_data(i) for i in range(start_sample, end_sample)])
 
-    def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
-    ) -> np.ndarray:
-        warnings.warn(
-            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if channel != 0:
-            warnings.warn(
-                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        return self.get_series(start_sample=start_frame, end_sample=end_frame)
+    # def get_video(
+    #     self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
+    # ) -> np.ndarray:
+    #     warnings.warn(
+    #         "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+    #         DeprecationWarning,
+    #         stacklevel=2,
+    #     )
+    #     if channel != 0:
+    #         warnings.warn(
+    #             "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
+    #             DeprecationWarning,
+    #             stacklevel=2,
+    #         )
+    #     return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_dtype(self) -> np.dtype:
         return np.dtype(self.movie.data_type)
@@ -264,3 +265,60 @@ class InscopixImagingExtractor(ImagingExtractor):
                     probe_info[field] = value
 
         return probe_info
+
+    def _get_metadata(self) -> dict[str, Any]:
+        """
+        Get all available metadata in a single dictionary.
+
+        This method consolidates all metadata extraction methods into one call
+        for convenience when extracting metadata in neuroconv.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Dictionary containing all extractable metadata including:
+            - device: Device/hardware information
+            - subject: Subject/animal information
+            - session: Session information
+            - probe: Probe information
+            - session_start_time: Measurement start time as datetime
+        """
+        metadata = {}
+
+        # Device info
+        try:
+            metadata["device"] = self._get_device_info()
+        except Exception:
+            metadata["device"] = {}
+
+        # Subject info
+        try:
+            metadata["subject"] = self._get_subject_info()
+        except Exception:
+            metadata["subject"] = {}
+
+        # Analysis info
+        try:
+            metadata["analysis"] = self._get_analysis_info()
+        except Exception:
+            metadata["analysis"] = {}
+
+        # Session info
+        try:
+            metadata["session"] = self._get_session_info()
+        except Exception:
+            metadata["session"] = {}
+
+        # Probe info
+        try:
+            metadata["probe"] = self._get_probe_info()
+        except Exception:
+            metadata["probe"] = {}
+
+        # Session start time
+        try:
+            metadata["session_start_time"] = self._get_session_start_time()
+        except Exception:
+            metadata["session_start_time"] = None
+
+        return metadata

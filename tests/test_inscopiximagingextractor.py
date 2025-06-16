@@ -18,9 +18,9 @@ pytestmark = pytest.mark.skipif(
     "https://github.com/inscopix/pyisx?tab=readme-ov-file#install",
 )
 pytestmark = pytest.mark.skipif(
-    sys.version_info < (3, 9) or sys.version_info >= (3, 13),
+    sys.version_info < (3, 10) or sys.version_info >= (3, 13),
     reason="Tests are skipped on Python 3.13 because of incompatibility with the 'isx' module "
-    "Requires: Python <3.13, >=3.9)"
+    "Requires: Python <3.13, >=3.10)"
     "See:https://github.com/inscopix/pyisx/issues",
 )
 
@@ -57,7 +57,12 @@ def test_inscopiximagingextractor_movie_128x128x100_part1():
     assert extractor.get_channel_names() == ["channel_0"]
     assert extractor.get_num_channels() == 1
     assert extractor.get_series().shape == (100, 128, 128)
-    assert extractor.get_frames(frame_idxs=[0], channel=0).dtype is extractor.get_dtype()
+    # assert extractor.get_frames(frame_idxs=[0], channel=0).dtype is extractor.get_dtype()
+    # Test retrieving multiple samples
+    samples = extractor.get_samples([0, 1, 2])
+    assert isinstance(samples, np.ndarray)
+    assert samples.shape == (3, 128, 128)
+    assert samples.dtype == extractor.get_dtype()
     assert extractor.get_dtype().itemsize
 
     raw_data = extractor.get_series()
@@ -87,6 +92,12 @@ def test_inscopiximagingextractor_movie_128x128x100_part1():
     probe_info = extractor._get_probe_info()
     assert isinstance(probe_info, dict)
     assert len(probe_info) == 0
+
+    metadata = extractor._get_metadata()
+    # Check that all expected keys are present
+    expected_keys = ["device", "subject", "analysis", "session", "probe", "session_start_time"]
+    for key in expected_keys:
+        assert key in metadata
 
 
 def test_inscopiximagingextractor_movie_longer_than_3_min():
@@ -126,7 +137,12 @@ def test_inscopiximagingextractor_movie_longer_than_3_min():
     assert extractor.get_channel_names() == ["channel_0"]
     assert extractor.get_num_channels() == 1
     assert extractor.get_series().shape == (1248, 33, 29)
-    assert extractor.get_frames(frame_idxs=[0], channel=0).dtype is extractor.get_dtype()
+    # assert extractor.get_frames(frame_idxs=[0], channel=0).dtype is extractor.get_dtype()
+    # Test retrieving multiple samples
+    samples = extractor.get_samples([0, 1, 2])
+    assert isinstance(samples, np.ndarray)
+    assert samples.shape == (3, 33, 29)
+    assert samples.dtype == extractor.get_dtype()
     assert extractor.get_dtype().itemsize
 
     raw_data = extractor.get_series()
@@ -171,6 +187,12 @@ def test_inscopiximagingextractor_movie_longer_than_3_min():
     assert isinstance(probe_info, dict)
     assert len(probe_info) == 0
 
+    metadata = extractor._get_metadata()
+    # Check that all expected keys are present
+    expected_keys = ["device", "subject", "analysis", "session", "probe", "session_start_time"]
+    for key in expected_keys:
+        assert key in metadata
+
 
 def test_inscopiximagingextractor_movie_u8():
     """
@@ -203,7 +225,12 @@ def test_inscopiximagingextractor_movie_u8():
     assert extractor.get_channel_names() == ["channel_0"]
     assert extractor.get_num_channels() == 1
     assert extractor.get_series().shape == (5, 3, 4)
-    assert extractor.get_frames(frame_idxs=[0], channel=0).dtype is extractor.get_dtype()
+    # assert extractor.get_frames(frame_idxs=[0], channel=0).dtype is extractor.get_dtype()
+    # Test retrieving multiple samples
+    samples = extractor.get_samples([0, 1, 2])
+    assert isinstance(samples, np.ndarray)
+    assert samples.shape == (3, 3, 4)
+    assert samples.dtype == extractor.get_dtype()
     assert extractor.get_dtype().itemsize
 
     raw_data = extractor.get_series()
@@ -236,3 +263,9 @@ def test_inscopiximagingextractor_movie_u8():
     probe_info = extractor._get_probe_info()
     assert isinstance(probe_info, dict)
     assert len(probe_info) == 0
+
+    metadata = extractor._get_metadata()
+    # Check that all expected keys are present
+    expected_keys = ["device", "subject", "analysis", "session", "probe", "session_start_time"]
+    for key in expected_keys:
+        assert key in metadata

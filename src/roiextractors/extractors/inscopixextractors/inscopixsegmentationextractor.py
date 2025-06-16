@@ -6,7 +6,7 @@ import sys
 import numpy as np
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 
 from ...extraction_tools import PathType, ArrayType
 from ...segmentationextractor import SegmentationExtractor
@@ -27,10 +27,11 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         file_path: str or Path
             The location of the folder containing Inscopix *.mat output file.
         """
-        if sys.version_info < (3, 9) or sys.version_info >= (3, 13):
+        python_version = sys.version_info
+        if python_version < (3, 10) or python_version >= (3, 13):
             raise ImportError(
-                "The isx package only supports Python versions 3.9 to 3.12. "
-                f"Your Python version is {sys.version_info.major}.{sys.version_info.minor}. "
+                "The isx package only supports Python versions 3.10 to 3.13. "
+                f"Your Python version is {python_version.major}.{python_version.minor}. "
                 "See https://github.com/inscopix/pyisx for details."
             )
         if platform.system() == "Darwin" and platform.machine() == "arm64":
@@ -43,7 +44,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         import isx
 
         SegmentationExtractor.__init__(self)
-        self.file_path = file_path
+        self._file_path = file_path
         file_path_str = str(file_path)
 
         self.cell_set = isx.CellSet.read(file_path_str, read_only=True)
@@ -402,3 +403,61 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
                 probe_info[field] = value
 
         return probe_info
+
+    def _get_metadata(self) -> dict[str, Any]:
+        """
+        Get all available metadata in a single dictionary.
+
+        This method consolidates all metadata extraction methods into one call
+        for convenience when extracting metadata in neuroconv.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Dictionary containing all extractable metadata including:
+            - device: Device/hardware information
+            - subject: Subject/animal information
+            - analysis: Analysis method information
+            - session: Session information
+            - probe: Probe information
+            - session_start_time: Measurement start time as datetime
+        """
+        metadata = {}
+
+        # Device info
+        try:
+            metadata["device"] = self._get_device_info()
+        except Exception:
+            metadata["device"] = {}
+
+        # Subject info
+        try:
+            metadata["subject"] = self._get_subject_info()
+        except Exception:
+            metadata["subject"] = {}
+
+        # Analysis info
+        try:
+            metadata["analysis"] = self._get_analysis_info()
+        except Exception:
+            metadata["analysis"] = {}
+
+        # Session info
+        try:
+            metadata["session"] = self._get_session_info()
+        except Exception:
+            metadata["session"] = {}
+
+        # Probe info
+        try:
+            metadata["probe"] = self._get_probe_info()
+        except Exception:
+            metadata["probe"] = {}
+
+        # Session start time
+        try:
+            metadata["session_start_time"] = self._get_session_start_time()
+        except Exception:
+            metadata["session_start_time"] = None
+
+        return metadata
