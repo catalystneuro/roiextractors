@@ -303,16 +303,17 @@ def get_recording_start_times_for_multi_recordings(
     folder_path = Path(folder_path)
     configuration_file_name = "metaData.json"
 
-    miniscope_config_files = natsort.natsorted(
-        list(folder_path.glob(f"*/{miniscopeDeviceName}/{configuration_file_name}"))
-    )
+    miniscope_config_files = natsort.natsorted(list(folder_path.glob(f"*/{configuration_file_name}")))
 
     assert miniscope_config_files, f"No Miniscope configuration files found at '{folder_path}'"
 
     start_times = []
     for config_file in miniscope_config_files:
-        start_time = get_recording_start_time(config_file)
-        start_times.append(start_time)
+        config = load_miniscope_config(config_file)
+        has_timestamp_info = any(key in config for key in ["year", "month", "day", "recordingStartTime"])
+        if has_timestamp_info:
+            start_time = get_recording_start_time(config_file)
+            start_times.append(start_time)
 
     return start_times
 

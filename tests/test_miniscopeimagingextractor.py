@@ -225,7 +225,13 @@ class TestMiniscopeUtilityFunctions(TestCase):
         # Set up paths for different test scenarios
         cls.multi_recording_folder = Path(OPHYS_DATA_PATH / "imaging_datasets" / "Miniscope" / "C6-J588_Disc5")
         cls.direct_folder = Path(
-            OPHYS_DATA_PATH / "imaging_datasets" / "Miniscope" / "Ca_EEG3-4_FC" / "2022_09_19" / "09_18_41"
+            OPHYS_DATA_PATH
+            / "imaging_datasets"
+            / "Miniscope"
+            / "Ca_EEG3-4_FC"
+            / "2022_09_19"
+            / "09_18_41"
+            / "miniscope"
         )
 
         # Metadata files for testing get_recording_start_time
@@ -249,7 +255,9 @@ class TestMiniscopeUtilityFunctions(TestCase):
         )
 
         # Get valid file paths for testing
-        cls.valid_file_paths, cls.valid_config_path = get_miniscope_files_from_folder(cls.multi_recording_folder)
+        cls.valid_file_paths, cls.valid_config_path = get_miniscope_files_from_multi_recordings_subfolders(
+            cls.multi_recording_folder
+        )
 
         # Create temporary directory for negative tests
         cls.temp_dir = Path(tempfile.mkdtemp())
@@ -261,7 +269,7 @@ class TestMiniscopeUtilityFunctions(TestCase):
 
     def test_get_miniscope_files_from_folder_valid(self):
         """Test successful file discovery from multi-recording folder structure."""
-        file_paths, config_path = get_miniscope_files_from_folder(self.multi_recording_folder)
+        file_paths, config_path = get_miniscope_files_from_multi_recordings_subfolders(self.multi_recording_folder)
 
         self.assertIsInstance(file_paths, list)
         self.assertGreater(len(file_paths), 0)
@@ -272,16 +280,16 @@ class TestMiniscopeUtilityFunctions(TestCase):
     def test_get_miniscope_files_from_folder_no_avi(self):
         """Test assertion when no .avi files are found."""
         with self.assertRaises(AssertionError):
-            get_miniscope_files_from_folder(self.temp_dir)
+            get_miniscope_files_from_direct_folder(self.temp_dir)
 
     def test_get_miniscope_files_from_folder_nonexistent(self):
         """Test assertion when folder doesn't exist."""
         with self.assertRaises(AssertionError):
-            get_miniscope_files_from_folder(Path("nonexistent_folder"))
+            get_miniscope_files_from_direct_folder(Path("nonexistent_folder"))
 
     def test_get_miniscope_files_from_folder_direct_structure(self):
         """Test successful file discovery from direct folder structure."""
-        file_paths, config_path = get_miniscope_files_from_folder(self.direct_folder, miniscopeDeviceName="miniscope")
+        file_paths, config_path = get_miniscope_files_from_direct_folder(self.direct_folder)
 
         self.assertIsInstance(file_paths, list)
         self.assertGreater(len(file_paths), 0)
@@ -391,22 +399,11 @@ class TestMiniscopeUtilityFunctions(TestCase):
 
     def test_get_recording_start_times_for_multi_recordings(self):
         """Test getting start times for multiple recordings."""
-        # Check if the metadata files contain timestamp information
-        config_files = list(self.multi_recording_folder.glob("*/metaData.json"))
-        if config_files:
-            # Check if the first config file has timestamp info
-            config = load_miniscope_config(config_files[0])
-            has_timestamp_info = any(key in config for key in ["year", "month", "day", "recordingStartTime"])
 
-            if has_timestamp_info:
-                start_times = get_recording_start_times_for_multi_recordings(self.multi_recording_folder)
-                self.assertIsInstance(start_times, list)
-                self.assertGreater(len(start_times), 0)
-                self.assertTrue(all(isinstance(st, datetime.datetime) for st in start_times))
-            else:
-                # Test that it raises KeyError when timestamp info is missing
-                with self.assertRaises(KeyError):
-                    get_recording_start_times_for_multi_recordings(self.multi_recording_folder)
+        start_times = get_recording_start_times_for_multi_recordings(self.multi_recording_folder)
+        self.assertIsInstance(start_times, list)
+        self.assertGreater(len(start_times), 0)
+        self.assertTrue(all(isinstance(st, datetime.datetime) for st in start_times))
 
     def test_get_recording_start_times_for_multi_recordings_no_files(self):
         """Test getting start times when no config files exist."""
@@ -426,23 +423,9 @@ class TestMiniscopeUtilityFunctions(TestCase):
 
     def test_get_timestamps_for_multi_recordings(self):
         """Test getting timestamps for multiple recordings."""
-        # Check if timestamp files exist
-        csv_files = list(self.multi_recording_folder.glob("*/Miniscope/timeStamps.csv"))
-        if csv_files:
-            # Check if the metadata files contain timestamp information
-            config_files = list(self.multi_recording_folder.glob("*/metaData.json"))
-            if config_files:
-                config = load_miniscope_config(config_files[0])
-                has_timestamp_info = any(key in config for key in ["year", "month", "day", "recordingStartTime"])
-
-                if has_timestamp_info:
-                    timestamps = get_timestamps_for_multi_recordings(self.multi_recording_folder)
-                    self.assertIsInstance(timestamps, list)
-                    self.assertGreater(len(timestamps), 0)
-                else:
-                    # Test that it raises KeyError when timestamp info is missing
-                    with self.assertRaises(KeyError):
-                        get_timestamps_for_multi_recordings(self.multi_recording_folder)
+        timestamps = get_timestamps_for_multi_recordings(self.multi_recording_folder)
+        self.assertIsInstance(timestamps, list)
+        self.assertGreater(len(timestamps), 0)
 
     def test_get_timestamps_for_multi_recordings_no_files(self):
         """Test getting timestamps when no CSV files exist."""
