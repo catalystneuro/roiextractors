@@ -90,8 +90,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         Cn : np.ndarray (height, width)
             Local correlation image.
 
-    Parameters
-    ----------
+    Caiman parameters:
         The params group contains all analysis parameters organized by category:
         - data: Dataset properties (dimensions, frame rate, decay time)
         - init: Component initialization parameters
@@ -100,7 +99,8 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         - spatial/temporal: Processing parameters
         - online: OnACID algorithm parameters
 
-    Note:
+    Notes
+    -----
         Some fields may be stored as scalar values in the HDF5 file when they
         are not available or not computed. This extractor will detect such cases
         and return None for those fields.
