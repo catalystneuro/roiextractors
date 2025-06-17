@@ -199,33 +199,32 @@ def get_recording_start_time(file_path: PathType) -> datetime.datetime:
     """
     Retrieve the recording start time from metadata in the specified folder.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     file_path : str, Path
         Path to the "metaData.json" file with recording start time details.
 
-    Returns:
-    --------
+    Returns
+    -------
     datetime.datetime
         A datetime object representing the session start time, based on the metadata's year, month, day, hour, minute,
         second, and millisecond fields.
 
-    Raises:
-    -------
+    Raises
+    ------
     AssertionError
         If the "metaData.json" file is not found in the specified folder path.
     KeyError
         If any of the required time fields ("year", "month", "day", "hour", "minute", "second", "msec") are missing
         from the metadata.
 
-    Notes:
-    ------
+    Notes
+    -----
     - The function expects a "recordingStartTime" key in the metadata JSON, which contains start time details.
       If not present, the top-level JSON object is assumed to contain the time information.
     - The "msec" field in the metadata is converted from milliseconds to microseconds for compatibility with the datetime
       microsecond field.
     """
-
     ## Read metadata
     with open(file_path) as f:
         general_metadata = json.load(f)

@@ -55,7 +55,6 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
 
     def __init__(self, file_paths: List[PathType], configuration_file_path: PathType):
         """Create a MiniscopeImagingExtractor instance from file paths."""
-
         # Validate input files
         validate_miniscope_files(file_paths, configuration_file_path)
 
