@@ -56,6 +56,7 @@ def generate_dummy_imaging_extractor(
     dtype: DtypeType = "uint16",
     channel_names: Optional[List[str]] = None,
     seed: int = 0,
+    num_samples=None,
 ):
     """Generate a dummy imaging extractor for testing.
 
@@ -88,7 +89,11 @@ def generate_dummy_imaging_extractor(
     if channel_names is None:
         channel_names = [f"channel_num_{num}" for num in range(num_channels)]
 
-    size = (num_frames, num_rows, num_columns, num_channels)
+    if num_samples is not None:
+        num_frames = num_samples
+
+    num_samples = num_frames
+    size = (num_samples, num_rows, num_columns, num_channels)
     video = generate_dummy_video(size=size, dtype=dtype, seed=seed)
 
     imaging_extractor = NumpyImagingExtractor(
@@ -172,16 +177,17 @@ def generate_dummy_segmentation_extractor(
     correlation_image = rng.random((num_rows, num_columns)) if has_summary_images else None
 
     # Rois
-    roi_ids = [id for id in range(num_rois)]
+    width = len(
+        str(num_rois - 1)
+    )  # e.g., width=2 for 10 ROIs (roi_00, roi_01, ..., roi_09), width=3 for 100 ROIs (roi_000, roi_001, ..., roi_099)
+    roi_ids = [f"roi_{id:0{width}d}" for id in range(num_rois)]
     roi_locations_rows = rng.integers(low=0, high=num_rows, size=num_rois)
     roi_locations_columns = rng.integers(low=0, high=num_columns, size=num_rois)
     roi_locations = np.vstack((roi_locations_rows, roi_locations_columns))
 
-    rejected_list = rejected_list if rejected_list else None
-
-    accepeted_list = roi_ids
+    accepted_list = roi_ids
     if rejected_list is not None:
-        accepeted_list = list(set(accepeted_list).difference(rejected_list))
+        accepted_list = list(set(accepted_list).difference(rejected_list))
 
     dummy_segmentation_extractor = NumpySegmentationExtractor(
         sampling_frequency=sampling_frequency,
@@ -194,7 +200,7 @@ def generate_dummy_segmentation_extractor(
         correlation_image=correlation_image,
         roi_ids=roi_ids,
         roi_locations=roi_locations,
-        accepted_lst=accepeted_list,
+        accepted_list=accepted_list,
         rejected_list=rejected_list,
         movie_dims=movie_dims,
         channel_names=["channel_num_0"],
@@ -322,7 +328,6 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
         seg.get_roi_ids(),
         dtypes=(list,),
         shape=(seg.get_num_rois(),),
-        element_dtypes=inttype,
     )
     assert isinstance(seg.get_roi_pixel_masks(roi_ids=seg.get_roi_ids()[:2]), list)
     _assert_iterable_complete(
@@ -341,13 +346,11 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
     _assert_iterable_complete(
         seg.get_accepted_list(),
         dtypes=(list, NoneType),
-        element_dtypes=inttype,
         shape_max=(seg.get_num_rois(),),
     )
     _assert_iterable_complete(
         seg.get_rejected_list(),
         dtypes=(list, NoneType),
-        element_dtypes=inttype,
         shape_max=(seg.get_num_rois(),),
     )
     _assert_iterable_complete(

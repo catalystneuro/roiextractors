@@ -12,6 +12,7 @@ FrameSliceSegmentationExtractor
 
 from abc import ABC, abstractmethod
 from typing import Union, Optional, Tuple, Iterable, List
+import warnings
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -69,27 +70,65 @@ class SegmentationExtractor(ABC):
         pass
 
     @abstractmethod
+    def get_frame_shape(self) -> ArrayType:
+        """Get frame size of movie (height, width).
+
+        Returns
+        -------
+        frame_shape: array_like
+            2-D array: image height x image width
+        """
+        pass
+
     def get_image_size(self) -> ArrayType:
         """Get frame size of movie (height, width).
+
+        .. deprecated:: on or after January 2026
+           Use :meth:`get_frame_shape` instead.
 
         Returns
         -------
         no_rois: array_like
             2-D array: image height x image width
         """
-        pass
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()
+
+    def get_num_samples(self) -> int:
+        """Get the number of samples in the recording (duration of recording).
+
+        Returns
+        -------
+        num_samples: int
+            Number of samples in the recording.
+        """
+        for trace in self.get_traces_dict().values():
+            if trace is not None and len(trace.shape) > 0:
+                return trace.shape[0]
 
     def get_num_frames(self) -> int:
         """Get the number of frames in the recording (duration of recording).
+
+        .. deprecated:: on or after January 2026
+           Use :meth:`get_num_samples` instead.
 
         Returns
         -------
         num_frames: int
             Number of frames in the recording.
         """
-        for trace in self.get_traces_dict().values():
-            if trace is not None and len(trace.shape) > 0:
-                return trace.shape[0]
+        warnings.warn(
+            "get_num_frames is deprecated and will be removed on or after January 2026. "
+            "Use get_num_samples instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_roi_locations(self, roi_ids=None) -> np.ndarray:
         """Get the locations of the Regions of Interest (ROIs).
@@ -105,15 +144,13 @@ class SegmentationExtractor(ABC):
             2-D array: 2 X no_ROIs. The pixel ids (x,y) where the centroid of the ROI is.
         """
         if roi_ids is None:
-            roi_idx_ = list(range(self.get_num_rois()))
-        else:
-            all_ids = self.get_roi_ids()
-            roi_idx_ = [all_ids.index(i) for i in roi_ids]
-        roi_location = np.zeros([2, len(roi_idx_)], dtype="int")
-        for c, i in enumerate(roi_idx_):
-            image_mask = self.get_roi_image_masks(roi_ids=[i])
+            roi_ids = self.get_roi_ids()
+
+        roi_location = np.zeros([2, len(roi_ids)], dtype="int")
+        for roi_index, roi_id in enumerate(roi_ids):
+            image_mask = self.get_roi_image_masks(roi_ids=[roi_id])
             temp = np.where(image_mask == np.amax(image_mask))
-            roi_location[:, c] = np.array([np.median(temp[0]), np.median(temp[1])]).T
+            roi_location[:, roi_index] = np.array([np.median(temp[0]), np.median(temp[1])]).T
         return roi_location
 
     def get_roi_ids(self) -> list:
@@ -140,11 +177,12 @@ class SegmentationExtractor(ABC):
             3-D array(val 0 or 1): image_height X image_width X length(roi_ids)
         """
         if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
+            roi_indices = range(self.get_num_rois())
         else:
-            all_ids = self.get_roi_ids()
-            roi_idx_ = [all_ids.index(i) for i in roi_ids]
-        return np.stack([self._image_masks[:, :, k] for k in roi_idx_], 2)
+            all_roi_ids = self.get_roi_ids()
+            roi_indices = [all_roi_ids.index(roi_id) for roi_id in roi_ids]
+
+        return np.stack([self._image_masks[:, :, k] for k in roi_indices], 2)
 
     def get_roi_pixel_masks(self, roi_ids=None) -> np.array:
         """Get the weights applied to each of the pixels of the mask.
@@ -394,7 +432,7 @@ class SegmentationExtractor(ABC):
         -----
         Operates on _times attribute of the SegmentationExtractor object.
         """
-        assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames!"
+        assert len(times) == self.get_num_samples(), "'times' should have the same length of the number of samples!"
         self._times = np.array(times, dtype=np.float64)
 
     def has_time_vector(self) -> bool:
@@ -419,11 +457,41 @@ class SegmentationExtractor(ABC):
         -------
         times: float or array-like
             The corresponding times in seconds
+
+        Deprecated
+        ----------
+        This method will be removed on or after January 2026.
+        Use sample_indices_to_time() instead.
         """
+        warnings.warn(
+            "frame_to_time() is deprecated and will be removed on or after January 2026. "
+            "Use sample_indices_to_time() instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         if self._times is None:
             return frames / self.get_sampling_frequency()
         else:
             return self._times[frames]
+
+    def sample_indices_to_time(self, sample_indices: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
+        """Convert user-inputted sample indices to times with units of seconds.
+
+        Parameters
+        ----------
+        sample_indices: int or array-like
+            The sample indices to be converted to times.
+
+        Returns
+        -------
+        times: float or array-like
+            The corresponding times in seconds.
+        """
+        # Default implementation
+        if self._times is None:
+            return sample_indices / self.get_sampling_frequency()
+        else:
+            return self._times[sample_indices]
 
 
 class FrameSliceSegmentationExtractor(SegmentationExtractor):
@@ -433,7 +501,6 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "FrameSliceSegmentationExtractor"
-    is_writable = True
 
     def __init__(
         self,
@@ -454,7 +521,7 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
         """
         self._parent_segmentation = parent_segmentation
         self._start_frame = start_frame or 0
-        self._end_frame = end_frame or self._parent_segmentation.get_num_frames()
+        self._end_frame = end_frame or self._parent_segmentation.get_num_samples()
         self._num_frames = self._end_frame - self._start_frame
 
         if hasattr(self._parent_segmentation, "_image_masks"):  # otherwise, do not set attribute at all
@@ -463,7 +530,7 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
         if hasattr(self._parent_segmentation, "_background_image_masks"):  # otherwise, do not set attribute at all
             self._background_image_masks = self._parent_segmentation._background_image_masks
 
-        parent_size = self._parent_segmentation.get_num_frames()
+        parent_size = self._parent_segmentation.get_num_samples()
         if start_frame is None:
             start_frame = 0
         else:
@@ -508,8 +575,14 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
             for trace_name, trace in self._parent_segmentation.get_traces_dict().items()
         }
 
+    def get_frame_shape(self) -> Tuple[int, int]:
+        return tuple(self._parent_segmentation.get_frame_shape())
+
     def get_image_size(self) -> Tuple[int, int]:
-        return tuple(self._parent_segmentation.get_image_size())
+        return tuple(self._parent_segmentation.get_frame_shape())
+
+    def get_num_samples(self) -> int:
+        return self._num_frames
 
     def get_num_frames(self) -> int:
         return self._num_frames
