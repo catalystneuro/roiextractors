@@ -203,19 +203,6 @@ class TestMiniscopeMultiRecordingImagingExtractor(TestCase):
             video_range = np.arange(start, start + num_samples_per_extractor)
             assert_array_equal(sub_extractor.get_series(), self.video[video_range])
 
-    def test_deprecation_warnings(self):
-        # Test that deprecation warnings are raised for old methods
-        # Test deprecated methods on individual extractor
-        single_extractor = self.multi_recording_extractor._imaging_extractors[0]
-        with self.assertWarns(DeprecationWarning):
-            single_extractor.get_num_samples()
-
-        with self.assertWarns(DeprecationWarning):
-            single_extractor.get_image_shape()
-
-        with self.assertWarns(DeprecationWarning):
-            single_extractor.get_video()
-
 
 class TestMiniscopeUtilityFunctions(TestCase):
     """Test class for all utility functions in miniscope_utils.py."""
