@@ -5,6 +5,8 @@
 * Added `get_original_frame_indices()` method to `ScanImageImagingExtractor` for mapping extractor samples back to original frame indices in raw microscopy data. This method can be used to synchronize with other data sources or for advanced analysis that requires knowledge of the original frame indices. [PR #445](https://github.com/catalystneuro/roiextractors/pull/445)
 
 ### Fixes
+* Fixed InscopixSegmentationExtractor with support for string/integer ROI IDs, NWB-compliant pixel masks, standardized ROI lists, improved macOS compatibility, enhanced metadata extraction, and general code cleanup.
+[PR #435](https://github.com/catalystneuro/roiextractors/pull/435)
 * Added missing function to retrieve inscopix metadata [PR #436](https://github.com/catalystneuro/roiextractors/pull/436)
 * Added MinianSegmentationExtractor: [PR #368](https://github.com/catalystneuro/roiextractors/pull/368)
 
@@ -21,7 +23,6 @@
 
 ### Improvements
 * Bruker series can now read sequences of type `BrightnessOverTime` [PR #448](https://github.com/catalystneuro/roiextractors/pull/448)
-
 
 # v0.5.13 (May 12th, 2025)
 
