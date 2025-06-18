@@ -10,7 +10,7 @@
   <h3 align="center">Automatically read optical imaging/segmentation data into a common API</h3>
 </p>
 <p align="center">
-   <a href="roiextractors.readthedocs.io"><strong>Explore our documentation »</strong></a>
+   <a href="https://roiextractors.readthedocs.io/"><strong>Explore our documentation »</strong></a>
 </p>
 
 <!-- TABLE OF CONTENTS -->
