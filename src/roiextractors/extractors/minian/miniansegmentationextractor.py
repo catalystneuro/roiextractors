@@ -189,8 +189,6 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         np.ndarray
             The original timestamps in seconds.
         """
-        if self._times is not None:
-            return self._times
 
         return self._read_timestamps_from_csv()
 
