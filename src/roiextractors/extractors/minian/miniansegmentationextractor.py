@@ -141,7 +141,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         else:
             return np.expand_dims(dataset["b"], axis=2)
 
-    def _read_trace_from_zarr_field(self, field):
+    def _read_trace_from_zarr_field(self, field: str):
         """Read the traces specified by the field from the zarr object.
 
         Parameters
