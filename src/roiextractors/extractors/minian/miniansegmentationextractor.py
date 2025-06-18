@@ -115,6 +115,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         if dataset is None or "A" not in dataset:
             raise ValueError("No image masks found in A.zarr dataset.")
         else:
+            # Transpose to (height, width, weight) format because A.zarr is stored as (weight, height, width)
             return np.transpose(dataset["A"], (1, 2, 0))
 
     def _read_background_image_mask_from_zarr(self):
