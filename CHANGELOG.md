@@ -5,6 +5,7 @@
 ### Fixes
 
 ### Deprecations And Removals
+Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationExtractor` [PR #457](https://github.com/catalystneuro/roiextractors/pull/457)
 
 ### Improvements
 
