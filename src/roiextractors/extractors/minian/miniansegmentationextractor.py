@@ -83,13 +83,13 @@ class MinianSegmentationExtractor(SegmentationExtractor):
                 "This means background masks exist but without corresponding temporal dynamics."
             )
 
-    def _read_zarr_group(self, zarr_group=""):
+    def _read_zarr_group(self, zarr_group: str):
         """Read the zarr group.
 
         Parameters
         ----------
-        zarr_group : str, optional
-            The zarr group path to read, by default ""
+        zarr_group : str
+            The zarr group path to read
 
         Returns
         -------
