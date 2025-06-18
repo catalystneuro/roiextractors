@@ -163,7 +163,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         elif dataset[field].ndim == 1:
             return np.expand_dims(dataset[field], axis=1)
 
-    def _read_timestamps_from_csv(self):
+    def _read_timestamps_from_csv(self) -> np.ndarray:
         """Extract timestamps corresponding to frame indexes (not downsampled) of the stored denoised trace.
 
         Returns
