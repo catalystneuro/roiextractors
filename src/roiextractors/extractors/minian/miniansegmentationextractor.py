@@ -316,7 +316,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             maximum_projection=self._image_maximum_projection,
         )
 
-    def get_session_id(self) -> str:
+    def _get_session_id(self) -> str:
         """Get the session id from the A.zarr group.
 
         Returns
@@ -337,7 +337,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             return ""
         return dataset["session_id"][()]
 
-    def get_subject_id(self) -> str:
+    def _get_subject_id(self) -> str:
         """Get the subject id from the A.zarr group.
 
         Returns

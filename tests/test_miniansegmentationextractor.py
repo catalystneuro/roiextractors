@@ -192,11 +192,11 @@ def test_get_roi_ids(extractor, expected_properties):
 
 def test_get_subject_id(extractor, expected_properties):
     """Test that subject ID is correctly retrieved."""
-    subject_id = extractor.get_subject_id()
+    subject_id = extractor._get_subject_id()
     assert subject_id == expected_properties["subject_id"]
 
 
 def test_get_session_id(extractor, expected_properties):
     """Test that session ID is correctly retrieved."""
-    session_id = extractor.get_session_id()
+    session_id = extractor._get_session_id()
     assert session_id == expected_properties["session_id"]
