@@ -6,7 +6,6 @@ MiniscopeImagingExtractor
     An ImagingExtractor for the Miniscope video (.avi) format.
 """
 
-import json
 import re
 from pathlib import Path
 from typing import Optional, Tuple, List
@@ -14,74 +13,61 @@ import warnings
 
 import numpy as np
 
+
 from ...imagingextractor import ImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor
 from ...extraction_tools import PathType, DtypeType, get_package
+from .miniscope_utils import validate_miniscope_files, load_miniscope_config
 
 
-class MiniscopeMultiRecordingImagingExtractor(MultiImagingExtractor):
+class MiniscopeImagingExtractor(MultiImagingExtractor):
     """
-    ImagingExtractor processes multiple separate Miniscope recordings within the same session.
+    MiniscopeImagingExtractor processes .avi files within the same session.
 
-    Important, this extractor consolidates the recordings as a single continuous dataset.
+    This extractor consolidates the recordings as a single continuous dataset.
 
-    Expected directory structure:
+    Parameters
+    ----------
+    file_paths : List[PathType]
+        List of .avi file paths to be processed. These files should be from the same
+        recording session and will be concatenated in the order provided.
+    configuration_file_path : PathType
+        Path to the metaData.json configuration file containing recording parameters.
 
-    .
-    ├── C6-J588_Disc5
-    │   ├── 15_03_28  (timestamp)
-    │   │   ├── BehavCam_2
-    │   │   ├── metaData.json
-    │   │   └── Miniscope
-    │   ├── 15_06_28 (timestamp)
-    │   │   ├── BehavCam_2
-    │   │   ├── metaData.json
-    │   │   └── Miniscope
-    │   └── 15_07_58 (timestamp)
-    │       ├── BehavCam_2
-    │       ├── metaData.json
-    │       └── Miniscope
-    └──
+    Examples
+    --------
+    >>> # Direct file specification
+    >>> file_paths = ["/path/to/video1.avi", "/path/to/video2.avi"]
+    >>> config_path = "/path/to/metaData.json"
+    >>> extractor = MiniscopeImagingExtractor(file_paths, config_path)
 
-    Where the Miniscope folders contain a collection of .avi files and a metaData.json file.
+    >>> # Using utility function for automatic discovery
+    >>> from .miniscope_utils import get_miniscope_files_from_folder
+    >>> file_paths, config_path = get_miniscope_files_from_folder("/path/to/folder")
+    >>> extractor = MiniscopeImagingExtractor(file_paths, config_path)
 
+    Notes
+    -----
     For each video file, a _MiniscopeSingleVideoExtractor is created. These individual extractors
-    are then combined into the MiniscopeMultiRecordingImagingExtractor to handle the session's recordings
+    are then combined into the MiniscopeImagingExtractor to handle the session's recordings
     as a unified, continuous dataset.
     """
 
-    extractor_name = "MiniscopeMultiRecordingImagingExtractor"
-    mode = "folder"
+    def __init__(self, file_paths: List[PathType], configuration_file_path: PathType):
+        """Create a MiniscopeImagingExtractor instance from file paths."""
+        # Validate input files
+        validate_miniscope_files(file_paths, configuration_file_path)
 
-    def __init__(self, folder_path: PathType):
-        """Create a MiniscopeMultiRecordingImagingExtractor instance from a folder path.
+        # Load configuration and extract sampling frequency
+        self._miniscope_config = load_miniscope_config(configuration_file_path)
+        frame_rate_match = re.search(r"\d+", self._miniscope_config["frameRate"])
+        if frame_rate_match is None:
+            raise ValueError(f"Could not extract frame rate from configuration: {self._miniscope_config['frameRate']}")
+        self._sampling_frequency = float(frame_rate_match.group())
 
-        Parameters
-        ----------
-        folder_path: PathType
-           The folder path that contains the Miniscope data.
-        """
-        natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
-
-        self.folder_path = Path(folder_path)
-
-        configuration_file_name = "metaData.json"
-        miniscope_avi_file_paths = natsort.natsorted(list(self.folder_path.glob("*/Miniscope/*.avi")))
-        assert miniscope_avi_file_paths, f"The Miniscope movies (.avi files) are missing from '{self.folder_path}'."
-        miniscope_config_files = natsort.natsorted(
-            list(self.folder_path.glob(f"*/Miniscope/{configuration_file_name}"))
-        )
-        assert (
-            miniscope_config_files
-        ), f"The configuration files ({configuration_file_name} files) are missing from '{self.folder_path}'."
-
-        # Set the sampling frequency from the configuration file
-        with open(miniscope_config_files[0], newline="") as f:
-            self._miniscope_config = json.loads(f.read())
-        self._sampling_frequency = float(re.search(r"\d+", self._miniscope_config["frameRate"]).group())
-
+        # Create individual extractors for each video file
         imaging_extractors = []
-        for file_path in miniscope_avi_file_paths:
+        for file_path in file_paths:
             extractor = _MiniscopeSingleVideoExtractor(file_path=file_path)
             extractor._sampling_frequency = self._sampling_frequency
             imaging_extractors.append(extractor)
@@ -90,15 +76,60 @@ class MiniscopeMultiRecordingImagingExtractor(MultiImagingExtractor):
 
 
 # Temporary renaming to keep backwards compatibility
-class MiniscopeImagingExtractor(MiniscopeMultiRecordingImagingExtractor):
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            "MiniscopeImagingExtractor is unstable and might change its signature. "
-            "Please use MiniscopeMultiRecordingImagingExtractor instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__init__(*args, **kwargs)
+class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
+    """
+    MiniscopeMultiRecordingImagingExtractor processes multiple separate Miniscope recordings within the same session.
+
+    This extractor consolidates the recordings as a single continuous dataset.
+
+    Parameters
+    ----------
+        folder_path : PathType
+            The folder path containing the Miniscope video (.avi) files and the metaData.json configuration file.
+
+    Notes
+    -----
+    This extractor is designed to handle the Tye Lab format, where multiple recordings
+    are organized in timestamp subfolders, each containing a Miniscope subfolder.
+    The expected folder structure is as follows:
+    ```
+    parent_folder/
+    ├── 15_03_28/  (timestamp folder)
+    │   ├── Miniscope/
+    │   │   ├── 0.avi
+    │   │   ├── 1.avi
+    │   │   └── metaData.json
+    │   ├── BehavCam_2/
+    │   └── metaData.json
+    ├── 15_06_28/  (timestamp folder)
+    │   ├── Miniscope/
+    │   │   ├── 0.avi
+    │   │   └── metaData.json
+    │   └── BehavCam_2/
+    └── 15_12_28/  (timestamp folder)
+        └── Miniscope/
+            ├── 0.avi
+            └── metaData.json
+    ```
+    This extractor will automatically find all the .avi files and the metaData.json configuration file
+    within the specified folder and its subfolders, and create a _MiniscopeSingleVideoExtractor for each .avi file.
+    The individual extractors are then combined into the MiniscopeMultiRecordingImagingExtractor to handle
+    the session's recordings as a unified, continuous dataset.
+    """
+
+    extractor_name = "MiniscopeMultiRecordingImagingExtractor"
+    is_writable = True
+    mode = "file"
+
+    def __init__(self, folder_path: PathType):
+        """Create a MiniscopeMultiRecordingImagingExtractor instance from folder_path."""
+        # Import necessary packages
+        from .miniscope_utils import get_miniscope_files_from_multi_recordings_subfolders
+
+        # Get file paths and configuration file path
+        file_paths, configuration_file_path = get_miniscope_files_from_multi_recordings_subfolders(folder_path)
+
+        super().__init__(file_paths=file_paths, configuration_file_path=configuration_file_path)
 
 
 class _MiniscopeSingleVideoExtractor(ImagingExtractor):
