@@ -5,6 +5,12 @@ on:
     secrets:
       CODECOV_TOKEN:
         required: true
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      S3_GIN_BUCKET:
+        required: true
 
 jobs:
   run:
