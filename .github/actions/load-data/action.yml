@@ -1,0 +1,19 @@
+name: 'Prepare Datasets'
+description: 'Restores ophys testing data from cache or downloads it from GIN.'
+runs:
+  using: 'composite'
+  steps:
+    - name: Get ophys_testing_data current head hash
+      id: ophys
+      shell: bash
+      run: |
+        HASH=$(git ls-remote https://gin.g-node.org/CatalystNeuro/ophys_testing_data.git HEAD | cut -f1)
+        echo "HASH_OPHYS_DATASET=$HASH" >> $GITHUB_OUTPUT
+
+    - name: Cache ophys dataset
+      uses: actions/cache@v4
+      id: cache-ophys-datasets
+      with:
+        path: ./ophys_testing_data
+        key: ophys-datasets-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
+        enableCrossOsArchive: true

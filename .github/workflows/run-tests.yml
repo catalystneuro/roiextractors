@@ -42,15 +42,8 @@ jobs:
       - name: Test full installation
         run: pip install .[full]
 
-      - name: Get ophys_testing_data current head hash
-        id: ophys
-        run: echo "::set-output name=HASH_OPHYS_DATASET::$(git ls-remote https://gin.g-node.org/CatalystNeuro/ophys_testing_data.git HEAD | cut -f1)"
-      - name: Cache ophys dataset - ${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
-        uses: actions/cache@v4
-        id: cache-ophys-datasets
-        with:
-          path: ./ophys_testing_data
-          key: ophys-datasets-2025-05-${{ matrix.os }}-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
+      - name: Prepare data for tests
+        uses: ./.github/actions/load-data
 
       - name: Run full pytest with coverage
         run: pytest -n auto --dist loadscope --cov=./ --cov-report xml:./codecov.xml
