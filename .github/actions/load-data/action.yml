@@ -40,4 +40,4 @@ runs:
       name: Download ophys dataset from S3
       shell: bash
       run: |
-        aws s3 cp --recursive "${{ inputs.s3-gin-bucket }}/ophys_testing_data" ./ophys_testing_data
+        aws s3 cp --recursive "s3://${{ inputs.s3-gin-bucket }}/ophys_testing_data" ./ophys_testing_data
