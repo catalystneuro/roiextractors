@@ -2,6 +2,13 @@ name: Dev Testing
 on:
   workflow_dispatch:
   workflow_call:
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      S3_GIN_BUCKET:
+        required: true
 
 jobs:
   run:
@@ -35,15 +42,12 @@ jobs:
             cd neuroconv
             pip install --no-cache-dir .[full,test]
             cd ../
-      - name: Get ophys_testing_data current head hash
-        id: ophys
-        run: echo "::set-output name=HASH_OPHYS_DATASET::$(git ls-remote https://gin.g-node.org/CatalystNeuro/ophys_testing_data.git HEAD | cut -f1)"
-      - name: Cache ophys dataset - ${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
-        uses: actions/cache@v4
-        id: cache-ophys-datasets
+      - name: Prepare data for tests
+        uses: ./.github/actions/load-data
         with:
-          path: ./ophys_testing_data
-          key: ophys-datasets-2025-05-ubuntu-latest-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          s3-gin-bucket: ${{ secrets.S3_GIN_BUCKET }}
 
       - name: Run NeuroConv tests
         run: |
