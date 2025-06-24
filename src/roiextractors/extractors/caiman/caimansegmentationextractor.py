@@ -90,13 +90,31 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
         Returns
         -------
-        image_masks: numpy.ndarray
-            The image masks for each background components.
+        image_masks: numpy.ndarray or None
+            The image masks for each background components, or None if not available.
+
+        Notes
+        -----
+        Handles various CaImAn file formats where background components ('b')
+        may be stored as empty object arrays in multi-plane or stubbed datasets.
         """
         if self._dataset_file["estimates"].get("b"):
             background_image_mask_in = self._dataset_file["estimates"]["b"]
-            background_image_masks = np.reshape(background_image_mask_in, (*self.get_frame_shape(), -1), order="F")
-            return background_image_masks
+
+            # Handle case where b is stored as empty object array or scalar
+            # Common in multi-plane or stubbed CaImAn files where background is unavailable
+            if (
+                background_image_mask_in.dtype == object and background_image_mask_in.shape == ()
+            ) or background_image_mask_in.size == 0:
+                return None
+
+            try:
+                background_image_masks = np.reshape(background_image_mask_in, (*self.get_frame_shape(), -1), order="F")
+                return background_image_masks
+            except (ValueError, IndexError):
+                # If reshaping fails due to incompatible data structure, return None
+                return None
+        return None
 
     def _trace_extractor_read(self, field):
         """Read the traces specified by the field from the estimates dataset of the h5py file.
@@ -110,11 +128,25 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         -------
         lazy_ops.DatasetView
             The traces specified by the field.
+
+        Notes
+        -----
+        This method handles various CaImAn file formats, including multi-plane datasets
+        where some trace fields (like 'f' for neuropil) may be stored as empty object
+        arrays that are incompatible with lazy_ops. Returns None for such cases.
         """
         lazy_ops = get_package(package_name="lazy_ops")
 
         if field in self._dataset_file["estimates"]:
-            return lazy_ops.DatasetView(self._dataset_file["estimates"][field]).lazy_transpose()
+            dataset = self._dataset_file["estimates"][field]
+
+            if (dataset.dtype == object and dataset.shape == ()) or dataset.size == 0:
+                return None
+
+            try:
+                return lazy_ops.DatasetView(dataset).lazy_transpose()
+            except Exception:
+                return None
 
     def _raw_trace_extractor_read(self):
         """Read the denoised trace and the residual trace from the h5py file and sum them to obtain the raw roi response trace.
@@ -133,11 +165,28 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             return np.array(self._dataset_file["estimates"]["Cn"])
 
     def _summary_image_read(self):
-        """Read summary image mean."""
+        """Read summary image mean.
+
+        Notes
+        -----
+        Handles various CaImAn file formats where background components ('b')
+        may be stored as empty object arrays in multi-plane or stubbed datasets.
+        """
         if self._dataset_file["estimates"].get("b"):
-            FOV_shape = self._dataset_file["params"]["data"]["dims"][()]
-            b_sum = self._dataset_file["estimates"]["b"][:].sum(axis=1)
-            return np.array(b_sum).reshape(FOV_shape, order="F")
+            b_data = self._dataset_file["estimates"]["b"]
+
+            # Handle case where b is stored as empty object array or scalar
+            if (b_data.dtype == object and b_data.shape == ()) or b_data.size == 0:
+                return None
+
+            try:
+                FOV_shape = self._dataset_file["params"]["data"]["dims"][()]
+                b_sum = b_data[:].sum(axis=1)
+                return np.array(b_sum).reshape(FOV_shape, order="F")
+            except (ValueError, IndexError):
+                # If slicing or reshaping fails due to incompatible data structure, return None
+                return None
+        return None
 
     def get_accepted_list(self):
         accepted = self._dataset_file["estimates"]["idx_components"]
@@ -157,6 +206,106 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
     def get_frame_shape(self):
         return self._dataset_file["params"]["data"]["dims"][()]
+
+    # Quality Metrics
+    def get_snr_values(self):
+        """Get signal-to-noise ratio for each component.
+
+        Returns
+        -------
+        numpy.ndarray or None
+            SNR values for each component, or None if not available.
+        """
+        if self._dataset_file["estimates"].get("SNR_comp"):
+            snr_data = self._dataset_file["estimates"]["SNR_comp"]
+            if snr_data.shape != ():
+                return np.array(snr_data)
+        return None
+
+    def get_spatial_correlation_values(self):
+        """Get spatial correlation values (r_values) for each component.
+
+        Returns
+        -------
+        numpy.ndarray or None
+            Spatial correlation values for each component, or None if not available.
+        """
+        if self._dataset_file["estimates"].get("r_values"):
+            r_data = self._dataset_file["estimates"]["r_values"]
+            if r_data.shape != ():
+                return np.array(r_data)
+        return None
+
+    def get_neurons_signal_noise(self):
+        """Get per-neuron signal-to-noise values.
+
+        Returns
+        -------
+        numpy.ndarray or None
+            Signal-to-noise values for each neuron, or None if not available.
+        """
+        if self._dataset_file["estimates"].get("neurons_sn"):
+            sn_data = self._dataset_file["estimates"]["neurons_sn"]
+            if sn_data.shape != ():
+                return np.array(sn_data)
+        return None
+
+    def get_cnn_predictions(self):
+        """Get CNN classifier predictions for component quality.
+
+        Note
+        ----
+        CNN predictions require special handling because CaImAn stores
+        a Python None object when CNN classification is not used or unavailable.
+        HDF5 serializes this as a string 'NoneType', which h5py reads back as
+        array(b'NoneType', dtype=object).
+
+        Returns
+        -------
+        numpy.ndarray or None
+            CNN predictions for each component, or None if not available.
+        """
+        if self._dataset_file["estimates"].get("cnn_preds"):
+            cnn_data = self._dataset_file["estimates"]["cnn_preds"]
+            if cnn_data.size > 0:  # Check if not empty
+                data_array = np.array(cnn_data)
+                # Check if the data is actually a serialized 'NoneType'
+                if (
+                    data_array.shape == ()
+                    and isinstance(data_array.item(), (bytes, str))
+                    and str(data_array.item()).lower() in ["b'nonetype'", "nonetype", "b'nonetype'"]
+                ):
+                    return None
+                return data_array
+        return None
+
+    def get_quality_metrics(self):
+        """Get all quality metrics in a dictionary.
+
+        Returns
+        -------
+        dict
+            Dictionary containing all available quality metrics.
+        """
+        metrics = {}
+
+        snr = self.get_snr_values()
+        if snr is not None:
+            metrics["snr"] = snr
+
+        r_vals = self.get_spatial_correlation_values()
+        if r_vals is not None:
+            metrics["r_values"] = r_vals
+
+        neurons_sn = self.get_neurons_signal_noise()
+        if neurons_sn is not None:
+            metrics["neurons_sn"] = neurons_sn
+
+        cnn_preds = self.get_cnn_predictions()
+        if cnn_preds is not None:
+            metrics["cnn_preds"] = cnn_preds
+
+        return metrics
 
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite: bool = True):
