@@ -338,8 +338,8 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             return list(self._estimates["idx_components_bad"][:])
         return []
 
-    def get_frame_shape(self):
-        return self._params["data"]["dims"][()]
+    def get_frame_shape(self) -> tuple:
+        return tuple(self._params["data"]["dims"][()])
 
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite: bool = True):

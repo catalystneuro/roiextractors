@@ -3,6 +3,7 @@
 ### Features
 
 ### Fixes
+Add comprehensive test suite for CaimanSegmentationExtractor covering basic properties, ROI masks, traces, accepted/rejected lists, and different CaImAn dataset formats [PR #464](https://github.com/catalystneuro/roiextractors/pull/464)
 
 ### Deprecations And Removals
 Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationExtractor` [PR #457](https://github.com/catalystneuro/roiextractors/pull/457)
