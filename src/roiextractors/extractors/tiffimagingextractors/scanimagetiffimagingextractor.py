@@ -916,6 +916,79 @@ class ScanImageImagingExtractor(ImagingExtractor):
         frames_per_slice = non_varying_frame_metadata.get("SI.hStackManager.framesPerSlice", 1)
         return frames_per_slice
 
+    def get_original_frame_indices(self, plane_index: Optional[int] = None) -> np.ndarray:
+        """
+        Get the original frame indices for each sample.
+
+        Returns the index of the original frame for each sample, mapping processed samples
+        back to their corresponding frames in the raw microscopy data. This accounts for
+        any filtering, subsampling, or exclusions (such as flyback frames) performed by
+        the extractor.
+
+        Parameters
+        ----------
+        plane_index : int, optional
+            Which plane to use for frame index calculation in volumetric data.
+            If None, plane_index is set to the last plane in the volume. This is because the timestamp of the acquisition of the last plane in a volume is typically set as the timestamp of the volume as a whole. It must be less than the total number of planes.
+
+        Returns
+        -------
+        np.ndarray
+            Array of original frame indices (dtype: int64) with length equal to the
+            number of samples. Each element represents the index of the original
+            microscopy frame that corresponds to that sample.
+
+        Notes
+        -----
+        **Frame Index Calculation:**
+
+        - **Planar data**: Frame indices are sequential (0, 1, 2, ...)
+        - **Multi-channel data**: Accounts for channel interleaving
+        - **Volumetric data**: Uses the specified plane (default: last plane)
+        - **Multi-file data**: Includes file offsets for global indexing
+        - **Flyback frames**: Automatically excluded from indexing
+
+        **Common Use Cases:**
+
+        - Synchronizing with external timing systems
+        - Mapping back to original acquisition timestamps
+        - Data provenance and traceability
+        - Cross-referencing with raw data files
+
+        **Examples:**
+
+        For a 3-sample volumetric dataset with 5 planes per volume:
+        - Default behavior returns indices [4, 9, 14] (last plane of each volumetric sample)
+        - With plane_index=0 returns indices [0, 5, 10] (first plane of each volumetric sample)
+        """
+        num_planes = self.get_num_planes()
+        if plane_index is not None:
+            assert plane_index < num_planes, f"Plane index {plane_index} exceeds number of planes {num_planes}."
+        else:
+            plane_index = num_planes - 1
+
+        # Initialize array to store timestamps
+        num_samples = self.get_num_samples()
+        frame_indices = np.zeros(num_samples, dtype=np.int64)
+
+        # For each sample, extract its timestamp from the corresponding file and IFD
+        for sample_index in range(num_samples):
+
+            # Get the last frame in this sample to get the timestamps
+            frame_index = sample_index * num_planes + plane_index
+            table_row = self._frames_to_ifd_table[frame_index]
+
+            file_index = int(table_row["file_index"])
+            ifd_index = int(table_row["IFD_index"])
+
+            # The ifds are local within a file, so we need to add and offset
+            # equal to the number of IFDs in the previous files
+            file_offset = sum(self._ifds_per_file[:file_index]) if file_index > 0 else 0
+
+            frame_indices[sample_index] = ifd_index + file_offset
+
+        return frame_indices
+
     def __del__(self):
         """Close file handles when the extractor is garbage collected."""
         if hasattr(self, "_tiff_readers"):

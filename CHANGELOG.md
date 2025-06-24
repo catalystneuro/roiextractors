@@ -1,22 +1,40 @@
-# v0.5.14 (Upcoming)
+# v0.6.1 (Upcoming)
 
 ### Features
 
+### Fixes
+
+### Deprecations And Removals
+Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationExtractor` [PR #457](https://github.com/catalystneuro/roiextractors/pull/457)
+
+### Improvements
+* Updated GitHub Actions workflows to use cross-OS cache sharing for multi-OS testing data, reducing redundant downloads and improving CI efficiency. Added reusable data loading action pattern similar to neuroconv. [PR #459](https://github.com/catalystneuro/roiextractors/pull/459)
+
+# v0.6.0 (June 17th, 2025)
+
+### Features
+* Added `FemtonicsImagingExtractor` for reading and extracting metadata and imaging data from Femtonics MESc files.[PR #440](https://github.com/catalystneuro/roiextractors/pull/440)
+* Added `get_original_frame_indices()` method to `ScanImageImagingExtractor` for mapping extractor samples back to original frame indices in raw microscopy data. This method can be used to synchronize with other data sources or for advanced analysis that requires knowledge of the original frame indices. [PR #445](https://github.com/catalystneuro/roiextractors/pull/445)
 
 ### Fixes
+* Fixed InscopixSegmentationExtractor with support for string/integer ROI IDs, NWB-compliant pixel masks, standardized ROI lists, improved macOS compatibility, enhanced metadata extraction, and general code cleanup.
+[PR #435](https://github.com/catalystneuro/roiextractors/pull/435)
 * Added missing function to retrieve inscopix metadata [PR #436](https://github.com/catalystneuro/roiextractors/pull/436)
 * Fixed deprecated scipy import warning by updating `mat_struct` import path [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
 * Fixed deprecation warning about invalid escape sequence in micromanager TIFF extractor [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
+* Removed integer-only assumption for ROI IDs in segmentation extractors. ROI IDs can now be strings or any type. Updated `generate_dummy_segmentation_extractor` to produce string ROI IDs in format `roi_00`, `roi_01`, etc. [PR #449](https://github.com/catalystneuro/roiextractors/pull/449)
 
 ### Deprecations And Removals
 * The `get_image_size()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_frame_shape()` instead. [PR #443](https://github.com/catalystneuro/roiextractors/pull/443)
 * The `get_num_frames()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_num_samples()` instead. [PR #443](https://github.com/catalystneuro/roiextractors/pull/443)
+* The `frame_to_time()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `sample_indices_to_time()` instead. [PR #447](https://github.com/catalystneuro/roiextractors/pull/447)
 * Removed unused `is_writable` class attributes from all extractor classes [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
 * `get_frames` is now `get_samples`. `get_frames` will be deprecated in or after January 2026 [PR #444](https://github.com/catalystneuro/roiextractors/pull/444)
+* The `frame_slice()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use ``slice_samples`()` instead. [PR #451](https://github.com/catalystneuro/roiextractors/pull/451)
+* The `FrameSliceSegmentationExtractor` class is deprecated and will be removed on or after January 2026. Use `SampleSlicedSegmentationExtractor` instead. [PR #451](https://github.com/catalystneuro/roiextractors/pull/451)
 
 ### Improvements
 * Bruker series can now read sequences of type `BrightnessOverTime` [PR #448](https://github.com/catalystneuro/roiextractors/pull/448)
-
 
 # v0.5.13 (May 12th, 2025)
 

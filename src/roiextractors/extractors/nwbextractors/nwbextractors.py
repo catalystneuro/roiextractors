@@ -138,6 +138,12 @@ class NwbImagingExtractor(ImagingExtractor):
             return super().time_to_frame(times)
 
     def frame_to_time(self, frames: Union[IntType, ArrayType]) -> np.ndarray:
+        warnings.warn(
+            "frame_to_time() is deprecated and will be removed on or after January 2026. "
+            "Use sample_indices_to_time() instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         if self._times is None:
             return (frames / self.get_sampling_frequency() + self._imaging_start_time).astype("float")
         else:
@@ -304,6 +310,13 @@ class NwbImagingExtractor(ImagingExtractor):
 
     def get_num_channels(self):
         return self._num_channels
+
+    def get_original_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # NWB files may have timestamps but need to check the specific implementation
+        # For now, return None to use calculated timestamps based on sampling frequency
+        return None
 
     @staticmethod
     def add_devices(imaging, nwbfile, metadata):

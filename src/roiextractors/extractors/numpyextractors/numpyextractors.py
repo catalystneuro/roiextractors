@@ -296,6 +296,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         rejected_list=None,
         channel_names=None,
         movie_dims=None,
+        accepted_list=None,
     ):
         """Create a NumpySegmentationExtractor from a .npy file.
 
@@ -328,6 +329,15 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         movie_dims: tuple
             height x width of the movie
         """
+        accepted_list = accepted_lst if accepted_lst is not None else accepted_list
+        if accepted_lst is not None:
+            warnings.warn(
+                "The 'accepted_lst' parameter is deprecated and will be removed on or after January 2026. "
+                "Use 'accepted_list' instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         SegmentationExtractor.__init__(self)
         if isinstance(image_masks, (str, Path)):
             image_masks = Path(image_masks)
@@ -417,13 +427,12 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         if roi_ids is None:
             self._roi_ids = list(np.arange(image_masks.shape[2]))
         else:
-            assert all([isinstance(roi_id, (int, np.integer)) for roi_id in roi_ids]), "'roi_ids' must be int!"
             self._roi_ids = roi_ids
         self._roi_locs = roi_locations
         self._sampling_frequency = sampling_frequency
         self._channel_names = channel_names
         self._rejected_list = rejected_list
-        self._accepted_list = accepted_lst
+        self._accepted_list = accepted_list
 
     @property
     def image_dims(self):
@@ -438,13 +447,13 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
     def get_accepted_list(self):
         if self._accepted_list is None:
-            return list(range(self.get_num_rois()))
+            return self.get_roi_ids()
         else:
             return self._accepted_list
 
     def get_rejected_list(self):
         if self._rejected_list is None:
-            return [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
+            return [a for a in self.get_roi_ids() if a not in set(self.get_accepted_list())]
         else:
             return self._rejected_list
 
