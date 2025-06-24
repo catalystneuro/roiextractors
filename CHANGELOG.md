@@ -1,4 +1,17 @@
-# v0.5.14 (Upcoming)
+# v0.6.1 (Upcoming)
+
+### Features
+* Added `MinianSegmentationExtractor` for reading and extracting metadata and segmentation data from Minian output files.[PR #368](https://github.com/catalystneuro/roiextractors/pull/368)
+
+### Fixes
+
+### Deprecations And Removals
+Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationExtractor` [PR #457](https://github.com/catalystneuro/roiextractors/pull/457)
+
+### Improvements
+* Updated GitHub Actions workflows to use cross-OS cache sharing for multi-OS testing data, reducing redundant downloads and improving CI efficiency. Added reusable data loading action pattern similar to neuroconv. [PR #459](https://github.com/catalystneuro/roiextractors/pull/459)
+
+# v0.6.0 (June 17th, 2025)
 
 ### Features
 * Added `FemtonicsImagingExtractor` for reading and extracting metadata and imaging data from Femtonics MESc files.[PR #440](https://github.com/catalystneuro/roiextractors/pull/440)
@@ -15,9 +28,11 @@
 ### Deprecations And Removals
 * The `get_image_size()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_frame_shape()` instead. [PR #443](https://github.com/catalystneuro/roiextractors/pull/443)
 * The `get_num_frames()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_num_samples()` instead. [PR #443](https://github.com/catalystneuro/roiextractors/pull/443)
-* The `frame_to_time()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `sample_indices_to_time()` instead. [PR TBD](https://github.com/catalystneuro/roiextractors/pull/TBD)
+* The `frame_to_time()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `sample_indices_to_time()` instead. [PR #447](https://github.com/catalystneuro/roiextractors/pull/447)
 * Removed unused `is_writable` class attributes from all extractor classes [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
 * `get_frames` is now `get_samples`. `get_frames` will be deprecated in or after January 2026 [PR #444](https://github.com/catalystneuro/roiextractors/pull/444)
+* The `frame_slice()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use ``slice_samples`()` instead. [PR #451](https://github.com/catalystneuro/roiextractors/pull/451)
+* The `FrameSliceSegmentationExtractor` class is deprecated and will be removed on or after January 2026. Use `SampleSlicedSegmentationExtractor` instead. [PR #451](https://github.com/catalystneuro/roiextractors/pull/451)
 
 ### Improvements
 * Bruker series can now read sequences of type `BrightnessOverTime` [PR #448](https://github.com/catalystneuro/roiextractors/pull/448)
