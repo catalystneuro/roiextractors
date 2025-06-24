@@ -3,12 +3,14 @@
 ### Features
 
 ### Fixes
-Add comprehensive test suite for CaimanSegmentationExtractor covering basic properties, ROI masks, traces, accepted/rejected lists, and different CaImAn dataset formats [PR #464](https://github.com/catalystneuro/roiextractors/pull/464)
+* Fixed a bug in CaimanSegmentationExtractor where empty components of the segmentation traces will throw an error
+[PR #452](https://github.com/catalystneuro/roiextractors/pull/452)
 
 ### Deprecations And Removals
 Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationExtractor` [PR #457](https://github.com/catalystneuro/roiextractors/pull/457)
 
 ### Improvements
+Add comprehensive test suite for CaimanSegmentationExtractor covering basic properties, ROI masks, traces, accepted/rejected lists, and different CaImAn dataset formats [PR #464](https://github.com/catalystneuro/roiextractors/pull/464)
 
 # v0.6.0 (June 17th, 2025)
 
@@ -23,8 +25,7 @@ Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationE
 * Fixed deprecated scipy import warning by updating `mat_struct` import path [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
 * Fixed deprecation warning about invalid escape sequence in micromanager TIFF extractor [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
 * Removed integer-only assumption for ROI IDs in segmentation extractors. ROI IDs can now be strings or any type. Updated `generate_dummy_segmentation_extractor` to produce string ROI IDs in format `roi_00`, `roi_01`, etc. [PR #449](https://github.com/catalystneuro/roiextractors/pull/449)
-* Fixed a bug in CaimanSegmentationExtractor where empty components of the segmentation traces will throw an error
-[PR #452](https://github.com/catalystneuro/roiextractors/pull/452)
+
 
 ### Deprecations And Removals
 * The `get_image_size()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_frame_shape()` instead. [PR #443](https://github.com/catalystneuro/roiextractors/pull/443)
