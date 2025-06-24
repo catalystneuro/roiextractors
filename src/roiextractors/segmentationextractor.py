@@ -505,9 +505,28 @@ class SegmentationExtractor(ABC):
         else:
             return self._times[frames]
 
+    def sample_indices_to_time(self, sample_indices: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
+        """Convert user-inputted sample indices to times with units of seconds.
 
-class FrameSliceSegmentationExtractor(SegmentationExtractor):
-    """Class to get a lazy frame slice.
+        Parameters
+        ----------
+        sample_indices: int or array-like
+            The sample indices to be converted to times.
+
+        Returns
+        -------
+        times: float or array-like
+            The corresponding times in seconds.
+        """
+        # Default implementation
+        if self._times is None:
+            return sample_indices / self.get_sampling_frequency()
+        else:
+            return self._times[sample_indices]
+
+
+class SampleSlicedSegmentationExtractor(SegmentationExtractor):
+    """Class to get a lazy sample slice.
 
     Do not use this class directly but use `.slice_samples(...)` on a SegmentationExtractor object.
     """
@@ -667,18 +686,46 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
     def get_background_pixel_masks(self, background_ids: Optional[ArrayLike] = None) -> list[np.ndarray]:
         return self._parent_segmentation.get_background_pixel_masks(background_ids=background_ids)
 
-    def get_original_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
-        # Get timestamps from parent for our specific slice range
-        if start_sample is None:
-            start_sample = 0
-        if end_sample is None:
-            end_sample = self.get_num_samples()
 
-        # Map relative indices to absolute indices in the parent
-        actual_start = self._start_sample + start_sample
-        actual_end = self._start_sample + end_sample
+class FrameSliceSegmentationExtractor(SampleSlicedSegmentationExtractor):
+    """Class to get a lazy frame slice.
 
-        # Get timestamps from parent for our specific range
-        return self._parent_segmentation.get_original_timestamps(start_sample=actual_start, end_sample=actual_end)
+    Do not use this class directly but use `.frame_slice(...)` on a SegmentationExtractor object.
+
+    Deprecated
+    ----------
+    This class will be removed on or after January 2026.
+    Use SampleSlicedSegmentationExtractor instead.
+    """
+
+    extractor_name = "FrameSliceSegmentationExtractor"
+
+    def __init__(
+        self,
+        parent_segmentation: SegmentationExtractor,
+        start_frame: Optional[int] = None,
+        end_frame: Optional[int] = None,
+    ):
+        """Create a new FrameSliceSegmentationExtractor from parent SegmentationExtractor.
+
+        Parameters
+        ----------
+        parent_segmentation: SegmentationExtractor
+            The parent SegmentationExtractor object.
+        start_frame: int, optional
+            The starting frame of the new SegmentationExtractor.
+        end_frame: int, optional
+            The ending frame of the new SegmentationExtractor.
+
+        Deprecated
+        ----------
+        This class will be removed on or after January 2026.
+        Use SampleSlicedSegmentationExtractor instead.
+        """
+        warnings.warn(
+            "FrameSliceSegmentationExtractor is deprecated and will be removed on or after January 2026. "
+            "Use SampleSlicedSegmentationExtractor instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        super().__init__(parent_segmentation=parent_segmentation, start_sample=start_frame, end_sample=end_frame)
