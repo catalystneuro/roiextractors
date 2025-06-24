@@ -102,3 +102,9 @@ extend-exclude = '''
   | dist
 )/
 '''
+
+
+[tool.codespell]
+skip = '.git*,*.pdf,*.css,*.svg'
+check-hidden = true
+ignore-words-list = 'assertin'
