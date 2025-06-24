@@ -331,6 +331,19 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         """Return the data type of the video."""
         return self._dtype
 
+    def get_original_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        """Retrieve the original unaltered timestamps for the data in this interface.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray or None
+            The timestamps for the data stream, or None if native timestamps are not available.
+        """
+        # ThorLabs TIFF imaging data does not have native timestamps
+        return None
+
     def __del__(self):
         """Close the tiff_reader when the object is garbage collected."""
         if hasattr(self, "_tiff_reader"):

@@ -7,6 +7,7 @@ CaimanSegmentationExtractor
 """
 
 from pathlib import Path
+from typing import Optional
 from warnings import warn
 import warnings
 
@@ -255,3 +256,16 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             stacklevel=2,
         )
         return self.get_frame_shape()
+
+    def get_original_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        """Retrieve the original unaltered timestamps for the data in this interface.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray or None
+            The timestamps for the data stream, or None if native timestamps are not available.
+        """
+        # CaImAn segmentation data does not have native timestamps
+        return None

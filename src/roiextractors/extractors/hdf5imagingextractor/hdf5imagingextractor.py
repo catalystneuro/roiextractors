@@ -233,6 +233,19 @@ class Hdf5ImagingExtractor(ImagingExtractor):
     def get_num_channels(self):
         return self._num_channels
 
+    def get_original_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        """Retrieve the original unaltered timestamps for the data in this interface.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray or None
+            The timestamps for the data stream, or None if native timestamps are not available.
+        """
+        # HDF5 imaging data does not have native timestamps
+        return None
+
     @staticmethod
     def write_imaging(
         imaging: ImagingExtractor,

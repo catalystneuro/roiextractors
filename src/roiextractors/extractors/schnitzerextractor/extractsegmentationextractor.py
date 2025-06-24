@@ -289,6 +289,12 @@ class NewExtractSegmentationExtractor(
 
         return images_dict
 
+    def get_original_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # EXTRACT data does not have native timestamps
+        return None
+
 
 class LegacyExtractSegmentationExtractor(SegmentationExtractor):
     """Extractor for reading the segmentation data that results from calls to older versions of EXTRACT.
@@ -412,3 +418,9 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
             stacklevel=2,
         )
         return self.get_frame_shape()
+
+    def get_original_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # EXTRACT data does not have native timestamps
+        return None

@@ -280,6 +280,19 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         )
         return self.get_frame_shape()
 
+    def get_original_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        """Retrieve the original unaltered timestamps for the data in this interface.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray or None
+            The timestamps for the data stream, or None if native timestamps are not available.
+        """
+        # Suite2p segmentation data does not have native timestamps
+        return None
+
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite=True):
         """Write a SegmentationExtractor to a folder specified by save_path.
