@@ -1,6 +1,7 @@
 # v0.6.1 (Upcoming)
 
 ### Features
+* Added `MinianSegmentationExtractor` for reading and extracting metadata and segmentation data from Minian output files.[PR #368](https://github.com/catalystneuro/roiextractors/pull/368)
 
 ### Fixes
 * Fixed a bug in CaimanSegmentationExtractor where empty components of the segmentation traces will throw an error
