@@ -464,6 +464,109 @@ class SegmentationExtractor(ABC):
         else:
             return self._times[frames]
 
+    @abstractmethod
+    def get_original_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        """
+        Retrieve the original unaltered timestamps for the data in this interface.
+
+        This function should retrieve the data on-demand by re-initializing the IO.
+        Can be overridden to return None if the extractor does not have native timestamps.
+
+        Parameters
+        ----------
+        start_sample : int, optional
+            The starting sample index. If None, starts from the beginning.
+        end_sample : int, optional
+            The ending sample index. If None, goes to the end.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray or None
+            The timestamps for the data stream, or None if native timestamps are not available.
+        """
+        return None
+
+    def get_timestamps(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        """
+        Retrieve the timestamps for the data in this interface.
+
+        Parameters
+        ----------
+        start_sample : int, optional
+            The starting sample index. If None, starts from the beginning.
+        end_sample : int, optional
+            The ending sample index. If None, goes to the end.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray
+            The timestamps for the data stream.
+        """
+        # Set defaults
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self.get_num_samples()
+
+        # Return cached timestamps if available
+        if self._times is not None:
+            return self._times[start_sample:end_sample]
+
+        # Try to get original timestamps
+        original_timestamps = self.get_original_timestamps()
+        if original_timestamps is not None:
+            self._times = original_timestamps
+            return original_timestamps[start_sample:end_sample]
+
+        # Fallback to calculated timestamps from sampling frequency
+        sample_indices = np.arange(start_sample, end_sample)
+        return sample_indices / self.get_sampling_frequency()
+
+    def sample_indices_to_time(self, sample_indices: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
+        """Convert user-inputted sample indices to times with units of seconds.
+
+        Parameters
+        ----------
+        sample_indices: int or array-like
+            The sample indices to be converted to times.
+
+        Returns
+        -------
+        times: float or array-like
+            The corresponding times in seconds.
+
+        Deprecated
+        ----------
+        This method will be removed in or after January 2026.
+        Use get_timestamps() instead.
+        """
+        warnings.warn(
+            "sample_indices_to_time() is deprecated and will be removed in or after January 2026. "
+            "Use get_timestamps() instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        # Convert to numpy array if needed to handle indexing
+        sample_indices = np.array(sample_indices)
+
+        # Get all timestamps and index into them
+        if sample_indices.ndim == 0:
+            # Single index
+            start_sample = int(sample_indices)
+            end_sample = start_sample + 1
+            timestamps = self.get_timestamps(start_sample=start_sample, end_sample=end_sample)
+            return timestamps[0]
+        else:
+            # Multiple indices - get the range covering all indices
+            start_sample = int(sample_indices.min())
+            end_sample = int(sample_indices.max()) + 1
+            timestamps = self.get_timestamps(start_sample=start_sample, end_sample=end_sample)
+            # Adjust indices to be relative to the start_sample
+            relative_indices = sample_indices - start_sample
+            return timestamps[relative_indices]
+
 
 class FrameSliceSegmentationExtractor(SegmentationExtractor):
     """Class to get a lazy frame slice.
@@ -587,3 +690,19 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
 
     def get_background_pixel_masks(self, background_ids: Optional[ArrayLike] = None) -> List[np.ndarray]:
         return self._parent_segmentation.get_background_pixel_masks(background_ids=background_ids)
+
+    def get_original_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Get timestamps from parent for our specific slice range
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self.get_num_samples()
+
+        # Map relative indices to absolute indices in the parent
+        actual_start = self._start_frame + start_sample
+        actual_end = self._start_frame + end_sample
+
+        # Get timestamps from parent for our specific range
+        return self._parent_segmentation.get_original_timestamps(start_sample=actual_start, end_sample=actual_end)

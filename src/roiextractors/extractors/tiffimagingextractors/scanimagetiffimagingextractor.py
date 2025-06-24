@@ -801,6 +801,31 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self._times = timestamps
         return timestamps
 
+    def get_original_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        """
+        Retrieve the original unaltered timestamps for the data in this interface.
+
+        Parameters
+        ----------
+        start_sample : int, optional
+            The starting sample index. If None, starts from the beginning.
+        end_sample : int, optional
+            The ending sample index. If None, goes to the end.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray or None
+            The timestamps for the data stream, or None if native timestamps are not available.
+        """
+        timestamps = self.get_times()
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = len(timestamps)
+        return timestamps[start_sample:end_sample]
+
     @staticmethod
     def extract_timestamp_from_page(page) -> float:
         """
@@ -1485,6 +1510,12 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         )
         return raw_index
 
+    def get_original_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Single plane ScanImage files do not have native timestamps
+        return None
+
 
 class ScanImageLegacyImagingExtractor(ImagingExtractor):
     """Specialized extractor for reading TIFF files produced via ScanImage.
@@ -1686,3 +1717,9 @@ class ScanImageLegacyImagingExtractor(ImagingExtractor):
 
     def get_channel_names(self) -> list:
         pass
+
+    def get_original_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Legacy ScanImage files do not have native timestamps
+        return None

@@ -58,7 +58,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
     def get_roi_ids(self) -> list:
         return [self.cell_set.get_cell_name(x) for x in range(self.get_num_rois())]
 
-    def get_frame_shape(self) -> ArrayType:
+    def get_frame_shape(self) -> tuple[int, int]:
         if hasattr(self.cell_set, "spacing"):
             # Swap dimensions to return (width, height)
             pixels = self.cell_set.spacing.num_pixels
