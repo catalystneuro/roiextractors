@@ -193,7 +193,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
         return self._read_timestamps_from_csv()
 
-    def sample_indices_to_time(self, sample_indices: FloatType |  np.ndarray) -> FloatType | np.ndarray:
+    def sample_indices_to_time(self, sample_indices: FloatType | np.ndarray) -> FloatType | np.ndarray:
         """Convert user-inputted sample indices to times with units of seconds.
 
         Parameters
