@@ -283,6 +283,12 @@ class VolumetricImagingExtractor(ImagingExtractor):
         )
         return self.slice_samples(start_sample=start_frame, end_sample=end_frame)
 
+    def get_original_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Delegate to the first imaging extractor
+        return self._imaging_extractors[0].get_original_timestamps(start_sample, end_sample)
+
 
 class DepthSliceVolumetricImagingExtractor(VolumetricImagingExtractor):
     """Class to get a lazy depth slice.

@@ -1,130 +1,13 @@
 # v0.6.1 (Upcoming)
 
-from datetime import datetime
-
-import numpy as np
-from ndx_pose import PoseEstimation, PoseEstimationSeries, Skeleton, Skeletons
-from neuroconv.basedatainterface import BaseDataInterface
-from neuroconv.tools.nwb_helpers import get_module
-from one.api import ONE
-from pynwb import H5DataIO
-from pynwb.image import ImageSeries
-
-
-class IblPoseEstimationInterface(BaseDataInterface):
-    def __init__(self, one: ONE, session: str, camera_name: str, include_video: bool, include_pose: bool):
-        self.one = one
-        self.session = session
-        self.camera_name = camera_name
-        self.include_video = include_video
-        self.include_pose = include_pose
-
-
-    def add_to_nwbfile(self, nwbfile, metadata: dict):
-        # Sometimes the DLC data has been revised, possibly multiple times
-        # Always use the most recent revision available
-        session_files = self.one.list_datasets(eid=self.session, filename=f"*{self.camera_name}.dlc*")
-        revision_datetime_format = "%Y-%m-%d"
-        revisions = [
-            datetime.strptime(session_file.split("#")[1], revision_datetime_format)
-            for session_file in session_files
-            if "#" in session_file
-        ]
-        revision = None
-        if any(revisions):
-            most_recent = max(revisions)
-            revision = most_recent.strftime("%Y-%m-%d")
-
-        camera_data = self.one.load_object(id=self.session, obj=self.camera_name, collection="alf", revision=revision)
-        dlc_data = camera_data["dlc"]
-        timestamps = camera_data["times"]
-        number_of_frames = len(timestamps)
-        body_parts = list(
-            set(field.replace("_x", "").replace("_y", "").replace("_likelihood", "") for field in dlc_data.keys())
-        )
-
-        left_right_or_body = self.camera_name[:5].rstrip("C")
-        reused_timestamps = None
-        all_pose_estimation_series = list()
-        if self.include_pose:
-            for body_part in body_parts:
-                body_part_data = np.empty(shape=(number_of_frames, 2))
-                body_part_data[:, 0] = dlc_data[f"{body_part}_x"]
-                body_part_data[:, 1] = dlc_data[f"{body_part}_y"]
-
-                pose_estimation_series = PoseEstimationSeries(
-                    name=body_part,
-                    description=f"Marker placed on or around, labeled '{body_part}'.",
-                    data=H5DataIO(body_part_data, compression=True),
-                    unit="px",
-                    reference_frame="(0,0) corresponds to the upper left corner when using width by height convention.",
-                    timestamps=reused_timestamps or H5DataIO(timestamps, compression=True),
-                    confidence=np.array(dlc_data[f"{body_part}_likelihood"]),
-                    confidence_definition="Likelihood output from DeepLabCut neural network.",
-                )
-                all_pose_estimation_series.append(pose_estimation_series)
-
-                reused_timestamps = all_pose_estimation_series[0]  # trick for linking timestamps across series
-
-            # Create skeleton that defines the body parts without edges
-            skeleton_name = f"{left_right_or_body}_camera_skeleton"
-
-            skeleton = Skeleton(
-                name=skeleton_name,
-                nodes=body_parts,
-                edges=np.array([], dtype="uint8").reshape(0, 2),  # Empty edges array
-                subject=nwbfile.subject,  # link to the subject if available
-            )
-
-            # Store the skeleton in a Skeletons container
-            skeletons = Skeletons(skeletons=[skeleton])
-
-            # Create device for the camera
-            camera_name_snake_case = f"{left_right_or_body}_camera"
-            camera_device = nwbfile.create_device(
-                name=camera_name_snake_case,
-                description=f"{left_right_or_body} camera for recording behavior",
-                manufacturer="IBL",
-            )
-
-            pose_estimation_kwargs = dict(
-                name=f"PoseEstimation{left_right_or_body.capitalize()}Camera",
-                pose_estimation_series=all_pose_estimation_series,
-                description="Estimated positions of body parts using DeepLabCut.",
-                source_software="DeepLabCut",
-                skeleton=skeleton,  # link to the skeleton object
-                devices=[camera_device],
-            )
-            pose_estimation_container = PoseEstimation(**pose_estimation_kwargs)
-
-            behavior_module = get_module(nwbfile=nwbfile, name="behavior", description="Processed behavioral data.")
-            behavior_module.add(skeletons)
-            behavior_module.add(pose_estimation_container)
-
-        if self.include_video and self.one.list_datasets(
-            eid=self.session, filename=f"raw_video_data/*{self.camera_name}*"
-        ):
-            original_video_file = self.one.load_dataset(
-                id=self.session, dataset=f"raw_video_data/*{self.camera_name}*", download_only=True
-            )
-            image_series = ImageSeries(
-                name=f"OriginalVideo{left_right_or_body.capitalize()}Camera",
-                description="The original video each pose was estimated from.",
-                unit="n.a.",
-                external_file=[str(original_video_file)],
-                format="external",
-                timestamps=reused_timestamps or H5DataIO(timestamps, compression=True),
-            )
-
-
-            nwbfile.add_acquisition(image_series)
-
 
 ### Features
+* Added native timestamp support with automatic fallback hierarchy: `get_original_timestamps()` abstract method and `get_timestamps()` concrete method to all imaging and segmentation extractors. The `get_timestamps()` method follows priority order: cached times → original timestamps → calculated from sampling frequency. This enables automatic native timestamp usage when available (e.g., ScanImage TIFF files) while maintaining backward compatibility. [PR #465](https://github.com/catalystneuro/roiextractors/pull/465)
 
 ### Fixes
 
 ### Deprecations And Removals
+* The `sample_indices_to_time()` method in both ImagingExtractor and SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_timestamps()` instead. [PR #448](https://github.com/catalystneuro/roiextractors/pull/448)
 Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationExtractor` [PR #457](https://github.com/catalystneuro/roiextractors/pull/457)
 
 ### Improvements

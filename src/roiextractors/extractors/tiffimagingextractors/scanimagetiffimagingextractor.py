@@ -1076,6 +1076,12 @@ class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
         """
         return self._num_planes
 
+    def get_original_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # This is a legacy deprecated extractor - delegate to the first imaging extractor
+        return self._imaging_extractors[0].get_original_timestamps(start_sample, end_sample)
+
 
 class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
     """Specialized extractor for reading multi-file (buffered) TIFF files produced via ScanImage."""
@@ -1134,6 +1140,12 @@ class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
             )
             imaging_extractors.append(imaging_extractor)
         super().__init__(imaging_extractors=imaging_extractors)
+
+    def get_original_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # This is a legacy deprecated extractor - delegate to the first imaging extractor
+        return self._imaging_extractors[0].get_original_timestamps(start_sample, end_sample)
 
 
 class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
@@ -1210,6 +1222,12 @@ class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
         """
         image_shape = self.get_image_shape()
         return (image_shape[0], image_shape[1], self.get_num_planes())
+
+    def get_original_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # This is a legacy deprecated extractor - delegate to the first imaging extractor
+        return self._imaging_extractors[0].get_original_timestamps(start_sample, end_sample)
 
 
 class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
