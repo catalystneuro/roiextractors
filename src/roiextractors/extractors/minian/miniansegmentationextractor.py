@@ -190,7 +190,6 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         np.ndarray
             The original timestamps in seconds.
         """
-
         return self._read_timestamps_from_csv()
 
     def sample_indices_to_time(self, sample_indices: FloatType | np.ndarray) -> FloatType | np.ndarray:
