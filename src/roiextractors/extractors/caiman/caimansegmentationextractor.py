@@ -231,29 +231,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         -------
         image_masks: numpy.ndarray or None
             The image masks for each background components, or None if not available.
-
-        Notes
-        -----
-        Handles various CaImAn file formats where background components ('b')
-        may be stored as empty object arrays in multi-plane or stubbed datasets.
         """
-        if self._dataset_file["estimates"].get("b"):
-            background_image_mask_in = self._dataset_file["estimates"]["b"]
-
-            # Handle case where b is stored as empty object array or scalar
-            # Common in multi-plane or stubbed CaImAn files where background is unavailable
-            if (
-                background_image_mask_in.dtype == object and background_image_mask_in.shape == ()
-            ) or background_image_mask_in.size == 0:
-                return None
-
-            try:
-                background_image_masks = np.reshape(background_image_mask_in, (*self.get_frame_shape(), -1), order="F")
-                return background_image_masks
-            except (ValueError, IndexError):
-                # If reshaping fails due to incompatible data structure, return None
-                return None
-        return None
         if "b" in self._estimates and not self._is_scalar_dataset(self._estimates["b"]):
             background_data = np.array(self._estimates["b"])
             background_image_masks = np.reshape(background_data, (*self.get_frame_shape(), -1), order="F")
@@ -271,13 +249,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         Returns
         -------
         lazy_ops.DatasetView
-            The traces specified by the field.
-
-        Notes
-        -----
-        This method handles various CaImAn file formats, including multi-plane datasets
-        where some trace fields (like 'f' for neuropil) may be stored as empty object
-        arrays that are incompatible with lazy_ops. Returns None for such cases.
+            The traces specified by the field or None.
         """
         lazy_ops = get_package(package_name="lazy_ops")
 
@@ -286,16 +258,6 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             return lazy_ops.DatasetView(self._estimates[field]).lazy_transpose()
 
         return None
-        if field in self._dataset_file["estimates"]:
-            dataset = self._dataset_file["estimates"][field]
-
-            if (dataset.dtype == object and dataset.shape == ()) or dataset.size == 0:
-                return None
-
-            try:
-                return lazy_ops.DatasetView(dataset).lazy_transpose()
-            except Exception:
-                return None
 
     def _raw_trace_extractor_read(self):
         """Read the denoised trace and the residual trace from the h5py file and sum them to obtain the raw roi response trace.
@@ -333,28 +295,6 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         return None
 
     def _summary_image_read(self):
-        """Read summary image mean.
-
-        Notes
-        -----
-        Handles various CaImAn file formats where background components ('b')
-        may be stored as empty object arrays in multi-plane or stubbed datasets.
-        """
-        if self._dataset_file["estimates"].get("b"):
-            b_data = self._dataset_file["estimates"]["b"]
-
-            # Handle case where b is stored as empty object array or scalar
-            if (b_data.dtype == object and b_data.shape == ()) or b_data.size == 0:
-                return None
-
-            try:
-                FOV_shape = self._dataset_file["params"]["data"]["dims"][()]
-                b_sum = b_data[:].sum(axis=1)
-                return np.array(b_sum).reshape(FOV_shape, order="F")
-            except (ValueError, IndexError):
-                # If slicing or reshaping fails due to incompatible data structure, return None
-                return None
-        return None
         """Read summary image from background components.
 
         Returns
