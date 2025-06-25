@@ -2,14 +2,18 @@
 
 ### Features
 * Added property management methods to `SegmentationExtractor`: `set_property()`, `get_property()`, and `get_property_keys()` for storing and retrieving custom ROI properties [PR #467](https://github.com/catalystneuro/roiextractors/pull/467)
+* Added `MinianSegmentationExtractor` for reading and extracting metadata and segmentation data from Minian output files.[PR #368](https://github.com/catalystneuro/roiextractors/pull/368)
 
 ### Fixes
+* Fixed a bug in CaimanSegmentationExtractor where empty components of the segmentation traces will throw an error
+[PR #452](https://github.com/catalystneuro/roiextractors/pull/452)
 
 ### Deprecations And Removals
 Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationExtractor` [PR #457](https://github.com/catalystneuro/roiextractors/pull/457)
 
 ### Improvements
 * Updated GitHub Actions workflows to use cross-OS cache sharing for multi-OS testing data, reducing redundant downloads and improving CI efficiency. Added reusable data loading action pattern similar to neuroconv. [PR #459](https://github.com/catalystneuro/roiextractors/pull/459)
+Add comprehensive test suite for CaimanSegmentationExtractor covering basic properties, ROI masks, traces, accepted/rejected lists, and different CaImAn dataset formats [PR #464](https://github.com/catalystneuro/roiextractors/pull/464)
 
 # v0.6.0 (June 17th, 2025)
 
@@ -24,6 +28,7 @@ Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationE
 * Fixed deprecated scipy import warning by updating `mat_struct` import path [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
 * Fixed deprecation warning about invalid escape sequence in micromanager TIFF extractor [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
 * Removed integer-only assumption for ROI IDs in segmentation extractors. ROI IDs can now be strings or any type. Updated `generate_dummy_segmentation_extractor` to produce string ROI IDs in format `roi_00`, `roi_01`, etc. [PR #449](https://github.com/catalystneuro/roiextractors/pull/449)
+
 
 ### Deprecations And Removals
 * The `get_image_size()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_frame_shape()` instead. [PR #443](https://github.com/catalystneuro/roiextractors/pull/443)
