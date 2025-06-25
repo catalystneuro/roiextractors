@@ -1,6 +1,7 @@
 # v0.6.1 (Upcoming)
 
 ### Features
+* Added property management methods to `SegmentationExtractor`: `set_property()`, `get_property()`, and `get_property_keys()` for storing and retrieving custom ROI properties [PR #467](https://github.com/catalystneuro/roiextractors/pull/467)
 
 ### Fixes
 
