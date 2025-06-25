@@ -230,7 +230,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         Returns
         -------
         image_masks: numpy.ndarray or None
-            The image masks for each background components, or None if not available.
+            The image masks for each background component, or None if not available.
         """
         if "b" in self._estimates and not self._is_scalar_dataset(self._estimates["b"]):
             background_data = np.array(self._estimates["b"])
@@ -248,8 +248,8 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
         Returns
         -------
-        lazy_ops.DatasetView
-            The traces specified by the field or None.
+        lazy_ops.DatasetView or None
+            The traces specified by the field, or None if not available.
         """
         lazy_ops = get_package(package_name="lazy_ops")
 
