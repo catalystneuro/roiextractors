@@ -342,7 +342,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         return tuple(self._params["data"]["dims"][()])
 
     # Quality Metrics
-    def get_snr_values(self):
+    def _get_snr_values(self):
         """Get signal-to-noise ratio for each component.
 
         Returns
@@ -356,7 +356,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
                 return np.array(snr_data)
         return None
 
-    def get_spatial_correlation_values(self):
+    def _get_spatial_correlation_values(self):
         """Get spatial correlation values (r_values) for each component.
 
         Returns
@@ -370,7 +370,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
                 return np.array(r_data)
         return None
 
-    def get_neurons_signal_noise(self):
+    def _get_neurons_signal_noise(self):
         """Get per-neuron signal-to-noise values.
 
         Returns
@@ -384,7 +384,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
                 return np.array(sn_data)
         return None
 
-    def get_cnn_predictions(self):
+    def _get_cnn_predictions(self):
         """Get CNN classifier predictions for component quality.
 
         Note
@@ -423,19 +423,19 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         """
         metrics = {}
 
-        snr = self.get_snr_values()
+        snr = self._get_snr_values()
         if snr is not None:
             metrics["snr"] = snr
 
-        r_vals = self.get_spatial_correlation_values()
+        r_vals = self._get_spatial_correlation_values()
         if r_vals is not None:
             metrics["r_values"] = r_vals
 
-        neurons_sn = self.get_neurons_signal_noise()
+        neurons_sn = self._get_neurons_signal_noise()
         if neurons_sn is not None:
             metrics["neurons_sn"] = neurons_sn
 
-        cnn_preds = self.get_cnn_predictions()
+        cnn_preds = self._get_cnn_predictions()
         if cnn_preds is not None:
             metrics["cnn_preds"] = cnn_preds
 
