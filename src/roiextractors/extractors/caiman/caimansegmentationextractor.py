@@ -370,20 +370,6 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
                 return np.array(r_data)
         return None
 
-    def _get_neurons_signal_noise(self):
-        """Get per-neuron signal-to-noise values.
-
-        Returns
-        -------
-        numpy.ndarray or None
-            Signal-to-noise values for each neuron, or None if not available.
-        """
-        if self._dataset_file["estimates"].get("neurons_sn"):
-            sn_data = self._dataset_file["estimates"]["neurons_sn"]
-            if sn_data.shape != ():
-                return np.array(sn_data)
-        return None
-
     def _get_cnn_predictions(self):
         """Get CNN classifier predictions for component quality.
 
@@ -430,10 +416,6 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         r_vals = self._get_spatial_correlation_values()
         if r_vals is not None:
             metrics["r_values"] = r_vals
-
-        neurons_sn = self._get_neurons_signal_noise()
-        if neurons_sn is not None:
-            metrics["neurons_sn"] = neurons_sn
 
         cnn_preds = self._get_cnn_predictions()
         if cnn_preds is not None:

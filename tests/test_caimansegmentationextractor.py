@@ -80,30 +80,22 @@ class TestCaimanSegmentationExtractor(TestCase):
         self.assertIsNone(correlation_image)
 
     def test_get_snr_values(self):
-        snr_values = self.extractor.get_snr_values()
+        snr_values = self.extractor._get_snr_values()
         self.assertIsNone(snr_values)
 
     def test_get_spatial_correlation_values(self):
-        r_values = self.extractor.get_spatial_correlation_values()
+        r_values = self.extractor._get_spatial_correlation_values()
         self.assertIsNone(r_values)
 
-    def test_get_neurons_signal_noise(self):
-        neurons_sn = self.extractor.get_neurons_signal_noise()
-        expected_num_rois = 72
-        self.assertEqual(len(neurons_sn), expected_num_rois)
-
     def test_get_cnn_predictions(self):
-        cnn_preds = self.extractor.get_cnn_predictions()
+        cnn_preds = self.extractor._get_cnn_predictions()
         self.assertIsNone(cnn_preds)
 
     def test_get_quality_metrics(self):
         quality_metrics = self.extractor.get_quality_metrics()
-        self.assertIn("neurons_sn", quality_metrics)
 
         for metric_name in ["snr", "r_values", "cnn_preds"]:
             self.assertNotIn(metric_name, quality_metrics)
-
-        self.assertEqual(len(quality_metrics["neurons_sn"]), 72)
 
     def test_get_traces_denoised(self):
         """Test that get_traces returns the expected denoised traces."""
@@ -313,7 +305,7 @@ class TestCaimanMini100SegmentationExtractor(TestCase):
         self.assertIsNone(mean_image)
 
     def test_get_snr_values(self):
-        snr_values = self.extractor.get_snr_values()
+        snr_values = self.extractor._get_snr_values()
         self.assertIsNotNone(snr_values)
         expected_snr = np.array(
             [
@@ -332,7 +324,7 @@ class TestCaimanMini100SegmentationExtractor(TestCase):
         assert_array_almost_equal(snr_values, expected_snr, decimal=6)
 
     def test_get_spatial_correlation_values(self):
-        r_values = self.extractor.get_spatial_correlation_values()
+        r_values = self.extractor._get_spatial_correlation_values()
         self.assertIsNotNone(r_values)
         expected_r_values = np.array(
             [
@@ -350,34 +342,15 @@ class TestCaimanMini100SegmentationExtractor(TestCase):
         )
         assert_array_almost_equal(r_values, expected_r_values, decimal=6)
 
-    def test_get_neurons_signal_noise(self):
-        neurons_sn = self.extractor.get_neurons_signal_noise()
-        self.assertIsNotNone(neurons_sn)
-        expected_neurons_sn = np.array(
-            [
-                0.45053221,
-                0.49264054,
-                0.87967357,
-                0.45900183,
-                0.52652112,
-                0.92672224,
-                0.73521998,
-                0.74358589,
-                0.87150241,
-                0.70202354,
-            ]
-        )
-        assert_array_almost_equal(neurons_sn, expected_neurons_sn, decimal=6)
-
     def test_get_cnn_predictions(self):
         # cnn_preds has shape=(0,) and size=0
-        cnn_preds = self.extractor.get_cnn_predictions()
+        cnn_preds = self.extractor._get_cnn_predictions()
         self.assertIsNone(cnn_preds)
 
     def test_get_quality_metrics(self):
         quality_metrics = self.extractor.get_quality_metrics()
 
-        expected_metrics = ["snr", "r_values", "neurons_sn"]
+        expected_metrics = ["snr", "r_values"]
         for metric_name in expected_metrics:
             self.assertIn(metric_name, quality_metrics)
             self.assertEqual(len(quality_metrics[metric_name]), 10)
