@@ -51,7 +51,7 @@ def test_multiple_properties_and_types():
     assert np.array_equal(extractor.get_property(key="active", ids=roi_ids), active)
 
 
-def test_property_validation():
+def test_setter_property_validation():
     """Test property validation."""
     extractor = generate_dummy_segmentation_extractor(num_rois=5, num_frames=10)
     roi_ids = extractor.get_roi_ids()
@@ -79,7 +79,7 @@ def test_property_validation():
         extractor.set_property(key="quality", values=[0.8, 0.9, 0.7, 0.5, 0.4], ids=mixed_ids)
 
 
-def test_empty_properties():
+def test_getter_property_validation():
     """Test mismatch in property name."""
     extractor = generate_dummy_segmentation_extractor(num_rois=3, num_frames=10)
 
