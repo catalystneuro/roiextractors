@@ -577,7 +577,8 @@ class SegmentationExtractor(ABC):
         """
         ids = np.asarray(ids)
         if key not in self._properties:
-            raise KeyError(f"Property '{key}' not found")
+            available_keys = list(self._properties.keys())
+            raise KeyError(f"Property '{key}' not found. Available properties: {available_keys}")
 
         # Check that all requested ROI ids exist in extractor
         all_roi_ids = self.get_roi_ids()
