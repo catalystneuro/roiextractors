@@ -10,10 +10,6 @@ Features
 ---------
 1. **SegmentationExtractor object**:
 
-- ``seg_obj.get_channel_names()`` : List of optical channel names
-- ``seg_obj.get_num_channels()`` :Number of channels
-- ``seg_obj.get_movie_framesize()``:(height, width) of raw movie
-- ``seg_obj.get_movie_location()``:Location of storage of movie/tiff images
 - ``seg_obj.get_image_masks(self, roi_ids=None)``:Image masks as (ht, wd, num_rois) with each value as the weight given during segmentation operation.
 - ``seg_obj.get_pixel_masks(roi_ids=None)``: Get pixel masks as (total_pixels(ht*wid), no_rois)
 - ``seg_obj.get_traces(self, roi_ids=None, start_frame=None, end_frame=None)``: df/F trace as (num_rois, num_frames)
@@ -52,20 +48,16 @@ SegmentationExtractor object creation
 Data format conversion: SegmentationExtractor to NWB
 -----------------------------------------------------
 
+.. note::
+   The ``roiextractors.NwbSegmentationExtractor.write_segmentation`` method has been deprecated.
+   Please use ``neuroconv`` for writing segmentation data to NWB format.
+
 .. code-block:: python
     :linenos:
 
-    roiextractors.NwbSegmentationExtractor.write_segmentation(seg_obj, saveloc,
-                    propertydict=[{'name': 'ROI feature 1,
-                                   'description': 'additional attribute of each ROI',
-                                   'data': np.random.rand(1,no_rois),
-                                   'id': seg_obj.get_roi_ids()},
-                                  {'name': 'ROI feature 2,
-                                   'description': 'additional attribute of each ROI',
-                                   'data': np.random.rand(1,no_rois),
-                                   'id': seg_obj.get_roi_ids()}],
-                    nwbfile_kwargs={'session_description': 'nwbfiledesc',
-                                    'experimenter': 'experimenter name',
-                                    'lab': 'test lab',
-                                    'session_id': 'test sess id'},
-                    emission_lambda=400.0, excitation_lambda=500.0)
+    # Import write_segmentation from neuroconv instead of roiextractors
+    from neuroconv.tools.roiextractors import write_segmentation
+
+    write_segmentation(seg_obj, saveloc)
+
+    See the `neuroconv documentation <https://neuroconv.readthedocs.io/en/latest/usage.html#write-segmentation>`_ for more details.
