@@ -102,7 +102,7 @@ class MiniscopeImagingExtractor(MiniscopeMultiRecordingImagingExtractor):
 
 
 class _MiniscopeSingleVideoExtractor(ImagingExtractor):
-    """An auxiliar extractor to get data from a single Miniscope video (.avi) file.
+    """An auxiliary extractor to get data from a single Miniscope video (.avi) file.
 
     This format consists of a single video (.avi)
     Multiple _MiniscopeSingleVideoExtractor are combined by downstream extractors to extract the data

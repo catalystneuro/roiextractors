@@ -47,7 +47,7 @@ class VideoStructure:
     """A data class for specifying the structure of a video.
 
     The role of the data class is to ensure consistency in naming and provide some initial
-    consistency checks to ensure the validity of the sturcture.
+    consistency checks to ensure the validity of the structure.
 
     Attributes
     ----------

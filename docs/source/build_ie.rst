@@ -27,7 +27,7 @@ To build your custom ImagingExtractor to interface with a new raw image storage 
 
         def _load_data(self):
 
-            # define a function that retrives an in memory array from your native imaging format
+            # define a function that retrieves an in memory array from your native imaging format
             # returns: np.ndarray (shape: frames, image_dims)
 
         def get_channel_names(self):

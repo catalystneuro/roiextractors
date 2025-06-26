@@ -1,9 +1,9 @@
-"""Imaging and Segmenation Extractors for .npy files.
+"""Imaging and Segmentation Extractors for .npy files.
 
 Modules
 -------
 numpyextractors
-    Imaging and Segmenation Extractors for .npy files.
+    Imaging and Segmentation Extractors for .npy files.
 
 Classes
 -------

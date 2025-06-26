@@ -24,7 +24,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
     """A segmentation extractor for CNMF-E ROI segmentation method.
 
     This class inherits from the SegmentationExtractor class, having all
-    its funtionality specifically applied to the dataset output from
+    its functionality specifically applied to the dataset output from
     the 'CNMF-E' ROI segmentation method.
     """
 
@@ -198,7 +198,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             if getattr(segmentation_object, "_raw_movie_file_location", None):
                 main.create_dataset(
                     "movieList",
-                    data=[ord(alph) for alph in str(segmentation_object._raw_movie_file_location)],
+                    data=[ord(alpha) for alpha in str(segmentation_object._raw_movie_file_location)],
                 )
             if segmentation_object.get_traces(name="deconvolved") is not None:
                 image_mask_csc = csc_matrix(segmentation_object.get_traces(name="deconvolved"))

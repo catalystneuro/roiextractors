@@ -148,7 +148,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         if non_valid_metadata:
             error_msg = (
                 f"Invalid metadata for file with name {file_path.name}. \n"
-                "The metadata is either None or empty which probably indictes that the tiff file "
+                "The metadata is either None or empty which probably indicates that the tiff file "
                 "Is not a ScanImage file or it could be an older version."
             )
             raise ValueError("Invalid metadata: The metadata is either None or empty.")
@@ -869,7 +869,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         """
         Get the number of frames per slice from a ScanImage TIFF file.
 
-        ScanImage can sample mutiple frames per each slice.
+        ScanImage can sample multiple frames per each slice.
 
         Parameters
         ----------
