@@ -60,4 +60,4 @@ Data format conversion: SegmentationExtractor to NWB
 
     write_segmentation(seg_obj, saveloc)
 
-    See the `neuroconv documentation <https://neuroconv.readthedocs.io/en/latest/usage.html#write-segmentation>`_ for more details.
+    See the `neuroconv documentation <https://neuroconv.readthedocs.io/en/stable/api/tools.roiextractors.html>`_ for more details.
