@@ -78,7 +78,7 @@ class TestNumpyMemmapExtractor(unittest.TestCase):
         file.flush()
         del file
 
-        # Load the video with the extactor
+        # Load the video with the extractor
         extractor = NumpyMemmapImagingExtractor(
             file_path=file_path, video_structure=video_structure, sampling_frequency=1, dtype=dtype, offset=self.offset
         )

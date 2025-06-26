@@ -33,7 +33,7 @@ def _generate_rois(
     size_y: int
         Size of y dimension (pixels)
     roi_size: int
-        Siz of ROI in x and y dimension (pixels)
+        Size of ROI in x and y dimension (pixels)
     min_dist: int
         Minimum distance between ROI centers (pixels)
     mode: str
@@ -135,7 +135,7 @@ def toy_example(
     sampling_frequency: float
         The sampling rate
     decay_time: float
-        Decay time of fluorescence reponse
+        Decay time of fluorescence response
     noise_std: float
         Standard deviation of added gaussian noise
 
@@ -170,11 +170,11 @@ def toy_example(
     num_frames = sampling_frequency * duration
 
     # convolve response with ROIs
-    raw = np.zeros(num_rois, num_frames)  # TODO Change to new standard formating with time in first axis
-    deconvolved = np.zeros(num_rois, num_frames)  # TODO Change to new standard formating with time in first axis
+    raw = np.zeros(num_rois, num_frames)  # TODO Change to new standard formatting with time in first axis
+    deconvolved = np.zeros(num_rois, num_frames)  # TODO Change to new standard formatting with time in first axis
     neuropil = noise_std * np.random.randn(
         num_rois, num_frames
-    )  # TODO Change to new standard formating with time in first axis
+    )  # TODO Change to new standard formatting with time in first axis
     frames = num_frames
     for u_i, unit in range(num_rois):
         unit = u_i + 1  # spikeextractor toy example has unit ids starting at 1
