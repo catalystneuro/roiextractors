@@ -48,6 +48,7 @@ class SegmentationExtractor(ABC):
         self._image_correlation = None
         self._image_mean = None
         self._image_mask = None
+        self._properties = {}
 
     @abstractmethod
     def get_accepted_list(self) -> list:
@@ -523,6 +524,85 @@ class SegmentationExtractor(ABC):
             return sample_indices / self.get_sampling_frequency()
         else:
             return self._times[sample_indices]
+
+    def set_property(self, key: str, values: ArrayType, ids: ArrayType):
+        """Set property values for ROIs.
+
+        Parameters
+        ----------
+        key: str
+            The name of the property.
+        values: array-like
+            Array of property values. Must have same length as ids and num_rois.
+        ids: array-like
+            Array of ROI ids corresponding to the values. Must have same length as values and num_rois.
+        """
+        values = np.asarray(values)
+        ids = list(ids)
+        num_rois = self.get_num_rois()
+
+        # Check that all arrays have the correct length
+        if len(values) != num_rois or len(ids) != num_rois:
+            raise ValueError(
+                f"Length of values ({len(values)}) and ids ({len(ids)}) must match number of ROIs ({num_rois})"
+            )
+
+        # Verify that the provided ids match the extractor's ROI ids
+        extractor_roi_ids = self.get_roi_ids()
+        if set(ids) != set(extractor_roi_ids):
+            raise ValueError("Provided ids must match the extractor's ROI ids")
+
+        # Create property array with values in the correct order
+        property_array = np.empty(num_rois, dtype=values.dtype)
+        for roi_index, roi_id in enumerate(extractor_roi_ids):
+            id_index = ids.index(roi_id)
+            property_array[roi_index] = values[id_index]
+
+        self._properties[key] = property_array
+
+    def get_property(self, key: str, ids: ArrayType) -> ArrayType:
+        """Get property values for ROIs.
+
+        Parameters
+        ----------
+        key: str
+            The name of the property.
+        ids: array-like
+            Array of ROI ids to get property values for.
+
+        Returns
+        -------
+        values: array-like
+            Array of property values for the specified ROIs.
+        """
+        ids = np.asarray(ids)
+        if key not in self._properties:
+            available_keys = list(self._properties.keys())
+            raise KeyError(f"Property '{key}' not found. Available properties: {available_keys}")
+
+        # Check that all requested ROI ids exist in extractor
+        all_roi_ids = self.get_roi_ids()
+        for roi_id in ids:
+            if roi_id not in all_roi_ids:
+                raise ValueError(f"ROI id {roi_id} not found in extractor. Available ROI ids: {all_roi_ids}")
+
+        # Map ids to indices and get values
+        values = []
+        for roi_id in ids:
+            roi_index = all_roi_ids.index(roi_id)
+            values.append(self._properties[key][roi_index])
+
+        return np.array(values)
+
+    def get_property_keys(self) -> list[str]:
+        """Get list of available property keys.
+
+        Returns
+        -------
+        keys: list
+            List of property names.
+        """
+        return list(self._properties.keys())
 
 
 class SampleSlicedSegmentationExtractor(SegmentationExtractor):
