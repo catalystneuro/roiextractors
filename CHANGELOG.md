@@ -1,6 +1,7 @@
 # v0.6.1 (Upcoming)
 
 ### Features
+* Added property management methods to `SegmentationExtractor`: `set_property()`, `get_property()`, and `get_property_keys()` for storing and retrieving custom ROI properties [PR #467](https://github.com/catalystneuro/roiextractors/pull/467)
 * Added `MinianSegmentationExtractor` for reading and extracting metadata and segmentation data from Minian output files.[PR #368](https://github.com/catalystneuro/roiextractors/pull/368)
 
 ### Fixes
@@ -155,7 +156,7 @@ Add comprehensive test suite for CaimanSegmentationExtractor covering basic prop
 
 ### Improvements
 
-* The `Suite2PSegmentationExtractor` now produces an error when a required sub-file is missin: [#330](https://github.com/catalystneuro/roiextractors/pull/330)
+* The `Suite2PSegmentationExtractor` now produces an error when a required sub-file is missing: [#330](https://github.com/catalystneuro/roiextractors/pull/330)
 * Added `_image_mask` initialization in `BaseSegmentationExtractor`; combined `abstractmethod`s into top of file: [#327](https://github.com/catalystneuro/roiextractors/pull/327)
 * Optimize parsing of xml with `lxml` library for Burker extractors: [#346](https://github.com/catalystneuro/roiextractors/pull/346)
 * Protect sima and dill export [#351](https://github.com/catalystneuro/roiextractors/pull/351)
