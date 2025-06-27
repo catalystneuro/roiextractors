@@ -289,7 +289,7 @@ class NewExtractSegmentationExtractor(
 
         return images_dict
 
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         # EXTRACT data does not have native timestamps
@@ -419,7 +419,7 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         )
         return self.get_frame_shape()
 
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         # EXTRACT data does not have native timestamps

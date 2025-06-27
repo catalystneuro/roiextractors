@@ -395,7 +395,7 @@ class ImagingExtractor(ABC):
         return self.get_samples(sample_indices=frame_idxs)
 
     @abstractmethod
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         """
@@ -420,7 +420,7 @@ class ImagingExtractor(ABC):
 
     def get_timestamps(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
         """
-        Retrieve the timestamps for the data in this interface.
+        Retrieve the timestamps for the data in this extractor.
 
         Parameters
         ----------
@@ -444,11 +444,11 @@ class ImagingExtractor(ABC):
         if self._times is not None:
             return self._times[start_sample:end_sample]
 
-        # Try to get original timestamps
-        original_timestamps = self.get_original_timestamps()
-        if original_timestamps is not None:
-            self._times = original_timestamps
-            return original_timestamps[start_sample:end_sample]
+        # See if native timetstamps are available from the format
+        native_timestamps = self.get_native_timestamps()
+        if native_timestamps is not None:
+            self._times = native_timestamps  # Cache the native timestamps
+            return native_timestamps[start_sample:end_sample]
 
         # Fallback to calculated timestamps from sampling frequency
         sample_indices = np.arange(start_sample, end_sample)
@@ -843,7 +843,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
             )
         return self._parent_imaging.get_num_planes()
 
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         # Get the full original timestamps from parent, but return only our slice range
@@ -857,7 +857,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         actual_end = self._start_sample + end_sample
 
         # Get timestamps from parent for our specific range
-        return self._parent_imaging.get_original_timestamps(start_sample=actual_start, end_sample=actual_end)
+        return self._parent_imaging.get_native_timestamps(start_sample=actual_start, end_sample=actual_end)
 
 
 class FrameSliceImagingExtractor(SampleSlicedImagingExtractor):

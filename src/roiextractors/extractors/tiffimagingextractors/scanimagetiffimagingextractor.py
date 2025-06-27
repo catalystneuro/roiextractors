@@ -801,7 +801,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self._times = timestamps
         return timestamps
 
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         """
@@ -1076,11 +1076,11 @@ class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
         """
         return self._num_planes
 
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         # This is a legacy deprecated extractor - delegate to the first imaging extractor
-        return self._imaging_extractors[0].get_original_timestamps(start_sample, end_sample)
+        return self._imaging_extractors[0].get_native_timestamps(start_sample, end_sample)
 
 
 class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
@@ -1141,11 +1141,11 @@ class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
             imaging_extractors.append(imaging_extractor)
         super().__init__(imaging_extractors=imaging_extractors)
 
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         # This is a legacy deprecated extractor - delegate to the first imaging extractor
-        return self._imaging_extractors[0].get_original_timestamps(start_sample, end_sample)
+        return self._imaging_extractors[0].get_native_timestamps(start_sample, end_sample)
 
 
 class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
@@ -1223,11 +1223,11 @@ class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
         image_shape = self.get_image_shape()
         return (image_shape[0], image_shape[1], self.get_num_planes())
 
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         # This is a legacy deprecated extractor - delegate to the first imaging extractor
-        return self._imaging_extractors[0].get_original_timestamps(start_sample, end_sample)
+        return self._imaging_extractors[0].get_native_timestamps(start_sample, end_sample)
 
 
 class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
@@ -1601,7 +1601,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         )
         return raw_index
 
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         # Single plane ScanImage files do not have native timestamps
@@ -1809,7 +1809,7 @@ class ScanImageLegacyImagingExtractor(ImagingExtractor):
     def get_channel_names(self) -> list:
         pass
 
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         # Legacy ScanImage files do not have native timestamps

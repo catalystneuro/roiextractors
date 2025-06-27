@@ -309,7 +309,7 @@ class SbxImagingExtractor(ImagingExtractor):
         )
         raise NotImplementedError
 
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         """Retrieve the original unaltered timestamps for the data in this interface.

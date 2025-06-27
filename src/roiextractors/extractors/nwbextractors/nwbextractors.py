@@ -311,11 +311,12 @@ class NwbImagingExtractor(ImagingExtractor):
     def get_num_channels(self):
         return self._num_channels
 
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         # NWB files may have timestamps but need to check the specific implementation
         # For now, return None to use calculated timestamps based on sampling frequency
+        # TODO: extract the timestamps if the MiroscopySeries has timestamps
         return None
 
     @staticmethod
@@ -502,11 +503,12 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         )
         return self._image_masks.shape[:2]
 
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         # NWB files may have timestamps but need to check the specific implementation
         # For now, return None to use calculated timestamps based on sampling frequency
+        # TODO: check if the RoiResponseSeries has timestamps
         return None
 
     @staticmethod

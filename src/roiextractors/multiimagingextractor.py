@@ -325,7 +325,7 @@ class MultiImagingExtractor(ImagingExtractor):
         )
         return self._imaging_extractors[0].get_num_channels()
 
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         # MultiImagingExtractor combines multiple extractors with potentially different timestamp behaviors.

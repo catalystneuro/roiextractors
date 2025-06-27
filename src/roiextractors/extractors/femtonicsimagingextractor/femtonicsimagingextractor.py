@@ -521,7 +521,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         """Get specific samples by indices."""
         return self._video.lazy_slice[sample_indices, :, :].dsetread()
 
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         # Femtonics data does not have native timestamps

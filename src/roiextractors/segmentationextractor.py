@@ -73,7 +73,7 @@ class SegmentationExtractor(ABC):
         pass
 
     @abstractmethod
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         """Get the original timestamps from the data source.
@@ -527,33 +527,38 @@ class SegmentationExtractor(ABC):
             return self._times[frames]
 
     def get_timestamps(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
-        """Get timestamps for the specified range, using cached times if available, then original timestamps, then sampling frequency.
+        """
+        Retrieve the timestamps for the data in this extractor.
 
         Parameters
         ----------
         start_sample : int, optional
-            Start sample index (inclusive).
+            The starting sample index. If None, starts from the beginning.
         end_sample : int, optional
-            End sample index (exclusive).
+            The ending sample index. If None, goes to the end.
 
         Returns
         -------
-        timestamps : np.ndarray
-            The timestamps in seconds.
+        timestamps: numpy.ndarray
+            The timestamps for the data stream.
         """
-        start_sample = start_sample or 0
-        end_sample = end_sample or self.get_num_samples()
+        # Set defaults
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self.get_num_samples()
 
-        # First, check if we have cached times
+        # Return cached timestamps if available
         if self._times is not None:
             return self._times[start_sample:end_sample]
 
-        # Second, try to get original timestamps
-        original_timestamps = self.get_original_timestamps(start_sample=start_sample, end_sample=end_sample)
-        if original_timestamps is not None:
-            return original_timestamps
+        # See if native timetstamps are available from the format
+        native_timestamps = self.get_native_timestamps()
+        if native_timestamps is not None:
+            self._times = native_timestamps  # Cache the native timestamps
+            return native_timestamps[start_sample:end_sample]
 
-        # Finally, fall back to calculated timestamps from sampling frequency
+        # Fallback to calculated timestamps from sampling frequency
         sample_indices = np.arange(start_sample, end_sample)
         return sample_indices / self.get_sampling_frequency()
 
@@ -840,7 +845,7 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
     def get_background_pixel_masks(self, background_ids: Optional[ArrayLike] = None) -> list[np.ndarray]:
         return self._parent_segmentation.get_background_pixel_masks(background_ids=background_ids)
 
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         # Adjust the sample indices to account for the slice offset
@@ -851,7 +856,7 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
         parent_start = self._start_sample + start_sample
         parent_end = self._start_sample + end_sample
 
-        return self._parent_segmentation.get_original_timestamps(start_sample=parent_start, end_sample=parent_end)
+        return self._parent_segmentation.get_native_timestamps(start_sample=parent_start, end_sample=parent_end)
 
 
 class FrameSliceSegmentationExtractor(SampleSlicedSegmentationExtractor):

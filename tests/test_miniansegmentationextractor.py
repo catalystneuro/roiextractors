@@ -167,10 +167,10 @@ def test_maximum_projection_image(extractor, maximum_projection_image):
     assert_array_equal(images_dict["maximum_projection"], maximum_projection_image)
 
 
-def test_get_original_timestamps(extractor, expected_properties):
+def test_get_native_timestamps(extractor, expected_properties):
     """Test that timestamps are correctly read from CSV file."""
     # Get timestamps using the extractor
-    timestamps = extractor.get_original_timestamps()
+    timestamps = extractor.get_native_timestamps()
 
     # First timestamp should match the expected value
     assert timestamps[0] == expected_properties["first_timestamp"]

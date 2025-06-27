@@ -232,7 +232,7 @@ class NumpyImagingExtractor(ImagingExtractor):
     def get_num_channels(self):
         return self._num_channels
 
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         # Numpy arrays do not have native timestamps
@@ -548,7 +548,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         )
         return self.get_frame_shape()
 
-    def get_original_timestamps(
+    def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
         # Numpy arrays do not have native timestamps
