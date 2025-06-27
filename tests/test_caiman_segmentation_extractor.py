@@ -87,7 +87,7 @@ def test_caiman_segmentation_extractor_1000():
     for image in available_images.values():
         assert image.shape == frame_shape
 
-    # Test quality metrics
+    # Test quality metrics (backward compatibility)
     snr_values = extractor._get_snr_values()
     expected_snr = np.array(
         [
@@ -128,7 +128,25 @@ def test_caiman_segmentation_extractor_1000():
     for metric_name in expected_metrics:
         assert metric_name in quality_metrics
         assert len(quality_metrics[metric_name]) == 10
-    assert "cnn_predictions" not in quality_metrics
+    assert "cnn_preds" not in quality_metrics
+
+    # Test quality metrics as properties (new functionality)
+    property_keys = extractor.get_property_keys()
+    assert "snr" == property_keys[property_keys.index("snr")]
+    assert "r_values" == property_keys[property_keys.index("r_values")]
+    assert "cnn_preds" not in property_keys  # Should not be present since it's None
+
+    # Test getting quality metrics via property interface
+    snr_property = extractor.get_property(key="snr", ids=roi_ids)
+    assert_array_almost_equal(snr_property, expected_snr, decimal=6)
+
+    r_values_property = extractor.get_property(key="r_values", ids=roi_ids)
+    assert_array_almost_equal(r_values_property, expected_r_values, decimal=6)
+
+    # Test getting subset of quality metrics
+    subset_ids = roi_ids[:3]
+    snr_subset = extractor.get_property(key="snr", ids=subset_ids)
+    assert_array_almost_equal(snr_subset, expected_snr[:3], decimal=6)
 
 
 def test_caiman_segmentation_extractor_450():
@@ -212,7 +230,7 @@ def test_caiman_segmentation_extractor_450():
     for image in available_images.values():
         assert image.shape == frame_shape
 
-        # Test quality metrics
+    # Test quality metrics
     snr_values = extractor._get_snr_values()
     expected_snr = np.array(
         [
@@ -255,7 +273,25 @@ def test_caiman_segmentation_extractor_450():
     for metric_name in expected_metrics:
         assert metric_name in quality_metrics
         assert len(quality_metrics[metric_name]) == 10
-    assert "cnn_predictions" not in quality_metrics
+    assert "cnn_preds" not in quality_metrics
+
+    # Test quality metrics as properties
+    property_keys = extractor.get_property_keys()
+    assert "snr" == property_keys[property_keys.index("snr")]
+    assert "r_values" == property_keys[property_keys.index("r_values")]
+    assert "cnn_preds" not in property_keys  # Should not be present since it's None
+
+    # Test getting quality metrics via property interface
+    snr_property = extractor.get_property(key="snr", ids=roi_ids)
+    assert_array_almost_equal(snr_property, expected_snr, decimal=6)
+
+    r_values_property = extractor.get_property(key="r_values", ids=roi_ids)
+    assert_array_almost_equal(r_values_property, expected_r_values, decimal=6)
+
+    # Test getting subset of quality metrics
+    subset_ids = roi_ids[:5]
+    snr_subset = extractor.get_property(key="snr", ids=subset_ids)
+    assert_array_almost_equal(snr_subset, expected_snr[:5], decimal=6)
 
 
 def test_caiman_segmentation_extractor_750():
@@ -380,7 +416,27 @@ def test_caiman_segmentation_extractor_750():
     for metric_name in expected_metrics:
         assert metric_name in quality_metrics
         assert len(quality_metrics[metric_name]) == 10
-    assert "cnn_predictions" not in quality_metrics
+    assert "cnn_preds" not in quality_metrics
+
+    # Test quality metrics as properties
+    property_keys = extractor.get_property_keys()
+    assert "snr" == property_keys[property_keys.index("snr")]
+    assert "r_values" == property_keys[property_keys.index("r_values")]
+    assert "cnn_preds" not in property_keys
+
+    # Test getting quality metrics via property interface
+    snr_property = extractor.get_property(key="snr", ids=roi_ids)
+    assert_array_almost_equal(snr_property, expected_snr, decimal=6)
+
+    r_values_property = extractor.get_property(key="r_values", ids=roi_ids)
+    assert_array_almost_equal(r_values_property, expected_r_values, decimal=6)
+
+    # Test getting subset of quality metrics
+    subset_ids = roi_ids[::2]  # Every other ROI
+    snr_subset = extractor.get_property(key="snr", ids=subset_ids)
+    r_values_subset = extractor.get_property(key="r_values", ids=subset_ids)
+    assert len(snr_subset) == 5
+    assert len(r_values_subset) == 5
 
 
 def test_caiman_segmentation_extractor_analysis():
@@ -459,7 +515,7 @@ def test_caiman_segmentation_extractor_analysis():
     for image in available_images.values():
         assert image.shape == frame_shape
 
-    # Test quality metrics
+    # Test quality metrics - this dataset has no quality metrics
     snr_values = extractor._get_snr_values()
     r_values = extractor._get_spatial_correlation_values()
     cnn_preds = extractor._get_cnn_predictions()
@@ -469,3 +525,9 @@ def test_caiman_segmentation_extractor_analysis():
     assert cnn_preds is None
     for metric_name in ["snr", "r_values", "cnn_preds"]:
         assert metric_name not in quality_metrics
+
+    # Test that no quality metric properties are set for this dataset
+    property_keys = extractor.get_property_keys()
+    assert "snr" not in property_keys
+    assert "r_values" not in property_keys
+    assert "cnn_preds" not in property_keys
