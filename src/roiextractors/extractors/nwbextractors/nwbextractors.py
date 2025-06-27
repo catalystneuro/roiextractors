@@ -8,20 +8,20 @@ NwbSegmentationExtractor
     Extracts segmentation data from NWB files.
 """
 
-from pathlib import Path
-from typing import Union, Optional, Iterable, Tuple
 import warnings
+from pathlib import Path
+from typing import Iterable, Optional, Tuple, Union
 
 import numpy as np
 from lazy_ops import DatasetView
-
 from pynwb import NWBHDF5IO
-from pynwb.ophys import TwoPhotonSeries, OnePhotonSeries
+from pynwb.ophys import OnePhotonSeries, TwoPhotonSeries
+
 from ...extraction_tools import (
-    PathType,
+    ArrayType,
     FloatType,
     IntType,
-    ArrayType,
+    PathType,
     raise_multi_channel_or_depth_not_implemented,
 )
 from ...imagingextractor import ImagingExtractor

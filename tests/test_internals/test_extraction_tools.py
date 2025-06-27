@@ -1,10 +1,10 @@
 import unittest
+from itertools import product
 from pathlib import Path
 from tempfile import mkdtemp
-from itertools import product
 
 import numpy as np
-from parameterized import parameterized, param
+from parameterized import param, parameterized
 
 from roiextractors.extraction_tools import VideoStructure, read_numpy_memmap_video
 

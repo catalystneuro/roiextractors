@@ -1,15 +1,14 @@
 import unittest
-from tempfile import mkdtemp
 from datetime import datetime
 from pathlib import Path
+from tempfile import mkdtemp
 
 import numpy as np
-
-from pynwb import NWBFile, NWBHDF5IO
-from pynwb.ophys import TwoPhotonSeries, OpticalChannel
+from pynwb import NWBHDF5IO, NWBFile
+from pynwb.ophys import OpticalChannel, TwoPhotonSeries
 
 from roiextractors import NwbImagingExtractor
-from roiextractors.testing import generate_dummy_video, assert_get_frames_return_shape
+from roiextractors.testing import generate_dummy_video
 
 
 class TestNwbImagingExtractor(unittest.TestCase):

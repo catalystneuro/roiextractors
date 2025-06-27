@@ -1,10 +1,10 @@
-import numpy as np
-from numpy import dtype
-from numpy.testing import assert_array_equal
 from datetime import datetime, timezone
+
+import numpy as np
 import pytest
 
 from roiextractors.extractors.femtonicsimagingextractor import FemtonicsImagingExtractor
+
 from .setup_paths import OPHYS_DATA_PATH
 
 

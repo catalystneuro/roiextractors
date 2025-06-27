@@ -2,7 +2,10 @@ import numpy as np
 from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
 
-from roiextractors.testing import generate_dummy_segmentation_extractor, _assert_iterable_complete
+from roiextractors.testing import (
+    _assert_iterable_complete,
+    generate_dummy_segmentation_extractor,
+)
 
 
 class TestDummySegmentationExtractor(TestCase):

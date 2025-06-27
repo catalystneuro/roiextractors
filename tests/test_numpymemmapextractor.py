@@ -1,18 +1,14 @@
 import unittest
+from itertools import product
 from pathlib import Path
 from tempfile import mkdtemp
-from copy import deepcopy
-from itertools import product
 
 import numpy as np
-from parameterized import parameterized, param
+from parameterized import param, parameterized
 
-from roiextractors.extraction_tools import VideoStructure
-from roiextractors.testing import check_imaging_equal, assert_get_frames_return_shape
 from roiextractors import NumpyMemmapImagingExtractor
-
-
-from .setup_paths import OUTPUT_PATH
+from roiextractors.extraction_tools import VideoStructure
+from roiextractors.testing import check_imaging_equal
 
 
 def custom_name_func(testcase_func, param_num, param):

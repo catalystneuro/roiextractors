@@ -9,19 +9,18 @@ MicroManagerTiffImagingExtractor
 import json
 import logging
 import re
+import warnings
 from collections import Counter
 from itertools import islice
 from pathlib import Path
 from types import ModuleType
-from typing import Optional, Tuple, Dict
-import warnings
-from warnings import warn
-
+from typing import Dict, Optional, Tuple
 from xml.etree import ElementTree
+
 import numpy as np
 
+from ...extraction_tools import DtypeType, PathType, get_package
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import PathType, get_package, DtypeType
 from ...multiimagingextractor import MultiImagingExtractor
 
 

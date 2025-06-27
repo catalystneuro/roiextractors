@@ -6,15 +6,15 @@ MinianSegmentationExtractor
     A class for extracting segmentation from Minian output.
 """
 
+import warnings
 from pathlib import Path
 from typing import Optional
 
-import zarr
-import warnings
 import numpy as np
 import pandas as pd
+import zarr
 
-from ...extraction_tools import PathType, FloatType
+from ...extraction_tools import FloatType, PathType
 from ...segmentationextractor import SegmentationExtractor
 
 

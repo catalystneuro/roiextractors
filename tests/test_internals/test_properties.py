@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from roiextractors.testing import generate_dummy_segmentation_extractor
 
 

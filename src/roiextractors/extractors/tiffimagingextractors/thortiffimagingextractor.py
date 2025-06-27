@@ -1,11 +1,12 @@
 """Extractor for Thor TIFF files."""
 
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
-from collections import defaultdict, namedtuple
+import math
 import warnings
 import xml.etree.ElementTree as ET
-import math
+from collections import defaultdict, namedtuple
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union
+
 import numpy as np
 
 from ...imagingextractor import ImagingExtractor

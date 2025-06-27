@@ -1,17 +1,17 @@
 """A Femtonics imaging extractor with corrected MSession/MUnit hierarchy handling."""
 
-from pathlib import Path
-from typing import Optional, Any
-from warnings import warn
-from datetime import datetime, timezone
 import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Optional
+from warnings import warn
 
-import numpy as np
 import h5py
+import numpy as np
 from lazy_ops import DatasetView
 
-from ...imagingextractor import ImagingExtractor
 from ...extraction_tools import PathType
+from ...imagingextractor import ImagingExtractor
 
 
 class FemtonicsImagingExtractor(ImagingExtractor):

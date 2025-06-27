@@ -1,10 +1,10 @@
-import numpy as np
-import pytest
 import platform
 import sys
-
-from numpy import dtype
 from datetime import datetime
+
+import numpy as np
+import pytest
+from numpy import dtype
 
 from roiextractors import InscopixImagingExtractor
 from tests.setup_paths import OPHYS_DATA_PATH

@@ -1,14 +1,12 @@
-import pytest
-from pathlib import Path
 from datetime import datetime, timezone
 
-import numpy as np
-from numpy.testing import assert_array_equal
+import pytest
 import tifffile
+from numpy.testing import assert_array_equal
 
 from roiextractors import ThorTiffImagingExtractor
-from .setup_paths import OPHYS_DATA_PATH
 
+from .setup_paths import OPHYS_DATA_PATH
 
 # Path to the test data
 TEST_DIR = OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "single_channel_single_plane" / "20231018-002"

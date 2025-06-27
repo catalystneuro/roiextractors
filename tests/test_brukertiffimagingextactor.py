@@ -8,7 +8,11 @@ from natsort import natsorted
 from numpy.testing import assert_array_equal
 from tifffile import tifffile
 
-from roiextractors import BrukerTiffMultiPlaneImagingExtractor, BrukerTiffSinglePlaneImagingExtractor
+from roiextractors import (
+    BrukerTiffMultiPlaneImagingExtractor,
+    BrukerTiffSinglePlaneImagingExtractor,
+)
+
 from .setup_paths import OPHYS_DATA_PATH
 
 

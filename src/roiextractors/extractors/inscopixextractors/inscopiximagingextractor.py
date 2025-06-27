@@ -1,15 +1,15 @@
 """Inscopix Imaging Extractor."""
 
-import warnings
 import platform
 import sys
+import warnings
+from datetime import datetime
+from typing import Any, Optional
+
 import numpy as np
 
-from typing import Optional, Any
-from datetime import datetime
-
-from ...imagingextractor import ImagingExtractor
 from ...extraction_tools import PathType
+from ...imagingextractor import ImagingExtractor
 
 
 class InscopixImagingExtractor(ImagingExtractor):

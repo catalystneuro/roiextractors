@@ -37,15 +37,18 @@ ThorTiffImagingExtractor
     Specialized extractor for reading TIFF files produced via Thor.
 """
 
-from .tiffimagingextractor import TiffImagingExtractor
+from .brukertiffimagingextractor import (
+    BrukerTiffMultiPlaneImagingExtractor,
+    BrukerTiffSinglePlaneImagingExtractor,
+)
+from .micromanagertiffimagingextractor import MicroManagerTiffImagingExtractor
 from .scanimagetiffimagingextractor import (
+    ScanImageImagingExtractor,
     ScanImageLegacyImagingExtractor,
     ScanImageTiffMultiPlaneImagingExtractor,
+    ScanImageTiffMultiPlaneMultiFileImagingExtractor,
     ScanImageTiffSinglePlaneImagingExtractor,
     ScanImageTiffSinglePlaneMultiFileImagingExtractor,
-    ScanImageTiffMultiPlaneMultiFileImagingExtractor,
-    ScanImageImagingExtractor,
 )
-from .brukertiffimagingextractor import BrukerTiffMultiPlaneImagingExtractor, BrukerTiffSinglePlaneImagingExtractor
-from .micromanagertiffimagingextractor import MicroManagerTiffImagingExtractor
 from .thortiffimagingextractor import ThorTiffImagingExtractor
+from .tiffimagingextractor import TiffImagingExtractor

@@ -6,23 +6,24 @@ ScanImageLegacyImagingExtractor
     Specialized extractor for reading TIFF files produced via ScanImage.
 """
 
+import warnings
 from pathlib import Path
 from typing import Optional, Tuple
-import warnings
 from warnings import warn
+
 import numpy as np
 
-from ...extraction_tools import PathType, FloatType, ArrayType, DtypeType, get_package
-from ...imagingextractor import ImagingExtractor
-from ...volumetricimagingextractor import VolumetricImagingExtractor
-from ...multiimagingextractor import MultiImagingExtractor
 from .scanimagetiff_utils import (
-    extract_extra_metadata,
-    parse_metadata,
-    extract_timestamps_from_file,
     _get_scanimage_reader,
+    extract_extra_metadata,
+    extract_timestamps_from_file,
+    parse_metadata,
     read_scanimage_metadata,
 )
+from ...extraction_tools import ArrayType, DtypeType, FloatType, PathType, get_package
+from ...imagingextractor import ImagingExtractor
+from ...multiimagingextractor import MultiImagingExtractor
+from ...volumetricimagingextractor import VolumetricImagingExtractor
 
 
 class ScanImageImagingExtractor(ImagingExtractor):

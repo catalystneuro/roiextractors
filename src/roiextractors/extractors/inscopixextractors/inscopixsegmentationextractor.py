@@ -1,14 +1,14 @@
 """Inscopix Segmentation Extractor."""
 
 import platform
-import warnings
 import sys
+import warnings
+from datetime import datetime
+from typing import Any, Optional
+
 import numpy as np
 
-from datetime import datetime
-from typing import Optional, Any
-
-from ...extraction_tools import PathType, ArrayType
+from ...extraction_tools import ArrayType, PathType
 from ...segmentationextractor import SegmentationExtractor
 
 

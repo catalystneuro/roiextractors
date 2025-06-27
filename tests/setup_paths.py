@@ -1,8 +1,8 @@
+import json
 import os
 import tempfile
 from pathlib import Path
 from shutil import copy
-import json
 
 # Output by default to a temporary directory
 OUTPUT_PATH = Path(tempfile.mkdtemp())

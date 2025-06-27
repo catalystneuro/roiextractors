@@ -1,10 +1,10 @@
 import unittest
-from typing import Optional, List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
-from parameterized import parameterized, param
+from parameterized import param, parameterized
 
 from roiextractors.multiimagingextractor import MultiImagingExtractor
 from roiextractors.testing import generate_dummy_imaging_extractor

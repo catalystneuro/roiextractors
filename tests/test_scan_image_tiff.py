@@ -1,16 +1,19 @@
+import platform
 import unittest
 from pathlib import Path
+from shutil import copy, rmtree
 from tempfile import mkdtemp
-from shutil import rmtree, copy
+
+import pytest
 from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
-import pytest
 
-from roiextractors import TiffImagingExtractor, ScanImageLegacyImagingExtractor
-from roiextractors.extractors.tiffimagingextractors.scanimagetiff_utils import _get_scanimage_reader
+from roiextractors import ScanImageLegacyImagingExtractor, TiffImagingExtractor
+from roiextractors.extractors.tiffimagingextractors.scanimagetiff_utils import (
+    _get_scanimage_reader,
+)
+
 from .setup_paths import OPHYS_DATA_PATH
-
-import platform
 
 is_m_series_mac = platform.system() == "Darwin" and platform.machine() == "arm64"
 if (

@@ -1,14 +1,15 @@
-import pytest
-import numpy as np
-from pathlib import Path
 import shutil
+from pathlib import Path
 
+import numpy as np
+import pytest
 from numpy.testing import assert_array_equal
 from tifffile import TiffReader
 
 from roiextractors import (
     ScanImageImagingExtractor,
 )
+
 from .setup_paths import OPHYS_DATA_PATH
 
 # Define the path to the ScanImage test files

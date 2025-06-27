@@ -6,11 +6,11 @@ MultiImagingExtractor
     This class is used to combine multiple ImagingExtractor objects by frames.
 """
 
+import warnings
 from collections import defaultdict
-from typing import Tuple, List, Iterable, Optional
+from typing import Iterable, List, Optional, Tuple
 
 import numpy as np
-import warnings
 
 from .extraction_tools import ArrayType, NumpyArray
 from .imagingextractor import ImagingExtractor

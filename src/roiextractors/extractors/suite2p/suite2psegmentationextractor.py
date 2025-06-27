@@ -7,14 +7,14 @@ Suite2pSegmentationExtractor
 """
 
 import shutil
+import warnings
 from pathlib import Path
 from typing import Optional
 from warnings import warn
-import warnings
+
 import numpy as np
 
-from ...extraction_tools import PathType
-from ...extraction_tools import _image_mask_extractor
+from ...extraction_tools import PathType, _image_mask_extractor
 from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
 

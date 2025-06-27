@@ -8,7 +8,6 @@ CnmfeSegmentationExtractor
 
 from pathlib import Path
 from typing import Optional
-import warnings
 from warnings import warn
 
 import h5py

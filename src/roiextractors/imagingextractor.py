@@ -8,16 +8,16 @@ FrameSliceImagingExtractor
     Class to get a lazy frame slice.
 """
 
+import warnings
 from abc import ABC, abstractmethod
-from typing import Union, Optional, Tuple
 from copy import deepcopy
 from math import prod
-import warnings
+from typing import Optional, Tuple, Union
 
 import numpy as np
 
-from .extraction_tools import ArrayType, DtypeType, FloatType
 from .core_utils import _convert_bytes_to_str, _convert_seconds_to_str
+from .extraction_tools import ArrayType, DtypeType, FloatType
 
 
 class ImagingExtractor(ABC):
