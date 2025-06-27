@@ -1,6 +1,8 @@
 # v0.6.1 (Upcoming)
 
+
 ### Features
+* Added native timestamp support with automatic fallback hierarchy: `get_native_timestamps()` abstract method and `get_timestamps()` concrete method to all imaging and segmentation extractors. The `get_timestamps()` method follows priority order: cached times → native timestamps → inferred from sampling frequency. This enables automatic native timestamp usage when available (e.g., ScanImage TIFF files) while maintaining backward compatibility. [PR #465](https://github.com/catalystneuro/roiextractors/pull/465)
 * Added property management methods to `SegmentationExtractor`: `set_property()`, `get_property()`, and `get_property_keys()` for storing and retrieving custom ROI properties [PR #467](https://github.com/catalystneuro/roiextractors/pull/467)
 * Added `MinianSegmentationExtractor` for reading and extracting metadata and segmentation data from Minian output files.[PR #368](https://github.com/catalystneuro/roiextractors/pull/368)
 
@@ -13,8 +15,8 @@
 * `check_imaging_equal` and `check_segmentation_equal` no longer compare the number of channels in an extractor as that attribute has been deprecated [PR #470](https://github.com/catalystneuro/roiextractors/pull/470)
 * `exclude_channel_comparison` in `check_imaging_equal` is deprecated and will be removed in or after January 2026. This parameter is no longer needed as extractors do not have multiple channels. [PR #470](https://github.com/catalystneuro/roiextractors/pull/470)
 * The `num_frames` parameter in `generate_dummy_imaging_extractor` and `generate_dummy_segmentation_extractor` is now deprecated and will be removed on or after January 2026. Use the new `num_samples` parameter instead. `num_samples` is now keyword-only and will become positional-only in a future release. [PR #470](https://github.com/catalystneuro/roiextractors/pull/470)
-
-
+* The `sample_indices_to_time()` method in both ImagingExtractor and SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_timestamps()` instead. [PR #448](https://github.com/catalystneuro/roiextractors/pull/448)
+Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationExtractor` [PR #457](https://github.com/catalystneuro/roiextractors/pull/457)
 
 ### Improvements
 * Updated GitHub Actions workflows to use cross-OS cache sharing for multi-OS testing data, reducing redundant downloads and improving CI efficiency. Added reusable data loading action pattern similar to neuroconv. [PR #459](https://github.com/catalystneuro/roiextractors/pull/459)

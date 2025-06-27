@@ -204,6 +204,12 @@ class TiffImagingExtractor(ImagingExtractor):
     def get_channel_names(self):
         pass
 
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Basic TIFF files do not have native timestamps
+        return None
+
     @staticmethod
     def write_imaging(imaging, save_path, overwrite: bool = False, chunk_size=None, verbose=True):
         """Write a TIFF file from an ImagingExtractor.

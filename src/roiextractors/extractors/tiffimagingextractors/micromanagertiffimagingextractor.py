@@ -352,3 +352,9 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
                 stacklevel=2,
             )
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # MicroManager TIFF imaging data does not have native timestamps
+        return None
