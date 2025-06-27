@@ -9,7 +9,12 @@
 [PR #452](https://github.com/catalystneuro/roiextractors/pull/452)
 
 ### Deprecations And Removals
-Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationExtractor` [PR #457](https://github.com/catalystneuro/roiextractors/pull/457)
+* Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationExtractor` [PR #457](https://github.com/catalystneuro/roiextractors/pull/457)
+* `check_imaging_equal` and `check_segmentation_equal` no longer compare the number of channels in an extractor as that attribute has been deprecated [PR #470](https://github.com/catalystneuro/roiextractors/pull/470)
+* `exclude_channel_comparison` in `check_imaging_equal` is deprecated and will be removed in or after January 2026. This parameter is no longer needed as extractors do not have multiple channels. [PR #470](https://github.com/catalystneuro/roiextractors/pull/470)
+* The `num_frames` parameter in `generate_dummy_imaging_extractor` and `generate_dummy_segmentation_extractor` is now deprecated and will be removed on or after January 2026. Use the new `num_samples` parameter instead. `num_samples` is now keyword-only and will become positional-only in a future release. [PR #470](https://github.com/catalystneuro/roiextractors/pull/470)
+
+
 
 ### Improvements
 * Updated GitHub Actions workflows to use cross-OS cache sharing for multi-OS testing data, reducing redundant downloads and improving CI efficiency. Added reusable data loading action pattern similar to neuroconv. [PR #459](https://github.com/catalystneuro/roiextractors/pull/459)

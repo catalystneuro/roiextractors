@@ -102,7 +102,7 @@ class ImagingExtractor(ABC):
         )
         return self.get_image_shape()
 
-    def get_frame_shape(self) -> Tuple[int, int]:
+    def get_frame_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
         Returns
@@ -116,7 +116,7 @@ class ImagingExtractor(ABC):
         """
         return self.get_image_shape()
 
-    def get_sample_shape(self) -> Union[Tuple[int, int], Tuple[int, int, int]]:
+    def get_sample_shape(self) -> tuple[int, int] | tuple[int, int, int]:
         """
         Get the shape of a single sample elements from the series.
 
@@ -179,8 +179,8 @@ class ImagingExtractor(ABC):
                 "The get_volume_shape method requires the get_num_planes method to be implemented."
             )
 
-        image_shape = self.get_image_shape()
-        return (image_shape[0], image_shape[1], self.get_num_planes())
+        frame_shape = self.get_frame_shape()
+        return (frame_shape[0], frame_shape[1], self.get_num_planes())
 
     @abstractmethod
     def get_num_samples(self) -> int:
