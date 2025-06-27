@@ -300,7 +300,7 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
     """Extractor for reading the segmentation data that results from calls to older versions of EXTRACT.
 
     This class inherits from the SegmentationExtractor class, having all
-    its funtionality specifically applied to the dataset output from
+    its functionality specifically applied to the dataset output from
     the 'EXTRACT' ROI segmentation method.
     """
 

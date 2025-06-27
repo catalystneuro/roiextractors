@@ -2,7 +2,8 @@
 
 
 ### Features
-* Added native timestamp support with automatic fallback hierarchy: `get_original_timestamps()` abstract method and `get_timestamps()` concrete method to all imaging and segmentation extractors. The `get_timestamps()` method follows priority order: cached times → original timestamps → calculated from sampling frequency. This enables automatic native timestamp usage when available (e.g., ScanImage TIFF files) while maintaining backward compatibility. [PR #465](https://github.com/catalystneuro/roiextractors/pull/465)
+* Added native timestamp support with automatic fallback hierarchy: `get_native_timestamps()` abstract method and `get_timestamps()` concrete method to all imaging and segmentation extractors. The `get_timestamps()` method follows priority order: cached times → native timestamps → inferred from sampling frequency. This enables automatic native timestamp usage when available (e.g., ScanImage TIFF files) while maintaining backward compatibility. [PR #465](https://github.com/catalystneuro/roiextractors/pull/465)
+* Added property management methods to `SegmentationExtractor`: `set_property()`, `get_property()`, and `get_property_keys()` for storing and retrieving custom ROI properties [PR #467](https://github.com/catalystneuro/roiextractors/pull/467)
 * Added `MinianSegmentationExtractor` for reading and extracting metadata and segmentation data from Minian output files.[PR #368](https://github.com/catalystneuro/roiextractors/pull/368)
 
 ### Fixes
@@ -157,7 +158,7 @@ Add comprehensive test suite for CaimanSegmentationExtractor covering basic prop
 
 ### Improvements
 
-* The `Suite2PSegmentationExtractor` now produces an error when a required sub-file is missin: [#330](https://github.com/catalystneuro/roiextractors/pull/330)
+* The `Suite2PSegmentationExtractor` now produces an error when a required sub-file is missing: [#330](https://github.com/catalystneuro/roiextractors/pull/330)
 * Added `_image_mask` initialization in `BaseSegmentationExtractor`; combined `abstractmethod`s into top of file: [#327](https://github.com/catalystneuro/roiextractors/pull/327)
 * Optimize parsing of xml with `lxml` library for Burker extractors: [#346](https://github.com/catalystneuro/roiextractors/pull/346)
 * Protect sima and dill export [#351](https://github.com/catalystneuro/roiextractors/pull/351)

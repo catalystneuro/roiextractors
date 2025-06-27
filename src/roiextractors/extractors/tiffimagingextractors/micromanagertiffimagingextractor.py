@@ -81,7 +81,7 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
             )
         self._channel_names = self.micromanager_metadata["Summary"]["ChNames"]
 
-        # extact metadata from OME-XML specification
+        # extract metadata from OME-XML specification
         self._ome_metadata = first_tif.ome_metadata
         ome_metadata_root = self._get_ome_xml_root()
 
@@ -91,7 +91,7 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         self._dtype = np.dtype(pixels_element.attrib["Type"])
 
         # all the file names are repeated under the TiffData tag
-        # the number of occurences of each file path corresponds to the number of frames for a given TIF file
+        # the number of occurrences of each file path corresponds to the number of frames for a given TIF file
         tiff_data_elements = pixels_element.findall(f"{{{schema_name}}}TiffData")
         file_names = [element[0].attrib["FileName"] for element in tiff_data_elements]
 

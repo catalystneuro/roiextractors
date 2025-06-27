@@ -1,4 +1,4 @@
-"""Imaging and Segmenation Extractors for .npy files.
+"""Imaging and Segmentation Extractors for .npy files.
 
 Classes
 -------

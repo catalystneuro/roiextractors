@@ -34,7 +34,7 @@ class SbxImagingExtractor(ImagingExtractor):
         file_path : str or python Path objects
             The file path pointing to a file in either `.mat` or `.sbx` format.
         sampling_frequency : float, optional
-            The sampling frequeny of the imaging device.
+            The sampling frequency of the imaging device.
         """
         super().__init__()
         self._memmapped = True
