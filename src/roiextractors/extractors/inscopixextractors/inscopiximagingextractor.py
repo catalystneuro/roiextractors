@@ -276,3 +276,9 @@ class InscopixImagingExtractor(ImagingExtractor):
             metadata["session_start_time"] = None
 
         return metadata
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Inscopix imaging data does not have native timestamps
+        return None

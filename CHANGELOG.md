@@ -1,6 +1,8 @@
 # v0.6.1 (Upcoming)
 
+
 ### Features
+* Added native timestamp support with automatic fallback hierarchy: `get_native_timestamps()` abstract method and `get_timestamps()` concrete method to all imaging and segmentation extractors. The `get_timestamps()` method follows priority order: cached times → native timestamps → inferred from sampling frequency. This enables automatic native timestamp usage when available (e.g., ScanImage TIFF files) while maintaining backward compatibility. [PR #465](https://github.com/catalystneuro/roiextractors/pull/465)
 * Added property management methods to `SegmentationExtractor`: `set_property()`, `get_property()`, and `get_property_keys()` for storing and retrieving custom ROI properties [PR #467](https://github.com/catalystneuro/roiextractors/pull/467)
 * Added `MinianSegmentationExtractor` for reading and extracting metadata and segmentation data from Minian output files.[PR #368](https://github.com/catalystneuro/roiextractors/pull/368)
 
@@ -9,6 +11,7 @@
 [PR #452](https://github.com/catalystneuro/roiextractors/pull/452)
 
 ### Deprecations And Removals
+* The `sample_indices_to_time()` method in both ImagingExtractor and SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_timestamps()` instead. [PR #448](https://github.com/catalystneuro/roiextractors/pull/448)
 Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationExtractor` [PR #457](https://github.com/catalystneuro/roiextractors/pull/457)
 
 ### Improvements

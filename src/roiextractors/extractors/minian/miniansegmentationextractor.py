@@ -8,6 +8,7 @@ MinianSegmentationExtractor
 
 import warnings
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -171,25 +172,37 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         np.ndarray
             The timestamps of the denoised trace.
         """
-        if self._times is not None:
-            return self._times
 
+    def get_native_timestamps(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        """
+        Get the native format timestamps from the CSV file.
+
+        Parameters
+        ----------
+        start_sample : int, optional
+            The starting sample index. If None, starts from the beginning.
+        end_sample : int, optional
+            The ending sample index. If None, goes to the end.
+
+        Returns
+        -------
+        np.ndarray
+            The native timestamps in seconds.
+        """
         csv_file = self.folder_path / "timeStamps.csv"
         df = pd.read_csv(csv_file)
         frame_indexes = self._read_zarr_group("/C.zarr/frame")
         filtered_df = df[df["Frame Number"].isin(frame_indexes)]
 
-        return filtered_df["Time Stamp (ms)"].to_numpy() * 1e-3
+        native_timestamps = filtered_df["Time Stamp (ms)"].to_numpy() * 1e-3
 
-    def get_original_timestamps(self) -> np.ndarray:
-        """Get the original timestamps from the CSV file.
+        # Set defaults
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self.get_num_samples()
 
-        Returns
-        -------
-        np.ndarray
-            The original timestamps in seconds.
-        """
-        return self._read_timestamps_from_csv()
+        return native_timestamps[start_sample:end_sample]
 
     def sample_indices_to_time(self, sample_indices: FloatType | np.ndarray) -> FloatType | np.ndarray:
         """Convert user-inputted sample indices to times with units of seconds.
@@ -206,13 +219,13 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         """
         # Default implementation
         if self._times is None:
-            self._times = self.get_original_timestamps()
+            self._times = self.get_native_timestamps()
 
         return self._times[sample_indices]
 
     def has_time_vector(self) -> bool:
         if self._times is None:
-            self._times = self.get_original_timestamps()
+            self._times = self.get_native_timestamps()
         return True  # The MinianSegmentationExtractor always has a time vector from the timestamps CSV.
 
     def get_frame_shape(self) -> tuple[int, int]:

@@ -311,6 +311,14 @@ class NwbImagingExtractor(ImagingExtractor):
     def get_num_channels(self):
         return self._num_channels
 
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # NWB files may have timestamps but need to check the specific implementation
+        # For now, return None to use calculated timestamps based on sampling frequency
+        # TODO: extract the timestamps if the MiroscopySeries has timestamps
+        return None
+
     @staticmethod
     def add_devices(imaging, nwbfile, metadata):
         """Add devices to the NWBFile (deprecated)."""
@@ -494,6 +502,14 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             stacklevel=2,
         )
         return self._image_masks.shape[:2]
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # NWB files may have timestamps but need to check the specific implementation
+        # For now, return None to use calculated timestamps based on sampling frequency
+        # TODO: check if the RoiResponseSeries has timestamps
+        return None
 
     @staticmethod
     def get_nwb_metadata(sgmextractor):

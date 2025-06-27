@@ -164,6 +164,12 @@ class MemmapImagingExtractor(ImagingExtractor):
         """
         return (self._num_samples, self._num_rows, self._num_columns, self._num_channels)
 
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Memory-mapped imaging data does not have native timestamps
+        return None
+
     @staticmethod
     def write_imaging(
         imaging_extractor: ImagingExtractor,

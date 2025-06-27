@@ -6,8 +6,8 @@ CnmfeSegmentationExtractor
     A segmentation extractor for CNMF-E ROI segmentation method.
 """
 
-import warnings
 from pathlib import Path
+from typing import Optional
 from warnings import warn
 
 import h5py
@@ -219,3 +219,9 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             stacklevel=2,
         )
         return self.get_frame_shape()
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # CNMF-E segmentation data does not have native timestamps
+        return None

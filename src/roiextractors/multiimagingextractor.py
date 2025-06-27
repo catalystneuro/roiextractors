@@ -324,3 +324,12 @@ class MultiImagingExtractor(ImagingExtractor):
             stacklevel=2,
         )
         return self._imaging_extractors[0].get_num_channels()
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # MultiImagingExtractor combines multiple extractors with potentially different timestamp behaviors.
+        # Implementing native timestamp concatenation is complex due to potential timestamp overlaps,
+        # different sampling rates, and mixed native/calculated timestamps across child extractors.
+        # For now, return None to use calculated timestamps based on sampling frequency.
+        return None

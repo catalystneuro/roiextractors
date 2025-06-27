@@ -792,3 +792,10 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
                 stacklevel=2,
             )
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Bruker TIFF data does not have native timestamps in the TIFF files themselves
+        # The timestamps are in the XML configuration files which are handled by the parent extractors
+        return None
