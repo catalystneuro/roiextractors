@@ -131,6 +131,9 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         The extractor will automatically detect which data types are available
         in the HDF5 file. This allows for compatibility with different CaImAn
         versions and analysis configurations.
+
+        Quality metrics (SNR, spatial correlation values, CNN predictions) are
+        automatically stored as properties during initialization if available.
         """
         SegmentationExtractor.__init__(self)
         self.file_path = file_path
@@ -153,6 +156,9 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self._sampling_frequency = self._params["data"]["fr"][()]
         self._image_masks = self._image_mask_sparse_read()
         self._background_image_masks = self._background_image_mask_read()
+
+        # Store quality metrics as properties
+        self._set_quality_metrics_as_properties()
 
     def __del__(self):  # TODO: refactor segmentation extractors who use __del__ together into a base class
         """Close the h5py file when the object is deleted."""
@@ -341,6 +347,112 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
     def get_frame_shape(self) -> tuple:
         return tuple(self._params["data"]["dims"][()])
+
+    # Quality Metrics
+    def _get_snr_values(self):
+        """Get signal-to-noise ratio for each component.
+
+        Returns
+        -------
+        numpy.ndarray or None
+            SNR values for each component, or None if not available.
+        """
+        if self._dataset_file["estimates"].get("SNR_comp"):
+            snr_data = self._dataset_file["estimates"]["SNR_comp"]
+            if snr_data.shape != ():
+                return np.array(snr_data)
+        return None
+
+    def _get_spatial_correlation_values(self):
+        """Get spatial correlation values (r_values) for each component.
+
+        Returns
+        -------
+        numpy.ndarray or None
+            Spatial correlation values for each component, or None if not available.
+        """
+        if self._dataset_file["estimates"].get("r_values"):
+            r_data = self._dataset_file["estimates"]["r_values"]
+            if r_data.shape != ():
+                return np.array(r_data)
+        return None
+
+    def _get_cnn_predictions(self):
+        """Get CNN classifier predictions for component quality.
+
+        Note
+        ----
+        CNN predictions require special handling because CaImAn stores
+        a Python None object when CNN classification is not used or unavailable.
+        HDF5 serializes this as a string 'NoneType', which h5py reads back as
+        array(b'NoneType', dtype=object).
+
+        Returns
+        -------
+        numpy.ndarray or None
+            CNN predictions for each component, or None if not available.
+        """
+        if self._dataset_file["estimates"].get("cnn_preds"):
+            cnn_data = self._dataset_file["estimates"]["cnn_preds"]
+            if cnn_data.size > 0:  # Check if not empty
+                data_array = np.array(cnn_data)
+                # Check if the data is actually a serialized 'NoneType'
+                if (
+                    data_array.shape == ()
+                    and isinstance(data_array.item(), (bytes, str))
+                    and str(data_array.item()).lower() in ["b'nonetype'", "nonetype", "b'nonetype'"]
+                ):
+                    return None
+                return data_array
+        return None
+
+    def _set_quality_metrics_as_properties(self):
+        """Store quality metrics as properties if available.
+
+        This method is called during initialization to automatically store
+        any available quality metrics (SNR, spatial correlation values, CNN predictions)
+        as properties that can be accessed via the property interface.
+        """
+        roi_ids = self.get_roi_ids()
+
+        # Set SNR values as property if available
+        snr_values = self._get_snr_values()
+        if snr_values is not None and len(snr_values) == len(roi_ids):
+            self.set_property(key="snr", values=snr_values, ids=roi_ids)
+
+        # Set spatial correlation values as property if available
+        r_values = self._get_spatial_correlation_values()
+        if r_values is not None and len(r_values) == len(roi_ids):
+            self.set_property(key="r_values", values=r_values, ids=roi_ids)
+
+        # Set CNN predictions as property if available
+        cnn_preds = self._get_cnn_predictions()
+        if cnn_preds is not None and len(cnn_preds) == len(roi_ids):
+            self.set_property(key="cnn_preds", values=cnn_preds, ids=roi_ids)
+
+    def get_quality_metrics(self):
+        """Get all quality metrics in a dictionary.
+
+        Returns
+        -------
+        dict
+            Dictionary containing all available quality metrics.
+        """
+        metrics = {}
+
+        snr = self._get_snr_values()
+        if snr is not None:
+            metrics["snr"] = snr
+
+        r_vals = self._get_spatial_correlation_values()
+        if r_vals is not None:
+            metrics["r_values"] = r_vals
+
+        cnn_preds = self._get_cnn_predictions()
+        if cnn_preds is not None:
+            metrics["cnn_preds"] = cnn_preds
+
+        return metrics
 
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite: bool = True):
