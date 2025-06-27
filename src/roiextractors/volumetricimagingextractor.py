@@ -1,7 +1,8 @@
 """Base class definition for volumetric imaging extractors."""
 
-from typing import Tuple, List, Iterable, Optional
 import warnings
+from typing import Iterable, List, Optional, Tuple
+
 import numpy as np
 
 from .extraction_tools import ArrayType, DtypeType

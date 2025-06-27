@@ -1,17 +1,16 @@
 """Testing utilities for the roiextractors package."""
 
 from collections.abc import Iterable
-from typing import Tuple, Optional, List
+from typing import List, Optional, Tuple
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_array_almost_equal
-
-from .segmentationextractor import SegmentationExtractor
-from .imagingextractor import ImagingExtractor
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from roiextractors import NumpyImagingExtractor, NumpySegmentationExtractor
-
 from roiextractors.extraction_tools import DtypeType
+
+from .imagingextractor import ImagingExtractor
+from .segmentationextractor import SegmentationExtractor
 
 NoneType = type(None)
 floattype = (float, np.floating)

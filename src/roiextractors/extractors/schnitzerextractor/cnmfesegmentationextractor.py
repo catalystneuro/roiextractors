@@ -6,8 +6,8 @@ CnmfeSegmentationExtractor
     A segmentation extractor for CNMF-E ROI segmentation method.
 """
 
-from pathlib import Path
 import warnings
+from pathlib import Path
 from warnings import warn
 
 import h5py

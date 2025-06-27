@@ -112,6 +112,8 @@ select = [
 ]
 fixable = ["ALL"]
 
+[tool.ruff.lint.per-file-ignores]
+"**__init__.py" = ["F401", "I"]
 
 [tool.ruff.lint.isort]
 relative-imports-order = "closest-to-furthest"

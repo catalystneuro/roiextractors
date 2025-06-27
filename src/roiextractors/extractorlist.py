@@ -3,11 +3,22 @@
 from .extractors.caiman import CaimanSegmentationExtractor
 from .extractors.femtonicsimagingextractor import FemtonicsImagingExtractor
 from .extractors.hdf5imagingextractor import Hdf5ImagingExtractor
+from .extractors.inscopixextractors import (
+    InscopixImagingExtractor,
+    InscopixSegmentationExtractor,
+)
+from .extractors.memmapextractors import (
+    MemmapImagingExtractor,
+    NumpyMemmapImagingExtractor,
+)
+from .extractors.minian import MinianSegmentationExtractor
+from .extractors.miniscopeimagingextractor import MiniscopeImagingExtractor
 from .extractors.numpyextractors import (
     NumpyImagingExtractor,
     NumpySegmentationExtractor,
 )
 from .extractors.nwbextractors import NwbImagingExtractor, NwbSegmentationExtractor
+from .extractors.sbximagingextractor import SbxImagingExtractor
 from .extractors.schnitzerextractor import (
     CnmfeSegmentationExtractor,
     ExtractSegmentationExtractor,
@@ -15,29 +26,19 @@ from .extractors.schnitzerextractor import (
 from .extractors.simaextractor import SimaSegmentationExtractor
 from .extractors.suite2p import Suite2pSegmentationExtractor
 from .extractors.tiffimagingextractors import (
-    TiffImagingExtractor,
-    ScanImageLegacyImagingExtractor,
-    ScanImageTiffSinglePlaneImagingExtractor,
-    ScanImageTiffMultiPlaneImagingExtractor,
-    ScanImageTiffSinglePlaneMultiFileImagingExtractor,
-    ScanImageTiffMultiPlaneMultiFileImagingExtractor,
-    ScanImageImagingExtractor,
     BrukerTiffMultiPlaneImagingExtractor,
     BrukerTiffSinglePlaneImagingExtractor,
     MicroManagerTiffImagingExtractor,
+    ScanImageImagingExtractor,
+    ScanImageLegacyImagingExtractor,
+    ScanImageTiffMultiPlaneImagingExtractor,
+    ScanImageTiffMultiPlaneMultiFileImagingExtractor,
+    ScanImageTiffSinglePlaneImagingExtractor,
+    ScanImageTiffSinglePlaneMultiFileImagingExtractor,
     ThorTiffImagingExtractor,
+    TiffImagingExtractor,
 )
-from .extractors.sbximagingextractor import SbxImagingExtractor
-from .extractors.inscopixextractors import InscopixImagingExtractor
-from .extractors.inscopixextractors import InscopixSegmentationExtractor
-from .extractors.memmapextractors import NumpyMemmapImagingExtractor
-from .extractors.memmapextractors import MemmapImagingExtractor
-from .extractors.minian import MinianSegmentationExtractor
-from .extractors.miniscopeimagingextractor import MiniscopeImagingExtractor
-from .multisegmentationextractor import MultiSegmentationExtractor
-from .multiimagingextractor import MultiImagingExtractor
 from .volumetricimagingextractor import VolumetricImagingExtractor
-
 
 imaging_extractor_full_list = [
     FemtonicsImagingExtractor,

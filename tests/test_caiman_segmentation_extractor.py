@@ -1,5 +1,3 @@
-import numpy as np
-
 from roiextractors import CaimanSegmentationExtractor
 from tests.setup_paths import OPHYS_DATA_PATH
 

@@ -12,15 +12,14 @@ FrameSliceSegmentationExtractor
     Class to get a lazy frame slice.
 """
 
-from abc import ABC, abstractmethod
-from typing import Union, Optional, Tuple, Iterable, List
 import warnings
+from abc import ABC, abstractmethod
+from typing import Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 from numpy.typing import ArrayLike
 
-from .extraction_tools import ArrayType, IntType, FloatType
-from .extraction_tools import _pixel_mask_extractor
+from .extraction_tools import ArrayType, FloatType, IntType, _pixel_mask_extractor
 
 
 class SegmentationExtractor(ABC):

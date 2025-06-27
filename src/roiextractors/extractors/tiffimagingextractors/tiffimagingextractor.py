@@ -6,22 +6,21 @@ TiffImagingExtractor
     A TIFF imaging extractor for TIFF files.
 """
 
-from pathlib import Path
-from typing import Optional
 import warnings
+from pathlib import Path
+from typing import Optional, Tuple
 from warnings import warn
-from typing import Tuple
 
 import numpy as np
 from tqdm import tqdm
 
-from ...imagingextractor import ImagingExtractor
 from ...extraction_tools import (
-    PathType,
     FloatType,
-    raise_multi_channel_or_depth_not_implemented,
+    PathType,
     get_package,
+    raise_multi_channel_or_depth_not_implemented,
 )
+from ...imagingextractor import ImagingExtractor
 
 
 class TiffImagingExtractor(ImagingExtractor):

@@ -10,9 +10,8 @@ import importlib
 import os
 import pickle
 import re
-from shutil import copyfile
-from warnings import warn
 import warnings
+from shutil import copyfile
 
 import numpy as np
 
@@ -47,8 +46,6 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         sima_spec = importlib.util.find_spec("sima")
         dill_spec = importlib.util.find_spec("dill")
         if sima_spec is not None and dill_spec is not None:
-            import sima
-            import dill
 
             HAVE_SIMA = True
         else:

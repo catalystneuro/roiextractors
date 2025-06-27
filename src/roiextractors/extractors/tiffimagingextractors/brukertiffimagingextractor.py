@@ -10,20 +10,20 @@ BrukerTiffMultiPlaneImagingExtractor
 
 import logging
 import re
+import warnings
 from collections import Counter
 from itertools import islice
 from pathlib import Path
 from types import ModuleType
-from typing import Optional, Tuple, Union, List, Dict
+from typing import Dict, List, Optional, Tuple, Union
 from xml.etree import ElementTree
-from lxml import etree
-import warnings
 
 import numpy as np
+from lxml import etree
 
-from ...multiimagingextractor import MultiImagingExtractor
+from ...extraction_tools import ArrayType, DtypeType, PathType, get_package
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import PathType, get_package, DtypeType, ArrayType
+from ...multiimagingextractor import MultiImagingExtractor
 
 
 def filter_read_uic_tag_warnings(record):
