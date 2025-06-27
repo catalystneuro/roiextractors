@@ -55,6 +55,9 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         # Cache for metadata to avoid repeated extraction
         self._metadata_cache = None
 
+        # Set sampling frequency
+        self._sampling_frequency = 1 / self.cell_set.timing.period.secs_float
+
     def get_num_rois(self) -> int:
         return self.cell_set.num_cells
 
@@ -132,7 +135,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         """Get ROI IDs as original string IDs from the CellSet."""
         return self._roi_ids.copy()
 
-    def get_frame_shape(self) -> ArrayType:
+    def get_frame_shape(self) -> tuple[int, int]:
         if hasattr(self.cell_set, "spacing"):
             # Swap dimensions to return (width, height)
             pixels = self.cell_set.spacing.num_pixels
@@ -221,10 +224,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
-        try:
-            return 1 / self.cell_set.timing.period.secs_float
-        except AttributeError:
-            return None
+        return self._sampling_frequency
 
     def _get_session_start_time(self) -> datetime | None:
         """
@@ -461,3 +461,9 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             metadata["session_start_time"] = None
 
         return metadata
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Inscopix segmentation data does not have native timestamps
+        return None
