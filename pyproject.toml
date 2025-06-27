@@ -103,6 +103,20 @@ extend-exclude = '''
 )/
 '''
 
+[tool.ruff]
+
+[tool.ruff.lint]
+select = [
+    "F401",  # Unused import
+    "I",  # All isort rules
+]
+fixable = ["ALL"]
+
+
+[tool.ruff.lint.isort]
+relative-imports-order = "closest-to-furthest"
+known-first-party = ["roiextractors"]
+
 
 [tool.codespell]
 skip = '.git*,*.pdf,*.css,*.svg'
