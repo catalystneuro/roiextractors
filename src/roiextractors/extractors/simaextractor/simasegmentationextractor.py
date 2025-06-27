@@ -12,6 +12,7 @@ import pickle
 import re
 import warnings
 from shutil import copyfile
+from typing import Optional
 
 import numpy as np
 
