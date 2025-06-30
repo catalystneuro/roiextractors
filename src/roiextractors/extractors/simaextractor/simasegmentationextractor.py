@@ -10,9 +10,9 @@ import importlib
 import os
 import pickle
 import re
-from shutil import copyfile
-from warnings import warn
 import warnings
+from shutil import copyfile
+from typing import Optional
 
 import numpy as np
 
@@ -47,8 +47,6 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         sima_spec = importlib.util.find_spec("sima")
         dill_spec = importlib.util.find_spec("dill")
         if sima_spec is not None and dill_spec is not None:
-            import sima
-            import dill
 
             HAVE_SIMA = True
         else:
@@ -191,3 +189,16 @@ class SimaSegmentationExtractor(SegmentationExtractor):
             stacklevel=2,
         )
         return self.get_frame_shape()
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        """Retrieve the original unaltered timestamps for the data in this interface.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray or None
+            The timestamps for the data stream, or None if native timestamps are not available.
+        """
+        # SIMA segmentation data does not have native timestamps
+        return None

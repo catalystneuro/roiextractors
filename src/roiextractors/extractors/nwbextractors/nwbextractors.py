@@ -8,20 +8,20 @@ NwbSegmentationExtractor
     Extracts segmentation data from NWB files.
 """
 
-from pathlib import Path
-from typing import Union, Optional, Iterable, Tuple
 import warnings
+from pathlib import Path
+from typing import Iterable, Optional, Tuple, Union
 
 import numpy as np
 from lazy_ops import DatasetView
-
 from pynwb import NWBHDF5IO
-from pynwb.ophys import TwoPhotonSeries, OnePhotonSeries
+from pynwb.ophys import OnePhotonSeries, TwoPhotonSeries
+
 from ...extraction_tools import (
-    PathType,
+    ArrayType,
     FloatType,
     IntType,
-    ArrayType,
+    PathType,
     raise_multi_channel_or_depth_not_implemented,
 )
 from ...imagingextractor import ImagingExtractor
@@ -311,6 +311,14 @@ class NwbImagingExtractor(ImagingExtractor):
     def get_num_channels(self):
         return self._num_channels
 
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # NWB files may have timestamps but need to check the specific implementation
+        # For now, return None to use calculated timestamps based on sampling frequency
+        # TODO: extract the timestamps if the MiroscopySeries has timestamps
+        return None
+
     @staticmethod
     def add_devices(imaging, nwbfile, metadata):
         """Add devices to the NWBFile (deprecated)."""
@@ -494,6 +502,14 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             stacklevel=2,
         )
         return self._image_masks.shape[:2]
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # NWB files may have timestamps but need to check the specific implementation
+        # For now, return None to use calculated timestamps based on sampling frequency
+        # TODO: check if the RoiResponseSeries has timestamps
+        return None
 
     @staticmethod
     def get_nwb_metadata(sgmextractor):

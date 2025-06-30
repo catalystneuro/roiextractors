@@ -6,18 +6,21 @@ SbxImagingExtractor
     An ImagingExtractor for Scanbox Image files.
 """
 
-from multiprocessing.sharedctypes import Value
 import os
-from pathlib import Path
-from typing import Tuple, Optional
 import warnings
+from pathlib import Path
+from typing import Optional, Tuple
 
 import numpy as np
-
-from ...extraction_tools import PathType, ArrayType, raise_multi_channel_or_depth_not_implemented, check_keys
-from ...imagingextractor import ImagingExtractor
-
 import scipy.io as spio
+
+from ...extraction_tools import (
+    ArrayType,
+    PathType,
+    check_keys,
+    raise_multi_channel_or_depth_not_implemented,
+)
+from ...imagingextractor import ImagingExtractor
 
 
 class SbxImagingExtractor(ImagingExtractor):
@@ -308,3 +311,16 @@ class SbxImagingExtractor(ImagingExtractor):
             stacklevel=2,
         )
         raise NotImplementedError
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        """Retrieve the original unaltered timestamps for the data in this interface.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray or None
+            The timestamps for the data stream, or None if native timestamps are not available.
+        """
+        # ScanBox imaging data does not have native timestamps
+        return None

@@ -1,11 +1,12 @@
 """Extractor for Thor TIFF files."""
 
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
-from collections import defaultdict, namedtuple
+import math
 import warnings
 import xml.etree.ElementTree as ET
-import math
+from collections import defaultdict, namedtuple
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union
+
 import numpy as np
 
 from ...imagingextractor import ImagingExtractor
@@ -330,6 +331,12 @@ class ThorTiffImagingExtractor(ImagingExtractor):
     def get_dtype(self):
         """Return the data type of the video."""
         return self._dtype
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # ThorLabs TIFF imaging data does not have native timestamps
+        return None
 
     def __del__(self):
         """Close the tiff_reader when the object is garbage collected."""

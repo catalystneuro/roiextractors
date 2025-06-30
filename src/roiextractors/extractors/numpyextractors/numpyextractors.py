@@ -8,14 +8,14 @@ NumpySegmentationExtractor
     A Segmentation extractor specified by image masks and traces .npy files.
 """
 
+import warnings
 from pathlib import Path
 from typing import Optional, Tuple
-import warnings
 from warnings import warn
 
 import numpy as np
 
-from ...extraction_tools import PathType, FloatType, ArrayType
+from ...extraction_tools import ArrayType, FloatType, PathType
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
 
@@ -231,6 +231,12 @@ class NumpyImagingExtractor(ImagingExtractor):
 
     def get_num_channels(self):
         return self._num_channels
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Numpy arrays do not have native timestamps
+        return None
 
     @staticmethod
     def write_imaging(imaging, save_path, overwrite: bool = False):
@@ -541,3 +547,9 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             stacklevel=2,
         )
         return self.get_frame_shape()
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Numpy arrays do not have native timestamps
+        return None

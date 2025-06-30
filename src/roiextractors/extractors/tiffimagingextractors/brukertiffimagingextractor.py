@@ -10,20 +10,20 @@ BrukerTiffMultiPlaneImagingExtractor
 
 import logging
 import re
+import warnings
 from collections import Counter
 from itertools import islice
 from pathlib import Path
 from types import ModuleType
-from typing import Optional, Tuple, Union, List, Dict
+from typing import Dict, List, Optional, Tuple, Union
 from xml.etree import ElementTree
-from lxml import etree
-import warnings
 
 import numpy as np
+from lxml import etree
 
-from ...multiimagingextractor import MultiImagingExtractor
+from ...extraction_tools import ArrayType, DtypeType, PathType, get_package
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import PathType, get_package, DtypeType, ArrayType
+from ...multiimagingextractor import MultiImagingExtractor
 
 
 def filter_read_uic_tag_warnings(record):
@@ -792,3 +792,10 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
                 stacklevel=2,
             )
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Bruker TIFF data does not have native timestamps in the TIFF files themselves
+        # The timestamps are in the XML configuration files which are handled by the parent extractors
+        return None

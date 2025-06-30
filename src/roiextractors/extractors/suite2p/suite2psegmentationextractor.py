@@ -7,14 +7,14 @@ Suite2pSegmentationExtractor
 """
 
 import shutil
+import warnings
 from pathlib import Path
 from typing import Optional
 from warnings import warn
-import warnings
+
 import numpy as np
 
-from ...extraction_tools import PathType
-from ...extraction_tools import _image_mask_extractor
+from ...extraction_tools import PathType, _image_mask_extractor
 from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
 
@@ -279,6 +279,12 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             stacklevel=2,
         )
         return self.get_frame_shape()
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Suite2p segmentation data does not have native timestamps
+        return None
 
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite=True):

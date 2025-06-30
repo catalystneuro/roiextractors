@@ -9,6 +9,7 @@ from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
 
 from roiextractors import MiniscopeImagingExtractor
+
 from .setup_paths import OPHYS_DATA_PATH
 
 

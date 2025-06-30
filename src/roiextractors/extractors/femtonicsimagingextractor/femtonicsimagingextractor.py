@@ -1,17 +1,17 @@
 """A Femtonics imaging extractor with corrected MSession/MUnit hierarchy handling."""
 
-from pathlib import Path
-from typing import Optional, Any
-from warnings import warn
-from datetime import datetime, timezone
 import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Optional
+from warnings import warn
 
-import numpy as np
 import h5py
+import numpy as np
 from lazy_ops import DatasetView
 
-from ...imagingextractor import ImagingExtractor
 from ...extraction_tools import PathType
+from ...imagingextractor import ImagingExtractor
 
 
 class FemtonicsImagingExtractor(ImagingExtractor):
@@ -520,6 +520,12 @@ class FemtonicsImagingExtractor(ImagingExtractor):
     def get_samples(self, sample_indices) -> np.ndarray:
         """Get specific samples by indices."""
         return self._video.lazy_slice[sample_indices, :, :].dsetread()
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Femtonics data does not have native timestamps
+        return None
 
     def __del__(self):
         """Close the HDF5 file."""

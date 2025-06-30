@@ -6,20 +6,22 @@ Hdf5ImagingExtractor
     An imaging extractor for HDF5.
 """
 
+import warnings
 from pathlib import Path
 from typing import Optional, Tuple
-import warnings
 from warnings import warn
 
+import h5py
 import numpy as np
-
-from ...extraction_tools import PathType, FloatType, ArrayType
-from ...extraction_tools import write_to_h5_dataset_format
-from ...imagingextractor import ImagingExtractor
 from lazy_ops import DatasetView
 
-
-import h5py
+from ...extraction_tools import (
+    ArrayType,
+    FloatType,
+    PathType,
+    write_to_h5_dataset_format,
+)
+from ...imagingextractor import ImagingExtractor
 
 
 class Hdf5ImagingExtractor(ImagingExtractor):
@@ -232,6 +234,19 @@ class Hdf5ImagingExtractor(ImagingExtractor):
 
     def get_num_channels(self):
         return self._num_channels
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        """Retrieve the original unaltered timestamps for the data in this interface.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray or None
+            The timestamps for the data stream, or None if native timestamps are not available.
+        """
+        # HDF5 imaging data does not have native timestamps
+        return None
 
     @staticmethod
     def write_imaging(
