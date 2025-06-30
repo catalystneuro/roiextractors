@@ -16,25 +16,22 @@ class TestMultiImagingExtractor(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.extractors = [
-            generate_dummy_imaging_extractor(num_frames=10, num_rows=3, num_columns=4, sampling_frequency=20.0)
+            generate_dummy_imaging_extractor(num_samples=10, num_rows=3, num_columns=4, sampling_frequency=20.0)
             for _ in range(3)
         ]
         cls.multi_imaging_extractor = MultiImagingExtractor(imaging_extractors=cls.extractors)
 
-    def test_get_image_size(self):
-        assert self.multi_imaging_extractor.get_image_size() == self.extractors[0].get_image_size()
+    def test_get_sample_shape(self):
+        assert self.multi_imaging_extractor.get_sample_shape() == self.extractors[0].get_sample_shape()
 
-    def test_get_num_frames(self):
-        assert self.multi_imaging_extractor.get_num_frames() == 30
+    def test_get_num_samples(self):
+        assert self.multi_imaging_extractor.get_num_samples() == 30
 
     def test_get_sampling_frequency(self):
         assert self.multi_imaging_extractor.get_sampling_frequency() == 20.0
 
     def test_get_channel_names(self):
         assert self.multi_imaging_extractor.get_channel_names() == ["channel_num_0"]
-
-    def test_get_num_channels(self):
-        assert self.multi_imaging_extractor.get_num_channels() == 1
 
     def test_get_frames_assertion(self):
         with self.assertRaisesWith(exc_type=AssertionError, exc_msg="'frame_idxs' exceed number of samples"):
