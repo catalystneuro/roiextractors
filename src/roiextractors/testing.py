@@ -92,7 +92,7 @@ def generate_dummy_imaging_extractor(
         warnings.warn(
             "The 'num_frames' parameter is deprecated and will be removed on or after January 2025. "
             "Use 'num_samples' instead.",
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=2,
         )
 
@@ -196,7 +196,7 @@ def generate_dummy_segmentation_extractor(
         warnings.warn(
             "The 'num_frames' parameter is deprecated and will be removed on or after January 2026. "
             "Use 'num_samples' instead.",
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=2,
         )
 
@@ -420,7 +420,7 @@ def check_imaging_equal(
             "The 'exclude_channel_comparison' parameter is deprecated and will be removed on or after January 2026. \n"
             "Exclude channel comparison will become the default behavior and the parameter will be removed. \n"
             "Extractors do not longer have multiple channels, so this parameter is not needed anymore.",
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=2,
         )
 
