@@ -69,12 +69,12 @@ def test_get_frames_invalid(volumetric_imaging_extractor, frame_idxs):
 
 
 @pytest.mark.parametrize("num_rows, num_columns, num_planes", [(1, 2, 3), (2, 1, 3), (3, 2, 1)])
-def test_get_image_size(num_rows, num_columns, num_planes):
+def test_get_sample_shape(num_rows, num_columns, num_planes):
     imaging_extractors = [
         generate_dummy_imaging_extractor(num_rows=num_rows, num_columns=num_columns) for _ in range(num_planes)
     ]
     volumetric_imaging_extractor = VolumetricImagingExtractor(imaging_extractors=imaging_extractors)
-    assert volumetric_imaging_extractor.get_image_size() == (num_rows, num_columns, num_planes)
+    assert volumetric_imaging_extractor.get_sample_shape() == (num_rows, num_columns, num_planes)
 
 
 @pytest.mark.parametrize("num_planes", [1, 2, 3])
@@ -96,15 +96,6 @@ def test_get_sampling_frequency(sampling_frequency):
     imaging_extractors = [generate_dummy_imaging_extractor(sampling_frequency=sampling_frequency)]
     volumetric_imaging_extractor = VolumetricImagingExtractor(imaging_extractors=imaging_extractors)
     assert volumetric_imaging_extractor.get_sampling_frequency() == sampling_frequency
-
-
-@pytest.mark.parametrize("channel_names", [["Channel 1"], [" Channel 1 ", "Channel 2"]])
-def test_get_channel_names(channel_names):
-    imaging_extractors = [
-        generate_dummy_imaging_extractor(channel_names=channel_names, num_channels=len(channel_names))
-    ]
-    volumetric_imaging_extractor = VolumetricImagingExtractor(imaging_extractors=imaging_extractors)
-    assert volumetric_imaging_extractor.get_channel_names() == channel_names
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.int16, np.uint8])
@@ -153,9 +144,9 @@ def test_depth_slice_twice(volumetric_imaging_extractor):
     assert np.all(samples[..., :1] == sliced_samples)
 
 
-def test_frame_slice(volumetric_imaging_extractor):
+def test_slice_samples(volumetric_imaging_extractor):
     with pytest.raises(NotImplementedError):
-        volumetric_imaging_extractor.frame_slice(start_frame=0, end_frame=1)
+        volumetric_imaging_extractor.slice_samples(start_sample=0, end_sample=1)
 
 
 def test_is_volumetric_flag(volumetric_imaging_extractor):

@@ -99,7 +99,7 @@ def generate_dummy_imaging_extractor(
     if channel_names is not None:
         warnings.warn(
             "The 'channel_names' parameter is deprecated and will be removed on or after January 2025.",
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=2,
         )
 
@@ -107,7 +107,7 @@ def generate_dummy_imaging_extractor(
         warnings.warn(
             "The 'num_channels' parameter is deprecated and will be removed on or after January 2025. "
             "Only single channel extractors are supported.",
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=2,
         )
 
