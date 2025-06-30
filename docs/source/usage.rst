@@ -55,7 +55,7 @@ Data format conversion: SegmentationExtractor to NWB
 .. code-block:: python
     :linenos:
 
-    # Import write_segmentation from neuroconv instead of roiextractors
+    # Import write_segmentation_to_nwbfile from neuroconv instead of roiextractors
     from neuroconv.tools.roiextractors import write_segmentation_to_nwbfile
 
     write_segmentation(seg_obj, saveloc)
