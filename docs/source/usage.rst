@@ -35,9 +35,7 @@ SegmentationExtractor object creation
                         masks=np.random.rand(movie_size[0],movie_size[1],no_rois),
                         signal=np.random.randn(num_rois,num_frames),
                         roi_idx=np.random.randint(no_rois,size=[1,no_rois]),
-                        no_of_channels=None,
                         summary_image=None,
-                        channel_names=['Blue']) # Numpy object
     seg_obj_nwb = roiextractors.NwbSegmentationExtractor(
                         filepath_of_nwb, optical_channel_name=None, # optical channel to extract and store info from
                         imaging_plane_name=None, image_series_name=None, # imaging plane to extract and store data from
@@ -58,6 +56,9 @@ Data format conversion: SegmentationExtractor to NWB
     # Import write_segmentation_to_nwbfile from neuroconv instead of roiextractors
     from neuroconv.tools.roiextractors import write_segmentation_to_nwbfile
 
-    write_segmentation(seg_obj, saveloc)
+    write_segmentation_to_nwbfile(seg_obj, nwbfile_path, metadata)
+
+    Where `seg_obj` is an instance of any of the segmentation extractor classes, `nwbfile_path` is the path to the NWB file, and `metadata` is a dictionary containing metadata for the NWB file.
+
 
     See the `neuroconv documentation <https://neuroconv.readthedocs.io/en/stable/api/tools.roiextractors.html>`_ for more details.
