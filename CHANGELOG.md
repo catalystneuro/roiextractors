@@ -22,6 +22,7 @@ Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationE
 * Updated GitHub Actions workflows to use cross-OS cache sharing for multi-OS testing data, reducing redundant downloads and improving CI efficiency. Added reusable data loading action pattern similar to neuroconv. [PR #459](https://github.com/catalystneuro/roiextractors/pull/459)
 * Add comprehensive test suite for CaimanSegmentationExtractor covering basic properties, ROI masks, traces, accepted/rejected lists, and different CaImAn dataset formats [PR #464](https://github.com/catalystneuro/roiextractors/pull/464)
 * Add isort and remove unused imports to pre-commit [PR #471](https://github.com/catalystneuro/roiextractors/pull/471)
+* Updated tests for `CaimanSegmentationExtractor` to cover all stub files, and enhanced the extractor to return quality metrics (`r_values`, `SNR_comp`, `cnn_preds`). [PR #466](https://github.com/catalystneuro/roiextractors/pull/466)
 
 # v0.6.0 (June 17th, 2025)
 
