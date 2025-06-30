@@ -1,14 +1,14 @@
 """Testing utilities for the roiextractors package."""
 
+import warnings
 from collections.abc import Iterable
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from roiextractors import NumpyImagingExtractor, NumpySegmentationExtractor
 from roiextractors.extraction_tools import DtypeType
-import warnings
 
 from .imagingextractor import ImagingExtractor
 from .segmentationextractor import SegmentationExtractor
