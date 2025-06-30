@@ -6,15 +6,14 @@ CaimanSegmentationExtractor
     A class for extracting segmentation from CaImAn output.
 """
 
+import warnings
 from pathlib import Path
 from typing import Optional
 from warnings import warn
-import warnings
 
 import h5py
-
-from scipy.sparse import csc_matrix
 import numpy as np
+from scipy.sparse import csc_matrix
 
 from ...extraction_tools import PathType, get_package
 from ...multisegmentationextractor import MultiSegmentationExtractor

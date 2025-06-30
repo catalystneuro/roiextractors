@@ -21,7 +21,7 @@ LegacyExtractSegmentationExtractor
 
 from .cnmfesegmentationextractor import CnmfeSegmentationExtractor
 from .extractsegmentationextractor import (
-    LegacyExtractSegmentationExtractor,
     ExtractSegmentationExtractor,
+    LegacyExtractSegmentationExtractor,
     NewExtractSegmentationExtractor,
 )  # TODO: remove legacy imports

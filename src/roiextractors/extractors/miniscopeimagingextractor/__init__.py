@@ -11,4 +11,7 @@ MiniscopeImagingExtractor
     An ImagingExtractor for the Miniscope video (.avi) format.
 """
 
-from .miniscopeimagingextractor import MiniscopeImagingExtractor, MiniscopeMultiRecordingImagingExtractor
+from .miniscopeimagingextractor import (
+    MiniscopeImagingExtractor,
+    MiniscopeMultiRecordingImagingExtractor,
+)

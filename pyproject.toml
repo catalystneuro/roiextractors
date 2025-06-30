@@ -103,6 +103,23 @@ extend-exclude = '''
 )/
 '''
 
+[tool.ruff]
+
+[tool.ruff.lint]
+select = [
+    "F401",  # Unused import
+    "I",  # All isort rules
+]
+fixable = ["ALL"]
+
+[tool.ruff.lint.per-file-ignores]
+"**__init__.py" = ["F401", "I"]
+"src/roiextractors/extractorlist.py" = ["F401", "I"]
+
+[tool.ruff.lint.isort]
+relative-imports-order = "closest-to-furthest"
+known-first-party = ["roiextractors"]
+
 
 [tool.codespell]
 skip = '.git*,*.pdf,*.css,*.svg'

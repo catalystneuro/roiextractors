@@ -10,18 +10,17 @@ LegacyExtractSegmentationExtractor
     Extractor for reading the segmentation data that results from calls to older versions of EXTRACT.
 """
 
+import warnings
 from abc import ABC
 from pathlib import Path
 from typing import Optional
-import warnings
 
+import h5py
 import numpy as np
 from lazy_ops import DatasetView
 from packaging import version
 
-import h5py
-
-from ...extraction_tools import PathType, ArrayType
+from ...extraction_tools import ArrayType, PathType
 from ...segmentationextractor import SegmentationExtractor
 
 

@@ -1,7 +1,8 @@
-import pytest
 import numpy as np
-from roiextractors.testing import generate_dummy_imaging_extractor
+import pytest
+
 from roiextractors import VolumetricImagingExtractor
+from roiextractors.testing import generate_dummy_imaging_extractor
 
 num_samples = 10
 

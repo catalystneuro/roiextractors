@@ -6,20 +6,22 @@ Hdf5ImagingExtractor
     An imaging extractor for HDF5.
 """
 
+import warnings
 from pathlib import Path
 from typing import Optional, Tuple
-import warnings
 from warnings import warn
 
+import h5py
 import numpy as np
-
-from ...extraction_tools import PathType, FloatType, ArrayType
-from ...extraction_tools import write_to_h5_dataset_format
-from ...imagingextractor import ImagingExtractor
 from lazy_ops import DatasetView
 
-
-import h5py
+from ...extraction_tools import (
+    ArrayType,
+    FloatType,
+    PathType,
+    write_to_h5_dataset_format,
+)
+from ...imagingextractor import ImagingExtractor
 
 
 class Hdf5ImagingExtractor(ImagingExtractor):

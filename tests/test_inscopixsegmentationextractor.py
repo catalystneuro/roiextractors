@@ -1,11 +1,12 @@
-import numpy as np
-import pytest
 import platform
 import sys
-
 from datetime import datetime
 
+import numpy as np
+import pytest
+
 from roiextractors import InscopixSegmentationExtractor
+
 from .setup_paths import OPHYS_DATA_PATH
 
 # Skip all tests in this file on macOS
