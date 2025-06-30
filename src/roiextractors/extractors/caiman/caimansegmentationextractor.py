@@ -348,7 +348,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         return tuple(self._params["data"]["dims"][()])
 
     # Quality Metrics
-    def _get_snr_values(self):
+    def _get_snr_values(self) -> np.ndarray | None:
         """Get signal-to-noise ratio for each component.
 
         Returns
@@ -362,7 +362,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
                 return np.array(snr_data)
         return None
 
-    def _get_spatial_correlation_values(self):
+    def _get_spatial_correlation_values(self) -> np.ndarray | None:
         """Get spatial correlation values (r_values) for each component.
 
         Returns
@@ -376,7 +376,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
                 return np.array(r_data)
         return None
 
-    def _get_cnn_predictions(self):
+    def _get_cnn_predictions(self) -> np.ndarray | None:
         """Get CNN classifier predictions for component quality.
 
         Note
