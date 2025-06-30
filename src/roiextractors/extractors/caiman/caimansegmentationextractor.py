@@ -429,30 +429,6 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         if cnn_preds is not None and len(cnn_preds) == len(roi_ids):
             self.set_property(key="cnn_preds", values=cnn_preds, ids=roi_ids)
 
-    def get_quality_metrics(self):
-        """Get all quality metrics in a dictionary.
-
-        Returns
-        -------
-        dict
-            Dictionary containing all available quality metrics.
-        """
-        metrics = {}
-
-        snr = self._get_snr_values()
-        if snr is not None:
-            metrics["snr"] = snr
-
-        r_vals = self._get_spatial_correlation_values()
-        if r_vals is not None:
-            metrics["r_values"] = r_vals
-
-        cnn_preds = self._get_cnn_predictions()
-        if cnn_preds is not None:
-            metrics["cnn_preds"] = cnn_preds
-
-        return metrics
-
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite: bool = True):
         """Write a segmentation object to a .hdf5 or .h5 file specified by save_path.
