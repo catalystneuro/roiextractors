@@ -1,5 +1,15 @@
-# v0.6.1 (Upcoming)
+# v0.6.2 (Upcoming)
 
+### Features
+
+### Fixes
+
+### Deprecations And Removals
+
+### Improvements
+
+
+# v0.6.1 (July 7th 2025)
 
 ### Features
 * Added native timestamp support with automatic fallback hierarchy: `get_native_timestamps()` abstract method and `get_timestamps()` concrete method to all imaging and segmentation extractors. The `get_timestamps()` method follows priority order: cached times → native timestamps → inferred from sampling frequency. This enables automatic native timestamp usage when available (e.g., ScanImage TIFF files) while maintaining backward compatibility. [PR #465](https://github.com/catalystneuro/roiextractors/pull/465)
