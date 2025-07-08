@@ -7,6 +7,7 @@
 ### Deprecations And Removals
 
 ### Improvements
+* Added tests for unused stub files (`dual_color_movie_with_dropped_frames.isxd` and `multiplane_movie.isxd`) in Inscopix imaging extractor [PR #478](https://github.com/catalystneuro/roiextractors/pull/478)
 
 
 # v0.6.1 (July 7th 2025)
