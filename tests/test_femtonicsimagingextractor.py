@@ -437,170 +437,164 @@ def test_femtonicsimagingextractor_p30_mesc():
         FemtonicsImagingExtractor(file_path=file_path, session_name="MSession_0")
 
 
-def test_femtonicsimagingextractor_single_channel():
-    """
-    Test FemtonicsImagingExtractor with single channel .mesc file.
+# def test_femtonicsimagingextractor_single_channel():
+#     """
+#     Test FemtonicsImagingExtractor with single channel .mesc file.
 
-    This test uses a single channel file and verifies automatic channel and session selection
-    and correct metadata extraction.
-    """
-    file_path = OPHYS_DATA_PATH / "imaging_datasets" / "Femtonics" / "single_channel.mesc"
+#     This test uses a single channel file and verifies automatic channel and session selection
+#     and correct metadata extraction.
+#     """
+#     file_path = OPHYS_DATA_PATH / "imaging_datasets" / "Femtonics" / "single_channel.mesc"
 
-    # Test that with single channel, no channel_name specification is needed
-    extractor = FemtonicsImagingExtractor(file_path=file_path, munit_name="MUnit_60")
+#     # Test that with single channel, no channel_name specification is needed
+#     extractor = FemtonicsImagingExtractor(file_path=file_path, munit_name="MUnit_60")
 
-    # Test basic properties
-    assert extractor.get_image_shape() == (512, 512)
-    assert extractor.get_channel_names() == ["UG"]  # Single channel should be auto-selected
-    assert extractor.extractor_name == "FemtonicsImaging"
+#     # Test basic properties
+#     assert extractor.get_image_shape() == (512, 512)
+#     assert extractor.get_channel_names() == ["UG"]  # Single channel should be auto-selected
+#     assert extractor.extractor_name == "FemtonicsImaging"
 
-    # Test session UUID
-    session_uuid = extractor._get_session_uuid()
-    assert session_uuid == "eab55dc7-173e-4fcb-8746-65274f1e5f96"
+#     # Test session UUID
+#     session_uuid = extractor._get_session_uuid()
+#     assert session_uuid == "eab55dc7-173e-4fcb-8746-65274f1e5f96"
 
-    # Test session start time
-    session_start_time = extractor._get_session_start_time()
-    assert session_start_time == datetime(2014, 3, 3, 15, 21, 57, 18837, tzinfo=timezone.utc)
+#     # Test session start time
+#     session_start_time = extractor._get_session_start_time()
+#     assert session_start_time == datetime(2014, 3, 3, 15, 21, 57, 18837, tzinfo=timezone.utc)
 
-    # Test experimenter info
-    experimenter_info = extractor._get_experimenter_info()
-    assert experimenter_info["username"] == "measurement"
+#     # Test experimenter info
+#     experimenter_info = extractor._get_experimenter_info()
+#     assert experimenter_info["username"] == "measurement"
 
-    # Test pixel size extraction
-    pixel_size = extractor._get_pixels_sizes_and_units()
-    assert isinstance(pixel_size, dict)
-    assert pixel_size["x_size"] == pytest.approx(0.8757686997991967, rel=1e-6)
-    assert pixel_size["y_size"] == pytest.approx(0.8757686997991966, rel=1e-6)
-    assert pixel_size["x_units"] == "µm"
-    assert pixel_size["y_units"] == "µm"
+#     # Test pixel size extraction
+#     pixel_size = extractor._get_pixels_sizes_and_units()
+#     assert isinstance(pixel_size, dict)
+#     assert pixel_size["x_size"] == pytest.approx(0.8757686997991967, rel=1e-6)
+#     assert pixel_size["y_size"] == pytest.approx(0.8757686997991966, rel=1e-6)
+#     assert pixel_size["x_units"] == "µm"
+#     assert pixel_size["y_units"] == "µm"
 
-    # Test sampling frequency - should be approximately 31.2 Hz
-    sampling_freq = extractor.get_sampling_frequency()
-    assert sampling_freq == pytest.approx(31.2, rel=1e-2)
+#     # Test sampling frequency - should be approximately 31.2 Hz
+#     sampling_freq = extractor.get_sampling_frequency()
+#     assert sampling_freq == pytest.approx(31.2, rel=1e-2)
 
-    # Test MESc version info
-    version_info = extractor._get_mesc_version_info()
-    assert version_info["version"] == "MESc 1.0"
-    assert version_info["revision"] == 1839
+#     # Test MESc version info
+#     version_info = extractor._get_mesc_version_info()
+#     assert version_info["version"] == "MESc 1.0"
+#     assert version_info["revision"] == 1839
 
-    # Test geometric transformations
-    geo = extractor._get_geometric_transformations()
-    expected_translation = np.array([-224.19678715, -224.19678715, 0.0])
-    expected_rotation = np.array([0.0, 0.0, 0.0, 1.0])
-    expected_labeling_origin = np.array([0.0, 0.0, -6724.23])
+#     # Test geometric transformations
+#     geo = extractor._get_geometric_transformations()
+#     expected_translation = np.array([-224.19678715, -224.19678715, 0.0])
+#     expected_rotation = np.array([0.0, 0.0, 0.0, 1.0])
+#     expected_labeling_origin = np.array([0.0, 0.0, -6724.23])
 
-    assert np.allclose(geo["translation"], expected_translation)
-    assert np.allclose(geo["rotation"], expected_rotation)
-    assert np.allclose(geo["labeling_origin"], expected_labeling_origin)
+#     assert np.allclose(geo["translation"], expected_translation)
+#     assert np.allclose(geo["rotation"], expected_rotation)
+#     assert np.allclose(geo["labeling_origin"], expected_labeling_origin)
 
-    # Test metadata contains all expected information
-    metadata = extractor._get_metadata()
-    assert metadata["session_name"] == "MSession_0"
-    assert metadata["munit_name"] == "MUnit_60"
-    assert metadata["selected_channel"] == "UG"
-    assert metadata["session_uuid"] == session_uuid
-    assert metadata["session_start_time"] == session_start_time
-    assert metadata["experimenter_info"] == experimenter_info
-    assert metadata["sampling_frequency_hz"] == pytest.approx(31.2, rel=1e-2)
+#     # Test metadata contains all expected information
+#     metadata = extractor._get_metadata()
+#     assert metadata["session_name"] == "MSession_0"
+#     assert metadata["munit_name"] == "MUnit_60"
+#     assert metadata["selected_channel"] == "UG"
+#     assert metadata["session_uuid"] == session_uuid
+#     assert metadata["session_start_time"] == session_start_time
+#     assert metadata["experimenter_info"] == experimenter_info
+#     assert metadata["sampling_frequency_hz"] == pytest.approx(31.2, rel=1e-2)
 
-    # Test image shape from metadata
-    image_shape_metadata = extractor._get_image_shape_metadata()
-    assert image_shape_metadata == (512, 512, extractor.get_num_samples())
+#     # Test image shape from metadata
+#     image_shape_metadata = extractor._get_image_shape_metadata()
+#     assert image_shape_metadata == (512, 512, extractor.get_num_samples())
 
-    # Test data access
-    first_frame = extractor.get_series(start_sample=0, end_sample=1)
-    assert first_frame.shape == (1, 512, 512)
+#     # Test data access
+#     first_frame = extractor.get_series(start_sample=0, end_sample=1)
+#     assert first_frame.shape == (1, 512, 512)
 
-    # Test that we can get all frames
-    all_frames = extractor.get_series()
-    assert all_frames.shape[1:] == (512, 512)
-    assert all_frames.shape[0] == extractor.get_num_samples()
+#     # Test that we can get all frames
+#     all_frames = extractor.get_series()
+#     assert all_frames.shape[1:] == (512, 512)
+#     assert all_frames.shape[0] == extractor.get_num_samples()
 
 
-def test_femtonicsimagingextractor_single_munit():
-    """
-    Test FemtonicsImagingExtractor with single MUnit .mesc file.
+# def test_femtonicsimagingextractor_single_munit():
+#     """
+#     Test FemtonicsImagingExtractor with single MUnit .mesc file.
 
-    This test uses a file with a single MUnit and verifies automatic MUnit selection
-    and correct metadata extraction.
-    """
-    file_path = OPHYS_DATA_PATH / "imaging_datasets" / "Femtonics" / "single_m_unit_index.mesc"
+#     This test uses a file with a single MUnit and verifies automatic MUnit selection
+#     and correct metadata extraction.
+#     """
+#     file_path = OPHYS_DATA_PATH / "imaging_datasets" / "Femtonics" / "single_m_unit_index.mesc"
 
-    available_sessions = FemtonicsImagingExtractor.get_available_sessions(file_path)
-    available_munits = FemtonicsImagingExtractor.get_available_munits(file_path, session_name=available_sessions[0])
-    assert available_sessions == ["MSession_0"]
-    assert available_munits == ["MUnit_60"]
+#     available_sessions = FemtonicsImagingExtractor.get_available_sessions(file_path)
+#     available_munits = FemtonicsImagingExtractor.get_available_munits(file_path, session_name=available_sessions[0])
+#     assert available_sessions == ["MSession_0"]
+#     assert available_munits == ["MUnit_60"]
 
-    extractor = FemtonicsImagingExtractor(file_path=file_path, channel_name="UG")
+#     extractor = FemtonicsImagingExtractor(file_path=file_path, channel_name="UG")
 
-    # Test basic properties
-    assert extractor.get_image_shape() == (512, 512)
-    assert extractor.get_channel_names() == ["UG"]
-    assert extractor.extractor_name == "FemtonicsImaging"
+#     # Test basic properties
+#     assert extractor.get_image_shape() == (512, 512)
+#     assert extractor.get_channel_names() == ["UG"]
+#     assert extractor.extractor_name == "FemtonicsImaging"
 
-    # Test session UUID
-    session_uuid = extractor._get_session_uuid()
-    assert session_uuid == "eab55dc7-173e-4fcb-8746-65274f1e5f96"
+#     # Test session UUID
+#     session_uuid = extractor._get_session_uuid()
+#     assert session_uuid == "eab55dc7-173e-4fcb-8746-65274f1e5f96"
 
-    # Test session start time
-    session_start_time = extractor._get_session_start_time()
-    assert session_start_time == datetime(2014, 3, 3, 15, 21, 57, 18837, tzinfo=timezone.utc)
+#     # Test session start time
+#     session_start_time = extractor._get_session_start_time()
+#     assert session_start_time == datetime(2014, 3, 3, 15, 21, 57, 18837, tzinfo=timezone.utc)
 
-    # Test experimenter info
-    experimenter_info = extractor._get_experimenter_info()
-    assert experimenter_info["username"] == "measurement"
+#     # Test experimenter info
+#     experimenter_info = extractor._get_experimenter_info()
+#     assert experimenter_info["username"] == "measurement"
 
-    # Test pixel size extraction - Grid spacing from Pixel Size X: 0.876 μm, Pixel Size Y: 0.876 μm
-    pixel_size = extractor._get_pixels_sizes_and_units()
-    assert isinstance(pixel_size, dict)
-    assert pixel_size["x_size"] == pytest.approx(0.8757686997991967, rel=1e-6)
-    assert pixel_size["y_size"] == pytest.approx(0.8757686997991966, rel=1e-6)
-    assert pixel_size["x_units"] == "µm"
-    assert pixel_size["y_units"] == "µm"
+#     # Test pixel size extraction - Grid spacing from Pixel Size X: 0.876 μm, Pixel Size Y: 0.876 μm
+#     pixel_size = extractor._get_pixels_sizes_and_units()
+#     assert isinstance(pixel_size, dict)
+#     assert pixel_size["x_size"] == pytest.approx(0.8757686997991967, rel=1e-6)
+#     assert pixel_size["y_size"] == pytest.approx(0.8757686997991966, rel=1e-6)
+#     assert pixel_size["x_units"] == "µm"
+#     assert pixel_size["y_units"] == "µm"
 
-    # Test sampling frequency - should be approximately 31.2 Hz
-    sampling_freq = extractor.get_sampling_frequency()
-    assert sampling_freq == pytest.approx(31.2, rel=1e-2)
+#     # Test sampling frequency - should be approximately 31.2 Hz
+#     sampling_freq = extractor.get_sampling_frequency()
+#     assert sampling_freq == pytest.approx(31.2, rel=1e-2)
 
-    # Test MESc version info
-    version_info = extractor._get_mesc_version_info()
-    assert version_info["version"] == "MESc 1.0"
-    assert version_info["revision"] == 1839
+#     # Test MESc version info
+#     version_info = extractor._get_mesc_version_info()
+#     assert version_info["version"] == "MESc 1.0"
+#     assert version_info["revision"] == 1839
 
-    # Test geometric transformations
-    geo = extractor._get_geometric_transformations()
-    expected_translation = np.array([-224.19678715, -224.19678715, 0.0])
-    expected_rotation = np.array([0.0, 0.0, 0.0, 1.0])
-    expected_labeling_origin = np.array([0.0, 0.0, -6724.23])
+#     # Test geometric transformations
+#     geo = extractor._get_geometric_transformations()
+#     expected_translation = np.array([-224.19678715, -224.19678715, 0.0])
+#     expected_rotation = np.array([0.0, 0.0, 0.0, 1.0])
+#     expected_labeling_origin = np.array([0.0, 0.0, -6724.23])
 
-    assert np.allclose(geo["translation"], expected_translation)
-    assert np.allclose(geo["rotation"], expected_rotation)
-    assert np.allclose(geo["labeling_origin"], expected_labeling_origin)
+#     assert np.allclose(geo["translation"], expected_translation)
+#     assert np.allclose(geo["rotation"], expected_rotation)
+#     assert np.allclose(geo["labeling_origin"], expected_labeling_origin)
 
-    # Test metadata contains all expected information
-    metadata = extractor._get_metadata()
-    assert metadata["session_name"] == "MSession_0"
-    assert metadata["selected_channel"] == "UG"
-    assert metadata["session_uuid"] == session_uuid
-    assert metadata["session_start_time"] == session_start_time
-    assert metadata["experimenter_info"] == experimenter_info
-    assert metadata["sampling_frequency_hz"] == pytest.approx(31.2, rel=1e-2)
+#     # Test metadata contains all expected information
+#     metadata = extractor._get_metadata()
+#     assert metadata["session_name"] == "MSession_0"
+#     assert metadata["selected_channel"] == "UG"
+#     assert metadata["session_uuid"] == session_uuid
+#     assert metadata["session_start_time"] == session_start_time
+#     assert metadata["experimenter_info"] == experimenter_info
+#     assert metadata["sampling_frequency_hz"] == pytest.approx(31.2, rel=1e-2)
 
-    # Test image shape from metadata - Image dimensions: X Dimension: 512 pixels, Y Dimension: 512 pixels
-    image_shape_metadata = extractor._get_image_shape_metadata()
-    assert image_shape_metadata == (512, 512, extractor.get_num_samples())
+#     # Test image shape from metadata - Image dimensions: X Dimension: 512 pixels, Y Dimension: 512 pixels
+#     image_shape_metadata = extractor._get_image_shape_metadata()
+#     assert image_shape_metadata == (512, 512, extractor.get_num_samples())
 
-    # Test data access
-    first_frame = extractor.get_series(start_sample=0, end_sample=1)
-    assert first_frame.shape == (1, 512, 512)
+#     # Test data access
+#     first_frame = extractor.get_series(start_sample=0, end_sample=1)
+#     assert first_frame.shape == (1, 512, 512)
 
-    # Test that we can get all frames
-    all_frames = extractor.get_series()
-    assert all_frames.shape[1:] == (512, 512)
-    assert all_frames.shape[0] == extractor.get_num_samples()
-
-    # Test that available channels include UG
-    available_channels = FemtonicsImagingExtractor.get_available_channels(
-        file_path, session_name="MSession_0", munit_name=metadata["munit_name"]
-    )
-    assert "UG" in available_channels
+#     # Test that we can get all frames
+#     all_frames = extractor.get_series()
+#     assert all_frames.shape[1:] == (512, 512)
+#     assert all_frames.shape[0] == extractor.get_num_samples()

@@ -1,40 +1,15 @@
-# v0.6.2 (Upcoming)
+# v0.6.1 (Upcoming)
 
 ### Features
 
 ### Fixes
 
 ### Deprecations And Removals
-
-### Improvements
-
-
-# v0.6.1 (July 7th 2025)
-
-### Features
-* Added native timestamp support with automatic fallback hierarchy: `get_native_timestamps()` abstract method and `get_timestamps()` concrete method to all imaging and segmentation extractors. The `get_timestamps()` method follows priority order: cached times → native timestamps → inferred from sampling frequency. This enables automatic native timestamp usage when available (e.g., ScanImage TIFF files) while maintaining backward compatibility. [PR #465](https://github.com/catalystneuro/roiextractors/pull/465)
-* Added property management methods to `SegmentationExtractor`: `set_property()`, `get_property()`, and `get_property_keys()` for storing and retrieving custom ROI properties [PR #467](https://github.com/catalystneuro/roiextractors/pull/467)
-* Added `MinianSegmentationExtractor` for reading and extracting metadata and segmentation data from Minian output files.[PR #368](https://github.com/catalystneuro/roiextractors/pull/368)
-
-### Fixes
-* Fixed a bug in CaimanSegmentationExtractor where empty components of the segmentation traces will throw an error
-[PR #452](https://github.com/catalystneuro/roiextractors/pull/452)
-
-### Deprecations And Removals
-* Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationExtractor` [PR #457](https://github.com/catalystneuro/roiextractors/pull/457)
-* `check_imaging_equal` and `check_segmentation_equal` no longer compare the number of channels in an extractor as that attribute has been deprecated [PR #470](https://github.com/catalystneuro/roiextractors/pull/470)
-* `exclude_channel_comparison` in `check_imaging_equal` is deprecated and will be removed in or after January 2026. This parameter is no longer needed as extractors do not have multiple channels. [PR #470](https://github.com/catalystneuro/roiextractors/pull/470)
-* The `num_frames` parameter in `generate_dummy_imaging_extractor` and `generate_dummy_segmentation_extractor` is now deprecated and will be removed on or after January 2026. Use the new `num_samples` parameter instead. `num_samples` is now keyword-only and will become positional-only in a future release. [PR #470](https://github.com/catalystneuro/roiextractors/pull/470)
-* The `sample_indices_to_time()` method in both ImagingExtractor and SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_timestamps()` instead. [PR #448](https://github.com/catalystneuro/roiextractors/pull/448)
 Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationExtractor` [PR #457](https://github.com/catalystneuro/roiextractors/pull/457)
 
 ### Improvements
 * Updated GitHub Actions workflows to use cross-OS cache sharing for multi-OS testing data, reducing redundant downloads and improving CI efficiency. Added reusable data loading action pattern similar to neuroconv. [PR #459](https://github.com/catalystneuro/roiextractors/pull/459)
-* Improved writing to NWB documentation to point out users to neuroconv [PR #468](https://github.com/catalystneuro/roiextractors/pull/468)
-* Add comprehensive test suite for CaimanSegmentationExtractor covering basic properties, ROI masks, traces, accepted/rejected lists, and different CaImAn dataset formats [PR #464](https://github.com/catalystneuro/roiextractors/pull/464)
-* Add isort and remove unused imports to pre-commit [PR #471](https://github.com/catalystneuro/roiextractors/pull/471)
-* Updated tests for `CaimanSegmentationExtractor` to cover all stub files, and enhanced the extractor to return quality metrics (`r_values`, `SNR_comp`, `cnn_preds`). [PR #466](https://github.com/catalystneuro/roiextractors/pull/466)
-
+* Refactor Femtonics Imaging Extractor session, munit and channel selection logic. Added missing stub files (`single_channel.mesc` and `single_m_unit_index`)[PR #479](https://github.com/catalystneuro/roiextractors/pull/479)
 # v0.6.0 (June 17th, 2025)
 
 ### Features
@@ -48,7 +23,6 @@ Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationE
 * Fixed deprecated scipy import warning by updating `mat_struct` import path [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
 * Fixed deprecation warning about invalid escape sequence in micromanager TIFF extractor [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
 * Removed integer-only assumption for ROI IDs in segmentation extractors. ROI IDs can now be strings or any type. Updated `generate_dummy_segmentation_extractor` to produce string ROI IDs in format `roi_00`, `roi_01`, etc. [PR #449](https://github.com/catalystneuro/roiextractors/pull/449)
-
 
 ### Deprecations And Removals
 * The `get_image_size()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_frame_shape()` instead. [PR #443](https://github.com/catalystneuro/roiextractors/pull/443)
