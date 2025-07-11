@@ -1,7 +1,8 @@
 """Base class definition for volumetric imaging extractors."""
 
-from typing import Tuple, List, Iterable, Optional
 import warnings
+from typing import Iterable, List, Optional, Tuple
+
 import numpy as np
 
 from .extraction_tools import ArrayType, DtypeType
@@ -282,6 +283,12 @@ class VolumetricImagingExtractor(ImagingExtractor):
             stacklevel=2,
         )
         return self.slice_samples(start_sample=start_frame, end_sample=end_frame)
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Delegate to the first imaging extractor
+        return self._imaging_extractors[0].get_native_timestamps(start_sample, end_sample)
 
 
 class DepthSliceVolumetricImagingExtractor(VolumetricImagingExtractor):

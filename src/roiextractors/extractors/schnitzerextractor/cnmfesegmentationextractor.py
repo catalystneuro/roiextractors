@@ -7,7 +7,7 @@ CnmfeSegmentationExtractor
 """
 
 from pathlib import Path
-import warnings
+from typing import Optional
 from warnings import warn
 
 import h5py
@@ -24,7 +24,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
     """A segmentation extractor for CNMF-E ROI segmentation method.
 
     This class inherits from the SegmentationExtractor class, having all
-    its funtionality specifically applied to the dataset output from
+    its functionality specifically applied to the dataset output from
     the 'CNMF-E' ROI segmentation method.
     """
 
@@ -198,7 +198,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             if getattr(segmentation_object, "_raw_movie_file_location", None):
                 main.create_dataset(
                     "movieList",
-                    data=[ord(alph) for alph in str(segmentation_object._raw_movie_file_location)],
+                    data=[ord(alpha) for alpha in str(segmentation_object._raw_movie_file_location)],
                 )
             if segmentation_object.get_traces(name="deconvolved") is not None:
                 image_mask_csc = csc_matrix(segmentation_object.get_traces(name="deconvolved"))
@@ -212,10 +212,16 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
                 inputoptions.create_dataset("Fs", data=segmentation_object.get_sampling_frequency())
 
     def get_image_size(self):
-        warnings.warn(
+        warn(
             "get_image_size is deprecated and will be removed on or after January 2026. "
             "Use get_frame_shape instead.",
             FutureWarning,
             stacklevel=2,
         )
         return self.get_frame_shape()
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # CNMF-E segmentation data does not have native timestamps
+        return None

@@ -1,15 +1,15 @@
 """Inscopix Imaging Extractor."""
 
-import warnings
 import platform
 import sys
+import warnings
+from datetime import datetime
+from typing import Any, Optional
+
 import numpy as np
 
-from typing import Optional, Any
-from datetime import datetime
-
-from ...imagingextractor import ImagingExtractor
 from ...extraction_tools import PathType
+from ...imagingextractor import ImagingExtractor
 
 
 class InscopixImagingExtractor(ImagingExtractor):
@@ -276,3 +276,9 @@ class InscopixImagingExtractor(ImagingExtractor):
             metadata["session_start_time"] = None
 
         return metadata
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Inscopix imaging data does not have native timestamps
+        return None

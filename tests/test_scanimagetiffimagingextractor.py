@@ -1,20 +1,21 @@
+import platform
+
 import pytest
 from numpy.testing import assert_array_equal
 
 from roiextractors import (
-    ScanImageTiffSinglePlaneImagingExtractor,
     ScanImageTiffMultiPlaneImagingExtractor,
-    ScanImageTiffSinglePlaneMultiFileImagingExtractor,
     ScanImageTiffMultiPlaneMultiFileImagingExtractor,
+    ScanImageTiffSinglePlaneImagingExtractor,
+    ScanImageTiffSinglePlaneMultiFileImagingExtractor,
 )
 from roiextractors.extractors.tiffimagingextractors.scanimagetiff_utils import (
+    _get_scanimage_reader,
     extract_extra_metadata,
     parse_metadata,
-    _get_scanimage_reader,
 )
-from .setup_paths import OPHYS_DATA_PATH
 
-import platform
+from .setup_paths import OPHYS_DATA_PATH
 
 is_m_series_mac = platform.system() == "Darwin" and platform.machine() == "arm64"
 if (

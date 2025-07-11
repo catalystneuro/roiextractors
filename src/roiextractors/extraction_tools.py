@@ -6,24 +6,22 @@ VideoStructure
     A data class for specifying the structure of a video.
 """
 
-import sys
 import importlib.util
+import sys
+from dataclasses import dataclass
 from functools import wraps
 from pathlib import Path
-from typing import Union, Tuple, Optional, Dict, List
-from types import ModuleType
-from dataclasses import dataclass
 from platform import python_version
-
-import lazy_ops
-import numpy as np
-from numpy.typing import ArrayLike, DTypeLike
-from tqdm import tqdm
-from packaging import version
-
+from types import ModuleType
+from typing import Dict, List, Optional, Tuple, Union
 
 import h5py
+import lazy_ops
+import numpy as np
 import zarr
+from numpy.typing import ArrayLike, DTypeLike
+from packaging import version
+from tqdm import tqdm
 
 ArrayType = ArrayLike
 PathType = Union[str, Path]
@@ -47,7 +45,7 @@ class VideoStructure:
     """A data class for specifying the structure of a video.
 
     The role of the data class is to ensure consistency in naming and provide some initial
-    consistency checks to ensure the validity of the sturcture.
+    consistency checks to ensure the validity of the structure.
 
     Attributes
     ----------
@@ -552,8 +550,8 @@ def show_video(imaging, ax=None):
     anim: matplotlib.animation.FuncAnimation
         Animation of the video.
     """
-    import matplotlib.pyplot as plt
     import matplotlib.animation as animation
+    import matplotlib.pyplot as plt
 
     def animate_func(i, imaging, im, ax):
         ax.set_title(f"{i}")

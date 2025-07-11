@@ -12,15 +12,14 @@ FrameSliceSegmentationExtractor
     Class to get a lazy frame slice.
 """
 
-from abc import ABC, abstractmethod
-from typing import Union, Optional, Tuple, Iterable, List
 import warnings
+from abc import ABC, abstractmethod
+from typing import Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 from numpy.typing import ArrayLike
 
-from .extraction_tools import ArrayType, IntType, FloatType
-from .extraction_tools import _pixel_mask_extractor
+from .extraction_tools import ArrayType, FloatType, IntType, _pixel_mask_extractor
 
 
 class SegmentationExtractor(ABC):
@@ -48,6 +47,7 @@ class SegmentationExtractor(ABC):
         self._image_correlation = None
         self._image_mean = None
         self._image_mask = None
+        self._properties = {}
 
     @abstractmethod
     def get_accepted_list(self) -> list:
@@ -68,6 +68,26 @@ class SegmentationExtractor(ABC):
         -------
         rejected_list: list
             List of rejected ROI ids.
+        """
+        pass
+
+    @abstractmethod
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        """Get the original timestamps from the data source.
+
+        Parameters
+        ----------
+        start_sample : int, optional
+            Start sample index (inclusive).
+        end_sample : int, optional
+            End sample index (exclusive).
+
+        Returns
+        -------
+        timestamps : np.ndarray or None
+            The original timestamps in seconds, or None if not available.
         """
         pass
 
@@ -505,8 +525,47 @@ class SegmentationExtractor(ABC):
         else:
             return self._times[frames]
 
+    def get_timestamps(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        """
+        Retrieve the timestamps for the data in this extractor.
+
+        Parameters
+        ----------
+        start_sample : int, optional
+            The starting sample index. If None, starts from the beginning.
+        end_sample : int, optional
+            The ending sample index. If None, goes to the end.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray
+            The timestamps for the data stream.
+        """
+        # Set defaults
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self.get_num_samples()
+
+        # Return cached timestamps if available
+        if self._times is not None:
+            return self._times[start_sample:end_sample]
+
+        # See if native timetstamps are available from the format
+        native_timestamps = self.get_native_timestamps()
+        if native_timestamps is not None:
+            self._times = native_timestamps  # Cache the native timestamps
+            return native_timestamps[start_sample:end_sample]
+
+        # Fallback to calculated timestamps from sampling frequency
+        sample_indices = np.arange(start_sample, end_sample)
+        return sample_indices / self.get_sampling_frequency()
+
     def sample_indices_to_time(self, sample_indices: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
         """Convert user-inputted sample indices to times with units of seconds.
+
+        .. deprecated:: on or after January 2026
+           Use :meth:`get_timestamps` instead.
 
         Parameters
         ----------
@@ -518,11 +577,110 @@ class SegmentationExtractor(ABC):
         times: float or array-like
             The corresponding times in seconds.
         """
-        # Default implementation
-        if self._times is None:
-            return sample_indices / self.get_sampling_frequency()
+        warnings.warn(
+            "sample_indices_to_time is deprecated and will be removed on or after January 2026. "
+            "Use get_timestamps instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
+        # Handle scalar vs array input
+        is_scalar = np.isscalar(sample_indices)
+        if is_scalar:
+            sample_indices = np.array([sample_indices])
         else:
-            return self._times[sample_indices]
+            sample_indices = np.asarray(sample_indices)
+
+        # Get the range of samples we need
+        start_sample = int(np.min(sample_indices))
+        end_sample = int(np.max(sample_indices)) + 1
+
+        # Get timestamps for the range
+        timestamps = self.get_timestamps(start_sample=start_sample, end_sample=end_sample)
+
+        # Map the requested indices to the timestamps
+        result = timestamps[sample_indices - start_sample]
+
+        return result[0] if is_scalar else result
+
+    def set_property(self, key: str, values: ArrayType, ids: ArrayType):
+        """Set property values for ROIs.
+
+        Parameters
+        ----------
+        key: str
+            The name of the property.
+        values: array-like
+            Array of property values. Must have same length as ids and num_rois.
+        ids: array-like
+            Array of ROI ids corresponding to the values. Must have same length as values and num_rois.
+        """
+        values = np.asarray(values)
+        ids = list(ids)
+        num_rois = self.get_num_rois()
+
+        # Check that all arrays have the correct length
+        if len(values) != num_rois or len(ids) != num_rois:
+            raise ValueError(
+                f"Length of values ({len(values)}) and ids ({len(ids)}) must match number of ROIs ({num_rois})"
+            )
+
+        # Verify that the provided ids match the extractor's ROI ids
+        extractor_roi_ids = self.get_roi_ids()
+        if set(ids) != set(extractor_roi_ids):
+            raise ValueError("Provided ids must match the extractor's ROI ids")
+
+        # Create property array with values in the correct order
+        property_array = np.empty(num_rois, dtype=values.dtype)
+        for roi_index, roi_id in enumerate(extractor_roi_ids):
+            id_index = ids.index(roi_id)
+            property_array[roi_index] = values[id_index]
+
+        self._properties[key] = property_array
+
+    def get_property(self, key: str, ids: ArrayType) -> ArrayType:
+        """Get property values for ROIs.
+
+        Parameters
+        ----------
+        key: str
+            The name of the property.
+        ids: array-like
+            Array of ROI ids to get property values for.
+
+        Returns
+        -------
+        values: array-like
+            Array of property values for the specified ROIs.
+        """
+        ids = np.asarray(ids)
+        if key not in self._properties:
+            available_keys = list(self._properties.keys())
+            raise KeyError(f"Property '{key}' not found. Available properties: {available_keys}")
+
+        # Check that all requested ROI ids exist in extractor
+        all_roi_ids = self.get_roi_ids()
+        for roi_id in ids:
+            if roi_id not in all_roi_ids:
+                raise ValueError(f"ROI id {roi_id} not found in extractor. Available ROI ids: {all_roi_ids}")
+
+        # Map ids to indices and get values
+        values = []
+        for roi_id in ids:
+            roi_index = all_roi_ids.index(roi_id)
+            values.append(self._properties[key][roi_index])
+
+        return np.array(values)
+
+    def get_property_keys(self) -> list[str]:
+        """Get list of available property keys.
+
+        Returns
+        -------
+        keys: list
+            List of property names.
+        """
+        return list(self._properties.keys())
 
 
 class SampleSlicedSegmentationExtractor(SegmentationExtractor):
@@ -685,6 +843,19 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
 
     def get_background_pixel_masks(self, background_ids: Optional[ArrayLike] = None) -> list[np.ndarray]:
         return self._parent_segmentation.get_background_pixel_masks(background_ids=background_ids)
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Adjust the sample indices to account for the slice offset
+        start_sample = start_sample or 0
+        end_sample = end_sample or self.get_num_samples()
+
+        # Map slice-relative indices to parent indices
+        parent_start = self._start_sample + start_sample
+        parent_end = self._start_sample + end_sample
+
+        return self._parent_segmentation.get_native_timestamps(start_sample=parent_start, end_sample=parent_end)
 
 
 class FrameSliceSegmentationExtractor(SampleSlicedSegmentationExtractor):

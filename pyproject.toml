@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "roiextractors"
-version = "0.6.1"
+version = "0.6.2"
 description = "Python module for extracting optical physiology ROIs and traces for various file types and formats"
 readme = "README.md"
 license = { file = "LICENSE.txt" }
@@ -102,3 +102,26 @@ extend-exclude = '''
   | dist
 )/
 '''
+
+[tool.ruff]
+
+[tool.ruff.lint]
+select = [
+    "F401",  # Unused import
+    "I",  # All isort rules
+]
+fixable = ["ALL"]
+
+[tool.ruff.lint.per-file-ignores]
+"**__init__.py" = ["F401", "I"]
+"src/roiextractors/extractorlist.py" = ["F401", "I"]
+
+[tool.ruff.lint.isort]
+relative-imports-order = "closest-to-furthest"
+known-first-party = ["roiextractors"]
+
+
+[tool.codespell]
+skip = '.git*,*.pdf,*.css,*.svg'
+check-hidden = true
+ignore-words-list = 'assertin'

@@ -7,12 +7,11 @@ MiniscopeImagingExtractor
 """
 
 import re
-from pathlib import Path
-from typing import Optional, Tuple, List
 import warnings
+from pathlib import Path
+from typing import List, Optional, Tuple
 
 import numpy as np
-
 
 from ...imagingextractor import ImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor
@@ -133,7 +132,7 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
 
 
 class _MiniscopeSingleVideoExtractor(ImagingExtractor):
-    """An auxiliar extractor to get data from a single Miniscope video (.avi) file.
+    """An auxiliary extractor to get data from a single Miniscope video (.avi) file.
 
     This format consists of a single video (.avi)
     Multiple _MiniscopeSingleVideoExtractor are combined by downstream extractors to extract the data
@@ -149,7 +148,9 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
         file_path: PathType
            The file path to the Miniscope video (.avi) file.
         """
-        from neuroconv.datainterfaces.behavior.video.video_utils import VideoCaptureContext
+        from neuroconv.datainterfaces.behavior.video.video_utils import (
+            VideoCaptureContext,
+        )
 
         self._video_capture = VideoCaptureContext
         self._cv2 = get_package(package_name="cv2", installation_instructions="pip install opencv-python-headless")
@@ -272,3 +273,9 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
             )
 
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Miniscope videos do not have native timestamps
+        return None

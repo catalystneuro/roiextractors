@@ -1,14 +1,12 @@
-import pytest
-from pathlib import Path
 from datetime import datetime, timezone
 
-import numpy as np
-from numpy.testing import assert_array_equal
+import pytest
 import tifffile
+from numpy.testing import assert_array_equal
 
 from roiextractors import ThorTiffImagingExtractor
-from .setup_paths import OPHYS_DATA_PATH
 
+from .setup_paths import OPHYS_DATA_PATH
 
 # Path to the test data
 TEST_DIR = OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "single_channel_single_plane" / "20231018-002"
@@ -30,13 +28,13 @@ class TestThorTiffImagingExtractor:
         # Load the test data for comparison
         cls.test_data = tifffile.imread(FILE_PATH)
 
-    def test_thor_tiff_extractor_image_size(self):
-        """Test the image size property."""
-        assert self.extractor.get_image_size() == (self.test_data.shape[1], self.test_data.shape[2])
+    def test_thor_tiff_extractor_frame_shape(self):
+        """Test the frame shape property."""
+        assert self.extractor.get_frame_shape() == (self.test_data.shape[1], self.test_data.shape[2])
 
-    def test_thor_tiff_extractor_num_frames(self):
-        """Test the number of frames property."""
-        assert self.extractor.get_num_frames() == self.test_data.shape[0]
+    def test_thor_tiff_extractor_num_samples(self):
+        """Test the number of samples property."""
+        assert self.extractor.get_num_samples() == self.test_data.shape[0]
 
     def test_thor_tiff_extractor_sampling_frequency(self):
         """Test the sampling frequency property."""

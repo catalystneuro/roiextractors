@@ -6,22 +6,21 @@ TiffImagingExtractor
     A TIFF imaging extractor for TIFF files.
 """
 
-from pathlib import Path
-from typing import Optional
 import warnings
+from pathlib import Path
+from typing import Optional, Tuple
 from warnings import warn
-from typing import Tuple
 
 import numpy as np
 from tqdm import tqdm
 
-from ...imagingextractor import ImagingExtractor
 from ...extraction_tools import (
-    PathType,
     FloatType,
-    raise_multi_channel_or_depth_not_implemented,
+    PathType,
     get_package,
+    raise_multi_channel_or_depth_not_implemented,
 )
+from ...imagingextractor import ImagingExtractor
 
 
 class TiffImagingExtractor(ImagingExtractor):
@@ -203,6 +202,12 @@ class TiffImagingExtractor(ImagingExtractor):
 
     def get_channel_names(self):
         pass
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Basic TIFF files do not have native timestamps
+        return None
 
     @staticmethod
     def write_imaging(imaging, save_path, overwrite: bool = False, chunk_size=None, verbose=True):

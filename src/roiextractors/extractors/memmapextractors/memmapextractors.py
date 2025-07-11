@@ -6,19 +6,17 @@ MemmapImagingExtractor
     The base class for memmapable imaging extractors.
 """
 
+import warnings
 from pathlib import Path
-import warnings
+from typing import Optional, Tuple
 from warnings import warn
-import warnings
 
 import numpy as np
 import psutil
 from tqdm import tqdm
 
+from ...extraction_tools import DtypeType, PathType
 from ...imagingextractor import ImagingExtractor
-from typing import Tuple, Optional
-
-from ...extraction_tools import PathType, DtypeType
 
 
 class MemmapImagingExtractor(ImagingExtractor):
@@ -165,6 +163,12 @@ class MemmapImagingExtractor(ImagingExtractor):
             The shape of the video data (num_samples, num_rows, num_columns, num_channels).
         """
         return (self._num_samples, self._num_rows, self._num_columns, self._num_channels)
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Memory-mapped imaging data does not have native timestamps
+        return None
 
     @staticmethod
     def write_imaging(

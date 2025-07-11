@@ -8,16 +8,16 @@ FrameSliceImagingExtractor
     Class to get a lazy frame slice.
 """
 
+import warnings
 from abc import ABC, abstractmethod
-from typing import Union, Optional, Tuple
 from copy import deepcopy
 from math import prod
-import warnings
+from typing import Optional, Tuple, Union
 
 import numpy as np
 
-from .extraction_tools import ArrayType, DtypeType, FloatType
 from .core_utils import _convert_bytes_to_str, _convert_seconds_to_str
+from .extraction_tools import ArrayType, DtypeType, FloatType
 
 
 class ImagingExtractor(ABC):
@@ -102,7 +102,7 @@ class ImagingExtractor(ABC):
         )
         return self.get_image_shape()
 
-    def get_frame_shape(self) -> Tuple[int, int]:
+    def get_frame_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
         Returns
@@ -116,7 +116,7 @@ class ImagingExtractor(ABC):
         """
         return self.get_image_shape()
 
-    def get_sample_shape(self) -> Union[Tuple[int, int], Tuple[int, int, int]]:
+    def get_sample_shape(self) -> tuple[int, int] | tuple[int, int, int]:
         """
         Get the shape of a single sample elements from the series.
 
@@ -179,8 +179,8 @@ class ImagingExtractor(ABC):
                 "The get_volume_shape method requires the get_num_planes method to be implemented."
             )
 
-        image_shape = self.get_image_shape()
-        return (image_shape[0], image_shape[1], self.get_num_planes())
+        frame_shape = self.get_frame_shape()
+        return (frame_shape[0], frame_shape[1], self.get_num_planes())
 
     @abstractmethod
     def get_num_samples(self) -> int:
@@ -394,6 +394,66 @@ class ImagingExtractor(ABC):
             )
         return self.get_samples(sample_indices=frame_idxs)
 
+    @abstractmethod
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        """
+        Retrieve the original unaltered timestamps for the data in this interface.
+
+        This function should retrieve the data on-demand by re-initializing the IO.
+        Can be overridden to return None if the extractor does not have native timestamps.
+
+        Parameters
+        ----------
+        start_sample : int, optional
+            The starting sample index. If None, starts from the beginning.
+        end_sample : int, optional
+            The ending sample index. If None, goes to the end.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray or None
+            The timestamps for the data stream, or None if native timestamps are not available.
+        """
+        return None
+
+    def get_timestamps(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        """
+        Retrieve the timestamps for the data in this extractor.
+
+        Parameters
+        ----------
+        start_sample : int, optional
+            The starting sample index. If None, starts from the beginning.
+        end_sample : int, optional
+            The ending sample index. If None, goes to the end.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray
+            The timestamps for the data stream.
+        """
+        # Set defaults
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self.get_num_samples()
+
+        # Return cached timestamps if available
+        if self._times is not None:
+            return self._times[start_sample:end_sample]
+
+        # See if native timetstamps are available from the format
+        native_timestamps = self.get_native_timestamps()
+        if native_timestamps is not None:
+            self._times = native_timestamps  # Cache the native timestamps
+            return native_timestamps[start_sample:end_sample]
+
+        # Fallback to calculated timestamps from sampling frequency
+        sample_indices = np.arange(start_sample, end_sample)
+        return sample_indices / self.get_sampling_frequency()
+
     def sample_indices_to_time(self, sample_indices: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
         """Convert user-inputted sample indices to times with units of seconds.
 
@@ -406,12 +466,36 @@ class ImagingExtractor(ABC):
         -------
         times: float or array-like
             The corresponding times in seconds.
+
+        Deprecated
+        ----------
+        This method will be removed in or after January 2026.
+        Use get_timestamps() instead.
         """
-        # Default implementation
-        if self._times is None:
-            return sample_indices / self.get_sampling_frequency()
+        warnings.warn(
+            "sample_indices_to_time() is deprecated and will be removed in or after January 2026. "
+            "Use get_timestamps() instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        # Convert to numpy array if needed to handle indexing
+        sample_indices = np.array(sample_indices)
+
+        # Get all timestamps and index into them
+        if sample_indices.ndim == 0:
+            # Single index
+            start_sample = int(sample_indices)
+            end_sample = start_sample + 1
+            timestamps = self.get_timestamps(start_sample=start_sample, end_sample=end_sample)
+            return timestamps[0]
         else:
-            return self._times[sample_indices]
+            # Multiple indices - get the range covering all indices
+            start_sample = int(sample_indices.min())
+            end_sample = int(sample_indices.max()) + 1
+            timestamps = self.get_timestamps(start_sample=start_sample, end_sample=end_sample)
+            # Adjust indices to be relative to the start_sample
+            relative_indices = sample_indices - start_sample
+            return timestamps[relative_indices]
 
     def frame_to_time(self, frames: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
         """Convert user-inputted frame indices to times with units of seconds.
@@ -758,6 +842,22 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
                 "The get_num_planes method is only available for volumetric extractors."
             )
         return self._parent_imaging.get_num_planes()
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Get the full original timestamps from parent, but return only our slice range
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self.get_num_samples()
+
+        # Map relative indices to absolute indices in the parent
+        actual_start = self._start_sample + start_sample
+        actual_end = self._start_sample + end_sample
+
+        # Get timestamps from parent for our specific range
+        return self._parent_imaging.get_native_timestamps(start_sample=actual_start, end_sample=actual_end)
 
 
 class FrameSliceImagingExtractor(SampleSlicedImagingExtractor):

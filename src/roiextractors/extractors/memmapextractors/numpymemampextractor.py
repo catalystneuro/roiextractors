@@ -6,10 +6,14 @@ NumpyMemmapImagingExtractor
     The class for reading optical imaging data stored in a binary format with numpy.memmap.
 """
 
-import os
 from pathlib import Path
 
-from roiextractors.extraction_tools import read_numpy_memmap_video, VideoStructure, DtypeType, PathType
+from roiextractors.extraction_tools import (
+    DtypeType,
+    PathType,
+    VideoStructure,
+    read_numpy_memmap_video,
+)
 
 from .memmapextractors import MemmapImagingExtractor
 

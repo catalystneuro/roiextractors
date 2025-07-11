@@ -6,23 +6,24 @@ ScanImageLegacyImagingExtractor
     Specialized extractor for reading TIFF files produced via ScanImage.
 """
 
+import warnings
 from pathlib import Path
 from typing import Optional, Tuple
-import warnings
 from warnings import warn
+
 import numpy as np
 
-from ...extraction_tools import PathType, FloatType, ArrayType, DtypeType, get_package
-from ...imagingextractor import ImagingExtractor
-from ...volumetricimagingextractor import VolumetricImagingExtractor
-from ...multiimagingextractor import MultiImagingExtractor
 from .scanimagetiff_utils import (
-    extract_extra_metadata,
-    parse_metadata,
-    extract_timestamps_from_file,
     _get_scanimage_reader,
+    extract_extra_metadata,
+    extract_timestamps_from_file,
+    parse_metadata,
     read_scanimage_metadata,
 )
+from ...extraction_tools import ArrayType, DtypeType, FloatType, PathType, get_package
+from ...imagingextractor import ImagingExtractor
+from ...multiimagingextractor import MultiImagingExtractor
+from ...volumetricimagingextractor import VolumetricImagingExtractor
 
 
 class ScanImageImagingExtractor(ImagingExtractor):
@@ -148,7 +149,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         if non_valid_metadata:
             error_msg = (
                 f"Invalid metadata for file with name {file_path.name}. \n"
-                "The metadata is either None or empty which probably indictes that the tiff file "
+                "The metadata is either None or empty which probably indicates that the tiff file "
                 "Is not a ScanImage file or it could be an older version."
             )
             raise ValueError("Invalid metadata: The metadata is either None or empty.")
@@ -801,6 +802,31 @@ class ScanImageImagingExtractor(ImagingExtractor):
         self._times = timestamps
         return timestamps
 
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        """
+        Retrieve the original unaltered timestamps for the data in this interface.
+
+        Parameters
+        ----------
+        start_sample : int, optional
+            The starting sample index. If None, starts from the beginning.
+        end_sample : int, optional
+            The ending sample index. If None, goes to the end.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray or None
+            The timestamps for the data stream, or None if native timestamps are not available.
+        """
+        timestamps = self.get_times()
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = len(timestamps)
+        return timestamps[start_sample:end_sample]
+
     @staticmethod
     def extract_timestamp_from_page(page) -> float:
         """
@@ -869,7 +895,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         """
         Get the number of frames per slice from a ScanImage TIFF file.
 
-        ScanImage can sample mutiple frames per each slice.
+        ScanImage can sample multiple frames per each slice.
 
         Parameters
         ----------
@@ -1051,6 +1077,12 @@ class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
         """
         return self._num_planes
 
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # This is a legacy deprecated extractor - delegate to the first imaging extractor
+        return self._imaging_extractors[0].get_native_timestamps(start_sample, end_sample)
+
 
 class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
     """Specialized extractor for reading multi-file (buffered) TIFF files produced via ScanImage."""
@@ -1109,6 +1141,12 @@ class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
             )
             imaging_extractors.append(imaging_extractor)
         super().__init__(imaging_extractors=imaging_extractors)
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # This is a legacy deprecated extractor - delegate to the first imaging extractor
+        return self._imaging_extractors[0].get_native_timestamps(start_sample, end_sample)
 
 
 class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
@@ -1185,6 +1223,12 @@ class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
         """
         image_shape = self.get_image_shape()
         return (image_shape[0], image_shape[1], self.get_num_planes())
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # This is a legacy deprecated extractor - delegate to the first imaging extractor
+        return self._imaging_extractors[0].get_native_timestamps(start_sample, end_sample)
 
 
 class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
@@ -1558,6 +1602,12 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         )
         return raw_index
 
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Single plane ScanImage files do not have native timestamps
+        return None
+
 
 class ScanImageLegacyImagingExtractor(ImagingExtractor):
     """Specialized extractor for reading TIFF files produced via ScanImage.
@@ -1759,3 +1809,9 @@ class ScanImageLegacyImagingExtractor(ImagingExtractor):
 
     def get_channel_names(self) -> list:
         pass
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Legacy ScanImage files do not have native timestamps
+        return None

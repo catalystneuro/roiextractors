@@ -6,11 +6,11 @@ MultiImagingExtractor
     This class is used to combine multiple ImagingExtractor objects by frames.
 """
 
+import warnings
 from collections import defaultdict
-from typing import Tuple, List, Iterable, Optional
+from typing import Iterable, List, Optional, Tuple
 
 import numpy as np
-import warnings
 
 from .extraction_tools import ArrayType, NumpyArray
 from .imagingextractor import ImagingExtractor
@@ -324,3 +324,12 @@ class MultiImagingExtractor(ImagingExtractor):
             stacklevel=2,
         )
         return self._imaging_extractors[0].get_num_channels()
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # MultiImagingExtractor combines multiple extractors with potentially different timestamp behaviors.
+        # Implementing native timestamp concatenation is complex due to potential timestamp overlaps,
+        # different sampling rates, and mixed native/calculated timestamps across child extractors.
+        # For now, return None to use calculated timestamps based on sampling frequency.
+        return None

@@ -10,18 +10,17 @@ LegacyExtractSegmentationExtractor
     Extractor for reading the segmentation data that results from calls to older versions of EXTRACT.
 """
 
+import warnings
 from abc import ABC
 from pathlib import Path
 from typing import Optional
-import warnings
 
+import h5py
 import numpy as np
 from lazy_ops import DatasetView
 from packaging import version
 
-import h5py
-
-from ...extraction_tools import PathType, ArrayType
+from ...extraction_tools import ArrayType, PathType
 from ...segmentationextractor import SegmentationExtractor
 
 
@@ -289,12 +288,18 @@ class NewExtractSegmentationExtractor(
 
         return images_dict
 
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # EXTRACT data does not have native timestamps
+        return None
+
 
 class LegacyExtractSegmentationExtractor(SegmentationExtractor):
     """Extractor for reading the segmentation data that results from calls to older versions of EXTRACT.
 
     This class inherits from the SegmentationExtractor class, having all
-    its funtionality specifically applied to the dataset output from
+    its functionality specifically applied to the dataset output from
     the 'EXTRACT' ROI segmentation method.
     """
 
@@ -412,3 +417,9 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
             stacklevel=2,
         )
         return self.get_frame_shape()
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # EXTRACT data does not have native timestamps
+        return None
