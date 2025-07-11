@@ -8,6 +8,7 @@
 
 ### Improvements
 * Refactor Femtonics Imaging Extractor session, munit and channel selection logic. Added missing stub files (`single_channel.mesc` and `single_m_unit_index`)[PR #479](https://github.com/catalystneuro/roiextractors/pull/479)
+* Added tests for unused stub files (`dual_color_movie_with_dropped_frames.isxd` and `multiplane_movie.isxd`) in Inscopix imaging extractor [PR #478](https://github.com/catalystneuro/roiextractors/pull/478)
 
 # v0.6.1 (July 7th 2025)
 
