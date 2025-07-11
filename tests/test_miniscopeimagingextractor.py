@@ -10,10 +10,13 @@ import numpy as np
 from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
 
-from roiextractors import MiniscopeImagingExtractor, MiniscopeMultiRecordingImagingExtractor
+from roiextractors import (
+    MiniscopeImagingExtractor,
+    MiniscopeMultiRecordingImagingExtractor,
+)
 from roiextractors.extractors.miniscopeimagingextractor.miniscope_utils import (
-    get_miniscope_files_from_multi_recordings_subfolders,
     get_miniscope_files_from_direct_folder,
+    get_miniscope_files_from_multi_recordings_subfolders,
     get_recording_start_time,
     get_recording_start_times_for_multi_recordings,
     get_timestamps_for_multi_recordings,
