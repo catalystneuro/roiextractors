@@ -8,15 +8,14 @@ MiniscopeImagingExtractor
 
 import re
 import warnings
-from pathlib import Path
 from typing import List, Optional, Tuple
 
 import numpy as np
 
+from .miniscope_utils import load_miniscope_config, validate_miniscope_files
+from ...extraction_tools import DtypeType, PathType, get_package
 from ...imagingextractor import ImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor
-from ...extraction_tools import PathType, DtypeType, get_package
-from .miniscope_utils import validate_miniscope_files, load_miniscope_config
 
 
 class MiniscopeImagingExtractor(MultiImagingExtractor):
@@ -123,7 +122,9 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
     def __init__(self, folder_path: PathType):
         """Create a MiniscopeMultiRecordingImagingExtractor instance from folder_path."""
         # Import necessary packages
-        from .miniscope_utils import get_miniscope_files_from_multi_recordings_subfolders
+        from .miniscope_utils import (
+            get_miniscope_files_from_multi_recordings_subfolders,
+        )
 
         # Get file paths and configuration file path
         file_paths, configuration_file_path = get_miniscope_files_from_multi_recordings_subfolders(folder_path)

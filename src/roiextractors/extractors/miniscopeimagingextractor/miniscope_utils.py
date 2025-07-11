@@ -4,10 +4,10 @@ This module provides utility functions to automatically discover Miniscope files
 from folder structures, supporting various Miniscope folder organizations.
 """
 
+import datetime
 import json
 from pathlib import Path
 from typing import List, Tuple
-import datetime
 
 from ...extraction_tools import PathType, get_package
 

@@ -1,8 +1,8 @@
+import datetime
+import json
 import os
 import shutil
 import tempfile
-import datetime
-import json
 from pathlib import Path
 
 import cv2
@@ -13,15 +13,16 @@ from numpy.testing import assert_array_equal
 from roiextractors import MiniscopeImagingExtractor
 from roiextractors.extractors.miniscopeimagingextractor import (
     MiniscopeMultiRecordingImagingExtractor,
-    get_miniscope_files_from_multi_recordings_subfolders,
     get_miniscope_files_from_direct_folder,
-    validate_miniscope_files,
-    load_miniscope_config,
+    get_miniscope_files_from_multi_recordings_subfolders,
     get_recording_start_time,
-    read_timestamps_from_csv_file,
     get_recording_start_times_for_multi_recordings,
     get_timestamps_for_multi_recordings,
+    load_miniscope_config,
+    read_timestamps_from_csv_file,
+    validate_miniscope_files,
 )
+
 from .setup_paths import OPHYS_DATA_PATH
 
 
