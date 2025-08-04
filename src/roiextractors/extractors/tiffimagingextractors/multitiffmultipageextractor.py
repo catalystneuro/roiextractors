@@ -334,8 +334,8 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
                 file_index = table_row["file_index"]
                 ifd_index = table_row["IFD_index"]
 
-                tiff_reader = self._tiff_readers[file_index]
-                image_file_directory = tiff_reader.pages[ifd_index]
+                tiff_handle = self._file_handles[file_index]
+                image_file_directory = tiff_handle.pages[ifd_index]
                 samples[return_index, :, :, depth_position] = image_file_directory.asarray()
 
         # Squeeze the depth dimension if not volumetric
