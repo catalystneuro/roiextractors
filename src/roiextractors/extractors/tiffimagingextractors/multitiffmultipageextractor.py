@@ -343,7 +343,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
         return samples
 
-    def get_frame_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> Tuple[int, int]:
         """Get the size of the video (num_rows, num_columns).
 
         Returns
@@ -352,6 +352,8 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             Size of the video (num_rows, num_columns).
         """
         return (self._num_rows, self._num_columns)
+
+    get_frame_shape = get_image_shape
 
     def get_num_samples(self) -> int:
         """Get the number of frames in the video.

@@ -225,7 +225,6 @@ class ImagingExtractor(ABC):
         """
         pass
 
-    @abstractmethod
     def get_channel_names(self) -> list:
         """Get the channel names in the recoding.
 
