@@ -206,6 +206,10 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         # Determine if we're dealing with volumetric data
         self.is_volumetric = self.num_planes > 1
 
+    def get_num_planes(self) -> int:
+        """Get the number of depth planes."""
+        return self._num_planes
+
     @staticmethod
     def _create_frame_to_ifd_table(
         dimension_order: str, num_channels: int, num_acquisition_cycles: int, num_planes: int, ifds_per_file: List[int]
@@ -447,7 +451,5 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
     def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
-        """
-        No native timestamps for native this extractor.
-        """
+        """No native timestamps for native this extractor."""
         return None
