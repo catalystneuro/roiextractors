@@ -342,8 +342,6 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
         return samples
 
-
-
     def get_frame_shape(self) -> Tuple[int, int]:
         """Get the size of the video (num_rows, num_columns).
 
@@ -373,8 +371,6 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             Sampling frequency in Hz.
         """
         return self._sampling_frequency
-
-
 
     def get_dtype(self) -> DtypeType:
         """Get the data type of the video.
