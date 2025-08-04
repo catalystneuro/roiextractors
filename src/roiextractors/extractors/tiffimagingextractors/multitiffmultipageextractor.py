@@ -197,11 +197,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
         # Filter mapping for the specified channel
         channel_mask = full_mapping["channel_index"] == channel_index
-        sample_to_ifd_mapping = full_mapping[channel_mask]
-
-        # Sort by time_index and depth_index for easier access
-        sorted_indices = np.argsort(sample_to_ifd_mapping["time_index"])
-        self._frames_to_ifd_table = sample_to_ifd_mapping[sorted_indices]
+        self._frames_to_ifd_table = full_mapping[channel_mask]
 
         # Determine if we're dealing with volumetric data
         self.is_volumetric = self._num_planes > 1
