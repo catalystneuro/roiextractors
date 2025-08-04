@@ -289,13 +289,13 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
         return mapping
 
-    def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
-        """Get specific frames by their indices.
+    def get_samples(self, sample_indices: ArrayType) -> np.ndarray:
+        """Get specific samples by their indices.
 
         Parameters
         ----------
-        frame_idxs : array-like
-            Indices of frames to retrieve. Must be an array-like object, not a single integer.
+        sample_indices : array-like
+            Indices of samples to retrieve. Must be an array-like object, not a single integer.
 
         Returns
         -------
@@ -310,18 +310,18 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         ValueError
             If any frame index is out of range.
         """
-        if isinstance(frame_idxs, (int, np.integer)):
-            raise TypeError("frame_idxs must be an array-like object, not a single integer")
+        if isinstance(sample_indices, (int, np.integer)):
+            raise TypeError("sample_indices must be an array-like object, not a single integer")
 
-        frame_idxs = np.array(frame_idxs)
-        if np.any(frame_idxs >= self._num_samples) or np.any(frame_idxs < 0):
+        sample_indices = np.array(sample_indices)
+        if np.any(sample_indices >= self._num_samples) or np.any(sample_indices < 0):
             raise ValueError(f"Frame indices must be between 0 and {self._num_samples - 1}")
 
         # Always preallocate output array as volumetric
-        samples = np.empty((len(frame_idxs), self._num_rows, self._num_columns, self.num_planes), dtype=self._dtype)
+        samples = np.empty((len(sample_indices), self._num_rows, self._num_columns, self.num_planes), dtype=self._dtype)
 
         # Load each requested frame
-        for frame_idx_position, frame_idx in enumerate(frame_idxs):
+        for frame_idx_position, frame_idx in enumerate(sample_indices):
             for depth_position in range(self.num_planes):
                 # Calculate the index in the mapping array
                 # Each frame has num_planes entries in the mapping
@@ -342,31 +342,9 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
         return samples
 
-    def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
-        """Get a range of frames.
 
-        Parameters
-        ----------
-        start_frame : int, optional
-            Start frame index (inclusive). Default is 0.
-        end_frame : int, optional
-            End frame index (exclusive). Default is the total number of frames.
 
-        Returns
-        -------
-        numpy.ndarray
-            Array of frames with shape (num_samples, height, width) if num_planes is 1,
-            or (num_samples, height, width, num_planes) if num_planes > 1.
-        """
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self._num_samples
-
-        frame_idxs = np.arange(start_frame, end_frame)
-        return self.get_frames(frame_idxs)
-
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_frame_shape(self) -> Tuple[int, int]:
         """Get the size of the video (num_rows, num_columns).
 
         Returns
@@ -376,7 +354,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         """
         return (self._num_rows, self._num_columns)
 
-    def get_num_frames(self) -> int:
+    def get_num_samples(self) -> int:
         """Get the number of frames in the video.
 
         Returns
@@ -396,15 +374,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         """
         return self._sampling_frequency
 
-    def get_channel_names(self) -> list:
-        """Get the channel names in the recording.
 
-        Returns
-        -------
-        list
-            List containing the name of the selected channel.
-        """
-        return [f"Channel{self.channel_index}"]
 
     def get_dtype(self) -> DtypeType:
         """Get the data type of the video.
