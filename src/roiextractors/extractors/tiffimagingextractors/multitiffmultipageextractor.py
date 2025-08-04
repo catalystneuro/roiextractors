@@ -6,13 +6,14 @@ MultiTIFFMultiPageExtractor
     An extractor for handling multiple TIFF files, each with multiple pages, organized according to a specified dimension order.
 """
 
+import glob
+import warnings
 from pathlib import Path
 from typing import List, Optional, Tuple
-import warnings
-import numpy as np
-import glob
 
-from ...extraction_tools import PathType, ArrayType, DtypeType, get_package
+import numpy as np
+
+from ...extraction_tools import ArrayType, DtypeType, PathType, get_package
 from ...imagingextractor import ImagingExtractor
 
 

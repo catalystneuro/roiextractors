@@ -1,19 +1,17 @@
 """Tests for the MultiTIFFMultiPageExtractor."""
 
-import os
 import tempfile
 import unittest
-import numpy as np
 from pathlib import Path
-import pytest
-from numpy.testing import assert_array_equal, assert_allclose
 
+import numpy as np
+from numpy.testing import assert_allclose
+
+from roiextractors.extraction_tools import get_package
 from roiextractors.extractors.tiffimagingextractors import (
     MultiTIFFMultiPageExtractor,
     ScanImageTiffMultiPlaneMultiFileImagingExtractor,
 )
-from roiextractors.extractors.tiffimagingextractors.scanimagetiff_utils import extract_extra_metadata, parse_metadata
-from roiextractors.extraction_tools import get_package
 from tests.setup_paths import OPHYS_DATA_PATH
 
 
