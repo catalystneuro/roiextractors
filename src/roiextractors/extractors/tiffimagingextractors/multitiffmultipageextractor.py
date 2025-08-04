@@ -210,6 +210,16 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         """Get the number of depth planes."""
         return self._num_planes
 
+    def get_volume_shape(self) -> Tuple[int, int, int]:
+        """Get the shape of a single volume (num_rows, num_columns, num_planes).
+
+        Returns
+        -------
+        tuple
+            Shape of a single volume (num_rows, num_columns, num_planes).
+        """
+        return (self._num_rows, self._num_columns, self._num_planes)
+
     @staticmethod
     def _create_frame_to_ifd_table(
         dimension_order: str, num_channels: int, num_acquisition_cycles: int, num_planes: int, ifds_per_file: List[int]
