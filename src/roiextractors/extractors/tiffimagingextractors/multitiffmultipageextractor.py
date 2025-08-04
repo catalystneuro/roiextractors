@@ -48,7 +48,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             List of paths to TIFF files.
         sampling_frequency : float
             The sampling frequency in Hz.
-            Note that if your data is volumetric the sampling rate is the sampling rate of the volume, 
+            Note that if your data is volumetric the sampling rate is the sampling rate of the volume,
             not the individual frames.
         dimension_order : str, optional
             The order of dimensions in the data. Must be one of: ZCT, ZTC, CTZ, TCZ, CZT, TZC.
@@ -444,4 +444,3 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             num_acquisition_cycles=num_acquisition_cycles,
             num_planes=num_planes,
         )
-
