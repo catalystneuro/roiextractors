@@ -289,7 +289,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
         return mapping
 
-    def get_samples(self, sample_indices: ArrayType) -> np.ndarray:
+    def get_samples(self, sample_indices: np.ndarray) -> np.ndarray:
         """Get specific samples by their indices.
 
         Parameters
@@ -376,7 +376,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
 
 
-    def get_dtype(self) -> DtypeType:
+    def get_dtype(self):
         """Get the data type of the video.
 
         Returns
