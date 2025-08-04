@@ -13,7 +13,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
-from ...extraction_tools import ArrayType, DtypeType, PathType, get_package
+from ...extraction_tools import PathType, get_package
 from ...imagingextractor import ImagingExtractor
 
 
