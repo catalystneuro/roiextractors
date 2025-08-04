@@ -56,3 +56,4 @@ from .scanimagetiffimagingextractor import (
 )
 from .thortiffimagingextractor import ThorTiffImagingExtractor
 from .multitiffmultipageextractor import MultiTIFFMultiPageExtractor
+from .tiffimagingextractor import TiffImagingExtractor
