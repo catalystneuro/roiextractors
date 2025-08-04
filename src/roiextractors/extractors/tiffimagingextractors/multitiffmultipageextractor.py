@@ -187,7 +187,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         self.num_acquisition_cycles = num_acquisition_cycles
 
         # Create full mapping for all channels, times, and depths
-        full_mapping = self._create_sample_to_ifd_mapping(
+        full_mapping = self._create_frame_to_ifd_table(
             dimension_order=dimension_order,
             num_channels=num_channels,
             num_acquisition_cycles=num_acquisition_cycles,
@@ -201,13 +201,13 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
         # Sort by time_index and depth_index for easier access
         sorted_indices = np.argsort(sample_to_ifd_mapping["time_index"])
-        self._sample_to_ifd_mapping = sample_to_ifd_mapping[sorted_indices]
+        self._frames_to_ifd_table = sample_to_ifd_mapping[sorted_indices]
 
         # Determine if we're dealing with volumetric data
         self.is_volumetric = self.num_planes > 1
 
     @staticmethod
-    def _create_sample_to_ifd_mapping(
+    def _create_frame_to_ifd_table(
         dimension_order: str, num_channels: int, num_acquisition_cycles: int, num_planes: int, ifds_per_file: List[int]
     ) -> np.ndarray:
         """Create a mapping from sample index to file and IFD indices.
@@ -289,8 +289,8 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         mapping["time_index"] = time_indices
 
         return mapping
-
-    def get_samples(self, sample_indices: np.ndarray) -> np.ndarray:
+    
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
         """Get specific samples by their indices.
 
         Parameters
@@ -311,31 +311,29 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         ValueError
             If any frame index is out of range.
         """
-        if isinstance(sample_indices, (int, np.integer)):
-            raise TypeError("sample_indices must be an array-like object, not a single integer")
+        start_sample = int(start_sample) if start_sample is not None else 0
+        end_sample = int(end_sample) if end_sample is not None else self.get_num_samples()
 
-        sample_indices = np.array(sample_indices)
-        if np.any(sample_indices >= self._num_samples) or np.any(sample_indices < 0):
-            raise ValueError(f"Frame indices must be between 0 and {self._num_samples - 1}")
+        samples_in_series = end_sample - start_sample
+
 
         # Always preallocate output array as volumetric
-        samples = np.empty((len(sample_indices), self._num_rows, self._num_columns, self.num_planes), dtype=self._dtype)
+        num_rows, num_columns, num_planes = self.get_volume_shape()
+        dtype = self.get_dtype()
+        samples = np.empty((samples_in_series, num_rows, num_columns, num_planes), dtype=dtype)
+        
+        for return_index, sample_index in enumerate(range(start_sample, end_sample)):
+            for depth_position in range(num_planes):
 
-        # Load each requested frame
-        for frame_idx_position, frame_idx in enumerate(sample_indices):
-            for depth_position in range(self.num_planes):
-                # Calculate the index in the mapping array
-                # Each frame has num_planes entries in the mapping
-                mapping_idx = frame_idx * self.num_planes + depth_position
+                # Calculate the index in the mapping table array
+                frame_index = sample_index * num_planes + depth_position
+                table_row = self._frames_to_ifd_table[frame_index]
+                file_index = table_row["file_index"]
+                ifd_index = table_row["IFD_index"]
 
-                # Get the mapping for this frame and depth
-                mapping_entry = self._sample_to_ifd_mapping[mapping_idx]
-                file_index = mapping_entry["file_index"]
-                file_handle = self._file_handles[file_index]
-                ifd_index = mapping_entry["IFD_index"]
-
-                ifd = file_handle.pages[ifd_index]
-                samples[frame_idx_position, :, :, depth_position] = ifd.asarray()
+                tiff_reader = self._tiff_readers[file_index]
+                image_file_directory = tiff_reader.pages[ifd_index]
+                samples[return_index, :, :, depth_position] = image_file_directory.asarray()
 
         # Squeeze the depth dimension if not volumetric
         if not self.is_volumetric:
@@ -446,3 +444,12 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             num_acquisition_cycles=num_acquisition_cycles,
             num_planes=num_planes,
         )
+        
+        
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        """
+        No native timestamps for native this extractor.
+        """
+        return None
