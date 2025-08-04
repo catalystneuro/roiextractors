@@ -289,7 +289,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         mapping["time_index"] = time_indices
 
         return mapping
-    
+
     def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
         """Get specific samples by their indices.
 
@@ -316,12 +316,11 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
         samples_in_series = end_sample - start_sample
 
-
         # Always preallocate output array as volumetric
         num_rows, num_columns, num_planes = self.get_volume_shape()
         dtype = self.get_dtype()
         samples = np.empty((samples_in_series, num_rows, num_columns, num_planes), dtype=dtype)
-        
+
         for return_index, sample_index in enumerate(range(start_sample, end_sample)):
             for depth_position in range(num_planes):
 
@@ -444,8 +443,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             num_acquisition_cycles=num_acquisition_cycles,
             num_planes=num_planes,
         )
-        
-        
+
     def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
