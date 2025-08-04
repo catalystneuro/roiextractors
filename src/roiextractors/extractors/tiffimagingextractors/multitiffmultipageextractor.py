@@ -134,7 +134,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         self.dimension_order = dimension_order
         self.num_channels = num_channels
         self.channel_index = channel_index
-        self.num_planes = num_planes
+        self._num_planes = num_planes
         self._sampling_frequency = sampling_frequency
 
         # Get tifffile package
@@ -204,7 +204,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         self._frames_to_ifd_table = sample_to_ifd_mapping[sorted_indices]
 
         # Determine if we're dealing with volumetric data
-        self.is_volumetric = self.num_planes > 1
+        self.is_volumetric = self._num_planes > 1
 
     def get_num_planes(self) -> int:
         """Get the number of depth planes."""

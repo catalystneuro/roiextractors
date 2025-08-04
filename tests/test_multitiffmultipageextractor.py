@@ -62,29 +62,28 @@ def multi_tiff_extractor(temp_tiff_files):
 
 def test_initialization(multi_tiff_extractor):
     """Test initialization of the extractor."""
-    assert multi_tiff_extractor.get_num_frames() == 4
-    assert multi_tiff_extractor.get_image_size() == (10, 12)  # (height, width)
+    assert multi_tiff_extractor.get_num_samples() == 4
+    assert multi_tiff_extractor.get_frame_shape() == (10, 12)  # (height, width)
     assert multi_tiff_extractor.get_sampling_frequency() == 30.0
-    assert len(multi_tiff_extractor.get_channel_names()) == 1
 
 
-def test_get_video(multi_tiff_extractor):
-    """Test retrieving video from the extractor."""
-    # Get specific frames
-    frame_0 = multi_tiff_extractor.get_video(frame_idxs=[0])
-    frame_1 = multi_tiff_extractor.get_video(frame_idxs=[1])
+def test_get_series(multi_tiff_extractor):
+    """Test retrieving series from the extractor."""
+    # Get specific samples
+    sample_0 = multi_tiff_extractor.get_series(start_sample=0, end_sample=1)
+    sample_1 = multi_tiff_extractor.get_series(start_sample=1, end_sample=2)
 
-    # Check frame shapes - should include depth dimension
-    assert frame_0.shape == (1, 10, 12, 3)
-    assert frame_1.shape == (1, 10, 12, 3)
+    # Check sample shapes - should include depth dimension
+    assert sample_0.shape == (1, 10, 12, 3)
+    assert sample_1.shape == (1, 10, 12, 3)
 
-    # Get multiple frames
-    frames = multi_tiff_extractor.get_video(frame_idxs=[0, 1])
-    assert frames.shape == (2, 10, 12, 3)
+    # Get multiple samples
+    samples = multi_tiff_extractor.get_series(start_sample=0, end_sample=2)
+    assert samples.shape == (2, 10, 12, 3)
 
-    # Get all frames
-    all_frames = multi_tiff_extractor.get_video()
-    assert all_frames.shape == (4, 10, 12, 3)
+    # Get all samples
+    all_samples = multi_tiff_extractor.get_series()
+    assert all_samples.shape == (4, 10, 12, 3)
 
 
 def test_from_folder(temp_tiff_files):
@@ -99,8 +98,8 @@ def test_from_folder(temp_tiff_files):
         num_acquisition_cycles=2,
     )
 
-    assert extractor.get_num_frames() == 4
-    assert extractor.get_image_size() == (10, 12)
+    assert extractor.get_num_samples() == 4
+    assert extractor.get_frame_shape() == (10, 12)
 
 
 def test_different_dimension_orders(temp_tiff_files):
@@ -116,11 +115,11 @@ def test_different_dimension_orders(temp_tiff_files):
         num_planes=3,
     )
 
-    assert extractor_ztc.get_num_frames() == 4
+    assert extractor_ztc.get_num_samples() == 4
 
-    # Get frames and check they're accessible
-    frame_0 = extractor_ztc.get_video(frame_idxs=[0])
-    assert frame_0.shape == (1, 10, 12, 3)
+    # Get samples and check they're accessible
+    sample_0 = extractor_ztc.get_series(start_sample=0, end_sample=1)
+    assert sample_0.shape == (1, 10, 12, 3)
 
 
 @pytest.mark.parametrize("dimension_order", ["CZT", "ZCT", "TCZ", "TZC"])
@@ -136,9 +135,9 @@ def test_dimension_order_variations(temp_tiff_files, dimension_order):
         num_planes=3,
     )
 
-    assert extractor.get_num_frames() == 4
-    video = extractor.get_video(frame_idxs=[0])
-    assert video.ndim == 4  # (frames, height, width, depth)
+    assert extractor.get_num_samples() == 4
+    series = extractor.get_series(start_sample=0, end_sample=1)
+    assert series.ndim == 4  # (samples, height, width, depth)
 
 
 def test_comparison_with_scanimage():
@@ -166,23 +165,23 @@ def test_comparison_with_scanimage():
     )
 
     # Compare basic properties
-    assert multi_extractor.get_num_frames() == scanimage_extractor.get_num_frames()
+    assert multi_extractor.get_num_samples() == scanimage_extractor.get_num_samples()
 
-    # Compare image sizes - ScanImage includes depth dimension, MultiTIFF doesn't
-    scanimage_size = scanimage_extractor.get_image_size()
-    multi_size = multi_extractor.get_image_size()
+    # Compare frame shapes - ScanImage includes depth dimension, MultiTIFF doesn't
+    scanimage_shape = scanimage_extractor.get_frame_shape()
+    multi_shape = multi_extractor.get_frame_shape()
 
     # Check that the first two dimensions (height, width) match
-    assert multi_size[0] == scanimage_size[0]
-    assert multi_size[1] == scanimage_size[1]
+    assert multi_shape[0] == scanimage_shape[0]
+    assert multi_shape[1] == scanimage_shape[1]
 
     assert multi_extractor.get_sampling_frequency() == scanimage_extractor.get_sampling_frequency()
 
-    # Compare the actual video data
-    scanimage_video = scanimage_extractor.get_video().squeeze()
-    multi_video = multi_extractor.get_video()
+    # Compare the actual series data
+    scanimage_series = scanimage_extractor.get_series().squeeze()
+    multi_series = multi_extractor.get_series()
 
-    assert_allclose(scanimage_video, multi_video, rtol=1e-5, atol=1e-8)
+    assert_allclose(scanimage_series, multi_series, rtol=1e-5, atol=1e-8)
 
 
 def test_channel_extraction(tmp_path):
@@ -227,14 +226,14 @@ def test_channel_extraction(tmp_path):
         num_planes=num_planes,
     )
 
-    assert extractor_ch0.get_num_frames() == num_timepoints
-    assert extractor_ch1.get_num_frames() == num_timepoints
+    assert extractor_ch0.get_num_samples() == num_timepoints
+    assert extractor_ch1.get_num_samples() == num_timepoints
 
     # Verify different channels have different data
-    video_ch0 = extractor_ch0.get_video()
-    video_ch1 = extractor_ch1.get_video()
+    series_ch0 = extractor_ch0.get_series()
+    series_ch1 = extractor_ch1.get_series()
 
-    assert not np.array_equal(video_ch0, video_ch1)
+    assert not np.array_equal(series_ch0, series_ch1)
 
 
 def test_error_handling(tmp_path):
