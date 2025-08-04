@@ -1,16 +1,19 @@
+import platform
 import unittest
 from pathlib import Path
+from shutil import copy, rmtree
 from tempfile import mkdtemp
-from shutil import rmtree, copy
+
+import pytest
 from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
-import pytest
 
-from roiextractors import TiffImagingExtractor, ScanImageTiffImagingExtractor
-from roiextractors.extractors.tiffimagingextractors.scanimagetiff_utils import _get_scanimage_reader
+from roiextractors import ScanImageLegacyImagingExtractor, TiffImagingExtractor
+from roiextractors.extractors.tiffimagingextractors.scanimagetiff_utils import (
+    _get_scanimage_reader,
+)
+
 from .setup_paths import OPHYS_DATA_PATH
-
-import platform
 
 is_m_series_mac = platform.system() == "Darwin" and platform.machine() == "arm64"
 if (
@@ -24,7 +27,7 @@ class TestScanImageTiffExtractor(TestCase):
     def setUpClass(cls):
         cls.file_path = OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "sample_scanimage.tiff"
         cls.tmpdir = Path(mkdtemp())
-        cls.imaging_extractor = ScanImageTiffImagingExtractor(file_path=cls.file_path, sampling_frequency=30.0)
+        cls.imaging_extractor = ScanImageLegacyImagingExtractor(file_path=cls.file_path, sampling_frequency=30.0)
         ScanImageTiffReader = _get_scanimage_reader()
         with ScanImageTiffReader(filename=str(cls.imaging_extractor.file_path)) as io:
             cls.data = io.data()
@@ -51,10 +54,10 @@ class TestScanImageTiffExtractor(TestCase):
             warn_type=UserWarning,
             exc_msg=(
                 "Suffix (.jpg) is not of type .tiff, .tif, .TIFF, or .TIF! "
-                "The ScanImageTiffImagingExtractor may not be appropriate for the file."
+                "The ScanImageLegacyImagingExtractor may not be appropriate for the file."
             ),
         ):
-            ScanImageTiffImagingExtractor(file_path=different_suffix_file_path, sampling_frequency=30.0)
+            ScanImageLegacyImagingExtractor(file_path=different_suffix_file_path, sampling_frequency=30.0)
 
     def test_scan_image_tiff_consecutive_frames(self):
         frame_idxs = [6, 8]

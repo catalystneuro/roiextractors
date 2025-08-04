@@ -1,11 +1,12 @@
 """Extractor for Thor TIFF files."""
 
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
-from collections import defaultdict, namedtuple
+import math
 import warnings
 import xml.etree.ElementTree as ET
-import math
+from collections import defaultdict, namedtuple
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union
+
 import numpy as np
 
 from ...imagingextractor import ImagingExtractor
@@ -42,7 +43,6 @@ class ThorTiffImagingExtractor(ImagingExtractor):
     """
 
     extractor_name = "ThorTiffImaging"
-    is_writable = False
 
     # Named tuple to hold page mapping details.
     PageMapping = namedtuple("PageMapping", ["page_index", "channel_index", "depth_index"])
@@ -69,7 +69,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
             raise ValueError("Could not find 'Pixels' element in OME metadata.")
 
         self._num_channels = int(pixels_element.get("SizeC", "1"))
-        self._num_frames = int(pixels_element.get("SizeT", "1"))
+        self._num_samples = int(pixels_element.get("SizeT", "1"))
         self._num_rows = int(pixels_element.get("SizeY"))
         self._num_columns = int(pixels_element.get("SizeX"))
         self._num_z = int(pixels_element.get("SizeZ", "1"))
@@ -241,22 +241,80 @@ class ThorTiffImagingExtractor(ImagingExtractor):
 
         return output_array
 
-    def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
-        """Get a range of frames."""
-        if start_frame is None:
-            start_frame = 0
-        if end_frame is None:
-            end_frame = self._num_frames
-        frame_indices = list(range(start_frame, end_frame))
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self._num_samples
+        frame_indices = list(range(start_sample, end_sample))
         return self.get_frames(frame_indices)
+
+    def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
+        """Get a range of frames.
+
+        Parameters
+        ----------
+        start_frame: int, optional
+            Start frame index (inclusive).
+        end_frame: int, optional
+            End frame index (exclusive).
+
+        Returns
+        -------
+        video: numpy.ndarray
+            The video frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
+        """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
+
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._num_rows, self._num_columns
 
     def get_image_size(self) -> Tuple[int, int]:
         """Return the image dimensions (height, width)."""
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._num_rows, self._num_columns
 
+    def get_num_samples(self) -> int:
+        """Return the number of samples (time points)."""
+        return self._num_samples
+
     def get_num_frames(self) -> int:
-        """Return the number of frames (time points)."""
-        return self._num_frames
+        """Return the number of frames (time points).
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> Optional[float]:
         """Return the sampling frequency, if available."""
@@ -273,6 +331,12 @@ class ThorTiffImagingExtractor(ImagingExtractor):
     def get_dtype(self):
         """Return the data type of the video."""
         return self._dtype
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # ThorLabs TIFF imaging data does not have native timestamps
+        return None
 
     def __del__(self):
         """Close the tiff_reader when the object is garbage collected."""

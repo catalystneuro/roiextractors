@@ -1,7 +1,9 @@
 """Utility functions for ScanImage TIFF Extractors."""
 
-import numpy as np
 import json
+
+import numpy as np
+
 from ...extraction_tools import PathType, get_package
 
 

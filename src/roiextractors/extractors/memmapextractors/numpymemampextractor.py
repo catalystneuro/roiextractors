@@ -6,10 +6,14 @@ NumpyMemmapImagingExtractor
     The class for reading optical imaging data stored in a binary format with numpy.memmap.
 """
 
-import os
 from pathlib import Path
 
-from roiextractors.extraction_tools import read_numpy_memmap_video, VideoStructure, DtypeType, PathType
+from roiextractors.extraction_tools import (
+    DtypeType,
+    PathType,
+    VideoStructure,
+    read_numpy_memmap_video,
+)
 
 from .memmapextractors import MemmapImagingExtractor
 
@@ -67,8 +71,6 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
         offset : int, optional
             The offset in bytes. Usually corresponds to the number of bytes occupied by the header. 0 by default.
         """
-        self.installed = True
-
         self.file_path = Path(file_path)
         self.video_structure = video_structure
         self._sampling_frequency = float(sampling_frequency)
@@ -80,6 +82,6 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
             file_path=file_path, video_structure=video_structure, dtype=dtype, offset=offset
         )
         self._video = video_structure.transform_video_to_canonical_form(self._video)
-        self._num_frames, self._num_rows, self._num_columns, self._num_channels = self._video.shape
+        self._num_samples, self._num_rows, self._num_columns, self._num_channels = self._video.shape
 
         super().__init__(video=self._video)

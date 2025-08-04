@@ -10,17 +10,17 @@ LegacyExtractSegmentationExtractor
     Extractor for reading the segmentation data that results from calls to older versions of EXTRACT.
 """
 
+import warnings
 from abc import ABC
 from pathlib import Path
 from typing import Optional
 
+import h5py
 import numpy as np
 from lazy_ops import DatasetView
 from packaging import version
 
-import h5py
-
-from ...extraction_tools import PathType, ArrayType
+from ...extraction_tools import ArrayType, PathType
 from ...segmentationextractor import SegmentationExtractor
 
 
@@ -151,7 +151,6 @@ class NewExtractSegmentationExtractor(
     """
 
     extractor_name = "NewExtractSegmentation"
-    is_writable = False
     mode = "file"
 
     def __init__(
@@ -260,8 +259,24 @@ class NewExtractSegmentationExtractor(
     def get_roi_ids(self) -> list:
         return list(range(self.get_num_rois()))
 
-    def get_image_size(self) -> ArrayType:
+    def get_frame_shape(self) -> ArrayType:
+        """Get the frame shape (height, width) of the movie.
+
+        Returns
+        -------
+        ArrayType
+            The frame shape as (height, width).
+        """
         return self._image_masks.shape[:-1]
+
+    def get_image_size(self) -> ArrayType:
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()
 
     def get_images_dict(self):
         images_dict = super().get_images_dict()
@@ -273,17 +288,22 @@ class NewExtractSegmentationExtractor(
 
         return images_dict
 
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # EXTRACT data does not have native timestamps
+        return None
+
 
 class LegacyExtractSegmentationExtractor(SegmentationExtractor):
     """Extractor for reading the segmentation data that results from calls to older versions of EXTRACT.
 
     This class inherits from the SegmentationExtractor class, having all
-    its funtionality specifically applied to the dataset output from
+    its functionality specifically applied to the dataset output from
     the 'EXTRACT' ROI segmentation method.
     """
 
     extractor_name = "LegacyExtractSegmentation"
-    is_writable = False
     mode = "file"
 
     def __init__(
@@ -379,5 +399,27 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         ac_set = set(self.get_accepted_list())
         return [a for a in range(self.get_num_rois()) if a not in ac_set]
 
-    def get_image_size(self):
+    def get_frame_shape(self):
+        """Get the frame shape (height, width) of the movie.
+
+        Returns
+        -------
+        tuple
+            The frame shape as (height, width).
+        """
         return self._image_masks.shape[0:2]
+
+    def get_image_size(self):
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # EXTRACT data does not have native timestamps
+        return None

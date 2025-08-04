@@ -7,6 +7,8 @@ CnmfeSegmentationExtractor
 """
 
 from pathlib import Path
+from typing import Optional
+from warnings import warn
 
 import h5py
 import numpy as np
@@ -22,12 +24,11 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
     """A segmentation extractor for CNMF-E ROI segmentation method.
 
     This class inherits from the SegmentationExtractor class, having all
-    its funtionality specifically applied to the dataset output from
+    its functionality specifically applied to the dataset output from
     the 'CNMF-E' ROI segmentation method.
     """
 
     extractor_name = "CnmfeSegmentation"
-    is_writable = False
     mode = "file"
 
     def __init__(self, file_path: PathType):
@@ -127,6 +128,16 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         ac_set = set(self.get_accepted_list())
         return [a for a in range(self.get_num_rois()) if a not in ac_set]
 
+    def get_frame_shape(self):
+        """Get the frame shape (height, width) of the movie.
+
+        Returns
+        -------
+        tuple
+            The frame shape as (height, width).
+        """
+        return self._image_masks.shape[0:2]
+
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite: bool = True):
         """Write a segmentation object to a .mat file.
@@ -147,6 +158,11 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         AssertionError
             If save_path is not a *.mat file.
         """
+        warn(
+            "The write_segmentation function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         save_path = Path(save_path)
         assert save_path.suffix == ".mat", "'save_path' must be a *.mat file"
         if save_path.is_file():
@@ -182,7 +198,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             if getattr(segmentation_object, "_raw_movie_file_location", None):
                 main.create_dataset(
                     "movieList",
-                    data=[ord(alph) for alph in str(segmentation_object._raw_movie_file_location)],
+                    data=[ord(alpha) for alpha in str(segmentation_object._raw_movie_file_location)],
                 )
             if segmentation_object.get_traces(name="deconvolved") is not None:
                 image_mask_csc = csc_matrix(segmentation_object.get_traces(name="deconvolved"))
@@ -196,4 +212,16 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
                 inputoptions.create_dataset("Fs", data=segmentation_object.get_sampling_frequency())
 
     def get_image_size(self):
-        return self._image_masks.shape[0:2]
+        warn(
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # CNMF-E segmentation data does not have native timestamps
+        return None

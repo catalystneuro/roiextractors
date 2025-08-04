@@ -6,18 +6,20 @@ SegmentationExtractor
     Abstract class that contains all the meta-data and output data from the ROI segmentation operation when applied to
     the pre-processed data. It also contains methods to read from and write to various data formats output from the
     processing pipelines like SIMA, CaImAn, Suite2p, CNMF-E.
+SampleSlicedSegmentationExtractor
+    Class to get a lazy sample slice.
 FrameSliceSegmentationExtractor
     Class to get a lazy frame slice.
 """
 
+import warnings
 from abc import ABC, abstractmethod
-from typing import Union, Optional, Tuple, Iterable, List
+from typing import Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 from numpy.typing import ArrayLike
 
-from .extraction_tools import ArrayType, IntType, FloatType
-from .extraction_tools import _pixel_mask_extractor
+from .extraction_tools import ArrayType, FloatType, IntType, _pixel_mask_extractor
 
 
 class SegmentationExtractor(ABC):
@@ -45,6 +47,7 @@ class SegmentationExtractor(ABC):
         self._image_correlation = None
         self._image_mean = None
         self._image_mask = None
+        self._properties = {}
 
     @abstractmethod
     def get_accepted_list(self) -> list:
@@ -69,27 +72,85 @@ class SegmentationExtractor(ABC):
         pass
 
     @abstractmethod
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        """Get the original timestamps from the data source.
+
+        Parameters
+        ----------
+        start_sample : int, optional
+            Start sample index (inclusive).
+        end_sample : int, optional
+            End sample index (exclusive).
+
+        Returns
+        -------
+        timestamps : np.ndarray or None
+            The original timestamps in seconds, or None if not available.
+        """
+        pass
+
+    @abstractmethod
+    def get_frame_shape(self) -> ArrayType:
+        """Get frame size of movie (height, width).
+
+        Returns
+        -------
+        frame_shape: array_like
+            2-D array: image height x image width
+        """
+        pass
+
     def get_image_size(self) -> ArrayType:
         """Get frame size of movie (height, width).
+
+        .. deprecated:: on or after January 2026
+           Use :meth:`get_frame_shape` instead.
 
         Returns
         -------
         no_rois: array_like
             2-D array: image height x image width
         """
-        pass
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()
+
+    def get_num_samples(self) -> int:
+        """Get the number of samples in the recording (duration of recording).
+
+        Returns
+        -------
+        num_samples: int
+            Number of samples in the recording.
+        """
+        for trace in self.get_traces_dict().values():
+            if trace is not None and len(trace.shape) > 0:
+                return trace.shape[0]
 
     def get_num_frames(self) -> int:
         """Get the number of frames in the recording (duration of recording).
+
+        .. deprecated:: on or after January 2026
+           Use :meth:`get_num_samples` instead.
 
         Returns
         -------
         num_frames: int
             Number of frames in the recording.
         """
-        for trace in self.get_traces_dict().values():
-            if trace is not None and len(trace.shape) > 0:
-                return trace.shape[0]
+        warnings.warn(
+            "get_num_frames is deprecated and will be removed on or after January 2026. "
+            "Use get_num_samples instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_roi_locations(self, roi_ids=None) -> np.ndarray:
         """Get the locations of the Regions of Interest (ROIs).
@@ -105,15 +166,13 @@ class SegmentationExtractor(ABC):
             2-D array: 2 X no_ROIs. The pixel ids (x,y) where the centroid of the ROI is.
         """
         if roi_ids is None:
-            roi_idx_ = list(range(self.get_num_rois()))
-        else:
-            all_ids = self.get_roi_ids()
-            roi_idx_ = [all_ids.index(i) for i in roi_ids]
-        roi_location = np.zeros([2, len(roi_idx_)], dtype="int")
-        for c, i in enumerate(roi_idx_):
-            image_mask = self.get_roi_image_masks(roi_ids=[i])
+            roi_ids = self.get_roi_ids()
+
+        roi_location = np.zeros([2, len(roi_ids)], dtype="int")
+        for roi_index, roi_id in enumerate(roi_ids):
+            image_mask = self.get_roi_image_masks(roi_ids=[roi_id])
             temp = np.where(image_mask == np.amax(image_mask))
-            roi_location[:, c] = np.array([np.median(temp[0]), np.median(temp[1])]).T
+            roi_location[:, roi_index] = np.array([np.median(temp[0]), np.median(temp[1])]).T
         return roi_location
 
     def get_roi_ids(self) -> list:
@@ -140,11 +199,12 @@ class SegmentationExtractor(ABC):
             3-D array(val 0 or 1): image_height X image_width X length(roi_ids)
         """
         if roi_ids is None:
-            roi_idx_ = range(self.get_num_rois())
+            roi_indices = range(self.get_num_rois())
         else:
-            all_ids = self.get_roi_ids()
-            roi_idx_ = [all_ids.index(i) for i in roi_ids]
-        return np.stack([self._image_masks[:, :, k] for k in roi_idx_], 2)
+            all_roi_ids = self.get_roi_ids()
+            roi_indices = [all_roi_ids.index(roi_id) for roi_id in roi_ids]
+
+        return np.stack([self._image_masks[:, :, k] for k in roi_indices], 2)
 
     def get_roi_pixel_masks(self, roi_ids=None) -> np.array:
         """Get the weights applied to each of the pixels of the mask.
@@ -216,22 +276,51 @@ class SegmentationExtractor(ABC):
 
         return _pixel_mask_extractor(self.get_background_image_masks(background_ids=background_ids), background_ids)
 
+    def slice_samples(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None):
+        """Return a new SegmentationExtractor ranging from the start_sample to the end_sample.
+
+        Parameters
+        ----------
+        start_sample: int, optional
+            Start sample index (inclusive).
+        end_sample: int, optional
+            End sample index (exclusive).
+
+        Returns
+        -------
+        segmentation: SampleSlicedSegmentationExtractor
+            The sliced SegmentationExtractor object.
+        """
+        return SampleSlicedSegmentationExtractor(
+            parent_segmentation=self, start_sample=start_sample, end_sample=end_sample
+        )
+
     def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
         """Return a new SegmentationExtractor ranging from the start_frame to the end_frame.
 
         Parameters
         ----------
-        start_frame: int
-            The starting frame of the new SegmentationExtractor.
-        end_frame: int
-            The ending frame of the new SegmentationExtractor.
+        start_frame: int, optional
+            Start frame index (inclusive).
+        end_frame: int, optional
+            End frame index (exclusive).
 
         Returns
         -------
         frame_slice_segmentation_extractor: FrameSliceSegmentationExtractor
             The frame slice segmentation extractor object.
+
+        Deprecated
+        ----------
+        This method will be removed on or after January 2026.
+        Use slice_samples() instead.
         """
-        return FrameSliceSegmentationExtractor(parent_segmentation=self, start_frame=start_frame, end_frame=end_frame)
+        warnings.warn(
+            "frame_slice() is deprecated and will be removed on or after January 2026. " "Use slice_samples() instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.slice_samples(start_sample=start_frame, end_sample=end_frame)
 
     def get_traces(
         self,
@@ -394,7 +483,7 @@ class SegmentationExtractor(ABC):
         -----
         Operates on _times attribute of the SegmentationExtractor object.
         """
-        assert len(times) == self.get_num_frames(), "'times' should have the same length of the number of frames!"
+        assert len(times) == self.get_num_samples(), "'times' should have the same length of the number of samples!"
         self._times = np.array(times, dtype=np.float64)
 
     def has_time_vector(self) -> bool:
@@ -419,37 +508,368 @@ class SegmentationExtractor(ABC):
         -------
         times: float or array-like
             The corresponding times in seconds
+
+        Deprecated
+        ----------
+        This method will be removed on or after January 2026.
+        Use sample_indices_to_time() instead.
         """
+        warnings.warn(
+            "frame_to_time() is deprecated and will be removed on or after January 2026. "
+            "Use sample_indices_to_time() instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         if self._times is None:
             return frames / self.get_sampling_frequency()
         else:
             return self._times[frames]
 
-    @staticmethod
-    def write_segmentation(segmentation_extractor, save_path, overwrite=False):
-        """Write recording back to the native format.
+    def get_timestamps(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        """
+        Retrieve the timestamps for the data in this extractor.
 
         Parameters
         ----------
-        segmentation_extractor: [SegmentationExtractor, MultiSegmentationExtractor]
-            The EXTRACT segmentation object from which an EXTRACT native format
-            file has to be generated.
-        save_path: str
-            path to save the native format.
-        overwrite: bool
-            If True, the file is overwritten if existing (default False)
+        start_sample : int, optional
+            The starting sample index. If None, starts from the beginning.
+        end_sample : int, optional
+            The ending sample index. If None, goes to the end.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray
+            The timestamps for the data stream.
         """
-        raise NotImplementedError
+        # Set defaults
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self.get_num_samples()
+
+        # Return cached timestamps if available
+        if self._times is not None:
+            return self._times[start_sample:end_sample]
+
+        # See if native timetstamps are available from the format
+        native_timestamps = self.get_native_timestamps()
+        if native_timestamps is not None:
+            self._times = native_timestamps  # Cache the native timestamps
+            return native_timestamps[start_sample:end_sample]
+
+        # Fallback to calculated timestamps from sampling frequency
+        sample_indices = np.arange(start_sample, end_sample)
+        return sample_indices / self.get_sampling_frequency()
+
+    def sample_indices_to_time(self, sample_indices: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
+        """Convert user-inputted sample indices to times with units of seconds.
+
+        .. deprecated:: on or after January 2026
+           Use :meth:`get_timestamps` instead.
+
+        Parameters
+        ----------
+        sample_indices: int or array-like
+            The sample indices to be converted to times.
+
+        Returns
+        -------
+        times: float or array-like
+            The corresponding times in seconds.
+        """
+        warnings.warn(
+            "sample_indices_to_time is deprecated and will be removed on or after January 2026. "
+            "Use get_timestamps instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
+        # Handle scalar vs array input
+        is_scalar = np.isscalar(sample_indices)
+        if is_scalar:
+            sample_indices = np.array([sample_indices])
+        else:
+            sample_indices = np.asarray(sample_indices)
+
+        # Get the range of samples we need
+        start_sample = int(np.min(sample_indices))
+        end_sample = int(np.max(sample_indices)) + 1
+
+        # Get timestamps for the range
+        timestamps = self.get_timestamps(start_sample=start_sample, end_sample=end_sample)
+
+        # Map the requested indices to the timestamps
+        result = timestamps[sample_indices - start_sample]
+
+        return result[0] if is_scalar else result
+
+    def set_property(self, key: str, values: ArrayType, ids: ArrayType):
+        """Set property values for ROIs.
+
+        Parameters
+        ----------
+        key: str
+            The name of the property.
+        values: array-like
+            Array of property values. Must have same length as ids and num_rois.
+        ids: array-like
+            Array of ROI ids corresponding to the values. Must have same length as values and num_rois.
+        """
+        values = np.asarray(values)
+        ids = list(ids)
+        num_rois = self.get_num_rois()
+
+        # Check that all arrays have the correct length
+        if len(values) != num_rois or len(ids) != num_rois:
+            raise ValueError(
+                f"Length of values ({len(values)}) and ids ({len(ids)}) must match number of ROIs ({num_rois})"
+            )
+
+        # Verify that the provided ids match the extractor's ROI ids
+        extractor_roi_ids = self.get_roi_ids()
+        if set(ids) != set(extractor_roi_ids):
+            raise ValueError("Provided ids must match the extractor's ROI ids")
+
+        # Create property array with values in the correct order
+        property_array = np.empty(num_rois, dtype=values.dtype)
+        for roi_index, roi_id in enumerate(extractor_roi_ids):
+            id_index = ids.index(roi_id)
+            property_array[roi_index] = values[id_index]
+
+        self._properties[key] = property_array
+
+    def get_property(self, key: str, ids: ArrayType) -> ArrayType:
+        """Get property values for ROIs.
+
+        Parameters
+        ----------
+        key: str
+            The name of the property.
+        ids: array-like
+            Array of ROI ids to get property values for.
+
+        Returns
+        -------
+        values: array-like
+            Array of property values for the specified ROIs.
+        """
+        ids = np.asarray(ids)
+        if key not in self._properties:
+            available_keys = list(self._properties.keys())
+            raise KeyError(f"Property '{key}' not found. Available properties: {available_keys}")
+
+        # Check that all requested ROI ids exist in extractor
+        all_roi_ids = self.get_roi_ids()
+        for roi_id in ids:
+            if roi_id not in all_roi_ids:
+                raise ValueError(f"ROI id {roi_id} not found in extractor. Available ROI ids: {all_roi_ids}")
+
+        # Map ids to indices and get values
+        values = []
+        for roi_id in ids:
+            roi_index = all_roi_ids.index(roi_id)
+            values.append(self._properties[key][roi_index])
+
+        return np.array(values)
+
+    def get_property_keys(self) -> list[str]:
+        """Get list of available property keys.
+
+        Returns
+        -------
+        keys: list
+            List of property names.
+        """
+        return list(self._properties.keys())
 
 
-class FrameSliceSegmentationExtractor(SegmentationExtractor):
+class SampleSlicedSegmentationExtractor(SegmentationExtractor):
+    """Class to get a lazy sample slice.
+
+    Do not use this class directly but use `.slice_samples(...)` on a SegmentationExtractor object.
+    """
+
+    extractor_name = "SampleSlicedSegmentationExtractor"
+
+    def __init__(
+        self,
+        parent_segmentation: SegmentationExtractor,
+        start_sample: Optional[int] = None,
+        end_sample: Optional[int] = None,
+    ):
+        """Initialize a SegmentationExtractor whose samples subset the parent.
+
+        Subset is exclusive on the right bound, that is, the indexes of this SegmentationExtractor range over
+        [0, ..., end_sample-start_sample-1], which is used to resolve the index mapping in `get_traces(...)`.
+
+        Parameters
+        ----------
+        parent_segmentation : SegmentationExtractor
+            The SegmentationExtractor object to subset the samples of.
+        start_sample : int, optional
+            The left bound of the samples to subset.
+            The default is the start sample of the parent.
+        end_sample : int, optional
+            The right bound of the samples, exclusively, to subset.
+            The default is end sample of the parent.
+        """
+        self._parent_segmentation = parent_segmentation
+        self._start_sample = start_sample
+        self._end_sample = end_sample
+        self._num_samples = self._end_sample - self._start_sample
+
+        parent_size = self._parent_segmentation.get_num_samples()
+        if start_sample is None:
+            start_sample = 0
+        else:
+            assert 0 <= start_sample < parent_size
+        if end_sample is None:
+            end_sample = parent_size
+        else:
+            assert 0 < end_sample <= parent_size
+        assert end_sample > start_sample, "'start_sample' must be smaller than 'end_sample'!"
+
+        # Copy image masks if they exist
+        if hasattr(self._parent_segmentation, "_image_masks"):
+            self._image_masks = self._parent_segmentation._image_masks
+
+        if hasattr(self._parent_segmentation, "_background_image_masks"):
+            self._background_image_masks = self._parent_segmentation._background_image_masks
+
+        super().__init__()
+        # Preserve parent's channel names and other attributes
+        self._channel_names = self._parent_segmentation.get_channel_names()
+        self._num_planes = self._parent_segmentation.get_num_planes()
+        if getattr(self._parent_segmentation, "_times") is not None:
+            self._times = self._parent_segmentation._times[start_sample:end_sample]
+
+    def get_accepted_list(self) -> list:
+        return self._parent_segmentation.get_accepted_list()
+
+    def get_rejected_list(self) -> list:
+        return self._parent_segmentation.get_rejected_list()
+
+    def get_frame_shape(self) -> Tuple[int, int]:
+        return tuple(self._parent_segmentation.get_frame_shape())
+
+    def get_num_samples(self) -> int:
+        return self._num_samples
+
+    def get_num_frames(self) -> int:
+        """Get the number of frames in the recording (duration of recording).
+
+        .. deprecated:: on or after January 2026
+           Use :meth:`get_num_samples` instead.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the recording.
+        """
+        warnings.warn(
+            "get_num_frames is deprecated and will be removed on or after January 2026. "
+            "Use get_num_samples instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
+
+    def get_traces(
+        self,
+        roi_ids: Optional[Iterable[int]] = None,
+        start_frame: Optional[int] = None,
+        end_frame: Optional[int] = None,
+        name: str = "raw",
+    ) -> np.ndarray:
+        assert start_frame is None or start_frame >= 0, (
+            f"'start_frame' must be greater than or equal to zero! Received '{start_frame}'.\n"
+            "Negative slicing semantics are not supported."
+        )
+
+        # If no start_frame/end_frame specified, return the full sliced range
+        if start_frame is None and end_frame is None:
+            start_frame_shifted = self._start_sample
+            end_frame_shifted = self._end_sample
+        else:
+            # If start_frame/end_frame are specified, they are relative to the sliced range
+            start_frame_shifted = (start_frame or 0) + self._start_sample
+            end_frame_shifted = end_frame
+            if end_frame is not None:
+                end_frame_shifted = end_frame + self._start_sample
+            else:
+                end_frame_shifted = self._end_sample
+
+        return self._parent_segmentation.get_traces(
+            roi_ids=roi_ids,
+            start_frame=start_frame_shifted,
+            end_frame=end_frame_shifted,
+            name=name,
+        )
+
+    def get_traces_dict(self) -> dict:
+        return {
+            trace_name: self._parent_segmentation.get_traces(
+                start_frame=self._start_sample, end_frame=self._end_sample, name=trace_name
+            )
+            for trace_name, trace in self._parent_segmentation.get_traces_dict().items()
+        }
+
+    def get_num_rois(self) -> int:
+        return self._parent_segmentation.get_num_rois()
+
+    def get_num_background_components(self) -> int:
+        return self._parent_segmentation.get_num_background_components()
+
+    def get_images_dict(self) -> dict:
+        return self._parent_segmentation.get_images_dict()
+
+    def get_image(self, name: str = "correlation") -> ArrayType:
+        return self._parent_segmentation.get_image(name=name)
+
+    def get_sampling_frequency(self) -> float:
+        return self._parent_segmentation.get_sampling_frequency()
+
+    def get_channel_names(self) -> list[str]:
+        return self._parent_segmentation.get_channel_names()
+
+    def get_num_channels(self) -> int:
+        return self._parent_segmentation.get_num_channels()
+
+    def get_num_planes(self) -> int:
+        return self._parent_segmentation.get_num_planes()
+
+    def get_roi_pixel_masks(self, roi_ids: Optional[ArrayLike] = None) -> list[np.ndarray]:
+        return self._parent_segmentation.get_roi_pixel_masks(roi_ids=roi_ids)
+
+    def get_background_pixel_masks(self, background_ids: Optional[ArrayLike] = None) -> list[np.ndarray]:
+        return self._parent_segmentation.get_background_pixel_masks(background_ids=background_ids)
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Adjust the sample indices to account for the slice offset
+        start_sample = start_sample or 0
+        end_sample = end_sample or self.get_num_samples()
+
+        # Map slice-relative indices to parent indices
+        parent_start = self._start_sample + start_sample
+        parent_end = self._start_sample + end_sample
+
+        return self._parent_segmentation.get_native_timestamps(start_sample=parent_start, end_sample=parent_end)
+
+
+class FrameSliceSegmentationExtractor(SampleSlicedSegmentationExtractor):
     """Class to get a lazy frame slice.
 
-    Do not use this class directly but use `.frame_slice(...)`
+    Do not use this class directly but use `.frame_slice(...)` on a SegmentationExtractor object.
+
+    Deprecated
+    ----------
+    This class will be removed on or after January 2026.
+    Use SampleSlicedSegmentationExtractor instead.
     """
 
     extractor_name = "FrameSliceSegmentationExtractor"
-    is_writable = True
 
     def __init__(
         self,
@@ -463,99 +883,20 @@ class FrameSliceSegmentationExtractor(SegmentationExtractor):
         ----------
         parent_segmentation: SegmentationExtractor
             The parent SegmentationExtractor object.
-        start_frame: int
+        start_frame: int, optional
             The starting frame of the new SegmentationExtractor.
-        end_frame: int
+        end_frame: int, optional
             The ending frame of the new SegmentationExtractor.
+
+        Deprecated
+        ----------
+        This class will be removed on or after January 2026.
+        Use SampleSlicedSegmentationExtractor instead.
         """
-        self._parent_segmentation = parent_segmentation
-        self._start_frame = start_frame or 0
-        self._end_frame = end_frame or self._parent_segmentation.get_num_frames()
-        self._num_frames = self._end_frame - self._start_frame
-
-        if hasattr(self._parent_segmentation, "_image_masks"):  # otherwise, do not set attribute at all
-            self._image_masks = self._parent_segmentation._image_masks
-
-        if hasattr(self._parent_segmentation, "_background_image_masks"):  # otherwise, do not set attribute at all
-            self._background_image_masks = self._parent_segmentation._background_image_masks
-
-        parent_size = self._parent_segmentation.get_num_frames()
-        if start_frame is None:
-            start_frame = 0
-        else:
-            assert 0 <= start_frame < parent_size
-        if end_frame is None:
-            end_frame = parent_size
-        else:
-            assert 0 < end_frame <= parent_size
-        assert end_frame > start_frame, "'start_frame' must be smaller than 'end_frame'!"
-
-        super().__init__()
-        if getattr(self._parent_segmentation, "_times") is not None:
-            self._times = self._parent_segmentation._times[start_frame:end_frame]
-
-    def get_accepted_list(self) -> list:
-        return self._parent_segmentation.get_accepted_list()
-
-    def get_rejected_list(self) -> list:
-        return self._parent_segmentation.get_rejected_list()
-
-    def get_traces(
-        self,
-        roi_ids: Optional[Iterable[int]] = None,
-        start_frame: Optional[int] = None,
-        end_frame: Optional[int] = None,
-        name: str = "raw",
-    ) -> np.ndarray:
-        start_frame = min(start_frame or 0, self._num_frames)
-        end_frame = min(end_frame or self._num_frames, self._num_frames)
-        return self._parent_segmentation.get_traces(
-            roi_ids=roi_ids,
-            start_frame=start_frame + self._start_frame,
-            end_frame=end_frame + self._start_frame,
-            name=name,
+        warnings.warn(
+            "FrameSliceSegmentationExtractor is deprecated and will be removed on or after January 2026. "
+            "Use SampleSlicedSegmentationExtractor instead.",
+            FutureWarning,
+            stacklevel=2,
         )
-
-    def get_traces_dict(self) -> dict:
-        return {
-            trace_name: self._parent_segmentation.get_traces(
-                start_frame=self._start_frame, end_frame=self._end_frame, name=trace_name
-            )
-            for trace_name, trace in self._parent_segmentation.get_traces_dict().items()
-        }
-
-    def get_image_size(self) -> Tuple[int, int]:
-        return tuple(self._parent_segmentation.get_image_size())
-
-    def get_num_frames(self) -> int:
-        return self._num_frames
-
-    def get_num_rois(self) -> int:
-        return self._parent_segmentation.get_num_rois()
-
-    def get_num_background_components(self) -> int:
-        return self._parent_segmentation.get_num_background_components()
-
-    def get_images_dict(self) -> dict:
-        return self._parent_segmentation.get_images_dict()
-
-    def get_image(self, name="correlation"):
-        return self._parent_segmentation.get_image(name=name)
-
-    def get_sampling_frequency(self) -> float:
-        return self._parent_segmentation.get_sampling_frequency()
-
-    def get_channel_names(self) -> list:
-        return self._parent_segmentation.get_channel_names()
-
-    def get_num_channels(self) -> int:
-        return self._parent_segmentation.get_num_channels()
-
-    def get_num_planes(self) -> int:
-        return self._parent_segmentation.get_num_planes()
-
-    def get_roi_pixel_masks(self, roi_ids: Optional[ArrayLike] = None) -> List[np.ndarray]:
-        return self._parent_segmentation.get_roi_pixel_masks(roi_ids=roi_ids)
-
-    def get_background_pixel_masks(self, background_ids: Optional[ArrayLike] = None) -> List[np.ndarray]:
-        return self._parent_segmentation.get_background_pixel_masks(background_ids=background_ids)
+        super().__init__(parent_segmentation=parent_segmentation, start_sample=start_frame, end_sample=end_frame)

@@ -1,7 +1,8 @@
 """Base class definition for volumetric imaging extractors."""
 
-from typing import Tuple, List, Iterable, Optional
 import warnings
+from typing import Iterable, List, Optional, Tuple
+
 import numpy as np
 
 from .extraction_tools import ArrayType, DtypeType
@@ -12,7 +13,6 @@ class VolumetricImagingExtractor(ImagingExtractor):
     """Class to combine multiple ImagingExtractor objects by depth plane."""
 
     extractor_name = "VolumetricImaging"
-    installed = True
     installatiuon_mesage = ""
 
     def __init__(self, imaging_extractors: List[ImagingExtractor]):
@@ -29,6 +29,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
         self._check_consistency_between_imaging_extractors(imaging_extractors)
         self._imaging_extractors = imaging_extractors
         self._num_planes = len(imaging_extractors)
+        self.is_volumetric = True
 
     @staticmethod
     def _check_consistency_between_imaging_extractors(imaging_extractors: List[ImagingExtractor]):
@@ -56,11 +57,11 @@ class VolumetricImagingExtractor(ImagingExtractor):
         """
         properties_to_check = dict(
             get_sampling_frequency="The sampling frequency",
-            get_image_size="The size of a frame",
+            get_image_shape="The shape of a frame",
             get_num_channels="The number of channels",
             get_channel_names="The name of the channels",
             get_dtype="The data type",
-            get_num_frames="The number of frames",
+            get_num_samples="The number of samples",
         )
         for method, property_message in properties_to_check.items():
             values = [getattr(extractor, method)() for extractor in imaging_extractors]
@@ -68,6 +69,29 @@ class VolumetricImagingExtractor(ImagingExtractor):
             assert (
                 len(unique_values) == 1
             ), f"{property_message} is not consistent over the files (found {unique_values})."
+
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        if start_sample is None:
+            start_sample = 0
+        elif start_sample < 0:
+            start_sample = self.get_num_samples() + start_sample
+        elif start_sample >= self.get_num_samples():
+            raise ValueError(
+                f"start_sample {start_sample} is greater than or equal to the number of samples {self.get_num_samples()}"
+            )
+        if end_sample is None:
+            end_sample = self.get_num_samples()
+        elif end_sample < 0:
+            end_sample = self.get_num_samples() + end_sample
+        elif end_sample > self.get_num_samples():
+            raise ValueError(f"end_sample {end_sample} is greater than the number of samples {self.get_num_samples()}")
+        if end_sample <= start_sample:
+            raise ValueError(f"end_sample {end_sample} is less than or equal to start_sample {start_sample}")
+
+        series = np.zeros((end_sample - start_sample, *self.get_sample_shape()), self.get_dtype())
+        for i, imaging_extractor in enumerate(self._imaging_extractors):
+            series[..., i] = imaging_extractor.get_series(start_sample, end_sample)
+        return series
 
     def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
         """Get the video frames.
@@ -83,56 +107,64 @@ class VolumetricImagingExtractor(ImagingExtractor):
         -------
         video: numpy.ndarray
             The 3D video frames (num_frames, num_rows, num_columns, num_planes).
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
         """
-        if start_frame is None:
-            start_frame = 0
-        elif start_frame < 0:
-            start_frame = self.get_num_frames() + start_frame
-        elif start_frame >= self.get_num_frames():
-            raise ValueError(
-                f"start_frame {start_frame} is greater than or equal to the number of frames {self.get_num_frames()}"
-            )
-        if end_frame is None:
-            end_frame = self.get_num_frames()
-        elif end_frame < 0:
-            end_frame = self.get_num_frames() + end_frame
-        elif end_frame > self.get_num_frames():
-            raise ValueError(f"end_frame {end_frame} is greater than the number of frames {self.get_num_frames()}")
-        if end_frame <= start_frame:
-            raise ValueError(f"end_frame {end_frame} is less than or equal to start_frame {start_frame}")
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
-        video = np.zeros((end_frame - start_frame, *self.get_image_size()), self.get_dtype())
-        for i, imaging_extractor in enumerate(self._imaging_extractors):
-            video[..., i] = imaging_extractor.get_video(start_frame, end_frame)
-        return video
-
-    def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
+    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
         """Get specific video frames from indices (not necessarily continuous).
 
         Parameters
         ----------
         frame_idxs: array-like
             Indices of frames to return.
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
 
         Returns
         -------
         frames: numpy.ndarray
             The 3D video frames (num_rows, num_columns, num_planes).
         """
+        if channel != 0:
+            warnings.warn(
+                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if isinstance(frame_idxs, int):
             frame_idxs = [frame_idxs]
         for frame_idx in frame_idxs:
-            if frame_idx < -1 * self.get_num_frames() or frame_idx >= self.get_num_frames():
+            if frame_idx < -1 * self.get_num_samples() or frame_idx >= self.get_num_samples():
                 raise ValueError(f"frame_idx {frame_idx} is out of bounds")
 
         # Note np.all([]) returns True so not all(np.diff(frame_idxs) == 1) returns False if frame_idxs is a single int
         if not all(np.diff(frame_idxs) == 1):
-            frames = np.zeros((len(frame_idxs), *self.get_image_size()), self.get_dtype())
+            frames = np.zeros((len(frame_idxs), *self.get_sample_shape()), self.get_dtype())
             for i, imaging_extractor in enumerate(self._imaging_extractors):
-                frames[..., i] = imaging_extractor.get_frames(frame_idxs)
+                frames[..., i] = imaging_extractor.get_frames(frame_idxs, channel=channel)
             return frames
         else:
-            return self.get_video(start_frame=frame_idxs[0], end_frame=frame_idxs[-1] + 1)
+            return self.get_series(start_sample=frame_idxs[0], end_sample=frame_idxs[-1] + 1)
+
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._imaging_extractors[0].get_image_shape()
 
     def get_image_size(self) -> Tuple:
         """Get the size of a single frame.
@@ -141,8 +173,19 @@ class VolumetricImagingExtractor(ImagingExtractor):
         -------
         image_size: tuple
             The size of a single frame (num_rows, num_columns, num_planes).
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_image_shape() instead for consistent behavior across all extractors.
         """
-        image_size = (*self._imaging_extractors[0].get_image_size(), self.get_num_planes())
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        image_size = (*self._imaging_extractors[0].get_frame_shape(), self.get_num_planes())
         return image_size
 
     def get_num_planes(self) -> int:
@@ -155,8 +198,29 @@ class VolumetricImagingExtractor(ImagingExtractor):
         """
         return self._num_planes
 
+    def get_num_samples(self) -> int:
+        return self._imaging_extractors[0].get_num_samples()
+
     def get_num_frames(self) -> int:
-        return self._imaging_extractors[0].get_num_frames()
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._imaging_extractors[0].get_sampling_frequency()
@@ -175,6 +239,17 @@ class VolumetricImagingExtractor(ImagingExtractor):
     def get_dtype(self) -> DtypeType:
         return self._imaging_extractors[0].get_dtype()
 
+    def get_volume_shape(self) -> Tuple[int, int, int]:
+        """Get the shape of the volumetric video (num_rows, num_columns, num_planes).
+
+        Returns
+        -------
+        video_shape: tuple
+            Shape of the volumetric video (num_rows, num_columns, num_planes).
+        """
+        image_shape = self.get_image_shape()
+        return (image_shape[0], image_shape[1], self.get_num_planes())
+
     def depth_slice(self, start_plane: Optional[int] = None, end_plane: Optional[int] = None):
         """Return a new VolumetricImagingExtractor ranging from the start_plane to the end_plane."""
         start_plane = start_plane if start_plane is not None else 0
@@ -188,11 +263,32 @@ class VolumetricImagingExtractor(ImagingExtractor):
 
         return DepthSliceVolumetricImagingExtractor(parent_extractor=self, start_plane=start_plane, end_plane=end_plane)
 
-    def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
-        """Return a new VolumetricImagingExtractor with a subset of frames."""
+    def slice_samples(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None):
+        """Return a new VolumetricImagingExtractor with a subset of samples."""
         raise NotImplementedError(
-            "frame_slice is not implemented for VolumetricImagingExtractor due to conflicts with get_video()."
+            "slice_samples is not implemented for VolumetricImagingExtractor due to conflicts with get_series()."
         )
+
+    def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
+        """Return a new VolumetricImagingExtractor with a subset of frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after October 2025.
+        Use slice_samples() instead.
+        """
+        warnings.warn(
+            "frame_slice() is deprecated and will be removed in or after October 2025. " "Use slice_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.slice_samples(start_sample=start_frame, end_sample=end_frame)
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Delegate to the first imaging extractor
+        return self._imaging_extractors[0].get_native_timestamps(start_sample, end_sample)
 
 
 class DepthSliceVolumetricImagingExtractor(VolumetricImagingExtractor):
@@ -203,8 +299,6 @@ class DepthSliceVolumetricImagingExtractor(VolumetricImagingExtractor):
     """
 
     extractor_name = "DepthSliceVolumetricImagingExtractor"
-    installed = True
-    is_writable = True
     installation_mesg = ""
 
     def __init__(

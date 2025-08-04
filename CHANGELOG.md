@@ -1,17 +1,120 @@
-# v0.5.12 (Upcoming)
+# v0.6.2 (Upcoming)
 
 ### Features
 * Added MultiTIFFMultiPageExtractor for handling multiple TIFF files, each with multiple pages, organized according to a specified dimension order [#402](https://github.com/catalystneuro/roiextractors/pull/402)
-* New `read_scanimage_metadata` for reading scanimage metadata from a file directly as a python dict [#405](https://github.com/catalystneuro/roiextractors/pull/401)
 
 ### Fixes
-* Use `SI.hChannels.channelSave` or `SI.hChannels.channelsave` to determine number of channels for ScanImage extractors when available [#401](https://github.com/catalystneuro/roiextractors/pull/401)
+
+### Deprecations And Removals
+
+### Improvements
+* Refactor Femtonics Imaging Extractor session, munit and channel selection logic. Added missing stub files (`single_channel.mesc` and `single_m_unit_index`)[PR #479](https://github.com/catalystneuro/roiextractors/pull/479)
+* Added tests for unused stub files (`dual_color_movie_with_dropped_frames.isxd` and `multiplane_movie.isxd`) in Inscopix imaging extractor [PR #478](https://github.com/catalystneuro/roiextractors/pull/478)
+
+# v0.6.1 (July 7th 2025)
+
+### Features
+* Added native timestamp support with automatic fallback hierarchy: `get_native_timestamps()` abstract method and `get_timestamps()` concrete method to all imaging and segmentation extractors. The `get_timestamps()` method follows priority order: cached times → native timestamps → inferred from sampling frequency. This enables automatic native timestamp usage when available (e.g., ScanImage TIFF files) while maintaining backward compatibility. [PR #465](https://github.com/catalystneuro/roiextractors/pull/465)
+* Added property management methods to `SegmentationExtractor`: `set_property()`, `get_property()`, and `get_property_keys()` for storing and retrieving custom ROI properties [PR #467](https://github.com/catalystneuro/roiextractors/pull/467)
+* Added `MinianSegmentationExtractor` for reading and extracting metadata and segmentation data from Minian output files.[PR #368](https://github.com/catalystneuro/roiextractors/pull/368)
+
+### Fixes
+* Fixed a bug in CaimanSegmentationExtractor where empty components of the segmentation traces will throw an error
+[PR #452](https://github.com/catalystneuro/roiextractors/pull/452)
+
+### Deprecations And Removals
+* Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationExtractor` [PR #457](https://github.com/catalystneuro/roiextractors/pull/457)
+* `check_imaging_equal` and `check_segmentation_equal` no longer compare the number of channels in an extractor as that attribute has been deprecated [PR #470](https://github.com/catalystneuro/roiextractors/pull/470)
+* `exclude_channel_comparison` in `check_imaging_equal` is deprecated and will be removed in or after January 2026. This parameter is no longer needed as extractors do not have multiple channels. [PR #470](https://github.com/catalystneuro/roiextractors/pull/470)
+* The `num_frames` parameter in `generate_dummy_imaging_extractor` and `generate_dummy_segmentation_extractor` is now deprecated and will be removed on or after January 2026. Use the new `num_samples` parameter instead. `num_samples` is now keyword-only and will become positional-only in a future release. [PR #470](https://github.com/catalystneuro/roiextractors/pull/470)
+* The `sample_indices_to_time()` method in both ImagingExtractor and SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_timestamps()` instead. [PR #448](https://github.com/catalystneuro/roiextractors/pull/448)
+Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationExtractor` [PR #457](https://github.com/catalystneuro/roiextractors/pull/457)
+
+### Improvements
+* Updated GitHub Actions workflows to use cross-OS cache sharing for multi-OS testing data, reducing redundant downloads and improving CI efficiency. Added reusable data loading action pattern similar to neuroconv. [PR #459](https://github.com/catalystneuro/roiextractors/pull/459)
+* Improved writing to NWB documentation to point out users to neuroconv [PR #468](https://github.com/catalystneuro/roiextractors/pull/468)
+* Add comprehensive test suite for CaimanSegmentationExtractor covering basic properties, ROI masks, traces, accepted/rejected lists, and different CaImAn dataset formats [PR #464](https://github.com/catalystneuro/roiextractors/pull/464)
+* Add isort and remove unused imports to pre-commit [PR #471](https://github.com/catalystneuro/roiextractors/pull/471)
+* Updated tests for `CaimanSegmentationExtractor` to cover all stub files, and enhanced the extractor to return quality metrics (`r_values`, `SNR_comp`, `cnn_preds`). [PR #466](https://github.com/catalystneuro/roiextractors/pull/466)
+
+# v0.6.0 (June 17th, 2025)
+
+### Features
+* Added `FemtonicsImagingExtractor` for reading and extracting metadata and imaging data from Femtonics MESc files.[PR #440](https://github.com/catalystneuro/roiextractors/pull/440)
+* Added `get_original_frame_indices()` method to `ScanImageImagingExtractor` for mapping extractor samples back to original frame indices in raw microscopy data. This method can be used to synchronize with other data sources or for advanced analysis that requires knowledge of the original frame indices. [PR #445](https://github.com/catalystneuro/roiextractors/pull/445)
+
+### Fixes
+* Fixed InscopixSegmentationExtractor with support for string/integer ROI IDs, NWB-compliant pixel masks, standardized ROI lists, improved macOS compatibility, enhanced metadata extraction, and general code cleanup.
+[PR #435](https://github.com/catalystneuro/roiextractors/pull/435)
+* Added missing function to retrieve inscopix metadata [PR #436](https://github.com/catalystneuro/roiextractors/pull/436)
+* Fixed deprecated scipy import warning by updating `mat_struct` import path [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
+* Fixed deprecation warning about invalid escape sequence in micromanager TIFF extractor [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
+* Removed integer-only assumption for ROI IDs in segmentation extractors. ROI IDs can now be strings or any type. Updated `generate_dummy_segmentation_extractor` to produce string ROI IDs in format `roi_00`, `roi_01`, etc. [PR #449](https://github.com/catalystneuro/roiextractors/pull/449)
+
+
+### Deprecations And Removals
+* The `get_image_size()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_frame_shape()` instead. [PR #443](https://github.com/catalystneuro/roiextractors/pull/443)
+* The `get_num_frames()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `get_num_samples()` instead. [PR #443](https://github.com/catalystneuro/roiextractors/pull/443)
+* The `frame_to_time()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use `sample_indices_to_time()` instead. [PR #447](https://github.com/catalystneuro/roiextractors/pull/447)
+* Removed unused `is_writable` class attributes from all extractor classes [PR #442](https://github.com/catalystneuro/roiextractors/pull/442)
+* `get_frames` is now `get_samples`. `get_frames` will be deprecated in or after January 2026 [PR #444](https://github.com/catalystneuro/roiextractors/pull/444)
+* The `frame_slice()` method in SegmentationExtractor is deprecated and will be removed on or after January 2026. Use ``slice_samples`()` instead. [PR #451](https://github.com/catalystneuro/roiextractors/pull/451)
+* The `FrameSliceSegmentationExtractor` class is deprecated and will be removed on or after January 2026. Use `SampleSlicedSegmentationExtractor` instead. [PR #451](https://github.com/catalystneuro/roiextractors/pull/451)
+
+### Improvements
+* Bruker series can now read sequences of type `BrightnessOverTime` [PR #448](https://github.com/catalystneuro/roiextractors/pull/448)
+
+# v0.5.13 (May 12th, 2025)
+
+### Features
+* Added `ScanImageImagingExtractor` for simplifying reading ScanImage data [PR #412](https://github.com/catalystneuro/roiextractors/pull/412)
+* Added volumetric imaging support with `is_volumetric` flag, `get_frame_shape`, `get_num_planes`, and `get_volume_shape` methods [PR #418](https://github.com/catalystneuro/roiextractors/pull/418)
+* Added support for multiple samples per slice to `ScanImageIMagingExtractor` [PR # 417](https://github.com/catalystneuro/roiextractors/pull/417)
+* Added support for flyback frames to `ScanImageImagingExtractor` [PR #419](https://github.com/catalystneuro/roiextractors/pull/419)
+* Added InscopixSegmentationExtractor for reading .isxd segmentation files [#407](https://github.com/catalystneuro/roiextractors/pull/407)
+* Add `plane_index` to `ScanImageImagingExtractor` to obtain a planar extractor across a plane [PR #424](https://github.com/catalystneuro/roiextractors/pull/424)
+* Add testing to timestamp extraction on `ScanImageImagingExtractor` [PR #426](https://github.com/catalystneuro/roiextractors/pull/426)
+* Add paths as string support to `ScanImageImagingExtractor` [PR #427](https://github.com/catalystneuro/roiextractors/pull/427)
+* Add informative error for old ScanImage files with `ScanImageImagingExtractor` [PR #427](https://github.com/catalystneuro/roiextractors/pull/427)
+* Add the option to read interleaved data in `ScanImageImagingExtractor` [PR #428](https://github.com/catalystneuro/roiextractors/pull/428)
+* Add detection of missing files in a sequence and excess file for `ScanImageImagingExtractor` file find heuristic [PR #429](https://github.com/catalystneuro/roiextractors/pull/429)
+
+### Fixes
+* Fixed `get_series` method in `MemmapImagingExtractor` to preserve channel dimension [PR #416](https://github.com/catalystneuro/roiextractors/pull/416)
+* Fix memory estimation for volumetric imaging extractors in their `_repr_` [PR #422](https://github.com/catalystneuro/roiextractors/pull/433)
+
+
+### Deprecations And Removals
+* The `get_video(start_frame, end_frame)` method is deprecated and will be removed in or after September 2025. Use `get_series(start_sample, end_sample)` instead for consistent naming with `get_num_samples`. [PR #416](https://github.com/catalystneuro/roiextractors/pull/416)
+* Python 3.9 is no longer supported [PR #423](https://github.com/catalystneuro/roiextractors/pull/423)
+* The `time_to_frame()` method is deprecated and will be removed in or after October 2025. Use `time_to_sample_indices()` instead for consistent terminology between planar and volumetric data. [PR #430](https://github.com/catalystneuro/roiextractors/pull/430)
+* The `frame_to_time()` method is deprecated and will be removed in or after October 2025. Use `sample_indices_to_time()` instead for consistent terminology between planar and volumetric data. [PR #430](https://github.com/catalystneuro/roiextractors/pull/430)
+* The `frame_slice()` method is deprecated and will be removed in or after October 2025. Use `slice_samples()` instead for consistent terminology between planar and volumetric data. [PR #430](https://github.com/catalystneuro/roiextractors/pull/430)
+* The `FrameSliceImagingExtractor` class is deprecated and will be removed in or after October 2025. Use `SampleSlicedImagingExtractor` instead for consistent terminology between planar and volumetric data.
+[PR #430](https://github.com/catalystneuro/roiextractors/pull/430)
+* Long deprecated `ScanImageTiffImagingExtractor` is removed. For ScanImage legacy data use `ScanImageLegacyImagingExtractor` [PR #431](https://github.com/catalystneuro/roiextractors/pull/431)
+* Deprecated `ScanImageTiffMultiPlaneMultiFileImagingExtractor`, `ScanImageTiffSinglePlaneMultiFileImagingExtractor`, `ScanImageTiffMultiPlaneImagingExtractor`, and `ScanImageTiffSinglePlaneImagingExtractor` classes. These will be removed on or after October 2025. Use `ScanImageImagingExtractor` instead. [PR #432](https://github.com/catalystneuro/roiextractors/pull/432)
+
+### Improvements
+* Improved criteria for determining if a ScanImage dataset is volumetric by checking both `SI.hStackManager.enable` and `SI.hStackManager.numSlices > 1`[PR #425](https://github.com/catalystneuro/roiextractors/pull/425)
+
+
+# v0.5.12 (April 18th, 2025)
+
+### Features
+* New `read_scanimage_metadata` for reading scanimage metadata from a file directly as a python dict [PR #405](https://github.com/catalystneuro/roiextractors/pull/401)
+
+### Fixes
+* Use `SI.hChannels.channelSave` or `SI.hChannels.channelsave` to determine number of channels for ScanImage extractors when available [PR #401](https://github.com/catalystneuro/roiextractors/pull/401)
 * Fixes the sampling rate for volumetric `ScanImage` [#405](https://github.com/catalystneuro/roiextractors/pull/401)
 
 ### Deprecations
+* Deprecated `write_imaging` and `write_segmentation` methods: [#403](https://github.com/catalystneuro/roiextractors/pull/403)
+* The `get_image_size()` method is deprecated and will be removed in or after September 2025. Use `get_image_shape()` instead for consistent behavior across all extractors. [#409](https://github.com/catalystneuro/roiextractors/pull/409)
+* Change `get_num_frames` for `get_num_samples` [#411](https://github.com/catalystneuro/roiextractors/pull/411)
 
 ### Improvements
-
+* Removed unused installed attribute [#410](https://github.com/catalystneuro/roiextractors/pull/410)
 
 # v0.5.11 (March 5th, 2025)
 
@@ -74,7 +177,7 @@
 
 ### Improvements
 
-* The `Suite2PSegmentationExtractor` now produces an error when a required sub-file is missin: [#330](https://github.com/catalystneuro/roiextractors/pull/330)
+* The `Suite2PSegmentationExtractor` now produces an error when a required sub-file is missing: [#330](https://github.com/catalystneuro/roiextractors/pull/330)
 * Added `_image_mask` initialization in `BaseSegmentationExtractor`; combined `abstractmethod`s into top of file: [#327](https://github.com/catalystneuro/roiextractors/pull/327)
 * Optimize parsing of xml with `lxml` library for Burker extractors: [#346](https://github.com/catalystneuro/roiextractors/pull/346)
 * Protect sima and dill export [#351](https://github.com/catalystneuro/roiextractors/pull/351)

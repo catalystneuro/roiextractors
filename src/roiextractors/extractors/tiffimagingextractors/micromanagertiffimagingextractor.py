@@ -9,18 +9,18 @@ MicroManagerTiffImagingExtractor
 import json
 import logging
 import re
+import warnings
 from collections import Counter
 from itertools import islice
 from pathlib import Path
 from types import ModuleType
-from typing import Optional, Tuple, Dict
-from warnings import warn
-
+from typing import Dict, Optional, Tuple
 from xml.etree import ElementTree
+
 import numpy as np
 
+from ...extraction_tools import DtypeType, PathType, get_package
 from ...imagingextractor import ImagingExtractor
-from ...extraction_tools import PathType, get_package, DtypeType
 from ...multiimagingextractor import MultiImagingExtractor
 
 
@@ -80,17 +80,17 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
             )
         self._channel_names = self.micromanager_metadata["Summary"]["ChNames"]
 
-        # extact metadata from OME-XML specification
+        # extract metadata from OME-XML specification
         self._ome_metadata = first_tif.ome_metadata
         ome_metadata_root = self._get_ome_xml_root()
 
-        schema_name = re.findall("\{(.*)\}", ome_metadata_root.tag)[0]
+        schema_name = re.findall(r"\{(.*)\}", ome_metadata_root.tag)[0]
         pixels_element = ome_metadata_root.find(f"{{{schema_name}}}Image/{{{schema_name}}}Pixels")
-        self._num_frames = int(pixels_element.attrib["SizeT"])
+        self._num_samples = int(pixels_element.attrib["SizeT"])
         self._dtype = np.dtype(pixels_element.attrib["Type"])
 
         # all the file names are repeated under the TiffData tag
-        # the number of occurences of each file path corresponds to the number of frames for a given TIF file
+        # the number of occurrences of each file path corresponds to the number of frames for a given TIF file
         tiff_data_elements = pixels_element.findall(f"{{{schema_name}}}TiffData")
         file_names = [element[0].attrib["FileName"] for element in tiff_data_elements]
 
@@ -99,10 +99,10 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         self._check_missing_files_in_folder(expected_list_of_files=list(file_counts.keys()))
         # Initialize the private imaging extractors with the number of frames for each file
         imaging_extractors = []
-        for file_path, num_frames_per_file in file_counts.items():
+        for file_path, num_samples_per_file in file_counts.items():
             extractor = _MicroManagerTiffImagingExtractor(self.folder_path / file_path)
             extractor._dtype = self._dtype
-            extractor._num_frames = num_frames_per_file
+            extractor._num_samples = num_samples_per_file
             extractor._image_size = (self._height, self._width)
             imaging_extractors.append(extractor)
         super().__init__(imaging_extractors=imaging_extractors)
@@ -160,14 +160,51 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         """Override the parent class method as none of the properties that are checked are from the sub-imaging extractors."""
         return True
 
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._height, self._width
+
     def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._height, self._width
 
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
 
+    def get_num_samples(self) -> int:
+        return self._num_samples
+
     def get_num_frames(self) -> int:
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_channel_names(self) -> list:
         return self._channel_names
@@ -188,7 +225,6 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
     """
 
     extractor_name = "_MicroManagerTiffImaging"
-    is_writable = True
     mode = "file"
 
     SAMPLING_FREQ_ERROR = "The {}Extractor does not support retrieving the imaging rate."
@@ -210,16 +246,53 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
 
         self.pages = self.tifffile.TiffFile(self.file_path).pages
         self._dtype = None
-        self._num_frames = None
+        self._num_samples = None
         self._image_size = None
 
+    def get_num_samples(self):
+        return self._num_samples
+
     def get_num_frames(self):
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_num_channels(self) -> int:
         return 1
 
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._image_size
+
     def get_image_size(self):
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._image_size
 
     def get_sampling_frequency(self):
@@ -231,23 +304,56 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
     def get_dtype(self):
         return self._dtype
 
+    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+        if start_sample is not None and end_sample is not None and start_sample == end_sample:
+            return self.pages[start_sample].asarray()
+
+        end_sample = end_sample or self.get_num_samples()
+        start_sample = start_sample or 0
+        series = np.zeros(shape=(end_sample - start_sample, *self.get_sample_shape()), dtype=self.get_dtype())
+        for page_ind, page in enumerate(islice(self.pages, start_sample, end_sample)):
+            series[page_ind] = page.asarray()
+        return series
+
     def get_video(
         self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
     ) -> np.ndarray:
+        """Get the video frames.
 
+        Parameters
+        ----------
+        start_frame: int, optional
+            Start frame index (inclusive).
+        end_frame: int, optional
+            End frame index (exclusive).
+        channel: int, optional
+            Channel index. Deprecated: This parameter will be removed in August 2025.
+
+        Returns
+        -------
+        video: numpy.ndarray
+            The video frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
+        """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if channel != 0:
-            warn(
+            warnings.warn(
                 "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
                 DeprecationWarning,
                 stacklevel=2,
             )
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
-        if start_frame is not None and end_frame is not None and start_frame == end_frame:
-            return self.pages[start_frame].asarray()
-
-        end_frame = end_frame or self.get_num_frames()
-        start_frame = start_frame or 0
-        video = np.zeros(shape=(end_frame - start_frame, *self.get_image_size()), dtype=self.get_dtype())
-        for page_ind, page in enumerate(islice(self.pages, start_frame, end_frame)):
-            video[page_ind] = page.asarray()
-        return video
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # MicroManager TIFF imaging data does not have native timestamps
+        return None

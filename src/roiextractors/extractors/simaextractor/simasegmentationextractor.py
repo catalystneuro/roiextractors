@@ -6,10 +6,13 @@ SimaSegmentationExtractor
     A segmentation extractor for Sima.
 """
 
+import importlib
 import os
 import pickle
 import re
+import warnings
 from shutil import copyfile
+from typing import Optional
 
 import numpy as np
 
@@ -26,7 +29,6 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "SimaSegmentation"
-    is_writable = False
     mode = "file"
     # error message when not installed
     installation_mesg = "To use the SimaSegmentationExtractor install sima and dill: \n\n pip install sima/dill\n\n"
@@ -45,8 +47,6 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         sima_spec = importlib.util.find_spec("sima")
         dill_spec = importlib.util.find_spec("dill")
         if sima_spec is not None and dill_spec is not None:
-            import sima
-            import dill
 
             HAVE_SIMA = True
         else:
@@ -171,15 +171,34 @@ class SimaSegmentationExtractor(SegmentationExtractor):
     def get_rejected_list(self):
         return [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
 
-    @staticmethod
-    def write_segmentation(segmentation_object, savepath):
-        """Write a segmentation object to a file.
+    def get_frame_shape(self):
+        """Get the frame shape (height, width) of the movie.
 
-        Notes
-        -----
-        This function is not implemented for this extractor.
+        Returns
+        -------
+        tuple
+            The frame shape as (height, width).
         """
-        raise NotImplementedError  # TODO: implement write_segmentation
+        return self._image_masks.shape[0:2]
 
     def get_image_size(self):
-        return self._image_masks.shape[0:2]
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        """Retrieve the original unaltered timestamps for the data in this interface.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray or None
+            The timestamps for the data stream, or None if native timestamps are not available.
+        """
+        # SIMA segmentation data does not have native timestamps
+        return None

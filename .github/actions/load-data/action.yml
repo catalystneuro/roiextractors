@@ -1,0 +1,43 @@
+name: 'Prepare Datasets'
+description: 'Restores ophys testing data from cache or downloads it from S3.'
+inputs:
+  aws-access-key-id:
+    description: 'AWS Access Key ID'
+    required: true
+  aws-secret-access-key:
+    description: 'AWS Secret Access Key'
+    required: true
+  s3-gin-bucket:
+    description: 'S3 GIN Bucket URL'
+    required: true
+runs:
+  using: 'composite'
+  steps:
+    - name: Get ophys_testing_data current head hash
+      id: ophys
+      shell: bash
+      run: |
+        HASH=$(git ls-remote https://gin.g-node.org/CatalystNeuro/ophys_testing_data.git HEAD | cut -f1)
+        echo "HASH_OPHYS_DATASET=$HASH" >> $GITHUB_OUTPUT
+
+    - name: Cache ophys dataset
+      uses: actions/cache@v4
+      id: cache-ophys-datasets
+      with:
+        path: ./ophys_testing_data
+        key: ophys-datasets-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
+        enableCrossOsArchive: true
+
+    - if: ${{ steps.cache-ophys-datasets.outputs.cache-hit != 'true' }}
+      name: Install and configure AWS CLI
+      shell: bash
+      run: |
+        pip install awscli
+        aws configure set aws_access_key_id "${{ inputs.aws-access-key-id }}"
+        aws configure set aws_secret_access_key "${{ inputs.aws-secret-access-key }}"
+
+    - if: ${{ steps.cache-ophys-datasets.outputs.cache-hit != 'true' }}
+      name: Download ophys dataset from S3
+      shell: bash
+      run: |
+        aws s3 cp --recursive "s3://${{ inputs.s3-gin-bucket }}//ophys_testing_data" ./ophys_testing_data

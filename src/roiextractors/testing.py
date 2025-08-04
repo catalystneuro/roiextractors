@@ -1,29 +1,29 @@
 """Testing utilities for the roiextractors package."""
 
+import warnings
 from collections.abc import Iterable
-from typing import Tuple, Optional, List
+from typing import List, Optional
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_array_almost_equal
-
-from .segmentationextractor import SegmentationExtractor
-from .imagingextractor import ImagingExtractor
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from roiextractors import NumpyImagingExtractor, NumpySegmentationExtractor
-
 from roiextractors.extraction_tools import DtypeType
+
+from .imagingextractor import ImagingExtractor
+from .segmentationextractor import SegmentationExtractor
 
 NoneType = type(None)
 floattype = (float, np.floating)
 inttype = (int, np.integer)
 
 
-def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16", seed: int = 0):
+def generate_dummy_video(size: tuple[int, int, int], dtype: DtypeType = "uint16", seed: int = 0):
     """Generate a dummy video of a given size and dtype.
 
     Parameters
     ----------
-    size : Tuple[int]
+    size : tuple[int, int, int]
         Size of the video to generate.
     dtype : DtypeType, optional
         Dtype of the video to generate, by default "uint16".
@@ -48,7 +48,7 @@ def generate_dummy_video(size: Tuple[int], dtype: DtypeType = "uint16", seed: in
 
 
 def generate_dummy_imaging_extractor(
-    num_frames: int = 30,
+    num_frames: Optional[int] = None,
     num_rows: int = 10,
     num_columns: int = 10,
     num_channels: int = 1,
@@ -56,6 +56,8 @@ def generate_dummy_imaging_extractor(
     dtype: DtypeType = "uint16",
     channel_names: Optional[List[str]] = None,
     seed: int = 0,
+    *,
+    num_samples: Optional[int] = 30,
 ):
     """Generate a dummy imaging extractor for testing.
 
@@ -85,10 +87,36 @@ def generate_dummy_imaging_extractor(
     ImagingExtractor
         An imaging extractor with random data fed into `NumpyImagingExtractor`.
     """
+    if num_frames is not None:
+        warnings.warn(
+            "The 'num_frames' parameter is deprecated and will be removed on or after January 2025. "
+            "Use 'num_samples' instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
+    if channel_names is not None:
+        warnings.warn(
+            "The 'channel_names' parameter is deprecated and will be removed on or after January 2025.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
+    if num_channels != 1:
+        warnings.warn(
+            "The 'num_channels' parameter is deprecated and will be removed on or after January 2025. "
+            "Only single channel extractors are supported.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
     if channel_names is None:
         channel_names = [f"channel_num_{num}" for num in range(num_channels)]
 
-    size = (num_frames, num_rows, num_columns, num_channels)
+    if num_frames is not None:
+        num_samples = num_frames
+
+    size = (num_samples, num_rows, num_columns, num_channels)
     video = generate_dummy_video(size=size, dtype=dtype, seed=seed)
 
     imaging_extractor = NumpyImagingExtractor(
@@ -100,7 +128,7 @@ def generate_dummy_imaging_extractor(
 
 def generate_dummy_segmentation_extractor(
     num_rois: int = 10,
-    num_frames: int = 30,
+    num_frames: Optional[int] = None,
     num_rows: int = 25,
     num_columns: int = 25,
     sampling_frequency: float = 30.0,
@@ -111,6 +139,8 @@ def generate_dummy_segmentation_extractor(
     has_neuropil_signal: bool = True,
     rejected_list: Optional[list] = None,
     seed: int = 0,
+    *,
+    num_samples: Optional[int] = 30,
 ) -> SegmentationExtractor:
     """Generate a dummy segmentation extractor for testing.
 
@@ -123,6 +153,9 @@ def generate_dummy_segmentation_extractor(
         number of regions of interest, by default 10.
     num_frames : int, optional
        Number of frames in the recording, by default 30.
+       .. deprecated::
+           The 'num_frames' parameter is deprecated and will be removed on or after January 2026.
+           Use 'num_samples' instead.
     num_rows : int, optional
         number of rows in the hypothetical video from which the data was extracted, by default 25.
     num_columns : int, optional
@@ -143,6 +176,9 @@ def generate_dummy_segmentation_extractor(
         A list of rejected rois, None by default.
     seed : int, default 0
         seed for the random number generator, by default 0.
+    num_samples : int, optional
+        Number of samples in the recording, by default None.
+        If specified, this will override num_frames.
 
     Returns
     -------
@@ -155,6 +191,17 @@ def generate_dummy_segmentation_extractor(
     contain meaningful content. That is, the image masks matrices are not plausible image mask for a roi, the raw signal
     is not a meaningful biological signal and is not related appropriately to the deconvolved signal , etc.
     """
+    if num_frames is not None:
+        warnings.warn(
+            "The 'num_frames' parameter is deprecated and will be removed on or after January 2026. "
+            "Use 'num_samples' instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
+    if num_frames is not None:
+        num_samples = num_frames
+
     rng = np.random.default_rng(seed)
 
     # Create dummy image masks
@@ -162,26 +209,27 @@ def generate_dummy_segmentation_extractor(
     movie_dims = (num_rows, num_columns)
 
     # Create signals
-    raw = rng.random((num_frames, num_rois)) if has_raw_signal else None
-    dff = rng.random((num_frames, num_rois)) if has_dff_signal else None
-    deconvolved = rng.random((num_frames, num_rois)) if has_deconvolved_signal else None
-    neuropil = rng.random((num_frames, num_rois)) if has_neuropil_signal else None
+    raw = rng.random((num_samples, num_rois)) if has_raw_signal else None
+    dff = rng.random((num_samples, num_rois)) if has_dff_signal else None
+    deconvolved = rng.random((num_samples, num_rois)) if has_deconvolved_signal else None
+    neuropil = rng.random((num_samples, num_rois)) if has_neuropil_signal else None
 
     # Summary images
     mean_image = rng.random((num_rows, num_columns)) if has_summary_images else None
     correlation_image = rng.random((num_rows, num_columns)) if has_summary_images else None
 
     # Rois
-    roi_ids = [id for id in range(num_rois)]
+    width = len(
+        str(num_rois - 1)
+    )  # e.g., width=2 for 10 ROIs (roi_00, roi_01, ..., roi_09), width=3 for 100 ROIs (roi_000, roi_001, ..., roi_099)
+    roi_ids = [f"roi_{id:0{width}d}" for id in range(num_rois)]
     roi_locations_rows = rng.integers(low=0, high=num_rows, size=num_rois)
     roi_locations_columns = rng.integers(low=0, high=num_columns, size=num_rois)
     roi_locations = np.vstack((roi_locations_rows, roi_locations_columns))
 
-    rejected_list = rejected_list if rejected_list else None
-
-    accepeted_list = roi_ids
+    accepted_list = roi_ids
     if rejected_list is not None:
-        accepeted_list = list(set(accepeted_list).difference(rejected_list))
+        accepted_list = list(set(accepted_list).difference(rejected_list))
 
     dummy_segmentation_extractor = NumpySegmentationExtractor(
         sampling_frequency=sampling_frequency,
@@ -194,7 +242,7 @@ def generate_dummy_segmentation_extractor(
         correlation_image=correlation_image,
         roi_ids=roi_ids,
         roi_locations=roi_locations,
-        accepted_lst=accepeted_list,
+        accepted_list=accepted_list,
         rejected_list=rejected_list,
         movie_dims=movie_dims,
         channel_names=["channel_num_0"],
@@ -248,13 +296,11 @@ def check_segmentations_equal(
     check_segmentation_return_types(segmentation_extractor2)
     # assert equality:
     assert segmentation_extractor1.get_num_rois() == segmentation_extractor2.get_num_rois()
-    assert segmentation_extractor1.get_num_frames() == segmentation_extractor2.get_num_frames()
-    assert segmentation_extractor1.get_num_channels() == segmentation_extractor2.get_num_channels()
+    assert segmentation_extractor1.get_num_samples() == segmentation_extractor2.get_num_samples()
     assert np.isclose(
         segmentation_extractor1.get_sampling_frequency(), segmentation_extractor2.get_sampling_frequency()
     )
-    assert_array_equal(segmentation_extractor1.get_channel_names(), segmentation_extractor2.get_channel_names())
-    assert_array_equal(segmentation_extractor1.get_image_size(), segmentation_extractor2.get_image_size())
+    assert_array_equal(segmentation_extractor1.get_frame_shape(), segmentation_extractor2.get_frame_shape())
     assert_array_equal(
         segmentation_extractor1.get_roi_image_masks(roi_ids=segmentation_extractor1.get_roi_ids()[:1]),
         segmentation_extractor2.get_roi_image_masks(roi_ids=segmentation_extractor2.get_roi_ids()[:1]),
@@ -274,8 +320,8 @@ def check_segmentations_equal(
     assert_array_equal(segmentation_extractor1.get_traces(), segmentation_extractor2.get_traces())
 
     assert_array_equal(
-        segmentation_extractor1.frame_to_time(np.arange(segmentation_extractor1.get_num_frames())),
-        segmentation_extractor2.frame_to_time(np.arange(segmentation_extractor2.get_num_frames())),
+        segmentation_extractor1.sample_indices_to_time(np.arange(segmentation_extractor1.get_num_samples())),
+        segmentation_extractor2.sample_indices_to_time(np.arange(segmentation_extractor2.get_num_samples())),
     )
 
 
@@ -322,7 +368,6 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
         seg.get_roi_ids(),
         dtypes=(list,),
         shape=(seg.get_num_rois(),),
-        element_dtypes=inttype,
     )
     assert isinstance(seg.get_roi_pixel_masks(roi_ids=seg.get_roi_ids()[:2]), list)
     _assert_iterable_complete(
@@ -341,13 +386,11 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
     _assert_iterable_complete(
         seg.get_accepted_list(),
         dtypes=(list, NoneType),
-        element_dtypes=inttype,
         shape_max=(seg.get_num_rois(),),
     )
     _assert_iterable_complete(
         seg.get_rejected_list(),
         dtypes=(list, NoneType),
-        element_dtypes=inttype,
         shape_max=(seg.get_num_rois(),),
     )
     _assert_iterable_complete(
@@ -371,22 +414,31 @@ def check_imaging_equal(
     imaging_extractor1: ImagingExtractor, imaging_extractor2: ImagingExtractor, exclude_channel_comparison: bool = False
 ):
     """Check that two imaging extractors have equal fields."""
+    if not exclude_channel_comparison:
+        warnings.warn(
+            "The 'exclude_channel_comparison' parameter is deprecated and will be removed on or after January 2026. \n"
+            "Exclude channel comparison will become the default behavior and the parameter will be removed. \n"
+            "Extractors do not longer have multiple channels, so this parameter is not needed anymore.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
     # assert equality:
-    assert imaging_extractor1.get_num_frames() == imaging_extractor2.get_num_frames()
-    assert imaging_extractor1.get_num_channels() == imaging_extractor2.get_num_channels()
+    assert imaging_extractor1.get_num_samples() == imaging_extractor2.get_num_samples()
     assert np.isclose(imaging_extractor1.get_sampling_frequency(), imaging_extractor2.get_sampling_frequency())
-    assert_array_equal(imaging_extractor1.get_image_size(), imaging_extractor2.get_image_size())
+    assert_array_equal(imaging_extractor1.get_sample_shape(), imaging_extractor2.get_sample_shape())
 
     if not exclude_channel_comparison:
         assert_array_equal(imaging_extractor1.get_channel_names(), imaging_extractor2.get_channel_names())
 
     assert_array_equal(
-        imaging_extractor1.get_video(start_frame=0, end_frame=1),
-        imaging_extractor2.get_video(start_frame=0, end_frame=1),
+        imaging_extractor1.get_series(start_sample=0, end_sample=1),
+        imaging_extractor2.get_series(start_sample=0, end_sample=1),
     )
+
     assert_array_almost_equal(
-        imaging_extractor1.frame_to_time(np.arange(imaging_extractor1.get_num_frames())),
-        imaging_extractor2.frame_to_time(np.arange(imaging_extractor2.get_num_frames())),
+        imaging_extractor1.sample_indices_to_time(np.arange(imaging_extractor1.get_num_samples())),
+        imaging_extractor2.sample_indices_to_time(np.arange(imaging_extractor2.get_num_samples())),
     )
 
 
@@ -413,7 +465,7 @@ def assert_get_frames_return_shape(imaging_extractor: ImagingExtractor):
 
     frame_idxs = np.array([0, 1])
     frames_with_array = imaging_extractor.get_frames(frame_idxs=frame_idxs, channel=0)
-    assert_msg = "get_frames does not work correctly with frame_idxs=np.arrray([0, 1])"
+    assert_msg = "get_frames does not work correctly with frame_idxs=np.array([0, 1])"
     assert frames_with_array.shape == (2, image_size[0], image_size[1]), assert_msg
 
     frame_idxs = [0, 2]
@@ -424,7 +476,7 @@ def assert_get_frames_return_shape(imaging_extractor: ImagingExtractor):
 
 def check_imaging_return_types(img_ex: ImagingExtractor):
     """Check that the return types of the imaging extractor are correct."""
-    assert isinstance(img_ex.get_num_frames(), inttype)
+    assert isinstance(img_ex.get_num_samples(), inttype)
     assert isinstance(img_ex.get_num_channels(), inttype)
     assert isinstance(img_ex.get_sampling_frequency(), floattype)
     _assert_iterable_complete(

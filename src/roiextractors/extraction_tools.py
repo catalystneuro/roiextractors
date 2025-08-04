@@ -6,24 +6,22 @@ VideoStructure
     A data class for specifying the structure of a video.
 """
 
-import sys
 import importlib.util
+import sys
+from dataclasses import dataclass
 from functools import wraps
 from pathlib import Path
-from typing import Union, Tuple, Optional, Dict, List
-from types import ModuleType
-from dataclasses import dataclass
 from platform import python_version
-
-import lazy_ops
-import numpy as np
-from numpy.typing import ArrayLike, DTypeLike
-from tqdm import tqdm
-from packaging import version
-
+from types import ModuleType
+from typing import Dict, List, Optional, Tuple, Union
 
 import h5py
+import lazy_ops
+import numpy as np
 import zarr
+from numpy.typing import ArrayLike, DTypeLike
+from packaging import version
+from tqdm import tqdm
 
 ArrayType = ArrayLike
 PathType = Union[str, Path]
@@ -47,7 +45,7 @@ class VideoStructure:
     """A data class for specifying the structure of a video.
 
     The role of the data class is to ensure consistency in naming and provide some initial
-    consistency checks to ensure the validity of the sturcture.
+    consistency checks to ensure the validity of the structure.
 
     Attributes
     ----------
@@ -326,7 +324,7 @@ def check_get_frames_args(func):
             frame_idxs = [frame_idxs]
         if not isinstance(frame_idxs, slice):
             frame_idxs = np.array(frame_idxs)
-            assert np.all(frame_idxs < imaging.get_num_frames()), "'frame_idxs' exceed number of frames"
+            assert np.all(frame_idxs < imaging.get_num_samples()), "'frame_idxs' exceed number of frames"
         get_frames_correct_arg = func(imaging, frame_idxs, channel)
 
         if len(frame_idxs) == 1:
@@ -408,19 +406,19 @@ def check_get_videos_args(func):
     @wraps(func)
     def corrected_args(imaging, start_frame=None, end_frame=None, channel=0):
         if start_frame is not None:
-            if start_frame > imaging.get_num_frames():
-                raise Exception(f"'start_frame' exceeds number of frames {imaging.get_num_frames()}!")
+            if start_frame > imaging.get_num_samples():
+                raise Exception(f"'start_frame' exceeds number of frames {imaging.get_num_samples()}!")
             elif start_frame < 0:
-                start_frame = imaging.get_num_frames() + start_frame
+                start_frame = imaging.get_num_samples() + start_frame
         else:
             start_frame = 0
         if end_frame is not None:
-            if end_frame > imaging.get_num_frames():
-                raise Exception(f"'end_frame' exceeds number of frames {imaging.get_num_frames()}!")
+            if end_frame > imaging.get_num_samples():
+                raise Exception(f"'end_frame' exceeds number of frames {imaging.get_num_samples()}!")
             elif end_frame < 0:
-                end_frame = imaging.get_num_frames() + end_frame
+                end_frame = imaging.get_num_samples() + end_frame
         else:
-            end_frame = imaging.get_num_frames()
+            end_frame = imaging.get_num_samples()
         assert end_frame - start_frame > 0, "'start_frame' must be less than 'end_frame'!"
 
         start_frame, end_frame = _cast_start_end_frame(start_frame, end_frame)
@@ -483,7 +481,7 @@ def write_to_h5_dataset_format(
             # when suffix is already raw/bin/dat do not change it.
             save_path = save_path.parent / (save_path.name + ".h5")
     num_channels = imaging.get_num_channels()
-    num_frames = imaging.get_num_frames()
+    num_frames = imaging.get_num_samples()
     size_x, size_y = imaging.get_image_size()
 
     if file_handle is not None:
@@ -552,8 +550,8 @@ def show_video(imaging, ax=None):
     anim: matplotlib.animation.FuncAnimation
         Animation of the video.
     """
-    import matplotlib.pyplot as plt
     import matplotlib.animation as animation
+    import matplotlib.pyplot as plt
 
     def animate_func(i, imaging, im, ax):
         ax.set_title(f"{i}")
@@ -569,7 +567,7 @@ def show_video(imaging, ax=None):
     anim = animation.FuncAnimation(
         fig,
         animate_func,
-        frames=imaging.get_num_frames(),
+        frames=imaging.get_num_samples(),
         fargs=(imaging, im, ax),
         interval=interval,
         blit=False,
@@ -598,7 +596,7 @@ def check_keys(dict_: dict) -> dict:
     AssertionError
         If scipy is not installed.
     """
-    from scipy.io.matlab.mio5_params import mat_struct
+    from scipy.io.matlab import mat_struct
 
     for key in dict_:
         if isinstance(dict_[key], mat_struct):
@@ -619,10 +617,9 @@ def todict(matobj):
     dict: dict
         Dictionary with mat-objects converted to nested dictionaries.
     """
-    from scipy.io.matlab.mio5_params import mat_struct
+    from scipy.io.matlab import mat_struct
 
     dict_ = {}
-    from scipy.io.matlab.mio5_params import mat_struct
 
     for strg in matobj._fieldnames:
         elem = matobj.__dict__[strg]

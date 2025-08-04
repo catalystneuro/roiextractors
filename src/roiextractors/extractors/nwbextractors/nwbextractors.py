@@ -8,19 +8,20 @@ NwbSegmentationExtractor
     Extracts segmentation data from NWB files.
 """
 
+import warnings
 from pathlib import Path
-from typing import Union, Optional, Iterable, Tuple
+from typing import Iterable, Optional, Tuple, Union
 
 import numpy as np
 from lazy_ops import DatasetView
-
 from pynwb import NWBHDF5IO
-from pynwb.ophys import TwoPhotonSeries, OnePhotonSeries
+from pynwb.ophys import OnePhotonSeries, TwoPhotonSeries
+
 from ...extraction_tools import (
-    PathType,
+    ArrayType,
     FloatType,
     IntType,
-    ArrayType,
+    PathType,
     raise_multi_channel_or_depth_not_implemented,
 )
 from ...imagingextractor import ImagingExtractor
@@ -28,12 +29,20 @@ from ...segmentationextractor import SegmentationExtractor
 
 
 def temporary_deprecation_message():
-    """Raise a NotImplementedError with a temporary deprecation message."""
+    """Issue a deprecation warning and raise a NotImplementedError with a migration message."""
+    from warnings import warn
+
+    warn(
+        "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
     raise NotImplementedError(
         "ROIExtractors no longer supports direct write to NWB. This method will be removed in a future release.\n\n"
-        "Please install nwb-conversion-tools and import the corresponding write method from there.\n\nFor example,\n\n"
+        "Please install neuroconv and import the corresponding write method from there.\n\nFor example,\n\n"
         "from roiextractors import NwbSegmentationExtractor\nNwbSegmentationExtractor.write_segmentation(...)\n\n"
-        "would become\n\nfrom nwb_conversion_tools import roiextractors\nroiextractors.write_segmentation(...)"
+        "would become\n\nfrom neuroconv import roiextractors\nroiextractors.write_segmentation(...)"
     )
 
 
@@ -45,7 +54,6 @@ class NwbImagingExtractor(ImagingExtractor):
     """
 
     extractor_name = "NwbImaging"
-    is_writable = True
     mode = "file"
 
     def __init__(self, file_path: PathType, optical_series_name: Optional[str] = "TwoPhotonSeries"):
@@ -86,7 +94,7 @@ class NwbImagingExtractor(ImagingExtractor):
         self._data_has_channels_axis = True
         if len(self.photon_series.data.shape) == 3:
             self._num_channels = 1
-            self._num_frames, self._columns, self._num_rows = self.photon_series.data.shape
+            self._num_samples, self._columns, self._num_rows = self.photon_series.data.shape
         else:
             raise_multi_channel_or_depth_not_implemented(extractor_name=self.extractor_name)
 
@@ -130,6 +138,12 @@ class NwbImagingExtractor(ImagingExtractor):
             return super().time_to_frame(times)
 
     def frame_to_time(self, frames: Union[IntType, ArrayType]) -> np.ndarray:
+        warnings.warn(
+            "frame_to_time() is deprecated and will be removed on or after January 2026. "
+            "Use sample_indices_to_time() instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         if self._times is None:
             return (frames / self.get_sampling_frequency() + self._imaging_start_time).astype("float")
         else:
@@ -200,6 +214,14 @@ class NwbImagingExtractor(ImagingExtractor):
             frames = frames.squeeze()
         return frames
 
+    def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
+        start_sample = start_sample if start_sample is not None else 0
+        end_sample = end_sample if end_sample is not None else self.get_num_samples()
+
+        series = self.photon_series.data
+        series = series[start_sample:end_sample].transpose([0, 2, 1])
+        return series
+
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
         """Get the video frames.
 
@@ -216,7 +238,17 @@ class NwbImagingExtractor(ImagingExtractor):
         -------
         video: numpy.ndarray
             The video frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
         """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if channel != 0:
             from warnings import warn
 
@@ -225,18 +257,50 @@ class NwbImagingExtractor(ImagingExtractor):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        start_frame = start_frame if start_frame is not None else 0
-        end_frame = end_frame if end_frame is not None else self.get_num_frames()
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
-        video = self.photon_series.data
-        video = video[start_frame:end_frame].transpose([0, 2, 1])
-        return video
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
 
-    def get_image_size(self) -> Tuple[int, int]:
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
         return (self._num_rows, self._columns)  # TODO: change name of _columns to _num_cols for consistency
 
+    def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return (self._num_rows, self._columns)  # TODO: change name of _columns to _num_cols for consistency
+
+    def get_num_samples(self):
+        return self._num_samples
+
     def get_num_frames(self):
-        return self._num_frames
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self):
         return self._sampling_frequency
@@ -246,6 +310,14 @@ class NwbImagingExtractor(ImagingExtractor):
 
     def get_num_channels(self):
         return self._num_channels
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # NWB files may have timestamps but need to check the specific implementation
+        # For now, return None to use calculated timestamps based on sampling frequency
+        # TODO: extract the timestamps if the MiroscopySeries has timestamps
+        return None
 
     @staticmethod
     def add_devices(imaging, nwbfile, metadata):
@@ -267,26 +339,11 @@ class NwbImagingExtractor(ImagingExtractor):
         """Return the metadata dictionary for the NWB file (deprecated)."""
         temporary_deprecation_message()
 
-    @staticmethod
-    def write_imaging(
-        imaging: ImagingExtractor,
-        save_path: PathType = None,
-        nwbfile=None,
-        metadata: dict = None,
-        overwrite: bool = False,
-        buffer_size: int = 10,
-        use_times: bool = False,
-    ):
-        """Write imaging data to NWB file (deprecated)."""
-        temporary_deprecation_message()
-
 
 class NwbSegmentationExtractor(SegmentationExtractor):
     """An segmentation extractor for NWB files."""
 
     extractor_name = "NwbSegmentationExtractor"
-    installed = True  # check at class level if installed or not
-    is_writable = False
     mode = "file"
     installation_mesg = ""  # error message when not installed
 
@@ -417,23 +474,44 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         tranpose_image_convention = (1, 0) if len(self.get_image_size()) == 2 else (1, 0, 2)
         return np.array(self._roi_locs.data)[roi_idxs, tranpose_image_convention].T  # h5py fancy indexing is slow
 
-    def get_image_size(self):
+    def get_frame_shape(self):
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        frame_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
         return self._image_masks.shape[:2]
+
+    def get_image_shape(self):
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
+        return self._image_masks.shape[:2]
+
+    def get_image_size(self):
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._image_masks.shape[:2]
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # NWB files may have timestamps but need to check the specific implementation
+        # For now, return None to use calculated timestamps based on sampling frequency
+        # TODO: check if the RoiResponseSeries has timestamps
+        return None
 
     @staticmethod
     def get_nwb_metadata(sgmextractor):
         """Return the metadata dictionary for the NWB file (deprecated)."""
-        temporary_deprecation_message()
-
-    @staticmethod
-    def write_segmentation(
-        segext_obj: SegmentationExtractor,
-        save_path: PathType = None,
-        plane_num=0,
-        metadata: dict = None,
-        overwrite: bool = True,
-        buffer_size: int = 10,
-        nwbfile=None,
-    ):
-        """Write segmentation data to NWB file (deprecated)."""
         temporary_deprecation_message()

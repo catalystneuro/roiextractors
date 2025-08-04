@@ -6,24 +6,27 @@ SbxImagingExtractor
     An ImagingExtractor for Scanbox Image files.
 """
 
-from multiprocessing.sharedctypes import Value
 import os
+import warnings
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import numpy as np
-
-from ...extraction_tools import PathType, ArrayType, raise_multi_channel_or_depth_not_implemented, check_keys
-from ...imagingextractor import ImagingExtractor
-
 import scipy.io as spio
+
+from ...extraction_tools import (
+    ArrayType,
+    PathType,
+    check_keys,
+    raise_multi_channel_or_depth_not_implemented,
+)
+from ...imagingextractor import ImagingExtractor
 
 
 class SbxImagingExtractor(ImagingExtractor):
     """Imaging extractor for the Scanbox image format."""
 
     extractor_name = "SbxImaging"
-    is_writable = True
     mode = "folder"
 
     def __init__(self, file_path: PathType, sampling_frequency: Optional[float] = None):
@@ -34,7 +37,7 @@ class SbxImagingExtractor(ImagingExtractor):
         file_path : str or python Path objects
             The file path pointing to a file in either `.mat` or `.sbx` format.
         sampling_frequency : float, optional
-            The sampling frequeny of the imaging device.
+            The sampling frequency of the imaging device.
         """
         super().__init__()
         self._memmapped = True
@@ -190,6 +193,10 @@ class SbxImagingExtractor(ImagingExtractor):
         frame_out = np.iinfo("uint16").max - self._data.transpose(4, 2, 1, 0, 3)[frame_idxs, :, :, channel, 0]
         return frame_out
 
+    def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
+        frame_out = np.iinfo("uint16").max - self._data[0, :, :, 0, start_sample:end_sample]
+        return frame_out.transpose(2, 1, 0)
+
     def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
         """Get the video frames.
 
@@ -206,7 +213,17 @@ class SbxImagingExtractor(ImagingExtractor):
         -------
         video: numpy.ndarray
             The video frames.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_series() instead.
         """
+        warnings.warn(
+            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if channel != 0:
             from warnings import warn
 
@@ -215,14 +232,50 @@ class SbxImagingExtractor(ImagingExtractor):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        frame_out = np.iinfo("uint16").max - self._data[channel, :, :, 0, start_frame:end_frame]
-        return frame_out.transpose(2, 1, 0)
+        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> Tuple[int, int]:
+        """Get the shape of the video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the video frame (num_rows, num_columns).
+        """
         return tuple(self._info["sz"])
 
-    def get_num_frames(self) -> int:
+    def get_image_size(self) -> Tuple[int, int]:
+        warnings.warn(
+            "get_image_size() is deprecated and will be removed in or after September 2025. "
+            "Use get_image_shape() instead for consistent behavior across all extractors.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return tuple(self._info["sz"])
+
+    def get_num_samples(self) -> int:
         return (self._info["max_idx"] + 1) // self._info["nplanes"]
+
+    def get_num_frames(self) -> int:
+        """Get the number of frames in the video.
+
+        Returns
+        -------
+        num_frames: int
+            Number of frames in the video.
+
+        Deprecated
+        ----------
+        This method will be removed in or after September 2025.
+        Use get_num_samples() instead.
+        """
+        warnings.warn(
+            "get_num_frames() is deprecated and will be removed in or after September 2025. "
+            "Use get_num_samples() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
@@ -250,4 +303,24 @@ class SbxImagingExtractor(ImagingExtractor):
         -----
         This function is not implemented yet.
         """
+        from warnings import warn
+
+        warn(
+            "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         raise NotImplementedError
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        """Retrieve the original unaltered timestamps for the data in this interface.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray or None
+            The timestamps for the data stream, or None if native timestamps are not available.
+        """
+        # ScanBox imaging data does not have native timestamps
+        return None

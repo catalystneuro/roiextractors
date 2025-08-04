@@ -9,6 +9,7 @@ from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
 
 from roiextractors import MiniscopeImagingExtractor
+
 from .setup_paths import OPHYS_DATA_PATH
 
 
@@ -60,14 +61,11 @@ class TestMiniscopeExtractor(TestCase):
         with self.assertRaisesWith(AssertionError, exc_msg=exc_msg):
             MiniscopeImagingExtractor(folder_path=self.test_dir)
 
-    def test_miniscopeextractor_num_frames(self):
-        self.assertEqual(self.extractor.get_num_frames(), self.num_frames)
+    def test_miniscopeextractor_num_samples(self):
+        self.assertEqual(self.extractor.get_num_samples(), self.num_frames)
 
     def test_miniscopeextractor_image_size(self):
         self.assertEqual(self.extractor.get_image_size(), self.image_size)
-
-    def test_miniscopeextractor_num_channels(self):
-        self.assertEqual(self.extractor.get_num_channels(), 1)
 
     def test_miniscopeextractor_channel_names(self):
         self.assertEqual(self.extractor.get_channel_names(), ["OpticalChannel"])

@@ -6,6 +6,8 @@ MultiSegmentationExtractor
     This class is used to combine multiple SegmentationExtractor objects by frames.
 """
 
+import warnings
+
 import numpy as np
 
 from .segmentationextractor import SegmentationExtractor
@@ -59,8 +61,6 @@ class MultiSegmentationExtractor(SegmentationExtractor):
     """Class is used to concatenate multi-plane recordings from the same device and session of experiment."""
 
     extractor_name = "MultiSegmentationExtractor"
-    installed = True  # check at class level if installed or not
-    is_writable = False
     mode = "file"
     installation_mesg = ""  # error message when not installed
 
@@ -161,8 +161,17 @@ class MultiSegmentationExtractor(SegmentationExtractor):
                 return_dict.update({f"{trace_name}_Plane{i}": trace})
         return return_dict
 
+    def get_frame_shape(self) -> tuple[int, int]:
+        return self._segmentations[0].get_frame_shape()
+
     def get_image_size(self) -> tuple[int, int]:
-        return self._segmentations[0].get_image_size()
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()
 
     @concatenate_output
     def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="Fluorescence"):

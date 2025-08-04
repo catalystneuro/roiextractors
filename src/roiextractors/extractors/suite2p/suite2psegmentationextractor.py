@@ -7,13 +7,14 @@ Suite2pSegmentationExtractor
 """
 
 import shutil
+import warnings
 from pathlib import Path
 from typing import Optional
 from warnings import warn
+
 import numpy as np
 
-from ...extraction_tools import PathType
-from ...extraction_tools import _image_mask_extractor
+from ...extraction_tools import PathType, _image_mask_extractor
 from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
 
@@ -22,10 +23,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     """A segmentation extractor for Suite2p."""
 
     extractor_name = "Suite2pSegmentationExtractor"
-    installed = True  # check at class level if installed or not
-    is_writable = False
-    mode = "folder"
-    installation_mesg = ""  # error message when not installed
 
     @classmethod
     def get_available_channels(cls, folder_path: PathType) -> list[str]:
@@ -79,8 +76,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         folder_path: PathType,
         channel_name: Optional[str] = None,
         plane_name: Optional[str] = None,
-        combined: Optional[bool] = None,  # TODO: to be removed
-        plane_no: Optional[int] = None,  # TODO: to be removed
     ):
         """Create SegmentationExtractor object out of suite 2p data type.
 
@@ -92,24 +87,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             The name of the channel to load, to determine what channels are available use Suite2pSegmentationExtractor.get_available_channels(folder_path).
         plane_name: str, optional
             The name of the plane to load, to determine what planes are available use Suite2pSegmentationExtractor.get_available_planes(folder_path).
-
         """
-        if combined:
-            warning_string = "Keyword argument 'combined' is deprecated and will be removed on or after Nov, 2023. "
-            warn(
-                message=warning_string,
-                category=DeprecationWarning,
-            )
-        if plane_no:
-            warning_string = (
-                "Keyword argument 'plane_no' is deprecated and will be removed on or after Nov, 2023 in favor of 'plane_name'."
-                "Specify which stream you wish to load with the 'plane_name' keyword argument."
-            )
-            warn(
-                message=warning_string,
-                category=DeprecationWarning,
-            )
-
         channel_names = self.get_available_channels(folder_path=folder_path)
         if channel_name is None:
             if len(channel_names) > 1:
@@ -154,7 +132,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self.options = options.item()
         self._sampling_frequency = self.options["fs"]
         self._num_frames = self.options["nframes"]
-        self._image_size = (self.options["Ly"], self.options["Lx"])
+        self._image_shape = (self.options["Ly"], self.options["Lx"])
 
         self.stat = self._load_npy(file_name="stat.npy", require=True)
 
@@ -184,7 +162,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self._image_masks = _image_mask_extractor(
             self.get_roi_pixel_masks(),
             roi_indices,
-            self.get_image_size(),
+            self.get_frame_shape(),
         )
 
     def _load_npy(self, file_name: str, mmap_mode=None, transpose: bool = False, require: bool = False):
@@ -217,8 +195,24 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
         return data
 
-    def get_num_frames(self) -> int:
+    def get_num_samples(self) -> int:
+        """Get the number of samples in the recording (duration of recording).
+
+        Returns
+        -------
+        num_samples: int
+            Number of samples in the recording.
+        """
         return self._num_frames
+
+    def get_num_frames(self) -> int:
+        warnings.warn(
+            "get_num_frames is deprecated and will be removed on or after January 2026. "
+            "Use get_num_samples instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_num_samples()
 
     def get_accepted_list(self) -> list[int]:
         return list(np.where(self.iscell[:, 0] == 1)[0])
@@ -238,10 +232,10 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             return None
 
         correlation_image = self.options["Vcorr"]
-        if (self.options["yrange"][-1], self.options["xrange"][-1]) == self._image_size:
+        if (self.options["yrange"][-1], self.options["xrange"][-1]) == self._image_shape:
             return correlation_image
 
-        img = np.zeros(self._image_size, correlation_image.dtype)
+        img = np.zeros(self._image_shape, correlation_image.dtype)
         img[
             (self.options["Ly"] - self.options["yrange"][-1]) : (self.options["Ly"] - self.options["yrange"][0]),
             self.options["xrange"][0] : self.options["xrange"][-1],
@@ -274,8 +268,23 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             roi_idx_ = [j[0] for i, j in enumerate(roi_idx) if i not in ele]
         return [pixel_mask[i] for i in roi_idx_]
 
+    def get_frame_shape(self) -> tuple[int, int]:
+        return self._image_shape
+
     def get_image_size(self) -> tuple[int, int]:
-        return self._image_size
+        warnings.warn(
+            "get_image_size is deprecated and will be removed on or after January 2026. "
+            "Use get_frame_shape instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_frame_shape()
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+        # Suite2p segmentation data does not have native timestamps
+        return None
 
     @staticmethod
     def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite=True):
@@ -309,6 +318,11 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             ├── iscell.npy
             └── ops.npy
         """
+        warn(
+            "The write_segmentation function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         save_path = Path(save_path)
         assert not save_path.is_file(), "'save_path' must be a folder"
 

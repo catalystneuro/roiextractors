@@ -93,10 +93,10 @@ class TestSuite2pSegmentationExtractor(TestCase):
         self.assertEqual(traces_dict["deconvolved"], None)
 
     def test_image_size(self):
-        self.assertEqual(self.extractor.get_image_size(), self.image_size)
+        self.assertEqual(self.extractor.get_frame_shape(), self.image_size)
 
     def test_num_frames(self):
-        self.assertEqual(self.extractor.get_num_frames(), 250)
+        self.assertEqual(self.extractor.get_num_samples(), 250)
 
     def test_sampling_frequency(self):
         self.assertEqual(self.extractor.get_sampling_frequency(), 10.0)
@@ -126,8 +126,11 @@ class TestSuite2pSegmentationExtractor(TestCase):
 
     def test_extractor_image_masks_selected_rois(self):
         """Test that the image masks are correctly extracted for a subset of ROIs."""
+        selected_roi_ids = self.extractor.get_roi_ids()[:5]
         roi_indices = list(range(5))
-        assert_array_equal(self.extractor.get_roi_image_masks(roi_ids=roi_indices), self.image_masks[..., roi_indices])
+        assert_array_equal(
+            self.extractor.get_roi_image_masks(roi_ids=selected_roi_ids), self.image_masks[..., roi_indices]
+        )
 
     def test_first_channel_mean_image(self):
         """Test that the mean image is correctly loaded from the extractor."""
