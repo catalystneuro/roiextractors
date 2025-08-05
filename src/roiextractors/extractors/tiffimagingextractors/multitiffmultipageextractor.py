@@ -56,11 +56,11 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             dimensions which are assumed to be the first two dimensions.
             Default is "ZCT".
         num_channels : int, default=1
-            Number of channels. 
+            Number of channels.
         channel_index : int, default=0
             Index of the channel to extract. Default is 0 (first channel).
         num_planes : int, default=1
-            Number of depth planes (Z). 
+            Number of depth planes (Z).
         num_acquisition_cycles : int, optional
             The total number of complete acquisition cycles present in the dataset. An acquisition cycle
             represents one full sweep through the imaging dimensions according to the specified dimension_order.
@@ -463,7 +463,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
     ) -> Optional[np.ndarray]:
         """No native timestamps for native this extractor."""
         return None
-    
+
     def get_channel_names(self):
         channel_names = [f"Channel {i}" for i in range(self._num_channels)]
         return channel_names
