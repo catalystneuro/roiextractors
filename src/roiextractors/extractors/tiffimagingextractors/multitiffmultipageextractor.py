@@ -9,7 +9,7 @@ MultiTIFFMultiPageExtractor
 import glob
 import warnings
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Optional
 
 import numpy as np
 
@@ -32,7 +32,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
     def __init__(
         self,
-        file_paths: List[PathType],
+        file_paths: list[PathType],
         sampling_frequency: float,
         dimension_order: str = "ZCT",
         num_channels: int = 1,
@@ -44,7 +44,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
         Parameters
         ----------
-        file_paths : List[PathType]
+        file_paths : list[PathType]
             List of paths to TIFF files.
         sampling_frequency : float
             The sampling frequency in Hz.
@@ -76,10 +76,6 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             When set to None (default), the extractor automatically calculates this value as:
                 num_acquisition_cycles = total_ifds // (num_channels * num_planes)
 
-            This is particularly important for:
-            1. Oversampling to improve signal-to-noise ratio
-            2. Capturing dynamics at different timescales
-            3. Multi-exposure imaging where the same volume is imaged repeatedly
 
         Notes
         -----
@@ -197,11 +193,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
         # Filter mapping for the specified channel
         channel_mask = full_mapping["channel_index"] == self._channel_index
-        sample_to_ifd_mapping = full_mapping[channel_mask]
-
-        # Sort by time_index and depth_index for easier access
-        sorted_indices = np.argsort(sample_to_ifd_mapping["time_index"])
-        self._frames_to_ifd_table = sample_to_ifd_mapping[sorted_indices]
+        self._frames_to_ifd_table = full_mapping[channel_mask]
 
         # Determine if we're dealing with volumetric data
         self.is_volumetric = self._num_planes > 1
@@ -210,7 +202,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         """Get the number of depth planes."""
         return self._num_planes
 
-    def get_volume_shape(self) -> Tuple[int, int, int]:
+    def get_volume_shape(self) -> tuple[int, int, int]:
         """Get the shape of a single volume (num_rows, num_columns, num_planes).
 
         Returns
