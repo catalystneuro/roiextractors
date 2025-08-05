@@ -228,11 +228,6 @@ def test_get_sampling_frequency(scan_image_tiff_single_plane_imaging_extractor, 
     assert sampling_frequency == expected_properties["sampling_frequency"]
 
 
-def test_get_num_channels(scan_image_tiff_single_plane_imaging_extractor, expected_properties):
-    num_channels = scan_image_tiff_single_plane_imaging_extractor.get_num_channels()
-    assert num_channels == expected_properties["num_channels"]
-
-
 def test_get_available_planes(scan_image_tiff_single_plane_imaging_extractor, expected_properties):
     file_path = str(scan_image_tiff_single_plane_imaging_extractor.file_path)
     plane_names = ScanImageTiffSinglePlaneImagingExtractor.get_available_planes(file_path)

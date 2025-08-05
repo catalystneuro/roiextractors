@@ -20,7 +20,6 @@ class MultiImagingExtractor(ImagingExtractor):
     """Class to combine multiple ImagingExtractor objects by frames."""
 
     extractor_name = "MultiImagingExtractor"
-    installation_mesg = ""
 
     def __init__(self, imaging_extractors: List[ImagingExtractor]):
         """Initialize a MultiImagingExtractor object from a list of ImagingExtractors.
@@ -316,14 +315,6 @@ class MultiImagingExtractor(ImagingExtractor):
 
     def get_channel_names(self) -> list:
         return self._imaging_extractors[0].get_channel_names()
-
-    def get_num_channels(self) -> int:
-        warnings.warn(
-            "get_num_channels() is deprecated and will be removed in or after August 2025.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._imaging_extractors[0].get_num_channels()
 
     def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None

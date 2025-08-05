@@ -283,9 +283,6 @@ class SbxImagingExtractor(ImagingExtractor):
     def get_channel_names(self) -> list:
         return self._channel_names
 
-    def get_num_channels(self) -> int:
-        return self._info["nChan"]
-
     @staticmethod
     def write_imaging(imaging, save_path: PathType, overwrite: bool = False):
         """Write a SbxImagingExtractor to a `.mat` file.

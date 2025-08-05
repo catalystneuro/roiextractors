@@ -477,13 +477,12 @@ def assert_get_frames_return_shape(imaging_extractor: ImagingExtractor):
 def check_imaging_return_types(img_ex: ImagingExtractor):
     """Check that the return types of the imaging extractor are correct."""
     assert isinstance(img_ex.get_num_samples(), inttype)
-    assert isinstance(img_ex.get_num_channels(), inttype)
     assert isinstance(img_ex.get_sampling_frequency(), floattype)
     _assert_iterable_complete(
         iterable=img_ex.get_channel_names(),
         dtypes=(list, NoneType),
         element_dtypes=str,
-        shape_max=(img_ex.get_num_channels(),),
+        shape_max=(1,),
     )
     _assert_iterable_complete(iterable=img_ex.get_image_size(), dtypes=Iterable, element_dtypes=inttype, shape=(2,))
 

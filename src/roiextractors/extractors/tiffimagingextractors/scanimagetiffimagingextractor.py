@@ -1530,9 +1530,6 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
     def get_channel_names(self) -> list:
         return self._channel_names
 
-    def get_num_channels(self) -> int:
-        return self._num_channels
-
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
 
@@ -1803,9 +1800,6 @@ class ScanImageLegacyImagingExtractor(ImagingExtractor):
 
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
-
-    def get_num_channels(self) -> int:
-        return self._num_channels
 
     def get_channel_names(self) -> list:
         pass

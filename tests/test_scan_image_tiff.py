@@ -80,9 +80,6 @@ class TestScanImageTiffExtractor(TestCase):
     def test_scan_image_tiff_image_size(self):
         assert self.imaging_extractor.get_image_size() == (256, 256)
 
-    def test_scan_image_tiff_num_channels(self):
-        assert self.imaging_extractor.get_num_channels() == 1
-
 
 if __name__ == "__main__":
     unittest.main()
