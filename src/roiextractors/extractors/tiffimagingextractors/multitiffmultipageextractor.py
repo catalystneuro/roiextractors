@@ -214,7 +214,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
     @staticmethod
     def _create_frame_to_ifd_table(
-        dimension_order: str, num_channels: int, num_acquisition_cycles: int, num_planes: int, ifds_per_file: List[int]
+        dimension_order: str, num_channels: int, num_acquisition_cycles: int, num_planes: int, ifds_per_file: list[int]
     ) -> np.ndarray:
         """Create a mapping from sample index to file and IFD indices.
 
@@ -231,7 +231,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             Number of acquisition cycles (timepoints).
         num_planes : int
             Number of depth planes (Z).
-        ifds_per_file : List[int]
+        ifds_per_file : list[int]
             Number of IFDs in each file.
 
         Returns
