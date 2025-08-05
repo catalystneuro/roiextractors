@@ -55,12 +55,12 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             This follows the OME-TIFF specification for dimension order, but excludes the XY
             dimensions which are assumed to be the first two dimensions.
             Default is "ZCT".
-        num_channels : int, optional
-            Number of channels. Default is 1.
-        channel_index : int, optional
+        num_channels : int, default=1
+            Number of channels. 
+        channel_index : int, default=0
             Index of the channel to extract. Default is 0 (first channel).
-        num_planes : int, optional
-            Number of depth planes (Z). Default is 1.
+        num_planes : int, default=1
+            Number of depth planes (Z). 
         num_acquisition_cycles : int, optional
             The total number of complete acquisition cycles present in the dataset. An acquisition cycle
             represents one full sweep through the imaging dimensions according to the specified dimension_order.
@@ -130,10 +130,10 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         if channel_index >= num_channels:
             raise ValueError(f"channel_index {channel_index} is out of range (0 to {num_channels-1})")
 
-        self.file_paths = [Path(file_path) for file_path in file_paths]
-        self.dimension_order = dimension_order
-        self.num_channels = num_channels
-        self.channel_index = channel_index
+        self._file_paths = [Path(file_path) for file_path in file_paths]
+        self._dimension_order = dimension_order
+        self._num_channels = num_channels
+        self._channel_index = channel_index
         self._num_planes = num_planes
         self._sampling_frequency = sampling_frequency
 
@@ -144,7 +144,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         self._file_handles = []
         total_ifds = 0
 
-        for file_path in self.file_paths:
+        for file_path in self._file_paths:
             try:
                 tiff_handle = tifffile.TiffFile(file_path)
                 self._file_handles.append(tiff_handle)
@@ -184,19 +184,19 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
             num_acquisition_cycles = total_ifds // ifds_per_cycle
 
-        self.num_acquisition_cycles = num_acquisition_cycles
+        self._num_acquisition_cycles = num_acquisition_cycles
 
         # Create full mapping for all channels, times, and depths
         full_mapping = self._create_frame_to_ifd_table(
-            dimension_order=dimension_order,
-            num_channels=num_channels,
-            num_acquisition_cycles=num_acquisition_cycles,
-            num_planes=num_planes,
+            dimension_order=self._dimension_order,
+            num_channels=self._num_channels,
+            num_acquisition_cycles=self._num_acquisition_cycles,
+            num_planes=self._num_planes,
             ifds_per_file=ifds_per_file,
         )
 
         # Filter mapping for the specified channel
-        channel_mask = full_mapping["channel_index"] == channel_index
+        channel_mask = full_mapping["channel_index"] == self._channel_index
         sample_to_ifd_mapping = full_mapping[channel_mask]
 
         # Sort by time_index and depth_index for easier access
@@ -354,7 +354,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
         return samples
 
-    def get_image_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> tuple[int, int]:
         """Get the size of the video (num_rows, num_columns).
 
         Returns
@@ -463,3 +463,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
     ) -> Optional[np.ndarray]:
         """No native timestamps for native this extractor."""
         return None
+    
+    def get_channel_names(self):
+        channel_names = [f"Channel {i}" for i in range(self._num_channels)]
+        return channel_names

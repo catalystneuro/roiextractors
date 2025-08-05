@@ -224,7 +224,8 @@ class ImagingExtractor(ABC):
             Sampling frequency in Hz.
         """
         pass
-
+    
+    @abstractmethod
     def get_channel_names(self) -> list:
         """Get the channel names in the recoding.
 
