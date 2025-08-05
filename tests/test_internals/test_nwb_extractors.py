@@ -70,7 +70,6 @@ class TestNwbImagingExtractor(unittest.TestCase):
 
         image_size = nwb_imaging_extractor.get_image_size()
         num_frames = nwb_imaging_extractor.get_num_frames()
-        num_channels = nwb_imaging_extractor.get_num_channels()
 
         expected_image_size = self.image_size
         expected_num_frames = self.num_frames
@@ -78,7 +77,6 @@ class TestNwbImagingExtractor(unittest.TestCase):
 
         assert image_size == expected_image_size
         assert num_frames == expected_num_frames
-        assert num_channels == expected_num_channels
 
         # Test numpy like behavior for frame_idxs
         frame_idxs = 0

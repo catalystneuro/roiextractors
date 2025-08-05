@@ -49,12 +49,6 @@ def test_get_channel_names():
     assert sample_sliced_imaging.get_channel_names() == ["channel_num_0"]
 
 
-def test_get_num_channels():
-    imaging_extractor = generate_dummy_imaging_extractor(num_frames=10, num_rows=5, num_columns=4, num_channels=1)
-    sample_sliced_imaging = imaging_extractor.slice_samples(start_sample=2, end_sample=7)
-    assert sample_sliced_imaging.get_num_channels() == 1
-
-
 def test_get_samples_assertion():
     imaging_extractor = generate_dummy_imaging_extractor(num_frames=10, num_rows=5, num_columns=4, num_channels=1)
     sample_sliced_imaging = imaging_extractor.slice_samples(start_sample=2, end_sample=7)

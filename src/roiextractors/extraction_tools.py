@@ -480,7 +480,7 @@ def write_to_h5_dataset_format(
         if save_path.suffix == "":
             # when suffix is already raw/bin/dat do not change it.
             save_path = save_path.parent / (save_path.name + ".h5")
-    num_channels = imaging.get_num_channels()
+    num_channels = 1
     num_frames = imaging.get_num_samples()
     size_x, size_y = imaging.get_image_size()
 

@@ -320,10 +320,6 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         """Return the sampling frequency, if available."""
         return self._sampling_frequency
 
-    def get_num_channels(self) -> int:
-        """Return the number of channels."""
-        return self._num_channels
-
     def get_channel_names(self) -> List[str]:
         """Return the channel names."""
         return self._channel_names

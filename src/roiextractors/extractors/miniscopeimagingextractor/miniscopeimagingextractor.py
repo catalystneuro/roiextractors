@@ -158,9 +158,6 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
         )
         return self.get_num_samples()
 
-    def get_num_channels(self) -> int:
-        return 1
-
     def get_image_shape(self) -> Tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 

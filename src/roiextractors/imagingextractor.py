@@ -786,25 +786,6 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
     def get_channel_names(self) -> list:
         return self._parent_imaging.get_channel_names()
 
-    def get_num_channels(self) -> int:
-        """Get the total number of active channels in the recording.
-
-        Returns
-        -------
-        num_channels: int
-            Integer count of number of channels.
-
-        Deprecated
-        ----------
-        This method will be removed in or after August 2025.
-        """
-        warnings.warn(
-            "get_num_channels() is deprecated and will be removed in or after August 2025.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._parent_imaging.get_num_channels()
-
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
 
@@ -976,25 +957,6 @@ class FrameSliceImagingExtractor(SampleSlicedImagingExtractor):
 
     def get_channel_names(self) -> list:
         return self._parent_imaging.get_channel_names()
-
-    def get_num_channels(self) -> int:
-        """Get the total number of active channels in the recording.
-
-        Returns
-        -------
-        num_channels: int
-            Integer count of number of channels.
-
-        Deprecated
-        ----------
-        This method will be removed in or after August 2025.
-        """
-        warnings.warn(
-            "get_num_channels() is deprecated and will be removed in or after August 2025.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._parent_imaging.get_num_channels()
 
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
