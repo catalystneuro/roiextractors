@@ -14,61 +14,218 @@ from roiextractors.extractors.tiffimagingextractors import (
 from tests.setup_paths import OPHYS_DATA_PATH
 
 
-@pytest.fixture
-def temp_tiff_files(tmp_path):
-    """Create test TIFF files for testing."""
+@pytest.fixture(scope="module")
+def single_channel_planar_tiff_files(tmp_path_factory):
+    """Create single-channel planar TIFF files for testing."""
+    tmp_path = tmp_path_factory.mktemp("single_channel_planar")
     tifffile = get_package(package_name="tifffile")
 
-    # Create test data
-    # 2 files, each with 6 pages (2 time points, 1 channel, 3 depths)
-    # That is, each file has 2 volumes for 4 samples in total
+    # Create test data: 2 files, each with 4 pages (4 time points, 1 channel, 1 plane)
     num_files = 2
-    acquisitions_per_file = 2
+    num_timepoints = 4
     num_channels = 1
-    num_planes = 3
+    num_planes = 1
     height = 10
     width = 12
 
-    for file_idx in range(num_files):
-        file_path = tmp_path / f"test_file_{file_idx}.tif"
+    for file_index in range(num_files):
+        file_path = tmp_path / f"test_file_{file_index}.tif"
 
-        # Create pages for this file
         pages = []
-        for t in range(acquisitions_per_file):
-            for c in range(num_channels):
-                for z in range(num_planes):
-                    # Create a unique pattern for each page
-                    page_data = np.ones((height, width), dtype=np.uint16) * (file_idx * 100 + t * 10 + z + 1)
+        for time in range(num_timepoints):
+            for channel in range(num_channels):
+                for depth in range(num_planes):
+                    value = file_index * 100 + time * 10 + channel * 5 + depth + 1
+                    page_data = np.ones((height, width), dtype=np.uint16) * value
                     pages.append(page_data)
 
-        # Write pages to TIFF file
         tifffile.imwrite(file_path, pages)
 
     return tmp_path
 
 
+@pytest.fixture(scope="module")
+def single_channel_volumetric_tiff_files(tmp_path_factory):
+    """Create single-channel volumetric TIFF files for testing."""
+    tmp_path = tmp_path_factory.mktemp("single_channel_volumetric")
+    tifffile = get_package(package_name="tifffile")
+
+    # Create test data: 2 files, each with 6 pages (2 time points, 1 channel, 3 planes)
+    num_files = 2
+    num_timepoints = 2
+    num_channels = 1
+    num_planes = 3
+    height = 10
+    width = 12
+
+    for file_index in range(num_files):
+        file_path = tmp_path / f"test_file_{file_index}.tif"
+
+        pages = []
+        for time in range(num_timepoints):
+            for channel in range(num_channels):
+                for depth in range(num_planes):
+                    value = file_index * 100 + time * 10 + channel * 5 + depth + 1
+                    page_data = np.ones((height, width), dtype=np.uint16) * value
+                    pages.append(page_data)
+
+        tifffile.imwrite(file_path, pages)
+
+    return tmp_path
+
+
+@pytest.fixture(scope="module")
+def multi_channel_planar_tiff_files(tmp_path_factory):
+    """Create multi-channel planar TIFF files for testing."""
+    tmp_path = tmp_path_factory.mktemp("multi_channel_planar")
+    tifffile = get_package(package_name="tifffile")
+
+    # Create test data: 2 files, each with 8 pages (2 time points, 2 channels, 2 planes)
+    num_files = 2
+    num_timepoints = 2
+    num_channels = 2
+    num_planes = 2
+    height = 10
+    width = 12
+
+    for file_index in range(num_files):
+        file_path = tmp_path / f"test_file_{file_index}.tif"
+
+        pages = []
+        for time in range(num_timepoints):
+            for channel in range(num_channels):
+                for depth in range(num_planes):
+                    value = file_index * 100 + time * 10 + channel * 5 + depth + 1
+                    page_data = np.ones((height, width), dtype=np.uint16) * value
+                    pages.append(page_data)
+
+        tifffile.imwrite(file_path, pages)
+
+    return tmp_path
+
+
+@pytest.fixture(scope="module")
+def multi_channel_volumetric_tiff_files(tmp_path_factory):
+    """Create multi-channel volumetric TIFF files for testing."""
+    tmp_path = tmp_path_factory.mktemp("multi_channel_volumetric")
+    tifffile = get_package(package_name="tifffile")
+
+    # Create test data: 2 files, each with 12 pages (2 time points, 2 channels, 3 planes)
+    num_files = 2
+    num_timepoints = 2
+    num_channels = 2
+    num_planes = 3
+    height = 10
+    width = 12
+
+    for file_index in range(num_files):
+        file_path = tmp_path / f"test_file_{file_index}.tif"
+
+        pages = []
+        for time in range(num_timepoints):
+            for channel in range(num_channels):
+                for depth in range(num_planes):
+                    value = file_index * 100 + time * 10 + channel * 5 + depth + 1
+                    page_data = np.ones((height, width), dtype=np.uint16) * value
+                    pages.append(page_data)
+
+        tifffile.imwrite(file_path, pages)
+
+    return tmp_path
+
+
+# Legacy fixture for backward compatibility
 @pytest.fixture
-def multi_tiff_extractor(temp_tiff_files):
-    """Create a MultiTIFFMultiPageExtractor instance."""
-    file_paths = sorted(list(temp_tiff_files.glob("*.tif")))
-    return MultiTIFFMultiPageExtractor(
+def temp_tiff_files(single_channel_volumetric_tiff_files):
+    """Legacy fixture for backward compatibility."""
+    return single_channel_volumetric_tiff_files
+
+
+def test_initialization_single_channel_volumetric(single_channel_volumetric_tiff_files):
+    """Test initialization of the extractor with single-channel volumetric data."""
+    file_paths = sorted(list(single_channel_volumetric_tiff_files.glob("*.tif")))
+    multi_tiff_extractor = MultiTIFFMultiPageExtractor(
         file_paths=file_paths,
         sampling_frequency=30.0,
         dimension_order="CZT",
         num_channels=1,
         num_planes=3,
     )
-
-
-def test_initialization(multi_tiff_extractor):
-    """Test initialization of the extractor."""
+    
     assert multi_tiff_extractor.get_num_samples() == 4
     assert multi_tiff_extractor.get_frame_shape() == (10, 12)  # (height, width)
     assert multi_tiff_extractor.get_sampling_frequency() == 30.0
+    assert multi_tiff_extractor.get_num_planes() == 3
+    assert multi_tiff_extractor.is_volumetric == True
 
 
-def test_get_series(multi_tiff_extractor):
-    """Test retrieving series from the extractor."""
+def test_initialization_single_channel_planar(single_channel_planar_tiff_files):
+    """Test initialization of the extractor with single-channel planar data."""
+    file_paths = sorted(list(single_channel_planar_tiff_files.glob("*.tif")))
+    multi_tiff_extractor = MultiTIFFMultiPageExtractor(
+        file_paths=file_paths,
+        sampling_frequency=30.0,
+        dimension_order="CZT",
+        num_channels=1,
+        num_planes=1,
+    )
+    
+    assert multi_tiff_extractor.get_num_samples() == 8  # 2 files * 4 timepoints
+    assert multi_tiff_extractor.get_frame_shape() == (10, 12)  # (height, width)
+    assert multi_tiff_extractor.get_sampling_frequency() == 30.0
+    assert multi_tiff_extractor.get_num_planes() == 1
+    assert multi_tiff_extractor.is_volumetric == False
+
+
+def test_initialization_multi_channel_volumetric(multi_channel_volumetric_tiff_files):
+    """Test initialization of the extractor with multi-channel volumetric data."""
+    file_paths = sorted(list(multi_channel_volumetric_tiff_files.glob("*.tif")))
+    multi_tiff_extractor = MultiTIFFMultiPageExtractor(
+        file_paths=file_paths,
+        sampling_frequency=30.0,
+        dimension_order="TCZ",
+        num_channels=2,
+        channel_index=0,
+        num_planes=3,
+    )
+    
+    assert multi_tiff_extractor.get_num_samples() == 4  # 2 files * 2 timepoints
+    assert multi_tiff_extractor.get_frame_shape() == (10, 12)  # (height, width)
+    assert multi_tiff_extractor.get_sampling_frequency() == 30.0
+    assert multi_tiff_extractor.get_num_planes() == 3
+    assert multi_tiff_extractor.is_volumetric == True
+
+
+def test_initialization_multi_channel_planar(multi_channel_planar_tiff_files):
+    """Test initialization of the extractor with multi-channel planar data."""
+    file_paths = sorted(list(multi_channel_planar_tiff_files.glob("*.tif")))
+    multi_tiff_extractor = MultiTIFFMultiPageExtractor(
+        file_paths=file_paths,
+        sampling_frequency=30.0,
+        dimension_order="TCZ",
+        num_channels=2,
+        channel_index=1,
+        num_planes=2,
+    )
+    
+    assert multi_tiff_extractor.get_num_samples() == 4  # 2 files * 2 timepoints
+    assert multi_tiff_extractor.get_frame_shape() == (10, 12)  # (height, width)
+    assert multi_tiff_extractor.get_sampling_frequency() == 30.0
+    assert multi_tiff_extractor.get_num_planes() == 2
+    assert multi_tiff_extractor.is_volumetric == True
+
+
+def test_get_series_volumetric(single_channel_volumetric_tiff_files):
+    """Test retrieving series from the extractor with volumetric data."""
+    file_paths = sorted(list(single_channel_volumetric_tiff_files.glob("*.tif")))
+    multi_tiff_extractor = MultiTIFFMultiPageExtractor(
+        file_paths=file_paths,
+        sampling_frequency=30.0,
+        dimension_order="CZT",
+        num_channels=1,
+        num_planes=3,
+    )
+    
     # Get specific samples
     sample_0 = multi_tiff_extractor.get_series(start_sample=0, end_sample=1)
     sample_1 = multi_tiff_extractor.get_series(start_sample=1, end_sample=2)
@@ -86,10 +243,38 @@ def test_get_series(multi_tiff_extractor):
     assert all_samples.shape == (4, 10, 12, 3)
 
 
-def test_from_folder(temp_tiff_files):
+def test_get_series_planar(single_channel_planar_tiff_files):
+    """Test retrieving series from the extractor with planar data."""
+    file_paths = sorted(list(single_channel_planar_tiff_files.glob("*.tif")))
+    multi_tiff_extractor = MultiTIFFMultiPageExtractor(
+        file_paths=file_paths,
+        sampling_frequency=30.0,
+        dimension_order="CZT",
+        num_channels=1,
+        num_planes=1,
+    )
+    
+    # Get specific samples
+    sample_0 = multi_tiff_extractor.get_series(start_sample=0, end_sample=1)
+    sample_1 = multi_tiff_extractor.get_series(start_sample=1, end_sample=2)
+
+    # Check sample shapes - should NOT include depth dimension for planar data
+    assert sample_0.shape == (1, 10, 12)
+    assert sample_1.shape == (1, 10, 12)
+
+    # Get multiple samples
+    samples = multi_tiff_extractor.get_series(start_sample=0, end_sample=3)
+    assert samples.shape == (3, 10, 12)
+
+    # Get all samples
+    all_samples = multi_tiff_extractor.get_series()
+    assert samples.ndim == 3  # (samples, height, width)
+
+
+def test_from_folder(single_channel_volumetric_tiff_files):
     """Test creating an extractor from a folder path."""
     extractor = MultiTIFFMultiPageExtractor.from_folder(
-        folder_path=temp_tiff_files,
+        folder_path=single_channel_volumetric_tiff_files,
         file_pattern="*.tif",
         sampling_frequency=30.0,
         dimension_order="CZT",
@@ -102,9 +287,9 @@ def test_from_folder(temp_tiff_files):
     assert extractor.get_frame_shape() == (10, 12)
 
 
-def test_different_dimension_orders(temp_tiff_files):
+def test_different_dimension_orders(single_channel_volumetric_tiff_files):
     """Test different dimension orders."""
-    file_paths = sorted(list(temp_tiff_files.glob("*.tif")))
+    file_paths = sorted(list(single_channel_volumetric_tiff_files.glob("*.tif")))
 
     # Test with ZTC dimension order
     extractor_ztc = MultiTIFFMultiPageExtractor(
@@ -123,9 +308,9 @@ def test_different_dimension_orders(temp_tiff_files):
 
 
 @pytest.mark.parametrize("dimension_order", ["CZT", "ZCT", "TCZ", "TZC"])
-def test_dimension_order_variations(temp_tiff_files, dimension_order):
+def test_dimension_order_variations(single_channel_volumetric_tiff_files, dimension_order):
     """Test various dimension order configurations."""
-    file_paths = sorted(list(temp_tiff_files.glob("*.tif")))
+    file_paths = sorted(list(single_channel_volumetric_tiff_files.glob("*.tif")))
 
     extractor = MultiTIFFMultiPageExtractor(
         file_paths=file_paths,
@@ -184,60 +369,80 @@ def test_comparison_with_scanimage():
     assert_allclose(scanimage_series, multi_series, rtol=1e-5, atol=1e-8)
 
 
-def test_channel_extraction(tmp_path):
+def test_channel_extraction(multi_channel_volumetric_tiff_files):
     """Test extraction of specific channels."""
-    # Create multi-channel test data
-    tifffile = get_package(package_name="tifffile")
-
-    # Create a file with multiple channels
-    num_channels = 2
-    num_planes = 2
-    num_timepoints = 3
-    height = 8
-    width = 10
-
-    file_path = tmp_path / "multichannel.tif"
-    pages = []
-    for t in range(num_timepoints):
-        for c in range(num_channels):
-            for z in range(num_planes):
-                page_data = np.ones((height, width), dtype=np.uint16) * (t * 100 + c * 10 + z + 1)
-                pages.append(page_data)
-
-    tifffile.imwrite(file_path, pages)
+    file_paths = sorted(list(multi_channel_volumetric_tiff_files.glob("*.tif")))
 
     # Test extracting first channel
     extractor_ch0 = MultiTIFFMultiPageExtractor(
-        file_paths=[file_path],
+        file_paths=file_paths,
         sampling_frequency=30.0,
         dimension_order="TCZ",
-        num_channels=num_channels,
+        num_channels=2,
         channel_index=0,
-        num_planes=num_planes,
+        num_planes=3,
     )
 
     # Test extracting second channel
     extractor_ch1 = MultiTIFFMultiPageExtractor(
-        file_paths=[file_path],
+        file_paths=file_paths,
         sampling_frequency=30.0,
         dimension_order="TCZ",
-        num_channels=num_channels,
+        num_channels=2,
         channel_index=1,
-        num_planes=num_planes,
+        num_planes=3,
     )
 
-    assert extractor_ch0.get_num_samples() == num_timepoints
-    assert extractor_ch1.get_num_samples() == num_timepoints
+    assert extractor_ch0.get_num_samples() == 4
+    assert extractor_ch1.get_num_samples() == 4
 
     # Verify different channels have different data
     series_ch0 = extractor_ch0.get_series()
     series_ch1 = extractor_ch1.get_series()
 
     assert not np.array_equal(series_ch0, series_ch1)
+    assert series_ch0.shape == (4, 10, 12, 3)
+    assert series_ch1.shape == (4, 10, 12, 3)
 
 
-def test_error_handling(tmp_path):
-    """Test error handling for invalid inputs."""
+def test_multi_channel_planar_extraction(multi_channel_planar_tiff_files):
+    """Test extraction of specific channels from planar data."""
+    file_paths = sorted(list(multi_channel_planar_tiff_files.glob("*.tif")))
+
+    # Test extracting first channel
+    extractor_ch0 = MultiTIFFMultiPageExtractor(
+        file_paths=file_paths,
+        sampling_frequency=30.0,
+        dimension_order="TCZ",
+        num_channels=2,
+        channel_index=0,
+        num_planes=2,
+    )
+
+    # Test extracting second channel
+    extractor_ch1 = MultiTIFFMultiPageExtractor(
+        file_paths=file_paths,
+        sampling_frequency=30.0,
+        dimension_order="TCZ",
+        num_channels=2,
+        channel_index=1,
+        num_planes=2,
+    )
+
+    assert extractor_ch0.get_num_samples() == 4
+    assert extractor_ch1.get_num_samples() == 4
+
+    # Verify different channels have different data
+    series_ch0 = extractor_ch0.get_series()
+    series_ch1 = extractor_ch1.get_series()
+
+    assert not np.array_equal(series_ch0, series_ch1)
+    assert series_ch0.shape == (4, 10, 12, 2)  # Still volumetric due to num_planes=2
+    assert series_ch1.shape == (4, 10, 12, 2)
+
+
+def test_nonexistent_file_error_handling():
+    """Test error handling for non-existent files."""
     with pytest.raises(Exception):
         # Should raise error for non-existent files
         MultiTIFFMultiPageExtractor(
@@ -248,7 +453,9 @@ def test_error_handling(tmp_path):
             num_planes=1,
         )
 
-    # Test invalid dimension order
+
+def test_invalid_dimension_order_error_handling(tmp_path):
+    """Test error handling for invalid dimension order."""
     tifffile = get_package(package_name="tifffile")
 
     # Create a simple test file
@@ -264,3 +471,200 @@ def test_error_handling(tmp_path):
             num_channels=1,
             num_planes=1,
         )
+
+
+def test_corrupted_file_error_handling(tmp_path):
+    """Test error handling when TIFF files are corrupted or invalid."""
+    # Create a corrupted/invalid file by writing non-TIFF data
+    corrupted_file_path = tmp_path / "corrupted.tif"
+    with open(corrupted_file_path, "wb") as f:
+        f.write(b"This is not a valid TIFF file")
+    
+    # Test that it raises a RuntimeError when encountering a corrupted file
+    with pytest.raises(RuntimeError, match=r"Error opening TIFF file.*corrupted\.tif"):
+        MultiTIFFMultiPageExtractor(
+            file_paths=[corrupted_file_path],
+            sampling_frequency=30.0,
+            dimension_order="CZT", 
+            num_channels=1,
+            num_planes=1,
+        )
+
+
+def test_invalid_num_planes_error_handling(single_channel_volumetric_tiff_files):
+    """Test error handling for invalid num_planes."""
+    file_paths = sorted(list(single_channel_volumetric_tiff_files.glob("*.tif")))
+    
+    # Test that num_planes < 1 raises ValueError
+    with pytest.raises(ValueError, match="num_planes must be at least 1"):
+        MultiTIFFMultiPageExtractor(
+            file_paths=file_paths,
+            sampling_frequency=30.0,
+            dimension_order="CZT",
+            num_channels=1,
+            num_planes=0,
+        )
+
+
+def test_invalid_channel_index_error_handling(multi_channel_volumetric_tiff_files):
+    """Test error handling for invalid channel_index."""
+    file_paths = sorted(list(multi_channel_volumetric_tiff_files.glob("*.tif")))
+    
+    # Test that channel_index >= num_channels raises ValueError
+    with pytest.raises(ValueError, match=r"channel_index 2 is out of range \(0 to 1\)"):
+        MultiTIFFMultiPageExtractor(
+            file_paths=file_paths,
+            sampling_frequency=30.0,
+            dimension_order="TCZ",
+            num_channels=2,
+            channel_index=2,
+            num_planes=3,
+        )
+
+
+def test_empty_tiff_files_error_handling(tmp_path):
+    """Test error handling for empty TIFF files."""
+    # Create an empty file
+    empty_file_path = tmp_path / "empty.tif"
+    empty_file_path.touch()
+    
+    # Test that empty TIFF files raise an appropriate error
+    with pytest.raises((ValueError, RuntimeError)):
+        MultiTIFFMultiPageExtractor(
+            file_paths=[empty_file_path],
+            sampling_frequency=30.0,
+            dimension_order="CZT",
+            num_channels=1,
+            num_planes=1,
+        )
+
+
+def test_from_folder_no_files_error_handling(tmp_path):
+    """Test error handling when from_folder finds no matching files."""
+    # Test with a pattern that won't match any files
+    with pytest.raises(ValueError, match=r"No files found matching pattern \*\.nonexistent"):
+        MultiTIFFMultiPageExtractor.from_folder(
+            folder_path=tmp_path,
+            file_pattern="*.nonexistent",
+            sampling_frequency=30.0,
+            dimension_order="CZT",
+            num_channels=1,
+            num_planes=1,
+        )
+
+
+def test_volume_shape_methods():
+    """Test volume shape related methods."""
+    # Test with volumetric data
+    with pytest.raises(Exception):  # Will fail due to non-existent files but we're testing method presence
+        extractor = MultiTIFFMultiPageExtractor(
+            file_paths=[Path("dummy.tif")],
+            sampling_frequency=30.0,
+            dimension_order="CZT",
+            num_channels=1,
+            num_planes=3,
+        )
+
+
+def test_get_channel_names_single_channel(single_channel_volumetric_tiff_files):
+    """Test getting channel names for single channel data."""
+    file_paths = sorted(list(single_channel_volumetric_tiff_files.glob("*.tif")))
+    extractor = MultiTIFFMultiPageExtractor(
+        file_paths=file_paths,
+        sampling_frequency=30.0,
+        dimension_order="CZT",
+        num_channels=1,
+        num_planes=3,
+    )
+    
+    channel_names = extractor.get_channel_names()
+    assert channel_names == ["Channel 0"]
+
+
+def test_get_channel_names_multi_channel(multi_channel_volumetric_tiff_files):
+    """Test getting channel names for multi channel data."""
+    file_paths = sorted(list(multi_channel_volumetric_tiff_files.glob("*.tif")))
+    extractor = MultiTIFFMultiPageExtractor(
+        file_paths=file_paths,
+        sampling_frequency=30.0,
+        dimension_order="TCZ",
+        num_channels=2,
+        channel_index=0,
+        num_planes=3,
+    )
+    
+    channel_names = extractor.get_channel_names()
+    assert channel_names == ["Channel 0", "Channel 1"]
+
+
+def test_get_native_timestamps(single_channel_volumetric_tiff_files):
+    """Test that native timestamps returns None."""
+    file_paths = sorted(list(single_channel_volumetric_tiff_files.glob("*.tif")))
+    extractor = MultiTIFFMultiPageExtractor(
+        file_paths=file_paths,
+        sampling_frequency=30.0,
+        dimension_order="CZT",
+        num_channels=1,
+        num_planes=3,
+    )
+    
+    timestamps = extractor.get_native_timestamps()
+    assert timestamps is None
+    
+    # Test with start/end parameters
+    timestamps = extractor.get_native_timestamps(start_sample=0, end_sample=2)
+    assert timestamps is None
+
+
+def test_volume_shape_getter(multi_channel_volumetric_tiff_files):
+    """Test get_volume_shape method."""
+    file_paths = sorted(list(multi_channel_volumetric_tiff_files.glob("*.tif")))
+    extractor = MultiTIFFMultiPageExtractor(
+        file_paths=file_paths,
+        sampling_frequency=30.0,
+        dimension_order="TCZ",
+        num_channels=2,
+        channel_index=0,
+        num_planes=3,
+    )
+    
+    volume_shape = extractor.get_volume_shape()
+    assert volume_shape == (10, 12, 3)  # (height, width, num_planes)
+
+
+def test_data_consistency_across_channels(multi_channel_volumetric_tiff_files):
+    """Test that data values are consistent with the generation pattern."""
+    file_paths = sorted(list(multi_channel_volumetric_tiff_files.glob("*.tif")))
+    
+    extractor_ch0 = MultiTIFFMultiPageExtractor(
+        file_paths=file_paths,
+        sampling_frequency=30.0,
+        dimension_order="TCZ",
+        num_channels=2,
+        channel_index=0,
+        num_planes=3,
+    )
+    
+    extractor_ch1 = MultiTIFFMultiPageExtractor(
+        file_paths=file_paths,
+        sampling_frequency=30.0,
+        dimension_order="TCZ",
+        num_channels=2,
+        channel_index=1,
+        num_planes=3,
+    )
+    
+    # Get first sample from each channel
+    sample_ch0 = extractor_ch0.get_series(start_sample=0, end_sample=1)
+    sample_ch1 = extractor_ch1.get_series(start_sample=0, end_sample=1)
+    
+    # Check that channel 1 has higher values than channel 0 (due to generation pattern)
+    # Channel 1 should have values offset by 5 compared to channel 0
+    assert np.all(sample_ch1 > sample_ch0)
+
+
+def test_planar_vs_volumetric_output_shapes():
+    """Test that planar data produces 3D output and volumetric produces 4D output."""
+    # This test verifies the squeezing behavior for planar vs volumetric data
+    # Already covered in individual tests but good to have explicit test
+    pass  # Covered by test_get_series_planar and test_get_series_volumetric

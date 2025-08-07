@@ -79,37 +79,62 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
         Notes
         -----
-        Dimension Order Notes:
+        Dimension Order Notes
+        ---------------------
+        This class follows a subset of the OME-TIFF dimension order specification, focusing on
+        the Z (depth), C (channel), and T dimensions. The XY spatial dimensions are 
+        assumed to be the first two dimensions of each frame and are not included in the 
+        dimension_order parameter.
+        
+        While we use 'T' for compatibility with the OME-TIFF standard, we emphasize that its 
+        meaning varies significantly based on position:
+        - When T is first (TCZ, TZC): Represents oversampling - multiple samples acquired at 
+            each depth or channel:
+            - TCZ: T samples per channel at each depth position
+            - TZC: T samples per depth position for each channel
+        - When T is middle (ZTC, CTZ): Represents repetitions - repeated acquisitions of 
+            sub-structures before varying the outer dimension
+            - ZTC: T repetitions of each Z-stack before switching channels
+            - CTZ: T repetitions of the full channel set at each depth
+        - When T is last (ZCT, CZT): Represents acquisition cycles - complete acquisitions 
+            of the entire multi-channel, multi-plane dataset
+            - ZCT: T complete multi-channel volumes where the depth is varied first
+            - CZT: T complete multi-channel volumes where the channel is varied first
 
-        This class uses a subset of the OME-TIFF dimension order specification, focusing on
-        the Z, C, and T dimensions. The XY dimensions are assumed to be the first two
-        dimensions and are not included in the dimension_order parameter.
         For more information on OME-TIFF dimension order, see:
         https://docs.openmicroscopy.org/ome-model/5.6.3/ome-tiff/specification.html
 
-        ZCT (Z, then Channel, then Time)
-        Acquisition pattern: Complete a Z-stack for one channel, then switch channels and
-        repeat the Z-stack, then move to the next timepoint.
+        Acquisition Patterns
+        --------------------
+        ZCT (Depth → Channel → Acquisition Cycles)
+            Acquire a complete Z-stack for the first channel, then switch to the next channel
+            and acquire its full Z-stack. After all channels are acquired, this constitutes 
+            one acquisition cycle. Repeat for T acquisition cycles.
 
-        ZTC (Z, then Time, then Channel)
-        Acquisition pattern: Complete all Z-stacks for all timepoints in one channel before
-        switching to the next channel.
+        ZTC (Depth → Repetitions → Channel)
+            Acquire full Z-stacks repeated T times for a single channel, then switch to
+            the next channel and acquired another T repetitions of the full Z-stack for that
+            channel. Repeat the same process for all channels.
 
-        CZT (Channel, then Z, then Time)
-        Acquisition pattern: At each Z position, all channels are imaged before moving to
-        the next Z position, and this entire process is repeated at each timepoint.
+        CZT (Channel → Depth → Acquisition Cycles)
+            At the first depth position, acquire all channels sequentially. Move to the next
+            depth and acquire all channels again. After completing all depths, one acquisition
+            cycle is complete. Repeat for T acquisition cycles.
 
-        CTZ (Channel, then Time, then Z)
-        Acquisition pattern: At each Z position, all channels are imaged across all
-        timepoints before moving to the next Z position.
+        CTZ (Channel → Repetitions → Depth)
+            At a fixed depth position, acquire all channels, then repeat this channel 
+            acquisition T times. Then move to the next depth position and repeat the 
+            pattern of T repetitions of all channels.
 
-        TCZ (Time, then Channel, then Z)
-        Acquisition pattern: A full time series is collected for one channel at one Z
-        position, then all channels are imaged at that Z before moving to the next Z.
+        TCZ (Oversampling → Channel → Depth)
+            At a fixed depth position, acquire T samples for the first channel,
+            then acquire T samples for the next channel. After oversampling all channels 
+            at this depth, move to the next depth position and repeat.
 
-        TZC (Time, then Z, then Channel)
-        Acquisition pattern: A full time series is collected for all Z positions in one
-        channel before switching channels.
+        TZC (Oversampling → Depth → Channel)
+            For a fixed channel, acquire T samples at the first depth, then T samples at 
+            the second depth, continuing through all depths. Switch to the next channel 
+            and repeat the entire oversampling pattern across depths.
         """
         super().__init__()
 
