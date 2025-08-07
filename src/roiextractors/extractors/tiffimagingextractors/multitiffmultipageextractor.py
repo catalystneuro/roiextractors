@@ -139,19 +139,19 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         Equivalence for Special Cases
         ------------------------------
         When data has only a single channel (num_channels=1):
-        
+
             ZCT, ZTC, CZT → ZT: Volumetric time series (complete volumes acquired sequentially)
-            
+
             CTZ, TCZ, TZC → TZ: Plane-by-plane time series (T samples at each depth before moving to next)
 
         When data is planar (num_planes=1):
-        
+
             ZCT, CZT, CTZ → CT: Channel-first acquisition patterns
-            
+
             ZTC, TCZ, TZC → TC: Time-first acquisition patterns
 
         When data is both single-channel AND planar:
-        
+
             All dimension orders → T: Simple planar time series (all orderings equivalent)
         """
         super().__init__()
