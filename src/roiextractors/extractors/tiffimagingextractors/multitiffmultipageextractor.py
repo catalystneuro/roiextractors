@@ -82,21 +82,21 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         Dimension Order Notes
         ---------------------
         This class follows a subset of the OME-TIFF dimension order specification, focusing on
-        the Z (depth), C (channel), and T dimensions. The XY spatial dimensions are 
-        assumed to be the first two dimensions of each frame and are not included in the 
+        the Z (depth), C (channel), and T dimensions. The XY spatial dimensions are
+        assumed to be the first two dimensions of each frame and are not included in the
         dimension_order parameter.
-        
-        While we use 'T' for compatibility with the OME-TIFF standard, we emphasize that its 
+
+        While we use 'T' for compatibility with the OME-TIFF standard, we emphasize that its
         meaning varies significantly based on position:
-        - When T is first (TCZ, TZC): Represents oversampling - multiple samples acquired at 
+        - When T is first (TCZ, TZC): Represents oversampling - multiple samples acquired at
             each depth or channel:
             - TCZ: T samples per channel at each depth position
             - TZC: T samples per depth position for each channel
-        - When T is middle (ZTC, CTZ): Represents repetitions - repeated acquisitions of 
+        - When T is middle (ZTC, CTZ): Represents repetitions - repeated acquisitions of
             sub-structures before varying the outer dimension
             - ZTC: T repetitions of each Z-stack before switching channels
             - CTZ: T repetitions of the full channel set at each depth
-        - When T is last (ZCT, CZT): Represents acquisition cycles - complete acquisitions 
+        - When T is last (ZCT, CZT): Represents acquisition cycles - complete acquisitions
             of the entire multi-channel, multi-plane dataset
             - ZCT: T complete multi-channel volumes where the depth is varied first
             - CZT: T complete multi-channel volumes where the channel is varied first
@@ -108,7 +108,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         --------------------
         ZCT (Depth → Channel → Acquisition Cycles)
             Acquire a complete Z-stack for the first channel, then switch to the next channel
-            and acquire its full Z-stack. After all channels are acquired, this constitutes 
+            and acquire its full Z-stack. After all channels are acquired, this constitutes
             one acquisition cycle. Repeat for T acquisition cycles.
 
         ZTC (Depth → Repetitions → Channel)
@@ -122,18 +122,18 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             cycle is complete. Repeat for T acquisition cycles.
 
         CTZ (Channel → Repetitions → Depth)
-            At a fixed depth position, acquire all channels, then repeat this channel 
-            acquisition T times. Then move to the next depth position and repeat the 
+            At a fixed depth position, acquire all channels, then repeat this channel
+            acquisition T times. Then move to the next depth position and repeat the
             pattern of T repetitions of all channels.
 
         TCZ (Oversampling → Channel → Depth)
             At a fixed depth position, acquire T samples for the first channel,
-            then acquire T samples for the next channel. After oversampling all channels 
+            then acquire T samples for the next channel. After oversampling all channels
             at this depth, move to the next depth position and repeat.
 
         TZC (Oversampling → Depth → Channel)
-            For a fixed channel, acquire T samples at the first depth, then T samples at 
-            the second depth, continuing through all depths. Switch to the next channel 
+            For a fixed channel, acquire T samples at the first depth, then T samples at
+            the second depth, continuing through all depths. Switch to the next channel
             and repeat the entire oversampling pattern across depths.
         """
         super().__init__()

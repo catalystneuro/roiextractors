@@ -151,7 +151,7 @@ def test_initialization_single_channel_volumetric(single_channel_volumetric_tiff
         num_channels=1,
         num_planes=3,
     )
-    
+
     assert multi_tiff_extractor.get_num_samples() == 4
     assert multi_tiff_extractor.get_frame_shape() == (10, 12)  # (height, width)
     assert multi_tiff_extractor.get_sampling_frequency() == 30.0
@@ -169,7 +169,7 @@ def test_initialization_single_channel_planar(single_channel_planar_tiff_files):
         num_channels=1,
         num_planes=1,
     )
-    
+
     assert multi_tiff_extractor.get_num_samples() == 8  # 2 files * 4 timepoints
     assert multi_tiff_extractor.get_frame_shape() == (10, 12)  # (height, width)
     assert multi_tiff_extractor.get_sampling_frequency() == 30.0
@@ -188,7 +188,7 @@ def test_initialization_multi_channel_volumetric(multi_channel_volumetric_tiff_f
         channel_index=0,
         num_planes=3,
     )
-    
+
     assert multi_tiff_extractor.get_num_samples() == 4  # 2 files * 2 timepoints
     assert multi_tiff_extractor.get_frame_shape() == (10, 12)  # (height, width)
     assert multi_tiff_extractor.get_sampling_frequency() == 30.0
@@ -207,7 +207,7 @@ def test_initialization_multi_channel_planar(multi_channel_planar_tiff_files):
         channel_index=1,
         num_planes=2,
     )
-    
+
     assert multi_tiff_extractor.get_num_samples() == 4  # 2 files * 2 timepoints
     assert multi_tiff_extractor.get_frame_shape() == (10, 12)  # (height, width)
     assert multi_tiff_extractor.get_sampling_frequency() == 30.0
@@ -225,7 +225,7 @@ def test_get_series_volumetric(single_channel_volumetric_tiff_files):
         num_channels=1,
         num_planes=3,
     )
-    
+
     # Get specific samples
     sample_0 = multi_tiff_extractor.get_series(start_sample=0, end_sample=1)
     sample_1 = multi_tiff_extractor.get_series(start_sample=1, end_sample=2)
@@ -253,7 +253,7 @@ def test_get_series_planar(single_channel_planar_tiff_files):
         num_channels=1,
         num_planes=1,
     )
-    
+
     # Get specific samples
     sample_0 = multi_tiff_extractor.get_series(start_sample=0, end_sample=1)
     sample_1 = multi_tiff_extractor.get_series(start_sample=1, end_sample=2)
@@ -479,13 +479,13 @@ def test_corrupted_file_error_handling(tmp_path):
     corrupted_file_path = tmp_path / "corrupted.tif"
     with open(corrupted_file_path, "wb") as f:
         f.write(b"This is not a valid TIFF file")
-    
+
     # Test that it raises a RuntimeError when encountering a corrupted file
     with pytest.raises(RuntimeError, match=r"Error opening TIFF file.*corrupted\.tif"):
         MultiTIFFMultiPageExtractor(
             file_paths=[corrupted_file_path],
             sampling_frequency=30.0,
-            dimension_order="CZT", 
+            dimension_order="CZT",
             num_channels=1,
             num_planes=1,
         )
@@ -494,7 +494,7 @@ def test_corrupted_file_error_handling(tmp_path):
 def test_invalid_num_planes_error_handling(single_channel_volumetric_tiff_files):
     """Test error handling for invalid num_planes."""
     file_paths = sorted(list(single_channel_volumetric_tiff_files.glob("*.tif")))
-    
+
     # Test that num_planes < 1 raises ValueError
     with pytest.raises(ValueError, match="num_planes must be at least 1"):
         MultiTIFFMultiPageExtractor(
@@ -509,7 +509,7 @@ def test_invalid_num_planes_error_handling(single_channel_volumetric_tiff_files)
 def test_invalid_channel_index_error_handling(multi_channel_volumetric_tiff_files):
     """Test error handling for invalid channel_index."""
     file_paths = sorted(list(multi_channel_volumetric_tiff_files.glob("*.tif")))
-    
+
     # Test that channel_index >= num_channels raises ValueError
     with pytest.raises(ValueError, match=r"channel_index 2 is out of range \(0 to 1\)"):
         MultiTIFFMultiPageExtractor(
@@ -527,7 +527,7 @@ def test_empty_tiff_files_error_handling(tmp_path):
     # Create an empty file
     empty_file_path = tmp_path / "empty.tif"
     empty_file_path.touch()
-    
+
     # Test that empty TIFF files raise an appropriate error
     with pytest.raises((ValueError, RuntimeError)):
         MultiTIFFMultiPageExtractor(
@@ -576,7 +576,7 @@ def test_get_channel_names_single_channel(single_channel_volumetric_tiff_files):
         num_channels=1,
         num_planes=3,
     )
-    
+
     channel_names = extractor.get_channel_names()
     assert channel_names == ["Channel 0"]
 
@@ -592,7 +592,7 @@ def test_get_channel_names_multi_channel(multi_channel_volumetric_tiff_files):
         channel_index=0,
         num_planes=3,
     )
-    
+
     channel_names = extractor.get_channel_names()
     assert channel_names == ["Channel 0", "Channel 1"]
 
@@ -607,10 +607,10 @@ def test_get_native_timestamps(single_channel_volumetric_tiff_files):
         num_channels=1,
         num_planes=3,
     )
-    
+
     timestamps = extractor.get_native_timestamps()
     assert timestamps is None
-    
+
     # Test with start/end parameters
     timestamps = extractor.get_native_timestamps(start_sample=0, end_sample=2)
     assert timestamps is None
@@ -627,7 +627,7 @@ def test_volume_shape_getter(multi_channel_volumetric_tiff_files):
         channel_index=0,
         num_planes=3,
     )
-    
+
     volume_shape = extractor.get_volume_shape()
     assert volume_shape == (10, 12, 3)  # (height, width, num_planes)
 
@@ -635,7 +635,7 @@ def test_volume_shape_getter(multi_channel_volumetric_tiff_files):
 def test_data_consistency_across_channels(multi_channel_volumetric_tiff_files):
     """Test that data values are consistent with the generation pattern."""
     file_paths = sorted(list(multi_channel_volumetric_tiff_files.glob("*.tif")))
-    
+
     extractor_ch0 = MultiTIFFMultiPageExtractor(
         file_paths=file_paths,
         sampling_frequency=30.0,
@@ -644,7 +644,7 @@ def test_data_consistency_across_channels(multi_channel_volumetric_tiff_files):
         channel_index=0,
         num_planes=3,
     )
-    
+
     extractor_ch1 = MultiTIFFMultiPageExtractor(
         file_paths=file_paths,
         sampling_frequency=30.0,
@@ -653,11 +653,11 @@ def test_data_consistency_across_channels(multi_channel_volumetric_tiff_files):
         channel_index=1,
         num_planes=3,
     )
-    
+
     # Get first sample from each channel
     sample_ch0 = extractor_ch0.get_series(start_sample=0, end_sample=1)
     sample_ch1 = extractor_ch1.get_series(start_sample=0, end_sample=1)
-    
+
     # Check that channel 1 has higher values than channel 0 (due to generation pattern)
     # Channel 1 should have values offset by 5 compared to channel 0
     assert np.all(sample_ch1 > sample_ch0)
