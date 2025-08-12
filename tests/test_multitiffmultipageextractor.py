@@ -389,63 +389,159 @@ class TestMultiChannelVolumetric:
             np.testing.assert_array_equal(actual_data[sample_index], expected_volume)
 
 
-def test_dimension_order_variations_comprehensive(tiff_file_paths):
+@pytest.mark.parametrize(
+    "dimension_order,expected_mappings",
+    [
+        # Multi-channel planar (2 channels, 1 plane)
+        (
+            "TCZ_multi_channel_planar_ch0",
+            {
+                "num_channels": 2,
+                "num_planes": 1,
+                "dimension_order": "TCZ",
+                "channel_name": "0",
+                "expected_samples": 6,
+                "sample_mappings": {0: [0], 1: [1], 2: [2], 3: [3], 4: [4], 5: [5]},  # Channel 0 gets first 6 frames
+            },
+        ),
+        (
+            "TCZ_multi_channel_planar_ch1",
+            {
+                "num_channels": 2,
+                "num_planes": 1,
+                "dimension_order": "TCZ",
+                "channel_name": "1",
+                "expected_samples": 6,
+                "sample_mappings": {0: [6], 1: [7], 2: [8], 3: [9], 4: [10], 5: [11]},  # Channel 1 gets last 6 frames
+            },
+        ),
+        (
+            "CZT_multi_channel_planar_ch0",
+            {
+                "num_channels": 2,
+                "num_planes": 1,
+                "dimension_order": "CZT",
+                "channel_name": "0",
+                "expected_samples": 6,
+                "sample_mappings": {0: [0], 1: [2], 2: [4], 3: [6], 4: [8], 5: [10]},  # Channel 0 alternating frames
+            },
+        ),
+        (
+            "CTZ_multi_channel_planar_ch1",
+            {
+                "num_channels": 2,
+                "num_planes": 1,
+                "dimension_order": "CTZ",
+                "channel_name": "1",
+                "expected_samples": 6,
+                "sample_mappings": {0: [1], 1: [3], 2: [5], 3: [7], 4: [9], 5: [11]},  # Channel 1 alternating frames
+            },
+        ),
+        # Multi-plane volumetric (1 channel, 3 planes)
+        (
+            "CZT_multi_plane",
+            {
+                "num_channels": 1,
+                "num_planes": 3,
+                "dimension_order": "CZT",
+                "channel_name": None,
+                "expected_samples": 4,
+                "sample_mappings": {0: [0, 1, 2], 1: [3, 4, 5], 2: [6, 7, 8], 3: [9, 10, 11]},  # Sequential volumes
+            },
+        ),
+        (
+            "ZCT_multi_plane",
+            {
+                "num_channels": 1,
+                "num_planes": 3,
+                "dimension_order": "ZCT",
+                "channel_name": None,
+                "expected_samples": 4,
+                "sample_mappings": {0: [0, 1, 2], 1: [3, 4, 5], 2: [6, 7, 8], 3: [9, 10, 11]},  # Sequential volumes
+            },
+        ),
+        (
+            "CTZ_multi_plane",
+            {
+                "num_channels": 1,
+                "num_planes": 3,
+                "dimension_order": "CTZ",
+                "channel_name": None,
+                "expected_samples": 4,
+                "sample_mappings": {0: [0, 1, 2], 1: [3, 4, 5], 2: [6, 7, 8], 3: [9, 10, 11]},  # Sequential volumes
+            },
+        ),
+        # Multi-channel volumetric (2 channels, 3 planes)
+        (
+            "TCZ_multi_channel_volumetric_ch0",
+            {
+                "num_channels": 2,
+                "num_planes": 3,
+                "dimension_order": "TCZ",
+                "channel_name": "0",
+                "expected_samples": 2,
+                "sample_mappings": {0: [0, 1, 4], 1: [5, 8, 9]},  # Channel 0 volumetric pattern
+            },
+        ),
+        (
+            "TCZ_multi_channel_volumetric_ch1",
+            {
+                "num_channels": 2,
+                "num_planes": 3,
+                "dimension_order": "TCZ",
+                "channel_name": "1",
+                "expected_samples": 2,
+                "sample_mappings": {0: [2, 3, 6], 1: [7, 10, 11]},  # Channel 1 volumetric pattern
+            },
+        ),
+    ],
+)
+def test_dimension_order_variations_comprehensive(tiff_file_paths, test_data_array, dimension_order, expected_mappings):
     """
-    Comprehensive test for different dimension order configurations with volumetric data.
+    Comprehensive parameterized test for different dimension order configurations.
 
-    This test validates that different dimension orders correctly interpret the same
-    underlying TIFF data structure. We test several dimension orders to ensure they
-    produce consistent volumetric outputs and basic functionality works correctly.
-
-    For single channel volumetric data (1 channel, 3 planes), all dimension orders
-    should produce 4 samples since 12 frames ÷ 3 planes = 4 volumes.
+    Tests multi-channel and multi-plane scenarios to validate that the extractor
+    correctly interprets the same underlying TIFF data according to different
+    acquisition patterns and dimension orders.
     """
 
-    # Test configuration: single channel, 3 depth planes
-    num_channels = 1
-    num_planes = 3
+    config = expected_mappings
     sampling_frequency = 30.0
-    expected_samples = 4  # 12 frames ÷ (1 channel × 3 planes) = 4 volumes
 
-    # Test representative dimension orders to ensure basic functionality
-    dimension_orders_to_test = ["CZT", "ZCT", "CTZ", "TCZ", "TZC", "ZTC"]
+    extractor = MultiTIFFMultiPageExtractor(
+        file_paths=tiff_file_paths,
+        sampling_frequency=sampling_frequency,
+        dimension_order=config["dimension_order"],
+        num_channels=config["num_channels"],
+        channel_name=config["channel_name"],
+        num_planes=config["num_planes"],
+    )
 
-    for dimension_order in dimension_orders_to_test:
-        print(f"\nTesting dimension order: {dimension_order}")
+    assert extractor.get_num_samples() == config["expected_samples"]
+    assert extractor.get_num_planes() == config["num_planes"]
 
-        # Create extractor with this dimension order
-        extractor = MultiTIFFMultiPageExtractor(
-            file_paths=tiff_file_paths,
-            sampling_frequency=sampling_frequency,
-            dimension_order=dimension_order,
-            num_channels=num_channels,
-            num_planes=num_planes,
-        )
+    # Get all samples and verify each one
+    all_samples = extractor.get_series()
 
-        # Verify basic properties are consistent across dimension orders
-        assert (
-            extractor.get_num_samples() == expected_samples
-        ), f"Expected {expected_samples} samples for {dimension_order}"
-        assert extractor.is_volumetric == True, f"Should be volumetric for {dimension_order}"
-        assert extractor.get_num_planes() == num_planes, f"Should have {num_planes} planes for {dimension_order}"
+    for sample_index, expected_frames in config["sample_mappings"].items():
+        actual_sample = all_samples[sample_index]
 
-        # Verify extractor can produce data without errors
-        samples = extractor.get_series(start_sample=0, end_sample=2)
-        assert samples.shape == (2, 10, 12, 3), f"Unexpected sample shape for {dimension_order}: {samples.shape}"
+        if config["num_planes"] == 1:
+            # Planar data - direct frame comparison
+            expected_frame = test_data_array[expected_frames[0]]
+            np.testing.assert_array_equal(
+                actual_sample, expected_frame, err_msg=f"Sample {sample_index} mismatch for {dimension_order}"
+            )
+        else:
+            # Volumetric data - stack frames into volume
+            frame_stack = []
+            for frame_index in expected_frames:
+                frame_stack.append(test_data_array[frame_index])
+            expected_volume = np.stack(frame_stack, axis=-1)
 
-        # Verify each sample contains valid frame data (no NaN, reasonable values)
-        assert np.all(samples >= 0), f"Negative values in {dimension_order}"
-        assert np.all(samples <= 11), f"Values too large in {dimension_order}"
-        assert samples.dtype == np.uint16, f"Wrong dtype for {dimension_order}"
-
-        # Verify that samples contain different data (not all the same)
-        assert not np.array_equal(samples[0], samples[1]), f"Samples 0 and 1 are identical for {dimension_order}"
-
-        print(f"  ✓ Produces {extractor.get_num_samples()} samples correctly")
-        print(f"  ✓ Volume shape: {samples[0].shape}")
-        print(f"  ✓ Data range: {samples.min()} to {samples.max()}")
-
-    print(f"\n✓ All {len(dimension_orders_to_test)} dimension orders tested successfully")
+            np.testing.assert_array_equal(
+                actual_sample, expected_volume, err_msg=f"Sample {sample_index} mismatch for {dimension_order}"
+            )
 
 
 # General/cross-case tests that don't belong to a specific test case
