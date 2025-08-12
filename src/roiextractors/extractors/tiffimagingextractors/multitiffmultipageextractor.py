@@ -324,12 +324,6 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             Array of frames with shape (num_samples, height, width) if num_planes is 1,
             or (num_samples, height, width, num_planes) if num_planes > 1.
 
-        Raises
-        ------
-        TypeError
-            If frame_idxs is an integer instead of an array-like object.
-        ValueError
-            If any frame index is out of range.
         """
         start_sample = int(start_sample) if start_sample is not None else 0
         end_sample = int(end_sample) if end_sample is not None else self.get_num_samples()
