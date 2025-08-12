@@ -18,7 +18,7 @@ from tests.setup_paths import OPHYS_DATA_PATH
 def single_channel_planar_tiff_files(tmp_path_factory):
     """Create single-channel planar TIFF files for testing."""
     tmp_path = tmp_path_factory.mktemp("single_channel_planar")
-    tifffile = get_package(package_name="tifffile")
+    import tifffile
 
     # Create test data: 2 files, each with 4 pages (4 time points, 1 channel, 1 plane)
     num_files = 2
@@ -39,7 +39,10 @@ def single_channel_planar_tiff_files(tmp_path_factory):
                     page_data = np.ones((height, width), dtype=np.uint16) * value
                     pages.append(page_data)
 
-        tifffile.imwrite(file_path, pages)
+        # Write pages individually to create true multi-page TIFF
+        with tifffile.TiffWriter(file_path) as writer:
+            for page in pages:
+                writer.write(page)
 
     return tmp_path
 
@@ -69,7 +72,10 @@ def single_channel_volumetric_tiff_files(tmp_path_factory):
                     page_data = np.ones((height, width), dtype=np.uint16) * value
                     pages.append(page_data)
 
-        tifffile.imwrite(file_path, pages)
+        # Write pages individually to create true multi-page TIFF
+        with tifffile.TiffWriter(file_path) as writer:
+            for page in pages:
+                writer.write(page)
 
     return tmp_path
 
@@ -99,7 +105,10 @@ def multi_channel_planar_tiff_files(tmp_path_factory):
                     page_data = np.ones((height, width), dtype=np.uint16) * value
                     pages.append(page_data)
 
-        tifffile.imwrite(file_path, pages)
+        # Write pages individually to create true multi-page TIFF
+        with tifffile.TiffWriter(file_path) as writer:
+            for page in pages:
+                writer.write(page)
 
     return tmp_path
 
@@ -129,7 +138,10 @@ def multi_channel_volumetric_tiff_files(tmp_path_factory):
                     page_data = np.ones((height, width), dtype=np.uint16) * value
                     pages.append(page_data)
 
-        tifffile.imwrite(file_path, pages)
+        # Write pages individually to create true multi-page TIFF
+        with tifffile.TiffWriter(file_path) as writer:
+            for page in pages:
+                writer.write(page)
 
     return tmp_path
 
@@ -162,6 +174,7 @@ def test_initialization_single_channel_volumetric(single_channel_volumetric_tiff
 def test_initialization_single_channel_planar(single_channel_planar_tiff_files):
     """Test initialization of the extractor with single-channel planar data."""
     file_paths = sorted(list(single_channel_planar_tiff_files.glob("*.tif")))
+    assert file_paths[0].exists(), "Test files not found"
     multi_tiff_extractor = MultiTIFFMultiPageExtractor(
         file_paths=file_paths,
         sampling_frequency=30.0,
@@ -280,7 +293,6 @@ def test_from_folder(single_channel_volumetric_tiff_files):
         dimension_order="CZT",
         num_channels=1,
         num_planes=3,
-        num_acquisition_cycles=2,
     )
 
     assert extractor.get_num_samples() == 4
@@ -668,3 +680,149 @@ def test_planar_vs_volumetric_output_shapes():
     # This test verifies the squeezing behavior for planar vs volumetric data
     # Already covered in individual tests but good to have explicit test
     pass  # Covered by test_get_series_planar and test_get_series_volumetric
+
+
+def test_automatic_num_acquisition_cycles_calculation(single_channel_volumetric_tiff_files):
+    """Test that num_acquisition_cycles is calculated correctly internally."""
+    file_paths = sorted(list(single_channel_volumetric_tiff_files.glob("*.tif")))
+
+    # Create extractor - it should calculate num_acquisition_cycles internally
+    extractor = MultiTIFFMultiPageExtractor(
+        file_paths=file_paths,
+        sampling_frequency=30.0,
+        dimension_order="CZT",
+        num_channels=1,
+        num_planes=3,
+    )
+
+    # Each file has 6 pages (2 timepoints * 1 channel * 3 planes)
+    # So num_acquisition_cycles should be 6 / (1 * 3) = 2 per file
+    # With 2 files, total should be 4 acquisition cycles
+    assert extractor._num_acquisition_cycles == 4
+    assert extractor.get_num_samples() == 4
+
+
+def test_warning_for_indivisible_ifds(tmp_path):
+    """Test that a warning is raised when total IFDs is not divisible by ifds_per_cycle."""
+    import tifffile
+
+    # Create a TIFF file with 5 pages (not divisible by 2 channels * 2 planes = 4)
+    file_path = tmp_path / "test_indivisible.tif"
+    with tifffile.TiffWriter(file_path) as writer:
+        for i in range(5):
+            data = np.ones((10, 12), dtype=np.uint16) * i
+            writer.write(data)
+
+    # This should raise a warning because 5 is not divisible by 4
+    with pytest.warns(UserWarning, match="Total IFDs .* is not divisible by IFDs per cycle"):
+        extractor = MultiTIFFMultiPageExtractor(
+            file_paths=[file_path],
+            sampling_frequency=30.0,
+            dimension_order="CZT",
+            num_channels=2,
+            num_planes=2,
+        )
+
+    # Should still work but only access 1 complete cycle (4 IFDs out of 5)
+    assert extractor.get_num_samples() == 1
+
+
+def test_single_file_extraction(tmp_path):
+    """Test extraction from a single TIFF file."""
+    import tifffile
+
+    # Create a single TIFF file with 8 pages
+    file_path = tmp_path / "single_file.tif"
+    with tifffile.TiffWriter(file_path) as writer:
+        for i in range(8):
+            data = np.ones((10, 12), dtype=np.uint16) * (i + 1)
+            writer.write(data)
+
+    # Test with single file
+    extractor = MultiTIFFMultiPageExtractor(
+        file_paths=[file_path],
+        sampling_frequency=30.0,
+        dimension_order="TCZ",
+        num_channels=2,
+        channel_index=0,
+        num_planes=2,
+    )
+
+    # 8 pages / (2 channels * 2 planes) = 2 acquisition cycles
+    assert extractor.get_num_samples() == 2
+    assert extractor.get_frame_shape() == (10, 12)
+
+    # Test data extraction
+    series = extractor.get_series()
+    assert series.shape == (2, 10, 12, 2)  # 2 samples, volumetric with 2 planes
+
+
+def test_files_with_different_page_counts(tmp_path):
+    """Test handling of files with different numbers of pages."""
+    import tifffile
+
+    # Create files with different page counts
+    file1 = tmp_path / "file1.tif"
+    file2 = tmp_path / "file2.tif"
+
+    # File 1: 4 pages
+    with tifffile.TiffWriter(file1) as writer:
+        for i in range(4):
+            data = np.ones((10, 12), dtype=np.uint16) * i
+            writer.write(data)
+
+    # File 2: 6 pages
+    with tifffile.TiffWriter(file2) as writer:
+        for i in range(6):
+            data = np.ones((10, 12), dtype=np.uint16) * (i + 10)
+            writer.write(data)
+
+    # Create extractor with files of different sizes
+    extractor = MultiTIFFMultiPageExtractor(
+        file_paths=[file1, file2],
+        sampling_frequency=30.0,
+        dimension_order="CZT",
+        num_channels=1,
+        num_planes=2,
+    )
+
+    # Total pages: 4 + 6 = 10
+    # IFDs per cycle: 1 channel * 2 planes = 2
+    # Num samples: 10 / 2 = 5
+    assert extractor.get_num_samples() == 5
+
+    # Verify we can extract all samples
+    series = extractor.get_series()
+    assert series.shape == (5, 10, 12, 2)
+
+
+def test_get_dtype(single_channel_planar_tiff_files):
+    """Test the get_dtype method."""
+    file_paths = sorted(list(single_channel_planar_tiff_files.glob("*.tif")))
+    extractor = MultiTIFFMultiPageExtractor(
+        file_paths=file_paths,
+        sampling_frequency=30.0,
+        dimension_order="CZT",
+        num_channels=1,
+        num_planes=1,
+    )
+
+    # Our test files use uint16
+    assert extractor.get_dtype() == np.uint16
+
+
+def test_get_series_with_out_of_range_indices(single_channel_planar_tiff_files):
+    """Test get_series with invalid sample indices."""
+    file_paths = sorted(list(single_channel_planar_tiff_files.glob("*.tif")))
+    extractor = MultiTIFFMultiPageExtractor(
+        file_paths=file_paths,
+        sampling_frequency=30.0,
+        dimension_order="CZT",
+        num_channels=1,
+        num_planes=1,
+    )
+
+    # Test with end_sample beyond available samples
+    # Should not raise error but return available samples
+    series = extractor.get_series(start_sample=0, end_sample=100)
+    assert series.shape[0] == extractor.get_num_samples()

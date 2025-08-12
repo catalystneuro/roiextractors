@@ -38,7 +38,6 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         num_channels: int = 1,
         channel_index: int = 0,
         num_planes: int = 1,
-        num_acquisition_cycles: Optional[int] = None,
     ):
         """Initialize the extractor with file paths and dimension information.
 
@@ -61,20 +60,6 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             Index of the channel to extract. Default is 0 (first channel).
         num_planes : int, default=1
             Number of depth planes (Z).
-        num_acquisition_cycles : int, optional
-            The total number of complete acquisition cycles present in the dataset. An acquisition cycle
-            represents one full sweep through the imaging dimensions according to the specified dimension_order.
-
-            In microscopy applications where oversampling occurs (multiple samples per depth/channel):
-            - If dimension_order starts with "T" (e.g., "TCZ", "TZC"): This parameter indicates how many
-            times each frame is acquired before changing other dimensions.
-            - If "T" is the second dimension (e.g., "ZTC", "CZT"): This indicates how many complete
-            scans occur at each level of the first dimension before proceeding.
-            - If "T" is the last dimension (e.g., "ZCT", "CZT"): This represents distinct timepoints
-            in a time series.
-
-            When set to None (default), the extractor automatically calculates this value as:
-                num_acquisition_cycles = total_ifds // (num_channels * num_planes)
 
 
         Notes
@@ -202,7 +187,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         self._num_rows, self._num_columns = first_ifd.shape
         self._dtype = first_ifd.dtype
 
-        # Calculate num_acquisition_cycles if not provided
+        # Calculate num_acquisition_cycles automatically
         ifds_per_file = [len(handle.pages) for handle in self._file_handles]
         total_ifds = sum(ifds_per_file)
 
@@ -210,20 +195,16 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         if ifds_per_cycle == 0:
             raise ValueError("Invalid dimension sizes: num_channels and num_planes cannot both be zero")
 
-        self._num_samples = total_ifds // ifds_per_cycle
+        # Calculate num_acquisition_cycles based on total IFDs and other dimensions
+        if total_ifds % ifds_per_cycle != 0:
+            warnings.warn(
+                f"Total IFDs ({total_ifds}) is not divisible by IFDs per cycle ({ifds_per_cycle}). "
+                f"Some samples may not be accessible."
+            )
 
-        if num_acquisition_cycles is None:
-
-            # Calculate num_acquisition_cycles based on total IFDs and other dimensions
-            if total_ifds % ifds_per_cycle != 0:
-                warnings.warn(
-                    f"Total IFDs ({total_ifds}) is not divisible by IFDs per cycle ({ifds_per_cycle}). "
-                    f"Some samples may not be accessible."
-                )
-
-            num_acquisition_cycles = total_ifds // ifds_per_cycle
-
+        num_acquisition_cycles = total_ifds // ifds_per_cycle
         self._num_acquisition_cycles = num_acquisition_cycles
+        self._num_samples = num_acquisition_cycles
 
         # Create full mapping for all channels, times, and depths
         full_mapping = self._create_frame_to_ifd_table(
@@ -448,7 +429,6 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         dimension_order: str = "ZCT",
         num_channels: int = 1,
         channel_index: int = 0,
-        num_acquisition_cycles: Optional[int] = None,
         num_planes: int = 1,
     ) -> "MultiTIFFMultiPageExtractor":
         """Create an extractor from a folder path and file pattern.
@@ -467,8 +447,6 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             Number of channels. Default is 1.
         channel_index : int, optional
             Index of the channel to extract. Default is 0 (first channel).
-        num_acquisition_cycles : int, optional
-            Number of acquisition cycles (timepoints). If None, it will be calculated. Default is None.
         num_planes : int, optional
             Number of depth planes (Z). Default is 1.
 
@@ -489,7 +467,6 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             dimension_order=dimension_order,
             num_channels=num_channels,
             channel_index=channel_index,
-            num_acquisition_cycles=num_acquisition_cycles,
             num_planes=num_planes,
         )
 
