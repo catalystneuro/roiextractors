@@ -146,13 +146,6 @@ def multi_channel_volumetric_tiff_files(tmp_path_factory):
     return tmp_path
 
 
-# Legacy fixture for backward compatibility
-@pytest.fixture
-def temp_tiff_files(single_channel_volumetric_tiff_files):
-    """Legacy fixture for backward compatibility."""
-    return single_channel_volumetric_tiff_files
-
-
 def test_initialization_single_channel_volumetric(single_channel_volumetric_tiff_files):
     """Test initialization of the extractor with single-channel volumetric data."""
     file_paths = sorted(list(single_channel_volumetric_tiff_files.glob("*.tif")))

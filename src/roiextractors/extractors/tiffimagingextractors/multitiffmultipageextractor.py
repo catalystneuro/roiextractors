@@ -344,6 +344,10 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         start_sample = int(start_sample) if start_sample is not None else 0
         end_sample = int(end_sample) if end_sample is not None else self.get_num_samples()
 
+        # Clamp end_sample to the actual number of samples
+        end_sample = min(end_sample, self.get_num_samples())
+        start_sample = max(0, start_sample)
+
         samples_in_series = end_sample - start_sample
 
         # Always preallocate output array as volumetric
