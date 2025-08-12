@@ -9,7 +9,7 @@ MultiTIFFMultiPageExtractor
 import glob
 import warnings
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 import numpy as np
 
@@ -34,7 +34,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         self,
         file_paths: list[PathType],
         sampling_frequency: float,
-        dimension_order: str = "ZCT",
+        dimension_order: Literal["ZCT", "ZTC", "CZT", "CTZ", "TCZ", "TZC"] = "ZCT",
         num_channels: int = 1,
         channel_index: int = 0,
         num_planes: int = 1,
@@ -141,16 +141,16 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         """
         super().__init__()
 
-        # Validate dimension order
         valid_dimension_orders = ["ZCT", "ZTC", "CZT", "CTZ", "TCZ", "TZC"]
         if dimension_order not in valid_dimension_orders:
             raise ValueError(f"Invalid dimension order: {dimension_order}. Must be one of: {valid_dimension_orders}")
 
-        # Validate num_planes
+        if num_channels < 1:
+            raise ValueError("num_channels must be at least 1")
+
         if num_planes < 1:
             raise ValueError("num_planes must be at least 1")
 
-        # Validate channel_index
         if channel_index >= num_channels:
             raise ValueError(f"channel_index {channel_index} is out of range (0 to {num_channels-1})")
 
@@ -161,7 +161,6 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         self._num_planes = num_planes
         self._sampling_frequency = sampling_frequency
 
-        # Get tifffile package
         tifffile = get_package(package_name="tifffile")
 
         # Open all TIFF files and store file handles for lazy loading
@@ -169,6 +168,13 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         total_ifds = 0
 
         for file_path in self._file_paths:
+            # Check if file exists first
+            if not Path(file_path).exists():
+                # Close any already opened file handles before raising the exception
+                for handle in self._file_handles:
+                    handle.close()
+                raise FileNotFoundError(f"TIFF file not found: {file_path}")
+
             try:
                 tiff_handle = tifffile.TiffFile(file_path)
                 self._file_handles.append(tiff_handle)
@@ -179,10 +185,6 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
                     handle.close()
                 raise RuntimeError(f"Error opening TIFF file {file_path}: {e}")
 
-        # Get image dimensions from the first IFD of the first file
-        if not self._file_handles or not self._file_handles[0].pages:
-            raise ValueError("No valid TIFF files or IFDs found")
-
         first_ifd = self._file_handles[0].pages[0]
         self._num_rows, self._num_columns = first_ifd.shape
         self._dtype = first_ifd.dtype
@@ -192,8 +194,6 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         total_ifds = sum(ifds_per_file)
 
         ifds_per_cycle = num_channels * num_planes
-        if ifds_per_cycle == 0:
-            raise ValueError("Invalid dimension sizes: num_channels and num_planes cannot both be zero")
 
         # Calculate num_acquisition_cycles based on total IFDs and other dimensions
         if total_ifds % ifds_per_cycle != 0:
@@ -430,7 +430,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         folder_path: PathType,
         file_pattern: str,
         sampling_frequency: float,
-        dimension_order: str = "ZCT",
+        dimension_order: Literal["ZCT", "ZTC", "CZT", "CTZ", "TCZ", "TZC"] = "ZCT",
         num_channels: int = 1,
         channel_index: int = 0,
         num_planes: int = 1,
