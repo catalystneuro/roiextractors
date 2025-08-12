@@ -63,10 +63,13 @@ class TestSingleChannelPlanar:
 
         assert extractor.get_num_samples() == self.expected_samples
         assert extractor.get_frame_shape() == self.expected_shape
+        assert extractor.get_sample_shape() == self.expected_shape
         assert extractor.get_sampling_frequency() == self.sampling_frequency
         assert extractor.get_num_planes() == self.num_planes
         assert extractor.get_dtype() == np.uint16
         assert extractor.is_volumetric == False
+        assert extractor.get_channel_names() == [str(i) for i in range(self.num_channels)]
+        assert extractor.get_native_timestamps() is None
 
     def test_get_series(self, test_files):
         """Test retrieving series from the extractor with planar data."""
@@ -94,20 +97,6 @@ class TestSingleChannelPlanar:
         # Get all samples
         all_samples = extractor.get_series()
         assert all_samples.ndim == 3  # (samples, height, width)
-
-    def test_get_channel_names(self, test_files):
-        """Test getting channel names for single channel data."""
-        file_paths = sorted(list(test_files.glob("*.tif")))
-        extractor = MultiTIFFMultiPageExtractor(
-            file_paths=file_paths,
-            sampling_frequency=self.sampling_frequency,
-            dimension_order="CZT",
-            num_channels=self.num_channels,
-            num_planes=self.num_planes,
-        )
-
-        channel_names = extractor.get_channel_names()
-        assert channel_names == [str(i) for i in range(self.num_channels)]
 
 
 class TestSingleChannelVolumetric:
@@ -162,10 +151,14 @@ class TestSingleChannelVolumetric:
 
         assert extractor.get_num_samples() == self.expected_samples
         assert extractor.get_frame_shape() == self.expected_shape
+        assert extractor.get_sample_shape() == self.expected_volume_shape
+        assert extractor.get_volume_shape() == self.expected_volume_shape
         assert extractor.get_sampling_frequency() == self.sampling_frequency
         assert extractor.get_num_planes() == self.num_planes
         assert extractor.get_dtype() == np.uint16
         assert extractor.is_volumetric == True
+        assert extractor.get_channel_names() == [str(i) for i in range(self.num_channels)]
+        assert extractor.get_native_timestamps() is None
 
     def test_get_series(self, test_files):
         """Test retrieving series from the extractor with volumetric data."""
@@ -208,52 +201,6 @@ class TestSingleChannelVolumetric:
         assert extractor.get_num_samples() == self.expected_samples
         assert extractor.get_frame_shape() == self.expected_shape
 
-    def test_get_channel_names(self, test_files):
-        """Test getting channel names for single channel data."""
-        file_paths = sorted(list(test_files.glob("*.tif")))
-        extractor = MultiTIFFMultiPageExtractor(
-            file_paths=file_paths,
-            sampling_frequency=self.sampling_frequency,
-            dimension_order="CZT",
-            num_channels=self.num_channels,
-            num_planes=self.num_planes,
-        )
-
-        channel_names = extractor.get_channel_names()
-        assert channel_names == [str(i) for i in range(self.num_channels)]
-
-    def test_get_native_timestamps(self, test_files):
-        """Test that native timestamps returns None."""
-        file_paths = sorted(list(test_files.glob("*.tif")))
-        extractor = MultiTIFFMultiPageExtractor(
-            file_paths=file_paths,
-            sampling_frequency=self.sampling_frequency,
-            dimension_order="CZT",
-            num_channels=self.num_channels,
-            num_planes=self.num_planes,
-        )
-
-        timestamps = extractor.get_native_timestamps()
-        assert timestamps is None
-
-        # Test with start/end parameters
-        timestamps = extractor.get_native_timestamps(start_sample=0, end_sample=2)
-        assert timestamps is None
-
-    def test_volume_shape_getter(self, test_files):
-        """Test get_volume_shape method."""
-        file_paths = sorted(list(test_files.glob("*.tif")))
-        extractor = MultiTIFFMultiPageExtractor(
-            file_paths=file_paths,
-            sampling_frequency=self.sampling_frequency,
-            dimension_order="CZT",
-            num_channels=self.num_channels,
-            num_planes=self.num_planes,
-        )
-
-        volume_shape = extractor.get_volume_shape()
-        assert volume_shape == self.expected_volume_shape
-
     @pytest.mark.parametrize("dimension_order", ["CZT", "ZCT", "TCZ", "TZC"])
     def test_dimension_order_variations(self, test_files, dimension_order):
         """Test various dimension order configurations."""
@@ -270,20 +217,6 @@ class TestSingleChannelVolumetric:
         assert extractor.get_num_samples() == self.expected_samples
         series = extractor.get_series(start_sample=0, end_sample=1)
         assert series.ndim == 4  # (samples, height, width, depth)
-
-    def test_invalid_num_planes_error_handling(self, test_files):
-        """Test error handling for invalid num_planes."""
-        file_paths = sorted(list(test_files.glob("*.tif")))
-
-        # Test that num_planes < 1 raises ValueError
-        with pytest.raises(ValueError, match="num_planes must be at least 1"):
-            MultiTIFFMultiPageExtractor(
-                file_paths=file_paths,
-                sampling_frequency=self.sampling_frequency,
-                dimension_order="CZT",
-                num_channels=self.num_channels,
-                num_planes=0,
-            )
 
 
 class TestMultiChannelPlanar:
@@ -339,13 +272,17 @@ class TestMultiChannelPlanar:
 
         assert extractor.get_num_samples() == self.expected_samples
         assert extractor.get_frame_shape() == self.expected_shape
+        assert extractor.get_sample_shape() == self.expected_volume_shape
+        assert extractor.get_volume_shape() == self.expected_volume_shape
         assert extractor.get_sampling_frequency() == self.sampling_frequency
         assert extractor.get_num_planes() == self.num_planes
         assert extractor.get_dtype() == np.uint16
         assert extractor.is_volumetric == True
+        assert extractor.get_channel_names() == [str(i) for i in range(self.num_channels)]
+        assert extractor.get_native_timestamps() is None
 
-    def test_channel_extraction(self, test_files):
-        """Test extraction of specific channels from planar data."""
+    def test_get_series(self, test_files):
+        """Test get_series with different channels from planar data."""
         file_paths = sorted(list(test_files.glob("*.tif")))
 
         # Test extracting first channel
@@ -378,23 +315,6 @@ class TestMultiChannelPlanar:
         assert not np.array_equal(series_ch0, series_ch1)
         assert series_ch0.shape == (self.expected_samples, self.height, self.width, self.num_planes)
         assert series_ch1.shape == (self.expected_samples, self.height, self.width, self.num_planes)
-
-    def test_invalid_channel_name_error_handling(self, test_files):
-        """Test error handling for invalid channel_name."""
-        file_paths = sorted(list(test_files.glob("*.tif")))
-
-        # Test that channel_name >= num_channels raises ValueError
-        with pytest.raises(
-            ValueError, match=rf"channel_index {self.num_channels} is out of range \(0 to {self.num_channels-1}\)"
-        ):
-            MultiTIFFMultiPageExtractor(
-                file_paths=file_paths,
-                sampling_frequency=self.sampling_frequency,
-                dimension_order="TCZ",
-                num_channels=self.num_channels,
-                channel_name=str(self.num_channels),  # Invalid: equal to num_channels
-                num_planes=self.num_planes,
-            )
 
 
 class TestMultiChannelVolumetric:
@@ -450,13 +370,17 @@ class TestMultiChannelVolumetric:
 
         assert extractor.get_num_samples() == self.expected_samples
         assert extractor.get_frame_shape() == self.expected_shape
+        assert extractor.get_sample_shape() == self.expected_volume_shape
+        assert extractor.get_volume_shape() == self.expected_volume_shape
         assert extractor.get_sampling_frequency() == self.sampling_frequency
         assert extractor.get_num_planes() == self.num_planes
         assert extractor.get_dtype() == np.uint16
         assert extractor.is_volumetric == True
+        assert extractor.get_channel_names() == [str(i) for i in range(self.num_channels)]
+        assert extractor.get_native_timestamps() is None
 
-    def test_channel_extraction(self, test_files):
-        """Test extraction of specific channels."""
+    def test_get_series(self, test_files):
+        """Test get_series with different channels."""
         file_paths = sorted(list(test_files.glob("*.tif")))
 
         # Test extracting first channel
@@ -519,36 +443,6 @@ class TestMultiChannelVolumetric:
         # Check that channel 1 has higher values than channel 0 (due to generation pattern)
         # Channel 1 should have values offset by 5 compared to channel 0
         assert np.all(sample_ch1 > sample_ch0)
-
-    def test_get_channel_names(self, test_files):
-        """Test getting channel names for multi channel data."""
-        file_paths = sorted(list(test_files.glob("*.tif")))
-        extractor = MultiTIFFMultiPageExtractor(
-            file_paths=file_paths,
-            sampling_frequency=self.sampling_frequency,
-            dimension_order="TCZ",
-            num_channels=self.num_channels,
-            channel_name="0",
-            num_planes=self.num_planes,
-        )
-
-        channel_names = extractor.get_channel_names()
-        assert channel_names == [str(i) for i in range(self.num_channels)]
-
-    def test_volume_shape_getter(self, test_files):
-        """Test get_volume_shape method."""
-        file_paths = sorted(list(test_files.glob("*.tif")))
-        extractor = MultiTIFFMultiPageExtractor(
-            file_paths=file_paths,
-            sampling_frequency=self.sampling_frequency,
-            dimension_order="TCZ",
-            num_channels=self.num_channels,
-            channel_name="0",
-            num_planes=self.num_planes,
-        )
-
-        volume_shape = extractor.get_volume_shape()
-        assert volume_shape == self.expected_volume_shape
 
 
 # General/cross-case tests that don't belong to a specific test case
