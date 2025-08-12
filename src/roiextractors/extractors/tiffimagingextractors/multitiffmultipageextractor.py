@@ -189,28 +189,23 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         self._num_rows, self._num_columns = first_ifd.shape
         self._dtype = first_ifd.dtype
 
-        # Calculate num_acquisition_cycles automatically
+        # Create mapping table for all available IFDs
         ifds_per_file = [len(handle.pages) for handle in self._file_handles]
         total_ifds = sum(ifds_per_file)
 
         ifds_per_cycle = num_channels * num_planes
 
-        # Calculate num_acquisition_cycles based on total IFDs and other dimensions
+        # Warn if total IFDs doesn't divide evenly into complete cycles
         if total_ifds % ifds_per_cycle != 0:
             warnings.warn(
                 f"Total IFDs ({total_ifds}) is not divisible by IFDs per cycle ({ifds_per_cycle}). "
                 f"Some samples may not be accessible."
             )
 
-        num_acquisition_cycles = total_ifds // ifds_per_cycle
-        self._num_acquisition_cycles = num_acquisition_cycles
-        self._num_samples = num_acquisition_cycles
-
-        # Create full mapping for all channels, times, and depths
+        # Create full mapping for all available IFDs
         full_mapping = self._create_frame_to_ifd_table(
             dimension_order=self._dimension_order,
             num_channels=self._num_channels,
-            num_acquisition_cycles=self._num_acquisition_cycles,
             num_planes=self._num_planes,
             ifds_per_file=ifds_per_file,
         )
@@ -222,39 +217,58 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         # Determine if we're dealing with volumetric data
         self.is_volumetric = self._num_planes > 1
 
+        # Determine number of samples from the filtered mapping table
+        # For non-volumetric: each IFD is one sample
+        # For volumetric: num_planes IFDs make one volume sample
+        if self.is_volumetric:
+            self._num_samples = len(self._frames_to_ifd_table) // self._num_planes
+        else:
+            self._num_samples = len(self._frames_to_ifd_table)
+
     def get_num_planes(self) -> int:
         """Get the number of depth planes."""
         return self._num_planes
 
     @staticmethod
     def _create_frame_to_ifd_table(
-        dimension_order: str, num_channels: int, num_acquisition_cycles: int, num_planes: int, ifds_per_file: list[int]
+        dimension_order: str,
+        num_channels: int,
+        num_planes: int,
+        ifds_per_file: list[int],
     ) -> np.ndarray:
-        """Create a mapping from sample index to file and IFD indices.
+        """Create a mapping table from logical dimensions to physical TIFF locations.
 
-        This function creates a structured numpy array that maps each combination of time,
-        channel, and depth to its corresponding physical location in the TIFF files.
+        Maps each IFD (Image File Directory) to its logical position within the multi-dimensional
+        acquisition based on the specified dimension order. This enables efficient lookup of
+        specific time points, channels, and depth planes from the raw TIFF files.
+
+        The dimension order determines how IFDs are interpreted:
+        - First dimension changes fastest (varies most rapidly across IFDs)
+        - Last dimension changes slowest (varies least frequently across IFDs)
+
+        For example, with dimension_order="CZT":
+        - IFDs cycle through Channels first, then depth (Z), then Time
+        - IFD sequence: C0Z0T0, C1Z0T0, C0Z1T0, C1Z1T0, C0Z0T1, C1Z0T1, ...
 
         Parameters
         ----------
         dimension_order : str
-            The order of dimensions in the data.
+            Dimension ordering (e.g., "CZT", "ZTC"). Determines how IFDs map to
+            logical coordinates.
         num_channels : int
-            Number of channels.
-        num_acquisition_cycles : int
-            Number of acquisition cycles (timepoints).
+            Total number of channels in the acquisition.
         num_planes : int
-            Number of depth planes (Z).
+            Number of depth planes (Z-slices) per volume.
         ifds_per_file : list[int]
-            Number of IFDs in each file.
+            Number of IFDs in each TIFF file, used to map global IFD indices
+            to specific files and local IFD positions.
 
         Returns
         -------
         np.ndarray
-            A structured array mapping all combinations of time, channel, and depth to file
-            and IFD indices.
+            Structured array with fields: 'file_index', 'IFD_index', 'channel_index',
+            'depth_index', 'time_index'. Each row maps one IFD to its logical coordinates.
         """
-        # Create structured dtype for mapping
         mapping_dtype = np.dtype(
             [
                 ("file_index", np.uint16),
@@ -265,42 +279,34 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             ]
         )
 
-        # Calculate total number of entries
         total_entries = sum(ifds_per_file)
+        ifds_per_cycle = num_channels * num_planes
+        num_acquisition_cycles = total_entries // ifds_per_cycle
 
-        # Define the sizes for each dimension
         dimension_sizes = {"Z": num_planes, "T": num_acquisition_cycles, "C": num_channels}
 
-        # Calculate divisors for each dimension
-        # In dimension order, the first element changes fastest
+        # Calculate divisors for dimension indexing (first dimension changes fastest)
         dimension_divisors = {}
         current_divisor = 1
         for dimension in dimension_order:
             dimension_divisors[dimension] = current_divisor
             current_divisor *= dimension_sizes[dimension]
 
-        # Create a linear range of IFD indices
         indices = np.arange(total_entries)
 
-        # Calculate indices for each dimension
         depth_indices = (indices // dimension_divisors["Z"]) % dimension_sizes["Z"]
         time_indices = (indices // dimension_divisors["T"]) % dimension_sizes["T"]
         channel_indices = (indices // dimension_divisors["C"]) % dimension_sizes["C"]
 
-        # Generate file_indices and local_ifd_indices using list comprehensions
-        # Create arrays of file indices (repeating each file index for the number of IFDs in that file)
         file_indices = np.concatenate(
             [np.full(num_ifds, file_idx, dtype=np.uint16) for file_idx, num_ifds in enumerate(ifds_per_file)]
         )
 
-        # Create arrays of local IFD indices (starting from 0 for each file)
         ifd_indices = np.concatenate([np.arange(num_ifds, dtype=np.uint16) for num_ifds in ifds_per_file])
 
-        # Ensure we don't exceed total_entries
         file_indices = file_indices[:total_entries]
         ifd_indices = ifd_indices[:total_entries]
 
-        # Create the structured array
         mapping = np.zeros(total_entries, dtype=mapping_dtype)
         mapping["file_index"] = file_indices
         mapping["IFD_index"] = ifd_indices
