@@ -34,12 +34,22 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         self,
         file_paths: list[PathType],
         sampling_frequency: float,
-        dimension_order: Literal["ZCT", "ZTC", "CZT", "CTZ", "TCZ", "TZC"] = "ZCT",
+        dimension_order: Literal["ZCT", "ZTC", "CZT", "CTZ", "TCZ", "TZC"] = "TZC",
         num_channels: Optional[int] = None,
         channel_name: Optional[str] = None,
         num_planes: Optional[int] = None,
     ):
         """Initialize the extractor with file paths and dimension information.
+
+        By default, this extractor assumes planar data (2D frames) with a single channel,
+        treating each page in the TIFF files as a sequential time point. This configuration
+        works well for simple time-series imaging data.
+
+        For multi-channel or volumetric data, you must explicitly specify:
+        - num_channels: Number of channels (required if > 1)
+        - channel_name: Which channel to extract (required if num_channels > 1)
+        - num_planes: Number of Z-planes per volume (required if > 1)
+        - dimension_order: How channels and Z-planes are interleaved across TIFF pages/IFDs
 
         Parameters
         ----------
@@ -53,17 +63,15 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             The order of dimensions in the data. Must be one of: ZCT, ZTC, CTZ, TCZ, CZT, TZC.
             This follows the OME-TIFF specification for dimension order, but excludes the XY
             dimensions which are assumed to be the first two dimensions.
-            Default is "ZCT".
+            Default is "TZC" (time-first, suitable for planar single-channel data).
         num_channels : int, optional
-            Number of channels in the data. If None, will be automatically determined from the data.
-            Default is None.
+            Number of channels in the data. Default is 1 (single channel).
         channel_name : str, optional
             Name of the channel to extract (e.g., "0", "1"). Only required when
-            num_channels > 1. If num_channels <= 1, this parameter is ignored and channel 0 is used.
+            num_channels > 1. For single-channel data, this parameter is ignored.
             Default is None.
         num_planes : int, optional
-            Number of depth planes (Z-slices) per volume. If None, will be automatically determined
-            from the data. Default is None.
+            Number of depth planes (Z-slices) per volume. Default is 1 (planar data).
 
 
         Notes
@@ -135,9 +143,9 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
         When data is planar (num_planes=1):
 
-            ZCT, CZT, CTZ → CT: Channel-first acquisition patterns
+            ZCT, CZT, CTZ → CT: Channel-first acquisition patterns (one full channel sweep after another)
 
-            ZTC, TCZ, TZC → TC: Time-first acquisition patterns
+            ZTC, TCZ, TZC → TC: Time-first acquisition patterns (full data for one channel and then the next)
 
         When data is both single-channel AND planar:
 
@@ -444,7 +452,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         folder_path: PathType,
         file_pattern: str,
         sampling_frequency: float,
-        dimension_order: Literal["ZCT", "ZTC", "CZT", "CTZ", "TCZ", "TZC"] = "ZCT",
+        dimension_order: Literal["ZCT", "ZTC", "CZT", "CTZ", "TCZ", "TZC"] = "TZC",
         num_channels: Optional[int] = None,
         channel_name: Optional[str] = None,
         num_planes: Optional[int] = None,
@@ -460,13 +468,13 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         sampling_frequency : float
             The sampling frequency in Hz.
         dimension_order : str, optional
-            The order of dimensions in the data. Default is "ZCT".
+            The order of dimensions in the data. Default is "TZC".
         num_channels : int, optional
-            Number of channels in the data. Default is None (auto-detect).
+            Number of channels in the data. Default is 1 (single channel).
         channel_name : str, optional
             Name of the channel to extract (e.g., "0", "1"). Only required when num_channels > 1. Default is None.
         num_planes : int, optional
-            Number of depth planes (Z). Default is None (auto-detect).
+            Number of depth planes (Z). Default is 1 (planar data).
 
         Returns
         -------
