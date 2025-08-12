@@ -121,7 +121,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             the second depth, continuing through all depths. Switch to the next channel
             and repeat the entire oversampling pattern across depths.
 
-        Equivalence for Special Cases
+        Special Cases
         ------------------------------
         When data has only a single channel (num_channels=1):
 
