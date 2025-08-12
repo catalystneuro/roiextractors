@@ -19,13 +19,21 @@ from ...imagingextractor import ImagingExtractor
 
 class MultiTIFFMultiPageExtractor(ImagingExtractor):
     """
-    An extractor for handling multiple TIFF files, each with multiple pages, organized according to a specified dimension order.
+    An extractor for multi-page TIFF files with flexible organization of channels and depth planes.
 
-    This extractor allows for lazy loading of samples from multiple TIFF files, where each file may contain multiple pages.
-    The samples are organized according to a specified dimension order (e.g., ZCT) and the size of each dimension.
+    By default, this extractor is configured for simple planar time-series data (single channel, 2D frames)
+    where each TIFF page represents a sequential time point. This covers the most common use case and
+    requires only file paths (which might be only one) and sampling frequency.
 
-    The extractor creates a mapping between each logical sample index and its corresponding file and IFD location.
-    This mapping is used to efficiently retrieve samples when requested.
+    For more complex data (multi-channel or volumetric), additional parameters must be specified to
+    define how channels and Z-planes are organized across TIFF pages. The extractor creates an
+    efficient mapping between logical sample indices and their physical locations in the TIFF files.
+
+    For multi-channel or volumetric data, you must explicitly specify:
+    - num_channels: Number of channels (required if > 1)
+    - channel_name: Which channel to extract (required if num_channels > 1)
+    - num_planes: Number of Z-planes per volume (required if > 1)
+    - dimension_order: How channels and Z-planes are interleaved across TIFF pages/IFDs
     """
 
     extractor_name = "MultiTIFFMultiPageExtractor"
@@ -39,17 +47,8 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         channel_name: Optional[str] = None,
         num_planes: Optional[int] = None,
     ):
-        """Initialize the extractor with file paths and dimension information.
-
-        By default, this extractor assumes planar data (2D frames) with a single channel,
-        treating each page in the TIFF files as a sequential time point. This configuration
-        works well for simple time-series imaging data.
-
-        For multi-channel or volumetric data, you must explicitly specify:
-        - num_channels: Number of channels (required if > 1)
-        - channel_name: Which channel to extract (required if num_channels > 1)
-        - num_planes: Number of Z-planes per volume (required if > 1)
-        - dimension_order: How channels and Z-planes are interleaved across TIFF pages/IFDs
+        """
+        Initialize the extractor with file paths and dimension information.
 
         Parameters
         ----------
@@ -64,6 +63,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             This follows the OME-TIFF specification for dimension order, but excludes the XY
             dimensions which are assumed to be the first two dimensions.
             Default is "TZC" (time-first, suitable for planar single-channel data).
+            See Notes section for detailed explanations of each dimension order.
         num_channels : int, optional
             Number of channels in the data. Default is 1 (single channel).
         channel_name : str, optional
