@@ -107,7 +107,7 @@ class TestSingleChannelPlanar:
         )
 
         channel_names = extractor.get_channel_names()
-        assert channel_names == [f"Channel {i}" for i in range(self.num_channels)]
+        assert channel_names == [str(i) for i in range(self.num_channels)]
 
 
 class TestSingleChannelVolumetric:
@@ -220,7 +220,7 @@ class TestSingleChannelVolumetric:
         )
 
         channel_names = extractor.get_channel_names()
-        assert channel_names == [f"Channel {i}" for i in range(self.num_channels)]
+        assert channel_names == [str(i) for i in range(self.num_channels)]
 
     def test_get_native_timestamps(self, test_files):
         """Test that native timestamps returns None."""
@@ -333,7 +333,7 @@ class TestMultiChannelPlanar:
             sampling_frequency=self.sampling_frequency,
             dimension_order="TCZ",
             num_channels=self.num_channels,
-            channel_index=1,
+            channel_name="1",
             num_planes=self.num_planes,
         )
 
@@ -354,7 +354,7 @@ class TestMultiChannelPlanar:
             sampling_frequency=self.sampling_frequency,
             dimension_order="TCZ",
             num_channels=self.num_channels,
-            channel_index=0,
+            channel_name="0",
             num_planes=self.num_planes,
         )
 
@@ -364,7 +364,7 @@ class TestMultiChannelPlanar:
             sampling_frequency=self.sampling_frequency,
             dimension_order="TCZ",
             num_channels=self.num_channels,
-            channel_index=1,
+            channel_name="1",
             num_planes=self.num_planes,
         )
 
@@ -379,11 +379,11 @@ class TestMultiChannelPlanar:
         assert series_ch0.shape == (self.expected_samples, self.height, self.width, self.num_planes)
         assert series_ch1.shape == (self.expected_samples, self.height, self.width, self.num_planes)
 
-    def test_invalid_channel_index_error_handling(self, test_files):
-        """Test error handling for invalid channel_index."""
+    def test_invalid_channel_name_error_handling(self, test_files):
+        """Test error handling for invalid channel_name."""
         file_paths = sorted(list(test_files.glob("*.tif")))
 
-        # Test that channel_index >= num_channels raises ValueError
+        # Test that channel_name >= num_channels raises ValueError
         with pytest.raises(
             ValueError, match=rf"channel_index {self.num_channels} is out of range \(0 to {self.num_channels-1}\)"
         ):
@@ -392,7 +392,7 @@ class TestMultiChannelPlanar:
                 sampling_frequency=self.sampling_frequency,
                 dimension_order="TCZ",
                 num_channels=self.num_channels,
-                channel_index=self.num_channels,  # Invalid: equal to num_channels
+                channel_name=str(self.num_channels),  # Invalid: equal to num_channels
                 num_planes=self.num_planes,
             )
 
@@ -444,7 +444,7 @@ class TestMultiChannelVolumetric:
             sampling_frequency=self.sampling_frequency,
             dimension_order="TCZ",
             num_channels=self.num_channels,
-            channel_index=0,
+            channel_name="0",
             num_planes=self.num_planes,
         )
 
@@ -465,7 +465,7 @@ class TestMultiChannelVolumetric:
             sampling_frequency=self.sampling_frequency,
             dimension_order="TCZ",
             num_channels=self.num_channels,
-            channel_index=0,
+            channel_name="0",
             num_planes=self.num_planes,
         )
 
@@ -475,7 +475,7 @@ class TestMultiChannelVolumetric:
             sampling_frequency=self.sampling_frequency,
             dimension_order="TCZ",
             num_channels=self.num_channels,
-            channel_index=1,
+            channel_name="1",
             num_planes=self.num_planes,
         )
 
@@ -499,7 +499,7 @@ class TestMultiChannelVolumetric:
             sampling_frequency=self.sampling_frequency,
             dimension_order="TCZ",
             num_channels=self.num_channels,
-            channel_index=0,
+            channel_name="0",
             num_planes=self.num_planes,
         )
 
@@ -508,7 +508,7 @@ class TestMultiChannelVolumetric:
             sampling_frequency=self.sampling_frequency,
             dimension_order="TCZ",
             num_channels=self.num_channels,
-            channel_index=1,
+            channel_name="1",
             num_planes=self.num_planes,
         )
 
@@ -528,12 +528,12 @@ class TestMultiChannelVolumetric:
             sampling_frequency=self.sampling_frequency,
             dimension_order="TCZ",
             num_channels=self.num_channels,
-            channel_index=0,
+            channel_name="0",
             num_planes=self.num_planes,
         )
 
         channel_names = extractor.get_channel_names()
-        assert channel_names == [f"Channel {i}" for i in range(self.num_channels)]
+        assert channel_names == [str(i) for i in range(self.num_channels)]
 
     def test_volume_shape_getter(self, test_files):
         """Test get_volume_shape method."""
@@ -543,7 +543,7 @@ class TestMultiChannelVolumetric:
             sampling_frequency=self.sampling_frequency,
             dimension_order="TCZ",
             num_channels=self.num_channels,
-            channel_index=0,
+            channel_name="0",
             num_planes=self.num_planes,
         )
 
@@ -570,6 +570,7 @@ def test_warning_for_indivisible_ifds(tmp_path):
             sampling_frequency=30.0,
             dimension_order="CZT",
             num_channels=2,
+            channel_name="0",
             num_planes=2,
         )
 
@@ -609,6 +610,42 @@ def test_invalid_num_planes_error_handling(tmp_path):
         )
 
 
+def test_channel_name_validation_error_handling(tmp_path):
+    """Test error handling for channel name validation."""
+    # Use non-existent file since validation happens before file opening
+    empty_file_path = tmp_path / "nonexistent.tif"
+
+    # Test that missing channel_name when num_channels > 1 raises ValueError
+    with pytest.raises(ValueError, match="channel_name must be specified when num_channels > 1"):
+        MultiTIFFMultiPageExtractor(
+            file_paths=[empty_file_path],
+            sampling_frequency=30.0,
+            dimension_order="CZT",
+            num_channels=2,
+            channel_name=None,
+        )
+
+    # Test that invalid channel_name format raises ValueError
+    with pytest.raises(ValueError, match="Invalid channel name format.*Expected numeric format"):
+        MultiTIFFMultiPageExtractor(
+            file_paths=[empty_file_path],
+            sampling_frequency=30.0,
+            dimension_order="CZT",
+            num_channels=2,
+            channel_name="invalid_name",
+        )
+
+    # Test that channel_name out of range raises ValueError
+    with pytest.raises(ValueError, match="channel_index 2 is out of range \\(0 to 1\\)"):
+        MultiTIFFMultiPageExtractor(
+            file_paths=[empty_file_path],
+            sampling_frequency=30.0,
+            dimension_order="CZT",
+            num_channels=2,
+            channel_name="2",
+        )
+
+
 def test_comparison_with_scanimage():
     """Test comparison with ScanImageImagingExtractor."""
     # Path to ScanImage folder and file pattern
@@ -629,7 +666,7 @@ def test_comparison_with_scanimage():
         sampling_frequency=scanimage_extractor.get_sampling_frequency(),
         dimension_order="CZT",  # ScanImage uses this order
         num_channels=2,
-        channel_index=0,
+        channel_name="0",
         num_planes=1,  # For this example, num_planes is 1
     )
 

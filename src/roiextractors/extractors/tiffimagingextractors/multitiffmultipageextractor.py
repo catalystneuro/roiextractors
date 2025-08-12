@@ -35,9 +35,9 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         file_paths: list[PathType],
         sampling_frequency: float,
         dimension_order: Literal["ZCT", "ZTC", "CZT", "CTZ", "TCZ", "TZC"] = "ZCT",
-        num_channels: int = 1,
-        channel_index: int = 0,
-        num_planes: int = 1,
+        num_channels: Optional[int] = None,
+        channel_name: Optional[str] = None,
+        num_planes: Optional[int] = None,
     ):
         """Initialize the extractor with file paths and dimension information.
 
@@ -54,12 +54,16 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             This follows the OME-TIFF specification for dimension order, but excludes the XY
             dimensions which are assumed to be the first two dimensions.
             Default is "ZCT".
-        num_channels : int, default=1
-            Number of channels.
-        channel_index : int, default=0
-            Index of the channel to extract. Default is 0 (first channel).
-        num_planes : int, default=1
-            Number of depth planes (Z).
+        num_channels : int, optional
+            Number of channels in the data. If None, will be automatically determined from the data.
+            Default is None.
+        channel_name : str, optional
+            Name of the channel to extract (e.g., "0", "1"). Only required when
+            num_channels > 1. If num_channels <= 1, this parameter is ignored and channel 0 is used.
+            Default is None.
+        num_planes : int, optional
+            Number of depth planes (Z-slices) per volume. If None, will be automatically determined
+            from the data. Default is None.
 
 
         Notes
@@ -145,12 +149,31 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         if dimension_order not in valid_dimension_orders:
             raise ValueError(f"Invalid dimension order: {dimension_order}. Must be one of: {valid_dimension_orders}")
 
+        # Set default values and validate parameters
+        num_channels = 1 if num_channels is None else num_channels
+        num_planes = 1 if num_planes is None else num_planes
+
         if num_channels < 1:
             raise ValueError("num_channels must be at least 1")
 
         if num_planes < 1:
             raise ValueError("num_planes must be at least 1")
 
+        # Handle channel selection
+        if num_channels > 1:
+            if channel_name is None:
+                raise ValueError("channel_name must be specified when num_channels > 1")
+            # Parse channel name to get index (assumes numeric format "0", "1", etc.)
+            try:
+                channel_index = int(channel_name)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid channel name format: {channel_name}. Expected numeric format: '0', '1', etc."
+                )
+        else:
+            channel_index = 0  # Single channel case
+
+        # Validate channel_index
         if channel_index >= num_channels:
             raise ValueError(f"channel_index {channel_index} is out of range (0 to {num_channels-1})")
 
@@ -422,9 +445,9 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         file_pattern: str,
         sampling_frequency: float,
         dimension_order: Literal["ZCT", "ZTC", "CZT", "CTZ", "TCZ", "TZC"] = "ZCT",
-        num_channels: int = 1,
-        channel_index: int = 0,
-        num_planes: int = 1,
+        num_channels: Optional[int] = None,
+        channel_name: Optional[str] = None,
+        num_planes: Optional[int] = None,
     ) -> "MultiTIFFMultiPageExtractor":
         """Create an extractor from a folder path and file pattern.
 
@@ -439,11 +462,11 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         dimension_order : str, optional
             The order of dimensions in the data. Default is "ZCT".
         num_channels : int, optional
-            Number of channels. Default is 1.
-        channel_index : int, optional
-            Index of the channel to extract. Default is 0 (first channel).
+            Number of channels in the data. Default is None (auto-detect).
+        channel_name : str, optional
+            Name of the channel to extract (e.g., "0", "1"). Only required when num_channels > 1. Default is None.
         num_planes : int, optional
-            Number of depth planes (Z). Default is 1.
+            Number of depth planes (Z). Default is None (auto-detect).
 
         Returns
         -------
@@ -461,7 +484,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             sampling_frequency=sampling_frequency,
             dimension_order=dimension_order,
             num_channels=num_channels,
-            channel_index=channel_index,
+            channel_name=channel_name,
             num_planes=num_planes,
         )
 
@@ -472,5 +495,5 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         return None
 
     def get_channel_names(self):
-        channel_names = [f"Channel {i}" for i in range(self._num_channels)]
+        channel_names = [str(i) for i in range(self._num_channels)]
         return channel_names
