@@ -12,6 +12,8 @@ micromanagertiffimagingextractor
     Specialized extractor for reading TIFF files produced via Micro-Manager.
 thortiffimagingextractor
     Specialized extractor for reading TIFF files produced via Thor.
+multitiffmultipageextractor
+    Extractor for multiple TIFF files, each with multiple pages.
 
 Classes
 -------
@@ -35,6 +37,8 @@ MicroManagerTiffImagingExtractor
     Specialized extractor for reading TIFF files produced via Micro-Manager.
 ThorTiffImagingExtractor
     Specialized extractor for reading TIFF files produced via Thor.
+MultiTIFFMultiPageExtractor
+    An extractor for handling multiple TIFF files, each with multiple pages, organized according to a specified dimension order.
 """
 
 from .brukertiffimagingextractor import (
@@ -51,4 +55,5 @@ from .scanimagetiffimagingextractor import (
     ScanImageTiffSinglePlaneMultiFileImagingExtractor,
 )
 from .thortiffimagingextractor import ThorTiffImagingExtractor
+from .multitiffmultipageextractor import MultiTIFFMultiPageExtractor
 from .tiffimagingextractor import TiffImagingExtractor
