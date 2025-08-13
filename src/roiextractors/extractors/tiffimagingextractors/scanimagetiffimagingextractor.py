@@ -86,14 +86,14 @@ class ScanImageImagingExtractor(ImagingExtractor):
         slice_sample : int, optional
             Controls how to handle multiple frames per slice in volumetric data:
             - If an integer (0 to frames_per_slice-1): Uses only that specific frame for each slice,
-              effectively selecting a single sample from each acquisition.
+            effectively selecting a single sample from each acquisition.
             - If None (default): Requires interleave_slice_samples=True when frames_per_slice > 1.
             - This parameter has no effect when frames_per_slice = 1.
             - Use `get_frames_per_slice(file_path)` to check the number of frames per slice.
         interleave_slice_samples : bool, optional
             Controls whether to interleave all slice samples as separate time points when frames_per_slice > 1:
             - If True: Interleaves all slice samples as separate time points, increasing the effective
-              number of samples by frames_per_slice. This treats each slice_sample as a distinct sample.
+            number of samples by frames_per_slice. This treats each slice_sample as a distinct sample.
             - If False (default): Requires a specific slice_sample to be provided when frames_per_slice > 1.
             - This parameter has no effect when frames_per_slice = 1 or when slice_sample is provided.
         plane_index : int, optional
