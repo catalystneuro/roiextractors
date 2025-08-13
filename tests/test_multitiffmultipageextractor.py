@@ -16,14 +16,12 @@ from tests.setup_paths import OPHYS_DATA_PATH
 def test_data_array():
     """Create the reference time series that all tests use.
 
-    Testing Architecture:
-    This test suite uses a fixture-based approach where all tests share the same underlying
-    TIFF data but interpret it differently based on extractor configuration. This design
-    ensures consistency and makes it easier to understand what each test is validating.
+    The tests for this extractor uses a fixture-based approach where all tests share the same underlying
+    TIFF data but interpret it differently based on extractor configuration.
 
-    Data Structure:
-    Creates 12 frames where frame N contains all N's (frame 0 = all 0s, frame 1 = all 1s, etc.).
-    This deterministic pattern makes it easy to verify that extractors are reading the correct frames.
+    The time series consists of 12 frames where frame N contains all N's (frame 0 = all 0s, frame 1 = all 1s, etc.).
+    This deterministic pattern makes it easy to verify that extractors are reading the correct frames in case
+    of debugging or unexpected behavior.
 
     Index Mappings:
     Each test declares which frames from the shared data should correspond to the extractor's
@@ -38,7 +36,7 @@ def test_data_array():
     # Generate 12 frames total with sequential values
     # Frame 0 = all 0s, Frame 1 = all 1s, etc.
     num_frames = 12
-    height, width = 10, 12
+    height, width = 3, 4
 
     frames = []
     for frame_index in range(num_frames):
@@ -88,8 +86,8 @@ class TestSingleChannelPlanar:
     num_files = 2
     num_channels = 1
     num_planes = 1
-    height = 10
-    width = 12
+    height = 3
+    width = 4
     expected_samples = 12  # All 12 pages become samples for single channel planar
     expected_shape = (height, width)
     sampling_frequency = 30.0
@@ -145,8 +143,8 @@ class TestSingleChannelVolumetric:
     num_files = 2
     num_channels = 1
     num_planes = 3
-    height = 10
-    width = 12
+    height = 3
+    width = 4
     expected_samples = 4  # 12 pages ÷ (1 channel × 3 planes) = 4 complete samples
     expected_shape = (height, width)
     expected_volume_shape = (height, width, num_planes)
@@ -227,8 +225,8 @@ class TestMultiChannelPlanar:
     num_files = 2
     num_channels = 2
     num_planes = 1
-    height = 10
-    width = 12
+    height = 3
+    width = 4
     expected_samples = 6  # 12 pages ÷ (2 channels × 1 plane) = 6 complete samples
     expected_shape = (height, width)
     sampling_frequency = 30.0
@@ -303,8 +301,8 @@ class TestMultiChannelVolumetric:
     num_files = 2
     num_channels = 2
     num_planes = 3
-    height = 10
-    width = 12
+    height = 3
+    width = 4
     expected_samples = 2  # 12 pages ÷ (2 channels × 3 planes) = 2 complete samples
     expected_shape = (height, width)
     expected_volume_shape = (height, width, num_planes)
@@ -347,8 +345,8 @@ class TestMultiChannelVolumetric:
 
         # Channel 0 sample to test_data_array mapping for TCZ order (2 channels, 3 planes)
         sample_to_test_data_mapping = {
-            0: [0, 1, 4],  # Sample 0: T0C0Z0, T0C0Z1, T0C0Z2
-            1: [5, 8, 9],  # Sample 1: T1C0Z0, T1C0Z1, T1C0Z2
+            0: [0, 4, 8],  # Sample 0: T0C0Z0, T0C0Z1, T0C0Z2
+            1: [1, 5, 9],  # Sample 1: T1C0Z0, T1C0Z1, T1C0Z2
         }
 
         # Compare each sample directly to the corresponding test_data_array values using explicit stacking
@@ -375,8 +373,8 @@ class TestMultiChannelVolumetric:
 
         # Channel 1 sample to test_data_array mapping for TCZ order (2 channels, 3 planes)
         sample_to_test_data_mapping = {
-            0: [2, 3, 6],  # Sample 0: T0C1Z0, T0C1Z1, T0C1Z2
-            1: [7, 10, 11],  # Sample 1: T1C1Z0, T1C1Z1, T1C1Z2
+            0: [2, 6, 10],  # Sample 0: T0C1Z0, T0C1Z1, T0C1Z2
+            1: [3, 7, 11],  # Sample 1: T1C1Z0, T1C1Z1, T1C1Z2
         }
 
         # Compare each sample directly to the corresponding test_data_array values using explicit stacking
@@ -392,20 +390,24 @@ class TestMultiChannelVolumetric:
 @pytest.mark.parametrize(
     "dimension_order,channel_name,expected_sample_mappings",
     [
-        # Channel 0 tests for all dimension orders
-        ("TCZ", "0", {0: [0, 1, 4], 1: [5, 8, 9]}),
-        ("CZT", "0", {0: [0, 2, 4], 1: [6, 8, 10]}),
-        ("CTZ", "0", {0: [0, 2, 4], 1: [6, 8, 10]}),
-        ("ZCT", "0", {0: [0, 1, 2], 1: [6, 7, 8]}),
-        ("ZTC", "0", {0: [0, 1, 2], 1: [3, 4, 5]}),
-        ("TZC", "0", {0: [0, 1, 2], 1: [3, 4, 5]}),
-        # Channel 1 tests for all dimension orders
-        ("TCZ", "1", {0: [2, 3, 6], 1: [7, 10, 11]}),
-        ("CZT", "1", {0: [1, 3, 5], 1: [7, 9, 11]}),
-        ("CTZ", "1", {0: [1, 3, 5], 1: [7, 9, 11]}),
-        ("ZCT", "1", {0: [3, 4, 5], 1: [9, 10, 11]}),
-        ("ZTC", "1", {0: [6, 7, 8], 1: [9, 10, 11]}),
-        ("TZC", "1", {0: [6, 7, 8], 1: [9, 10, 11]}),
+        # Channel 0 tests - Time-first acquisition patterns
+        ("TCZ", "0", {0: [0, 4, 8], 1: [1, 5, 9]}),  # Time varies first: multiple samples per channel at each depth
+        ("TZC", "0", {0: [0, 2, 4], 1: [1, 3, 5]}),  # Time varies first: multiple samples per depth for each channel
+        # Channel 0 tests - Channel-first acquisition patterns
+        ("CZT", "0", {0: [0, 2, 4], 1: [6, 8, 10]}),  # Channels cycle through depths before time advances
+        ("CTZ", "0", {0: [0, 4, 8], 1: [2, 6, 10]}),  # All channels acquired multiple times per depth
+        # Channel 0 tests - Depth-first acquisition patterns
+        ("ZCT", "0", {0: [0, 1, 2], 1: [6, 7, 8]}),  # Complete Z-stack per channel before switching
+        ("ZTC", "0", {0: [0, 1, 2], 1: [3, 4, 5]}),  # Complete Z-stack repeated over time per channel
+        # Channel 1 tests - Time-first acquisition patterns
+        ("TCZ", "1", {0: [2, 6, 10], 1: [3, 7, 11]}),  # Time varies first: multiple samples per channel at each depth
+        ("TZC", "1", {0: [6, 8, 10], 1: [7, 9, 11]}),  # Time varies first: multiple samples per depth for each channel
+        # Channel 1 tests - Channel-first acquisition patterns
+        ("CZT", "1", {0: [1, 3, 5], 1: [7, 9, 11]}),  # Channels cycle through depths before time advances
+        ("CTZ", "1", {0: [1, 5, 9], 1: [3, 7, 11]}),  # All channels acquired multiple times per depth
+        # Channel 1 tests - Depth-first acquisition patterns
+        ("ZCT", "1", {0: [3, 4, 5], 1: [9, 10, 11]}),  # Complete Z-stack per channel before switching
+        ("ZTC", "1", {0: [6, 7, 8], 1: [9, 10, 11]}),  # Complete Z-stack repeated over time per channel
     ],
 )
 def test_dimension_order_variations(
@@ -465,7 +467,7 @@ def test_warning_for_indivisible_ifds(tmp_path):
     file_path = tmp_path / "test_indivisible.tif"
     with tifffile.TiffWriter(file_path) as writer:
         for i in range(5):
-            data = np.full((10, 12), i, dtype=np.uint16)
+            data = np.full((3, 4), i, dtype=np.uint16)
             writer.write(data)
 
     # This should raise a warning because 5 is not divisible by 4
@@ -551,57 +553,13 @@ def test_channel_name_validation_error_handling(tmp_path):
         )
 
 
-def test_comparison_with_scanimage():
-    """Test comparison with ScanImageImagingExtractor."""
-    # Path to ScanImage folder and file pattern
-    scanimage_folder_path = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
-    multifile_file_pattern = "scanimage_20240320_multifile_*.tif"
-
-    file_paths = sorted(list(scanimage_folder_path.glob(multifile_file_pattern)))
-
-    # Use ScanImageImagingExtractor instead of deprecated extractor
-    scanimage_extractor = ScanImageImagingExtractor(
-        file_paths=file_paths,
-        channel_name="Channel 1",
-    )
-
-    # Initialize MultiTIFFMultiPageExtractor with equivalent mapping
-    multi_extractor = MultiTIFFMultiPageExtractor(
-        file_paths=file_paths,
-        sampling_frequency=scanimage_extractor.get_sampling_frequency(),
-        dimension_order="CZT",  # ScanImage uses this order
-        num_channels=2,
-        channel_name="0",
-        num_planes=1,  # For this example, num_planes is 1
-    )
-
-    # Compare basic properties
-    assert multi_extractor.get_num_samples() == scanimage_extractor.get_num_samples()
-
-    # Compare frame shapes - ScanImage includes depth dimension, MultiTIFF doesn't
-    scanimage_shape = scanimage_extractor.get_frame_shape()
-    multi_shape = multi_extractor.get_frame_shape()
-
-    # Check that the first two dimensions (height, width) match
-    assert multi_shape[0] == scanimage_shape[0]
-    assert multi_shape[1] == scanimage_shape[1]
-
-    assert multi_extractor.get_sampling_frequency() == scanimage_extractor.get_sampling_frequency()
-
-    # Compare the actual series data
-    scanimage_series = scanimage_extractor.get_series().squeeze()
-    multi_series = multi_extractor.get_series()
-
-    assert_allclose(scanimage_series, multi_series, rtol=1e-5, atol=1e-8)
-
-
 def test_invalid_dimension_order_error_handling(tmp_path):
     """Test error handling for invalid dimension order."""
     tifffile = get_package(package_name="tifffile")
 
     # Create a simple test file
     file_path = tmp_path / "test.tif"
-    data = np.ones((10, 12), dtype=np.uint16)
+    data = np.ones((3, 4), dtype=np.uint16)
     tifffile.imwrite(file_path, data)
 
     with pytest.raises(ValueError):
@@ -657,3 +615,116 @@ def test_from_folder_no_files_found_error(tmp_path):
             num_channels=1,
             num_planes=1,
         )
+
+
+################################################
+# Test, reproducing other extractors to validate
+################################################
+
+
+def test_comparison_with_scanimage_planar_multi_channel():
+    """Test comparison with ScanImageImagingExtractor for planar multi-channel data."""
+    # Path to ScanImage multi-file data - explicit file paths for reproducibility
+    scanimage_folder_path = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
+    file_paths = [
+        scanimage_folder_path / "scanimage_20240320_multifile_00001.tif",
+        scanimage_folder_path / "scanimage_20240320_multifile_00002.tif",
+        scanimage_folder_path / "scanimage_20240320_multifile_00003.tif",
+    ]
+
+    # Use ScanImageImagingExtractor instead of deprecated extractor
+    scanimage_extractor = ScanImageImagingExtractor(
+        file_paths=file_paths,
+        channel_name="Channel 1",
+    )
+
+    # Initialize MultiTIFFMultiPageExtractor with equivalent mapping
+    multi_extractor = MultiTIFFMultiPageExtractor(
+        file_paths=file_paths,
+        sampling_frequency=scanimage_extractor.get_sampling_frequency(),
+        dimension_order="CZT",  # ScanImage uses this order
+        num_channels=2,
+        channel_name="0",
+        # num_planes=1 omitted since it's the default for planar data
+    )
+
+    # Compare basic properties
+    assert multi_extractor.get_num_samples() == scanimage_extractor.get_num_samples()
+
+    # Compare frame shapes - ScanImage includes depth dimension, MultiTIFF doesn't
+    scanimage_shape = scanimage_extractor.get_frame_shape()
+    multi_shape = multi_extractor.get_frame_shape()
+
+    # Check that the first two dimensions (height, width) match
+    assert multi_shape[0] == scanimage_shape[0]
+    assert multi_shape[1] == scanimage_shape[1]
+
+    assert multi_extractor.get_sampling_frequency() == scanimage_extractor.get_sampling_frequency()
+
+    # Compare the actual series data
+    scanimage_series = scanimage_extractor.get_series()
+    multi_series = multi_extractor.get_series()
+
+    assert_allclose(scanimage_series, multi_series, rtol=1e-5, atol=1e-8)
+
+
+def test_comparison_with_scanimage_volumetric_multi_channel():
+    """Test comparison with volumetric ScanImageImagingExtractor data.
+
+    Note: ScanImage removes flyback frames automatically, while MultiTIFFMultiPageExtractor
+    includes all frames. To compare equivalent data, we configure MultiTIFF with
+    num_planes = scan_planes + flyback_frames, then slice away the flyback frames
+    from MultiTIFF volumes to match ScanImage's processed output.
+    """
+    # Path to volumetric ScanImage data
+    scanimage_folder_path = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
+    volumetric_path = (
+        scanimage_folder_path / "volumetric_two_channels_single_file" / "vol_two_ch_single_file_00001_00001.tif"
+    )
+
+    # Initialize ScanImage extractor for Channel 1 (index 0)
+    scanimage_extractor = ScanImageImagingExtractor(
+        file_path=volumetric_path,
+        channel_name="Channel 1",
+    )
+
+    # Get ScanImage metadata
+    num_planes_with_data = scanimage_extractor.get_num_planes()  # Should be 9 (actual imaging planes)
+    flyback_frames = scanimage_extractor.num_flyback_frames_per_channel  # Should be 7
+    sampling_frequency = scanimage_extractor.get_sampling_frequency()
+
+    # Initialize MultiTIFFMultiPageExtractor with raw frame count (including flybacks)
+    # ScanImage uses CZT order (channels cycle through depths, then time)
+    multi_extractor = MultiTIFFMultiPageExtractor(
+        file_paths=[volumetric_path],
+        sampling_frequency=sampling_frequency,
+        dimension_order="CZT",
+        num_channels=2,  # Channel 1 and Channel 2
+        channel_name="0",  # Channel 1 corresponds to index 0
+        num_planes=num_planes_with_data + flyback_frames,  # Include flyback frames in raw count
+    )
+
+    # Compare basic properties (after accounting for flyback frame removal)
+    assert multi_extractor.get_frame_shape() == scanimage_extractor.get_frame_shape()
+    assert multi_extractor.get_sampling_frequency() == scanimage_extractor.get_sampling_frequency()
+    assert multi_extractor.is_volumetric == scanimage_extractor.is_volumetric
+
+    # Both extractors should have the same number of samples when processing the same data correctly
+    assert scanimage_extractor.get_num_samples() == multi_extractor.get_num_samples()
+
+    # Get entire series from both extractors
+    scanimage_series = scanimage_extractor.get_series()
+    multi_raw_series = multi_extractor.get_series()
+
+    # Slice away flyback frames from MultiTIFF series to match ScanImage processing
+    # Keep only the first num_planes_with_data (remove the flyback_frames at the end)
+    multi_series_without_flyback = multi_raw_series[:, :, :, :num_planes_with_data]
+
+    # Compare the entire processed series
+    assert_allclose(
+        scanimage_series,
+        multi_series_without_flyback,
+        rtol=1e-5,
+        atol=1e-8,
+        err_msg="Complete series do not match between ScanImage and MultiTIFF extractors",
+    )
