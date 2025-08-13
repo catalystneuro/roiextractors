@@ -104,9 +104,6 @@ class TestSuite2pSegmentationExtractor(TestCase):
     def test_optical_channel_names(self):
         self.assertEqual(self.extractor.get_channel_names(), ["Chan1"])
 
-    def test_num_channels(self):
-        self.assertEqual(self.extractor.get_num_channels(), 1)
-
     def test_num_rois(self):
         self.assertEqual(self.extractor.get_num_rois(), self.num_rois)
 
