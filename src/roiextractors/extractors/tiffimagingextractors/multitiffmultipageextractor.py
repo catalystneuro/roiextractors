@@ -245,18 +245,15 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         channel_mask = full_mapping["channel_index"] == self._channel_index
         self._frames_to_ifd_table = full_mapping[channel_mask]
 
-        # Reorder by time_index when T is not the last dimension
-        # This ensures frames from the same time point are consecutive for sequential grouping
-        if not self._dimension_order.endswith("T"):
-            # Sort by time_index first, then depth_index to maintain Z-order within each time point
-            # Note: self._frames_to_ifd_table is a structured numpy array, not a DataFrame
-            sort_indices = np.lexsort(
-                (
-                    self._frames_to_ifd_table["depth_index"],  # Secondary sort key
-                    self._frames_to_ifd_table["time_index"],  # Primary sort key
-                )
+        # Sort by time_index first, then depth_index to ensure time-coherent sequential grouping
+        # This ensures frames from the same time point are consecutive, regardless of dimension order
+        sort_indices = np.lexsort(
+            (
+                self._frames_to_ifd_table["depth_index"],  # Secondary sort key
+                self._frames_to_ifd_table["time_index"],  # Primary sort key
             )
-            self._frames_to_ifd_table = self._frames_to_ifd_table[sort_indices]
+        )
+        self._frames_to_ifd_table = self._frames_to_ifd_table[sort_indices]
 
         # Determine if we're dealing with volumetric data
         self.is_volumetric = self._num_planes > 1
