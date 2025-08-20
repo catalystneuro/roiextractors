@@ -1,11 +1,17 @@
-# v0.6.2 (Upcoming)
+# v0.6.3 (Upcoming)
 
 ### Features
-* Added MultiTIFFMultiPageExtractor for handling multiple TIFF files, each with multiple pages, organized according to a specified dimension order [#402](https://github.com/catalystneuro/roiextractors/pull/402)
 
 ### Fixes
 
 ### Deprecations And Removals
+
+### Improvements
+
+# v0.6.2 (August 20th, 2025)
+
+### Features
+* Added MultiTIFFMultiPageExtractor for handling multiple TIFF files, each with multiple pages, organized according to a specified dimension order [#402](https://github.com/catalystneuro/roiextractors/pull/402)
 
 ### Improvements
 * Refactor Femtonics Imaging Extractor session, munit and channel selection logic. Added missing stub files (`single_channel.mesc` and `single_m_unit_index`)[PR #479](https://github.com/catalystneuro/roiextractors/pull/479)
