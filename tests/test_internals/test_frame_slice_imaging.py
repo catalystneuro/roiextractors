@@ -48,9 +48,6 @@ class TestFrameSliceImaging(TestCase):
     def test_get_channel_names(self):
         assert self.frame_sliced_imaging.get_channel_names() == ["channel_num_0"]
 
-    def test_get_num_channels(self):
-        assert self.frame_sliced_imaging.get_num_channels() == 1
-
     def test_get_samples_assertion(self):
         with self.assertRaisesWith(
             exc_type=AssertionError, exc_msg="'sample_indices' range beyond number of available samples!"

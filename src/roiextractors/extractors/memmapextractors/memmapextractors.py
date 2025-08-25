@@ -143,14 +143,6 @@ class MemmapImagingExtractor(ImagingExtractor):
     def get_channel_names(self):
         pass
 
-    def get_num_channels(self) -> int:
-        warn(
-            "get_num_channels() is deprecated and will be removed in or after August 2025.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._num_channels
-
     def get_dtype(self) -> DtypeType:
         return self.dtype
 
@@ -226,7 +218,7 @@ class MemmapImagingExtractor(ImagingExtractor):
             buffer_size_in_bytes = int(buffer_size_in_bytes)
             type_size = np.dtype(dtype).itemsize
 
-            n_channels = imaging.get_num_channels()
+            n_channels = 1
             pixels_per_frame = n_channels * np.prod(imaging.get_image_size())
             bytes_per_frame = type_size * pixels_per_frame
             frames_in_buffer = buffer_size_in_bytes // bytes_per_frame

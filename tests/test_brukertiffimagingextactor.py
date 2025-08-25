@@ -92,9 +92,6 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
     def test_brukertiffextractor_channel_names(self):
         self.assertEqual(self.extractor.get_channel_names(), ["Ch2"])
 
-    def test_brukertiffextractor_num_channels(self):
-        self.assertEqual(self.extractor.get_num_channels(), 1)
-
     def test_brukertiffextractor_dtype(self):
         self.assertEqual(self.extractor.get_dtype(), np.uint16)
 
@@ -152,9 +149,6 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
 
     def test_brukertiffextractor_channel_names(self):
         self.assertEqual(self.extractor.get_channel_names(), ["Ch2"])
-
-    def test_brukertiffextractor_num_channels(self):
-        self.assertEqual(self.extractor.get_num_channels(), 1)
 
     def test_brukertiffextractor_dtype(self):
         self.assertEqual(self.extractor.get_dtype(), np.uint16)

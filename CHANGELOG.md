@@ -5,6 +5,7 @@
 ### Fixes
 
 ### Deprecations And Removals
+* Remove deprecated `get_num_channels()` method from `ImagingExtractor` [PR #484](https://github.com/catalystneuro/roiextractors/pull/484)
 
 ### Improvements
 

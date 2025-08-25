@@ -4,7 +4,6 @@ Build an ImagingExtractor:
 To build your custom ImagingExtractor to interface with a new raw image storage format from your microscope, build a custom class inheriting from a base class that enforces certain methods that need to be defined:
 
 * `get_channel_names()`: returns a list of channel names
-* `get_num_channels()`: returns the number of channels used in the recording
 * `get_num_samples()`: the number of image frames recorded
 * `get_image_size()`: the y,x dim of the image(the resolution)
 * `get_frames()`: return specific requested image frames
@@ -23,7 +22,6 @@ To build your custom ImagingExtractor to interface with a new raw image storage 
 
             self.sampling_frequency = sampling_frequency or # define your own method of extraction
             self._data = self._load_data()  # groups is a list or a np.array with length num_channels
-            self._channel_names = [f'channel_{ch}' for ch in range(self.get_num_channels())] # write logic to get channel names
 
         def _load_data(self):
 
@@ -36,10 +34,6 @@ To build your custom ImagingExtractor to interface with a new raw image storage 
             # channel_ids = range(num_channels)
 
             return self._channel_names
-
-        def get_num_channels(self) -> int:
-            # define method to find the number of channels
-            # returns int
 
         def get_num_samples(self):
 
@@ -56,6 +50,6 @@ To build your custom ImagingExtractor to interface with a new raw image storage 
             # define a method to read a frame from the given frame numbers requested.
             return self._data[frame_idxs]
 
-        def get_image_size(self)
+        def get_frame_shape(self)
 
             # returns something like self._data.shape[1:]

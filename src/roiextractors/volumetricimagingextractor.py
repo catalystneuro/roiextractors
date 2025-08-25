@@ -58,7 +58,6 @@ class VolumetricImagingExtractor(ImagingExtractor):
         properties_to_check = dict(
             get_sampling_frequency="The sampling frequency",
             get_image_shape="The shape of a frame",
-            get_num_channels="The number of channels",
             get_channel_names="The name of the channels",
             get_dtype="The data type",
             get_num_samples="The number of samples",
@@ -227,14 +226,6 @@ class VolumetricImagingExtractor(ImagingExtractor):
 
     def get_channel_names(self) -> list:
         return self._imaging_extractors[0].get_channel_names()
-
-    def get_num_channels(self) -> int:
-        warnings.warn(
-            "get_num_channels() is deprecated and will be removed in or after August 2025.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._imaging_extractors[0].get_num_channels()
 
     def get_dtype(self) -> DtypeType:
         return self._imaging_extractors[0].get_dtype()

@@ -229,9 +229,6 @@ class NumpyImagingExtractor(ImagingExtractor):
     def get_channel_names(self):
         return self._channel_names
 
-    def get_num_channels(self):
-        return self._num_channels
-
     def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
