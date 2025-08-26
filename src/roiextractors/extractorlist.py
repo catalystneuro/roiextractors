@@ -34,7 +34,7 @@ from .extractors.inscopixextractors import InscopixSegmentationExtractor
 from .extractors.memmapextractors import NumpyMemmapImagingExtractor
 from .extractors.memmapextractors import MemmapImagingExtractor
 from .extractors.minian import MinianSegmentationExtractor
-from .extractors.miniscopeimagingextractor import MiniscopeImagingExtractor
+from .extractors.miniscopeimagingextractor import MiniscopeImagingExtractor, MiniscopeMultiRecordingImagingExtractor
 from .multisegmentationextractor import MultiSegmentationExtractor
 from .multiimagingextractor import MultiImagingExtractor
 from .volumetricimagingextractor import VolumetricImagingExtractor
@@ -57,6 +57,7 @@ imaging_extractor_full_list = [
     ThorTiffImagingExtractor,
     MultiTIFFMultiPageExtractor,
     MiniscopeImagingExtractor,
+    MiniscopeMultiRecordingImagingExtractor,
     NwbImagingExtractor,
     SbxImagingExtractor,
     NumpyMemmapImagingExtractor,
