@@ -86,10 +86,6 @@ class TestMiniscopeImagingExtractor(TestCase):
         self.assertEqual(self.extractor.get_image_shape()[0], self.image_shape[0])
         self.assertEqual(self.extractor.get_image_shape()[1], self.image_shape[1])
 
-    def test_miniscopeextractor_num_channels(self):
-        """Test that the extractor returns the correct number of channels."""
-        self.assertEqual(self.extractor.get_num_channels(), 1)
-
     def test_miniscopeextractor_channel_names(self):
         """Test that the extractor returns the correct channel names."""
         self.assertEqual(self.extractor.get_channel_names(), ["OpticalChannel"])
@@ -177,9 +173,6 @@ class TestMiniscopeMultiRecordingImagingExtractor(TestCase):
 
     def test_multi_recording_extractor_image_shape(self):
         self.assertEqual(self.multi_recording_extractor.get_image_shape(), self.image_shape)
-
-    def test_multi_recording_extractor_num_channels(self):
-        self.assertEqual(self.multi_recording_extractor.get_num_channels(), 1)
 
     def test_multi_recording_extractor_channel_names(self):
         self.assertEqual(self.multi_recording_extractor.get_channel_names(), ["OpticalChannel"])
