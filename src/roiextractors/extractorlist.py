@@ -26,6 +26,7 @@ from .extractors.tiffimagingextractors import (
     BrukerTiffSinglePlaneImagingExtractor,
     MicroManagerTiffImagingExtractor,
     ThorTiffImagingExtractor,
+    MultiTIFFMultiPageExtractor,
 )
 from .extractors.sbximagingextractor import SbxImagingExtractor
 from .extractors.inscopixextractors import InscopixImagingExtractor
@@ -54,6 +55,7 @@ imaging_extractor_full_list = [
     BrukerTiffSinglePlaneImagingExtractor,
     MicroManagerTiffImagingExtractor,
     ThorTiffImagingExtractor,
+    MultiTIFFMultiPageExtractor,
     MiniscopeImagingExtractor,
     MiniscopeMultiRecordingImagingExtractor,
     NwbImagingExtractor,

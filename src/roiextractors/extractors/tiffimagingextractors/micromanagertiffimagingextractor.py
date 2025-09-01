@@ -209,9 +209,6 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
     def get_channel_names(self) -> list:
         return self._channel_names
 
-    def get_num_channels(self) -> int:
-        return self._num_channels
-
     def get_dtype(self) -> DtypeType:
         return self._dtype
 
@@ -272,9 +269,6 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
             stacklevel=2,
         )
         return self.get_num_samples()
-
-    def get_num_channels(self) -> int:
-        return 1
 
     def get_image_shape(self) -> Tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
