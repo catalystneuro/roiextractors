@@ -1,17 +1,17 @@
-name: 'Prepare Datasets'
-description: 'Restores ophys testing data from cache or downloads it from S3.'
+name: "Prepare Datasets"
+description: "Restores ophys testing data from cache or downloads it from S3."
 inputs:
   aws-access-key-id:
-    description: 'AWS Access Key ID'
+    description: "AWS Access Key ID"
     required: true
   aws-secret-access-key:
-    description: 'AWS Secret Access Key'
+    description: "AWS Secret Access Key"
     required: true
   s3-gin-bucket:
-    description: 'S3 GIN Bucket URL'
+    description: "S3 GIN Bucket URL"
     required: true
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Get ophys_testing_data current head hash
       id: ophys
@@ -35,11 +35,6 @@ runs:
         pip install awscli
         aws configure set aws_access_key_id "${{ inputs.aws-access-key-id }}"
         aws configure set aws_secret_access_key "${{ inputs.aws-secret-access-key }}"
-
-    - name: List files in restored test data
-      run: |
-        echo "Listing files under ophys_testing_data:"
-        find ophys_testing_data
 
     - if: ${{ steps.cache-ophys-datasets.outputs.cache-hit != 'true' }}
       name: Download ophys dataset from S3
