@@ -55,11 +55,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           s3-gin-bucket: ${{ secrets.S3_GIN_BUCKET }}
 
-      - name: List files in restored test data
-        run: |
-          echo "Listing files under ophys_testing_data:"
-          find ophys_testing_data
-
       - name: Run full pytest with coverage
         run: pytest -n auto --dist loadscope --cov=./ --cov-report xml:./codecov.xml
       - if: ${{ matrix.python-version == '3.10' && matrix.os == 'ubuntu-latest'}}
