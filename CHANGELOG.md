@@ -1,6 +1,7 @@
 # v0.6.3 (Upcoming)
 
 ### Features
+* Added extensible trace types support to `SegmentationExtractor` with new `RoiResponse` and `RoiRepresentation` dataclasses. Now supports baseline, background, neuropil, denoised, and deconvolved traces in addition to raw and dff. All extractors updated to use the new data model while maintaining full backward compatibility. [PR #491](https://github.com/catalystneuro/roiextractors/pull/491)
 
 ### Fixes
 

@@ -15,7 +15,11 @@ import pandas as pd
 import zarr
 
 from ...extraction_tools import FloatType, PathType
-from ...segmentationextractor import SegmentationExtractor
+from ...segmentationextractor import (
+    RoiRepresentation,
+    RoiResponse,
+    SegmentationExtractor,
+)
 
 
 class MinianSegmentationExtractor(SegmentationExtractor):
@@ -58,26 +62,70 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         """
         SegmentationExtractor.__init__(self)
         self.folder_path = Path(folder_path)
-        self._roi_response_denoised = self._read_trace_from_zarr_field(field="C")
-        self._roi_response_baseline = self._read_trace_from_zarr_field(field="b0")
-        self._roi_response_neuropil = self._read_trace_from_zarr_field(field="f")
-        self._roi_response_deconvolved = self._read_trace_from_zarr_field(field="S")
-        self._image_maximum_projection = np.array(self._read_zarr_group("/max_proj.zarr/max_proj"))
-        self._image_masks = self._read_roi_image_mask_from_zarr()
-        self._background_image_masks = self._read_background_image_mask_from_zarr()
+
+        # Set ROI IDs (from unit_id in zarr or use indices)
+        cell_ids = self.get_roi_ids()
+        self._roi_ids = cell_ids
+
+        denoised_data = self._read_trace_from_zarr_field(field="C")
+        if denoised_data is not None:
+            self._roi_responses.append(RoiResponse("denoised", denoised_data, cell_ids))
+
+        baseline_data = self._read_trace_from_zarr_field(field="b0")
+        if baseline_data is not None:
+            self._roi_responses.append(RoiResponse("baseline", baseline_data, cell_ids))
+
+        neuropil_data = self._read_trace_from_zarr_field(field="f")
+        if neuropil_data is not None:
+            # Neuropil is a single trace, keep it as is for Minian (background activity)
+            # Create a single background ROI ID for neuropil
+            neuropil_ids = ["background-neuropil-0"] if neuropil_data.shape[1] == 1 else cell_ids
+            self._roi_responses.append(RoiResponse("neuropil", neuropil_data, neuropil_ids))
+
+        deconvolved_data = self._read_trace_from_zarr_field(field="S")
+        if deconvolved_data is not None:
+            self._roi_responses.append(RoiResponse("deconvolved", deconvolved_data, cell_ids))
+
+        # Load spatial data into new model
+
+        image_masks = self._read_roi_image_mask_from_zarr()
+        if image_masks is not None:
+            fov_shape = image_masks.shape[:2]  # (height, width)
+            for i, cell_id in enumerate(cell_ids):
+                # Extract the mask for this ROI from the dense array
+                roi_mask = image_masks[:, :, i]
+                self._roi_representations[cell_id] = RoiRepresentation(cell_id, roi_mask, "dense", fov_shape)
+
+        # Create background ROI representations
+        background_image_masks = self._read_background_image_mask_from_zarr()
+        if background_image_masks is not None:
+            fov_shape = background_image_masks.shape[:2]  # (height, width)
+            background_mask = background_image_masks[:, :, 0]  # Single background component
+            background_id = "background-roi-0"
+            self._roi_representations[background_id] = RoiRepresentation(
+                background_id, background_mask, "dense", fov_shape
+            )
+
+        # Load summary images
+        max_proj_data = self._read_zarr_group("/max_proj.zarr/max_proj")
+        if max_proj_data is not None:
+            self._summary_images["maximum_projection"] = np.array(max_proj_data)
         # Check for spatial-temporal component mismatches
-        if (
-            self._image_masks is not None
-            and self._roi_response_denoised is None
-            and self._roi_response_deconvolved is None
-            and self._roi_response_baseline is None
-        ):
+        has_cell_masks = any(not str(roi_id).startswith("background") for roi_id in self._roi_representations.keys())
+        has_temporal_traces = any(
+            r.response_type in ["denoised", "deconvolved", "baseline"] for r in self._roi_responses
+        )
+
+        if has_cell_masks and not has_temporal_traces:
             raise ValueError(
                 "Spatial components (A.zarr) are available but no temporal components (C.zarr, S.zarr, b0.zarr) are associated. "
                 "This means ROI masks exist but without any corresponding fluorescence traces."
             )
 
-        if self._background_image_masks is not None and self._roi_response_neuropil is None:
+        has_background_masks = any(str(roi_id).startswith("background") for roi_id in self._roi_representations.keys())
+        has_neuropil_traces = any(r.response_type == "neuropil" for r in self._roi_responses)
+
+        if has_background_masks and not has_neuropil_traces:
             raise ValueError(
                 "Background spatial components (b.zarr) are available but no background temporal component (f.zarr) is associated. "
                 "This means background masks exist but without corresponding temporal dynamics."
@@ -297,22 +345,6 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         """
         return list()
 
-    def get_traces_dict(self) -> dict:
-        """Get traces as a dictionary with key as the name of the ROiResponseSeries.
-
-        Returns
-        -------
-        roi_response_dict: dict
-            dictionary with key, values representing different types of RoiResponseSeries:
-                Raw Fluorescence, DeltaFOverF, Denoised, Neuropil, Deconvolved, Background, etc.
-        """
-        return dict(
-            denoised=self._roi_response_denoised,
-            baseline=self._roi_response_baseline,
-            neuropil=self._roi_response_neuropil,
-            deconvolved=self._roi_response_deconvolved,
-        )
-
     def get_images_dict(self) -> dict:
         """Get images as a dictionary with key as the name of the ROIResponseSeries.
 
@@ -320,13 +352,9 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         -------
         _roi_image_dict: dict
             dictionary with key, values representing different types of Images used in segmentation:
-                Mean, Correlation image
+                Mean, Correlation image, Maximum projection
         """
-        return dict(
-            mean=self._image_mean,
-            correlation=self._image_correlation,
-            maximum_projection=self._image_maximum_projection,
-        )
+        return dict(self._summary_images)
 
     def _get_session_id(self) -> str:
         """Get the session id from the A.zarr group.

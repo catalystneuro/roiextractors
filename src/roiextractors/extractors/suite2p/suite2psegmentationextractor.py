@@ -136,15 +136,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
         self.stat = self._load_npy(file_name="stat.npy", require=True)
 
-        fluorescence_traces_file_name = "F.npy" if channel_name == "chan1" else "F_chan2.npy"
-        neuropil_traces_file_name = "Fneu.npy" if channel_name == "chan1" else "Fneu_chan2.npy"
-        self._roi_response_raw = self._load_npy(file_name=fluorescence_traces_file_name, mmap_mode="r", transpose=True)
-        self._roi_response_neuropil = self._load_npy(file_name=neuropil_traces_file_name, mmap_mode="r", transpose=True)
-        self._roi_response_deconvolved = (
-            self._load_npy(file_name="spks.npy", mmap_mode="r", transpose=True) if channel_name == "chan1" else None
-        )
-
-        # rois segmented from the iamging acquired with second channel (red/anatomical) that match the first channel segmentation
+        # rois segmented from the imaging acquired with second channel (red/anatomical) that match the first channel segmentation
         redcell = self._load_npy(file_name="redcell.npy", mmap_mode="r")
         if channel_name == "chan2" and redcell is not None:
             self.iscell = redcell
@@ -158,12 +150,52 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         self._image_correlation = self._correlation_image_read()
         image_mean_name = "meanImg" if channel_name == "chan1" else f"meanImg_chan2"
         self._image_mean = self.options[image_mean_name] if image_mean_name in self.options else None
+
+        cell_ids = list(range(len(self.stat)))
+        self._roi_ids = cell_ids
+
+        # Load traces directly into new data model
+        from ...segmentationextractor import RoiResponse
+
+        fluorescence_traces_file_name = "F.npy" if channel_name == "chan1" else "F_chan2.npy"
+        raw_data = self._load_npy(file_name=fluorescence_traces_file_name, mmap_mode="r", transpose=True)
+        if raw_data is not None:
+            self._roi_responses.append(RoiResponse("raw", raw_data, cell_ids))
+
+        neuropil_traces_file_name = "Fneu.npy" if channel_name == "chan1" else "Fneu_chan2.npy"
+        neuropil_data = self._load_npy(file_name=neuropil_traces_file_name, mmap_mode="r", transpose=True)
+        if neuropil_data is not None:
+            self._roi_responses.append(RoiResponse("neuropil", neuropil_data, cell_ids))
+
+        deconvolved_data = (
+            self._load_npy(file_name="spks.npy", mmap_mode="r", transpose=True) if channel_name == "chan1" else None
+        )
+        if deconvolved_data is not None:
+            self._roi_responses.append(RoiResponse("deconvolved", deconvolved_data, cell_ids))
+
+        # Create RoiRepresentation objects (sparse from stat)
+        for roi_index, stat_entry in enumerate(self.stat):
+            if "xpix" in stat_entry and "ypix" in stat_entry:
+                # Create sparse representation
+                weights = stat_entry.get("lam", np.ones(len(stat_entry["xpix"])))
+                coords = list(zip(stat_entry["xpix"], stat_entry["ypix"], weights))
+                from ...segmentationextractor import RoiRepresentation
+
+                self._roi_representations[roi_index] = RoiRepresentation(roi_index, coords, "sparse", self._image_shape)
+
+        # Now we can use the new data model for creating image masks
         roi_indices = list(range(self.get_num_rois()))
         self._image_masks = _image_mask_extractor(
             self.get_roi_pixel_masks(),
             roi_indices,
             self.get_frame_shape(),
         )
+
+        # Add images
+        if self._image_correlation is not None:
+            self._summary_images["correlation"] = self._image_correlation
+        if self._image_mean is not None:
+            self._summary_images["mean"] = self._image_mean
 
     def _load_npy(self, file_name: str, mmap_mode=None, transpose: bool = False, require: bool = False):
         """Load a .npy file with specified filename. Returns None if file is missing.

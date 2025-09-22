@@ -14,12 +14,115 @@ FrameSliceSegmentationExtractor
 
 import warnings
 from abc import ABC, abstractmethod
-from typing import Iterable, List, Optional, Tuple, Union
+from dataclasses import dataclass
+from typing import Iterable, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 from numpy.typing import ArrayLike
 
 from .extraction_tools import ArrayType, FloatType, IntType, _pixel_mask_extractor
+
+
+@dataclass
+class RoiResponse:
+    """Represents a fluorescence response (trace) with its metadata."""
+
+    response_type: Literal["raw", "dff", "neuropil", "baseline", "background", "denoised", "deconvolved"]
+    data: ArrayLike  # Shape: (num_samples, num_rois)
+    roi_ids: list[str | int]  # Which ROIs this trace corresponds to
+
+
+@dataclass
+class RoiRepresentation:
+    """Represents the spatial representation of an ROI (mask)."""
+
+    roi_id: str | int  # Single ROI identifier
+    data: ArrayLike  # Dense array or sparse coordinate list
+    representation_type: Literal["dense", "sparse"]
+    field_of_view_shape: tuple[int, ...]  # Shape of imaging space: (height, width) or (depth, height, width)
+    # sparse: list of (x, y, weight) or (x, y, z, weight) tuples
+    # dense: 2D or 3D array
+
+    @property
+    def is_volumetric(self) -> bool:
+        """True if this is 3D volumetric data, False for 2D."""
+        return len(self.field_of_view_shape) == 3
+
+    def to_dense(self) -> np.ndarray:
+        """Convert sparse representation to dense format.
+
+        Returns
+        -------
+        np.ndarray
+            Dense representation as a 2D or 3D array matching field_of_view_shape.
+        """
+        if self.representation_type == "dense":
+            return np.array(self.data)
+
+        # Convert sparse to dense
+        dense_mask = np.zeros(self.field_of_view_shape, dtype=np.float32)
+        coords = np.array(self.data)
+
+        if self.is_volumetric:
+            # 3D coordinates: (x, y, z, weight)
+            x_coords = coords[:, 0].astype(int)
+            y_coords = coords[:, 1].astype(int)
+            z_coords = coords[:, 2].astype(int)
+            weights = coords[:, 3] if coords.shape[1] > 3 else np.ones(len(coords))
+
+            # Ensure coordinates are within bounds
+            valid_indices = (
+                (x_coords >= 0)
+                & (x_coords < self.field_of_view_shape[2])
+                & (y_coords >= 0)
+                & (y_coords < self.field_of_view_shape[1])
+                & (z_coords >= 0)
+                & (z_coords < self.field_of_view_shape[0])
+            )
+            dense_mask[z_coords[valid_indices], y_coords[valid_indices], x_coords[valid_indices]] = weights[
+                valid_indices
+            ]
+        else:
+            # 2D coordinates: (x, y, weight)
+            x_coords = coords[:, 0].astype(int)
+            y_coords = coords[:, 1].astype(int)
+            weights = coords[:, 2] if coords.shape[1] > 2 else np.ones(len(coords))
+
+            # Ensure coordinates are within bounds
+            valid_indices = (
+                (x_coords >= 0)
+                & (x_coords < self.field_of_view_shape[1])
+                & (y_coords >= 0)
+                & (y_coords < self.field_of_view_shape[0])
+            )
+            dense_mask[y_coords[valid_indices], x_coords[valid_indices]] = weights[valid_indices]
+
+        return dense_mask
+
+    def to_sparse(self) -> list[tuple]:
+        """Convert dense representation to sparse format.
+
+        Returns
+        -------
+        list[tuple]
+            Sparse representation as [(x, y, weight), ...] for 2D or [(x, y, z, weight), ...] for 3D.
+        """
+        if self.representation_type == "sparse":
+            return list(self.data)
+
+        # Convert dense to sparse
+        dense_array = np.array(self.data)
+
+        if self.is_volumetric:
+            # 3D case
+            z_coords, y_coords, x_coords = np.nonzero(dense_array)
+            weights = dense_array[z_coords, y_coords, x_coords]
+            return [(int(x), int(y), int(z), float(w)) for x, y, z, w in zip(x_coords, y_coords, z_coords, weights)]
+        else:
+            # 2D case
+            y_coords, x_coords = np.nonzero(dense_array)
+            weights = dense_array[y_coords, x_coords]
+            return [(int(x), int(y), float(w)) for x, y, w in zip(x_coords, y_coords, weights)]
 
 
 class SegmentationExtractor(ABC):
@@ -39,14 +142,11 @@ class SegmentationExtractor(ABC):
         self._times = None
         self._channel_names = ["OpticalChannel"]
         self._num_planes = 1
-        self._roi_response_raw = None
-        self._roi_response_dff = None
-        self._roi_response_neuropil = None
-        self._roi_response_denoised = None
-        self._roi_response_deconvolved = None
-        self._image_correlation = None
-        self._image_mean = None
-        self._image_mask = None
+
+        self._roi_ids = None  # Optional explicit ROI IDs
+        self._roi_responses: list[RoiResponse] = []
+        self._roi_representations: dict = {}  # {roi_id: RoiRepresentation}
+        self._summary_images: dict = {}  # Summary images (mean, correlation, max projection, etc.)
         self._properties = {}
 
     @abstractmethod
@@ -183,6 +283,11 @@ class SegmentationExtractor(ABC):
         roi_ids: list
             List of roi ids.
         """
+        # Check if explicit ROI IDs were set
+        if self._roi_ids is not None:
+            return list(self._roi_ids)
+
+        # Generate sequential indices
         return list(range(self.get_num_rois()))
 
     def get_roi_image_masks(self, roi_ids=None) -> np.ndarray:
@@ -198,13 +303,24 @@ class SegmentationExtractor(ABC):
         image_masks: numpy.ndarray
             3-D array(val 0 or 1): image_height X image_width X length(roi_ids)
         """
+        all_roi_ids = self.get_roi_ids()
         if roi_ids is None:
-            roi_indices = range(self.get_num_rois())
-        else:
-            all_roi_ids = self.get_roi_ids()
-            roi_indices = [all_roi_ids.index(roi_id) for roi_id in roi_ids]
+            roi_ids = all_roi_ids
 
-        return np.stack([self._image_masks[:, :, k] for k in roi_indices], 2)
+        # Build dense masks from representations
+        masks = []
+        for roi_id in roi_ids:
+            if roi_id in self._roi_representations:
+                rep = self._roi_representations[roi_id]
+                dense_mask = rep.to_dense()
+                masks.append(dense_mask)
+
+        if masks:
+            return np.stack(masks, axis=2)
+        else:
+            # Return empty array with correct shape
+            frame_shape = self.get_frame_shape()
+            return np.zeros((*frame_shape, 0))
 
     def get_roi_pixel_masks(self, roi_ids=None) -> np.array:
         """Get the weights applied to each of the pixels of the mask.
@@ -249,12 +365,26 @@ class SegmentationExtractor(ABC):
         background_image_masks: numpy.ndarray
             3-D array(val 0 or 1): image_height X image_width X length(background_ids)
         """
+        # Get background ROI IDs
+        all_background_ids = [rid for rid in self._roi_representations.keys() if str(rid).startswith("background")]
+
         if background_ids is None:
-            background_ids_ = range(self.get_num_background_components())
+            background_ids = all_background_ids
+
+        # Build dense masks from background representations
+        masks = []
+        for bg_id in background_ids:
+            if bg_id in self._roi_representations:
+                rep = self._roi_representations[bg_id]
+                dense_mask = rep.to_dense()
+                masks.append(dense_mask)
+
+        if masks:
+            return np.stack(masks, axis=2)
         else:
-            all_ids = self.get_background_ids()
-            background_ids_ = [all_ids.index(i) for i in background_ids]
-        return np.stack([self._background_image_masks[:, :, k] for k in background_ids_], 2)
+            # Return empty array with correct shape
+            frame_shape = self.get_frame_shape()
+            return np.zeros((*frame_shape, 0))
 
     def get_background_pixel_masks(self, background_ids=None) -> np.array:
         """Get the weights applied to each of the pixels of the mask.
@@ -347,15 +477,17 @@ class SegmentationExtractor(ABC):
         traces: array_like
             2-D array (ROI x timepoints)
         """
-        if name not in self.get_traces_dict():
-            raise ValueError(f"traces for {name} not found, enter one of {list(self.get_traces_dict().keys())}")
-        if roi_ids is not None:
-            all_ids = self.get_roi_ids()
-            roi_idxs = [all_ids.index(i) for i in roi_ids]
-        traces = self.get_traces_dict().get(name)
-        if traces is not None and len(traces.shape) != 0:
-            idxs = slice(None) if roi_ids is None else roi_idxs
-            return np.array(traces[start_frame:end_frame, :])[:, idxs]  # numpy fancy indexing is quickest
+        # Find the requested trace type
+        for response in self._roi_responses:
+            if response.response_type == name:
+                data = response.data
+                if roi_ids is not None:
+                    indices = [response.roi_ids.index(rid) for rid in roi_ids]
+                    data = data[:, indices]
+                return np.array(data[start_frame:end_frame, :])
+
+        # Return None if trace type not found, this is for backwards compatibility
+        return None
 
     def get_traces_dict(self) -> dict:
         """Get traces as a dictionary with key as the name of the ROiResponseSeries.
@@ -366,13 +498,17 @@ class SegmentationExtractor(ABC):
             dictionary with key, values representing different types of RoiResponseSeries:
                 Raw Fluorescence, DeltaFOverF, Denoised, Neuropil, Deconvolved, Background, etc.
         """
-        return dict(
-            raw=self._roi_response_raw,
-            dff=self._roi_response_dff,
-            neuropil=self._roi_response_neuropil,
-            deconvolved=self._roi_response_deconvolved,
-            denoised=self._roi_response_denoised,
-        )
+        # Build dict from available traces
+        result = {r.response_type: r.data for r in self._roi_responses}
+
+        # Ensure all expected trace types are present in the dictionary
+        # This is for backwards compatibility
+        expected_types = ["raw", "dff", "neuropil", "deconvolved", "denoised", "baseline", "background"]
+        for trace_type in expected_types:
+            if trace_type not in result:
+                result[trace_type] = None
+
+        return result
 
     def get_images_dict(self) -> dict:
         """Get images as a dictionary with key as the name of the ROIResponseSeries.
@@ -381,9 +517,9 @@ class SegmentationExtractor(ABC):
         -------
         _roi_image_dict: dict
             dictionary with key, values representing different types of Images used in segmentation:
-                Mean, Correlation image
+                Mean, Correlation image, Maximum projection, etc.
         """
-        return dict(mean=self._image_mean, correlation=self._image_correlation)
+        return dict(self._summary_images)
 
     def get_image(self, name: str = "correlation") -> ArrayType:
         """Get specific images: mean or correlation.
@@ -422,9 +558,19 @@ class SegmentationExtractor(ABC):
         num_rois: int
             The number of ROIs extracted.
         """
-        for trace in self.get_traces_dict().values():
-            if trace is not None and len(trace.shape) > 0:
-                return trace.shape[1]
+        # Check ROI responses first
+        if self._roi_responses:
+            for response in self._roi_responses:
+                return len(response.roi_ids)
+
+        # Check ROI representations
+        if self._roi_representations:
+            # Count cell ROIs (exclude background ROIs)
+            cell_rois = [rid for rid in self._roi_representations.keys() if not str(rid).startswith("background")]
+            return len(cell_rois)
+
+        # If no data is available, return 0
+        return 0
 
     def get_num_background_components(self) -> int:
         """Get total number of background components in the acquired images.
@@ -434,8 +580,17 @@ class SegmentationExtractor(ABC):
         num_background_components: int
             The number of background components extracted.
         """
-        if self._roi_response_neuropil is not None and len(self._roi_response_neuropil.shape) > 0:
-            return self._roi_response_neuropil.shape[1]
+        # Count background ROI representations
+        background_rois = [rid for rid in self._roi_representations.keys() if str(rid).startswith("background")]
+        if background_rois:
+            return len(background_rois)
+
+        # Check neuropil responses
+        for response in self._roi_responses:
+            if response.response_type == "neuropil":
+                return len(response.roi_ids)
+
+        return 0
 
     def get_channel_names(self) -> List[str]:
         """Get names of channels in the pipeline.
@@ -737,6 +892,23 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
             self._background_image_masks = self._parent_segmentation._background_image_masks
 
         super().__init__()
+
+        # Inherit data model attributes from parent
+        self._roi_ids = self._parent_segmentation._roi_ids
+
+        # Copy ROI responses but slice their data appropriately
+        self._roi_responses = []
+        for roi_response in self._parent_segmentation._roi_responses:
+            # Slice the trace data for this time window
+            sliced_data = roi_response.data[start_sample:end_sample, :]
+            sliced_response = RoiResponse(roi_response.response_type, sliced_data, roi_response.roi_ids)
+            self._roi_responses.append(sliced_response)
+
+        # Copy ROI representations (spatial masks don't change with time slicing)
+        self._roi_representations = self._parent_segmentation._roi_representations.copy()
+
+        # Copy images (spatial images don't change with time slicing)
+        self._summary_images = self._parent_segmentation._summary_images.copy()
         # Preserve parent's channel names and other attributes
         self._channel_names = self._parent_segmentation.get_channel_names()
         self._num_planes = self._parent_segmentation.get_num_planes()
@@ -799,6 +971,11 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
             else:
                 end_frame_shifted = self._end_sample
 
+        # Check if the trace exists in the parent
+        parent_traces_dict = self._parent_segmentation.get_traces_dict()
+        if parent_traces_dict.get(name) is None:
+            return None
+
         return self._parent_segmentation.get_traces(
             roi_ids=roi_ids,
             start_frame=start_frame_shifted,
@@ -807,12 +984,15 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
         )
 
     def get_traces_dict(self) -> dict:
-        return {
-            trace_name: self._parent_segmentation.get_traces(
-                start_frame=self._start_sample, end_frame=self._end_sample, name=trace_name
-            )
-            for trace_name, trace in self._parent_segmentation.get_traces_dict().items()
-        }
+        result = {}
+        for trace_name, trace_data in self._parent_segmentation.get_traces_dict().items():
+            if trace_data is not None:
+                result[trace_name] = self._parent_segmentation.get_traces(
+                    start_frame=self._start_sample, end_frame=self._end_sample, name=trace_name
+                )
+            else:
+                result[trace_name] = None
+        return result
 
     def get_num_rois(self) -> int:
         return self._parent_segmentation.get_num_rois()

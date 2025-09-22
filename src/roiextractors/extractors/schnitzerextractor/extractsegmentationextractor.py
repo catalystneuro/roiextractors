@@ -21,7 +21,11 @@ from lazy_ops import DatasetView
 from packaging import version
 
 from ...extraction_tools import ArrayType, PathType
-from ...segmentationextractor import SegmentationExtractor
+from ...segmentationextractor import (
+    RoiRepresentation,
+    RoiResponse,
+    SegmentationExtractor,
+)
 
 
 def _decode_h5py_array(unicode_int_array: np.ndarray) -> str:
@@ -191,20 +195,45 @@ class NewExtractSegmentationExtractor(
         config_struct = self._output_struct["config"]
         self.config = self._config_struct_to_dict(config_struct=config_struct)
 
-        traces = self._trace_extractor_read()
-        if self.config["preprocess"][0] == 1:
-            self._roi_response_dff = traces
-        else:
-            self._roi_response_raw = traces
-
         self._sampling_frequency = sampling_frequency
 
-        self._image_masks = self._image_mask_extractor_read()
+        traces = self._trace_extractor_read()
+        if traces is not None:
+            # Determine number of ROIs from traces shape
+            num_rois = traces.shape[1] if hasattr(traces, "shape") else traces.data.shape[1]
+            cell_ids = list(range(num_rois))
+            self._roi_ids = cell_ids
+
+            if self.config["preprocess"][0] == 1:
+                self._roi_responses.append(RoiResponse("dff", traces, cell_ids))
+            else:
+                self._roi_responses.append(RoiResponse("raw", traces, cell_ids))
+        else:
+            self._roi_ids = []
+
+        image_masks = self._image_mask_extractor_read()
+        if image_masks is not None and hasattr(self, "_roi_ids") and self._roi_ids:
+            fov_shape = image_masks.shape[:2]  # (height, width)
+            for i, cell_id in enumerate(self._roi_ids):
+                roi_mask = image_masks[:, :, i] if hasattr(image_masks, "__getitem__") else image_masks.data[:, :, i]
+                self._roi_representations[cell_id] = RoiRepresentation(cell_id, roi_mask, "dense", fov_shape)
 
         assert "info" in self._output_struct, "Info struct not found in file."
         self._info_struct = self._output_struct["info"]
         extract_version = np.ravel(self._info_struct["version"][:])
         self.config.update(version=_decode_h5py_array(extract_version))
+
+        # Add summary images
+        if "summary_image" in self._info_struct:
+            self._summary_images["summary_image"] = self._info_struct["summary_image"][:].T
+        if "F_per_pixel" in self._info_struct:
+            self._summary_images["f_per_pixel"] = self._info_struct["F_per_pixel"][:].T
+        if "max_image" in self._info_struct:
+            self._summary_images["max_image"] = self._info_struct["max_image"][:].T
+
+        # Add None values for standard images that are not present
+        self._summary_images["correlation"] = None
+        self._summary_images["mean"] = None
 
     def close(self):
         """Close the file when the object is deleted."""
@@ -248,7 +277,21 @@ class NewExtractSegmentationExtractor(
         return DatasetView(self._output_struct["temporal_weights"]).lazy_transpose()
 
     def get_accepted_list(self) -> list:
-        return [roi for roi in self.get_roi_ids() if np.any(self._image_masks[..., roi])]
+        # Check which ROIs have valid representations (non-empty masks)
+        accepted_rois = []
+        for roi_id in self.get_roi_ids():
+            if roi_id in self._roi_representations:
+                roi_rep = self._roi_representations[roi_id]
+                if roi_rep.representation_type == "dense":
+                    if np.any(roi_rep.data):
+                        accepted_rois.append(roi_id)
+                else:  # sparse representation
+                    if len(roi_rep.data) > 0:
+                        accepted_rois.append(roi_id)
+            else:
+                # If no representation found, consider it rejected
+                continue
+        return accepted_rois
 
     def get_rejected_list(self) -> list:
         accepted_list = self.get_accepted_list()
@@ -267,7 +310,16 @@ class NewExtractSegmentationExtractor(
         ArrayType
             The frame shape as (height, width).
         """
-        return self._image_masks.shape[:-1]
+        # Get from any ROI representation
+        for roi_rep in self._roi_representations.values():
+            return roi_rep.field_of_view_shape
+
+        # Try to get from image masks if ROI representations are empty
+        image_masks = self._image_mask_extractor_read()
+        if image_masks is not None:
+            return image_masks.shape[:-1]
+
+        return None
 
     def get_image_size(self) -> ArrayType:
         warnings.warn(
@@ -279,14 +331,7 @@ class NewExtractSegmentationExtractor(
         return self.get_frame_shape()
 
     def get_images_dict(self):
-        images_dict = super().get_images_dict()
-        images_dict.update(
-            summary_image=self._info_struct["summary_image"][:].T,
-            f_per_pixel=self._info_struct["F_per_pixel"][:].T,
-            max_image=self._info_struct["max_image"][:].T,
-        )
-
-        return images_dict
+        return dict(self._summary_images)
 
     def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
@@ -325,11 +370,35 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         self.file_path = file_path
         self._dataset_file = self._file_extractor_read()
         self.output_struct_name = output_struct_name
-        self._image_masks = self._image_mask_extractor_read()
-        self._roi_response_raw = self._trace_extractor_read()
         self._raw_movie_file_location = self._raw_datafile_read()
-        self._sampling_frequency = self._roi_response_raw.shape[0] / self._tot_exptime_extractor_read()
-        self._image_correlation = self._summary_image_read()
+
+        traces = self._trace_extractor_read()
+        if traces is not None:
+            # Determine number of ROIs from traces shape
+            num_rois = traces.shape[1]
+            cell_ids = list(range(num_rois))
+            self._roi_ids = cell_ids
+            self._roi_responses.append(RoiResponse("raw", traces, cell_ids))
+        else:
+            self._roi_ids = []
+
+        # Calculate sampling frequency
+        if traces is not None:
+            self._sampling_frequency = traces.shape[0] / self._tot_exptime_extractor_read()
+        else:
+            self._sampling_frequency = None
+
+        image_masks = self._image_mask_extractor_read()
+        if image_masks is not None and self._roi_ids:
+            fov_shape = image_masks.shape[:2]  # (height, width)
+            for i, cell_id in enumerate(self._roi_ids):
+                roi_mask = image_masks[:, :, i]
+                self._roi_representations[cell_id] = RoiRepresentation(cell_id, roi_mask, "dense", fov_shape)
+
+        # Add summary images
+        correlation_image = self._summary_image_read()
+        if correlation_image is not None:
+            self._summary_images["correlation"] = correlation_image
 
     def __del__(self):
         """Close the file when the object is deleted."""

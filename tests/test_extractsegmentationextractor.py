@@ -117,11 +117,17 @@ class TestNewExtractSegmentationExtractor(TestCase):
             spatial_weights = DatasetView(
                 segmentation_file[self.output_struct_name]["spatial_weights"]
             ).lazy_transpose()
-            self.assertEqual(self.extractor._image_masks.shape, spatial_weights.shape)
+            # Check ROI representations shape via public method
+            roi_masks = self.extractor.get_roi_image_masks()
+            self.assertEqual(roi_masks.shape, spatial_weights.shape)
 
-            self.assertEqual(self.extractor._roi_response_dff.shape, (2000, 20))
+            # Check dff trace via new data model
+            dff_traces = self.extractor.get_traces(name="dff")
+            self.assertEqual(dff_traces.shape, (2000, 20))
 
-            self.assertEqual(self.extractor._roi_response_raw, None)
+            # Check raw traces (should be None in this test file)
+            raw_traces = self.extractor.get_traces(name="raw")
+            self.assertEqual(raw_traces, None)
 
             self.assertEqual(self.extractor._sampling_frequency, self.sampling_frequency)
             self.assertIsInstance(self.extractor.get_sampling_frequency(), float)
@@ -168,10 +174,23 @@ class TestNewExtractSegmentationExtractor(TestCase):
     def test_extractor_accepted_list(self, accepted_list):
         """Test that the extractor class returns the list of accepted and rejected ROIs
         correctly given the list of non-zero ROIs."""
-        dummy_image_mask = np.zeros((50, 50, 20))
-        dummy_image_mask[..., accepted_list] = 1
+        from roiextractors.segmentationextractor import RoiRepresentation
 
-        self.extractor._image_masks = dummy_image_mask
+        # Create test ROI representations with non-zero data only for accepted ROIs
+        dummy_roi_representations = {}
+        fov_shape = (50, 50)
+
+        for roi_id in range(20):
+            if roi_id in accepted_list:
+                # Create non-zero mask for accepted ROIs
+                roi_mask = np.ones((50, 50))
+            else:
+                # Create zero mask for rejected ROIs
+                roi_mask = np.zeros((50, 50))
+
+            dummy_roi_representations[roi_id] = RoiRepresentation(roi_id, roi_mask, "dense", fov_shape)
+
+        self.extractor._roi_representations = dummy_roi_representations
 
         assert_array_equal(self.extractor.get_accepted_list(), accepted_list)
         assert_array_equal(

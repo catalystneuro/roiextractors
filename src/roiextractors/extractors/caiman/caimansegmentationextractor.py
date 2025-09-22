@@ -17,7 +17,11 @@ from scipy.sparse import csc_matrix
 
 from ...extraction_tools import PathType, get_package
 from ...multisegmentationextractor import MultiSegmentationExtractor
-from ...segmentationextractor import SegmentationExtractor
+from ...segmentationextractor import (
+    RoiRepresentation,
+    RoiResponse,
+    SegmentationExtractor,
+)
 
 
 class CaimanSegmentationExtractor(SegmentationExtractor):
@@ -142,19 +146,68 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self._estimates = self._dataset_file["estimates"]
         self._params = self._dataset_file["params"]
 
-        # Core traces and images
-        self._roi_response_raw = self._raw_trace_extractor_read()
-        self._roi_response_dff = self._trace_extractor_read("F_dff")
-        self._roi_response_denoised = self._trace_extractor_read("C")
-        self._roi_response_neuropil = self._trace_extractor_read("f")
-        self._roi_response_deconvolved = self._trace_extractor_read("S")
-        self._image_correlation = self._correlation_image_read()
-        self._image_mean = self._summary_image_read()
-
-        # Sampling frequency and spatial information
+        # Sampling frequency
         self._sampling_frequency = self._params["data"]["fr"][()]
-        self._image_masks = self._image_mask_sparse_read()
-        self._background_image_masks = self._background_image_mask_read()
+
+        # Determine number of ROIs from any available trace data
+        cell_ids = None
+
+        raw_data = self._raw_trace_extractor_read()
+        if raw_data is not None:
+            cell_ids = list(range(raw_data.shape[1]))
+            self._roi_responses.append(RoiResponse("raw", raw_data, cell_ids))
+
+        dff_data = self._trace_extractor_read("F_dff")
+        if dff_data is not None:
+            if cell_ids is None:
+                cell_ids = list(range(dff_data.shape[1]))
+            self._roi_responses.append(RoiResponse("dff", dff_data, cell_ids))
+
+        denoised_data = self._trace_extractor_read("C")
+        if denoised_data is not None:
+            if cell_ids is None:
+                cell_ids = list(range(denoised_data.shape[1]))
+            self._roi_responses.append(RoiResponse("denoised", denoised_data, cell_ids))
+
+        deconvolved_data = self._trace_extractor_read("S")
+        if deconvolved_data is not None:
+            if cell_ids is None:
+                cell_ids = list(range(deconvolved_data.shape[1]))
+            self._roi_responses.append(RoiResponse("deconvolved", deconvolved_data, cell_ids))
+
+        neuropil_data = self._trace_extractor_read("f")
+        if neuropil_data is not None:
+            # Create background ROI IDs for neuropil
+            neuropil_ids = [f"background-neuropil-{i}" for i in range(neuropil_data.shape[1])]
+            self._roi_responses.append(RoiResponse("neuropil", neuropil_data, neuropil_ids))
+
+        # Load spatial data
+        image_masks = self._image_mask_sparse_read()
+        if image_masks is not None and cell_ids is not None:
+            fov_shape = image_masks.shape[:2]  # (height, width)
+            for i, cell_id in enumerate(cell_ids):
+                roi_mask = image_masks[:, :, i]
+                self._roi_representations[cell_id] = RoiRepresentation(cell_id, roi_mask, "dense", fov_shape)
+
+        # Create background ROI representations
+        background_image_masks = self._background_image_mask_read()
+        if background_image_masks is not None:
+            fov_shape = background_image_masks.shape[:2]  # (height, width)
+            for i in range(background_image_masks.shape[2]):
+                background_mask = background_image_masks[:, :, i]
+                background_id = f"background-roi-{i}"
+                self._roi_representations[background_id] = RoiRepresentation(
+                    background_id, background_mask, "dense", fov_shape
+                )
+
+        # Add summary images
+        correlation_image = self._correlation_image_read()
+        if correlation_image is not None:
+            self._summary_images["correlation"] = correlation_image
+
+        mean_image = self._summary_image_read()
+        if mean_image is not None:
+            self._summary_images["mean"] = mean_image
 
         # Store quality metrics as properties
         self._set_quality_metrics_as_properties()

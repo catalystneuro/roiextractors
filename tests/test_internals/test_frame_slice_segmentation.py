@@ -108,17 +108,18 @@ class TestMissingTraceSampleSliceSegmentation(BaseTestSampleSliceSegmentation):
 
 
 def test_sample_slicing_segmentation_missing_image_mask_attribute():
-    """If the parent object does not have a _image_masks attribute, don't try to copy it to the sub extractor."""
+    """If the parent object does not have ROI representations, don't try to copy them to the sub extractor."""
     num_samples = 10
     start_sample, end_sample = 2, 7
 
     toy_segmentation_example = generate_dummy_segmentation_extractor(num_frames=num_samples)
-    del toy_segmentation_example._image_masks
+    # Clear the roi representations to simulate missing data
+    toy_segmentation_example._roi_representations = {}
 
     sample_sliced_segmentation = toy_segmentation_example.slice_samples(
         start_sample=start_sample, end_sample=end_sample
     )
-    assert not hasattr(sample_sliced_segmentation, "_image_masks")
+    assert len(sample_sliced_segmentation._roi_representations) == 0
 
 
 def test_sample_slicing_segmentation_get_roi_pixel_masks_override():

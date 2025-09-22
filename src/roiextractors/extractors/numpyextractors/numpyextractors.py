@@ -17,7 +17,11 @@ import numpy as np
 
 from ...extraction_tools import ArrayType, FloatType, PathType
 from ...imagingextractor import ImagingExtractor
-from ...segmentationextractor import SegmentationExtractor
+from ...segmentationextractor import (
+    RoiRepresentation,
+    RoiResponse,
+    SegmentationExtractor,
+)
 
 
 class NumpyImagingExtractor(ImagingExtractor):
@@ -336,31 +340,49 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             )
 
         SegmentationExtractor.__init__(self)
+
+        # Set ROI IDs first
+        if roi_ids is None:
+            # Will determine based on image_masks shape later
+            cell_ids = None
+        else:
+            cell_ids = roi_ids
+
         if isinstance(image_masks, (str, Path)):
             image_masks = Path(image_masks)
             if image_masks.is_file():
                 assert image_masks.suffix == ".npy", "'image_masks' file is not a numpy file (.npy)"
 
                 self.is_dumpable = True
-                self._image_masks = np.load(image_masks, mmap_mode="r")
+                image_masks_data = np.load(image_masks, mmap_mode="r")
+
+                if cell_ids is None:
+                    cell_ids = list(range(image_masks_data.shape[2]))
+                self._roi_ids = cell_ids
 
                 if raw is not None:
                     raw = Path(raw)
                     assert raw.suffix == ".npy", "'raw' file is not a numpy file (.npy)"
-                    self._roi_response_raw = np.load(raw, mmap_mode="r")
+                    raw_data = np.load(raw, mmap_mode="r")
+                    self._roi_responses.append(RoiResponse("raw", raw_data, cell_ids))
+
                 if dff is not None:
                     dff = Path(dff)
                     assert dff.suffix == ".npy", "'dff' file is not a numpy file (.npy)"
-                    self._roi_response_dff = np.load(dff, mmap_mode="r")
-                    self._roi_response_neuropil = np.load(neuropil, mmap_mode="r")
+                    dff_data = np.load(dff, mmap_mode="r")
+                    self._roi_responses.append(RoiResponse("dff", dff_data, cell_ids))
+
                 if deconvolved is not None:
                     deconvolved = Path(deconvolved)
                     assert deconvolved.suffix == ".npy", "'deconvolved' file is not a numpy file (.npy)"
-                    self._roi_response_deconvolved = np.load(deconvolved, mmap_mode="r")
+                    deconvolved_data = np.load(deconvolved, mmap_mode="r")
+                    self._roi_responses.append(RoiResponse("deconvolved", deconvolved_data, cell_ids))
+
                 if neuropil is not None:
                     neuropil = Path(neuropil)
                     assert neuropil.suffix == ".npy", "'neuropil' file is not a numpy file (.npy)"
-                    self._roi_response_neuropil = np.load(neuropil, mmap_mode="r")
+                    neuropil_data = np.load(neuropil, mmap_mode="r")
+                    self._roi_responses.append(RoiResponse("neuropil", neuropil_data, cell_ids))
 
                 self._kwargs = {"image_masks": str(Path(image_masks).absolute())}
                 if raw is not None:
@@ -381,34 +403,43 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             assert isinstance(neuropil, (np.ndarray, NoneType))
             assert isinstance(deconvolved, (np.ndarray, NoneType))
             self.is_dumpable = False
-            self._image_masks = image_masks
-            self._roi_response_raw = raw
-            assert self._image_masks.shape[-1] == self._roi_response_raw.shape[-1], (
-                "Inconsistency between image masks and raw traces. "
-                "Image masks must be (px, py, num_rois), "
-                "traces must be (num_frames, num_rois)"
-            )
-            self._roi_response_dff = dff
-            if self._roi_response_dff is not None:
-                assert self._image_masks.shape[-1] == self._roi_response_dff.shape[-1], (
+            image_masks_data = image_masks
+
+            if cell_ids is None:
+                cell_ids = list(range(image_masks_data.shape[2]))
+            self._roi_ids = cell_ids
+
+            if raw is not None:
+                assert image_masks_data.shape[-1] == raw.shape[-1], (
                     "Inconsistency between image masks and raw traces. "
                     "Image masks must be (px, py, num_rois), "
                     "traces must be (num_frames, num_rois)"
                 )
-            self._roi_response_neuropil = neuropil
-            if self._roi_response_neuropil is not None:
-                assert self._image_masks.shape[-1] == self._roi_response_neuropil.shape[-1], (
-                    "Inconsistency between image masks and raw traces. "
+                self._roi_responses.append(RoiResponse("raw", raw, cell_ids))
+
+            if dff is not None:
+                assert image_masks_data.shape[-1] == dff.shape[-1], (
+                    "Inconsistency between image masks and dff traces. "
                     "Image masks must be (px, py, num_rois), "
                     "traces must be (num_frames, num_rois)"
                 )
-            self._roi_response_deconvolved = deconvolved
-            if self._roi_response_deconvolved is not None:
-                assert self._image_masks.shape[-1] == self._roi_response_deconvolved.shape[-1], (
-                    "Inconsistency between image masks and raw traces. "
+                self._roi_responses.append(RoiResponse("dff", dff, cell_ids))
+
+            if neuropil is not None:
+                assert image_masks_data.shape[-1] == neuropil.shape[-1], (
+                    "Inconsistency between image masks and neuropil traces. "
                     "Image masks must be (px, py, num_rois), "
                     "traces must be (num_frames, num_rois)"
                 )
+                self._roi_responses.append(RoiResponse("neuropil", neuropil, cell_ids))
+
+            if deconvolved is not None:
+                assert image_masks_data.shape[-1] == deconvolved.shape[-1], (
+                    "Inconsistency between image masks and deconvolved traces. "
+                    "Image masks must be (px, py, num_rois), "
+                    "traces must be (num_frames, num_rois)"
+                )
+                self._roi_responses.append(RoiResponse("deconvolved", deconvolved, cell_ids))
             self._kwargs = {
                 "image_masks": image_masks,
                 "signal": raw,
@@ -418,13 +449,21 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             }
         else:
             raise TypeError("'image_masks' can be a str or a numpy array")
-        self._movie_dims = movie_dims if movie_dims is not None else image_masks.shape
-        self._image_mean = mean_image
-        self._image_correlation = correlation_image
-        if roi_ids is None:
-            self._roi_ids = list(np.arange(image_masks.shape[2]))
-        else:
-            self._roi_ids = roi_ids
+        # Create ROI representations from image masks
+
+        fov_shape = image_masks_data.shape[:2]  # (height, width)
+        for cell_id_index, cell_id in enumerate(cell_ids):
+            roi_mask = image_masks_data[:, :, cell_id_index]
+            self._roi_representations[cell_id] = RoiRepresentation(cell_id, roi_mask, "dense", fov_shape)
+
+        # Add summary images
+        if mean_image is not None:
+            self._summary_images["mean"] = mean_image
+        if correlation_image is not None:
+            self._summary_images["correlation"] = correlation_image
+
+        # Store other attributes
+        self._movie_dims = movie_dims if movie_dims is not None else image_masks_data.shape
         self._roi_locs = roi_locations
         self._sampling_frequency = sampling_frequency
         self._channel_names = channel_names
@@ -505,7 +544,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         frame_shape: tuple
             Shape of the video frame (num_rows, num_columns).
         """
-        return self._movie_dims
+        return self._movie_dims[:2]
 
     def get_image_shape(self):
         """Get the shape of the video frame (num_rows, num_columns).
@@ -532,9 +571,10 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         num_samples: int
             Number of samples in the recording.
         """
-        for trace in self.get_traces_dict().values():
-            if trace is not None and len(trace.shape) > 0:
-                return trace.shape[0]
+        for roi_response in self._roi_responses:
+            if roi_response.data is not None and len(roi_response.data.shape) > 0:
+                return roi_response.data.shape[0]
+        return 0
 
     def get_image_size(self):
         warnings.warn(
