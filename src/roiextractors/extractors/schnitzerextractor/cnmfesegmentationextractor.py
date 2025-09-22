@@ -6,17 +6,14 @@ CnmfeSegmentationExtractor
     A segmentation extractor for CNMF-E ROI segmentation method.
 """
 
-from pathlib import Path
 from typing import Optional
 from warnings import warn
 
 import h5py
 import numpy as np
 from lazy_ops import DatasetView
-from scipy.sparse import csc_matrix
 
 from ...extraction_tools import PathType
-from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
 
 
@@ -137,79 +134,6 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             The frame shape as (height, width).
         """
         return self._image_masks.shape[0:2]
-
-    @staticmethod
-    def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite: bool = True):
-        """Write a segmentation object to a .mat file.
-
-        Parameters
-        ----------
-        segmentation_object: SegmentationExtractor
-            The segmentation object to be written.
-        save_path: str
-            The location of the folder to save the dataset.mat file.
-        overwrite: bool
-            If True, overwrite the file if it already exists.
-
-        Raises
-        ------
-        FileExistsError
-            If the file already exists and overwrite is False.
-        AssertionError
-            If save_path is not a *.mat file.
-        """
-        warn(
-            "The write_segmentation function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        save_path = Path(save_path)
-        assert save_path.suffix == ".mat", "'save_path' must be a *.mat file"
-        if save_path.is_file():
-            if not overwrite:
-                raise FileExistsError("The specified path exists! Use overwrite=True to overwrite it.")
-            else:
-                save_path.unlink()
-
-        folder_path = save_path.parent
-        file_name = save_path.name
-        if isinstance(segmentation_object, MultiSegmentationExtractor):
-            segext_objs = segmentation_object.segmentations
-            for plane_num, segext_obj in enumerate(segext_objs):
-                save_path_plane = folder_path / f"Plane_{plane_num}" / file_name
-                CnmfeSegmentationExtractor.write_segmentation(segext_obj, save_path_plane)
-        if not folder_path.is_dir():
-            folder_path.mkdir(parents=True)
-
-        with h5py.File(save_path, "a") as f:
-            # create base groups:
-            _ = f.create_group("#refs#")
-            main = f.create_group("cnmfeAnalysisOutput")
-            # create datasets:   #
-            main.create_dataset("extractedImages", data=segmentation_object.get_roi_image_masks().transpose(2, 0, 1))
-            main.create_dataset("extractedSignals", data=segmentation_object.get_traces().T)
-            time = main.create_group("time")
-            if segmentation_object.get_sampling_frequency() is not None:
-                time.create_dataset(
-                    "totalTime",
-                    (1, 1),
-                    data=segmentation_object.get_num_frames() / segmentation_object.get_sampling_frequency(),
-                )
-            if getattr(segmentation_object, "_raw_movie_file_location", None):
-                main.create_dataset(
-                    "movieList",
-                    data=[ord(alpha) for alpha in str(segmentation_object._raw_movie_file_location)],
-                )
-            if segmentation_object.get_traces(name="deconvolved") is not None:
-                image_mask_csc = csc_matrix(segmentation_object.get_traces(name="deconvolved"))
-                main.create_dataset("extractedPeaks/data", data=image_mask_csc.data)
-                main.create_dataset("extractedPeaks/ir", data=image_mask_csc.indices)
-                main.create_dataset("extractedPeaks/jc", data=image_mask_csc.indptr)
-            if segmentation_object.get_image() is not None:
-                main.create_dataset("Cn", data=segmentation_object.get_image())
-            inputoptions = main.create_group("inputOptions")
-            if segmentation_object.get_sampling_frequency() is not None:
-                inputoptions.create_dataset("Fs", data=segmentation_object.get_sampling_frequency())
 
     def get_image_size(self):
         warn(
