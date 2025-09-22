@@ -145,7 +145,7 @@ class SegmentationExtractor(ABC):
 
         self._roi_ids = None  # Optional explicit ROI IDs
         self._roi_responses: list[RoiResponse] = []
-        self._roi_representations: dict = {}  # {roi_id: RoiRepresentation}
+        self._roi_representations: dict[int | str, RoiRepresentation] = {}  # {roi_id: RoiRepresentation}
         self._summary_images: dict = {}  # Summary images (mean, correlation, max projection, etc.)
         self._properties = {}
 
