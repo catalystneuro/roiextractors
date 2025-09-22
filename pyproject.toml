@@ -44,7 +44,6 @@ dependencies = [
   "packaging",
   "zarr>=2,<3",
   "numcodecs<0.16.0",
-  "ruamel.yaml.clib!=0.2.13; sys_platform == 'darwin'",  # TODO: check if can be removed whenruamel.yaml.clib>=0.2.14 is released
 ]
 
 [project.optional-dependencies]
