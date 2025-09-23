@@ -419,8 +419,10 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         else:
             raise TypeError("'image_masks' can be a str or a numpy array")
         self._movie_dims = movie_dims if movie_dims is not None else image_masks.shape
-        self._image_mean = mean_image
-        self._image_correlation = correlation_image
+        if mean_image is not None:
+            self._summary_images["mean"] = mean_image
+        if correlation_image is not None:
+            self._summary_images["correlation"] = correlation_image
         if roi_ids is None:
             self._roi_ids = list(np.arange(image_masks.shape[2]))
         else:
