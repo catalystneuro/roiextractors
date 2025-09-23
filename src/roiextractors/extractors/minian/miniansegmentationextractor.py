@@ -62,7 +62,9 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         self._roi_response_baseline = self._read_trace_from_zarr_field(field="b0")
         self._roi_response_neuropil = self._read_trace_from_zarr_field(field="f")
         self._roi_response_deconvolved = self._read_trace_from_zarr_field(field="S")
-        self._image_maximum_projection = np.array(self._read_zarr_group("/max_proj.zarr/max_proj"))
+        max_proj_data = self._read_zarr_group("/max_proj.zarr/max_proj")
+        if max_proj_data is not None:
+            self._summary_images["maximum_projection"] = np.array(max_proj_data)
         self._image_masks = self._read_roi_image_mask_from_zarr()
         self._background_image_masks = self._read_background_image_mask_from_zarr()
         # Check for spatial-temporal component mismatches
@@ -320,13 +322,9 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         -------
         _roi_image_dict: dict
             dictionary with key, values representing different types of Images used in segmentation:
-                Mean, Correlation image
+                Mean, Correlation image, Maximum projection
         """
-        return dict(
-            mean=self._image_mean,
-            correlation=self._image_correlation,
-            maximum_projection=self._image_maximum_projection,
-        )
+        return dict(self._summary_images)
 
     def _get_session_id(self) -> str:
         """Get the session id from the A.zarr group.

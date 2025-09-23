@@ -62,7 +62,9 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         self.sima_segmentation_label = sima_segmentation_label
         self._image_masks = self._image_mask_extractor_read()
         self._roi_response_raw = self._trace_extractor_read()
-        self._image_mean = self._summary_image_read()
+        mean_image = self._summary_image_read()
+        if mean_image is not None:
+            self._summary_images["mean"] = mean_image
 
     @staticmethod
     def _convert_sima(old_pkl_loc):
