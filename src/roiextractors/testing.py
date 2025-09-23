@@ -437,8 +437,8 @@ def check_imaging_equal(
     )
 
     assert_array_almost_equal(
-        imaging_extractor1.sample_indices_to_time(np.arange(imaging_extractor1.get_num_samples())),
-        imaging_extractor2.sample_indices_to_time(np.arange(imaging_extractor2.get_num_samples())),
+        imaging_extractor1.get_timestamps(),
+        imaging_extractor2.get_timestamps(),
     )
 
 

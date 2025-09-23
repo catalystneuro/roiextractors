@@ -197,7 +197,7 @@ class MultiImagingExtractor(ImagingExtractor):
                 start_sample=relative_start, end_sample=relative_stop
             )
 
-        series_shape = (stop - start,) + self._imaging_extractors[0].get_image_size()
+        series_shape = (stop - start,) + self._imaging_extractors[0].get_image_shape()
         series = np.empty(shape=series_shape, dtype=self.get_dtype())
         current_frame = 0
 
