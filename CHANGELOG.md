@@ -6,6 +6,7 @@
 
 ### Deprecations And Removals
 * Remove deprecated `get_num_channels()` method from `ImagingExtractor` [PR #484](https://github.com/catalystneuro/roiextractors/pull/484)
+* Remove deprecated `write_segmentation()` methods from all segmentation extractors [PR #491](https://github.com/catalystneuro/roiextractors/pull/491)
 
 ### Improvements
 * Refactored image storage in `SegmentationExtractor` from individual `_image_mean` and `_image_correlation` attributes to unified `_summary_images` dictionary for better extensibility [PR #493](https://github.com/catalystneuro/roiextractors/pull/493)

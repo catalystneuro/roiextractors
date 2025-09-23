@@ -470,28 +470,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         else:
             return self._roi_locs
 
-    @staticmethod
-    def write_segmentation(segmentation_object, save_path):
-        """Write a NumpySegmentationExtractor to a .npy file.
-
-        Parameters
-        ----------
-        segmentation_object: NumpySegmentationExtractor
-            The segmentation extractor object to be written to file.
-        save_path: str or PathType
-            Path to .npy file.
-
-        Notes
-        -----
-        This method is not implemented yet.
-        """
-        warn(
-            "The write_segmentation function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        raise NotImplementedError
-
     # defining the abstract class informed methods:
     def get_roi_ids(self):
         if self._roi_ids is None:

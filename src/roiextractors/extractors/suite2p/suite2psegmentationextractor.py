@@ -6,7 +6,6 @@ Suite2pSegmentationExtractor
     A segmentation extractor for Suite2p.
 """
 
-import shutil
 import warnings
 from pathlib import Path
 from typing import Optional
@@ -15,7 +14,6 @@ from warnings import warn
 import numpy as np
 
 from ...extraction_tools import PathType, _image_mask_extractor
-from ...multisegmentationextractor import MultiSegmentationExtractor
 from ...segmentationextractor import SegmentationExtractor
 
 
@@ -289,107 +287,3 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     ) -> Optional[np.ndarray]:
         # Suite2p segmentation data does not have native timestamps
         return None
-
-    @staticmethod
-    def write_segmentation(segmentation_object: SegmentationExtractor, save_path: PathType, overwrite=True):
-        """Write a SegmentationExtractor to a folder specified by save_path.
-
-        Parameters
-        ----------
-        segmentation_object: SegmentationExtractor
-            The SegmentationExtractor object to be written.
-        save_path: str or Path
-            The folder path where to write the segmentation.
-        overwrite: bool
-            If True, overwrite the folder if it already exists.
-
-        Raises
-        ------
-        AssertionError
-            If save_path is not a folder.
-        FileExistsError
-            If the folder already exists and overwrite is False.
-
-        Notes
-        -----
-        The folder structure is as follows:
-        save_path
-        └── plane<plane_num>
-            ├── F.npy
-            ├── Fneu.npy
-            ├── spks.npy
-            ├── stat.npy
-            ├── iscell.npy
-            └── ops.npy
-        """
-        warn(
-            "The write_segmentation function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        save_path = Path(save_path)
-        assert not save_path.is_file(), "'save_path' must be a folder"
-
-        if save_path.is_dir():
-            if len(list(save_path.glob("*"))) > 0 and not overwrite:
-                raise FileExistsError("The specified folder is not empty! Use overwrite=True to overwrite it.")
-            else:
-                shutil.rmtree(str(save_path))
-
-        # Solve with recursion
-        if isinstance(segmentation_object, MultiSegmentationExtractor):
-            segext_objs = segmentation_object.segmentations
-            for plane_num, segext_obj in enumerate(segext_objs):
-                save_path_plane = save_path / f"plane{plane_num}"
-                Suite2pSegmentationExtractor.write_segmentation(segext_obj, save_path_plane)
-
-        if not save_path.is_dir():
-            save_path.mkdir(parents=True)
-        if "plane" not in save_path.stem:
-            save_path = save_path / "plane0"
-            save_path.mkdir()
-
-        # saving traces:
-        if segmentation_object.get_traces(name="raw") is not None:
-            np.save(save_path / "F.npy", segmentation_object.get_traces(name="raw").T)
-        if segmentation_object.get_traces(name="neuropil") is not None:
-            np.save(save_path / "Fneu.npy", segmentation_object.get_traces(name="neuropil").T)
-        if segmentation_object.get_traces(name="deconvolved") is not None:
-            np.save(
-                save_path / "spks.npy",
-                segmentation_object.get_traces(name="deconvolved").T,
-            )
-        # save stat
-        stat = np.zeros(segmentation_object.get_num_rois(), "O")
-        roi_locs = segmentation_object.roi_locations.T
-        pixel_masks = segmentation_object.get_roi_pixel_masks(roi_ids=range(segmentation_object.get_num_rois()))
-        for no, i in enumerate(stat):
-            stat[no] = {
-                "med": roi_locs[no, :].tolist(),
-                "ypix": pixel_masks[no][:, 0],
-                "xpix": pixel_masks[no][:, 1],
-                "lam": pixel_masks[no][:, 2],
-            }
-        np.save(save_path / "stat.npy", stat)
-        # saving iscell
-        iscell = np.ones([segmentation_object.get_num_rois(), 2])
-        iscell[segmentation_object.get_rejected_list(), 0] = 0
-        np.save(save_path / "iscell.npy", iscell)
-        # saving ops
-
-        ops = dict(
-            nframes=segmentation_object.get_num_frames(),
-            Lx=segmentation_object.get_image_size()[1],
-            Ly=segmentation_object.get_image_size()[0],
-            xrange=[0, segmentation_object.get_image_size()[1]],
-            yrange=[0, segmentation_object.get_image_size()[0]],
-            fs=segmentation_object.get_sampling_frequency(),
-            nchannels=segmentation_object.get_num_channels(),
-            meanImg=segmentation_object.get_image("mean"),
-            Vcorr=segmentation_object.get_image("correlation"),
-        )
-        if getattr(segmentation_object, "_raw_movie_file_location", None):
-            ops.update(dict(filelist=[segmentation_object._raw_movie_file_location]))
-        else:
-            ops.update(dict(filelist=[None]))
-        np.save(save_path / "ops.npy", ops)
