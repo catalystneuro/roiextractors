@@ -6,6 +6,7 @@
 
 ### Deprecations And Removals
 * Remove deprecated `get_num_channels()` method from `ImagingExtractor` [PR #484](https://github.com/catalystneuro/roiextractors/pull/484)
+* Remove deprecated `write_segmentation()` methods from all segmentation extractors [PR #491](https://github.com/catalystneuro/roiextractors/pull/491)
 
 ### Improvements
 
