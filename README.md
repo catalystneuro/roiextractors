@@ -4,6 +4,7 @@
 [![codecov](https://codecov.io/github/catalystneuro/roiextractors/coverage.svg?branch=master)](https://codecov.io/github/catalystneuro/roiextractors?branch=master)
 [![documentation](https://readthedocs.org/projects/roiextractors/badge/?version=latest)](https://roiextractors.readthedocs.io/en/latest/)
 [![License](https://img.shields.io/pypi/l/pynwb.svg)](https://github.com/catalystneuro/roiextractors/license.txt)
+[![DOI](https://zenodo.org/badge/221010083.svg)](https://doi.org/10.5281/zenodo.11039361)
 
 # ROIExtractors
 <p align="center">
