@@ -155,9 +155,13 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         # "Chan1" or "Chan2".
         self._channel_names = ["OpticalChannel" if len(channel_names) == 1 else channel_name.capitalize()]
 
-        self._image_correlation = self._correlation_image_read()
+        correlation_image = self._correlation_image_read()
+        if correlation_image is not None:
+            self._summary_images["correlation"] = correlation_image
         image_mean_name = "meanImg" if channel_name == "chan1" else f"meanImg_chan2"
-        self._image_mean = self.options[image_mean_name] if image_mean_name in self.options else None
+        mean_image = self.options[image_mean_name] if image_mean_name in self.options else None
+        if mean_image is not None:
+            self._summary_images["mean"] = mean_image
         roi_indices = list(range(self.get_num_rois()))
         self._image_masks = _image_mask_extractor(
             self.get_roi_pixel_masks(),

@@ -148,8 +148,13 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self._roi_response_denoised = self._trace_extractor_read("C")
         self._roi_response_neuropil = self._trace_extractor_read("f")
         self._roi_response_deconvolved = self._trace_extractor_read("S")
-        self._image_correlation = self._correlation_image_read()
-        self._image_mean = self._summary_image_read()
+        correlation_image = self._correlation_image_read()
+        if correlation_image is not None:
+            self._summary_images["correlation"] = correlation_image
+
+        mean_image = self._summary_image_read()
+        if mean_image is not None:
+            self._summary_images["mean"] = mean_image
 
         # Sampling frequency and spatial information
         self._sampling_frequency = self._params["data"]["fr"][()]

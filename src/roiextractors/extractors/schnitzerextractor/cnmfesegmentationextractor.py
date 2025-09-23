@@ -47,7 +47,9 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         self._raw_movie_file_location = self._raw_datafile_read()
         self._sampling_frequency = self.get_num_frames() / self._tot_exptime_extractor_read()
         # self._sampling_frequency = self._dataset_file[self._group0[0]]['inputOptions']["Fs"][...][0][0]
-        self._image_correlation = self._summary_image_read()
+        correlation_image = self._summary_image_read()
+        if correlation_image is not None:
+            self._summary_images["correlation"] = correlation_image
 
     def __del__(self):
         """Close the file when the object is deleted."""

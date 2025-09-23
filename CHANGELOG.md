@@ -8,6 +8,7 @@
 * Remove deprecated `get_num_channels()` method from `ImagingExtractor` [PR #484](https://github.com/catalystneuro/roiextractors/pull/484)
 
 ### Improvements
+* Refactored image storage in `SegmentationExtractor` from individual `_image_mean` and `_image_correlation` attributes to unified `_summary_images` dictionary for better extensibility [PR #493](https://github.com/catalystneuro/roiextractors/pull/493)
 
 # v0.6.2 (August 20th, 2025)
 

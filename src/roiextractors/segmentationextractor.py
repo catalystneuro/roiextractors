@@ -44,8 +44,7 @@ class SegmentationExtractor(ABC):
         self._roi_response_neuropil = None
         self._roi_response_denoised = None
         self._roi_response_deconvolved = None
-        self._image_correlation = None
-        self._image_mean = None
+        self._summary_images = {}
         self._image_mask = None
         self._properties = {}
 
@@ -381,9 +380,9 @@ class SegmentationExtractor(ABC):
         -------
         _roi_image_dict: dict
             dictionary with key, values representing different types of Images used in segmentation:
-                Mean, Correlation image
+                Mean, Correlation image, Maximum projection, etc.
         """
-        return dict(mean=self._image_mean, correlation=self._image_correlation)
+        return dict(self._summary_images)
 
     def get_image(self, name: str = "correlation") -> ArrayType:
         """Get specific images: mean or correlation.
