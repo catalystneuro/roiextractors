@@ -9,8 +9,8 @@ import json
 from pathlib import Path
 from typing import List, Tuple
 
-from ...extraction_tools import PathType, get_package
 from .miniscopeimagingextractor import MiniscopeImagingExtractor
+from ...extraction_tools import PathType, get_package
 
 
 def get_miniscope_files_from_direct_folder(folder_path: PathType) -> Tuple[List[PathType], PathType]:

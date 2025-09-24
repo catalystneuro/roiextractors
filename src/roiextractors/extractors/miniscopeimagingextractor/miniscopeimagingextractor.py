@@ -12,7 +12,6 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
-from .miniscope_utils import load_miniscope_config, validate_miniscope_files
 from ...extraction_tools import DtypeType, PathType, get_package
 from ...imagingextractor import ImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor
