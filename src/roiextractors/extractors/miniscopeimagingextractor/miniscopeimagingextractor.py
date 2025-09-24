@@ -174,8 +174,9 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
         AssertionError
             If no .avi files or configuration files are found.
         """
-        from ...extraction_tools import get_package
         from pathlib import Path
+
+        from ...extraction_tools import get_package
 
         natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
 

@@ -14,7 +14,6 @@ from roiextractors import (
     MiniscopeImagingExtractor,
     MiniscopeMultiRecordingImagingExtractor,
 )
-
 from roiextractors.extractors.miniscopeimagingextractor.miniscope_utils import (
     get_miniscope_files_from_direct_folder,
     get_recording_start_time,
