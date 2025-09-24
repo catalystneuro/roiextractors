@@ -9,10 +9,10 @@ MiniscopeImagingExtractor
 import re
 import warnings
 from typing import List, Optional, Tuple
-
+from pathlib import Path
 import numpy as np
+import json
 
-from .miniscope_utils import load_miniscope_config, validate_miniscope_files
 from ...extraction_tools import DtypeType, PathType, get_package
 from ...imagingextractor import ImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor
