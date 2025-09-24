@@ -200,3 +200,112 @@ def test_get_session_id(extractor, expected_properties):
     """Test that session ID is correctly retrieved."""
     session_id = extractor._get_session_id()
     assert session_id == expected_properties["session_id"]
+
+
+def test_constructor_with_sampling_frequency(folder_path):
+    """Test that the extractor can be initialized with a sampling frequency."""
+    sampling_freq = 30.0
+    extractor = MinianSegmentationExtractor(folder_path=folder_path, sampling_frequency=sampling_freq)
+    assert extractor.get_sampling_frequency() == sampling_freq
+
+
+def test_constructor_with_custom_timestamps_path(folder_path):
+    """Test that the extractor can be initialized with a custom timestamps path."""
+    timestamps_path = folder_path / "timeStamps.csv"
+    extractor = MinianSegmentationExtractor(folder_path=folder_path, timestamps_path=timestamps_path)
+    # Should work without error and be able to get timestamps
+    timestamps = extractor.get_native_timestamps()
+    assert len(timestamps) > 0
+
+
+def test_constructor_error_no_sampling_freq_no_timestamps(folder_path, tmp_path):
+    """Test that constructor raises error when no sampling frequency and no valid timestamps file."""
+    # Copy all files except timeStamps.csv
+    folders_to_copy = [
+        "A.zarr",
+        "b.zarr",
+        "f.zarr",
+        "C.zarr",
+        "S.zarr",
+        "b0.zarr",
+        "max_proj.zarr",
+        ".zgroup",
+    ]
+
+    for folder in folders_to_copy:
+        src = Path(folder_path) / folder
+        dst = tmp_path / folder
+        if src.is_dir():
+            shutil.copytree(src, dst, dirs_exist_ok=True)
+        else:
+            shutil.copy(src, dst)
+
+    # Should raise error when no sampling frequency and no timestamps file
+    with pytest.raises(
+        ValueError,
+        match=r"No sampling frequency provided and timestamps file not found at .* "
+        r"Please provide either a sampling_frequency parameter or ensure a valid timeStamps\.csv file exists\.",
+    ):
+        MinianSegmentationExtractor(folder_path=tmp_path)
+
+
+def test_constructor_error_no_sampling_freq_invalid_timestamps_path(folder_path):
+    """Test that constructor raises error when no sampling frequency and invalid timestamps path."""
+    invalid_timestamps_path = folder_path / "nonexistent_timestamps.csv"
+
+    with pytest.raises(
+        ValueError,
+        match=r"No sampling frequency provided and timestamps file not found at .* "
+        r"Please provide either a sampling_frequency parameter or ensure a valid timeStamps\.csv file exists\.",
+    ):
+        MinianSegmentationExtractor(folder_path=folder_path, timestamps_path=invalid_timestamps_path)
+
+
+def test_get_sampling_frequency_error_no_data(folder_path, tmp_path):
+    """Test that get_sampling_frequency raises error when no data is available."""
+    # Copy all files except timeStamps.csv
+    folders_to_copy = [
+        "A.zarr",
+        "b.zarr",
+        "f.zarr",
+        "C.zarr",
+        "S.zarr",
+        "b0.zarr",
+        "max_proj.zarr",
+        ".zgroup",
+    ]
+
+    for folder in folders_to_copy:
+        src = Path(folder_path) / folder
+        dst = tmp_path / folder
+        if src.is_dir():
+            shutil.copytree(src, dst, dirs_exist_ok=True)
+        else:
+            shutil.copy(src, dst)
+
+    # Create extractor with sampling frequency to bypass constructor validation
+    extractor = MinianSegmentationExtractor(folder_path=tmp_path, sampling_frequency=30.0)
+
+    # Now remove the sampling frequency and test the method
+    extractor._sampling_frequency = None
+
+    with pytest.raises(
+        ValueError,
+        match=r"No sampling frequency available\. Please provide a sampling_frequency parameter "
+        r"when initializing the MinianSegmentationExtractor, or ensure a valid timeStamps\.csv "
+        r"file is available to derive the sampling frequency\.",
+    ):
+        extractor.get_sampling_frequency()
+
+
+def test_constructor_with_both_sampling_freq_and_timestamps_path(folder_path):
+    """Test that both parameters can be provided and sampling frequency takes precedence."""
+    sampling_freq = 25.0
+    timestamps_path = folder_path / "timeStamps.csv"
+
+    extractor = MinianSegmentationExtractor(
+        folder_path=folder_path, sampling_frequency=sampling_freq, timestamps_path=timestamps_path
+    )
+
+    # Should return the provided sampling frequency, not derived from timestamps
+    assert extractor.get_sampling_frequency() == sampling_freq
