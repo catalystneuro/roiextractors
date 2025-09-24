@@ -847,47 +847,15 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
     def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
-        # Get the full native timestamps from the parent
-        parent_native_timestamps = self._parent_segmentation.get_native_timestamps()
-
-        if parent_native_timestamps is None:
-            return None
-
-        # Slice the parent's native timestamps to match our slice
-        sliced_native_timestamps = parent_native_timestamps[self._start_sample : self._end_sample]
-
-        # Apply the requested start/end sample range within our slice
+        # Adjust the sample indices to account for the slice offset
         start_sample = start_sample or 0
-        end_sample = end_sample or len(sliced_native_timestamps)
+        end_sample = end_sample or self.get_num_samples()
 
-        return sliced_native_timestamps[start_sample:end_sample]
+        # Map slice-relative indices to parent indices
+        parent_start = self._start_sample + start_sample
+        parent_end = self._start_sample + end_sample
 
-    def get_timestamps(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
-        # Set defaults
-        if start_sample is None:
-            start_sample = 0
-        if end_sample is None:
-            end_sample = self.get_num_samples()
-
-        # Use our sliced _times if available
-        if self._times is not None:
-            return self._times[start_sample:end_sample]
-
-        # Check if parent has cached _times and use those
-        if getattr(self._parent_segmentation, "_times") is not None:
-            parent_timestamps = self._parent_segmentation._times[self._start_sample : self._end_sample]
-            self._times = parent_timestamps  # Cache the sliced timestamps
-            return parent_timestamps[start_sample:end_sample]
-
-        # Fall back to getting native timestamps (which will be sliced correctly)
-        native_timestamps = self.get_native_timestamps()
-        if native_timestamps is not None:
-            self._times = native_timestamps  # Cache the sliced native timestamps
-            return native_timestamps[start_sample:end_sample]
-
-        # Fallback to calculated timestamps from sampling frequency
-        sample_indices = np.arange(start_sample, end_sample)
-        return sample_indices / self.get_sampling_frequency()
+        return self._parent_segmentation.get_native_timestamps(start_sample=parent_start, end_sample=parent_end)
 
     def has_time_vector(self) -> bool:
         # Override to check parent segmentation for time vector
