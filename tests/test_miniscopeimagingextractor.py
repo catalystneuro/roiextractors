@@ -19,9 +19,7 @@ from roiextractors.extractors.miniscopeimagingextractor.miniscope_utils import (
     get_recording_start_time,
     get_recording_start_times_for_multi_recordings,
     get_timestamps_for_multi_recordings,
-    load_miniscope_config,
     read_timestamps_from_csv_file,
-    validate_miniscope_files,
 )
 
 from .setup_paths import OPHYS_DATA_PATH
@@ -288,17 +286,17 @@ class TestMiniscopeUtilityFunctions(TestCase):
     def test_validate_miniscope_files_valid(self):
         """Test validation with valid files."""
         # Should not raise any exception
-        validate_miniscope_files(self.valid_file_paths, self.valid_config_path)
+        MiniscopeImagingExtractor.validate_miniscope_files(self.valid_file_paths, self.valid_config_path)
 
     def test_validate_miniscope_files_empty_list(self):
         """Test validation with empty file list."""
         with self.assertRaises(ValueError):
-            validate_miniscope_files([], self.valid_config_path)
+            MiniscopeImagingExtractor.validate_miniscope_files([], self.valid_config_path)
 
     def test_validate_miniscope_files_missing_config(self):
         """Test validation with missing configuration file."""
         with self.assertRaises(FileNotFoundError):
-            validate_miniscope_files(self.valid_file_paths, Path("nonexistent.json"))
+            MiniscopeImagingExtractor.validate_miniscope_files(self.valid_file_paths, Path("nonexistent.json"))
 
     def test_validate_miniscope_files_invalid_config_extension(self):
         """Test validation with invalid configuration file extension."""
@@ -306,13 +304,13 @@ class TestMiniscopeUtilityFunctions(TestCase):
             # Create a temporary file with wrong extension
             temp_file = self.temp_dir / "config.txt"
             temp_file.touch()
-            validate_miniscope_files(self.valid_file_paths, temp_file)
+            MiniscopeImagingExtractor.validate_miniscope_files(self.valid_file_paths, temp_file)
 
     def test_validate_miniscope_files_missing_video(self):
         """Test validation with missing video file."""
         invalid_files = [Path("nonexistent.avi")]
         with self.assertRaises(FileNotFoundError):
-            validate_miniscope_files(invalid_files, self.valid_config_path)
+            MiniscopeImagingExtractor.validate_miniscope_files(invalid_files, self.valid_config_path)
 
     def test_validate_miniscope_files_invalid_video_extension(self):
         """Test validation with invalid video file extension."""
@@ -320,11 +318,11 @@ class TestMiniscopeUtilityFunctions(TestCase):
         temp_file = self.temp_dir / "video.mp4"
         temp_file.touch()
         with self.assertRaises(ValueError):
-            validate_miniscope_files([temp_file], self.valid_config_path)
+            MiniscopeImagingExtractor.validate_miniscope_files([temp_file], self.valid_config_path)
 
     def test_load_miniscope_config_valid(self):
         """Test loading valid configuration file."""
-        config = load_miniscope_config(self.valid_config_path)
+        config = MiniscopeImagingExtractor.load_miniscope_config(self.valid_config_path)
 
         self.assertIsInstance(config, dict)
         self.assertIn("frameRate", config)
@@ -332,7 +330,7 @@ class TestMiniscopeUtilityFunctions(TestCase):
     def test_load_miniscope_config_missing_file(self):
         """Test loading missing configuration file."""
         with self.assertRaises(FileNotFoundError):
-            load_miniscope_config(Path("nonexistent.json"))
+            MiniscopeImagingExtractor.load_miniscope_config(Path("nonexistent.json"))
 
     def test_load_miniscope_config_invalid_json(self):
         """Test loading invalid JSON file."""
@@ -342,7 +340,7 @@ class TestMiniscopeUtilityFunctions(TestCase):
             f.write("{ invalid json")
 
         with self.assertRaises(json.JSONDecodeError):
-            load_miniscope_config(invalid_json)
+            MiniscopeImagingExtractor.load_miniscope_config(invalid_json)
 
     def test_get_recording_start_time_format_1(self):
         """Test get_recording_start_time with first JSON format (Ca_EEG2-1_FC)."""

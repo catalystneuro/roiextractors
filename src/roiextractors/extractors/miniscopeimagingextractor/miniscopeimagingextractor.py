@@ -54,10 +54,10 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
     def __init__(self, file_paths: List[PathType], configuration_file_path: PathType):
         """Create a MiniscopeImagingExtractor instance from file paths."""
         # Validate input files
-        validate_miniscope_files(file_paths, configuration_file_path)
+        self.validate_miniscope_files(file_paths, configuration_file_path)
 
         # Load configuration and extract sampling frequency
-        self._miniscope_config = load_miniscope_config(configuration_file_path)
+        self._miniscope_config = self.load_miniscope_config(configuration_file_path)
         frame_rate_match = re.search(r"\d+", self._miniscope_config["frameRate"])
         if frame_rate_match is None:
             raise ValueError(f"Could not extract frame rate from configuration: {self._miniscope_config['frameRate']}")
@@ -71,6 +71,77 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
             imaging_extractors.append(extractor)
 
         super().__init__(imaging_extractors=imaging_extractors)
+
+    @staticmethod
+    def validate_miniscope_files(file_paths: List[PathType], configuration_file_path: PathType) -> None:
+        """
+        Validate that the provided Miniscope files exist and are accessible.
+
+        Parameters
+        ----------
+        file_paths : List[PathType]
+            List of .avi file paths to validate.
+        configuration_file_path : PathType
+            Path to the configuration file to validate.
+
+        Raises
+        ------
+        FileNotFoundError
+            If any of the specified files do not exist.
+        ValueError
+            If the file lists are empty or contain invalid file types.
+        """
+        if not file_paths:
+            raise ValueError("file_paths cannot be empty.")
+
+        configuration_file_path = Path(configuration_file_path)
+        if not configuration_file_path.exists():
+            raise FileNotFoundError(f"Configuration file not found: {configuration_file_path}")
+
+        if not configuration_file_path.suffix == ".json":
+            raise ValueError(f"Configuration file must be a .json file, got: {configuration_file_path}")
+
+        for file_path in file_paths:
+            file_path = Path(file_path)
+            if not file_path.exists():
+                raise FileNotFoundError(f"Video file not found: {file_path}")
+            if not file_path.suffix == ".avi":
+                raise ValueError(f"Video files must be .avi files, got: {file_path}")
+
+    @staticmethod
+    def load_miniscope_config(configuration_file_path: PathType) -> dict:
+        """
+        Load and parse the Miniscope configuration file.
+
+        Parameters
+        ----------
+        configuration_file_path : PathType
+            Path to the metaData.json configuration file.
+
+        Returns
+        -------
+        dict
+            Parsed configuration data from the JSON file.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the configuration file does not exist.
+        json.JSONDecodeError
+            If the configuration file is not valid JSON.
+        """
+        configuration_file_path = Path(configuration_file_path)
+
+        if not configuration_file_path.exists():
+            raise FileNotFoundError(f"Configuration file not found: {configuration_file_path}")
+
+        try:
+            with open(configuration_file_path, "r") as f:
+                return json.load(f)
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(
+                f"Invalid JSON in configuration file {configuration_file_path}: {e}", e.doc, e.pos
+            )
 
 
 # Temporary renaming to keep backwards compatibility

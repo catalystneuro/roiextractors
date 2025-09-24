@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 from ...extraction_tools import PathType, get_package
+from .miniscopeimagingextractor import MiniscopeImagingExtractor
 
 
 def get_miniscope_files_from_direct_folder(folder_path: PathType) -> Tuple[List[PathType], PathType]:
@@ -59,75 +60,6 @@ def get_miniscope_files_from_direct_folder(folder_path: PathType) -> Tuple[List[
     assert miniscope_config_files, f"No configuration file found in direct folder structure at '{folder_path}'"
 
     return miniscope_avi_file_paths, miniscope_config_files[0]
-
-
-def validate_miniscope_files(file_paths: List[PathType], configuration_file_path: PathType) -> None:
-    """
-    Validate that the provided Miniscope files exist and are accessible.
-
-    Parameters
-    ----------
-    file_paths : List[PathType]
-        List of .avi file paths to validate.
-    configuration_file_path : PathType
-        Path to the configuration file to validate.
-
-    Raises
-    ------
-    FileNotFoundError
-        If any of the specified files do not exist.
-    ValueError
-        If the file lists are empty or contain invalid file types.
-    """
-    if not file_paths:
-        raise ValueError("file_paths cannot be empty.")
-
-    configuration_file_path = Path(configuration_file_path)
-    if not configuration_file_path.exists():
-        raise FileNotFoundError(f"Configuration file not found: {configuration_file_path}")
-
-    if not configuration_file_path.suffix == ".json":
-        raise ValueError(f"Configuration file must be a .json file, got: {configuration_file_path}")
-
-    for file_path in file_paths:
-        file_path = Path(file_path)
-        if not file_path.exists():
-            raise FileNotFoundError(f"Video file not found: {file_path}")
-        if not file_path.suffix == ".avi":
-            raise ValueError(f"Video files must be .avi files, got: {file_path}")
-
-
-def load_miniscope_config(configuration_file_path: PathType) -> dict:
-    """
-    Load and parse the Miniscope configuration file.
-
-    Parameters
-    ----------
-    configuration_file_path : PathType
-        Path to the metaData.json configuration file.
-
-    Returns
-    -------
-    dict
-        Parsed configuration data from the JSON file.
-
-    Raises
-    ------
-    FileNotFoundError
-        If the configuration file does not exist.
-    json.JSONDecodeError
-        If the configuration file is not valid JSON.
-    """
-    configuration_file_path = Path(configuration_file_path)
-
-    if not configuration_file_path.exists():
-        raise FileNotFoundError(f"Configuration file not found: {configuration_file_path}")
-
-    try:
-        with open(configuration_file_path, "r") as f:
-            return json.load(f)
-    except json.JSONDecodeError as e:
-        raise json.JSONDecodeError(f"Invalid JSON in configuration file {configuration_file_path}: {e}", e.doc, e.pos)
 
 
 def get_recording_start_time(file_path: PathType) -> datetime.datetime:
@@ -243,7 +175,7 @@ def get_recording_start_times_for_multi_recordings(
 
     start_times = []
     for config_file in miniscope_config_files:
-        config = load_miniscope_config(config_file)
+        config = MiniscopeImagingExtractor.load_miniscope_config(config_file)
         has_timestamp_info = any(key in config for key in ["year", "month", "day", "recordingStartTime"])
         if has_timestamp_info:
             start_time = get_recording_start_time(config_file)
