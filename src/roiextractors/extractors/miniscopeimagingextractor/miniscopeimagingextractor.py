@@ -116,7 +116,6 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
     """
 
     extractor_name = "MiniscopeMultiRecordingImagingExtractor"
-    mode = "file"
 
     def __init__(self, folder_path: PathType):
         """Create a MiniscopeMultiRecordingImagingExtractor instance from folder_path."""
