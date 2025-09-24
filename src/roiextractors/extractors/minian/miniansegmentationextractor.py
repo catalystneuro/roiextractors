@@ -13,6 +13,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 import zarr
+from neuroconv.utils import calculate_regular_series_rate
 
 from ...extraction_tools import FloatType, PathType
 from ...segmentationextractor import SegmentationExtractor
@@ -48,7 +49,12 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
     extractor_name = "MinianSegmentation"
 
-    def __init__(self, folder_path: PathType, sampling_frequency: Optional[float] = None):
+    def __init__(
+        self,
+        folder_path: PathType,
+        sampling_frequency: Optional[float] = None,
+        timestamps_path: Optional[PathType] = None,
+    ):
         """Initialize a MinianSegmentationExtractor instance.
 
         Parameters
@@ -57,10 +63,15 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             The location of the folder containing minian .zarr output.
         sampling_frequency: float, optional
             The sampling frequency in Hz. If not provided, will attempt to derive from timeStamps.csv.
+        timestamps_path: str or Path, optional
+            Path to the timeStamps.csv file. If not provided, assumes default location at folder_path/timeStamps.csv.
         """
         SegmentationExtractor.__init__(self)
         self.folder_path = Path(folder_path)
         self._sampling_frequency = sampling_frequency
+        self._timestamps_path = (
+            Path(timestamps_path) if timestamps_path is not None else self.folder_path / "timeStamps.csv"
+        )
         self._roi_response_denoised = self._read_trace_from_zarr_field(field="C")
         self._roi_response_baseline = self._read_trace_from_zarr_field(field="b0")
         self._roi_response_neuropil = self._read_trace_from_zarr_field(field="f")
@@ -87,6 +98,14 @@ class MinianSegmentationExtractor(SegmentationExtractor):
                 "Background spatial components (b.zarr) are available but no background temporal component (f.zarr) is associated. "
                 "This means background masks exist but without corresponding temporal dynamics."
             )
+
+        # Validate that either sampling frequency or valid timestamps are available
+        if self._sampling_frequency is None:
+            if not self._timestamps_path.exists():
+                raise ValueError(
+                    f"No sampling frequency provided and timestamps file not found at {self._timestamps_path}. "
+                    "Please provide either a sampling_frequency parameter or ensure a valid timeStamps.csv file exists."
+                )
 
     def _read_zarr_group(self, zarr_group: str):
         """Read the zarr group.
@@ -194,7 +213,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         np.ndarray
             The native timestamps in seconds.
         """
-        csv_file = self.folder_path / "timeStamps.csv"
+        csv_file = self._timestamps_path
         df = pd.read_csv(csv_file)
         frame_indexes = self._read_zarr_group("/C.zarr/frame")
         filtered_df = df[df["Frame Number"].isin(frame_indexes)]
@@ -328,6 +347,40 @@ class MinianSegmentationExtractor(SegmentationExtractor):
                 Mean, Correlation image, Maximum projection
         """
         return dict(self._summary_images)
+
+    def get_sampling_frequency(self) -> float:
+        """Get the sampling frequency in Hz.
+
+        Returns
+        -------
+        sampling_frequency: float
+            Sampling frequency of the recording in Hz.
+
+        Raises
+        ------
+        ValueError
+            If no sampling frequency is available and timestamps cannot be used to derive it.
+        """
+        if self._sampling_frequency is not None:
+            return float(self._sampling_frequency)
+
+        # If no sampling frequency provided, try to derive from timestamps
+        if self._timestamps_path.exists():
+            try:
+                # Try to calculate sampling frequency from timestamps
+                timestamps = self.get_native_timestamps()
+                if len(timestamps) > 1:
+                    # Calculate average sampling frequency from time differences
+                    derived_freq = calculate_regular_series_rate(timestamps)
+                    return float(derived_freq)
+            except Exception:
+                pass
+
+        raise ValueError(
+            "No sampling frequency available. Please provide a sampling_frequency parameter "
+            "when initializing the MinianSegmentationExtractor, or ensure a valid timeStamps.csv "
+            "file is available to derive the sampling frequency."
+        )
 
     def _get_session_id(self) -> str:
         """Get the session id from the A.zarr group.
