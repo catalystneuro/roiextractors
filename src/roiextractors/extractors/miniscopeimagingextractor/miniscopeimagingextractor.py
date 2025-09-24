@@ -116,7 +116,6 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
     """
 
     extractor_name = "MiniscopeMultiRecordingImagingExtractor"
-    is_writable = True
     mode = "file"
 
     def __init__(self, folder_path: PathType):
