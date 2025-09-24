@@ -6,12 +6,13 @@ MiniscopeImagingExtractor
     An ImagingExtractor for the Miniscope video (.avi) format.
 """
 
+import json
 import re
 import warnings
-from typing import List, Optional, Tuple
 from pathlib import Path
+from typing import List, Optional, Tuple
+
 import numpy as np
-import json
 
 from ...extraction_tools import DtypeType, PathType, get_package
 from ...imagingextractor import ImagingExtractor
