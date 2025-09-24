@@ -48,16 +48,19 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
     extractor_name = "MinianSegmentation"
 
-    def __init__(self, folder_path: PathType):
+    def __init__(self, folder_path: PathType, sampling_frequency: Optional[float] = None):
         """Initialize a MinianSegmentationExtractor instance.
 
         Parameters
         ----------
         folder_path: str or Path
             The location of the folder containing minian .zarr output.
+        sampling_frequency: float, optional
+            The sampling frequency in Hz. If not provided, will attempt to derive from timeStamps.csv.
         """
         SegmentationExtractor.__init__(self)
         self.folder_path = Path(folder_path)
+        self._sampling_frequency = sampling_frequency
         self._roi_response_denoised = self._read_trace_from_zarr_field(field="C")
         self._roi_response_baseline = self._read_trace_from_zarr_field(field="b0")
         self._roi_response_neuropil = self._read_trace_from_zarr_field(field="f")
