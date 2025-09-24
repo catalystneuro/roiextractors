@@ -372,7 +372,9 @@ class MinianSegmentationExtractor(SegmentationExtractor):
                 if len(timestamps) > 1:
                     # Calculate average sampling frequency from time differences
                     derived_freq = calculate_regular_series_rate(timestamps)
-                    return float(derived_freq)
+                    return float(
+                        derived_freq
+                    )  # it will be None if timestamps are irregularly spaced, so _times will be set in get_native_timestamps
             except Exception:
                 pass
 
