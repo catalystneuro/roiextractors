@@ -14,9 +14,9 @@ from roiextractors import (
     MiniscopeImagingExtractor,
     MiniscopeMultiRecordingImagingExtractor,
 )
+
 from roiextractors.extractors.miniscopeimagingextractor.miniscope_utils import (
     get_miniscope_files_from_direct_folder,
-    get_miniscope_files_from_multi_recordings_subfolders,
     get_recording_start_time,
     get_recording_start_times_for_multi_recordings,
     get_timestamps_for_multi_recordings,
@@ -161,11 +161,11 @@ class TestMiniscopeMultiRecordingImagingExtractor(TestCase):
 
     def test_avi_files_are_missing_assertion(self):
         with self.assertRaises(AssertionError):
-            get_miniscope_files_from_multi_recordings_subfolders("test")
+            MiniscopeMultiRecordingImagingExtractor._get_miniscope_files_from_multi_recordings_subfolders("test")
 
     def test_json_files_are_missing_assertion(self):
         with self.assertRaises(AssertionError):
-            get_miniscope_files_from_multi_recordings_subfolders(self.test_dir)
+            MiniscopeMultiRecordingImagingExtractor._get_miniscope_files_from_multi_recordings_subfolders(self.test_dir)
 
     # Tests for the MiniscopeMultiRecordingImagingExtractor
     def test_multi_recording_extractor_num_samples(self):
@@ -238,8 +238,10 @@ class TestMiniscopeUtilityFunctions(TestCase):
         )
 
         # Get valid file paths for testing
-        cls.valid_file_paths, cls.valid_config_path = get_miniscope_files_from_multi_recordings_subfolders(
-            cls.multi_recording_folder
+        cls.valid_file_paths, cls.valid_config_path = (
+            MiniscopeMultiRecordingImagingExtractor._get_miniscope_files_from_multi_recordings_subfolders(
+                cls.multi_recording_folder
+            )
         )
 
         # Create temporary directory for negative tests
@@ -252,7 +254,11 @@ class TestMiniscopeUtilityFunctions(TestCase):
 
     def test_get_miniscope_files_from_folder_valid(self):
         """Test successful file discovery from multi-recording folder structure."""
-        file_paths, config_path = get_miniscope_files_from_multi_recordings_subfolders(self.multi_recording_folder)
+        file_paths, config_path = (
+            MiniscopeMultiRecordingImagingExtractor._get_miniscope_files_from_multi_recordings_subfolders(
+                self.multi_recording_folder
+            )
+        )
 
         self.assertIsInstance(file_paths, list)
         self.assertGreater(len(file_paths), 0)
