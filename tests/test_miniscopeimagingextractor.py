@@ -14,11 +14,13 @@ from roiextractors import (
     MiniscopeImagingExtractor,
     MiniscopeMultiRecordingImagingExtractor,
 )
-from roiextractors.extractors.miniscopeimagingextractor.miniscopeimagingextractor import read_timestamps_from_csv_file
 from roiextractors.extractors.miniscopeimagingextractor.miniscope_utils import (
     get_miniscope_files_from_direct_folder,
     get_recording_start_time,
     get_recording_start_times_for_multi_recordings,
+)
+from roiextractors.extractors.miniscopeimagingextractor.miniscopeimagingextractor import (
+    read_timestamps_from_csv_file,
 )
 
 from .setup_paths import OPHYS_DATA_PATH
