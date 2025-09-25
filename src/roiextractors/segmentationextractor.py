@@ -867,6 +867,10 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
 
         return self._parent_segmentation.get_native_timestamps(start_sample=parent_start, end_sample=parent_end)
 
+    def has_time_vector(self) -> bool:
+        # Override to check parent segmentation for time vector
+        return self._parent_segmentation.has_time_vector()
+
 
 class FrameSliceSegmentationExtractor(SampleSlicedSegmentationExtractor):
     """Class to get a lazy frame slice.

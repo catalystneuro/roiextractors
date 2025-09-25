@@ -200,3 +200,12 @@ def test_get_session_id(extractor, expected_properties):
     """Test that session ID is correctly retrieved."""
     session_id = extractor._get_session_id()
     assert session_id == expected_properties["session_id"]
+
+
+def test_slicing_preserves_has_time_vector():
+    """Test that slicing preserves the has_time_vector property."""
+    folder_path = OPHYS_DATA_PATH / "segmentation_datasets" / "minian" / "segmented_data_3units_100frames"
+    extractor = MinianSegmentationExtractor(folder_path=folder_path)
+    assert extractor.has_time_vector()
+    sub_extractor = extractor.slice_samples(start_sample=0, end_sample=10)
+    assert sub_extractor.has_time_vector()
