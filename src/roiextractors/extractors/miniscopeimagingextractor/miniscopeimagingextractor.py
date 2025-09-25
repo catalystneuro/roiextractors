@@ -19,6 +19,28 @@ from ...imagingextractor import ImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor
 
 
+def read_timestamps_from_csv_file(file_path: PathType) -> List[float]:
+    """
+    Retrieve the timestamps from a CSV file.
+
+    Parameters
+    ----------
+    file_path : PathType
+        Path to the CSV file containing the timestamps relative to the recording start.
+
+    Returns
+    -------
+    timestamps
+        The timestamps extracted from the CSV file.
+    """
+    import pandas as pd
+
+    file_path = str(file_path)
+    timestamps = pd.read_csv(file_path)["Time Stamp (ms)"].values.astype(float)
+    timestamps /= 1000
+    return timestamps
+
+
 class MiniscopeImagingExtractor(MultiImagingExtractor):
     """
     MiniscopeImagingExtractor processes .avi files within the same session.
@@ -32,6 +54,8 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         recording session and will be concatenated in the order provided.
     configuration_file_path : PathType
         Path to the metaData.json configuration file containing recording parameters.
+    timestamps_path : Optional[PathType], optional
+        Path to the timeStamps.csv file containing timestamps relative to the recording start.
 
     Examples
     --------
@@ -52,13 +76,27 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
     as a unified, continuous dataset.
     """
 
-    def __init__(self, file_paths: List[PathType], configuration_file_path: PathType):
-        """Create a MiniscopeImagingExtractor instance from file paths."""
+    def __init__(
+        self,
+        file_paths: List[PathType],
+        configuration_file_path: PathType,
+        timestamps_path: Optional[PathType] = None,
+    ):
+
         # Validate input files
         self.validate_miniscope_files(file_paths, configuration_file_path)
 
         # Load configuration and extract sampling frequency
         self._miniscope_config = self.load_miniscope_config(configuration_file_path)
+
+        self.folder_path = Path(configuration_file_path).parent
+        self._timestamps_path = (
+            Path(timestamps_path) if timestamps_path is not None else self.folder_path / "timeStamps.csv"
+        )
+        if not self._timestamps_path.exists():
+            warnings.warn(f"Timestamps file not found at {self._timestamps_path}. Timestamps will be None.")
+            self._timestamps_path = None
+
         frame_rate_match = re.search(r"\d+", self._miniscope_config["frameRate"])
         if frame_rate_match is None:
             raise ValueError(f"Could not extract frame rate from configuration: {self._miniscope_config['frameRate']}")
@@ -144,6 +182,23 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
                 f"Invalid JSON in configuration file {configuration_file_path}: {e}", e.doc, e.pos
             )
 
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> Optional[np.ndarray]:
+
+        if self._timestamps_path is None:
+            return None
+
+        # Set defaults
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self.get_num_samples()
+        # Read timestamps from CSV file
+        native_timestamps = read_timestamps_from_csv_file(self._timestamps_path)
+
+        return native_timestamps[start_sample:end_sample]
+
 
 # Temporary renaming to keep backwards compatibility
 class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
@@ -189,16 +244,22 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
 
     extractor_name = "MiniscopeMultiRecordingImagingExtractor"
 
-    def __init__(self, folder_path: PathType):
+    def __init__(self, folder_path: PathType, miniscope_device_name: str = "Miniscope"):
         """Create a MiniscopeMultiRecordingImagingExtractor instance from folder_path."""
         # Get file paths and configuration file path
-        file_paths, configuration_file_path = self._get_miniscope_files_from_multi_recordings_subfolders(folder_path)
+
+        self.miniscope_device_name = miniscope_device_name
+        self.folder_path = Path(folder_path)
+
+        file_paths, configuration_file_path = self._get_miniscope_files_from_multi_recordings_subfolders(
+            folder_path, miniscope_device_name
+        )
 
         super().__init__(file_paths=file_paths, configuration_file_path=configuration_file_path)
 
     @staticmethod
     def _get_miniscope_files_from_multi_recordings_subfolders(
-        folder_path: PathType, miniscopeDeviceName: str = "Miniscope"
+        folder_path: PathType, miniscope_device_name: str = "Miniscope"
     ) -> Tuple[List[PathType], PathType]:
         """
         Retrieve Miniscope files from a multi-session folder structure.
@@ -255,15 +316,64 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
         folder_path = Path(folder_path)
         configuration_file_name = "metaData.json"
 
-        miniscope_avi_file_paths = natsort.natsorted(list(folder_path.glob(f"*/{miniscopeDeviceName}/*.avi")))
+        miniscope_avi_file_paths = natsort.natsorted(list(folder_path.glob(f"*/{miniscope_device_name}/*.avi")))
         miniscope_config_files = natsort.natsorted(
-            list(folder_path.glob(f"*/{miniscopeDeviceName}/{configuration_file_name}"))
+            list(folder_path.glob(f"*/{miniscope_device_name}/{configuration_file_name}"))
         )
 
         assert miniscope_avi_file_paths, f"No Miniscope .avi files found at '{folder_path}'"
         assert miniscope_config_files, f"No Miniscope configuration files found at '{folder_path}'"
 
         return miniscope_avi_file_paths, miniscope_config_files[0]
+
+    def get_native_timestamps(
+        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+    ) -> List[float]:
+        """
+        Retrieve timestamps for multiple recordings in a multi-recordings folder structure.
+
+        Returns
+        -------
+        List[float]
+            A list of floats representing the timestamps for the recordings.
+
+        Raises
+        ------
+        AssertionError
+            If no time files are found.
+        """
+        from .miniscope_utils import get_recording_start_times_for_multi_recordings
+
+        natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
+
+        folder_path = Path(folder_path)
+        time_file_name = "timeStamps.csv"
+
+        timestamps_file_paths = natsort.natsorted(
+            list(folder_path.glob(f"*/{self.miniscope_device_name}/{time_file_name}"))
+        )
+
+        assert timestamps_file_paths, f"No time files found at '{folder_path}'"
+
+        recording_start_times = get_recording_start_times_for_multi_recordings(folder_path=folder_path)
+        timestamps = []
+        for file_ind, file_path in enumerate(timestamps_file_paths):
+            timestamps_per_file = read_timestamps_from_csv_file(file_path=file_path)
+            if recording_start_times:
+                offset = (recording_start_times[file_ind] - recording_start_times[0]).total_seconds()
+                timestamps_per_file += offset
+
+            timestamps.extend(timestamps_per_file)
+
+        native_timestamps = np.concatenate(timestamps)
+
+        # Set defaults
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self.get_num_samples()
+
+        return native_timestamps[start_sample:end_sample].tolist()
 
 
 class _MiniscopeSingleVideoExtractor(ImagingExtractor):
@@ -405,9 +515,3 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
             )
 
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
-
-    def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
-        # Miniscope videos do not have native timestamps
-        return None
