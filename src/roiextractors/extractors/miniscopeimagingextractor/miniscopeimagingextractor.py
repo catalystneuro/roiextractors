@@ -375,6 +375,8 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
     ----------
         folder_path : PathType
             The folder path containing the Miniscope video (.avi) files and the metaData.json configuration file.
+        miniscope_device_name : str, optional
+            The name of the Miniscope device subfolder. Default is "Miniscope".
 
     Notes
     -----
