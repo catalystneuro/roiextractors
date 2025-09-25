@@ -158,9 +158,9 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         # Load configuration and extract sampling frequency
         self._miniscope_config = self.load_miniscope_config(configuration_file_path)
 
-        self.miniscope_folder_path = Path(configuration_file_path).parent
+        self._miniscope_folder_path = Path(configuration_file_path).parent
         self._timestamps_path = (
-            Path(timestamps_path) if timestamps_path is not None else self.miniscope_folder_path / "timeStamps.csv"
+            Path(timestamps_path) if timestamps_path is not None else self._miniscope_folder_path / "timeStamps.csv"
         )
         if not self._timestamps_path.exists():
             warnings.warn(f"Timestamps file not found at {self._timestamps_path}. Timestamps will be None.")
