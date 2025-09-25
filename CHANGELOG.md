@@ -7,9 +7,11 @@
 ### Deprecations And Removals
 * Remove deprecated `get_num_channels()` method from `ImagingExtractor` [PR #484](https://github.com/catalystneuro/roiextractors/pull/484)
 * Remove deprecated `write_segmentation()` methods from all segmentation extractors [PR #491](https://github.com/catalystneuro/roiextractors/pull/491)
+* Add `has_time_vector()` method to `SampleSlicedSegmentationExtractor` [PR #494](https://github.com/catalystneuro/roiextractors/pull/494)
 
 ### Improvements
 * Refactored image storage in `SegmentationExtractor` from individual `_image_mean` and `_image_correlation` attributes to unified `_summary_images` dictionary for better extensibility [PR #493](https://github.com/catalystneuro/roiextractors/pull/493)
+* Added comprehensive tests for timestamp inheritance independence in `SampleSlicedSegmentationExtractor` to ensure proper data isolation between parent and child extractors [PR #498](https://github.com/catalystneuro/roiextractors/pull/498)
 
 # v0.6.2 (August 20th, 2025)
 
