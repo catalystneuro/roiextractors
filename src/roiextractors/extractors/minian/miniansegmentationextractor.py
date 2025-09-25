@@ -365,21 +365,17 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
         # If no sampling frequency provided, try to derive from timestamps
         if self._timestamps_path.exists():
-            try:
-                # Try to calculate sampling frequency from timestamps
-                timestamps = self.get_native_timestamps()
-                if len(timestamps) > 1:
-                    # Calculate average sampling frequency from time differences
-                    derived_freq = calculate_regular_series_rate(timestamps)
-                    if derived_freq is None:
-                        warnings.warn(
-                            f"Timestamps are irregularly spaced; cannot derive a sampling frequency from timestamps in {self._timestamps_path}."
-                        )
-                        return None
-                    else:
-                        return float(derived_freq)
-            except Exception:
-                pass
+            timestamps = self.get_native_timestamps()
+            if len(timestamps) > 1:
+                # Calculate average sampling frequency from time differences
+                derived_freq = calculate_regular_series_rate(timestamps)
+                if derived_freq is None:
+                    warnings.warn(
+                        f"Timestamps are irregularly spaced; cannot derive a sampling frequency from timestamps in {self._timestamps_path}."
+                    )
+                    return None
+                else:
+                    return float(derived_freq)
 
     def _get_session_id(self) -> str:
         """Get the session id from the A.zarr group.
