@@ -7,59 +7,10 @@ from folder structures, supporting various Miniscope folder organizations.
 import datetime
 import json
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 
 from .miniscopeimagingextractor import MiniscopeImagingExtractor
 from ...extraction_tools import PathType, get_package
-
-
-def get_miniscope_files_from_direct_folder(folder_path: PathType) -> Tuple[List[PathType], PathType]:
-    """
-    Retrieve Miniscope files from a folder containing .avi files directly.
-
-    This function handles cases where .avi files and metaData.json are located
-    directly in the specified folder without subfolders.
-
-    Expected folder structure:
-    ```
-    folder/
-    ├── 0.avi
-    ├── 1.avi
-    ├── 2.avi
-    ├── metaData.json
-    ├── timeStamps.csv
-    └── headOrientation.csv
-    ```
-
-    Parameters
-    ----------
-    folder_path : PathType
-        Path to the folder containing .avi files and metaData.json directly.
-
-    Returns
-    -------
-    Tuple[List[PathType], PathType]
-        A tuple containing:
-        - List of .avi file paths sorted naturally
-        - Path to the configuration file (metaData.json)
-
-    Raises
-    ------
-    AssertionError
-        If no .avi files or configuration files are found.
-    """
-    natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
-
-    folder_path = Path(folder_path)
-    configuration_file_name = "metaData.json"
-
-    miniscope_avi_file_paths = natsort.natsorted(list(folder_path.glob("*.avi")))
-    miniscope_config_files = natsort.natsorted(list(folder_path.glob(configuration_file_name)))
-
-    assert miniscope_avi_file_paths, f"No .avi files found in direct folder structure at '{folder_path}'"
-    assert miniscope_config_files, f"No configuration file found in direct folder structure at '{folder_path}'"
-
-    return miniscope_avi_file_paths, miniscope_config_files[0]
 
 
 def get_recording_start_time(file_path: PathType) -> datetime.datetime:
@@ -70,6 +21,20 @@ def get_recording_start_time(file_path: PathType) -> datetime.datetime:
     ----------
     file_path : str, Path
         Path to the "metaData.json" file with recording start time details.
+        This metadata file is typically located in the recording folder that also contains the folder with the video files.
+        parent_folder/
+        ├── recording_folder/
+        │   ├── Miniscope/
+        │   │   ├── 0.avi
+        │   │   ├── 1.avi
+        │   │   └── metaData.json
+        │   ├── BehavCam_2/
+        │   └── metaData.json <-- This is the file_path
+
+    Examples
+    --------
+    >>> from roiextractors.extractors.miniscopeimagingextractor.miniscope_utils import get_recording_start_time
+    >>> start_time = get_recording_start_time('path/to/recording_folder/metaData.json')
 
     Returns
     -------
@@ -91,6 +56,53 @@ def get_recording_start_time(file_path: PathType) -> datetime.datetime:
       If not present, the top-level JSON object is assumed to contain the time information.
     - The "msec" field in the metadata is converted from milliseconds to microseconds for compatibility with the datetime
       microsecond field.
+
+    Examples of metaData.json content:
+    ----------------------------------
+    Example 1:
+    {
+        "animalName": "Ca_EEG3-4",
+        "baseDirectory": "C:/data/Joe/Ca_EEG3/Ca_EEG3-4/2022_09_19/09_18_41",
+        "cameras": [
+        ],
+        "experimentName": "Ca_EEG3",
+        "miniscopes": [
+            "miniscope"
+        ],
+        "recordingStartTime": {
+            "day": 19,
+            "hour": 9,
+            "minute": 18,
+            "month": 9,
+            "msec": 7,
+            "msecSinceEpoch": 1663597121007,
+            "second": 41,
+            "year": 2022
+        },
+        "researcherName": ""
+    }
+
+    Example 2:
+    {
+        "animalName": "Ca_EEG2-1",
+        "baseDirectory": "C:/Users/CaiLab/Documents//Joe/Ca_EEG2/Ca_EEG2-1/2021_10_14/10_11_24",
+        "cameras": [
+        ],
+        "day": 14,
+        "experimentName": "Ca_EEG2",
+        "hour": 10,
+        "miniscopes": [
+            "Miniscope"
+        ],
+        "minute": 11,
+        "month": 10,
+        "msec": 779,
+        "msecSinceEpoch": 1634220684779,
+        "researcherName": "Joe",
+        "second": 24,
+        "year": 2021
+    }
+
     """
     ## Read metadata
     with open(file_path) as f:

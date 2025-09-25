@@ -15,7 +15,6 @@ from roiextractors import (
     MiniscopeMultiRecordingImagingExtractor,
 )
 from roiextractors.extractors.miniscopeimagingextractor.miniscope_utils import (
-    get_miniscope_files_from_direct_folder,
     get_recording_start_time,
     get_recording_start_times_for_multi_recordings,
 )
@@ -40,10 +39,16 @@ class TestMiniscopeImagingExtractor(TestCase):
         ]
 
         # Get files from direct folder structure (using lowercase "miniscope")
-        cls.file_paths, cls.configuration_file_path = get_miniscope_files_from_direct_folder(cls.direct_folder_path)
+        cls.file_paths, cls.configuration_file_path, cls.timestamp_path = (
+            MiniscopeImagingExtractor.get_miniscope_files_from_direct_folder(cls.direct_folder_path)
+        )
 
         # Create extractor
-        cls.extractor = MiniscopeImagingExtractor(cls.file_paths, cls.configuration_file_path)
+        cls.extractor = MiniscopeImagingExtractor(
+            file_paths=cls.file_paths,
+            configuration_file_path=cls.configuration_file_path,
+            timestamps_path=cls.timestamp_path,
+        )
 
         # Get video properties
         cls.num_samples = 15
@@ -280,22 +285,26 @@ class TestMiniscopeUtilityFunctions(TestCase):
     def test_get_miniscope_files_from_folder_no_avi(self):
         """Test assertion when no .avi files are found."""
         with self.assertRaisesRegex(AssertionError, "No .avi files found in direct folder structure at"):
-            get_miniscope_files_from_direct_folder(self.temp_dir)
+            MiniscopeImagingExtractor.get_miniscope_files_from_direct_folder(self.temp_dir)
 
     def test_get_miniscope_files_from_folder_nonexistent(self):
         """Test assertion when folder doesn't exist."""
         with self.assertRaisesRegex(AssertionError, "No .avi files found in direct folder structure at"):
-            get_miniscope_files_from_direct_folder(Path("nonexistent_folder"))
+            MiniscopeImagingExtractor.get_miniscope_files_from_direct_folder(Path("nonexistent_folder"))
 
     def test_get_miniscope_files_from_folder_direct_structure(self):
         """Test successful file discovery from direct folder structure."""
-        file_paths, config_path = get_miniscope_files_from_direct_folder(self.direct_folder)
+        file_paths, config_path, timestamps_path = MiniscopeImagingExtractor.get_miniscope_files_from_direct_folder(
+            self.direct_folder
+        )
 
         self.assertIsInstance(file_paths, list)
         self.assertGreater(len(file_paths), 0)
         self.assertTrue(all(str(fp).endswith(".avi") for fp in file_paths))
         self.assertTrue(str(config_path).endswith("metaData.json"))
         self.assertTrue(Path(config_path).exists())
+        self.assertTrue(str(timestamps_path).endswith("timeStamps.csv"))
+        self.assertTrue(Path(timestamps_path).exists())
 
     def test_validate_miniscope_files_valid(self):
         """Test validation with valid files."""

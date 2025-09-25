@@ -50,8 +50,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
     session alongside the video files.
     The JSON file should contain at least the following key:
         - "frameRate": String containing the frame rate value (e.g., "20FPS", "30.0")
-        - "year", "month", "day", "hour", "minute", "second", "msec": Integers representing the recording start time. Either under the field "recordingStartTime" or at the top level of the JSON.
-        - "miniscope": String representing the device name (e.g., "Miniscope", "MiniscopeV3", etc.)
+        - "deviceName": String representing the device name (e.g., "Miniscope", "MiniscopeV3", etc.)
 
     Notes:
     ------
@@ -61,7 +60,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
       microsecond field.
     Additional metadata such as recording settings, device parameters, and session information may also be present.
 
-    The extractor expects the following file structure from a typical Miniscope recording:
+    If folder_path is provided, the extractor expects the following file structure from a typical Miniscope recording:
     - miniscope folder/
       ├── metaData.json (required)
       ├── timeStamps.csv (optional)
@@ -71,10 +70,12 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
 
     Parameters
     ----------
-    file_paths : List[PathType]
+    folder_path : Optional[PathType], optional
+        The folder path containing the Miniscope video (.avi) files, the metaData.json configuration file and potentially the timeStamps.csv file.
+    file_paths : Optional[List[PathType]], optional
         List of .avi file paths to be processed. These files should be from the same
         recording session and will be concatenated in the order provided.
-    configuration_file_path : PathType
+    configuration_file_path : Optional[PathType], optional
         Path to the metaData.json configuration file containing recording parameters.
         Usually located in the same directory as the .avi files.
     timestamps_path : Optional[PathType], optional
@@ -90,14 +91,13 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
     >>> config_path = "/path/to/metaData.json"
     >>> extractor = MiniscopeImagingExtractor(file_paths, config_path)
 
-    >>> # Using utility function for automatic discovery
-    >>> from .miniscope_utils import get_miniscope_files_from_folder
-    >>> file_paths, config_path = get_miniscope_files_from_folder("/path/to/folder")
-    >>> extractor = MiniscopeImagingExtractor(file_paths, config_path)
-
     >>> # If timestamps are available, provide the path
     >>> timestamps_path = "/path/to/timeStamps.csv"
     >>> extractor = MiniscopeImagingExtractor(file_paths, config_path, timestamps_path)
+
+    >>> # Folder-based initialization (auto-detects .avi files, metaData.json and timeStamps.csv)
+    >>> folder_path = "/path/to/miniscope_folder"
+    >>> extractor = MiniscopeImagingExtractor(folder_path=folder_path)
 
     Notes
     -----
@@ -105,61 +105,52 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
     are then combined into the MiniscopeImagingExtractor to handle the session's recordings
     as a unified, continuous dataset.
 
-    Examples of metaData.json content:
+    Example of metaData.json content:
     -----------------------------------
-    example 1:
     {
-        "animalName": "Ca_EEG2-1",
-        "baseDirectory": "C:/Users/CaiLab/Documents//Joe/Ca_EEG2/Ca_EEG2-1/2021_10_14/10_11_24",
-        "cameras": [
-        ],
-        "day": 14,
-        "experimentName": "Ca_EEG2",
-        "hour": 10,
-        "miniscopes": [
-            "Miniscope"
-        ],
-        "minute": 11,
-        "month": 10,
-        "msec": 779,
-        "msecSinceEpoch": 1634220684779,
-        "researcherName": "Joe",
-        "second": 24,
-        "year": 2021
-    }
-    example 2:
-    {
-        "animalName": "",
-        "baseDirectory": "C:/mData/2021_10_07/C6-J588_Disc5/15_03_28",
-        "cameras": [
-            "BehavCam 2"
-        ],
-        "experimentName": "",
-        "miniscopes": [
-            "Miniscope"
-        ],
-        "nameExpMouse": "C6-J588_Disc5",
-        "recordingStartTime": {
-            "day": 7,
-            "hour": 15,
-            "minute": 3,
-            "month": 10,
-            "msec": 635,
-            "msecSinceEpoch": 1633644208635,
-            "second": 28,
-            "year": 2021
+        "ROI": {
+            "height": 608,
+            "leftEdge": 0,
+            "topEdge": 0,
+            "width": 608
         },
-        "researcherName": ""
+        "compression": "FFV1",
+        "deviceDirectory": "C:/data/Joe/Ca_EEG3/Ca_EEG3-4/2022_09_19/09_18_41/miniscope",
+        "deviceID": 0,
+        "deviceName": "miniscope",
+        "deviceType": "Miniscope_V4_BNO",
+        "ewl": 70,
+        "frameRate": "30FPS",
+        "framesPerFile": 1000,
+        "gain": 3.5,
+        "led0": 1
     }
 
     """
 
     def __init__(
         self,
-        file_paths: List[PathType],
-        configuration_file_path: PathType,
+        folder_path: Optional[PathType] = None,
+        file_paths: Optional[List[PathType]] = None,
+        configuration_file_path: Optional[PathType] = None,
         timestamps_path: Optional[PathType] = None,
     ):
+        # Determine file paths and configuration file path based on folder_path or provided arguments
+        if folder_path is not None:
+            if file_paths is not None or configuration_file_path is not None:
+                raise ValueError(
+                    "When folder_path is provided, file_paths and configuration_file_path cannot be specified. "
+                    "Use either folder_path alone or provide file_paths with configuration_file_path."
+                )
+
+            file_paths, configuration_file_path, timestamps_path = self.get_miniscope_files_from_direct_folder(
+                folder_path
+            )
+        else:
+            if file_paths is None or configuration_file_path is None:
+                raise ValueError(
+                    "When folder_path is not provided, both file_paths and configuration_file_path must be specified."
+                )
 
         # Validate input files
         self.validate_miniscope_files(file_paths, configuration_file_path, timestamps_path)
@@ -188,6 +179,85 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
             imaging_extractors.append(extractor)
 
         super().__init__(imaging_extractors=imaging_extractors)
+
+    @staticmethod
+    def get_miniscope_files_from_direct_folder(
+        folder_path: PathType,
+    ) -> Tuple[List[PathType], PathType, Optional[PathType]]:
+        """
+        Retrieve Miniscope files from a folder containing .avi files directly.
+
+        This function handles cases where .avi files and metaData.json are located
+        directly in the specified folder without subfolders.
+
+        Expected folder structure:
+        ```
+        folder/
+        ├── 0.avi
+        ├── 1.avi
+        ├── 2.avi
+        ├── metaData.json
+        ├── timeStamps.csv
+        └── headOrientation.csv
+        ```
+
+        Parameters
+        ----------
+        folder_path : PathType
+            Path to the folder containing .avi files and metaData.json directly.
+
+        Returns
+        -------
+        Tuple[List[PathType], PathType]
+            A tuple containing:
+            - List of .avi file paths sorted naturally
+            - Path to the configuration file (metaData.json)
+
+        Raises
+        ------
+        AssertionError
+            If no .avi files or configuration files are found.
+        ValueError
+            If the file lists are empty or contain invalid file types.
+        Warning
+            If the timestamps file is not found, timestamps will be set to None.
+        """
+        natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
+
+        folder_path = Path(folder_path)
+
+        miniscope_avi_file_paths = natsort.natsorted(list(folder_path.glob("*.avi")))
+        miniscope_config_files = natsort.natsorted(list(folder_path.glob("metaData.json")))
+        miniscope_timestamps_files = natsort.natsorted(list(folder_path.glob("timeStamps.csv")))
+
+        assert miniscope_avi_file_paths, f"No .avi files found in direct folder structure at '{folder_path}'"
+        # check that the list of file paths follow the expected naming convention (0.avi, 1.avi, 2.avi, ...)
+        for i, file_path in enumerate(miniscope_avi_file_paths):
+            expected_file_name = f"{i}.avi"
+            if file_path.name != expected_file_name:
+                raise ValueError(
+                    f"Unexpected file name '{file_path.name}'. Expected '{expected_file_name}'. "
+                    "Ensure .avi files are named sequentially starting from 0 (e.g., 0.avi, 1.avi, 2.avi, ...)."
+                )
+
+        # check that the configuration file exists and is unique
+        assert miniscope_config_files, f"No configuration file found at '{folder_path}', expected 'metaData.json'"
+        assert len(miniscope_config_files) == 1, f"Multiple configuration files found at '{folder_path}'"
+        configuration_file_path = miniscope_config_files[0]
+
+        # timestamps file is optional
+        if miniscope_timestamps_files:
+            assert (
+                len(miniscope_timestamps_files) == 1
+            ), f"Multiple timestamps files found at '{folder_path}', expected only one 'timeStamps.csv'"
+            timestamps_path = miniscope_timestamps_files[0]
+        else:
+            warnings.warn(
+                f"No timestamps file found at '{folder_path}', expected 'timeStamps.csv'. Timestamps will be None."
+            )
+            timestamps_path = None
+
+        return miniscope_avi_file_paths, configuration_file_path, timestamps_path
 
     @staticmethod
     def validate_miniscope_files(
