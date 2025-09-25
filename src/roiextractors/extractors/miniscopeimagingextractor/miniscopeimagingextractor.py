@@ -89,9 +89,9 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         # Load configuration and extract sampling frequency
         self._miniscope_config = self.load_miniscope_config(configuration_file_path)
 
-        self.folder_path = Path(configuration_file_path).parent
+        self.miniscope_folder_path = Path(configuration_file_path).parent
         self._timestamps_path = (
-            Path(timestamps_path) if timestamps_path is not None else self.folder_path / "timeStamps.csv"
+            Path(timestamps_path) if timestamps_path is not None else self.miniscope_folder_path / "timeStamps.csv"
         )
         if not self._timestamps_path.exists():
             warnings.warn(f"Timestamps file not found at {self._timestamps_path}. Timestamps will be None.")
@@ -184,9 +184,10 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
 
     def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+    ) -> np.ndarray | None:
 
         if self._timestamps_path is None:
+            warnings.warn("Timestamps file not provided or not found. Returning None for timestamps.")
             return None
 
         # Set defaults
@@ -328,14 +329,14 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
 
     def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> List[float]:
+    ) -> np.ndarray | None:
         """
         Retrieve timestamps for multiple recordings in a multi-recordings folder structure.
 
         Returns
         -------
-        List[float]
-            A list of floats representing the timestamps for the recordings.
+        np.ndarray | None
+            An array of floats representing the timestamps for the recordings.
 
         Raises
         ------
@@ -346,16 +347,15 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
 
         natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
 
-        folder_path = Path(folder_path)
         time_file_name = "timeStamps.csv"
 
         timestamps_file_paths = natsort.natsorted(
-            list(folder_path.glob(f"*/{self.miniscope_device_name}/{time_file_name}"))
+            list(self.folder_path.glob(f"*/{self.miniscope_device_name}/{time_file_name}"))
         )
 
-        assert timestamps_file_paths, f"No time files found at '{folder_path}'"
+        assert timestamps_file_paths, f"No time files found at '{self.folder_path}'"
 
-        recording_start_times = get_recording_start_times_for_multi_recordings(folder_path=folder_path)
+        recording_start_times = get_recording_start_times_for_multi_recordings(folder_path=self.folder_path)
         timestamps = []
         for file_ind, file_path in enumerate(timestamps_file_paths):
             timestamps_per_file = read_timestamps_from_csv_file(file_path=file_path)
@@ -365,15 +365,13 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
 
             timestamps.extend(timestamps_per_file)
 
-        native_timestamps = np.concatenate(timestamps)
-
         # Set defaults
         if start_sample is None:
             start_sample = 0
         if end_sample is None:
             end_sample = self.get_num_samples()
 
-        return native_timestamps[start_sample:end_sample].tolist()
+        return np.array(timestamps)[start_sample:end_sample]
 
 
 class _MiniscopeSingleVideoExtractor(ImagingExtractor):
@@ -515,3 +513,8 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
             )
 
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
+
+    def get_native_timestamps(
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
+        return None

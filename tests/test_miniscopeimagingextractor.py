@@ -14,12 +14,11 @@ from roiextractors import (
     MiniscopeImagingExtractor,
     MiniscopeMultiRecordingImagingExtractor,
 )
+from roiextractors.extractors.miniscopeimagingextractor.miniscopeimagingextractor import read_timestamps_from_csv_file
 from roiextractors.extractors.miniscopeimagingextractor.miniscope_utils import (
     get_miniscope_files_from_direct_folder,
     get_recording_start_time,
     get_recording_start_times_for_multi_recordings,
-    get_timestamps_for_multi_recordings,
-    read_timestamps_from_csv_file,
 )
 
 from .setup_paths import OPHYS_DATA_PATH
@@ -115,6 +114,13 @@ class TestMiniscopeImagingExtractor(TestCase):
             self.assertGreater(sub_extractor.get_num_samples(), 0)
             self.assertEqual(sub_extractor.get_sampling_frequency(), self.extractor.get_sampling_frequency())
 
+    def test_miniscopeextractor_timestamps(self):
+        """Test that the extractor can retrieve native timestamps."""
+        timestamps = self.extractor.get_native_timestamps()
+        self.assertIsInstance(timestamps, np.ndarray)
+        self.assertEqual(len(timestamps), self.num_samples)
+        self.assertTrue(all(isinstance(ts, (int, float, np.number)) for ts in timestamps))
+
 
 class TestMiniscopeMultiRecordingImagingExtractor(TestCase):
     """Test class for MiniscopeMultiRecordingImagingExtractor using C6-J588_Disc5 data."""
@@ -195,6 +201,12 @@ class TestMiniscopeMultiRecordingImagingExtractor(TestCase):
             start = num_extractor * num_samples_per_extractor
             video_range = np.arange(start, start + num_samples_per_extractor)
             assert_array_equal(sub_extractor.get_series(), self.video[video_range])
+
+    def test_multi_recording_extractor_timestamps(self):
+        timestamps = self.multi_recording_extractor.get_native_timestamps()
+        self.assertIsInstance(timestamps, np.ndarray)
+        self.assertEqual(len(timestamps), self.num_samples)
+        self.assertTrue(all(isinstance(ts, (int, float, np.number)) for ts in timestamps))
 
 
 class TestMiniscopeUtilityFunctions(TestCase):
@@ -406,14 +418,3 @@ class TestMiniscopeUtilityFunctions(TestCase):
             self.assertIsInstance(timestamps, np.ndarray)
             self.assertGreater(len(timestamps), 0)
             self.assertTrue(all(isinstance(t, (int, float, np.number)) for t in timestamps))
-
-    def test_get_timestamps_for_multi_recordings(self):
-        """Test getting timestamps for multiple recordings."""
-        timestamps = get_timestamps_for_multi_recordings(self.multi_recording_folder)
-        self.assertIsInstance(timestamps, list)
-        self.assertGreater(len(timestamps), 0)
-
-    def test_get_timestamps_for_multi_recordings_no_files(self):
-        """Test getting timestamps when no CSV files exist."""
-        with self.assertRaises(AssertionError):
-            get_timestamps_for_multi_recordings(self.temp_dir)
