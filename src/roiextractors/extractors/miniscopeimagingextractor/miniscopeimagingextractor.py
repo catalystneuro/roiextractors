@@ -210,11 +210,12 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
 
         Returns
         -------
-        Tuple[List[PathType], PathType]
+        Tuple[List[PathType], PathType, Optional[PathType]]
             A tuple containing:
             - List of .avi file paths sorted naturally
             - Path to the configuration file (metaData.json)
-
+            - Path to the timestamps file (timeStamps.csv), if it exists
+            or None if it does not exist.
         Raises
         ------
         AssertionError
