@@ -163,7 +163,9 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
             Path(timestamps_path) if timestamps_path is not None else self._miniscope_folder_path / "timeStamps.csv"
         )
         if not self._timestamps_path.exists():
-            warnings.warn(f"Timestamps file not found at {self._timestamps_path}. Timestamps will be None.")
+            warnings.warn(
+                f"`timeStamps.csv` file not found at {self._miniscope_folder_path}. Timestamps will be None. Set it with the `timestamps_path` if available."
+            )
             self._timestamps_path = None
 
         frame_rate_match = re.search(r"\d+", self._miniscope_config["frameRate"])
