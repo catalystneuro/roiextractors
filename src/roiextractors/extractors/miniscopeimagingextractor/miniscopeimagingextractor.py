@@ -43,9 +43,31 @@ def read_timestamps_from_csv_file(file_path: PathType) -> List[float]:
 
 class MiniscopeImagingExtractor(MultiImagingExtractor):
     """
-    MiniscopeImagingExtractor processes .avi files within the same session.
+    The MiniscopeImagingExtractor consolidates multiple .avi video files from a Miniscope recording session
+    as a single continuous dataset. It reads configuration parameters from a metaData.json
+    file and optionally loads timestamps from a timeStamps.csv file.
+    This file is typically located in the root directory of the Miniscope recording
+    session alongside the video files.
+    The JSON file should contain at least the following key:
+        - "frameRate": String containing the frame rate value (e.g., "20FPS", "30.0")
+        - "year", "month", "day", "hour", "minute", "second", "msec": Integers representing the recording start time. Either under the field "recordingStartTime" or at the top level of the JSON.
+        - "miniscope": String representing the device name (e.g., "Miniscope", "MiniscopeV3", etc.)
 
-    This extractor consolidates the recordings as a single continuous dataset.
+    Notes:
+    ------
+    - The function expects a "recordingStartTime" key in the metadata JSON, which contains start time details.
+      If not present, the top-level JSON object is assumed to contain the time information.
+    - The "msec" field in the metadata is converted from milliseconds to microseconds for compatibility with the datetime
+      microsecond field.
+    Additional metadata such as recording settings, device parameters, and session information may also be present.
+
+    The extractor expects the following file structure from a typical Miniscope recording:
+    - miniscope folder/
+      ├── metaData.json (required)
+      ├── timeStamps.csv (optional)
+      ├── video1.avi
+      ├── video2.avi
+      └── ...
 
     Parameters
     ----------
@@ -54,8 +76,12 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         recording session and will be concatenated in the order provided.
     configuration_file_path : PathType
         Path to the metaData.json configuration file containing recording parameters.
+        Usually located in the same directory as the .avi files.
     timestamps_path : Optional[PathType], optional
         Path to the timeStamps.csv file containing timestamps relative to the recording start.
+        If not provided, the extractor will look for a timeStamps.csv file in the same directory
+        as the configuration_file_path. If the file is not found, timestamps will be set to None.
+        Default is None.
 
     Examples
     --------
@@ -69,11 +95,63 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
     >>> file_paths, config_path = get_miniscope_files_from_folder("/path/to/folder")
     >>> extractor = MiniscopeImagingExtractor(file_paths, config_path)
 
+    >>> # If timestamps are available, provide the path
+    >>> timestamps_path = "/path/to/timeStamps.csv"
+    >>> extractor = MiniscopeImagingExtractor(file_paths, config_path, timestamps_path)
+
     Notes
     -----
     For each video file, a _MiniscopeSingleVideoExtractor is created. These individual extractors
     are then combined into the MiniscopeImagingExtractor to handle the session's recordings
     as a unified, continuous dataset.
+
+    Examples of metaData.json content:
+    -----------------------------------
+    example 1:
+    {
+        "animalName": "Ca_EEG2-1",
+        "baseDirectory": "C:/Users/CaiLab/Documents//Joe/Ca_EEG2/Ca_EEG2-1/2021_10_14/10_11_24",
+        "cameras": [
+        ],
+        "day": 14,
+        "experimentName": "Ca_EEG2",
+        "hour": 10,
+        "miniscopes": [
+            "Miniscope"
+        ],
+        "minute": 11,
+        "month": 10,
+        "msec": 779,
+        "msecSinceEpoch": 1634220684779,
+        "researcherName": "Joe",
+        "second": 24,
+        "year": 2021
+    }
+    example 2:
+    {
+        "animalName": "",
+        "baseDirectory": "C:/mData/2021_10_07/C6-J588_Disc5/15_03_28",
+        "cameras": [
+            "BehavCam 2"
+        ],
+        "experimentName": "",
+        "miniscopes": [
+            "Miniscope"
+        ],
+        "nameExpMouse": "C6-J588_Disc5",
+        "recordingStartTime": {
+            "day": 7,
+            "hour": 15,
+            "minute": 3,
+            "month": 10,
+            "msec": 635,
+            "msecSinceEpoch": 1633644208635,
+            "second": 28,
+            "year": 2021
+        },
+        "researcherName": ""
+    }
+
     """
 
     def __init__(
