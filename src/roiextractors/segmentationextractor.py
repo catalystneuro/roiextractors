@@ -44,8 +44,7 @@ class SegmentationExtractor(ABC):
         self._roi_response_neuropil = None
         self._roi_response_denoised = None
         self._roi_response_deconvolved = None
-        self._image_correlation = None
-        self._image_mean = None
+        self._summary_images = {}
         self._image_mask = None
         self._properties = {}
 
@@ -381,9 +380,9 @@ class SegmentationExtractor(ABC):
         -------
         _roi_image_dict: dict
             dictionary with key, values representing different types of Images used in segmentation:
-                Mean, Correlation image
+                Mean, Correlation image, Maximum projection, etc.
         """
-        return dict(mean=self._image_mean, correlation=self._image_correlation)
+        return dict(self._summary_images)
 
     def get_image(self, name: str = "correlation") -> ArrayType:
         """Get specific images: mean or correlation.
@@ -740,6 +739,17 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
         # Preserve parent's channel names and other attributes
         self._channel_names = self._parent_segmentation.get_channel_names()
         self._num_planes = self._parent_segmentation.get_num_planes()
+
+        # The _times attribute of the sliced extractor acts like a view to the parent's _times,
+        # which is memory efficient. However, it maintains copy semantics which are safer for the following reasons:
+        # Currently, there are only two ways of setting the _times:
+        #
+        # 1. set_times() method - always overwrites the entire _times array
+        # 2. get_timestamps() method - in some cases will cache get_native_timestamps() output
+        #
+        # Both methods overwrite the entire _times array of the instance, preventing aliasing
+        # problems where the _times reference of a slice extractor could be modified by the parent
+        # or vice versa. See issue 498 for more details about this design.
         if getattr(self._parent_segmentation, "_times") is not None:
             self._times = self._parent_segmentation._times[start_sample:end_sample]
 

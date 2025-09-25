@@ -206,6 +206,18 @@ class NewExtractSegmentationExtractor(
         extract_version = np.ravel(self._info_struct["version"][:])
         self.config.update(version=_decode_h5py_array(extract_version))
 
+        # Add summary images
+        if "summary_image" in self._info_struct:
+            self._summary_images["summary_image"] = self._info_struct["summary_image"][:].T
+        if "F_per_pixel" in self._info_struct:
+            self._summary_images["f_per_pixel"] = self._info_struct["F_per_pixel"][:].T
+        if "max_image" in self._info_struct:
+            self._summary_images["max_image"] = self._info_struct["max_image"][:].T
+
+        # Add None values for standard images that are not present
+        self._summary_images["correlation"] = None
+        self._summary_images["mean"] = None
+
     def close(self):
         """Close the file when the object is deleted."""
         self._dataset_file.close()
@@ -279,14 +291,7 @@ class NewExtractSegmentationExtractor(
         return self.get_frame_shape()
 
     def get_images_dict(self):
-        images_dict = super().get_images_dict()
-        images_dict.update(
-            summary_image=self._info_struct["summary_image"][:].T,
-            f_per_pixel=self._info_struct["F_per_pixel"][:].T,
-            max_image=self._info_struct["max_image"][:].T,
-        )
-
-        return images_dict
+        return dict(self._summary_images)
 
     def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
@@ -329,7 +334,9 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         self._roi_response_raw = self._trace_extractor_read()
         self._raw_movie_file_location = self._raw_datafile_read()
         self._sampling_frequency = self._roi_response_raw.shape[0] / self._tot_exptime_extractor_read()
-        self._image_correlation = self._summary_image_read()
+        correlation_image = self._summary_image_read()
+        if correlation_image is not None:
+            self._summary_images["correlation"] = correlation_image
 
     def __del__(self):
         """Close the file when the object is deleted."""
