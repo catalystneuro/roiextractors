@@ -143,7 +143,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
                     "Use either folder_path alone or provide file_paths with configuration_file_path."
                 )
 
-            file_paths, configuration_file_path, timestamps_path = self.get_miniscope_files_from_direct_folder(
+            file_paths, configuration_file_path, timestamps_path = self._get_miniscope_files_from_direct_folder(
                 folder_path
             )
         else:
@@ -183,7 +183,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         super().__init__(imaging_extractors=imaging_extractors)
 
     @staticmethod
-    def get_miniscope_files_from_direct_folder(
+    def _get_miniscope_files_from_direct_folder(
         folder_path: PathType,
     ) -> Tuple[List[PathType], PathType, Optional[PathType]]:
         """
