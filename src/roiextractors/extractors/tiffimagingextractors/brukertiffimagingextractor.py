@@ -359,7 +359,7 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
         start = start_sample if start_sample is not None else 0
         stop = end_sample if end_sample is not None else self.get_num_samples()
 
-        series_shape = (stop - start,) + self.get_image_size()
+        series_shape = (stop - start,) + self.get_sample_shape()
         series = np.empty(shape=series_shape, dtype=self.get_dtype())
 
         for plane_ind, extractor in enumerate(self._imaging_extractors):
