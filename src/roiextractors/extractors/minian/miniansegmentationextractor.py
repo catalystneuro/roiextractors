@@ -12,8 +12,7 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-import zarr
-from neuroconv.utils import calculate_regular_series_rate
+
 
 from ...extraction_tools import FloatType, PathType
 from ...segmentationextractor import SegmentationExtractor
@@ -66,6 +65,8 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         timestamps_path: str or Path, optional
             Path to the timeStamps.csv file. If not provided, assumes default location at folder_path/timeStamps.csv.
         """
+        import zarr
+
         SegmentationExtractor.__init__(self)
         self.folder_path = Path(folder_path)
         self._sampling_frequency = sampling_frequency
@@ -360,6 +361,8 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         ValueError
             If no sampling frequency is available and timestamps cannot be used to derive it.
         """
+        from neuroconv.utils import calculate_regular_series_rate
+
         if self._sampling_frequency is not None:
             return float(self._sampling_frequency)
 
