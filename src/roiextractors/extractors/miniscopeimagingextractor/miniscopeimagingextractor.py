@@ -162,7 +162,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
     ):
 
         # Validate input files
-        self.validate_miniscope_files(file_paths, configuration_file_path)
+        self.validate_miniscope_files(file_paths, configuration_file_path, timestamps_path)
 
         # Load configuration and extract sampling frequency
         self._miniscope_config = self.load_miniscope_config(configuration_file_path)
@@ -190,7 +190,9 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         super().__init__(imaging_extractors=imaging_extractors)
 
     @staticmethod
-    def validate_miniscope_files(file_paths: List[PathType], configuration_file_path: PathType) -> None:
+    def validate_miniscope_files(
+        file_paths: List[PathType], configuration_file_path: PathType, timestamps_path: Optional[PathType] = None
+    ) -> None:
         """
         Validate that the provided Miniscope files exist and are accessible.
 
@@ -200,6 +202,8 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
             List of .avi file paths to validate.
         configuration_file_path : PathType
             Path to the configuration file to validate.
+        timestamps_path : Optional[PathType], optional
+            Path to the timestamps file to validate, by default None.
 
         Raises
         ------
@@ -208,8 +212,6 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         ValueError
             If the file lists are empty or contain invalid file types.
         """
-        if not file_paths:
-            raise ValueError("file_paths cannot be empty.")
 
         configuration_file_path = Path(configuration_file_path)
         if not configuration_file_path.exists():
@@ -218,12 +220,22 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         if not configuration_file_path.suffix == ".json":
             raise ValueError(f"Configuration file must be a .json file, got: {configuration_file_path}")
 
+        if not file_paths:
+            raise ValueError("file_paths cannot be empty.")
+
         for file_path in file_paths:
             file_path = Path(file_path)
             if not file_path.exists():
                 raise FileNotFoundError(f"Video file not found: {file_path}")
             if not file_path.suffix == ".avi":
                 raise ValueError(f"Video files must be .avi files, got: {file_path}")
+
+        if timestamps_path is not None:
+            timestamps_path = Path(timestamps_path)
+            if not timestamps_path.exists():
+                raise FileNotFoundError(f"Timestamps file not found: {timestamps_path}")
+            if not timestamps_path.suffix == ".csv":
+                raise ValueError(f"Timestamps file must be a .csv file, got: {timestamps_path}")
 
     @staticmethod
     def load_miniscope_config(configuration_file_path: PathType) -> dict:
