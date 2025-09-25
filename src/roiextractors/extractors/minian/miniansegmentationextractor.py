@@ -371,7 +371,8 @@ class MinianSegmentationExtractor(SegmentationExtractor):
                 derived_freq = calculate_regular_series_rate(timestamps)
                 if derived_freq is None:
                     warnings.warn(
-                        f"Timestamps are irregularly spaced; cannot derive a sampling frequency from timestamps in {self._timestamps_path}."
+                        f"Timestamps are irregularly spaced; cannot derive a sampling frequency from timestamps in {self._timestamps_path}. Will return None.",
+                        UserWarning,
                     )
                     return None
                 else:
