@@ -202,6 +202,15 @@ def test_get_session_id(extractor, expected_properties):
     assert session_id == expected_properties["session_id"]
 
 
+def test_slicing_preserves_has_time_vector():
+    """Test that slicing preserves the has_time_vector property."""
+    folder_path = OPHYS_DATA_PATH / "segmentation_datasets" / "minian" / "segmented_data_3units_100frames"
+    extractor = MinianSegmentationExtractor(folder_path=folder_path)
+    assert extractor.has_time_vector()
+    sub_extractor = extractor.slice_samples(start_sample=0, end_sample=10)
+    assert sub_extractor.has_time_vector()
+
+
 def test_constructor_with_sampling_frequency(folder_path):
     """Test that the extractor can be initialized with a sampling frequency."""
     sampling_freq = 30.0
