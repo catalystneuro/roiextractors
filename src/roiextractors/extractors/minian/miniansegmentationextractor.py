@@ -348,7 +348,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         """
         return dict(self._summary_images)
 
-    def get_sampling_frequency(self) -> float:
+    def get_sampling_frequency(self) -> Optional[float]:
         """Get the sampling frequency in Hz.
 
         Returns
@@ -372,9 +372,13 @@ class MinianSegmentationExtractor(SegmentationExtractor):
                 if len(timestamps) > 1:
                     # Calculate average sampling frequency from time differences
                     derived_freq = calculate_regular_series_rate(timestamps)
-                    return float(
-                        derived_freq
-                    )  # it will be None if timestamps are irregularly spaced, so _times will be set in get_native_timestamps
+                    if derived_freq is None:
+                        warnings.warn(
+                            f"Timestamps are irregularly spaced; cannot derive a sampling frequency from timestamps in {self._timestamps_path}."
+                        )
+                        return None
+                    else:
+                        return float(derived_freq)
             except Exception:
                 pass
 
