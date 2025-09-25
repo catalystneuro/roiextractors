@@ -106,6 +106,14 @@ class MinianSegmentationExtractor(SegmentationExtractor):
                     f"No sampling frequency provided and timestamps file not found at {self._timestamps_path}. "
                     "Please provide either a sampling_frequency parameter or ensure a valid timeStamps.csv file exists."
                 )
+            else:
+                try:
+                    self.get_native_timestamps()
+                except Exception as e:
+                    raise ValueError(
+                        f"Error reading timestamps from {self._timestamps_path}: {e}. "
+                        "Please provide a valid timeStamps.csv file or a sampling_frequency parameter."
+                    )
 
     def _read_zarr_group(self, zarr_group: str):
         """Read the zarr group.
@@ -187,15 +195,6 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             return np.transpose(dataset[field])
         elif dataset[field].ndim == 1:
             return np.expand_dims(dataset[field], axis=1)
-
-    def _read_timestamps_from_csv(self) -> np.ndarray:
-        """Extract timestamps corresponding to frame indexes (not downsampled) of the stored denoised trace.
-
-        Returns
-        -------
-        np.ndarray
-            The timestamps of the denoised trace.
-        """
 
     def get_native_timestamps(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
         """
@@ -381,12 +380,6 @@ class MinianSegmentationExtractor(SegmentationExtractor):
                         return float(derived_freq)
             except Exception:
                 pass
-
-        raise ValueError(
-            "No sampling frequency available. Please provide a sampling_frequency parameter "
-            "when initializing the MinianSegmentationExtractor, or ensure a valid timeStamps.csv "
-            "file is available to derive the sampling frequency."
-        )
 
     def _get_session_id(self) -> str:
         """Get the session id from the A.zarr group.
