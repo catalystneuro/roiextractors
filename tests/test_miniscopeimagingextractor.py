@@ -14,13 +14,11 @@ from roiextractors import (
     MiniscopeImagingExtractor,
     MiniscopeMultiRecordingImagingExtractor,
 )
+from roiextractors.extractors.miniscopeimagingextractor.miniscopeimagingextractor import read_timestamps_from_csv_file
 from roiextractors.extractors.miniscopeimagingextractor.miniscope_utils import (
     get_miniscope_files_from_direct_folder,
     get_recording_start_time,
     get_recording_start_times_for_multi_recordings,
-)
-from roiextractors.extractors.miniscopeimagingextractor.miniscopeimagingextractor import (
-    read_timestamps_from_csv_file,
 )
 
 from .setup_paths import OPHYS_DATA_PATH
@@ -165,11 +163,11 @@ class TestMiniscopeMultiRecordingImagingExtractor(TestCase):
         return video
 
     def test_avi_files_are_missing_assertion(self):
-        with self.assertRaises(AssertionError):
+        with self.assertRaisesRegex(AssertionError, "No Miniscope .avi files found at"):
             MiniscopeMultiRecordingImagingExtractor._get_miniscope_files_from_multi_recordings_subfolders("test")
 
     def test_json_files_are_missing_assertion(self):
-        with self.assertRaises(AssertionError):
+        with self.assertRaisesRegex(AssertionError, "No Miniscope configuration files found at"):
             MiniscopeMultiRecordingImagingExtractor._get_miniscope_files_from_multi_recordings_subfolders(self.test_dir)
 
     # Tests for the MiniscopeMultiRecordingImagingExtractor
@@ -279,12 +277,12 @@ class TestMiniscopeUtilityFunctions(TestCase):
 
     def test_get_miniscope_files_from_folder_no_avi(self):
         """Test assertion when no .avi files are found."""
-        with self.assertRaises(AssertionError):
+        with self.assertRaisesRegex(AssertionError, "No .avi files found in direct folder structure at"):
             get_miniscope_files_from_direct_folder(self.temp_dir)
 
     def test_get_miniscope_files_from_folder_nonexistent(self):
         """Test assertion when folder doesn't exist."""
-        with self.assertRaises(AssertionError):
+        with self.assertRaisesRegex(AssertionError, "No .avi files found in direct folder structure at"):
             get_miniscope_files_from_direct_folder(Path("nonexistent_folder"))
 
     def test_get_miniscope_files_from_folder_direct_structure(self):
@@ -407,7 +405,7 @@ class TestMiniscopeUtilityFunctions(TestCase):
 
     def test_get_recording_start_times_for_multi_recordings_no_files(self):
         """Test getting start times when no config files exist."""
-        with self.assertRaises(AssertionError):
+        with self.assertRaisesRegex(AssertionError, "No Miniscope configuration files found at"):
             get_recording_start_times_for_multi_recordings(self.temp_dir)
 
     def test_read_timestamps_from_csv_file(self):
