@@ -66,7 +66,7 @@ class TestMicroManagerTiffExtractor(TestCase):
             MicroManagerTiffImagingExtractor(folder_path=self.test_dir)
 
     def test_micromanagertiffextractor_image_size(self):
-        self.assertEqual(self.extractor.get_image_size(), (1024, 1024))
+        self.assertEqual(self.extractor.get_sample_shape(), (1024, 1024))
 
     def test_micromanagertiffextractor_num_frames(self):
         self.assertEqual(self.extractor.get_num_frames(), 15)
@@ -88,7 +88,7 @@ class TestMicroManagerTiffExtractor(TestCase):
 
     def test_private_micromanagertiffextractor_num_frames(self):
         for sub_extractor in self.extractor._imaging_extractors:
-            self.assertEqual(sub_extractor.get_num_frames(), 5)
+            self.assertEqual(sub_extractor.get_num_samples(), 5)
 
     def test_private_micromanagertiffextractor_sampling_frequency(self):
         sub_extractor = self.extractor._imaging_extractors[0]

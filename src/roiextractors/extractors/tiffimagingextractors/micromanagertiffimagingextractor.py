@@ -14,7 +14,7 @@ from collections import Counter
 from itertools import islice
 from pathlib import Path
 from types import ModuleType
-from typing import Dict, Optional, Tuple
+from typing import Optional
 from xml.etree import ElementTree
 
 import numpy as np
@@ -107,7 +107,7 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
             imaging_extractors.append(extractor)
         super().__init__(imaging_extractors=imaging_extractors)
 
-    def _load_settings_json(self) -> Dict[str, Dict[str, str]]:
+    def _load_settings_json(self) -> dict[str, dict[str, str]]:
         """Load the 'DisplaySettings' JSON file.
 
         Returns
@@ -160,7 +160,7 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         """Override the parent class method as none of the properties that are checked are from the sub-imaging extractors."""
         return True
 
-    def get_image_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
         Returns
@@ -170,7 +170,7 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         """
         return self._height, self._width
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_size(self) -> tuple[int, int]:
         warnings.warn(
             "get_image_size() is deprecated and will be removed in or after September 2025. "
             "Use get_image_shape() instead for consistent behavior across all extractors.",
@@ -270,7 +270,7 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
         )
         return self.get_num_samples()
 
-    def get_image_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
         Returns

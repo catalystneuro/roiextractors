@@ -1,7 +1,7 @@
 """Base class definition for volumetric imaging extractors."""
 
 import warnings
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable, Optional
 
 import numpy as np
 
@@ -15,7 +15,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
     extractor_name = "VolumetricImaging"
     installatiuon_mesage = ""
 
-    def __init__(self, imaging_extractors: List[ImagingExtractor]):
+    def __init__(self, imaging_extractors: list[ImagingExtractor]):
         """Initialize a VolumetricImagingExtractor object from a list of ImagingExtractors.
 
         Parameters
@@ -32,7 +32,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
         self.is_volumetric = True
 
     @staticmethod
-    def _check_consistency_between_imaging_extractors(imaging_extractors: List[ImagingExtractor]):
+    def _check_consistency_between_imaging_extractors(imaging_extractors: list[ImagingExtractor]):
         """Check that essential properties are consistent between extractors so that they can be combined appropriately.
 
         Parameters
@@ -155,7 +155,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
         else:
             return self.get_series(start_sample=frame_idxs[0], end_sample=frame_idxs[-1] + 1)
 
-    def get_image_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
         Returns
@@ -165,7 +165,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
         """
         return self._imaging_extractors[0].get_image_shape()
 
-    def get_image_size(self) -> Tuple:
+    def get_image_size(self) -> tuple:
         """Get the size of a single frame.
 
         Returns
@@ -230,7 +230,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
     def get_dtype(self) -> DtypeType:
         return self._imaging_extractors[0].get_dtype()
 
-    def get_volume_shape(self) -> Tuple[int, int, int]:
+    def get_volume_shape(self) -> tuple[int, int, int]:
         """Get the shape of the volumetric video (num_rows, num_columns, num_planes).
 
         Returns

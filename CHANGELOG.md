@@ -7,6 +7,7 @@
 ### Deprecations And Removals
 
 ### Improvements
+* Add ruff-rule to detect non-pep585 annotation [PR #494](https://github.com/catalystneuro/roiextractors/pull/493)
 
 
 # v0.7.0 (September 26th, 2025)

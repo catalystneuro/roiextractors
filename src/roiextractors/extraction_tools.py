@@ -13,7 +13,7 @@ from functools import wraps
 from pathlib import Path
 from platform import python_version
 from types import ModuleType
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Optional
 
 import h5py
 import lazy_ops
@@ -24,10 +24,10 @@ from packaging import version
 from tqdm import tqdm
 
 ArrayType = ArrayLike
-PathType = Union[str, Path]
+PathType = str | Path
 NumpyArray = np.ndarray
 DtypeType = DTypeLike
-IntType = Union[int, np.integer]
+IntType = int | np.integer
 FloatType = float
 
 
@@ -127,7 +127,7 @@ class VideoStructure:
         if values_out_of_range:
             raise ValueError(exception_message)
 
-    def build_video_shape(self, n_frames: int) -> Tuple[int, int, int, int]:
+    def build_video_shape(self, n_frames: int) -> tuple[int, int, int, int]:
         """Build the shape of the video from class attributes.
 
         Parameters
@@ -640,7 +640,7 @@ def todict(matobj):
 def get_package(
     package_name: str,
     installation_instructions: Optional[str] = None,
-    excluded_platforms_and_python_versions: Optional[Dict[str, List[str]]] = None,
+    excluded_platforms_and_python_versions: Optional[dict[str, list[str]]] = None,
 ) -> ModuleType:
     """Check if package is installed and return module if so.
 
