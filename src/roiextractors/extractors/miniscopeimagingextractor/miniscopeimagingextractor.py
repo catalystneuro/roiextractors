@@ -43,8 +43,9 @@ def read_timestamps_from_csv_file(file_path: PathType) -> List[float]:
 
 class MiniscopeImagingExtractor(MultiImagingExtractor):
     """
-    The MiniscopeImagingExtractor consolidates multiple .avi video files from a Miniscope recording session
-    as a single continuous dataset. It reads configuration parameters from a metaData.json
+    The MiniscopeImagingExtractor consolidates multiple .avi video files from a Miniscope recording session.
+
+    As a single continuous dataset. It reads configuration parameters from a metaData.json
     file and optionally loads timestamps from a timeStamps.csv file.
     This file is typically located in the root directory of the Miniscope recording
     session alongside the video files.
@@ -52,8 +53,8 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         - "frameRate": String containing the frame rate value (e.g., "20FPS", "30.0")
         - "deviceName": String representing the device name (e.g., "Miniscope", "MiniscopeV3", etc.)
 
-    Notes:
-    ------
+    Notes
+    -----
     - The function expects a "recordingStartTime" key in the metadata JSON, which contains start time details.
       If not present, the top-level JSON object is assumed to contain the time information.
     - The "msec" field in the metadata is converted from milliseconds to microseconds for compatibility with the datetime
@@ -131,7 +132,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
     def __init__(
         self,
         folder_path: Optional[PathType] = None,
-        file_paths: Optional[List[PathType]] = None,
+        file_paths: Optional[list[PathType]] = None,
         configuration_file_path: Optional[PathType] = None,
         timestamps_path: Optional[PathType] = None,
     ):
@@ -185,7 +186,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
     @staticmethod
     def _get_miniscope_files_from_direct_folder(
         folder_path: PathType,
-    ) -> Tuple[List[PathType], PathType, Optional[PathType]]:
+    ) -> tuple[list[PathType], PathType, Optional[PathType]]:
         """
         Retrieve Miniscope files from a folder containing .avi files directly.
 
@@ -216,6 +217,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
             - Path to the configuration file (metaData.json)
             - Path to the timestamps file (timeStamps.csv), if it exists
             or None if it does not exist.
+
         Raises
         ------
         AssertionError
@@ -285,7 +287,6 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         ValueError
             If the file lists are empty or contain invalid file types.
         """
-
         configuration_file_path = Path(configuration_file_path)
         if not configuration_file_path.exists():
             raise FileNotFoundError(f"Configuration file not found: {configuration_file_path}")
@@ -386,19 +387,19 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
     ```
     parent_folder/
     ├── 15_03_28/  (timestamp folder)
-    │   ├── Miniscope/
+    │   ├── Miniscope/  (miniscope_device_name folder)
     │   │   ├── 0.avi
     │   │   ├── 1.avi
     │   │   └── metaData.json
     │   ├── BehavCam_2/
     │   └── metaData.json
     ├── 15_06_28/  (timestamp folder)
-    │   ├── Miniscope/
+    │   ├── Miniscope/ (miniscope_device_name folder)
     │   │   ├── 0.avi
     │   │   └── metaData.json
     │   └── BehavCam_2/
     └── 15_12_28/  (timestamp folder)
-        └── Miniscope/
+        └── Miniscope/ (miniscope_device_name folder)
             ├── 0.avi
             └── metaData.json
     ```
