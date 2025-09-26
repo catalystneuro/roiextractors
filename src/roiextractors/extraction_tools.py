@@ -13,7 +13,7 @@ from functools import wraps
 from pathlib import Path
 from platform import python_version
 from types import ModuleType
-from typing import Optional, Union
+from typing import Optional
 
 import h5py
 import lazy_ops
@@ -24,10 +24,10 @@ from packaging import version
 from tqdm import tqdm
 
 ArrayType = ArrayLike
-PathType = Union[str, Path]
+PathType = str | Path
 NumpyArray = np.ndarray
 DtypeType = DTypeLike
-IntType = Union[int, np.integer]
+IntType = int | np.integer
 FloatType = float
 
 

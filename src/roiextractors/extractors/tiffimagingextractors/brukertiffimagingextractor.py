@@ -15,7 +15,7 @@ from collections import Counter
 from itertools import islice
 from pathlib import Path
 from types import ModuleType
-from typing import Optional, Union
+from typing import Optional
 from xml.etree import ElementTree
 
 import numpy as np
@@ -39,7 +39,7 @@ def _get_tiff_reader() -> ModuleType:
     return get_package(package_name="tifffile", installation_instructions="pip install tifffile")
 
 
-def _determine_frame_rate(element: etree.Element, file_names: Optional[list[str]] = None) -> Union[float, None]:
+def _determine_frame_rate(element: etree.Element, file_names: Optional[list[str]] = None) -> float | None:
     """Determine the frame rate from the difference in relative timestamps of the frame elements."""
     from neuroconv.utils import calculate_regular_series_rate
 
@@ -573,7 +573,7 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
 
         super().__init__(imaging_extractors=imaging_extractors)
 
-    def _get_xml_metadata(self) -> dict[str, Union[str, list[dict[str, str]]]]:
+    def _get_xml_metadata(self) -> dict[str, str | list[dict[str, str]]]:
         """Parse the metadata in the root element that are under "PVStateValue" tag into a dictionary.
 
         Returns

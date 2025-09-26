@@ -12,7 +12,7 @@ import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from math import prod
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
 
@@ -436,7 +436,7 @@ class ImagingExtractor(ABC):
         sample_indices = np.arange(start_sample, end_sample)
         return sample_indices / self.get_sampling_frequency()
 
-    def sample_indices_to_time(self, sample_indices: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
+    def sample_indices_to_time(self, sample_indices: FloatType | np.ndarray) -> FloatType | np.ndarray:
         """Convert user-inputted sample indices to times with units of seconds.
 
         Parameters
@@ -479,7 +479,7 @@ class ImagingExtractor(ABC):
             relative_indices = sample_indices - start_sample
             return timestamps[relative_indices]
 
-    def frame_to_time(self, frames: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
+    def frame_to_time(self, frames: FloatType | np.ndarray) -> FloatType | np.ndarray:
         """Convert user-inputted frame indices to times with units of seconds.
 
         Parameters
@@ -505,7 +505,7 @@ class ImagingExtractor(ABC):
         )
         return self.sample_indices_to_time(frames)
 
-    def time_to_sample_indices(self, times: Union[FloatType, ArrayType]) -> Union[FloatType, np.ndarray]:
+    def time_to_sample_indices(self, times: FloatType | ArrayType) -> FloatType | np.ndarray:
         """Convert user-inputted times (in seconds) to sample indices.
 
         Parameters
@@ -524,7 +524,7 @@ class ImagingExtractor(ABC):
         else:
             return np.searchsorted(self._times, times).astype("int64")
 
-    def time_to_frame(self, times: Union[FloatType, ArrayType]) -> Union[FloatType, np.ndarray]:
+    def time_to_frame(self, times: FloatType | ArrayType) -> FloatType | np.ndarray:
         """Convert a user-inputted times (in seconds) to a frame indices.
 
         Parameters

@@ -10,7 +10,7 @@ NwbSegmentationExtractor
 
 import warnings
 from pathlib import Path
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional
 
 import numpy as np
 from lazy_ops import DatasetView
@@ -131,13 +131,13 @@ class NwbImagingExtractor(ImagingExtractor):
         """Close the NWB file."""
         self.io.close()
 
-    def time_to_frame(self, times: Union[FloatType, ArrayType]) -> np.ndarray:
+    def time_to_frame(self, times: FloatType | ArrayType) -> np.ndarray:
         if self._times is None:
             return ((times - self._imaging_start_time) * self.get_sampling_frequency()).astype("int64")
         else:
             return super().time_to_frame(times)
 
-    def frame_to_time(self, frames: Union[IntType, ArrayType]) -> np.ndarray:
+    def frame_to_time(self, frames: IntType | ArrayType) -> np.ndarray:
         warnings.warn(
             "frame_to_time() is deprecated and will be removed on or after January 2026. "
             "Use sample_indices_to_time() instead.",

@@ -109,7 +109,8 @@ extend-exclude = '''
 select = [
     "F401",  # Unused import
     "I",  # All isort rules
-    "UP006", # non-pep585 annotation (tuple/list -> builtins)
+    "UP006", # non-pep585 annotation (tuple, list -> tuple, list)
+    "UP007" # non-pep604 annotation (Union[x, y] -> X | Y )
 ]
 fixable = ["ALL"]
 

@@ -5,7 +5,7 @@ import warnings
 import xml.etree.ElementTree as ET
 from collections import defaultdict, namedtuple
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
 
@@ -47,7 +47,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
     # Named tuple to hold page mapping details.
     PageMapping = namedtuple("PageMapping", ["page_index", "channel_index", "depth_index"])
 
-    def __init__(self, file_path: Union[str, Path], channel_name: Optional[str] = None):
+    def __init__(self, file_path: str | Path, channel_name: Optional[str] = None):
         """Create a ThorTiffImagingExtractor instance from a TIFF file."""
         super().__init__()
         self.file_path = Path(file_path)
@@ -369,7 +369,7 @@ def _xml_element_to_dict(elem):
     return dictionary
 
 
-def _read_xml_as_dict(file_path: Union[str, Path]) -> dict:
+def _read_xml_as_dict(file_path: str | Path) -> dict:
     """Read an XML file and convert it to a dictionary."""
     xml_dict = _xml_element_to_dict(ET.parse(file_path).getroot())
     return xml_dict
