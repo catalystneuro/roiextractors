@@ -7,6 +7,7 @@
 ### Deprecations And Removals
 
 ### Improvements
+* Add ruff-rule to detect non-pep585 annotation [PR #494](https://github.com/catalystneuro/roiextractors/pull/493)
 
 
 # v0.7.0 (September 26th, 2025)
@@ -20,7 +21,6 @@
 * Refactored image storage in `SegmentationExtractor` from individual `_image_mean` and `_image_correlation` attributes to unified `_summary_images` dictionary for better extensibility [PR #493](https://github.com/catalystneuro/roiextractors/pull/493)
 * Added comprehensive tests for timestamp inheritance independence in `SampleSlicedSegmentationExtractor` to ensure proper data isolation between parent and child extractors [PR #498](https://github.com/catalystneuro/roiextractors/pull/498)
 * Enhanced `MinianSegmentationExtractor` with optional sampling frequency and timestamps path parameters at construction, improved error handling for missing sampling frequency [PR #497](https://github.com/catalystneuro/roiextractors/pull/497)
-* Add ruff-rule to detect non-pep585 annotation [PR #494](https://github.com/catalystneuro/roiextractors/pull/493)
 * Add `has_time_vector()` method to `SampleSlicedSegmentationExtractor` [PR #494](https://github.com/catalystneuro/roiextractors/pull/494)
 
 
