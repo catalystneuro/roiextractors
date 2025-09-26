@@ -7,6 +7,7 @@
 ### Deprecations And Removals
 
 ### Improvements
+* Refactored Miniscope imaging extractor tests to native pytest style with fixture-based temp directories and warning suppression for expected conditions [PR #501](https://github.com/catalystneuro/roiextractors/pull/501)
 
 
 # v0.7.0 (September 26th, 2025)
