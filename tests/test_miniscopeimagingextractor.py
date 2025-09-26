@@ -98,6 +98,33 @@ class TestMiniscopeImagingExtractor(TestCase):
         self.assertIsInstance(self.extractor.get_sampling_frequency(), float)
         self.assertGreater(self.extractor.get_sampling_frequency(), 0)
 
+    def test_frame_rate_extraction_error(self):
+        """Test error when frame rate cannot be extracted from configuration."""
+        # Create temporary directory with test files
+        temp_dir = Path(tempfile.mkdtemp())
+        temp_frame_rate_dir = temp_dir / "frame_rate_test"
+        temp_frame_rate_dir.mkdir()
+
+        try:
+            # Create a dummy .avi file
+            test_avi_file = temp_frame_rate_dir / "0.avi"
+            test_avi_file.touch()
+
+            # Create a configuration file with invalid frameRate format (no digits)
+            invalid_config = temp_frame_rate_dir / "metaData.json"
+            config_data = {"frameRate": "invalid_frame_rate_format", "deviceName": "Miniscope"}
+            with open(invalid_config, "w") as f:
+                json.dump(config_data, f)
+
+            # Test that the specific error message is raised
+            with self.assertRaisesRegex(
+                ValueError, "Could not extract frame rate from configuration: invalid_frame_rate_format"
+            ):
+                MiniscopeImagingExtractor(file_paths=[test_avi_file], configuration_file_path=invalid_config)
+        finally:
+            # Clean up temporary directory
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
     def test_miniscopeextractor_dtype(self):
         """Test that the extractor returns the correct data type."""
         self.assertEqual(self.extractor.get_dtype(), np.uint8)
