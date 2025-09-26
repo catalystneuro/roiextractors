@@ -10,7 +10,7 @@ NwbSegmentationExtractor
 
 import warnings
 from pathlib import Path
-from typing import Iterable, Optional, Tuple, Union
+from typing import Iterable, Optional
 
 import numpy as np
 from lazy_ops import DatasetView
@@ -112,13 +112,13 @@ class NwbImagingExtractor(ImagingExtractor):
         """Close the NWB file."""
         self.io.close()
 
-    def time_to_frame(self, times: Union[FloatType, ArrayType]) -> np.ndarray:
+    def time_to_frame(self, times: FloatType | ArrayType) -> np.ndarray:
         if self._times is None:
             return ((times - self._imaging_start_time) * self.get_sampling_frequency()).astype("int64")
         else:
             return super().time_to_frame(times)
 
-    def frame_to_time(self, frames: Union[IntType, ArrayType]) -> np.ndarray:
+    def frame_to_time(self, frames: IntType | ArrayType) -> np.ndarray:
         warnings.warn(
             "frame_to_time() is deprecated and will be removed on or after January 2026. "
             "Use sample_indices_to_time() instead.",
@@ -240,7 +240,7 @@ class NwbImagingExtractor(ImagingExtractor):
             )
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
-    def get_image_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
         Returns
@@ -250,7 +250,7 @@ class NwbImagingExtractor(ImagingExtractor):
         """
         return (self._num_rows, self._columns)  # TODO: change name of _columns to _num_cols for consistency
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_size(self) -> tuple[int, int]:
         warnings.warn(
             "get_image_size() is deprecated and will be removed in or after September 2025. "
             "Use get_image_shape() instead for consistent behavior across all extractors.",

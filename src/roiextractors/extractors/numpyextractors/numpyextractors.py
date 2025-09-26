@@ -10,7 +10,7 @@ NumpySegmentationExtractor
 
 import warnings
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 from warnings import warn
 
 import numpy as np
@@ -91,7 +91,7 @@ class NumpyImagingExtractor(ImagingExtractor):
             self._channel_names = [f"channel_{ch}" for ch in range(self._num_channels)]
 
     @staticmethod
-    def get_volume_shape(video) -> Tuple[int, int, int, int]:
+    def get_volume_shape(video) -> tuple[int, int, int, int]:
         """Get the shape of a video (num_frames, num_rows, num_columns, num_channels).
 
         Parameters
@@ -180,7 +180,7 @@ class NumpyImagingExtractor(ImagingExtractor):
             )
         return self._video[start_frame:end_frame, ..., channel]
 
-    def get_image_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
         Returns
@@ -190,7 +190,7 @@ class NumpyImagingExtractor(ImagingExtractor):
         """
         return (self._num_rows, self._num_columns)
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_size(self) -> tuple[int, int]:
         warnings.warn(
             "get_image_size() is deprecated and will be removed in or after September 2025. "
             "Use get_image_shape() instead for consistent behavior across all extractors.",

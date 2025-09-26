@@ -14,7 +14,7 @@ FrameSliceSegmentationExtractor
 
 import warnings
 from abc import ABC, abstractmethod
-from typing import Iterable, List, Optional, Tuple, Union
+from typing import Iterable, Optional
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -436,7 +436,7 @@ class SegmentationExtractor(ABC):
         if self._roi_response_neuropil is not None and len(self._roi_response_neuropil.shape) > 0:
             return self._roi_response_neuropil.shape[1]
 
-    def get_channel_names(self) -> List[str]:
+    def get_channel_names(self) -> list[str]:
         """Get names of channels in the pipeline.
 
         Returns
@@ -495,7 +495,7 @@ class SegmentationExtractor(ABC):
         """
         return self._times is not None
 
-    def frame_to_time(self, frames: Union[IntType, ArrayType]) -> Union[FloatType, ArrayType]:
+    def frame_to_time(self, frames: IntType | ArrayType) -> FloatType | ArrayType:
         """Get the timing of frames in unit of seconds.
 
         Parameters
@@ -560,7 +560,7 @@ class SegmentationExtractor(ABC):
         sample_indices = np.arange(start_sample, end_sample)
         return sample_indices / self.get_sampling_frequency()
 
-    def sample_indices_to_time(self, sample_indices: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
+    def sample_indices_to_time(self, sample_indices: FloatType | np.ndarray) -> FloatType | np.ndarray:
         """Convert user-inputted sample indices to times with units of seconds.
 
         .. deprecated:: on or after January 2026
@@ -759,7 +759,7 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
     def get_rejected_list(self) -> list:
         return self._parent_segmentation.get_rejected_list()
 
-    def get_frame_shape(self) -> Tuple[int, int]:
+    def get_frame_shape(self) -> tuple[int, int]:
         return tuple(self._parent_segmentation.get_frame_shape())
 
     def get_num_samples(self) -> int:

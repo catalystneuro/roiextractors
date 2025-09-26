@@ -8,7 +8,7 @@ ScanImageLegacyImagingExtractor
 
 import warnings
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 from warnings import warn
 
 import numpy as np
@@ -615,7 +615,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         return samples
 
-    def get_image_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
         Returns
@@ -625,7 +625,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         """
         return (self._num_rows, self._num_columns)
 
-    def get_frame_shape(self) -> Tuple[int, int]:
+    def get_frame_shape(self) -> tuple[int, int]:
         """Get the shape of a single frame (num_rows, num_columns).
 
         Returns
@@ -651,7 +651,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         else:
             return (self._num_rows, self._num_columns)
 
-    def get_volume_shape(self) -> Tuple[int, int, int]:
+    def get_volume_shape(self) -> tuple[int, int, int]:
         """Get the shape of a single volume (num_rows, num_columns, num_planes).
 
         Returns
@@ -1056,7 +1056,7 @@ class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
         super().__init__(imaging_extractors=imaging_extractors)
         self.is_volumetric = True
 
-    def get_volume_shape(self) -> Tuple[int, int, int]:
+    def get_volume_shape(self) -> tuple[int, int, int]:
         """Get the shape of the volumetric video (num_rows, num_columns, num_planes).
 
         Returns
@@ -1213,7 +1213,7 @@ class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
         ), "All imaging extractors must have the same number of planes."
         self.is_volumetric = True
 
-    def get_volume_shape(self) -> Tuple[int, int, int]:
+    def get_volume_shape(self) -> tuple[int, int, int]:
         """Get the shape of the volumetric video (num_rows, num_columns, num_planes).
 
         Returns
@@ -1481,7 +1481,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         )
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
-    def get_image_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
         Returns
@@ -1491,7 +1491,7 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         """
         return (self._num_rows, self._num_columns)
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_size(self) -> tuple[int, int]:
         warnings.warn(
             "get_image_size() is deprecated and will be removed in or after September 2025. "
             "Use get_image_shape() instead for consistent behavior across all extractors.",
@@ -1755,7 +1755,7 @@ class ScanImageLegacyImagingExtractor(ImagingExtractor):
             )
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
-    def get_image_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
         Returns
@@ -1765,7 +1765,7 @@ class ScanImageLegacyImagingExtractor(ImagingExtractor):
         """
         return (self._num_rows, self._num_columns)
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_size(self) -> tuple[int, int]:
         warnings.warn(
             "get_image_size() is deprecated and will be removed in or after September 2025. "
             "Use get_image_shape() instead for consistent behavior across all extractors.",

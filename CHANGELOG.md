@@ -8,6 +8,7 @@
 
 ### Improvements
 * Refactored Miniscope imaging extractor tests to native pytest style with fixture-based temp directories and warning suppression for expected conditions [PR #501](https://github.com/catalystneuro/roiextractors/pull/501)
+* Add ruff-rule to detect non-pep585 annotation [PR #494](https://github.com/catalystneuro/roiextractors/pull/493)
 
 
 # v0.7.0 (September 26th, 2025)

@@ -5,7 +5,7 @@ import warnings
 import xml.etree.ElementTree as ET
 from collections import defaultdict, namedtuple
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Optional
 
 import numpy as np
 
@@ -47,7 +47,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
     # Named tuple to hold page mapping details.
     PageMapping = namedtuple("PageMapping", ["page_index", "channel_index", "depth_index"])
 
-    def __init__(self, file_path: Union[str, Path], channel_name: Optional[str] = None):
+    def __init__(self, file_path: str | Path, channel_name: Optional[str] = None):
         """Create a ThorTiffImagingExtractor instance from a TIFF file."""
         super().__init__()
         self.file_path = Path(file_path)
@@ -104,7 +104,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         self._non_spatial_shape = non_spatial_shape
 
         # Build the mapping from each time frame (T) to its corresponding pages.
-        self._frame_page_mapping: Dict[int, List[ThorTiffImagingExtractor.PageMapping]] = defaultdict(list)
+        self._frame_page_mapping: dict[int, list[ThorTiffImagingExtractor.PageMapping]] = defaultdict(list)
         for page_index in range(number_of_pages):
             page_multi_index = np.unravel_index(page_index, non_spatial_shape, order="C")
             time_index = page_multi_index[self._time_axis_index]
@@ -181,7 +181,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         except ValueError:
             return ET.fromstring(metadata_string)
 
-    def get_frames(self, frame_idxs: List[int]) -> np.ndarray:
+    def get_frames(self, frame_idxs: list[int]) -> np.ndarray:
         """
         Get specific frames by their time indices.
 
@@ -276,7 +276,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         )
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
-    def get_image_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
         Returns
@@ -286,7 +286,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         """
         return self._num_rows, self._num_columns
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_size(self) -> tuple[int, int]:
         """Return the image dimensions (height, width)."""
         warnings.warn(
             "get_image_size() is deprecated and will be removed in or after September 2025. "
@@ -320,7 +320,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         """Return the sampling frequency, if available."""
         return self._sampling_frequency
 
-    def get_channel_names(self) -> List[str]:
+    def get_channel_names(self) -> list[str]:
         """Return the channel names."""
         return self._channel_names
 
@@ -369,7 +369,7 @@ def _xml_element_to_dict(elem):
     return dictionary
 
 
-def _read_xml_as_dict(file_path: Union[str, Path]) -> dict:
+def _read_xml_as_dict(file_path: str | Path) -> dict:
     """Read an XML file and convert it to a dictionary."""
     xml_dict = _xml_element_to_dict(ET.parse(file_path).getroot())
     return xml_dict

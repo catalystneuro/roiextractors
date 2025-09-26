@@ -9,7 +9,7 @@ SbxImagingExtractor
 import os
 import warnings
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 import scipy.io as spio
@@ -234,7 +234,7 @@ class SbxImagingExtractor(ImagingExtractor):
             )
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
-    def get_image_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
         Returns
@@ -244,7 +244,7 @@ class SbxImagingExtractor(ImagingExtractor):
         """
         return tuple(self._info["sz"])
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_size(self) -> tuple[int, int]:
         warnings.warn(
             "get_image_size() is deprecated and will be removed in or after September 2025. "
             "Use get_image_shape() instead for consistent behavior across all extractors.",

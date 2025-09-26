@@ -7,7 +7,6 @@ from folder structures, supporting various Miniscope folder organizations.
 import datetime
 import json
 from pathlib import Path
-from typing import List
 
 from .miniscopeimagingextractor import MiniscopeImagingExtractor
 from ...extraction_tools import PathType, get_package
@@ -133,7 +132,7 @@ def get_recording_start_time(file_path: PathType) -> datetime.datetime:
 
 def get_recording_start_times_for_multi_recordings(
     folder_path: PathType, miniscopeDeviceName: str = "Miniscope"
-) -> List[datetime.datetime]:
+) -> list[datetime.datetime]:
     """
     Retrieve recording start times for multiple recordings in a multi-session folder structure.
 

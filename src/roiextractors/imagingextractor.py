@@ -12,7 +12,7 @@ import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from math import prod
-from typing import Optional, Tuple, Union
+from typing import Optional
 
 import numpy as np
 
@@ -70,7 +70,7 @@ class ImagingExtractor(ABC):
         return self._repr_text()
 
     @abstractmethod
-    def get_image_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
         Returns
@@ -80,7 +80,7 @@ class ImagingExtractor(ABC):
         """
         pass
 
-    def get_image_size(self) -> Tuple:
+    def get_image_size(self) -> tuple:
         """Get the size of the video.
 
         Returns
@@ -154,7 +154,7 @@ class ImagingExtractor(ABC):
             )
         raise NotImplementedError("This method must be implemented by volumetric extractor subclasses.")
 
-    def get_volume_shape(self) -> Tuple[int, int, int]:
+    def get_volume_shape(self) -> tuple[int, int, int]:
         """Get the shape of the volumetric video (num_rows, num_columns, num_planes).
 
         Returns
@@ -436,7 +436,7 @@ class ImagingExtractor(ABC):
         sample_indices = np.arange(start_sample, end_sample)
         return sample_indices / self.get_sampling_frequency()
 
-    def sample_indices_to_time(self, sample_indices: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
+    def sample_indices_to_time(self, sample_indices: FloatType | np.ndarray) -> FloatType | np.ndarray:
         """Convert user-inputted sample indices to times with units of seconds.
 
         Parameters
@@ -479,7 +479,7 @@ class ImagingExtractor(ABC):
             relative_indices = sample_indices - start_sample
             return timestamps[relative_indices]
 
-    def frame_to_time(self, frames: Union[FloatType, np.ndarray]) -> Union[FloatType, np.ndarray]:
+    def frame_to_time(self, frames: FloatType | np.ndarray) -> FloatType | np.ndarray:
         """Convert user-inputted frame indices to times with units of seconds.
 
         Parameters
@@ -505,7 +505,7 @@ class ImagingExtractor(ABC):
         )
         return self.sample_indices_to_time(frames)
 
-    def time_to_sample_indices(self, times: Union[FloatType, ArrayType]) -> Union[FloatType, np.ndarray]:
+    def time_to_sample_indices(self, times: FloatType | ArrayType) -> FloatType | np.ndarray:
         """Convert user-inputted times (in seconds) to sample indices.
 
         Parameters
@@ -524,7 +524,7 @@ class ImagingExtractor(ABC):
         else:
             return np.searchsorted(self._times, times).astype("int64")
 
-    def time_to_frame(self, times: Union[FloatType, ArrayType]) -> Union[FloatType, np.ndarray]:
+    def time_to_frame(self, times: FloatType | ArrayType) -> FloatType | np.ndarray:
         """Convert a user-inputted times (in seconds) to a frame indices.
 
         Parameters
@@ -737,7 +737,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
             )
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
-    def get_image_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
         Returns
@@ -747,7 +747,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         """
         return self._parent_imaging.get_image_shape()
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_size(self) -> tuple[int, int]:
         warnings.warn(
             "get_image_size() is deprecated and will be removed in or after September 2025. "
             "Use get_image_shape() instead for consistent behavior across all extractors.",
@@ -909,7 +909,7 @@ class FrameSliceImagingExtractor(SampleSlicedImagingExtractor):
             )
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
-    def get_image_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
         Returns
@@ -919,7 +919,7 @@ class FrameSliceImagingExtractor(SampleSlicedImagingExtractor):
         """
         return self._parent_imaging.get_image_shape()
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_size(self) -> tuple[int, int]:
         warnings.warn(
             "get_image_size() is deprecated and will be removed in or after September 2025. "
             "Use get_image_shape() instead for consistent behavior across all extractors.",
