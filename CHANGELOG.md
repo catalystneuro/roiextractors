@@ -1,8 +1,15 @@
-# v0.6.3 (Upcoming)
+# v0.7.1 (Upcoming)
 
 ### Features
 
 ### Fixes
+
+### Deprecations And Removals
+
+### Improvements
+
+
+# v0.7.0 (September 26th, 2025)
 
 ### Deprecations And Removals
 * Remove deprecated `get_num_channels()` method from `ImagingExtractor` [PR #484](https://github.com/catalystneuro/roiextractors/pull/484)
