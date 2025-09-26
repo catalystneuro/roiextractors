@@ -13,6 +13,7 @@
 * Refactored image storage in `SegmentationExtractor` from individual `_image_mean` and `_image_correlation` attributes to unified `_summary_images` dictionary for better extensibility [PR #493](https://github.com/catalystneuro/roiextractors/pull/493)
 * Added comprehensive tests for timestamp inheritance independence in `SampleSlicedSegmentationExtractor` to ensure proper data isolation between parent and child extractors [PR #498](https://github.com/catalystneuro/roiextractors/pull/498)
 * Enhanced `MinianSegmentationExtractor` with optional sampling frequency and timestamps path parameters at construction, improved error handling for missing sampling frequency [PR #497](https://github.com/catalystneuro/roiextractors/pull/497)
+* Add linter to detect non-pep585 annotation [PR #494](https://github.com/catalystneuro/roiextractors/pull/493)
 
 # v0.6.2 (August 20th, 2025)
 
