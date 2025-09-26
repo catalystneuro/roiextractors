@@ -283,32 +283,6 @@ class SbxImagingExtractor(ImagingExtractor):
     def get_channel_names(self) -> list:
         return self._channel_names
 
-    @staticmethod
-    def write_imaging(imaging, save_path: PathType, overwrite: bool = False):
-        """Write a SbxImagingExtractor to a `.mat` file.
-
-        Parameters
-        ----------
-        imaging : SbxImagingExtractor
-            The imaging extractor object to be written to a `.mat` file.
-        save_path : str or python Path object
-            The path to the `.mat` file to be written.
-        overwrite : bool, optional
-            If True, the `.mat` file will be overwritten if it already exists.
-
-        Notes
-        -----
-        This function is not implemented yet.
-        """
-        from warnings import warn
-
-        warn(
-            "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        raise NotImplementedError
-
     def get_native_timestamps(
         self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
     ) -> Optional[np.ndarray]:
