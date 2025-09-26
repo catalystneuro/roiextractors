@@ -12,6 +12,7 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
+import zarr
 
 from ...extraction_tools import FloatType, PathType
 from ...segmentationextractor import SegmentationExtractor
@@ -64,7 +65,6 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         timestamps_path: str or Path, optional
             Path to the timeStamps.csv file. If not provided, assumes default location at folder_path/timeStamps.csv.
         """
-
         SegmentationExtractor.__init__(self)
         self.folder_path = Path(folder_path)
         self._sampling_frequency = sampling_frequency
@@ -359,8 +359,6 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         ValueError
             If no sampling frequency is available and timestamps cannot be used to derive it.
         """
-        from neuroconv.utils import calculate_regular_series_rate
-
         if self._sampling_frequency is not None:
             return float(self._sampling_frequency)
 
@@ -369,7 +367,10 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             timestamps = self.get_native_timestamps()
             if len(timestamps) > 1:
                 # Calculate average sampling frequency from time differences
-                derived_freq = calculate_regular_series_rate(timestamps)
+                diff_ts = np.diff(timestamps)
+                rounded_diff_ts = diff_ts.round(decimals=6)
+                uniq_diff_ts = np.unique(rounded_diff_ts)
+                derived_freq = 1.0 / diff_ts[0] if len(uniq_diff_ts) == 1 else None
                 if derived_freq is None:
                     warnings.warn(
                         f"Timestamps are irregularly spaced; cannot derive a sampling frequency from timestamps in {self._timestamps_path}. Will return None.",
