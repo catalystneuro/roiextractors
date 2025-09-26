@@ -443,8 +443,10 @@ class TestMiniscopeUtilityFunctions(TestCase):
 
     def test_get_recording_start_times_for_multi_recordings_no_files(self):
         """Test getting start times when no config files exist."""
+        no_metadata_dir = self.temp_dir / "no_metadata"
+        no_metadata_dir.mkdir(parents=True, exist_ok=True)
         with self.assertRaisesRegex(AssertionError, "No Miniscope configuration files found at"):
-            get_recording_start_times_for_multi_recordings(self.temp_dir)
+            get_recording_start_times_for_multi_recordings(no_metadata_dir)
 
     def test_read_timestamps_from_csv_file(self):
         """Test reading timestamps from CSV file."""
