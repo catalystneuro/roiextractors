@@ -473,6 +473,13 @@ def write_to_h5_dataset_format(
     AssertionError
         If neither 'save_path' nor 'file_handle' are given.
     """
+    import warnings
+
+    warnings.warn(
+        "write_to_h5_dataset_format is deprecated and will be removed on or after March 2026. ROIExtractors is no longer supporting write operations.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     assert save_path is not None or file_handle is not None, "Provide 'save_path' or 'file handle'"
 
     if save_path is not None:

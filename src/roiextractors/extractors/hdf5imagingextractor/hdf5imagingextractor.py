@@ -19,7 +19,6 @@ from ...extraction_tools import (
     ArrayType,
     FloatType,
     PathType,
-    write_to_h5_dataset_format,
 )
 from ...imagingextractor import ImagingExtractor
 
@@ -244,55 +243,3 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         """
         # HDF5 imaging data does not have native timestamps
         return None
-
-    @staticmethod
-    def write_imaging(
-        imaging: ImagingExtractor,
-        save_path,
-        overwrite: bool = False,
-        mov_field="mov",
-        **kwargs,
-    ):
-        """Write an imaging extractor to an HDF5 file.
-
-        Parameters
-        ----------
-        imaging : ImagingExtractor
-            The imaging extractor object to be saved.
-        save_path : str or Path
-            Path to save the file.
-        overwrite : bool, optional
-            If True, overwrite the file if it already exists. The default is False.
-        mov_field : str, optional
-            Name of the dataset in the HDF5 file that contains the imaging data. The default is "mov".
-        **kwargs : dict
-            Keyword arguments to be passed to the HDF5 file writer.
-
-        Raises
-        ------
-        AssertionError
-            If the file extension is not .h5 or .hdf5.
-        FileExistsError
-            If the file already exists and overwrite is False.
-        """
-        warn(
-            "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        save_path = Path(save_path)
-        assert save_path.suffix in [
-            ".h5",
-            ".hdf5",
-        ], "'save_path' file is not an .hdf5 or .h5 file"
-
-        if save_path.is_file():
-            if not overwrite:
-                raise FileExistsError("The specified path exists! Use overwrite=True to overwrite it.")
-            else:
-                save_path.unlink()
-
-        with h5py.File(save_path, "w") as f:
-            write_to_h5_dataset_format(imaging=imaging, dataset_path=mov_field, file_handle=f, **kwargs)
-            dset = f[mov_field]
-            dset.attrs["fr"] = imaging.get_sampling_frequency()

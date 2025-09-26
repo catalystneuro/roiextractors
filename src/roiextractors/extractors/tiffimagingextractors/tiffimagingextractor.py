@@ -12,7 +12,6 @@ from typing import Optional, Tuple
 from warnings import warn
 
 import numpy as np
-from tqdm import tqdm
 
 from ...extraction_tools import (
     FloatType,
@@ -200,63 +199,3 @@ class TiffImagingExtractor(ImagingExtractor):
     ) -> Optional[np.ndarray]:
         # Basic TIFF files do not have native timestamps
         return None
-
-    @staticmethod
-    def write_imaging(imaging, save_path, overwrite: bool = False, chunk_size=None, verbose=True):
-        """Write a TIFF file from an ImagingExtractor.
-
-        Parameters
-        ----------
-        imaging : ImagingExtractor
-            The ImagingExtractor to be written to a TIFF file.
-        save_path : str or PathType
-            The path to save the TIFF file.
-        overwrite : bool
-            If True, will overwrite the file if it exists. Otherwise will raise an error if the file exists.
-        chunk_size : int or None
-            If None, will write the entire video to a single TIFF file. Otherwise will write the video
-            in chunk_size frames at a time.
-        verbose : bool
-            If True, will print progress bar.
-        """
-        warn(
-            "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        tifffile = get_package(package_name="tifffile")
-
-        save_path = Path(save_path)
-        assert save_path.suffix in [
-            ".tiff",
-            ".tif",
-            ".TIFF",
-            ".TIF",
-        ], "'save_path' file is not an .tiff file"
-
-        if save_path.is_file():
-            if not overwrite:
-                raise FileExistsError("The specified path exists! Use overwrite=True to overwrite it.")
-            else:
-                save_path.unlink()
-
-        if chunk_size is None:
-            tifffile.imwrite(save_path, imaging.get_video())
-        else:
-            num_samples = imaging.get_num_samples()
-            # chunk size is not None
-            n_chunk = num_samples // chunk_size
-            if num_samples % chunk_size > 0:
-                n_chunk += 1
-            if verbose:
-                chunks = tqdm(range(n_chunk), ascii=True, desc="Writing to .tiff file")
-            else:
-                chunks = range(n_chunk)
-            with tifffile.TiffWriter(save_path) as tif:
-                for i in chunks:
-                    video = imaging.get_video(
-                        start_frame=i * chunk_size,
-                        end_frame=min((i + 1) * chunk_size, num_samples),
-                    )
-                    chunk_frames = np.squeeze(video)
-                    tif.save(chunk_frames, contiguous=True, metadata=None)
