@@ -9,9 +9,8 @@ Classes
 -------
 MiniscopeImagingExtractor
     An ImagingExtractor for the Miniscope video (.avi) format.
+MiniscopeMultiRecordingImagingExtractor
+    An ImagingExtractor for multiple Miniscope video recordings.
 """
 
-from .miniscopeimagingextractor import (
-    MiniscopeImagingExtractor,
-    MiniscopeMultiRecordingImagingExtractor,
-)
+from .miniscopeimagingextractor import MiniscopeImagingExtractor, MiniscopeMultiRecordingImagingExtractor

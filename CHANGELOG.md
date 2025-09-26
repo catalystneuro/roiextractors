@@ -75,6 +75,7 @@ Remove deprecated arguments `combined` and `plane_no` from `Suite2pSegmentationE
 
 ### Improvements
 * Bruker series can now read sequences of type `BrightnessOverTime` [PR #448](https://github.com/catalystneuro/roiextractors/pull/448)
+* Refactored `MiniscopeMultiRecordingImagingExtractor` to solve the Miniscope folder structure flexibility issue [PR #441](https://github.com/catalystneuro/roiextractors/pull/441)
 
 # v0.5.13 (May 12th, 2025)
 

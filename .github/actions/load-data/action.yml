@@ -1,17 +1,17 @@
-name: 'Prepare Datasets'
-description: 'Restores ophys testing data from cache or downloads it from S3.'
+name: "Prepare Datasets"
+description: "Restores ophys testing data from cache or downloads it from S3."
 inputs:
   aws-access-key-id:
-    description: 'AWS Access Key ID'
+    description: "AWS Access Key ID"
     required: true
   aws-secret-access-key:
-    description: 'AWS Secret Access Key'
+    description: "AWS Secret Access Key"
     required: true
   s3-gin-bucket:
-    description: 'S3 GIN Bucket URL'
+    description: "S3 GIN Bucket URL"
     required: true
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Get ophys_testing_data current head hash
       id: ophys
