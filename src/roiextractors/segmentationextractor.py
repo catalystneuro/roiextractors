@@ -4,7 +4,7 @@ Classes
 -------
 SegmentationExtractor
     Abstract class that contains all the meta-data and output data from the ROI segmentation operation when applied to
-    the pre-processed data. It also contains methods to read from and write to various data formats output from the
+    the pre-processed data. It also contains methods to read from  various data formats output from the
     processing pipelines like SIMA, CaImAn, Suite2p, CNMF-E.
 SampleSlicedSegmentationExtractor
     Class to get a lazy sample slice.
@@ -27,7 +27,7 @@ class SegmentationExtractor(ABC):
 
     An abstract class that contains all the meta-data and output data from
     the ROI segmentation operation when applied to the pre-processed data.
-    It also contains methods to read from and write to various data formats
+    It also contains methods to read from various data formats output from the
     output from the processing pipelines like SIMA, CaImAn, Suite2p, CNMF-E.
     All the methods with @abstract decorator have to be defined by the
     format specific classes that inherit from this.

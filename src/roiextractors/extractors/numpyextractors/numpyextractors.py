@@ -235,35 +235,6 @@ class NumpyImagingExtractor(ImagingExtractor):
         # Numpy arrays do not have native timestamps
         return None
 
-    @staticmethod
-    def write_imaging(imaging, save_path, overwrite: bool = False):
-        """Write a NumpyImagingExtractor to a .npy file.
-
-        Parameters
-        ----------
-        imaging: NumpyImagingExtractor
-            The imaging extractor object to be written to file.
-        save_path: str or PathType
-            Path to .npy file.
-        overwrite: bool
-            If True, overwrite file if it already exists.
-        """
-        warn(
-            "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        save_path = Path(save_path)
-        assert save_path.suffix == ".npy", "'save_path' should have a .npy extension"
-
-        if save_path.is_file():
-            if not overwrite:
-                raise FileExistsError("The specified path exists! Use overwrite=True to overwrite it.")
-            else:
-                save_path.unlink()
-
-        np.save(save_path, imaging.get_video())
-
 
 class NumpySegmentationExtractor(SegmentationExtractor):
     """A Segmentation extractor specified by image masks and traces .npy files.

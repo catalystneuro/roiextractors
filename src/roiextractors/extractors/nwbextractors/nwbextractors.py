@@ -28,24 +28,6 @@ from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import SegmentationExtractor
 
 
-def temporary_deprecation_message():
-    """Issue a deprecation warning and raise a NotImplementedError with a migration message."""
-    from warnings import warn
-
-    warn(
-        "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
-    raise NotImplementedError(
-        "ROIExtractors no longer supports direct write to NWB. This method will be removed in a future release.\n\n"
-        "Please install neuroconv and import the corresponding write method from there.\n\nFor example,\n\n"
-        "from roiextractors import NwbSegmentationExtractor\nNwbSegmentationExtractor.write_segmentation(...)\n\n"
-        "would become\n\nfrom neuroconv import roiextractors\nroiextractors.write_segmentation(...)"
-    )
-
-
 class NwbImagingExtractor(ImagingExtractor):
     """An imaging extractor for NWB files.
 
@@ -54,7 +36,6 @@ class NwbImagingExtractor(ImagingExtractor):
     """
 
     extractor_name = "NwbImaging"
-    mode = "file"
 
     def __init__(self, file_path: PathType, optical_series_name: Optional[str] = "TwoPhotonSeries"):
         """Create ImagingExtractor object from NWB file.
@@ -316,26 +297,6 @@ class NwbImagingExtractor(ImagingExtractor):
         # TODO: extract the timestamps if the MiroscopySeries has timestamps
         return None
 
-    @staticmethod
-    def add_devices(imaging, nwbfile, metadata):
-        """Add devices to the NWBFile (deprecated)."""
-        temporary_deprecation_message()
-
-    @staticmethod
-    def add_two_photon_series(imaging, nwbfile, metadata, buffer_size=10, use_times=False):
-        """Add TwoPhotonSeries to NWBFile (deprecated)."""
-        temporary_deprecation_message()
-
-    @staticmethod
-    def add_epochs(imaging, nwbfile):
-        """Add epochs to NWBFile (deprecated)."""
-        temporary_deprecation_message()
-
-    @staticmethod
-    def get_nwb_metadata(imgextractor: ImagingExtractor):
-        """Return the metadata dictionary for the NWB file (deprecated)."""
-        temporary_deprecation_message()
-
 
 class NwbSegmentationExtractor(SegmentationExtractor):
     """An segmentation extractor for NWB files."""
@@ -507,8 +468,3 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         # For now, return None to use calculated timestamps based on sampling frequency
         # TODO: check if the RoiResponseSeries has timestamps
         return None
-
-    @staticmethod
-    def get_nwb_metadata(sgmextractor):
-        """Return the metadata dictionary for the NWB file (deprecated)."""
-        temporary_deprecation_message()
