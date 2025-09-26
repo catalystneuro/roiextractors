@@ -4,11 +4,7 @@ from pathlib import Path
 from tempfile import mkdtemp
 
 import numpy as np
-from parameterized import param, parameterized
-
-from roiextractors import NumpyMemmapImagingExtractor
-from roiextractors.extraction_tools import VideoStructure
-from roiextractors.testing import check_imaging_equal
+from parameterized import param
 
 
 def custom_name_func(testcase_func, param_num, param):
@@ -46,62 +42,6 @@ class TestNumpyMemmapExtractor(unittest.TestCase):
             case_name=case_name,
         )
         parameterized_list.append(param_case)
-
-    @parameterized.expand(input=parameterized_list, name_func=custom_name_func)
-    def test_roundtrip(self, dtype, num_channels, num_rows, num_columns, buffer_size_in_gb, case_name=""):
-        permutation = self.rng.choice([0, 1, 2, 3], size=4, replace=False)
-        rows_axis, columns_axis, channels_axis, frame_axis = permutation
-
-        # Build a video structure
-        video_structure = VideoStructure(
-            num_rows=num_rows,
-            num_columns=num_columns,
-            num_channels=num_channels,
-            rows_axis=rows_axis,
-            columns_axis=columns_axis,
-            channels_axis=channels_axis,
-            frame_axis=frame_axis,
-        )
-
-        # Build a random video
-        memmap_shape = video_structure.build_video_shape(self.num_frames)
-        random_video = np.random.randint(low=0, high=256, size=memmap_shape).astype(dtype)
-
-        # Save it to memory
-        file_path = self.write_directory / f"video_{case_name}.dat"
-        file = np.memmap(file_path, dtype=dtype, mode="w+", shape=memmap_shape)
-        file[:] = random_video[:]
-        file.flush()
-        del file
-
-        # Load the video with the extractor
-        extractor = NumpyMemmapImagingExtractor(
-            file_path=file_path, video_structure=video_structure, sampling_frequency=1, dtype=dtype, offset=self.offset
-        )
-
-        # Use the write method
-        write_path = self.write_directory / f"video_output_{case_name}.dat"
-        extractor.write_imaging(extractor, write_path, buffer_size_in_gb=buffer_size_in_gb)
-
-        # Read again for a round-trip, note that the data is stored in canonical form.
-        video_structure = VideoStructure(
-            num_rows=num_rows,
-            num_columns=num_columns,
-            num_channels=num_channels,
-            rows_axis=1,
-            columns_axis=2,
-            channels_axis=3,
-            frame_axis=0,
-        )
-
-        roundtrip_extractor = NumpyMemmapImagingExtractor(
-            file_path=write_path,
-            video_structure=video_structure,
-            sampling_frequency=1,
-            dtype=dtype,
-            offset=self.offset,
-        )
-        check_imaging_equal(imaging_extractor1=extractor, imaging_extractor2=roundtrip_extractor)
 
 
 if __name__ == "__main__":

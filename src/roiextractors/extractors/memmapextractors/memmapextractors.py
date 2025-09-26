@@ -7,15 +7,12 @@ MemmapImagingExtractor
 """
 
 import warnings
-from pathlib import Path
 from typing import Optional, Tuple
 from warnings import warn
 
 import numpy as np
-import psutil
-from tqdm import tqdm
 
-from ...extraction_tools import DtypeType, PathType
+from ...extraction_tools import DtypeType
 from ...imagingextractor import ImagingExtractor
 
 
@@ -161,84 +158,3 @@ class MemmapImagingExtractor(ImagingExtractor):
     ) -> Optional[np.ndarray]:
         # Memory-mapped imaging data does not have native timestamps
         return None
-
-    @staticmethod
-    def write_imaging(
-        imaging_extractor: ImagingExtractor,
-        save_path: PathType,
-        verbose: bool = False,
-        buffer_size_in_gb: Optional[float] = None,
-    ) -> None:
-        """Write imaging by flushing to disk.
-
-        Parameters
-        ----------
-        imaging_extractor: ImagingExtractor
-            An ImagingExtractor object that inherited from MemmapImagingExtractor
-        save_path: str
-            path to save the native format to.
-        verbose: bool
-            Displays a progress bar.
-        buffer_size_in_gb: float
-            The size of the buffer in Gigabytes. The default of None results in buffering over one frame at a time.
-        """
-        warnings.warn(
-            "The write_imaging function is deprecated and will be removed on or after September 2025. ROIExtractors is no longer supporting write operations.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        # The base and default case is to load one image at a time.
-        if buffer_size_in_gb is None:
-            buffer_size_in_gb = 0
-
-        imaging = imaging_extractor
-        file_size_in_bytes = Path(imaging.file_path).stat().st_size
-        available_memory_in_bytes = psutil.virtual_memory().available
-        buffer_size_in_bytes = int(buffer_size_in_gb * 1e9)
-        if available_memory_in_bytes < buffer_size_in_bytes:
-            raise f"Not enough memory available, {available_memory_in_bytes* 1e9} for buffer size {buffer_size_in_gb}"
-
-        num_frames = imaging.get_num_frames()
-        memmap_shape = imaging.get_volume_shape()
-        dtype = imaging.get_dtype()
-
-        # Load the memmap
-        video_memmap = np.memmap(
-            save_path,
-            shape=memmap_shape,
-            dtype=dtype,
-            mode="w+",
-        )
-
-        if file_size_in_bytes < buffer_size_in_bytes:
-            video_data_to_save = imaging.get_frames(channel=None)
-            video_memmap[:] = video_data_to_save
-
-        else:
-            buffer_size_in_bytes = int(buffer_size_in_bytes)
-            type_size = np.dtype(dtype).itemsize
-
-            n_channels = 1
-            pixels_per_frame = n_channels * np.prod(imaging.get_image_size())
-            bytes_per_frame = type_size * pixels_per_frame
-            frames_in_buffer = buffer_size_in_bytes // bytes_per_frame
-
-            # If the buffer size is smaller than the size of one image, the iterator goes over one image only.
-            frames_in_buffer = max(frames_in_buffer, 1)
-            iterator = range(0, num_frames, frames_in_buffer)
-            if verbose:
-                iterator = tqdm(iterator, ascii=True, desc="Writing to .dat file")
-
-            for frame in iterator:
-                start_frame = frame
-                end_frame = min(frame + frames_in_buffer, num_frames)
-
-                # Get the video chunk
-                video_chunk = imaging.get_video(start_frame=start_frame, end_frame=end_frame, channel=None)
-
-                # Fit the video chunk in the memmap array
-                video_memmap[start_frame:end_frame, ...] = video_chunk
-
-        # Flush the video and delete it
-        video_memmap.flush()
-        del video_memmap
