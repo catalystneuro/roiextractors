@@ -14,7 +14,7 @@ FrameSliceSegmentationExtractor
 
 import warnings
 from abc import ABC, abstractmethod
-from typing import Iterable, List, Optional, Tuple, Union
+from typing import Iterable, Optional, Union
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -436,7 +436,7 @@ class SegmentationExtractor(ABC):
         if self._roi_response_neuropil is not None and len(self._roi_response_neuropil.shape) > 0:
             return self._roi_response_neuropil.shape[1]
 
-    def get_channel_names(self) -> List[str]:
+    def get_channel_names(self) -> list[str]:
         """Get names of channels in the pipeline.
 
         Returns
@@ -759,7 +759,7 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
     def get_rejected_list(self) -> list:
         return self._parent_segmentation.get_rejected_list()
 
-    def get_frame_shape(self) -> Tuple[int, int]:
+    def get_frame_shape(self) -> tuple[int, int]:
         return tuple(self._parent_segmentation.get_frame_shape())
 
     def get_num_samples(self) -> int:

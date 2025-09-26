@@ -10,7 +10,7 @@ import json
 import re
 import warnings
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Optional
 
 import numpy as np
 
@@ -19,7 +19,7 @@ from ...imagingextractor import ImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor
 
 
-def read_timestamps_from_csv_file(file_path: PathType) -> List[float]:
+def read_timestamps_from_csv_file(file_path: PathType) -> list[float]:
     """
     Retrieve the timestamps from a CSV file.
 
@@ -266,7 +266,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
 
     @staticmethod
     def validate_miniscope_files(
-        file_paths: List[PathType], configuration_file_path: PathType, timestamps_path: Optional[PathType] = None
+        file_paths: list[PathType], configuration_file_path: PathType, timestamps_path: Optional[PathType] = None
     ) -> None:
         """
         Validate that the provided Miniscope files exist and are accessible.
@@ -427,7 +427,7 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
     @staticmethod
     def _get_miniscope_files_from_multi_recordings_subfolders(
         folder_path: PathType, miniscope_device_name: str = "Miniscope"
-    ) -> Tuple[List[PathType], PathType]:
+    ) -> tuple[list[PathType], PathType]:
         """
         Retrieve Miniscope files from a multi-session folder structure.
 
@@ -597,7 +597,7 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
         )
         return self.get_num_samples()
 
-    def get_image_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
         Returns
@@ -607,7 +607,7 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
         """
         return self._image_size[:-1]
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_size(self) -> tuple[int, int]:
         warnings.warn(
             "get_image_size() is deprecated and will be removed in or after September 2025. "
             "Use get_image_shape() instead for consistent behavior across all extractors.",
@@ -622,7 +622,7 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
     def get_dtype(self) -> DtypeType:
         return self._dtype
 
-    def get_channel_names(self) -> List[str]:
+    def get_channel_names(self) -> list[str]:
         return ["OpticalChannel"]
 
     def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:

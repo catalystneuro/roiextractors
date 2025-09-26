@@ -8,7 +8,7 @@ MultiImagingExtractor
 
 import warnings
 from collections import defaultdict
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable, Optional
 
 import numpy as np
 
@@ -21,7 +21,7 @@ class MultiImagingExtractor(ImagingExtractor):
 
     extractor_name = "MultiImagingExtractor"
 
-    def __init__(self, imaging_extractors: List[ImagingExtractor]):
+    def __init__(self, imaging_extractors: list[ImagingExtractor]):
         """Initialize a MultiImagingExtractor object from a list of ImagingExtractors.
 
         Parameters
@@ -267,7 +267,7 @@ class MultiImagingExtractor(ImagingExtractor):
 
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
-    def get_image_shape(self) -> Tuple[int, int]:
+    def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
         Returns
@@ -277,7 +277,7 @@ class MultiImagingExtractor(ImagingExtractor):
         """
         return self._imaging_extractors[0].get_image_shape()
 
-    def get_image_size(self) -> Tuple[int, int]:
+    def get_image_size(self) -> tuple[int, int]:
         warnings.warn(
             "get_image_size() is deprecated and will be removed in or after September 2025. "
             "Use get_image_shape() instead for consistent behavior across all extractors.",
