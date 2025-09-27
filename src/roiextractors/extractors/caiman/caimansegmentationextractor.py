@@ -14,7 +14,7 @@ import numpy as np
 from scipy.sparse import csc_matrix
 
 from ...extraction_tools import PathType, get_package
-from ...segmentationextractor import SegmentationExtractor
+from ...segmentationextractor import RoiResponse, SegmentationExtractor
 
 
 class CaimanSegmentationExtractor(SegmentationExtractor):
@@ -140,11 +140,39 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self._params = self._dataset_file["params"]
 
         # Core traces and images
-        self._roi_response_raw = self._raw_trace_extractor_read()
-        self._roi_response_dff = self._trace_extractor_read("F_dff")
-        self._roi_response_denoised = self._trace_extractor_read("C")
-        self._roi_response_neuropil = self._trace_extractor_read("f")
-        self._roi_response_deconvolved = self._trace_extractor_read("S")
+        cell_ids: Optional[list[int]] = None
+
+        raw_traces = self._raw_trace_extractor_read()
+        if raw_traces is not None:
+            cell_ids = list(range(raw_traces.shape[1]))
+            self._roi_responses.append(RoiResponse("raw", raw_traces, cell_ids))
+
+        dff_traces = self._trace_extractor_read("F_dff")
+        if dff_traces is not None:
+            if cell_ids is None:
+                cell_ids = list(range(dff_traces.shape[1]))
+            self._roi_responses.append(RoiResponse("dff", dff_traces, cell_ids))
+
+        denoised_traces = self._trace_extractor_read("C")
+        if denoised_traces is not None:
+            if cell_ids is None:
+                cell_ids = list(range(denoised_traces.shape[1]))
+            self._roi_responses.append(RoiResponse("denoised", denoised_traces, cell_ids))
+
+        deconvolved_traces = self._trace_extractor_read("S")
+        if deconvolved_traces is not None:
+            if cell_ids is None:
+                cell_ids = list(range(deconvolved_traces.shape[1]))
+            self._roi_responses.append(RoiResponse("deconvolved", deconvolved_traces, cell_ids))
+
+        neuropil_traces = self._trace_extractor_read("f")
+        if neuropil_traces is not None:
+            neuropil_ids = [f"background-neuropil-{idx}" for idx in range(neuropil_traces.shape[1])]
+            self._roi_responses.append(RoiResponse("neuropil", neuropil_traces, neuropil_ids))
+
+        if cell_ids is not None:
+            self._roi_ids = list(cell_ids)
+
         correlation_image = self._correlation_image_read()
         if correlation_image is not None:
             self._summary_images["correlation"] = correlation_image

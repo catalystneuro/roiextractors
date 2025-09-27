@@ -21,7 +21,7 @@ from lazy_ops import DatasetView
 from packaging import version
 
 from ...extraction_tools import ArrayType, PathType
-from ...segmentationextractor import SegmentationExtractor
+from ...segmentationextractor import RoiResponse, SegmentationExtractor
 
 
 def _decode_h5py_array(unicode_int_array: np.ndarray) -> str:
@@ -192,10 +192,12 @@ class NewExtractSegmentationExtractor(
         self.config = self._config_struct_to_dict(config_struct=config_struct)
 
         traces = self._trace_extractor_read()
+        cell_ids = list(range(traces.shape[1]))
+        self._roi_ids = cell_ids
         if self.config["preprocess"][0] == 1:
-            self._roi_response_dff = traces
+            self._roi_responses.append(RoiResponse("dff", traces, cell_ids))
         else:
-            self._roi_response_raw = traces
+            self._roi_responses.append(RoiResponse("raw", traces, cell_ids))
 
         self._sampling_frequency = sampling_frequency
 
@@ -331,9 +333,12 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         self._dataset_file = self._file_extractor_read()
         self.output_struct_name = output_struct_name
         self._image_masks = self._image_mask_extractor_read()
-        self._roi_response_raw = self._trace_extractor_read()
+        traces = self._trace_extractor_read()
+        cell_ids = list(range(traces.shape[1]))
+        self._roi_ids = cell_ids
+        self._roi_responses.append(RoiResponse("raw", traces, cell_ids))
         self._raw_movie_file_location = self._raw_datafile_read()
-        self._sampling_frequency = self._roi_response_raw.shape[0] / self._tot_exptime_extractor_read()
+        self._sampling_frequency = traces.shape[0] / self._tot_exptime_extractor_read()
         correlation_image = self._summary_image_read()
         if correlation_image is not None:
             self._summary_images["correlation"] = correlation_image

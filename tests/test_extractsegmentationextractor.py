@@ -119,9 +119,11 @@ class TestNewExtractSegmentationExtractor(TestCase):
             ).lazy_transpose()
             self.assertEqual(self.extractor._image_masks.shape, spatial_weights.shape)
 
-            self.assertEqual(self.extractor._roi_response_dff.shape, (2000, 20))
+            dff_traces = self.extractor.get_traces(name="dff")
+            self.assertEqual(dff_traces.shape, (2000, 20))
 
-            self.assertEqual(self.extractor._roi_response_raw, None)
+            raw_traces = self.extractor.get_traces(name="raw")
+            self.assertIsNone(raw_traces)
 
             self.assertEqual(self.extractor._sampling_frequency, self.sampling_frequency)
             self.assertIsInstance(self.extractor.get_sampling_frequency(), float)

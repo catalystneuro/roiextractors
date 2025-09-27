@@ -14,7 +14,7 @@ import numpy as np
 from lazy_ops import DatasetView
 
 from ...extraction_tools import PathType
-from ...segmentationextractor import SegmentationExtractor
+from ...segmentationextractor import RoiResponse, SegmentationExtractor
 
 
 class CnmfeSegmentationExtractor(SegmentationExtractor):
@@ -40,7 +40,10 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         self.file_path = file_path
         self._dataset_file, self._group0 = self._file_extractor_read()
         self._image_masks = self._image_mask_extractor_read()
-        self._roi_response_raw = self._trace_extractor_read()
+        traces = self._trace_extractor_read()
+        cell_ids = list(range(traces.shape[1]))
+        self._roi_ids = cell_ids
+        self._roi_responses.append(RoiResponse("raw", traces, cell_ids))
         self._raw_movie_file_location = self._raw_datafile_read()
         self._sampling_frequency = self.get_num_frames() / self._tot_exptime_extractor_read()
         # self._sampling_frequency = self._dataset_file[self._group0[0]]['inputOptions']["Fs"][...][0][0]

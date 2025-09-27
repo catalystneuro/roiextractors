@@ -1,6 +1,7 @@
 # v0.7.1 (Upcoming)
 
 ### Features
+* Introduced a unified ROI response data model based on `RoiResponse` objects, replacing the legacy `_roi_response_*` attributes across segmentation extractors for explicit ROI-to-trace mapping.
 
 ### Fixes
 
