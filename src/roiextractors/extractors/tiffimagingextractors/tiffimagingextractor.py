@@ -8,7 +8,6 @@ TiffImagingExtractor
 
 import warnings
 from pathlib import Path
-from typing import Optional
 from warnings import warn
 
 import numpy as np
@@ -110,7 +109,7 @@ class TiffImagingExtractor(ImagingExtractor):
     def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
         return self._video[start_sample:end_sample, ...]
 
-    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+    def get_video(self, start_frame=None, end_frame=None, channel: int | None = 0) -> np.ndarray:
         """Get the video frames.
 
         Parameters
@@ -195,7 +194,7 @@ class TiffImagingExtractor(ImagingExtractor):
         pass
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # Basic TIFF files do not have native timestamps
         return None

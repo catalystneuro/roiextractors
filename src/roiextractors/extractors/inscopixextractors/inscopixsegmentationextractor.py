@@ -4,7 +4,7 @@ import platform
 import sys
 import warnings
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 
@@ -61,7 +61,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
     def get_num_rois(self) -> int:
         return self.cell_set.num_cells
 
-    def get_roi_image_masks(self, roi_ids: Optional[list] = None) -> np.ndarray:
+    def get_roi_image_masks(self, roi_ids: list | None = None) -> np.ndarray:
         """Get image masks for the specified ROIs.
 
         Parameters
@@ -86,7 +86,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
             return masks[0]
         return np.stack(masks)
 
-    def get_roi_pixel_masks(self, roi_ids: Optional[list] = None) -> list[np.ndarray]:
+    def get_roi_pixel_masks(self, roi_ids: list | None = None) -> list[np.ndarray]:
         """Get pixel masks for the specified ROIs.
 
         This converts the image masks to pixel masks with the format expected by the NWB standard.
@@ -463,7 +463,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         return metadata
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # Inscopix segmentation data does not have native timestamps
         return None

@@ -12,7 +12,6 @@ import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from math import prod
-from typing import Optional
 
 import numpy as np
 
@@ -247,7 +246,7 @@ class ImagingExtractor(ABC):
         return self.get_series(start_sample=0, end_sample=2).dtype
 
     @abstractmethod
-    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """Get the series of samples.
 
         Parameters
@@ -284,9 +283,7 @@ class ImagingExtractor(ABC):
         """
         pass
 
-    def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
-    ) -> np.ndarray:
+    def get_video(self, start_frame: int | None = None, end_frame: int | None = None, channel: int = 0) -> np.ndarray:
         """Get the video frames.
 
         Parameters
@@ -343,7 +340,7 @@ class ImagingExtractor(ABC):
         series = self.get_series(start_sample=sample_indices[0], end_sample=sample_indices[-1] + 1)
         return series[relative_indices]
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
+    def get_frames(self, frame_idxs: ArrayType, channel: int | None = 0) -> np.ndarray:
         """Get specific video frames from indices (not necessarily continuous).
 
         Parameters
@@ -378,8 +375,8 @@ class ImagingExtractor(ABC):
 
     @abstractmethod
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         """
         Retrieve the original unaltered timestamps for the data in this interface.
 
@@ -400,7 +397,7 @@ class ImagingExtractor(ABC):
         """
         return None
 
-    def get_timestamps(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_timestamps(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """
         Retrieve the timestamps for the data in this extractor.
 
@@ -596,7 +593,7 @@ class ImagingExtractor(ABC):
         if extractor._times is not None:
             self.set_times(deepcopy(extractor._times))
 
-    def slice_samples(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None):
+    def slice_samples(self, start_sample: int | None = None, end_sample: int | None = None):
         """Return a new ImagingExtractor ranging from the start_sample to the end_sample.
 
         Parameters
@@ -613,7 +610,7 @@ class ImagingExtractor(ABC):
         """
         return SampleSlicedImagingExtractor(parent_imaging=self, start_sample=start_sample, end_sample=end_sample)
 
-    def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
+    def frame_slice(self, start_frame: int | None = None, end_frame: int | None = None):
         """Return a new ImagingExtractor ranging from the start_frame to the end_frame.
 
         Parameters
@@ -650,7 +647,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
     extractor_name = "SampleSlicedImagingExtractor"
 
     def __init__(
-        self, parent_imaging: ImagingExtractor, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+        self, parent_imaging: ImagingExtractor, start_sample: int | None = None, end_sample: int | None = None
     ):
         """Initialize an ImagingExtractor whose samples subset the parent.
 
@@ -696,7 +693,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         mapped_sample_indices = np.array(sample_indices) + self._start_frame
         return self._parent_imaging.get_samples(sample_indices=mapped_sample_indices)
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
+    def get_frames(self, frame_idxs: ArrayType, channel: int | None = 0) -> np.ndarray:
         warnings.warn(
             "get_frames() is deprecated and will be removed on or after January 2026. " "Use get_samples() instead.",
             DeprecationWarning,
@@ -710,7 +707,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
             )
         return self.get_samples(sample_indices=frame_idxs)
 
-    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         assert start_sample is None or start_sample >= 0, (
             f"'start_sample' must be greater than or equal to zero! Received '{start_sample}'.\n"
             "Negative slicing semantics are not supported."
@@ -722,7 +719,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         return self._parent_imaging.get_series(start_sample=start_sample_shifted, end_sample=end_sample_shifted)
 
     def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
+        self, start_frame: int | None = None, end_frame: int | None = None, channel: int | None = 0
     ) -> np.ndarray:
         warnings.warn(
             "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
@@ -807,8 +804,8 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         return self._parent_imaging.get_num_planes()
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # Get the full original timestamps from parent, but return only our slice range
         if start_sample is None:
             start_sample = 0
@@ -836,9 +833,7 @@ class FrameSliceImagingExtractor(SampleSlicedImagingExtractor):
 
     extractor_name = "FrameSliceImagingExtractor"
 
-    def __init__(
-        self, parent_imaging: ImagingExtractor, start_frame: Optional[int] = None, end_frame: Optional[int] = None
-    ):
+    def __init__(self, parent_imaging: ImagingExtractor, start_frame: int | None = None, end_frame: int | None = None):
         """Initialize an ImagingExtractor whose frames subset the parent.
 
         Subset is exclusive on the right bound, that is, the indexes of this ImagingExtractor range over
@@ -868,7 +863,7 @@ class FrameSliceImagingExtractor(SampleSlicedImagingExtractor):
         )
         super().__init__(parent_imaging=parent_imaging, start_sample=start_frame, end_sample=end_frame)
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
+    def get_frames(self, frame_idxs: ArrayType, channel: int | None = 0) -> np.ndarray:
         warnings.warn(
             "get_frames() is deprecated and will be removed on or after January 2026. " "Use get_samples() instead.",
             DeprecationWarning,
@@ -882,7 +877,7 @@ class FrameSliceImagingExtractor(SampleSlicedImagingExtractor):
             )
         return self.get_samples(sample_idxs=frame_idxs)
 
-    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         assert start_sample is None or start_sample >= 0, (
             f"'start_sample' must be greater than or equal to zero! Received '{start_sample}'.\n"
             "Negative slicing semantics are not supported."
@@ -894,7 +889,7 @@ class FrameSliceImagingExtractor(SampleSlicedImagingExtractor):
         return self._parent_imaging.get_series(start_sample=start_sample_shifted, end_sample=end_sample_shifted)
 
     def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
+        self, start_frame: int | None = None, end_frame: int | None = None, channel: int | None = 0
     ) -> np.ndarray:
         warnings.warn(
             "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",

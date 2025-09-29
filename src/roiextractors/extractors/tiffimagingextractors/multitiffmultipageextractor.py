@@ -9,7 +9,7 @@ MultiTIFFMultiPageExtractor
 import glob
 import warnings
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal
 
 import numpy as np
 
@@ -43,9 +43,9 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         file_paths: list[PathType],
         sampling_frequency: float,
         dimension_order: Literal["ZCT", "ZTC", "CZT", "CTZ", "TCZ", "TZC"] = "TZC",
-        num_channels: Optional[int] = None,
-        channel_name: Optional[str] = None,
-        num_planes: Optional[int] = None,
+        num_channels: int | None = None,
+        channel_name: str | None = None,
+        num_planes: int | None = None,
     ):
         """
         Initialize the extractor with file paths and dimension information.
@@ -357,7 +357,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
         return mapping
 
-    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """Get specific samples by their indices.
 
         Parameters
@@ -463,9 +463,9 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         file_pattern: str,
         sampling_frequency: float,
         dimension_order: Literal["ZCT", "ZTC", "CZT", "CTZ", "TCZ", "TZC"] = "TZC",
-        num_channels: Optional[int] = None,
-        channel_name: Optional[str] = None,
-        num_planes: Optional[int] = None,
+        num_channels: int | None = None,
+        channel_name: str | None = None,
+        num_planes: int | None = None,
     ) -> "MultiTIFFMultiPageExtractor":
         """Create an extractor from a folder path and file pattern.
 
@@ -507,8 +507,8 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         )
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         """No native timestamps for native this extractor."""
         return None
 

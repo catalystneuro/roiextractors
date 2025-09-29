@@ -2,7 +2,6 @@
 
 import warnings
 from collections.abc import Iterable
-from typing import Optional
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -48,16 +47,16 @@ def generate_dummy_video(size: tuple[int, int, int], dtype: DtypeType = "uint16"
 
 
 def generate_dummy_imaging_extractor(
-    num_frames: Optional[int] = None,
+    num_frames: int | None = None,
     num_rows: int = 10,
     num_columns: int = 10,
     num_channels: int = 1,
     sampling_frequency: float = 30.0,
     dtype: DtypeType = "uint16",
-    channel_names: Optional[list[str]] = None,
+    channel_names: list[str] | None = None,
     seed: int = 0,
     *,
-    num_samples: Optional[int] = 30,
+    num_samples: int | None = 30,
 ):
     """Generate a dummy imaging extractor for testing.
 
@@ -128,7 +127,7 @@ def generate_dummy_imaging_extractor(
 
 def generate_dummy_segmentation_extractor(
     num_rois: int = 10,
-    num_frames: Optional[int] = None,
+    num_frames: int | None = None,
     num_rows: int = 25,
     num_columns: int = 25,
     sampling_frequency: float = 30.0,
@@ -137,10 +136,10 @@ def generate_dummy_segmentation_extractor(
     has_dff_signal: bool = True,
     has_deconvolved_signal: bool = True,
     has_neuropil_signal: bool = True,
-    rejected_list: Optional[list] = None,
+    rejected_list: list | None = None,
     seed: int = 0,
     *,
-    num_samples: Optional[int] = 30,
+    num_samples: int | None = 30,
 ) -> SegmentationExtractor:
     """Generate a dummy segmentation extractor for testing.
 

@@ -3,7 +3,7 @@
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from warnings import warn
 
 import h5py
@@ -22,9 +22,9 @@ class FemtonicsImagingExtractor(ImagingExtractor):
     def __init__(
         self,
         file_path: PathType,
-        session_name: Optional[str] = None,
-        munit_name: Optional[str] = None,
-        channel_name: Optional[str] = None,
+        session_name: str | None = None,
+        munit_name: str | None = None,
+        channel_name: str | None = None,
     ):
         """Create a FemtonicsImagingExtractor from a MESc (.mesc) file.
 
@@ -335,7 +335,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         return metadata
 
     # Femtonics-specific getter methods
-    def _get_session_uuid(self) -> Optional[str]:
+    def _get_session_uuid(self) -> str | None:
         """Get the session UUID from the root attributes as a hex string."""
         attrs = dict(self._file_handle.attrs)
         uuid_arr = attrs.get("Uuid")
@@ -345,7 +345,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
             return f"{hex_str[:8]}-{hex_str[8:12]}-{hex_str[12:16]}-{hex_str[16:20]}-{hex_str[20:32]}"
         return None
 
-    def _get_frame_duration_in_milliseconds(self) -> Optional[float]:
+    def _get_frame_duration_in_milliseconds(self) -> float | None:
         """Get time per frame from metadata, ensuring units are in milliseconds."""
         attrs = dict(self._file_handle[self._selected_session_name][self._selected_munit_name].attrs)
 
@@ -402,7 +402,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         z_dim = int(munit_attrs.get("ZDim"))
         return (x_dim, y_dim, z_dim)
 
-    def _get_session_start_time(self) -> Optional[datetime]:
+    def _get_session_start_time(self) -> datetime | None:
         """Get measurement date as a timezone-aware UTC datetime."""
         attrs = dict(self._file_handle[self._selected_session_name][self._selected_munit_name].attrs)
 
@@ -556,7 +556,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         """Get the data type of the samples."""
         return self._video.dtype
 
-    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """Get a series of samples."""
         return self._video.lazy_slice[start_sample:end_sample, :, :].dsetread()
 
@@ -565,8 +565,8 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         return self._video.lazy_slice[sample_indices, :, :].dsetread()
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # Femtonics data does not have native timestamps
         return None
 

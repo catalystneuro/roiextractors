@@ -13,7 +13,6 @@ LegacyExtractSegmentationExtractor
 import warnings
 from abc import ABC
 from pathlib import Path
-from typing import Optional
 
 import h5py
 import numpy as np
@@ -38,7 +37,7 @@ class ExtractSegmentationExtractor(ABC):
         cls,
         file_path: PathType,
         sampling_frequency: float,
-        output_struct_name: Optional[str] = None,
+        output_struct_name: str | None = None,
     ):
         """Abstract class that defines which extractor class to use for a given file.
 
@@ -294,8 +293,8 @@ class NewExtractSegmentationExtractor(
         return dict(self._summary_images)
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # EXTRACT data does not have native timestamps
         return None
 
@@ -426,7 +425,7 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         return self.get_frame_shape()
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # EXTRACT data does not have native timestamps
         return None

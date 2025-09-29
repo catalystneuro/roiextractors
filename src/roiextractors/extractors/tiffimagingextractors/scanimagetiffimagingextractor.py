@@ -8,7 +8,6 @@ ScanImageLegacyImagingExtractor
 
 import warnings
 from pathlib import Path
-from typing import Optional
 from warnings import warn
 
 import numpy as np
@@ -56,11 +55,11 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
     def __init__(
         self,
-        file_path: Optional[PathType] = None,
-        channel_name: Optional[str] = None,
-        file_paths: Optional[list[PathType]] = None,
-        slice_sample: Optional[int] = None,
-        plane_index: Optional[int] = None,
+        file_path: PathType | None = None,
+        channel_name: str | None = None,
+        file_paths: list[PathType] | None = None,
+        slice_sample: int | None = None,
+        plane_index: int | None = None,
         interleave_slice_samples: bool = False,
     ):
         """
@@ -558,7 +557,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         return valid_file_paths
 
-    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """
         Get data as a time series from start_sample to end_sample.
 
@@ -803,8 +802,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
         return timestamps
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         """
         Retrieve the original unaltered timestamps for the data in this interface.
 
@@ -917,7 +916,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         frames_per_slice = non_varying_frame_metadata.get("SI.hStackManager.framesPerSlice", 1)
         return frames_per_slice
 
-    def get_original_frame_indices(self, plane_index: Optional[int] = None) -> np.ndarray:
+    def get_original_frame_indices(self, plane_index: int | None = None) -> np.ndarray:
         """
         Get the original frame indices for each sample.
 
@@ -1078,8 +1077,8 @@ class ScanImageTiffMultiPlaneMultiFileImagingExtractor(MultiImagingExtractor):
         return self._num_planes
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # This is a legacy deprecated extractor - delegate to the first imaging extractor
         return self._imaging_extractors[0].get_native_timestamps(start_sample, end_sample)
 
@@ -1143,8 +1142,8 @@ class ScanImageTiffSinglePlaneMultiFileImagingExtractor(MultiImagingExtractor):
         super().__init__(imaging_extractors=imaging_extractors)
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # This is a legacy deprecated extractor - delegate to the first imaging extractor
         return self._imaging_extractors[0].get_native_timestamps(start_sample, end_sample)
 
@@ -1158,9 +1157,9 @@ class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
     def __init__(
         self,
         file_path: PathType,
-        channel_name: Optional[str] = None,
-        metadata: Optional[dict] = None,
-        parsed_metadata: Optional[dict] = None,
+        channel_name: str | None = None,
+        metadata: dict | None = None,
+        parsed_metadata: dict | None = None,
     ) -> None:
         warnings.warn(
             f"{self.__class__.__name__} is deprecated and will be removed on or after October 2025.",
@@ -1225,8 +1224,8 @@ class ScanImageTiffMultiPlaneImagingExtractor(VolumetricImagingExtractor):
         return (image_shape[0], image_shape[1], self.get_num_planes())
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # This is a legacy deprecated extractor - delegate to the first imaging extractor
         return self._imaging_extractors[0].get_native_timestamps(start_sample, end_sample)
 
@@ -1281,8 +1280,8 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         file_path: PathType,
         channel_name: str,
         plane_name: str,
-        metadata: Optional[dict] = None,
-        parsed_metadata: Optional[dict] = None,
+        metadata: dict | None = None,
+        parsed_metadata: dict | None = None,
     ) -> None:
         warnings.warn(
             f"{self.__class__.__name__} is deprecated and will be removed on or after October 2025.",
@@ -1600,8 +1599,8 @@ class ScanImageTiffSinglePlaneImagingExtractor(ImagingExtractor):
         return raw_index
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # Single plane ScanImage files do not have native timestamps
         return None
 
@@ -1720,7 +1719,7 @@ class ScanImageLegacyImagingExtractor(ImagingExtractor):
         with ScanImageTiffReader(filename=str(self.file_path)) as io:
             return io.data(beg=start_sample, end=end_sample)
 
-    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+    def get_video(self, start_frame=None, end_frame=None, channel: int | None = 0) -> np.ndarray:
         """Get the video frames.
 
         Parameters
@@ -1805,7 +1804,7 @@ class ScanImageLegacyImagingExtractor(ImagingExtractor):
         pass
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # Legacy ScanImage files do not have native timestamps
         return None
