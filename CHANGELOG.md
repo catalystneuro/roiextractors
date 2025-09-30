@@ -4,6 +4,7 @@
 * Introduced a unified ROI response data model based on `RoiResponse` objects, replacing the legacy `_roi_response_*` attributes across segmentation extractors for explicit ROI-to-trace mapping.
 
 ### Fixes
+* Fixed `NumpySegmentationExtractor` to properly handle `raw=None` by adding None check before shape validation [PR #508](https://github.com/catalystneuro/roiextractors/pull/508)
 
 ### Deprecations And Removals
 
