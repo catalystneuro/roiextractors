@@ -14,7 +14,7 @@ from warnings import warn
 import numpy as np
 
 from ...extraction_tools import PathType, _image_mask_extractor
-from ...segmentationextractor import SegmentationExtractor
+from ...segmentationextractor import RoiResponse, SegmentationExtractor
 
 
 class Suite2pSegmentationExtractor(SegmentationExtractor):
@@ -136,11 +136,31 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
         fluorescence_traces_file_name = "F.npy" if channel_name == "chan1" else "F_chan2.npy"
         neuropil_traces_file_name = "Fneu.npy" if channel_name == "chan1" else "Fneu_chan2.npy"
-        self._roi_response_raw = self._load_npy(file_name=fluorescence_traces_file_name, mmap_mode="r", transpose=True)
-        self._roi_response_neuropil = self._load_npy(file_name=neuropil_traces_file_name, mmap_mode="r", transpose=True)
-        self._roi_response_deconvolved = (
+
+        raw_traces = self._load_npy(file_name=fluorescence_traces_file_name, mmap_mode="r", transpose=True)
+        neuropil_traces = self._load_npy(file_name=neuropil_traces_file_name, mmap_mode="r", transpose=True)
+        deconvolved_traces = (
             self._load_npy(file_name="spks.npy", mmap_mode="r", transpose=True) if channel_name == "chan1" else None
         )
+
+        cell_ids = None
+        if raw_traces is not None:
+            cell_ids = list(range(raw_traces.shape[1]))
+            self._roi_responses.append(RoiResponse("raw", raw_traces, cell_ids))
+
+        if neuropil_traces is not None:
+            if cell_ids is None:
+                cell_ids = list(range(neuropil_traces.shape[1]))
+            self._roi_responses.append(RoiResponse("neuropil", neuropil_traces, list(cell_ids)))
+
+        if deconvolved_traces is not None:
+            if cell_ids is None:
+                cell_ids = list(range(deconvolved_traces.shape[1]))
+            self._roi_responses.append(RoiResponse("deconvolved", deconvolved_traces, list(cell_ids)))
+
+        if cell_ids is None:
+            cell_ids = list(range(self.stat.size))
+        self._roi_ids = list(cell_ids)
 
         # rois segmented from the iamging acquired with second channel (red/anatomical) that match the first channel segmentation
         redcell = self._load_npy(file_name="redcell.npy", mmap_mode="r")

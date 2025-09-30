@@ -4,7 +4,7 @@ Classes
 -------
 SegmentationExtractor
     Abstract class that contains all the meta-data and output data from the ROI segmentation operation when applied to
-    the pre-processed data. It also contains methods to read from  various data formats output from the
+    the pre-processed data. It also contains methods to read from various data formats output from the
     processing pipelines like SIMA, CaImAn, Suite2p, CNMF-E.
 SampleSlicedSegmentationExtractor
     Class to get a lazy sample slice.
@@ -14,12 +14,22 @@ FrameSliceSegmentationExtractor
 
 import warnings
 from abc import ABC, abstractmethod
-from typing import Iterable, Optional
+from dataclasses import dataclass
+from typing import Optional
 
 import numpy as np
 from numpy.typing import ArrayLike
 
 from .extraction_tools import ArrayType, FloatType, IntType, _pixel_mask_extractor
+
+
+@dataclass
+class RoiResponse:
+    """Represents a fluorescence response (trace) with its metadata."""
+
+    response_type: str
+    data: ArrayLike  # Shape: (num_samples, num_rois)
+    roi_ids: list[str | int]
 
 
 class SegmentationExtractor(ABC):
@@ -39,11 +49,8 @@ class SegmentationExtractor(ABC):
         self._times = None
         self._channel_names = ["OpticalChannel"]
         self._num_planes = 1
-        self._roi_response_raw = None
-        self._roi_response_dff = None
-        self._roi_response_neuropil = None
-        self._roi_response_denoised = None
-        self._roi_response_deconvolved = None
+        self._roi_ids: Optional[list[str | int]] = None
+        self._roi_responses: list[RoiResponse] = []
         self._summary_images = {}
         self._image_mask = None
         self._properties = {}
@@ -182,6 +189,9 @@ class SegmentationExtractor(ABC):
         roi_ids: list
             List of roi ids.
         """
+        if self._roi_ids is not None:
+            return self._roi_ids
+
         return list(range(self.get_num_rois()))
 
     def get_roi_image_masks(self, roi_ids=None) -> np.ndarray:
@@ -323,7 +333,7 @@ class SegmentationExtractor(ABC):
 
     def get_traces(
         self,
-        roi_ids: ArrayType = None,
+        roi_ids: list[int | str] = None,
         start_frame: Optional[int] = None,
         end_frame: Optional[int] = None,
         name: str = "raw",
@@ -346,15 +356,39 @@ class SegmentationExtractor(ABC):
         traces: array_like
             2-D array (ROI x timepoints)
         """
-        if name not in self.get_traces_dict():
-            raise ValueError(f"traces for {name} not found, enter one of {list(self.get_traces_dict().keys())}")
-        if roi_ids is not None:
-            all_ids = self.get_roi_ids()
-            roi_idxs = [all_ids.index(i) for i in roi_ids]
-        traces = self.get_traces_dict().get(name)
-        if traces is not None and len(traces.shape) != 0:
-            idxs = slice(None) if roi_ids is None else roi_idxs
-            return np.array(traces[start_frame:end_frame, :])[:, idxs]  # numpy fancy indexing is quickest
+        traces_dict = self.get_traces_dict()
+        if traces_dict.get(name) is None:
+            return None
+
+        response = next((r for r in self._roi_responses if r.response_type == name), None)
+        if response is None:
+            raise ValueError(
+                f"Traces for {name} are registered in the trace dictionary but missing from the internal store."
+            )
+
+        data = np.asarray(response.data)
+        sliced = data[start_frame:end_frame, :]
+
+        input_roi_ids = roi_ids
+        if input_roi_ids is None:
+            return np.array(sliced)
+
+        # Match ROI ids by value, allowing for differing orders between sources
+        response_roi_ids = list(response.roi_ids)
+        indices: list[int] = []
+        missing_roi_ids: list = []
+        for roi_id in input_roi_ids:
+            try:
+                indices.append(response_roi_ids.index(roi_id))
+            except ValueError:
+                missing_roi_ids.append(roi_id)
+
+        if missing_roi_ids:
+            raise ValueError(
+                f"ROI ids {missing_roi_ids} not found for response '{name}'. Available ids: {response_roi_ids}"
+            )
+
+        return np.array(sliced[:, indices])
 
     def get_traces_dict(self) -> dict:
         """Get traces as a dictionary with key as the name of the ROiResponseSeries.
@@ -365,13 +399,10 @@ class SegmentationExtractor(ABC):
             dictionary with key, values representing different types of RoiResponseSeries:
                 Raw Fluorescence, DeltaFOverF, Denoised, Neuropil, Deconvolved, Background, etc.
         """
-        return dict(
-            raw=self._roi_response_raw,
-            dff=self._roi_response_dff,
-            neuropil=self._roi_response_neuropil,
-            deconvolved=self._roi_response_deconvolved,
-            denoised=self._roi_response_denoised,
-        )
+        traces = {response.response_type: response.data for response in self._roi_responses}
+        for expected_type in ("raw", "dff", "neuropil", "deconvolved", "denoised", "baseline", "background"):
+            traces.setdefault(expected_type, None)
+        return traces
 
     def get_images_dict(self) -> dict:
         """Get images as a dictionary with key as the name of the ROIResponseSeries.
@@ -433,8 +464,18 @@ class SegmentationExtractor(ABC):
         num_background_components: int
             The number of background components extracted.
         """
-        if self._roi_response_neuropil is not None and len(self._roi_response_neuropil.shape) > 0:
-            return self._roi_response_neuropil.shape[1]
+        for response in self._roi_responses:
+            if response.response_type in {"neuropil", "background"}:
+                data = response.data
+                if data is None:
+                    continue
+                if not hasattr(data, "shape"):
+                    continue
+                if len(data.shape) == 1:
+                    return int(data.shape[0])
+                return int(data.shape[1])
+
+        return 0
 
     def get_channel_names(self) -> list[str]:
         """Get names of channels in the pipeline.
@@ -713,10 +754,6 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
             The default is end sample of the parent.
         """
         self._parent_segmentation = parent_segmentation
-        self._start_sample = start_sample
-        self._end_sample = end_sample
-        self._num_samples = self._end_sample - self._start_sample
-
         parent_size = self._parent_segmentation.get_num_samples()
         if start_sample is None:
             start_sample = 0
@@ -728,6 +765,10 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
             assert 0 < end_sample <= parent_size
         assert end_sample > start_sample, "'start_sample' must be smaller than 'end_sample'!"
 
+        self._start_sample = start_sample
+        self._end_sample = end_sample
+        self._num_samples = self._end_sample - self._start_sample
+
         # Copy image masks if they exist
         if hasattr(self._parent_segmentation, "_image_masks"):
             self._image_masks = self._parent_segmentation._image_masks
@@ -736,6 +777,11 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
             self._background_image_masks = self._parent_segmentation._background_image_masks
 
         super().__init__()
+        self._roi_ids = list(self._parent_segmentation.get_roi_ids())
+        for roi_response in self._parent_segmentation._roi_responses:
+            sliced_data = roi_response.data[start_sample:end_sample, :]
+            self._roi_responses.append(RoiResponse(roi_response.response_type, sliced_data, list(roi_response.roi_ids)))
+        self._summary_images = dict(self._parent_segmentation.get_images_dict())
         # Preserve parent's channel names and other attributes
         self._channel_names = self._parent_segmentation.get_channel_names()
         self._num_planes = self._parent_segmentation.get_num_planes()
@@ -783,46 +829,6 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
             stacklevel=2,
         )
         return self.get_num_samples()
-
-    def get_traces(
-        self,
-        roi_ids: Optional[Iterable[int]] = None,
-        start_frame: Optional[int] = None,
-        end_frame: Optional[int] = None,
-        name: str = "raw",
-    ) -> np.ndarray:
-        assert start_frame is None or start_frame >= 0, (
-            f"'start_frame' must be greater than or equal to zero! Received '{start_frame}'.\n"
-            "Negative slicing semantics are not supported."
-        )
-
-        # If no start_frame/end_frame specified, return the full sliced range
-        if start_frame is None and end_frame is None:
-            start_frame_shifted = self._start_sample
-            end_frame_shifted = self._end_sample
-        else:
-            # If start_frame/end_frame are specified, they are relative to the sliced range
-            start_frame_shifted = (start_frame or 0) + self._start_sample
-            end_frame_shifted = end_frame
-            if end_frame is not None:
-                end_frame_shifted = end_frame + self._start_sample
-            else:
-                end_frame_shifted = self._end_sample
-
-        return self._parent_segmentation.get_traces(
-            roi_ids=roi_ids,
-            start_frame=start_frame_shifted,
-            end_frame=end_frame_shifted,
-            name=name,
-        )
-
-    def get_traces_dict(self) -> dict:
-        return {
-            trace_name: self._parent_segmentation.get_traces(
-                start_frame=self._start_sample, end_frame=self._end_sample, name=trace_name
-            )
-            for trace_name, trace in self._parent_segmentation.get_traces_dict().items()
-        }
 
     def get_num_rois(self) -> int:
         return self._parent_segmentation.get_num_rois()
