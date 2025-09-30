@@ -354,11 +354,12 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             self.is_dumpable = False
             self._image_masks = image_masks
             self._roi_response_raw = raw
-            assert self._image_masks.shape[-1] == self._roi_response_raw.shape[-1], (
-                "Inconsistency between image masks and raw traces. "
-                "Image masks must be (px, py, num_rois), "
-                "traces must be (num_frames, num_rois)"
-            )
+            if self._roi_response_raw is not None:
+                assert self._image_masks.shape[-1] == self._roi_response_raw.shape[-1], (
+                    "Inconsistency between image masks and raw traces. "
+                    "Image masks must be (px, py, num_rois), "
+                    "traces must be (num_frames, num_rois)"
+                )
             self._roi_response_dff = dff
             if self._roi_response_dff is not None:
                 assert self._image_masks.shape[-1] == self._roi_response_dff.shape[-1], (

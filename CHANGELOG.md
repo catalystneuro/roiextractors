@@ -3,6 +3,7 @@
 ### Features
 
 ### Fixes
+* Fixed `NumpySegmentationExtractor` to properly handle `raw=None` by adding None check before shape validation [PR #508](https://github.com/catalystneuro/roiextractors/pull/508)
 
 ### Deprecations And Removals
 
