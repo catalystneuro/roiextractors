@@ -13,7 +13,6 @@ from functools import wraps
 from pathlib import Path
 from platform import python_version
 from types import ModuleType
-from typing import Optional
 
 import h5py
 import lazy_ops
@@ -639,8 +638,8 @@ def todict(matobj):
 
 def get_package(
     package_name: str,
-    installation_instructions: Optional[str] = None,
-    excluded_platforms_and_python_versions: Optional[dict[str, list[str]]] = None,
+    installation_instructions: str | None = None,
+    excluded_platforms_and_python_versions: dict[str, list[str]] | None = None,
 ) -> ModuleType:
     """Check if package is installed and return module if so.
 

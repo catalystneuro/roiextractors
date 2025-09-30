@@ -10,7 +10,6 @@ import json
 import re
 import warnings
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 
@@ -131,10 +130,10 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
 
     def __init__(
         self,
-        folder_path: Optional[PathType] = None,
-        file_paths: Optional[list[PathType]] = None,
-        configuration_file_path: Optional[PathType] = None,
-        timestamps_path: Optional[PathType] = None,
+        folder_path: PathType | None = None,
+        file_paths: list[PathType] | None = None,
+        configuration_file_path: PathType | None = None,
+        timestamps_path: PathType | None = None,
     ):
         # Determine file paths and configuration file path based on folder_path or provided arguments
         if folder_path is not None:
@@ -186,7 +185,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
     @staticmethod
     def _get_miniscope_files_from_direct_folder(
         folder_path: PathType,
-    ) -> tuple[list[PathType], PathType, Optional[PathType]]:
+    ) -> tuple[list[PathType], PathType, PathType | None]:
         """
         Retrieve Miniscope files from a folder containing .avi files directly.
 
@@ -266,7 +265,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
 
     @staticmethod
     def validate_miniscope_files(
-        file_paths: list[PathType], configuration_file_path: PathType, timestamps_path: Optional[PathType] = None
+        file_paths: list[PathType], configuration_file_path: PathType, timestamps_path: PathType | None = None
     ) -> None:
         """
         Validate that the provided Miniscope files exist and are accessible.
@@ -347,7 +346,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
             )
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+        self, start_sample: int | None = None, end_sample: int | None = None
     ) -> np.ndarray | None:
 
         if self._timestamps_path is None:
@@ -494,7 +493,7 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
         return miniscope_avi_file_paths, miniscope_config_files[0]
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
+        self, start_sample: int | None = None, end_sample: int | None = None
     ) -> np.ndarray | None:
         """
         Retrieve timestamps for multiple recordings in a multi-recordings folder structure.
@@ -625,7 +624,7 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
     def get_channel_names(self) -> list[str]:
         return ["OpticalChannel"]
 
-    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         end_sample = end_sample or self.get_num_samples()
         start_sample = start_sample or 0
 
@@ -640,7 +639,7 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
         return series
 
     def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
+        self, start_frame: int | None = None, end_frame: int | None = None, channel: int | None = 0
     ) -> np.ndarray:
         """Get the video frames.
 

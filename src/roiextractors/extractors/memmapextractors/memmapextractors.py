@@ -7,7 +7,6 @@ MemmapImagingExtractor
 """
 
 import warnings
-from typing import Optional
 from warnings import warn
 
 import numpy as np
@@ -35,7 +34,7 @@ class MemmapImagingExtractor(ImagingExtractor):
         self._video = video
         super().__init__()
 
-    def get_frames(self, frame_idxs=None, channel: Optional[int] = 0) -> np.ndarray:
+    def get_frames(self, frame_idxs=None, channel: int | None = 0) -> np.ndarray:
         """Get specific video frames from indices.
 
         Parameters
@@ -66,7 +65,7 @@ class MemmapImagingExtractor(ImagingExtractor):
 
         return frames
 
-    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         if start_sample is None:
             start_sample = 0
         if end_sample is None:
@@ -76,7 +75,7 @@ class MemmapImagingExtractor(ImagingExtractor):
         return self._video.take(indices=list(frame_idxs), axis=0)
 
     def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
+        self, start_frame: int | None = None, end_frame: int | None = None, channel: int | None = 0
     ) -> np.ndarray:
         warnings.warn(
             "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
@@ -154,7 +153,7 @@ class MemmapImagingExtractor(ImagingExtractor):
         return (self._num_samples, self._num_rows, self._num_columns, self._num_channels)
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # Memory-mapped imaging data does not have native timestamps
         return None

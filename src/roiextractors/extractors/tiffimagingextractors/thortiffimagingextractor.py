@@ -5,7 +5,6 @@ import warnings
 import xml.etree.ElementTree as ET
 from collections import defaultdict, namedtuple
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 
@@ -47,7 +46,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
     # Named tuple to hold page mapping details.
     PageMapping = namedtuple("PageMapping", ["page_index", "channel_index", "depth_index"])
 
-    def __init__(self, file_path: str | Path, channel_name: Optional[str] = None):
+    def __init__(self, file_path: str | Path, channel_name: str | None = None):
         """Create a ThorTiffImagingExtractor instance from a TIFF file."""
         super().__init__()
         self.file_path = Path(file_path)
@@ -241,7 +240,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
 
         return output_array
 
-    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         if start_sample is None:
             start_sample = 0
         if end_sample is None:
@@ -249,7 +248,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         frame_indices = list(range(start_sample, end_sample))
         return self.get_frames(frame_indices)
 
-    def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
+    def get_video(self, start_frame: int | None = None, end_frame: int | None = None) -> np.ndarray:
         """Get a range of frames.
 
         Parameters
@@ -316,7 +315,7 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         )
         return self.get_num_samples()
 
-    def get_sampling_frequency(self) -> Optional[float]:
+    def get_sampling_frequency(self) -> float | None:
         """Return the sampling frequency, if available."""
         return self._sampling_frequency
 
@@ -329,8 +328,8 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         return self._dtype
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # ThorLabs TIFF imaging data does not have native timestamps
         return None
 

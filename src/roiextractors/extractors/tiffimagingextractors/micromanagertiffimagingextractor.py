@@ -14,7 +14,6 @@ from collections import Counter
 from itertools import islice
 from pathlib import Path
 from types import ModuleType
-from typing import Optional
 from xml.etree import ElementTree
 
 import numpy as np
@@ -298,7 +297,7 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
     def get_dtype(self):
         return self._dtype
 
-    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         if start_sample is not None and end_sample is not None and start_sample == end_sample:
             return self.pages[start_sample].asarray()
 
@@ -310,7 +309,7 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
         return series
 
     def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: Optional[int] = 0
+        self, start_frame: int | None = None, end_frame: int | None = None, channel: int | None = 0
     ) -> np.ndarray:
         """Get the video frames.
 
@@ -347,7 +346,7 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # MicroManager TIFF imaging data does not have native timestamps
         return None

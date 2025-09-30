@@ -9,7 +9,6 @@ SbxImagingExtractor
 import os
 import warnings
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import scipy.io as spio
@@ -29,7 +28,7 @@ class SbxImagingExtractor(ImagingExtractor):
     extractor_name = "SbxImaging"
     mode = "folder"
 
-    def __init__(self, file_path: PathType, sampling_frequency: Optional[float] = None):
+    def __init__(self, file_path: PathType, sampling_frequency: float | None = None):
         """Create a SbxImagingExtractor from .mat or .sbx files.
 
         Parameters
@@ -197,7 +196,7 @@ class SbxImagingExtractor(ImagingExtractor):
         frame_out = np.iinfo("uint16").max - self._data[0, :, :, 0, start_sample:end_sample]
         return frame_out.transpose(2, 1, 0)
 
-    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+    def get_video(self, start_frame=None, end_frame=None, channel: int | None = 0) -> np.ndarray:
         """Get the video frames.
 
         Parameters
@@ -284,8 +283,8 @@ class SbxImagingExtractor(ImagingExtractor):
         return self._channel_names
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         """Retrieve the original unaltered timestamps for the data in this interface.
 
         Returns

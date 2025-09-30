@@ -10,7 +10,7 @@ NwbSegmentationExtractor
 
 import warnings
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable
 
 import numpy as np
 from lazy_ops import DatasetView
@@ -37,7 +37,7 @@ class NwbImagingExtractor(ImagingExtractor):
 
     extractor_name = "NwbImaging"
 
-    def __init__(self, file_path: PathType, optical_series_name: Optional[str] = "TwoPhotonSeries"):
+    def __init__(self, file_path: PathType, optical_series_name: str | None = "TwoPhotonSeries"):
         """Create ImagingExtractor object from NWB file.
 
         Parameters
@@ -161,7 +161,7 @@ class NwbImagingExtractor(ImagingExtractor):
             ),
         )
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0):
+    def get_frames(self, frame_idxs: ArrayType, channel: int | None = 0):
         """Get specific video frames from indices.
 
         Parameters
@@ -203,7 +203,7 @@ class NwbImagingExtractor(ImagingExtractor):
         series = series[start_sample:end_sample].transpose([0, 2, 1])
         return series
 
-    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+    def get_video(self, start_frame=None, end_frame=None, channel: int | None = 0) -> np.ndarray:
         """Get the video frames.
 
         Parameters
@@ -290,8 +290,8 @@ class NwbImagingExtractor(ImagingExtractor):
         return self._channel_names
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # NWB files may have timestamps but need to check the specific implementation
         # For now, return None to use calculated timestamps based on sampling frequency
         # TODO: extract the timestamps if the MiroscopySeries has timestamps
@@ -410,7 +410,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
 
         return images_dict
 
-    def get_roi_locations(self, roi_ids: Optional[Iterable[int]] = None) -> np.ndarray:
+    def get_roi_locations(self, roi_ids: Iterable[int] | None = None) -> np.ndarray:
         """Return the locations of the Regions of Interest (ROIs).
 
         Parameters
@@ -462,8 +462,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         return self._image_masks.shape[:2]
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # NWB files may have timestamps but need to check the specific implementation
         # For now, return None to use calculated timestamps based on sampling frequency
         # TODO: check if the RoiResponseSeries has timestamps

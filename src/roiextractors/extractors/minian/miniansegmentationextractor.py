@@ -8,7 +8,6 @@ MinianSegmentationExtractor
 
 import warnings
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -51,8 +50,8 @@ class MinianSegmentationExtractor(SegmentationExtractor):
     def __init__(
         self,
         folder_path: PathType,
-        sampling_frequency: Optional[float] = None,
-        timestamps_path: Optional[PathType] = None,
+        sampling_frequency: float | None = None,
+        timestamps_path: PathType | None = None,
     ):
         """Initialize a MinianSegmentationExtractor instance.
 
@@ -195,7 +194,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         elif dataset[field].ndim == 1:
             return np.expand_dims(dataset[field], axis=1)
 
-    def get_native_timestamps(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_native_timestamps(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """
         Get the native format timestamps from the CSV file.
 
@@ -346,7 +345,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         """
         return dict(self._summary_images)
 
-    def get_sampling_frequency(self) -> Optional[float]:
+    def get_sampling_frequency(self) -> float | None:
         """Get the sampling frequency in Hz.
 
         Returns

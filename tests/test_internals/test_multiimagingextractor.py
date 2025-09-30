@@ -1,5 +1,4 @@
 import unittest
-from typing import Optional
 
 import numpy as np
 from hdmf.testing import TestCase
@@ -94,9 +93,9 @@ class TestMultiImagingExtractor(TestCase):
     )
     def test_get_series(
         self,
-        test_start_sample: Optional[int],
-        test_end_sample: Optional[int],
-        true_series_spans: list[tuple[Optional[int]]],
+        test_start_sample: int | None,
+        test_end_sample: int | None,
+        true_series_spans: list[tuple[int | None]],
     ):
         test_series = self.multi_imaging_extractor.get_series(
             start_sample=test_start_sample, end_sample=test_end_sample

@@ -4,7 +4,7 @@ import platform
 import sys
 import warnings
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 
@@ -66,7 +66,7 @@ class InscopixImagingExtractor(ImagingExtractor):
         warnings.warn("isx only supports single channel videos.")
         return ["channel_0"]
 
-    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         start_sample = start_sample or 0
         end_sample = end_sample or self.get_num_samples()
         return np.array([self.movie.get_frame_data(i) for i in range(start_sample, end_sample)])
@@ -274,7 +274,7 @@ class InscopixImagingExtractor(ImagingExtractor):
         return metadata
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # Inscopix imaging data does not have native timestamps
         return None

@@ -8,7 +8,7 @@ MultiImagingExtractor
 
 import warnings
 from collections import defaultdict
-from typing import Iterable, Optional
+from typing import Iterable
 
 import numpy as np
 
@@ -120,7 +120,7 @@ class MultiImagingExtractor(ImagingExtractor):
     def get_dtype(self):
         return self._imaging_extractors[0].get_dtype()
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> NumpyArray:
+    def get_frames(self, frame_idxs: ArrayType, channel: int | None = 0) -> NumpyArray:
         """Get specific video frames from indices.
 
         Parameters
@@ -166,7 +166,7 @@ class MultiImagingExtractor(ImagingExtractor):
         frames = np.concatenate(frames_to_concatenate, axis=0)
         return frames
 
-    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """Get the video frames.
 
         Parameters
@@ -226,9 +226,7 @@ class MultiImagingExtractor(ImagingExtractor):
 
         return series
 
-    def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
-    ) -> np.ndarray:
+    def get_video(self, start_frame: int | None = None, end_frame: int | None = None, channel: int = 0) -> np.ndarray:
         """Get the video frames.
 
         Parameters
@@ -317,8 +315,8 @@ class MultiImagingExtractor(ImagingExtractor):
         return self._imaging_extractors[0].get_channel_names()
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # MultiImagingExtractor combines multiple extractors with potentially different timestamp behaviors.
         # Implementing native timestamp concatenation is complex due to potential timestamp overlaps,
         # different sampling rates, and mixed native/calculated timestamps across child extractors.

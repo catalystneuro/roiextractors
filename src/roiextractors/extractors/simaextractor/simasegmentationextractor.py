@@ -12,7 +12,6 @@ import pickle
 import re
 import warnings
 from shutil import copyfile
-from typing import Optional
 
 import numpy as np
 
@@ -193,8 +192,8 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         return self.get_frame_shape()
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         """Retrieve the original unaltered timestamps for the data in this interface.
 
         Returns

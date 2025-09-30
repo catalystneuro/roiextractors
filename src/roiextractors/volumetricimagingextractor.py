@@ -1,7 +1,7 @@
 """Base class definition for volumetric imaging extractors."""
 
 import warnings
-from typing import Iterable, Optional
+from typing import Iterable
 
 import numpy as np
 
@@ -69,7 +69,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
                 len(unique_values) == 1
             ), f"{property_message} is not consistent over the files (found {unique_values})."
 
-    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         if start_sample is None:
             start_sample = 0
         elif start_sample < 0:
@@ -92,7 +92,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
             series[..., i] = imaging_extractor.get_series(start_sample, end_sample)
         return series
 
-    def get_video(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None) -> np.ndarray:
+    def get_video(self, start_frame: int | None = None, end_frame: int | None = None) -> np.ndarray:
         """Get the video frames.
 
         Parameters
@@ -119,7 +119,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
         )
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
+    def get_frames(self, frame_idxs: ArrayType, channel: int | None = 0) -> np.ndarray:
         """Get specific video frames from indices (not necessarily continuous).
 
         Parameters
@@ -241,7 +241,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
         image_shape = self.get_image_shape()
         return (image_shape[0], image_shape[1], self.get_num_planes())
 
-    def depth_slice(self, start_plane: Optional[int] = None, end_plane: Optional[int] = None):
+    def depth_slice(self, start_plane: int | None = None, end_plane: int | None = None):
         """Return a new VolumetricImagingExtractor ranging from the start_plane to the end_plane."""
         start_plane = start_plane if start_plane is not None else 0
         end_plane = end_plane if end_plane is not None else self._num_planes
@@ -254,13 +254,13 @@ class VolumetricImagingExtractor(ImagingExtractor):
 
         return DepthSliceVolumetricImagingExtractor(parent_extractor=self, start_plane=start_plane, end_plane=end_plane)
 
-    def slice_samples(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None):
+    def slice_samples(self, start_sample: int | None = None, end_sample: int | None = None):
         """Return a new VolumetricImagingExtractor with a subset of samples."""
         raise NotImplementedError(
             "slice_samples is not implemented for VolumetricImagingExtractor due to conflicts with get_series()."
         )
 
-    def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
+    def frame_slice(self, start_frame: int | None = None, end_frame: int | None = None):
         """Return a new VolumetricImagingExtractor with a subset of frames.
 
         Deprecated
@@ -276,8 +276,8 @@ class VolumetricImagingExtractor(ImagingExtractor):
         return self.slice_samples(start_sample=start_frame, end_sample=end_frame)
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # Delegate to the first imaging extractor
         return self._imaging_extractors[0].get_native_timestamps(start_sample, end_sample)
 
@@ -295,8 +295,8 @@ class DepthSliceVolumetricImagingExtractor(VolumetricImagingExtractor):
     def __init__(
         self,
         parent_extractor: VolumetricImagingExtractor,
-        start_plane: Optional[int] = None,
-        end_plane: Optional[int] = None,
+        start_plane: int | None = None,
+        end_plane: int | None = None,
     ):
         """Initialize a VolumetricImagingExtractor whose plane(s) subset the parent.
 
