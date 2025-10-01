@@ -364,6 +364,11 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
 
         return native_timestamps[start_sample:end_sample]
 
+    def has_time_vector(self) -> bool:
+        if self._times is None:
+            self._times = self.get_native_timestamps()
+        return self._times is not None
+
 
 # Temporary renaming to keep backwards compatibility
 class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
