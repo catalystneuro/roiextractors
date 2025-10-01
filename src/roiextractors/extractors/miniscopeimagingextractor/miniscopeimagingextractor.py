@@ -9,6 +9,7 @@ MiniscopeImagingExtractor
 import json
 import re
 import warnings
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -19,7 +20,7 @@ from ...imagingextractor import ImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor
 
 
-def read_timestamps_from_csv_file(file_path: PathType) -> list[float]:
+def read_timestamps_from_csv_file(file_path: PathType) -> np.ndarray:
     """
     Retrieve the timestamps from a CSV file.
 
@@ -56,18 +57,18 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
     Notes
     -----
     - The function expects a "recordingStartTime" key in the metadata JSON, which contains start time details.
-      If not present, the top-level JSON object is assumed to contain the time information.
+    If not present, the top-level JSON object is assumed to contain the time information.
     - The "msec" field in the metadata is converted from milliseconds to microseconds for compatibility with the datetime
-      microsecond field.
+    microsecond field.
     Additional metadata such as recording settings, device parameters, and session information may also be present.
 
     If folder_path is provided, the extractor expects the following file structure from a typical Miniscope recording:
     - miniscope folder/
-      ├── metaData.json (required)
-      ├── timeStamps.csv (optional)
-      ├── video1.avi
-      ├── video2.avi
-      └── ...
+        ├── metaData.json (required)
+        ├── timeStamps.csv (optional)
+        ├── video1.avi
+        ├── video2.avi
+        └── ...
 
     Parameters
     ----------
@@ -368,6 +369,17 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         if self._times is None:
             self._times = self.get_native_timestamps()
         return self._times is not None
+
+    @staticmethod
+    def _get_session_start_time(miniscope_folder_path) -> Optional[datetime]:
+        from .miniscope_utils import get_recording_start_time
+
+        try:
+            session_start_time = get_recording_start_time(file_path=Path(miniscope_folder_path) / "metaData.json")
+            return session_start_time
+        except (FileNotFoundError, KeyError, json.JSONDecodeError) as e:
+            warnings.warn(f"Could not retrieve session start time for folder {miniscope_folder_path}: \n {e}")
+            return None
 
 
 # Temporary renaming to keep backwards compatibility

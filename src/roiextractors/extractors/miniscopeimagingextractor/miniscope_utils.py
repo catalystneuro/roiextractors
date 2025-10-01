@@ -113,9 +113,14 @@ def get_recording_start_time(file_path: PathType) -> datetime.datetime:
         start_time_info = general_metadata
 
     required_keys = ["year", "month", "day", "hour", "minute", "second", "msec"]
-    for key in required_keys:
-        if key not in start_time_info:
-            raise KeyError(f"Missing required key '{key}' in the metadata")
+    available_keys = list(start_time_info.keys())
+    missing_keys = [key for key in required_keys if key not in start_time_info]
+    if missing_keys:
+        raise KeyError(
+            f"Missing required keys {missing_keys} in the metadata. "
+            f"Available keys: {available_keys}. "
+            f"Expected keys: {required_keys}."
+        )
 
     session_start_time = datetime.datetime(
         year=start_time_info["year"],
