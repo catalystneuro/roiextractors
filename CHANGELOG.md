@@ -6,8 +6,11 @@
 * Fixed `NumpySegmentationExtractor` to properly handle `raw=None` by adding None check before shape validation [PR #508](https://github.com/catalystneuro/roiextractors/pull/508)
 
 ### Deprecations And Removals
+* Deprecated `configuration_file_path` parameter in `MiniscopeImagingExtractor`. This was used to estimate the sampling frequency from the metadata but that value turned-out to be unreliable. The parameter is ignored if provided and will be removed on March 2026 [PR #510](https://github.com/catalystneuro/roiextractors/pull/510)
 
 ### Improvements
+* Enhanced `MiniscopeImagingExtractor` to calculate sampling frequency from hardware timestamps (`timeStamps.csv`) as ground truth, replacing unreliable metaData.json frameRate. Added a keyword-only `sampling_frequency` parameter as a fallback. [PR #510](https://github.com/catalystneuro/roiextractors/pull/510)
+* Improved `MiniscopeImagingExtractor` documentation: reorganized class vs `__init__` docstrings, clarified device folder structure, added comprehensive `has_time_vector()` docstring, and removed personal information from docstring examples. [PR #510](https://github.com/catalystneuro/roiextractors/pull/510)
 * Refactored Miniscope imaging extractor tests to native pytest style with fixture-based temp directories and warning suppression for expected conditions [PR #501](https://github.com/catalystneuro/roiextractors/pull/501)
 * Add ruff-rule to detect non-pep585 annotation [PR #494](https://github.com/catalystneuro/roiextractors/pull/493)
 
