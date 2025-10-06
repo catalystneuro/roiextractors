@@ -99,23 +99,16 @@ class TestMiniscopeImagingExtractor:
     # We suppress the warning here because this test is specifically for error handling
     # So the warning is non-informative for this test case
     @pytest.mark.filterwarnings("ignore:`timeStamps\\.csv` file not found:UserWarning")
-    def test_frame_rate_extraction_error(self, tmp_path):
-        """Test error when frame rate cannot be extracted from configuration."""
-        temp_frame_rate_dir = tmp_path / "frame_rate_test"
-        temp_frame_rate_dir.mkdir()
+    def test_missing_timestamps_error(self, tmp_path):
+        """Test error when timeStamps.csv is missing."""
+        temp_dir = tmp_path / "missing_timestamps"
+        temp_dir.mkdir()
 
-        test_avi_file = temp_frame_rate_dir / "0.avi"
+        test_avi_file = temp_dir / "0.avi"
         test_avi_file.touch()
 
-        invalid_config = temp_frame_rate_dir / "metaData.json"
-        config_data = {"frameRate": "invalid_frame_rate_format", "deviceName": "Miniscope"}
-        with open(invalid_config, "w") as f:
-            json.dump(config_data, f)
-
-        with pytest.raises(
-            ValueError, match="Could not extract frame rate from configuration: invalid_frame_rate_format"
-        ):
-            MiniscopeImagingExtractor(file_paths=[test_avi_file], configuration_file_path=invalid_config)
+        with pytest.raises(FileNotFoundError, match="timeStamps.csv not found"):
+            MiniscopeImagingExtractor(file_paths=[test_avi_file])
 
     def test_miniscopeextractor_dtype(self):
         """Test that the extractor returns the correct data type."""
@@ -206,7 +199,8 @@ class TestMiniscopeMultiRecordingImagingExtractor:
         assert self.multi_recording_extractor.get_channel_names() == ["OpticalChannel"]
 
     def test_multi_recording_extractor_sampling_frequency(self):
-        assert self.multi_recording_extractor.get_sampling_frequency() == 15.0
+        # Sampling frequency is now calculated from timeStamps.csv, so it may differ slightly from configured value
+        assert self.multi_recording_extractor.get_sampling_frequency() == pytest.approx(15.0, rel=0.05)
 
     def test_multi_recording_extractor_dtype(self):
         assert self.multi_recording_extractor.get_dtype() == np.uint8
@@ -323,31 +317,18 @@ class TestMiniscopeUtilityFunctions:
     def test_validate_miniscope_files_valid(self):
         """Test validation with valid files."""
         # Should not raise any exception
-        MiniscopeImagingExtractor.validate_miniscope_files(self.valid_file_paths, self.valid_config_path)
+        MiniscopeImagingExtractor.validate_miniscope_files(self.valid_file_paths)
 
     def test_validate_miniscope_files_empty_list(self):
         """Test validation with empty file list."""
         with pytest.raises(ValueError):
-            MiniscopeImagingExtractor.validate_miniscope_files([], self.valid_config_path)
-
-    def test_validate_miniscope_files_missing_config(self):
-        """Test validation with missing configuration file."""
-        with pytest.raises(FileNotFoundError):
-            MiniscopeImagingExtractor.validate_miniscope_files(self.valid_file_paths, Path("nonexistent.json"))
-
-    def test_validate_miniscope_files_invalid_config_extension(self):
-        """Test validation with invalid configuration file extension."""
-        with pytest.raises(ValueError):
-            # Create a temporary file with wrong extension
-            temp_file = self.temp_dir / "config.txt"
-            temp_file.touch()
-            MiniscopeImagingExtractor.validate_miniscope_files(self.valid_file_paths, temp_file)
+            MiniscopeImagingExtractor.validate_miniscope_files([])
 
     def test_validate_miniscope_files_missing_video(self):
         """Test validation with missing video file."""
         invalid_files = [Path("nonexistent.avi")]
         with pytest.raises(FileNotFoundError):
-            MiniscopeImagingExtractor.validate_miniscope_files(invalid_files, self.valid_config_path)
+            MiniscopeImagingExtractor.validate_miniscope_files(invalid_files)
 
     def test_validate_miniscope_files_invalid_video_extension(self):
         """Test validation with invalid video file extension."""
@@ -355,7 +336,7 @@ class TestMiniscopeUtilityFunctions:
         temp_file = self.temp_dir / "video.mp4"
         temp_file.touch()
         with pytest.raises(ValueError):
-            MiniscopeImagingExtractor.validate_miniscope_files([temp_file], self.valid_config_path)
+            MiniscopeImagingExtractor.validate_miniscope_files([temp_file])
 
     def test_load_miniscope_config_valid(self):
         """Test loading valid configuration file."""
@@ -479,20 +460,19 @@ class TestMiniscopeUtilityFunctions:
         with pytest.raises(ValueError, match="Unexpected file name 'video1.avi'. Expected '0.avi'"):
             MiniscopeImagingExtractor._get_miniscope_files_from_direct_folder(temp_bad_naming_dir)
 
-    def test_get_miniscope_files_from_direct_folder_missing_timestamps_warning(self):
-        """Test warning when timeStamps.csv file is missing."""
+    def test_get_miniscope_files_from_direct_folder_missing_timestamps(self):
+        """Test behavior when timeStamps.csv file is missing."""
         temp_no_timestamps_dir = self.temp_dir / "no_timestamps"
         temp_no_timestamps_dir.mkdir()
         (temp_no_timestamps_dir / "0.avi").touch()
         (temp_no_timestamps_dir / "1.avi").touch()
         (temp_no_timestamps_dir / "metaData.json").touch()
 
-        with pytest.warns(UserWarning) as warning_context:
-            file_paths, config_path, timestamps_path = (
-                MiniscopeImagingExtractor._get_miniscope_files_from_direct_folder(temp_no_timestamps_dir)
-            )
+        file_paths, config_path, timestamps_path = MiniscopeImagingExtractor._get_miniscope_files_from_direct_folder(
+            temp_no_timestamps_dir
+        )
 
-        assert "No timestamps file found" in str(warning_context[0].message)
+        # timestamps_path should be None when file is not found
         assert timestamps_path is None
         assert len(file_paths) == 2
 

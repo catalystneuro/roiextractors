@@ -69,3 +69,20 @@ def test_get_dtype():
     imaging_extractor = generate_dummy_imaging_extractor(num_frames=10, num_rows=5, num_columns=4, num_channels=1)
     sample_sliced_imaging = imaging_extractor.slice_samples(start_sample=2, end_sample=7)
     assert sample_sliced_imaging.get_dtype() == imaging_extractor.get_dtype()
+
+
+def test_has_time_vector_inherits_from_parent():
+    """Test that sliced extractor's has_time_vector delegates to parent."""
+    imaging_extractor = generate_dummy_imaging_extractor(num_frames=10, num_rows=5, num_columns=4, num_channels=1)
+
+    # Parent without time vector
+    sample_sliced_imaging = imaging_extractor.slice_samples(start_sample=2, end_sample=7)
+    assert sample_sliced_imaging.has_time_vector() == imaging_extractor.has_time_vector()
+    assert not sample_sliced_imaging.has_time_vector()
+
+    # Parent with time vector
+    times = np.array(range(10)) + 5.5
+    imaging_extractor.set_times(times=times)
+    sample_sliced_imaging_with_times = imaging_extractor.slice_samples(start_sample=2, end_sample=7)
+    assert sample_sliced_imaging_with_times.has_time_vector() == imaging_extractor.has_time_vector()
+    assert sample_sliced_imaging_with_times.has_time_vector()
