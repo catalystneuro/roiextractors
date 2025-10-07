@@ -15,7 +15,6 @@ FrameSliceSegmentationExtractor
 import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -49,7 +48,7 @@ class SegmentationExtractor(ABC):
         self._times = None
         self._channel_names = ["OpticalChannel"]
         self._num_planes = 1
-        self._roi_ids: Optional[list[str | int]] = None
+        self._roi_ids: list[str | int] | None = None
         self._roi_responses: list[RoiResponse] = []
         self._summary_images = {}
         self._image_mask = None
@@ -334,8 +333,8 @@ class SegmentationExtractor(ABC):
     def get_traces(
         self,
         roi_ids: list[int | str] = None,
-        start_frame: Optional[int] = None,
-        end_frame: Optional[int] = None,
+        start_frame: int | None = None,
+        end_frame: int | None = None,
         name: str = "raw",
     ) -> ArrayType:
         """Get the traces of each ROI specified by roi_ids.
