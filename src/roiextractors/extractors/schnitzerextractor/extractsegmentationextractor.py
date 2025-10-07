@@ -23,6 +23,7 @@ from ...extraction_tools import ArrayType, PathType
 from ...segmentationextractor import (
     RoiResponse,
     SegmentationExtractor,
+    _RoiRepresentations,
 )
 
 

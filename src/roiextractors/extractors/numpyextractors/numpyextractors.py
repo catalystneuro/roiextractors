@@ -19,6 +19,7 @@ from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import (
     RoiResponse,
     SegmentationExtractor,
+    _RoiRepresentations,
 )
 
 

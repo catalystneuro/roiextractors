@@ -15,9 +15,9 @@ import zarr
 
 from ...extraction_tools import FloatType, PathType
 from ...segmentationextractor import (
-    RoiRepresentations,
     RoiResponse,
     SegmentationExtractor,
+    _RoiRepresentations,
 )
 
 
@@ -146,7 +146,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
     def _create_roi_representations(
         self, cell_image_masks, background_image_masks, cell_ids, background_trace
-    ) -> RoiRepresentations | None:
+    ) -> _RoiRepresentations | None:
         """Create ROI representations combining cell and background masks.
 
         Minian is 2D only - no 3D/volumetric support needed.
@@ -164,7 +164,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
         Returns
         -------
-        RoiRepresentations or None
+        _RoiRepresentations or None
             Combined ROI representations or None if no masks available.
         """
         if cell_image_masks is None:

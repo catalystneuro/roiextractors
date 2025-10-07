@@ -14,9 +14,9 @@ from scipy.sparse import csc_matrix
 
 from ...extraction_tools import PathType, get_package
 from ...segmentationextractor import (
-    RoiRepresentations,
     RoiResponse,
     SegmentationExtractor,
+    _RoiRepresentations,
 )
 
 
@@ -196,7 +196,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         """Close the h5py file when the object is deleted."""
         self._dataset_file.close()
 
-    def _create_roi_representations(self) -> RoiRepresentations | None:
+    def _create_roi_representations(self) -> _RoiRepresentations | None:
         """Create ROI representations from CaImAn CSC sparse matrices.
 
         Converts CaImAn's native CSC matrix format to NWB-compatible pixel mask format.
@@ -204,7 +204,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
         Returns
         -------
-        RoiRepresentations or None
+        _RoiRepresentations or None
             Container with all ROI masks in nwb-pixel_mask format, or None if no masks available.
         """
         # Get cell masks from sparse matrix A

@@ -16,6 +16,7 @@ from ...extraction_tools import PathType
 from ...segmentationextractor import (
     RoiResponse,
     SegmentationExtractor,
+    _RoiRepresentations,
 )
 
 
