@@ -13,7 +13,7 @@
 * Enhanced `MiniscopeImagingExtractor` to calculate sampling frequency from hardware timestamps (`timeStamps.csv`) as ground truth, replacing unreliable metaData.json frameRate. Added a keyword-only `sampling_frequency` parameter as a fallback. [PR #509](https://github.com/catalystneuro/roiextractors/pull/509)
 * Improved `MiniscopeImagingExtractor` documentation: reorganized class vs `__init__` docstrings, clarified device folder structure, added comprehensive `has_time_vector()` docstring, and removed personal information from examples. [PR #509](https://github.com/catalystneuro/roiextractors/pull/509)
 * Refactored Miniscope imaging extractor tests to native pytest style with fixture-based temp directories and warning suppression for expected conditions [PR #501](https://github.com/catalystneuro/roiextractors/pull/501)
-* Add ruff-rule to detect non-pep585 annotation [PR #494](https://github.com/catalystneuro/roiextractors/pull/493)
+* Add ruff-rules to detect non-pep585 and non pep604 annotations: (tuple, list -> tuple, list)  (Union[x, y] -> X | Y )  (Optional[x] -> x | None) [PR #500](https://github.com/catalystneuro/roiextractors/pull/500) [PR #507](https://github.com/catalystneuro/roiextractors/pull/507)
 
 
 # v0.7.0 (September 26th, 2025)

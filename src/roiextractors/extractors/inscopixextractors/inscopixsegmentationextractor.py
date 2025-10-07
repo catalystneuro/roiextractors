@@ -232,7 +232,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
         Returns
         -------
-        Optional[datetime]
+        datetime | None
             The session start time if available, otherwise None.
         """
         timing = getattr(self.cell_set, "timing", None)

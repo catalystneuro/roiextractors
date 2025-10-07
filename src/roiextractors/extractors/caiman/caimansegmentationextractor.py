@@ -138,7 +138,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self._params = self._dataset_file["params"]
 
         # Core traces and images
-        cell_ids: Optional[list[int]] = None
+        cell_ids: list[int] | None = None
 
         raw_traces = self._raw_trace_extractor_read()
         if raw_traces is not None:

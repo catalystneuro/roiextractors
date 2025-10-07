@@ -71,29 +71,29 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
 
     def __init__(
         self,
-        folder_path: Optional[PathType] = None,
-        file_paths: Optional[list[PathType]] = None,
-        configuration_file_path: Optional[PathType] = None,
-        timestamps_path: Optional[PathType] = None,
+        folder_path: PathType | None = None,
+        file_paths: list[PathType] | None = None,
+        configuration_file_path: PathType | None = None,
+        timestamps_path: PathType | None = None,
         *,
-        sampling_frequency: Optional[float] = None,
+        sampling_frequency: float | None = None,
     ):
         """
         Initialize MiniscopeImagingExtractor.
 
         Parameters
         ----------
-        folder_path : Optional[PathType], optional
+        folder_path : PathType | None, optional
             Path to the device folder containing the Miniscope recording files (.avi videos,
             metaData.json, and timeStamps.csv). This is the recommended way to initialize the
             extractor as it automatically discovers all necessary files.
 
             Note: This is the device-level folder (e.g., "HPC_miniscope1"), not the session
             folder (which may contain multiple device folders).
-        file_paths : Optional[List[PathType]], optional
+        file_paths : list[PathType] | None, optional
             List of .avi file paths to be processed. These files should be from the same
             recording session and will be concatenated in the order provided.
-        configuration_file_path : Optional[PathType], optional
+        configuration_file_path : PathType | None, optional
             **DEPRECATED**: This parameter is deprecated and will be removed in March 2026.
             **This parameter is no longer used and is ignored.**
 
@@ -121,12 +121,12 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
               are available
 
             Default is None.
-        timestamps_path : Optional[PathType], optional
+        timestamps_path : PathType | None, optional
             Path to the timeStamps.csv file containing timestamps relative to the recording start.
             If not provided, the extractor will look for a timeStamps.csv file in the same directory
             as the video files as a fallback. This file is required for accurate timing.
             Default is None.
-        sampling_frequency : Optional[float], optional
+        sampling_frequency : float | None, optional
             Explicit sampling frequency in Hz. If provided, this overrides the calculated value
             from timeStamps.csv. Only use this if you have a specific reason to override the
             measured sampling frequency (e.g., working with incomplete data).
@@ -322,21 +322,17 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
 
         Returns
         -------
-        Tuple[List[PathType], PathType, Optional[PathType]]
-            A tuple containing:
-            - List of .avi file paths sorted naturally
-            - Path to the configuration file (metaData.json)
-            - Path to the timestamps file (timeStamps.csv), if it exists
-            or None if it does not exist.
+        tuple[list[PathType], PathType, PathType | None]
+            - list[PathType]: .avi file paths sorted naturally
+            - PathType: path to the configuration file (metaData.json)
+            - PathType | None: path to the timestamps file (timeStamps.csv) if present, otherwise None
 
         Raises
         ------
         AssertionError
             If no .avi files or configuration files are found.
         ValueError
-            If the file lists are empty or contain invalid file types.
-        Warning
-            If the timestamps file is not found, timestamps will be set to None.
+            If file names do not follow the expected sequential naming convention.
         """
         natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
 
@@ -372,7 +368,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         return miniscope_avi_file_paths, miniscope_config_files[0], timestamps_path
 
     @staticmethod
-    def validate_miniscope_files(file_paths: list[PathType], timestamps_path: Optional[PathType] = None) -> None:
+    def validate_miniscope_files(file_paths: list[PathType], timestamps_path: PathType | None = None) -> None:
         """
         Validate that the provided Miniscope files exist and are accessible.
 
@@ -380,7 +376,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         ----------
         file_paths : List[PathType]
             List of .avi file paths to validate.
-        timestamps_path : Optional[PathType], optional
+        timestamps_path : PathType | None
             Path to the timestamps file to validate, by default None.
 
         Raises
@@ -700,7 +696,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         return self._times is not None
 
     @staticmethod
-    def _get_session_start_time(miniscope_folder_path) -> Optional[datetime]:
+    def _get_session_start_time(miniscope_folder_path) -> datetime | None:
         from .miniscope_utils import get_recording_start_time
 
         try:

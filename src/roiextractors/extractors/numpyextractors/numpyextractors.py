@@ -307,7 +307,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         SegmentationExtractor.__init__(self)
 
         if roi_ids is None:
-            cell_ids: Optional[list[int]] = None
+            cell_ids: list[int] | None = None
         else:
             cell_ids = list(roi_ids)
 
