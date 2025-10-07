@@ -84,13 +84,13 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         if baseline_traces is not None:
             self._roi_responses.append(RoiResponse("baseline", baseline_traces, list(self._roi_ids)))
 
-        neuropil_traces = self._read_trace_from_zarr_field(field="f")
-        if neuropil_traces is not None:
-            if neuropil_traces.shape[1] == len(self._roi_ids):
-                neuropil_ids = list(self._roi_ids)
+        background_trace = self._read_trace_from_zarr_field(field="f")
+        if background_trace is not None:
+            if background_trace.shape[1] == len(self._roi_ids):
+                background_ids = list(self._roi_ids)
             else:
-                neuropil_ids = [f"background-neuropil-{idx}" for idx in range(neuropil_traces.shape[1])]
-            self._roi_responses.append(RoiResponse("neuropil", neuropil_traces, neuropil_ids))
+                background_ids = [f"background-{idx}" for idx in range(background_trace.shape[1])]
+            self._roi_responses.append(RoiResponse("background", background_trace, background_ids))
 
         deconvolved_traces = self._read_trace_from_zarr_field(field="S")
         if deconvolved_traces is not None:

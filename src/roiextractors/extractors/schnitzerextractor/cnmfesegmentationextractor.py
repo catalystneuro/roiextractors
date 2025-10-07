@@ -25,8 +25,12 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
     the 'CNMF-E' ROI segmentation method.
     """
 
+    # TODO:
+    # Alessandra and Heberto discussed this and think that there is no format
+    # that this really represents. This is the name of an algorithm and probably a convenience
+    # for some ad-hoc storage format.
+
     extractor_name = "CnmfeSegmentation"
-    mode = "file"
 
     def __init__(self, file_path: PathType):
         """Create a CnmfeSegmentationExtractor from a .mat file.

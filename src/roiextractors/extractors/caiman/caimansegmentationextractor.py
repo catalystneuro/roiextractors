@@ -165,10 +165,10 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
                 cell_ids = list(range(deconvolved_traces.shape[1]))
             self._roi_responses.append(RoiResponse("deconvolved", deconvolved_traces, cell_ids))
 
-        neuropil_traces = self._trace_extractor_read("f")
-        if neuropil_traces is not None:
-            neuropil_ids = [f"background-neuropil-{idx}" for idx in range(neuropil_traces.shape[1])]
-            self._roi_responses.append(RoiResponse("neuropil", neuropil_traces, neuropil_ids))
+        background_traces = self._trace_extractor_read("f")
+        if background_traces is not None:
+            background_ids = [f"background{idx}" for idx in range(background_traces.shape[1])]
+            self._roi_responses.append(RoiResponse("background", background_traces, background_ids))
 
         if cell_ids is not None:
             self._roi_ids = list(cell_ids)

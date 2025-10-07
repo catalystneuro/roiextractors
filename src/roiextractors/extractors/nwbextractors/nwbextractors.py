@@ -348,7 +348,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                     self._sampling_frequency = container.roi_response_series[trace_name_segext].rate
         if not collected_responses:
             raise Exception(
-                "could not find any of 'RoiResponseSeries'/'Dff'/'Neuropil'/'Deconvolved'"
+                "could not find any of 'RoiResponseSeries'/'Dff'/'Neuropil'/ 'Background'/'Deconvolved'"
                 "named RoiResponseSeries in nwbfile"
             )
         # Extract image_mask/background:
