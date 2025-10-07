@@ -112,7 +112,6 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "CaimanSegmentation"
-    mode = "file"
 
     def __init__(self, file_path: PathType):
         """Initialize a CaimanSegmentationExtractor instance.

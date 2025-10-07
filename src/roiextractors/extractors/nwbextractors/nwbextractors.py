@@ -302,7 +302,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     """An segmentation extractor for NWB files."""
 
     extractor_name = "NwbSegmentationExtractor"
-    mode = "file"
     installation_mesg = ""  # error message when not installed
 
     def __init__(self, file_path: PathType):

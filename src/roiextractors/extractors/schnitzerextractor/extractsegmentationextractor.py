@@ -151,7 +151,6 @@ class NewExtractSegmentationExtractor(
     """
 
     extractor_name = "NewExtractSegmentation"
-    mode = "file"
 
     def __init__(
         self,
@@ -311,7 +310,6 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "LegacyExtractSegmentation"
-    mode = "file"
 
     def __init__(
         self,

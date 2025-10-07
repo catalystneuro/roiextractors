@@ -245,7 +245,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
     """
 
     extractor_name = "NumpySegmentationExtractor"
-    mode = "file"
     installation_mesg = ""  # error message when not installed
 
     def __init__(
