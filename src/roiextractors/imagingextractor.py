@@ -819,6 +819,10 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         # Get timestamps from parent for our specific range
         return self._parent_imaging.get_native_timestamps(start_sample=actual_start, end_sample=actual_end)
 
+    def has_time_vector(self) -> bool:
+        # Override to check parent imaging for time vector
+        return self._parent_imaging.has_time_vector()
+
 
 class FrameSliceImagingExtractor(SampleSlicedImagingExtractor):
     """Class to get a lazy frame slice.

@@ -26,7 +26,6 @@ class Hdf5ImagingExtractor(ImagingExtractor):
     """An imaging extractor for HDF5."""
 
     extractor_name = "Hdf5Imaging"
-    mode = "file"
 
     def __init__(
         self,

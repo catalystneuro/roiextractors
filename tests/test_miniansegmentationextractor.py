@@ -148,7 +148,7 @@ def test_extractor_denoised_traces(extractor, denoised_traces):
 
 
 def test_extractor_neuropil_trace(extractor, neuropil_trace):
-    assert_array_equal(extractor.get_traces(name="neuropil"), neuropil_trace)
+    assert_array_equal(extractor.get_traces(name="background"), neuropil_trace)
 
 
 def test_extractor_image_masks(extractor, image_masks):

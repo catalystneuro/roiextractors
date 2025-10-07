@@ -7,8 +7,8 @@ MiniscopeImagingExtractor
 """
 
 import json
-import re
 import warnings
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -18,7 +18,7 @@ from ...imagingextractor import ImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor
 
 
-def read_timestamps_from_csv_file(file_path: PathType) -> list[float]:
+def read_timestamps_from_csv_file(file_path: PathType) -> np.ndarray:
     """
     Retrieve the timestamps from a CSV file.
 
@@ -42,99 +42,120 @@ def read_timestamps_from_csv_file(file_path: PathType) -> list[float]:
 
 class MiniscopeImagingExtractor(MultiImagingExtractor):
     """
-    The MiniscopeImagingExtractor consolidates multiple .avi video files from a Miniscope recording session.
+    Extractor for Miniscope calcium imaging data recorded with Miniscope-DAQ-QT-Software.
 
-    As a single continuous dataset. It reads configuration parameters from a metaData.json
-    file and optionally loads timestamps from a timeStamps.csv file.
-    This file is typically located in the root directory of the Miniscope recording
-    session alongside the video files.
-    The JSON file should contain at least the following key:
-        - "frameRate": String containing the frame rate value (e.g., "20FPS", "30.0")
-        - "deviceName": String representing the device name (e.g., "Miniscope", "MiniscopeV3", etc.)
+    This extractor consolidates multiple .avi video files from a Miniscope recording session
+    into a single continuous dataset. It uses hardware-generated timestamps from timeStamps.csv
+    for accurate timing information.
 
-    Notes
-    -----
-    - The function expects a "recordingStartTime" key in the metadata JSON, which contains start time details.
-      If not present, the top-level JSON object is assumed to contain the time information.
-    - The "msec" field in the metadata is converted from milliseconds to microseconds for compatibility with the datetime
-      microsecond field.
-    Additional metadata such as recording settings, device parameters, and session information may also be present.
+    The extractor works at the device folder level, where a typical Miniscope recording has
+    the following structure:
 
-    If folder_path is provided, the extractor expects the following file structure from a typical Miniscope recording:
-    - miniscope folder/
-      ├── metaData.json (required)
-      ├── timeStamps.csv (optional)
-      ├── video1.avi
-      ├── video2.avi
-      └── ...
+    device_folder/ (e.g., "Miniscope", "HPC_miniscope1", "ACC_miniscope2")
+    ├── 0.avi, 1.avi, 2.avi, ...    # Video files (FFV1 lossless codec)
+    ├── timeStamps.csv               # Hardware-generated timestamps (required)
+    ├── metaData.json                # Device configuration (optional, for reference)
+    └── headOrientation.csv          # IMU data (optional)
 
-    Parameters
-    ----------
-    folder_path : Optional[PathType], optional
-        The folder path containing the Miniscope video (.avi) files, the metaData.json configuration file and potentially the timeStamps.csv file.
-    file_paths : Optional[List[PathType]], optional
-        List of .avi file paths to be processed. These files should be from the same
-        recording session and will be concatenated in the order provided.
-    configuration_file_path : Optional[PathType], optional
-        Path to the metaData.json configuration file containing recording parameters.
-        Usually located in the same directory as the .avi files.
-    timestamps_path : Optional[PathType], optional
-        Path to the timeStamps.csv file containing timestamps relative to the recording start.
-        If not provided, the extractor will look for a timeStamps.csv file in the same directory
-        as the configuration_file_path. If the file is not found, timestamps will be set to None.
-        Default is None.
+    Key Features
+    ------------
+    - Automatically discovers and concatenates multiple .avi files from a recording
+    - Calculates sampling frequency from hardware timestamps (timeStamps.csv)
+    - Supports both folder-based and file-list initialization
+    - Provides access to device and session metadata via static methods
 
-    Examples
+    See Also
     --------
-    >>> # Direct file specification
-    >>> file_paths = ["/path/to/video1.avi", "/path/to/video2.avi"]
-    >>> config_path = "/path/to/metaData.json"
-    >>> extractor = MiniscopeImagingExtractor(file_paths, config_path)
-
-    >>> # If timestamps are available, provide the path
-    >>> timestamps_path = "/path/to/timeStamps.csv"
-    >>> extractor = MiniscopeImagingExtractor(file_paths, config_path, timestamps_path)
-
-    >>> # Folder-based initialization (auto-detects .avi files, metaData.json and timeStamps.csv)
-    >>> folder_path = "/path/to/miniscope_folder"
-    >>> extractor = MiniscopeImagingExtractor(folder_path=folder_path)
-
-    Notes
-    -----
-    For each video file, a _MiniscopeSingleVideoExtractor is created. These individual extractors
-    are then combined into the MiniscopeImagingExtractor to handle the session's recordings
-    as a unified, continuous dataset.
-
-    Example of metaData.json content:
-    -----------------------------------
-    {
-        "ROI": {
-            "height": 608,
-            "leftEdge": 0,
-            "topEdge": 0,
-            "width": 608
-        },
-        "compression": "FFV1",
-        "deviceDirectory": "C:/data/Joe/Ca_EEG3/Ca_EEG3-4/2022_09_19/09_18_41/miniscope",
-        "deviceID": 0,
-        "deviceName": "miniscope",
-        "deviceType": "Miniscope_V4_BNO",
-        "ewl": 70,
-        "frameRate": "30FPS",
-        "framesPerFile": 1000,
-        "gain": 3.5,
-        "led0": 1
-    }
-
+    MiniscopeMultiRecordingImagingExtractor : For multi-session recordings (Tye Lab format)
     """
 
     def __init__(
         self,
-        folder_path: PathType | None = None,
-        file_paths: list[PathType] | None = None,
-        configuration_file_path: PathType | None = None,
-        timestamps_path: PathType | None = None,
+        folder_path: Optional[PathType] = None,
+        file_paths: Optional[list[PathType]] = None,
+        configuration_file_path: Optional[PathType] = None,
+        timestamps_path: Optional[PathType] = None,
+        *,
+        sampling_frequency: Optional[float] = None,
     ):
+        """
+        Initialize MiniscopeImagingExtractor.
+
+        Parameters
+        ----------
+        folder_path : Optional[PathType], optional
+            Path to the device folder containing the Miniscope recording files (.avi videos,
+            metaData.json, and timeStamps.csv). This is the recommended way to initialize the
+            extractor as it automatically discovers all necessary files.
+
+            Note: This is the device-level folder (e.g., "HPC_miniscope1"), not the session
+            folder (which may contain multiple device folders).
+        file_paths : Optional[List[PathType]], optional
+            List of .avi file paths to be processed. These files should be from the same
+            recording session and will be concatenated in the order provided.
+        configuration_file_path : Optional[PathType], optional
+            **DEPRECATED**: This parameter is deprecated and will be removed in March 2026.
+            **This parameter is no longer used and is ignored.**
+
+            The device folder is now automatically inferred from file_paths. If provided,
+            this parameter only triggers validation (checking if the file exists and is valid JSON),
+            but has no functional effect on the extractor's behavior.
+
+            Migration: Simply remove this parameter from your code. For example:
+                # Old (deprecated):
+                extractor = MiniscopeImagingExtractor(file_paths=files, configuration_file_path=config)
+                # New (recommended):
+                extractor = MiniscopeImagingExtractor(file_paths=files)
+
+            If you need to read metaData.json files, use the private static methods:
+            - MiniscopeImagingExtractor._read_device_folder_metadata(file_path)
+            - MiniscopeImagingExtractor._read_session_folder_metadata(file_path)
+
+            Deprecation rationale:
+            - The metaData.json frameRate field is user-settable, not measured. The DAQ system
+              attempts to achieve this rate but cannot guarantee it due to hardware limitations.
+            - Analysis shows sampling frequency calculated from timeStamps.csv often differs from
+              the configured frameRate, making metaData.json unreliable for timing information.
+            - timeStamps.csv provides ground truth timing (hardware-generated, always produced by DAQ)
+            - Requiring both file_paths and configuration_file_path is redundant when timestamps
+              are available
+
+            Default is None.
+        timestamps_path : Optional[PathType], optional
+            Path to the timeStamps.csv file containing timestamps relative to the recording start.
+            If not provided, the extractor will look for a timeStamps.csv file in the same directory
+            as the video files as a fallback. This file is required for accurate timing.
+            Default is None.
+        sampling_frequency : Optional[float], optional
+            Explicit sampling frequency in Hz. If provided, this overrides the calculated value
+            from timeStamps.csv. Only use this if you have a specific reason to override the
+            measured sampling frequency (e.g., working with incomplete data).
+            Default is None (calculate from timeStamps.csv).
+
+        Examples
+        --------
+        >>> # Recommended: Folder-based initialization (auto-detects .avi files and timeStamps.csv)
+        >>> folder_path = "/path/to/miniscope_folder"
+        >>> extractor = MiniscopeImagingExtractor(folder_path=folder_path)
+
+        >>> # Direct file specification (device folder inferred from file_paths)
+        >>> file_paths = ["/path/to/device_folder/0.avi", "/path/to/device_folder/1.avi"]
+        >>> extractor = MiniscopeImagingExtractor(file_paths=file_paths)
+
+        >>> # With explicit timestamps path
+        >>> timestamps_path = "/path/to/device_folder/timeStamps.csv"
+        >>> extractor = MiniscopeImagingExtractor(file_paths=file_paths, timestamps_path=timestamps_path)
+
+        >>> # Legacy usage with configuration_file_path (deprecated, triggers warning)
+        >>> config_path = "/path/to/device_folder/metaData.json"
+        >>> extractor = MiniscopeImagingExtractor(file_paths=file_paths, configuration_file_path=config_path)
+
+        Notes
+        -----
+        For each video file, a _MiniscopeSingleVideoExtractor is created. These individual extractors
+        are then combined into the MiniscopeImagingExtractor to handle the session's recordings
+        as a unified, continuous dataset.
+        """
         # Determine file paths and configuration file path based on folder_path or provided arguments
         if folder_path is not None:
             if file_paths is not None or configuration_file_path is not None:
@@ -147,31 +168,64 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
                 folder_path
             )
         else:
-            if file_paths is None or configuration_file_path is None:
-                raise ValueError(
-                    "When folder_path is not provided, both file_paths and configuration_file_path must be specified."
+            if file_paths is None:
+                raise ValueError("When folder_path is not provided, file_paths must be specified.")
+
+            # Emit deprecation warning if configuration_file_path is provided
+            if configuration_file_path is not None:
+                warnings.warn(
+                    "The 'configuration_file_path' parameter is deprecated and will be removed in March 2026. "
+                    "The device folder is now automatically inferred from file_paths. "
+                    "To silence this warning, remove the configuration_file_path parameter from your code.",
+                    FutureWarning,
+                    stacklevel=2,
                 )
 
         # Validate input files
-        self.validate_miniscope_files(file_paths, configuration_file_path, timestamps_path)
+        self.validate_miniscope_files(file_paths, timestamps_path)
 
-        # Load configuration and extract sampling frequency
-        self._miniscope_config = self.load_miniscope_config(configuration_file_path)
+        # Determine timestamps path
+        # If not provided, look for timeStamps.csv in the same folder as the video files
+        if timestamps_path is not None:
+            self._timestamps_path = Path(timestamps_path)
+        else:
+            # Infer device folder from file_paths (all .avi files are in the same folder)
+            device_folder = Path(file_paths[0]).parent
+            self._timestamps_path = device_folder / "timeStamps.csv"
 
-        self._miniscope_folder_path = Path(configuration_file_path).parent
-        self._timestamps_path = (
-            Path(timestamps_path) if timestamps_path is not None else self._miniscope_folder_path / "timeStamps.csv"
-        )
-        if not self._timestamps_path.exists():
-            warnings.warn(
-                f"`timeStamps.csv` file not found at {self._miniscope_folder_path}. Timestamps will be None. Set it with the `timestamps_path` if available."
+        # Determine sampling frequency with priority order:
+        # 1. Explicit sampling_frequency parameter (user override)
+        # 2. Calculated from timeStamps.csv (measured ground truth)
+        # 3. Error if timeStamps.csv is missing
+        if sampling_frequency is not None:
+            # User explicitly provided - use it
+            self._sampling_frequency = float(sampling_frequency)
+
+            # Still validate timestamps exist (for completeness checking)
+            if not self._timestamps_path.exists():
+                warnings.warn(
+                    f"timeStamps.csv not found at {self._timestamps_path}. "
+                    f"Using user-provided sampling_frequency={sampling_frequency} Hz. "
+                    f"Note: Miniscope recordings should always include timeStamps.csv."
+                )
+        elif self._timestamps_path.exists():
+            # Calculate from timestamps (preferred path)
+            self._sampling_frequency = self._calculate_sampling_frequency_from_timestamps(
+                self._timestamps_path, num_samples=10_000
             )
-            self._timestamps_path = None
-
-        frame_rate_match = re.search(r"\d+", self._miniscope_config["frameRate"])
-        if frame_rate_match is None:
-            raise ValueError(f"Could not extract frame rate from configuration: {self._miniscope_config['frameRate']}")
-        self._sampling_frequency = float(frame_rate_match.group())
+        else:
+            # Missing timestamps - fail with helpful message
+            raise FileNotFoundError(
+                f"timeStamps.csv not found at {self._timestamps_path}. "
+                f"This file is required for accurate timing and should be automatically "
+                f"generated by Miniscope-DAQ-QT-Software. Possible causes:\n"
+                f"  - Incomplete recording\n"
+                f"  - Files copied without timeStamps.csv\n"
+                f"  - Non-standard data acquisition setup\n\n"
+                f"If you have a specific reason to proceed without timestamps, "
+                f"you can provide the sampling_frequency parameter explicitly:\n"
+                f"  MiniscopeImagingExtractor(..., sampling_frequency=30.0)"
+            )
 
         # Create individual extractors for each video file
         imaging_extractors = []
@@ -181,6 +235,64 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
             imaging_extractors.append(extractor)
 
         super().__init__(imaging_extractors=imaging_extractors)
+
+    def _calculate_sampling_frequency_from_timestamps(
+        self, timestamps_file_path: PathType, num_samples: int = 10_000
+    ) -> float:
+        """
+        Calculate sampling frequency from timeStamps.csv.
+
+        Parameters
+        ----------
+        timestamps_file_path : PathType
+            Path to timeStamps.csv file
+        num_samples : int
+            Number of samples to read for calculation (default: 10_000).
+            Reading fewer samples makes this fast (~50ms) while still accurate.
+
+        Returns
+        -------
+        float
+            Measured sampling frequency in Hz
+
+        Notes
+        -----
+        - Reads only first `num_samples` rows for speed
+        - Removes outliers (>3 std dev) to handle dropped frames
+        - Expected precision: ±2-5% due to USB/OS jitter
+        """
+        import pandas as pd
+
+        # Read only first N samples (fast)
+        df = pd.read_csv(timestamps_file_path, nrows=num_samples)
+        timestamps_ms = df["Time Stamp (ms)"].values
+        timestamps_s = timestamps_ms / 1000.0
+
+        if len(timestamps_s) < 2:
+            raise ValueError(
+                f"timeStamps.csv has insufficient data: only {len(timestamps_s)} frames. "
+                f"Need at least 2 frames to calculate sampling frequency."
+            )
+
+        # Calculate intervals
+        intervals = np.diff(timestamps_s)
+
+        # Remove outliers (e.g., dropped frames, buffer overruns)
+        mean_interval = np.mean(intervals)
+        std_interval = np.std(intervals)
+        valid_intervals = intervals[np.abs(intervals - mean_interval) < 3 * std_interval]
+
+        if len(valid_intervals) == 0:
+            raise ValueError(
+                f"Could not calculate sampling frequency from {timestamps_file_path}: "
+                f"all intervals appear to be outliers. The recording may be corrupted."
+            )
+
+        # Calculate sampling frequency
+        mean_interval_clean = np.mean(valid_intervals)
+        sampling_frequency = 1.0 / mean_interval_clean
+
+        return sampling_frequency
 
     @staticmethod
     def _get_miniscope_files_from_direct_folder(
@@ -194,7 +306,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
 
         Expected folder structure:
         ```
-        folder/
+        device_folder_path/
         ├── 0.avi
         ├── 1.avi
         ├── 2.avi
@@ -247,7 +359,6 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         # check that the configuration file exists and is unique
         assert miniscope_config_files, f"No configuration file found at '{folder_path}', expected 'metaData.json'"
         assert len(miniscope_config_files) == 1, f"Multiple configuration files found at '{folder_path}'"
-        configuration_file_path = miniscope_config_files[0]
 
         # timestamps file is optional
         if miniscope_timestamps_files:
@@ -256,17 +367,12 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
             ), f"Multiple timestamps files found at '{folder_path}', expected only one 'timeStamps.csv'"
             timestamps_path = miniscope_timestamps_files[0]
         else:
-            warnings.warn(
-                f"No timestamps file found at '{folder_path}', expected 'timeStamps.csv'. Timestamps will be None."
-            )
             timestamps_path = None
 
-        return miniscope_avi_file_paths, configuration_file_path, timestamps_path
+        return miniscope_avi_file_paths, miniscope_config_files[0], timestamps_path
 
     @staticmethod
-    def validate_miniscope_files(
-        file_paths: list[PathType], configuration_file_path: PathType, timestamps_path: PathType | None = None
-    ) -> None:
+    def validate_miniscope_files(file_paths: list[PathType], timestamps_path: Optional[PathType] = None) -> None:
         """
         Validate that the provided Miniscope files exist and are accessible.
 
@@ -274,8 +380,6 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         ----------
         file_paths : List[PathType]
             List of .avi file paths to validate.
-        configuration_file_path : PathType
-            Path to the configuration file to validate.
         timestamps_path : Optional[PathType], optional
             Path to the timestamps file to validate, by default None.
 
@@ -285,14 +389,11 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
             If any of the specified files do not exist.
         ValueError
             If the file lists are empty or contain invalid file types.
+
+        Notes
+        -----
+        Only the .avi files are strictly required. The timestamps file is optional.
         """
-        configuration_file_path = Path(configuration_file_path)
-        if not configuration_file_path.exists():
-            raise FileNotFoundError(f"Configuration file not found: {configuration_file_path}")
-
-        if not configuration_file_path.suffix == ".json":
-            raise ValueError(f"Configuration file must be a .json file, got: {configuration_file_path}")
-
         if not file_paths:
             raise ValueError("file_paths cannot be empty.")
 
@@ -314,6 +415,11 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
     def load_miniscope_config(configuration_file_path: PathType) -> dict:
         """
         Load and parse the Miniscope configuration file.
+
+        This is a generic method that can read any metaData.json file (session or device level).
+        For more explicit metadata reading with specialized documentation, consider using:
+        - _read_session_folder_metadata() for session-level metadata
+        - _read_device_folder_metadata() for device-level metadata
 
         Parameters
         ----------
@@ -345,6 +451,217 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
                 f"Invalid JSON in configuration file {configuration_file_path}: {e}", e.doc, e.pos
             )
 
+    @staticmethod
+    def _read_device_folder_metadata(metadata_file_path: PathType) -> dict:
+        """
+        Read device-level metaData.json containing Miniscope hardware configuration.
+
+        The Miniscope-DAQ-QT-Software creates two levels of metaData.json files:
+        1. Session-level: Contains experiment/animal info and recording start time
+        2. Device-level: Contains hardware settings for each Miniscope/camera
+
+        This method reads the DEVICE-level metadata.
+
+        File Location
+        -------------
+        Device metadata is located in each device's subfolder:
+        ```
+        session_folder/
+        ├── metaData.json                    # Session-level (use read_session_folder_metadata)
+        ├── HPC_miniscope1/                  # Device folder
+        │   ├── metaData.json               # Device-level (this method)
+        │   ├── timeStamps.csv
+        │   └── 0.avi, 1.avi, ...
+        └── ACC_miniscope2/                  # Another device
+            ├── metaData.json               # Device-level (this method)
+            └── ...
+        ```
+
+        Device Metadata Contents
+        ------------------------
+        {
+            "deviceType": "Miniscope_V4_BNO",       # Hardware version
+            "deviceName": "HPC_miniscope1",         # User-assigned name
+            "deviceID": 1,                          # Numeric ID
+            "frameRate": "30FPS",                   # Configured frame rate
+            "compression": "FFV1",                  # Video codec
+            "framesPerFile": 1000,                  # Frames per AVI file
+            "gain": "Medium",                       # Sensor gain setting
+            "ewl": 70,                              # Excitation wavelength
+            "led0": 24,                             # LED power (0-100)
+            "ROI": {                                # Region of interest (optional)
+                "height": 608,
+                "width": 608,
+                "leftEdge": 0,
+                "topEdge": 0
+            }
+        }
+
+        Parameters
+        ----------
+        metadata_file_path : PathType
+            Path to the device metaData.json file
+            (e.g., "session_folder/HPC_miniscope1/metaData.json")
+
+        Returns
+        -------
+        dict
+            Device metadata containing hardware configuration and acquisition parameters.
+            Fields include:
+            - deviceType: Hardware version (e.g., "Miniscope_V4_BNO", "Miniscope_V3")
+            - deviceName: User-assigned device name
+            - deviceID: Numeric device identifier
+            - frameRate: Configured frame rate (NOTE: may not match actual rate)
+            - compression: Video compression codec
+            - framesPerFile: Number of frames per video file
+            - gain: Sensor gain setting
+            - ewl: Excitation wavelength (electrowetting lens position)
+            - led0: LED power setting
+            - ROI: Region of interest settings (if used)
+
+        Raises
+        ------
+        FileNotFoundError
+            If metaData.json file is not found
+
+        Examples
+        --------
+        >>> metadata = MiniscopeImagingExtractor.read_device_folder_metadata(
+        ...     "path/to/session/HPC_miniscope1/metaData.json"
+        ... )
+        >>> print(f"Device: {metadata['deviceType']}")
+        Device: Miniscope_V4_BNO
+        >>> print(f"Gain: {metadata['gain']}, LED: {metadata['led0']}")
+        Gain: Medium, LED: 24
+
+        Notes
+        -----
+        - The frameRate field is user-configured and may not reflect the actual
+            acquisition rate. Use timeStamps.csv for ground truth timing.
+        - Acquisition parameters (gain, ewl, led0) are captured at recording start
+            and may have been adjusted during the session.
+
+        See Also
+        --------
+        read_session_folder_metadata : Read session-level metadata
+        """
+        metadata_file_path = Path(metadata_file_path)
+
+        if not metadata_file_path.exists():
+            raise FileNotFoundError(f"Device metadata file not found: {metadata_file_path}")
+
+        with open(metadata_file_path, "r") as f:
+            return json.load(f)
+
+    @staticmethod
+    def _read_session_folder_metadata(metadata_file_path: PathType) -> dict:
+        """
+        Read session-level metaData.json containing experiment and recording information.
+
+        The Miniscope-DAQ-QT-Software creates two levels of metaData.json files:
+        1. Session-level: Contains experiment/animal info and recording start time (this method)
+        2. Device-level: Contains hardware settings for each Miniscope/camera
+
+        This method reads the SESSION-level metadata.
+
+        File Location
+        -------------
+        Session metadata is located in the recording session's root folder:
+        ```
+        session_folder/                      # Recording session
+        ├── metaData.json                   # Session-level (this method)
+        ├── notes.csv                       # User notes with timestamps
+        ├── HPC_miniscope1/                 # Device folder
+        │   ├── metaData.json              # Device-level (use read_device_folder_metadata)
+        │   └── ...
+        └── ACC_miniscope2/                 # Another device folder
+            └── ...
+        ```
+
+        Session Metadata Contents
+        -------------------------
+        {
+            "researcherName": "researcher_name",    # Researcher identifier
+            "animalName": "animal_name",            # Subject identifier
+            "experimentName": "experiment_name",    # Experiment identifier
+            "baseDirectory": "D:/path/to/session",  # Full path to session
+            "recordingStartTime": {                 # Timestamp when recording started
+                "year": 2025,
+                "month": 6,
+                "day": 12,
+                "hour": 15,
+                "minute": 26,
+                "second": 31,
+                "msec": 176,
+                "msecSinceEpoch": 1749756391176     # Unix timestamp in milliseconds
+            },
+            "miniscopes": [                         # List of Miniscope device names
+                "HPC_miniscope1",
+                "ACC_miniscope2"
+            ],
+            "cameras": [                            # List of behavior camera names
+                "BehavCam_1"
+            ],
+            "framesPerFile": 1000                   # Default frames per video file
+        }
+
+        Parameters
+        ----------
+        metadata_file_path : PathType
+            Path to the session metaData.json file
+            (e.g., "path/to/2025_06_12/15_26_31/metaData.json")
+
+        Returns
+        -------
+        dict
+            Session metadata containing experiment information and recording details.
+            Fields include:
+            - researcherName: Researcher identifier
+            - animalName: Subject/animal identifier
+            - experimentName: Experiment identifier
+            - baseDirectory: Original recording path
+            - recordingStartTime: Recording start timestamp (dict with year, month, day, etc.)
+            - miniscopes: List of Miniscope device names in this session
+            - cameras: List of behavior camera names in this session
+            - framesPerFile: Default frames per video file
+
+        Raises
+        ------
+        FileNotFoundError
+            If metaData.json file is not found
+
+        Examples
+        --------
+        >>> metadata = MiniscopeImagingExtractor.read_session_folder_metadata(
+        ...     "path/to/2025_06_12/15_26_31/metaData.json"
+        ... )
+        >>> print(f"Experiment: {metadata['experimentName']}")
+        Experiment: experiment_name
+        >>> print(f"Devices: {', '.join(metadata['miniscopes'])}")
+        Devices: HPC_miniscope1, ACC_miniscope2
+        >>> start_time = metadata['recordingStartTime']
+        >>> print(f"Started: {start_time['year']}-{start_time['month']}-{start_time['day']}")
+        Started: 2025-6-12
+
+        Notes
+        -----
+        - The recordingStartTime is when the DAQ software started recording,
+            not when individual frames were captured (use timeStamps.csv for that)
+        - Device lists (miniscopes, cameras) reflect what was configured,
+            not necessarily what has complete data
+
+        See Also
+        --------
+        read_device_folder_metadata : Read device-level metadata
+        """
+        metadata_file_path = Path(metadata_file_path)
+
+        if not metadata_file_path.exists():
+            raise FileNotFoundError(f"Session metadata file not found: {metadata_file_path}")
+
+        with open(metadata_file_path, "r") as f:
+            return json.load(f)
+
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
     ) -> np.ndarray | None:
@@ -362,6 +679,36 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         native_timestamps = read_timestamps_from_csv_file(self._timestamps_path)
 
         return native_timestamps[start_sample:end_sample]
+
+    def has_time_vector(self) -> bool:
+        """Detect if the ImagingExtractor has a time vector set or not.
+
+        Notes
+        -----
+        Miniscope recordings should always have native timestamps from timeStamps.csv.
+        This method overrides the parent implementation to ensure timestamps are properly
+        loaded and returned, as Miniscope data is fundamentally time-based with
+        hardware-generated timestamps that provide ground truth timing.
+
+        Returns
+        -------
+        has_times: bool
+            True if the ImagingExtractor has a time vector set, otherwise False.
+        """
+        if self._times is None:
+            self._times = self.get_native_timestamps()
+        return self._times is not None
+
+    @staticmethod
+    def _get_session_start_time(miniscope_folder_path) -> Optional[datetime]:
+        from .miniscope_utils import get_recording_start_time
+
+        try:
+            session_start_time = get_recording_start_time(file_path=Path(miniscope_folder_path) / "metaData.json")
+            return session_start_time
+        except (FileNotFoundError, KeyError, json.JSONDecodeError) as e:
+            warnings.warn(f"Could not retrieve session start time for folder {miniscope_folder_path}: \n {e}")
+            return None
 
 
 # Temporary renaming to keep backwards compatibility
@@ -554,7 +901,7 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
         Parameters
         ----------
         file_path: PathType
-           The file path to the Miniscope video (.avi) file.
+            The file path to the Miniscope video (.avi) file.
         """
         from neuroconv.datainterfaces.behavior.video.video_utils import (
             VideoCaptureContext,

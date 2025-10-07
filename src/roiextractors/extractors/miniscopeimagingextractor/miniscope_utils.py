@@ -58,13 +58,13 @@ def get_recording_start_time(file_path: PathType) -> datetime.datetime:
 
     Examples of metaData.json content:
     ----------------------------------
-    Example 1:
+    Example 1 (Miniscope V4 format with recordingStartTime):
     {
-        "animalName": "Ca_EEG3-4",
-        "baseDirectory": "C:/data/Joe/Ca_EEG3/Ca_EEG3-4/2022_09_19/09_18_41",
+        "animalName": "animal_name",
+        "baseDirectory": "C:/data/researcher_name/experiment_name/animal_name/2022_09_19/09_18_41",
         "cameras": [
         ],
-        "experimentName": "Ca_EEG3",
+        "experimentName": "experiment_name",
         "miniscopes": [
             "miniscope"
         ],
@@ -78,17 +78,17 @@ def get_recording_start_time(file_path: PathType) -> datetime.datetime:
             "second": 41,
             "year": 2022
         },
-        "researcherName": ""
+        "researcherName": "researcher_name"
     }
 
-    Example 2:
+    Example 2 (Miniscope V3 format with flat time fields):
     {
-        "animalName": "Ca_EEG2-1",
-        "baseDirectory": "C:/Users/CaiLab/Documents//Joe/Ca_EEG2/Ca_EEG2-1/2021_10_14/10_11_24",
+        "animalName": "animal_name",
+        "baseDirectory": "C:/data/researcher_name/experiment_name/animal_name/2021_10_14/10_11_24",
         "cameras": [
         ],
         "day": 14,
-        "experimentName": "Ca_EEG2",
+        "experimentName": "experiment_name",
         "hour": 10,
         "miniscopes": [
             "Miniscope"
@@ -97,7 +97,7 @@ def get_recording_start_time(file_path: PathType) -> datetime.datetime:
         "month": 10,
         "msec": 779,
         "msecSinceEpoch": 1634220684779,
-        "researcherName": "Joe",
+        "researcherName": "researcher_name",
         "second": 24,
         "year": 2021
     }
@@ -113,9 +113,14 @@ def get_recording_start_time(file_path: PathType) -> datetime.datetime:
         start_time_info = general_metadata
 
     required_keys = ["year", "month", "day", "hour", "minute", "second", "msec"]
-    for key in required_keys:
-        if key not in start_time_info:
-            raise KeyError(f"Missing required key '{key}' in the metadata")
+    available_keys = list(start_time_info.keys())
+    missing_keys = [key for key in required_keys if key not in start_time_info]
+    if missing_keys:
+        raise KeyError(
+            f"Missing required keys {missing_keys} in the metadata. "
+            f"Available keys: {available_keys}. "
+            f"Expected keys: {required_keys}."
+        )
 
     session_start_time = datetime.datetime(
         year=start_time_info["year"],

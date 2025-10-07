@@ -16,7 +16,7 @@ from shutil import copyfile
 import numpy as np
 
 from ...extraction_tools import PathType
-from ...segmentationextractor import SegmentationExtractor
+from ...segmentationextractor import RoiResponse, SegmentationExtractor
 
 
 class SimaSegmentationExtractor(SegmentationExtractor):
@@ -60,7 +60,10 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         self._num_of_channels = len(self._channel_names)
         self.sima_segmentation_label = sima_segmentation_label
         self._image_masks = self._image_mask_extractor_read()
-        self._roi_response_raw = self._trace_extractor_read()
+        traces = self._trace_extractor_read()
+        cell_ids = list(range(traces.shape[1]))
+        self._roi_ids = cell_ids
+        self._roi_responses.append(RoiResponse("raw", traces, cell_ids))
         mean_image = self._summary_image_read()
         if mean_image is not None:
             self._summary_images["mean"] = mean_image
