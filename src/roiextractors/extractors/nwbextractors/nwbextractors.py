@@ -25,7 +25,7 @@ from ...extraction_tools import (
     raise_multi_channel_or_depth_not_implemented,
 )
 from ...imagingextractor import ImagingExtractor
-from ...segmentationextractor import SegmentationExtractor
+from ...segmentationextractor import RoiResponse, SegmentationExtractor
 
 
 class NwbImagingExtractor(ImagingExtractor):
@@ -302,7 +302,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     """An segmentation extractor for NWB files."""
 
     extractor_name = "NwbSegmentationExtractor"
-    mode = "file"
     installation_mesg = ""  # error message when not installed
 
     def __init__(self, file_path: PathType):
@@ -331,28 +330,24 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         # Extract roi_responses:
         fluorescence = None
         df_over_f = None
-        any_roi_response_series_found = False
+        collected_responses: list[tuple[str, DatasetView]] = []
         if "Fluorescence" in ophys.data_interfaces:
             fluorescence = ophys.data_interfaces["Fluorescence"]
         if "DfOverF" in ophys.data_interfaces:
             df_over_f = ophys.data_interfaces["DfOverF"]
         if fluorescence is None and df_over_f is None:
             raise Exception("Could not find Fluorescence/DfOverF module in nwbfile.")
-        for trace_name in self.get_traces_dict().keys():
+        for trace_name in ("raw", "dff", "neuropil", "deconvolved", "denoised", "baseline", "background"):
             trace_name_segext = "RoiResponseSeries" if trace_name in ["raw", "dff"] else trace_name.capitalize()
             container = df_over_f if trace_name == "dff" else fluorescence
             if container is not None and trace_name_segext in container.roi_response_series:
-                any_roi_response_series_found = True
-                setattr(
-                    self,
-                    f"_roi_response_{trace_name}",
-                    DatasetView(container.roi_response_series[trace_name_segext].data),
-                )
+                dataset_view = DatasetView(container.roi_response_series[trace_name_segext].data)
+                collected_responses.append((trace_name, dataset_view))
                 if self._sampling_frequency is None:
                     self._sampling_frequency = container.roi_response_series[trace_name_segext].rate
-        if not any_roi_response_series_found:
+        if not collected_responses:
             raise Exception(
-                "could not find any of 'RoiResponseSeries'/'Dff'/'Neuropil'/'Deconvolved'"
+                "could not find any of 'RoiResponseSeries'/'Dff'/'Neuropil'/ 'Background'/'Deconvolved'"
                 "named RoiResponseSeries in nwbfile"
             )
         # Extract image_mask/background:
@@ -366,6 +361,10 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             self._roi_locs = ps["ROICentroids"] if "ROICentroids" in ps.colnames else None
             self._accepted_list = ps["Accepted"].data[:] if "Accepted" in ps.colnames else None
             self._rejected_list = ps["Rejected"].data[:] if "Rejected" in ps.colnames else None
+            if hasattr(ps, "id"):
+                self._roi_ids = ps.id.data[:].tolist()
+            else:
+                self._roi_ids = list(range(self._image_masks.shape[-1]))
 
         # Extracting stored images as GrayscaleImages:
         self._segmentation_images = None
@@ -376,6 +375,17 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         if "ImagingPlane" in self.nwbfile.imaging_planes:
             imaging_plane = self.nwbfile.imaging_planes["ImagingPlane"]
             self._channel_names = [i.name for i in imaging_plane.optical_channel]
+
+        if self._roi_ids is None and self._image_masks is not None:
+            self._roi_ids = list(range(self._image_masks.shape[-1]))
+
+        if self._roi_ids is None:
+            raise ValueError("Unable to determine ROI ids from NWB file.")
+
+        for trace_name, dataset in collected_responses:
+            data = dataset
+            roi_ids = list(self._roi_ids)
+            self._roi_responses.append(RoiResponse(trace_name, data, roi_ids))
 
     def __del__(self):
         """Close the NWB file."""

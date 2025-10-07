@@ -61,7 +61,6 @@ class MultiSegmentationExtractor(SegmentationExtractor):
     """Class is used to concatenate multi-plane recordings from the same device and session of experiment."""
 
     extractor_name = "MultiSegmentationExtractor"
-    mode = "file"
     installation_mesg = ""  # error message when not installed
 
     def __init__(self, segmentatation_extractors_list, plane_names=None):  # TODO: Hungarian notation --> type hints

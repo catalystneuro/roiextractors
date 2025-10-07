@@ -15,7 +15,7 @@ import pandas as pd
 import zarr
 
 from ...extraction_tools import FloatType, PathType
-from ...segmentationextractor import SegmentationExtractor
+from ...segmentationextractor import RoiResponse, SegmentationExtractor
 
 
 class MinianSegmentationExtractor(SegmentationExtractor):
@@ -71,28 +71,46 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         self._timestamps_path = (
             Path(timestamps_path) if timestamps_path is not None else self.folder_path / "timeStamps.csv"
         )
-        self._roi_response_denoised = self._read_trace_from_zarr_field(field="C")
-        self._roi_response_baseline = self._read_trace_from_zarr_field(field="b0")
-        self._roi_response_neuropil = self._read_trace_from_zarr_field(field="f")
-        self._roi_response_deconvolved = self._read_trace_from_zarr_field(field="S")
+        self._image_masks = self._read_roi_image_mask_from_zarr()
+
+        cell_ids = self.get_roi_ids()
+        self._roi_ids = list(cell_ids)
+
+        denoised_traces = self._read_trace_from_zarr_field(field="C")
+        if denoised_traces is not None:
+            self._roi_responses.append(RoiResponse("denoised", denoised_traces, list(self._roi_ids)))
+
+        baseline_traces = self._read_trace_from_zarr_field(field="b0")
+        if baseline_traces is not None:
+            self._roi_responses.append(RoiResponse("baseline", baseline_traces, list(self._roi_ids)))
+
+        background_trace = self._read_trace_from_zarr_field(field="f")
+        if background_trace is not None:
+            if background_trace.shape[1] == len(self._roi_ids):
+                background_ids = list(self._roi_ids)
+            else:
+                background_ids = [f"background-{idx}" for idx in range(background_trace.shape[1])]
+            self._roi_responses.append(RoiResponse("background", background_trace, background_ids))
+
+        deconvolved_traces = self._read_trace_from_zarr_field(field="S")
+        if deconvolved_traces is not None:
+            self._roi_responses.append(RoiResponse("deconvolved", deconvolved_traces, list(self._roi_ids)))
         max_proj_data = self._read_zarr_group("/max_proj.zarr/max_proj")
         if max_proj_data is not None:
             self._summary_images["maximum_projection"] = np.array(max_proj_data)
-        self._image_masks = self._read_roi_image_mask_from_zarr()
         self._background_image_masks = self._read_background_image_mask_from_zarr()
         # Check for spatial-temporal component mismatches
-        if (
-            self._image_masks is not None
-            and self._roi_response_denoised is None
-            and self._roi_response_deconvolved is None
-            and self._roi_response_baseline is None
-        ):
+        has_temporal_responses = any(
+            response.response_type in {"denoised", "deconvolved", "baseline"} for response in self._roi_responses
+        )
+        if self._image_masks is not None and not has_temporal_responses:
             raise ValueError(
                 "Spatial components (A.zarr) are available but no temporal components (C.zarr, S.zarr, b0.zarr) are associated. "
                 "This means ROI masks exist but without any corresponding fluorescence traces."
             )
 
-        if self._background_image_masks is not None and self._roi_response_neuropil is None:
+        has_background_response = any(response.response_type == "background" for response in self._roi_responses)
+        if self._background_image_masks is not None and not has_background_response:
             raise ValueError(
                 "Background spatial components (b.zarr) are available but no background temporal component (f.zarr) is associated. "
                 "This means background masks exist but without corresponding temporal dynamics."
@@ -318,22 +336,6 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             List of rejected ROI ids.
         """
         return list()
-
-    def get_traces_dict(self) -> dict:
-        """Get traces as a dictionary with key as the name of the ROiResponseSeries.
-
-        Returns
-        -------
-        roi_response_dict: dict
-            dictionary with key, values representing different types of RoiResponseSeries:
-                Raw Fluorescence, DeltaFOverF, Denoised, Neuropil, Deconvolved, Background, etc.
-        """
-        return dict(
-            denoised=self._roi_response_denoised,
-            baseline=self._roi_response_baseline,
-            neuropil=self._roi_response_neuropil,
-            deconvolved=self._roi_response_deconvolved,
-        )
 
     def get_images_dict(self) -> dict:
         """Get images as a dictionary with key as the name of the ROIResponseSeries.
