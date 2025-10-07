@@ -7,7 +7,6 @@ CaimanSegmentationExtractor
 """
 
 import warnings
-from typing import Optional
 
 import h5py
 import numpy as np
@@ -139,7 +138,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self._params = self._dataset_file["params"]
 
         # Core traces and images
-        cell_ids: Optional[list[int]] = None
+        cell_ids: list[int] | None = None
 
         raw_traces = self._raw_trace_extractor_read()
         if raw_traces is not None:
@@ -468,8 +467,8 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         return self.get_frame_shape()
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         """Retrieve the original unaltered timestamps for the data in this interface.
 
         Returns

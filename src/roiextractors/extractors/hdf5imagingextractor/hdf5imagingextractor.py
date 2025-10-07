@@ -8,7 +8,6 @@ Hdf5ImagingExtractor
 
 import warnings
 from pathlib import Path
-from typing import Optional
 from warnings import warn
 
 import h5py
@@ -111,7 +110,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         """Close the HDF5 file."""
         self._file.close()
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0):
+    def get_frames(self, frame_idxs: ArrayType, channel: int | None = 0):
         """Get specific video frames from indices.
 
         Parameters
@@ -146,7 +145,7 @@ class Hdf5ImagingExtractor(ImagingExtractor):
     def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
         return self._video.lazy_slice[start_sample:end_sample, :, :, 0].dsetread()
 
-    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+    def get_video(self, start_frame=None, end_frame=None, channel: int | None = 0) -> np.ndarray:
         """Get the video frames.
 
         Parameters
@@ -231,8 +230,8 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         return self._channel_names
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         """Retrieve the original unaltered timestamps for the data in this interface.
 
         Returns

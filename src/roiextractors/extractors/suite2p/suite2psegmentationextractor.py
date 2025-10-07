@@ -8,7 +8,6 @@ Suite2pSegmentationExtractor
 
 import warnings
 from pathlib import Path
-from typing import Optional
 from warnings import warn
 
 import numpy as np
@@ -72,8 +71,8 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     def __init__(
         self,
         folder_path: PathType,
-        channel_name: Optional[str] = None,
-        plane_name: Optional[str] = None,
+        channel_name: str | None = None,
+        plane_name: str | None = None,
     ):
         """Create SegmentationExtractor object out of suite 2p data type.
 
@@ -242,7 +241,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     def get_rejected_list(self) -> list[int]:
         return list(np.where(self.iscell[:, 0] == 0)[0])
 
-    def _correlation_image_read(self) -> Optional[np.ndarray]:
+    def _correlation_image_read(self) -> np.ndarray | None:
         """Read correlation image from ops (settings) dict.
 
         Returns
@@ -303,7 +302,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         return self.get_frame_shape()
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # Suite2p segmentation data does not have native timestamps
         return None

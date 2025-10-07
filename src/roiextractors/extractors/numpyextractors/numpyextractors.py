@@ -10,7 +10,6 @@ NumpySegmentationExtractor
 
 import warnings
 from pathlib import Path
-from typing import Optional
 from warnings import warn
 
 import numpy as np
@@ -112,7 +111,7 @@ class NumpyImagingExtractor(ImagingExtractor):
             num_frames, num_rows, num_columns, num_channels = video.shape
         return num_frames, num_rows, num_columns, num_channels
 
-    def get_frames(self, frame_idxs=None, channel: Optional[int] = 0) -> np.ndarray:
+    def get_frames(self, frame_idxs=None, channel: int | None = 0) -> np.ndarray:
         """Get specific video frames from indices.
 
         Parameters
@@ -145,7 +144,7 @@ class NumpyImagingExtractor(ImagingExtractor):
     def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
         return self._video[start_sample:end_sample, ..., 0]
 
-    def get_video(self, start_frame=None, end_frame=None, channel: Optional[int] = 0) -> np.ndarray:
+    def get_video(self, start_frame=None, end_frame=None, channel: int | None = 0) -> np.ndarray:
         """Get the video frames.
 
         Parameters
@@ -230,8 +229,8 @@ class NumpyImagingExtractor(ImagingExtractor):
         return self._channel_names
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # Numpy arrays do not have native timestamps
         return None
 
@@ -308,7 +307,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         SegmentationExtractor.__init__(self)
 
         if roi_ids is None:
-            cell_ids: Optional[list[int]] = None
+            cell_ids: list[int] | None = None
         else:
             cell_ids = list(roi_ids)
 
@@ -528,7 +527,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         return self.get_frame_shape()
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # Numpy arrays do not have native timestamps
         return None

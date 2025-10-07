@@ -15,7 +15,6 @@ from collections import Counter
 from itertools import islice
 from pathlib import Path
 from types import ModuleType
-from typing import Optional
 from xml.etree import ElementTree
 
 import numpy as np
@@ -39,7 +38,7 @@ def _get_tiff_reader() -> ModuleType:
     return get_package(package_name="tifffile", installation_instructions="pip install tifffile")
 
 
-def _determine_frame_rate(element: etree.Element, file_names: Optional[list[str]] = None) -> float | None:
+def _determine_frame_rate(element: etree.Element, file_names: list[str] | None = None) -> float | None:
     """Determine the frame rate from the difference in relative timestamps of the frame elements."""
     from neuroconv.utils import calculate_regular_series_rate
 
@@ -196,7 +195,7 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
     def __init__(
         self,
         folder_path: PathType,
-        stream_name: Optional[str] = None,
+        stream_name: str | None = None,
     ):
         """Create a BrukerTiffMultiPlaneImagingExtractor instance from a folder path that contains the image files.
 
@@ -318,7 +317,7 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
     def get_sampling_frequency(self) -> float:
         return self._imaging_extractors[0].get_sampling_frequency() * self._num_planes_per_channel_stream
 
-    def get_frames(self, frame_idxs: ArrayType, channel: Optional[int] = 0) -> np.ndarray:
+    def get_frames(self, frame_idxs: ArrayType, channel: int | None = 0) -> np.ndarray:
         """Get specific frames from the video.
 
         Parameters
@@ -355,7 +354,7 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
 
         return frames
 
-    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         start = start_sample if start_sample is not None else 0
         stop = end_sample if end_sample is not None else self.get_num_samples()
 
@@ -367,9 +366,7 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
 
         return series
 
-    def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
-    ) -> np.ndarray:
+    def get_video(self, start_frame: int | None = None, end_frame: int | None = None, channel: int = 0) -> np.ndarray:
         """Get a chunk of video.
 
         Parameters
@@ -497,7 +494,7 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
 
         return channel_names
 
-    def __init__(self, folder_path: PathType, stream_name: Optional[str] = None):
+    def __init__(self, folder_path: PathType, stream_name: str | None = None):
         """Create a BrukerTiffSinglePlaneImagingExtractor instance from a folder path that contains the image files.
 
         Parameters
@@ -733,7 +730,7 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
     def get_dtype(self):
         raise NotImplementedError(self.DATA_TYPE_ERROR.format(self.extractor_name))
 
-    def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         with self.tifffile.TiffFile(self.file_path, _multifile=False) as tif:
             pages = tif.pages
 
@@ -750,9 +747,7 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
 
         return series
 
-    def get_video(
-        self, start_frame: Optional[int] = None, end_frame: Optional[int] = None, channel: int = 0
-    ) -> np.ndarray:
+    def get_video(self, start_frame: int | None = None, end_frame: int | None = None, channel: int = 0) -> np.ndarray:
         """Get the video frames.
 
         Parameters
@@ -788,8 +783,8 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
         return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # Bruker TIFF data does not have native timestamps in the TIFF files themselves
         # The timestamps are in the XML configuration files which are handled by the parent extractors
         return None

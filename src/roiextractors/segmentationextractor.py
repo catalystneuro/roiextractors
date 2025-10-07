@@ -15,7 +15,6 @@ FrameSliceSegmentationExtractor
 import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -49,7 +48,7 @@ class SegmentationExtractor(ABC):
         self._times = None
         self._channel_names = ["OpticalChannel"]
         self._num_planes = 1
-        self._roi_ids: Optional[list[str | int]] = None
+        self._roi_ids: list[str | int] | None = None
         self._roi_responses: list[RoiResponse] = []
         self._summary_images = {}
         self._image_mask = None
@@ -79,8 +78,8 @@ class SegmentationExtractor(ABC):
 
     @abstractmethod
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         """Get the original timestamps from the data source.
 
         Parameters
@@ -285,7 +284,7 @@ class SegmentationExtractor(ABC):
 
         return _pixel_mask_extractor(self.get_background_image_masks(background_ids=background_ids), background_ids)
 
-    def slice_samples(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None):
+    def slice_samples(self, start_sample: int | None = None, end_sample: int | None = None):
         """Return a new SegmentationExtractor ranging from the start_sample to the end_sample.
 
         Parameters
@@ -304,7 +303,7 @@ class SegmentationExtractor(ABC):
             parent_segmentation=self, start_sample=start_sample, end_sample=end_sample
         )
 
-    def frame_slice(self, start_frame: Optional[int] = None, end_frame: Optional[int] = None):
+    def frame_slice(self, start_frame: int | None = None, end_frame: int | None = None):
         """Return a new SegmentationExtractor ranging from the start_frame to the end_frame.
 
         Parameters
@@ -334,8 +333,8 @@ class SegmentationExtractor(ABC):
     def get_traces(
         self,
         roi_ids: list[int | str] = None,
-        start_frame: Optional[int] = None,
-        end_frame: Optional[int] = None,
+        start_frame: int | None = None,
+        end_frame: int | None = None,
         name: str = "raw",
     ) -> ArrayType:
         """Get the traces of each ROI specified by roi_ids.
@@ -565,7 +564,7 @@ class SegmentationExtractor(ABC):
         else:
             return self._times[frames]
 
-    def get_timestamps(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> np.ndarray:
+    def get_timestamps(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """
         Retrieve the timestamps for the data in this extractor.
 
@@ -734,8 +733,8 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
     def __init__(
         self,
         parent_segmentation: SegmentationExtractor,
-        start_sample: Optional[int] = None,
-        end_sample: Optional[int] = None,
+        start_sample: int | None = None,
+        end_sample: int | None = None,
     ):
         """Initialize a SegmentationExtractor whose samples subset the parent.
 
@@ -854,15 +853,15 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
     def get_num_planes(self) -> int:
         return self._parent_segmentation.get_num_planes()
 
-    def get_roi_pixel_masks(self, roi_ids: Optional[ArrayLike] = None) -> list[np.ndarray]:
+    def get_roi_pixel_masks(self, roi_ids: ArrayLike | None = None) -> list[np.ndarray]:
         return self._parent_segmentation.get_roi_pixel_masks(roi_ids=roi_ids)
 
-    def get_background_pixel_masks(self, background_ids: Optional[ArrayLike] = None) -> list[np.ndarray]:
+    def get_background_pixel_masks(self, background_ids: ArrayLike | None = None) -> list[np.ndarray]:
         return self._parent_segmentation.get_background_pixel_masks(background_ids=background_ids)
 
     def get_native_timestamps(
-        self, start_sample: Optional[int] = None, end_sample: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
         # Adjust the sample indices to account for the slice offset
         start_sample = start_sample or 0
         end_sample = end_sample or self.get_num_samples()
@@ -894,8 +893,8 @@ class FrameSliceSegmentationExtractor(SampleSlicedSegmentationExtractor):
     def __init__(
         self,
         parent_segmentation: SegmentationExtractor,
-        start_frame: Optional[int] = None,
-        end_frame: Optional[int] = None,
+        start_frame: int | None = None,
+        end_frame: int | None = None,
     ):
         """Create a new FrameSliceSegmentationExtractor from parent SegmentationExtractor.
 
