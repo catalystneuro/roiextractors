@@ -14,7 +14,6 @@ import numpy as np
 
 from ...extraction_tools import PathType
 from ...segmentationextractor import (
-    RoiRepresentations,
     RoiResponse,
     SegmentationExtractor,
 )
@@ -200,7 +199,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         # Create roi_id_map
         roi_id_map = {roi_id: index for index, roi_id in enumerate(cell_ids)}
 
-        self._roi_representations = RoiRepresentations(
+        self._roi_representations = _RoiRepresentations(
             data=pixel_masks,
             representation_type="nwb-pixel_mask",
             field_of_view_shape=self._image_shape,

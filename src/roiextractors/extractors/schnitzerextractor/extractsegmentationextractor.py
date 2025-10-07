@@ -21,7 +21,6 @@ from packaging import version
 
 from ...extraction_tools import ArrayType, PathType
 from ...segmentationextractor import (
-    RoiRepresentations,
     RoiResponse,
     SegmentationExtractor,
 )
@@ -207,7 +206,7 @@ class NewExtractSegmentationExtractor(
         image_masks_data = self._image_mask_extractor_read()  # DatasetView (H, W, N)
         roi_id_map = {roi_id: index for index, roi_id in enumerate(cell_ids)}
 
-        self._roi_representations = RoiRepresentations(
+        self._roi_representations = _RoiRepresentations(
             data=image_masks_data,
             representation_type="nwb-image_mask",
             field_of_view_shape=image_masks_data.shape[:-1],  # (H, W) from (H, W, N)
@@ -357,7 +356,7 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         image_masks_data = self._image_mask_extractor_read()  # (H, W, N) array
         roi_id_map = {roi_id: index for index, roi_id in enumerate(cell_ids)}
 
-        self._roi_representations = RoiRepresentations(
+        self._roi_representations = _RoiRepresentations(
             data=image_masks_data,
             representation_type="nwb-image_mask",
             field_of_view_shape=image_masks_data.shape[:-1],  # (H, W) from (H, W, N)

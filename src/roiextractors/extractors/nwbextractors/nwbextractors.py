@@ -26,7 +26,6 @@ from ...extraction_tools import (
 )
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import (
-    RoiRepresentations,
     RoiResponse,
     SegmentationExtractor,
 )
@@ -371,7 +370,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
 
             # Create ROI representations
             roi_id_map = {roi_id: index for index, roi_id in enumerate(self._roi_ids)}
-            self._roi_representations = RoiRepresentations(
+            self._roi_representations = _RoiRepresentations(
                 data=image_masks_data,
                 representation_type="nwb-image_mask",
                 field_of_view_shape=self.get_frame_shape(),

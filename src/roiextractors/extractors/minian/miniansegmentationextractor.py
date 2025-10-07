@@ -199,7 +199,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         # Let's re-assess if this becomes an issue in the future
         combined_masks = np.concatenate(all_masks, axis=2) if len(all_masks) > 1 else all_masks[0]
 
-        return RoiRepresentations(
+        return _RoiRepresentations(
             data=combined_masks,
             representation_type="nwb-image_mask",
             field_of_view_shape=self.get_frame_shape(),  # (H, W) for 2D

@@ -265,7 +265,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
                 bg_id = f"background{bg_index}"
                 roi_id_map[bg_id] = len(pixel_masks) - 1
 
-        return RoiRepresentations(
+        return _RoiRepresentations(
             data=pixel_masks,
             representation_type="nwb-pixel_mask",
             field_of_view_shape=(height, width),
