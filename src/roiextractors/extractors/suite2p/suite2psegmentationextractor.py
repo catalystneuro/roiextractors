@@ -12,8 +12,12 @@ from warnings import warn
 
 import numpy as np
 
-from ...extraction_tools import PathType, _image_mask_extractor
-from ...segmentationextractor import RoiResponse, SegmentationExtractor
+from ...extraction_tools import PathType
+from ...segmentationextractor import (
+    RoiRepresentations,
+    RoiResponse,
+    SegmentationExtractor,
+)
 
 
 class Suite2pSegmentationExtractor(SegmentationExtractor):
@@ -179,11 +183,28 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         mean_image = self.options[image_mean_name] if image_mean_name in self.options else None
         if mean_image is not None:
             self._summary_images["mean"] = mean_image
-        roi_indices = list(range(self.get_num_rois()))
-        self._image_masks = _image_mask_extractor(
-            self.get_roi_pixel_masks(),
-            roi_indices,
-            self.get_frame_shape(),
+
+        # Create ROI representations from Suite2p native pixel masks
+        # Suite2p stores per-ROI sparse pixel lists - already in nwb-pixel_mask format!
+        pixel_masks = []
+        for i in range(len(cell_ids)):
+            pixel_mask = np.column_stack(
+                [
+                    self.stat[i]["ypix"],
+                    self.stat[i]["xpix"],
+                    self.stat[i]["lam"],
+                ]
+            )
+            pixel_masks.append(pixel_mask)
+
+        # Create roi_id_map
+        roi_id_map = {roi_id: index for index, roi_id in enumerate(cell_ids)}
+
+        self._roi_representations = RoiRepresentations(
+            data=pixel_masks,
+            representation_type="nwb-pixel_mask",
+            field_of_view_shape=self._image_shape,
+            roi_id_map=roi_id_map,
         )
 
     def _load_npy(self, file_name: str, mmap_mode=None, transpose: bool = False, require: bool = False):

@@ -20,7 +20,11 @@ from lazy_ops import DatasetView
 from packaging import version
 
 from ...extraction_tools import ArrayType, PathType
-from ...segmentationextractor import RoiResponse, SegmentationExtractor
+from ...segmentationextractor import (
+    RoiRepresentations,
+    RoiResponse,
+    SegmentationExtractor,
+)
 
 
 def _decode_h5py_array(unicode_int_array: np.ndarray) -> str:
@@ -199,7 +203,16 @@ class NewExtractSegmentationExtractor(
 
         self._sampling_frequency = sampling_frequency
 
-        self._image_masks = self._image_mask_extractor_read()
+        # Create ROI representations from dense image masks
+        image_masks_data = self._image_mask_extractor_read()  # DatasetView (H, W, N)
+        roi_id_map = {roi_id: index for index, roi_id in enumerate(cell_ids)}
+
+        self._roi_representations = RoiRepresentations(
+            data=image_masks_data,
+            representation_type="nwb-image_mask",
+            field_of_view_shape=image_masks_data.shape[:-1],  # (H, W) from (H, W, N)
+            roi_id_map=roi_id_map,
+        )
 
         assert "info" in self._output_struct, "Info struct not found in file."
         self._info_struct = self._output_struct["info"]
@@ -260,7 +273,11 @@ class NewExtractSegmentationExtractor(
         return DatasetView(self._output_struct["temporal_weights"]).lazy_transpose()
 
     def get_accepted_list(self) -> list:
-        return [roi for roi in self.get_roi_ids() if np.any(self._image_masks[..., roi])]
+        return [
+            roi_id
+            for roi_id in self.get_roi_ids()
+            if np.any(self._roi_representations.data[..., self._roi_representations.roi_id_map[roi_id]])
+        ]
 
     def get_rejected_list(self) -> list:
         accepted_list = self.get_accepted_list()
@@ -279,7 +296,7 @@ class NewExtractSegmentationExtractor(
         ArrayType
             The frame shape as (height, width).
         """
-        return self._image_masks.shape[:-1]
+        return self._roi_representations.field_of_view_shape
 
     def get_image_size(self) -> ArrayType:
         warnings.warn(
@@ -329,11 +346,24 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         self.file_path = file_path
         self._dataset_file = self._file_extractor_read()
         self.output_struct_name = output_struct_name
-        self._image_masks = self._image_mask_extractor_read()
+
+        # Read traces first to get number of ROIs
         traces = self._trace_extractor_read()
         cell_ids = list(range(traces.shape[1]))
         self._roi_ids = cell_ids
         self._roi_responses.append(RoiResponse("raw", traces, cell_ids))
+
+        # Create ROI representations from dense image masks
+        image_masks_data = self._image_mask_extractor_read()  # (H, W, N) array
+        roi_id_map = {roi_id: index for index, roi_id in enumerate(cell_ids)}
+
+        self._roi_representations = RoiRepresentations(
+            data=image_masks_data,
+            representation_type="nwb-image_mask",
+            field_of_view_shape=image_masks_data.shape[:-1],  # (H, W) from (H, W, N)
+            roi_id_map=roi_id_map,
+        )
+
         self._raw_movie_file_location = self._raw_datafile_read()
         self._sampling_frequency = traces.shape[0] / self._tot_exptime_extractor_read()
         correlation_image = self._summary_image_read()

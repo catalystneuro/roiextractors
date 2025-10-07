@@ -25,7 +25,11 @@ from ...extraction_tools import (
     raise_multi_channel_or_depth_not_implemented,
 )
 from ...imagingextractor import ImagingExtractor
-from ...segmentationextractor import RoiResponse, SegmentationExtractor
+from ...segmentationextractor import (
+    RoiRepresentations,
+    RoiResponse,
+    SegmentationExtractor,
+)
 
 
 class NwbImagingExtractor(ImagingExtractor):
@@ -317,7 +321,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         if not file_path.is_file():
             raise Exception("file does not exist")
         self.file_path = file_path
-        self._image_masks = None
         self._roi_locs = None
         self._accepted_list = None
         self._rejected_list = None
@@ -357,14 +360,23 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         if "PlaneSegmentation" in image_seg.plane_segmentations:  # this requirement in nwbfile is enforced
             ps = image_seg.plane_segmentations["PlaneSegmentation"]
             assert "image_mask" in ps.colnames, "Could not find any image_masks in nwbfile."
-            self._image_masks = DatasetView(ps["image_mask"].data).lazy_transpose([2, 1, 0])
+            image_masks_data = DatasetView(ps["image_mask"].data).lazy_transpose([2, 1, 0])
             self._roi_locs = ps["ROICentroids"] if "ROICentroids" in ps.colnames else None
             self._accepted_list = ps["Accepted"].data[:] if "Accepted" in ps.colnames else None
             self._rejected_list = ps["Rejected"].data[:] if "Rejected" in ps.colnames else None
             if hasattr(ps, "id"):
                 self._roi_ids = ps.id.data[:].tolist()
             else:
-                self._roi_ids = list(range(self._image_masks.shape[-1]))
+                self._roi_ids = list(range(image_masks_data.shape[-1]))
+
+            # Create ROI representations
+            roi_id_map = {roi_id: index for index, roi_id in enumerate(self._roi_ids)}
+            self._roi_representations = RoiRepresentations(
+                data=image_masks_data,
+                representation_type="nwb-image_mask",
+                field_of_view_shape=self.get_frame_shape(),
+                roi_id_map=roi_id_map,
+            )
 
         # Extracting stored images as GrayscaleImages:
         self._segmentation_images = None
@@ -376,8 +388,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             imaging_plane = self.nwbfile.imaging_planes["ImagingPlane"]
             self._channel_names = [i.name for i in imaging_plane.optical_channel]
 
-        if self._roi_ids is None and self._image_masks is not None:
-            self._roi_ids = list(range(self._image_masks.shape[-1]))
+        if self._roi_ids is None and self._roi_representations is not None:
+            self._roi_ids = list(range(self._roi_representations.num_rois))
 
         if self._roi_ids is None:
             raise ValueError("Unable to determine ROI ids from NWB file.")
