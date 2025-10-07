@@ -109,8 +109,8 @@ class MinianSegmentationExtractor(SegmentationExtractor):
                 "This means ROI masks exist but without any corresponding fluorescence traces."
             )
 
-        has_neuropil_response = any(response.response_type == "neuropil" for response in self._roi_responses)
-        if self._background_image_masks is not None and not has_neuropil_response:
+        has_background_response = any(response.response_type == "background" for response in self._roi_responses)
+        if self._background_image_masks is not None and not has_background_response:
             raise ValueError(
                 "Background spatial components (b.zarr) are available but no background temporal component (f.zarr) is associated. "
                 "This means background masks exist but without corresponding temporal dynamics."
