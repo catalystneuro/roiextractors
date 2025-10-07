@@ -9,7 +9,7 @@ from typing import Any
 import numpy as np
 
 from ...extraction_tools import ArrayType, PathType
-from ...segmentationextractor import SegmentationExtractor
+from ...segmentationextractor import RoiRepresentations, SegmentationExtractor
 
 
 class InscopixSegmentationExtractor(SegmentationExtractor):
@@ -58,78 +58,24 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         # Set sampling frequency
         self._sampling_frequency = 1 / self.cell_set.timing.period.secs_float
 
+        # Create ROI representations
+        # Load all masks upfront and store in standard nwb-image_mask format
+        if self.cell_set.num_cells > 0:
+            frame_shape = self.get_frame_shape()
+            # Stack all image masks into (H, W, N) array
+            all_masks = np.stack([self.cell_set.get_cell_image_data(i) for i in range(self.cell_set.num_cells)], axis=2)
+
+            roi_id_map = {roi_id: index for index, roi_id in enumerate(self._roi_ids)}
+
+            self._roi_representations = RoiRepresentations(
+                data=all_masks,
+                representation_type="nwb-image_mask",
+                field_of_view_shape=frame_shape,
+                roi_id_map=roi_id_map,
+            )
+
     def get_num_rois(self) -> int:
         return self.cell_set.num_cells
-
-    def get_roi_image_masks(self, roi_ids: list | None = None) -> np.ndarray:
-        """Get image masks for the specified ROIs.
-
-        Parameters
-        ----------
-        roi_ids : list or None
-            List of ROI IDs (can be integers or original string IDs)
-        If None, all ROIs will be returned.
-
-        Returns
-        -------
-        np.ndarray
-            Image masks for the specified ROIs
-        """
-        if roi_ids is None:
-            roi_indices = list(range(self.get_num_rois()))
-        else:
-            all_roi_ids = self.get_roi_ids()
-            roi_indices = [all_roi_ids.index(roi_id) for roi_id in roi_ids]
-
-        masks = [self.cell_set.get_cell_image_data(roi_idx) for roi_idx in roi_indices]
-        if len(masks) == 1:
-            return masks[0]
-        return np.stack(masks)
-
-    def get_roi_pixel_masks(self, roi_ids: list | None = None) -> list[np.ndarray]:
-        """Get pixel masks for the specified ROIs.
-
-        This converts the image masks to pixel masks with the format expected by the NWB standard.
-
-        Parameters
-        ----------
-        roi_ids : list or None
-            List of ROI IDs (can be integers or original string IDs)
-
-        Returns
-        -------
-        list
-            List of pixel masks, each with shape (N, 3) where N is the number of pixels in the ROI.
-            Each row is (x, y, weight).
-        """
-        if roi_ids is None:
-            roi_ids = self.get_roi_ids()
-
-        # Get image masks
-        image_masks = self.get_roi_image_masks(roi_ids=roi_ids)
-
-        # Handle case when only one ROI ID is specified
-        if len(roi_ids) == 1:
-            image_masks = [image_masks]
-
-        # Convert image masks to pixel masks
-        pixel_masks = []
-        for mask in image_masks:
-            # Find non-zero pixels in the mask
-            y_indices, x_indices = np.where(mask > 0)
-
-            if len(x_indices) > 0:
-                # Use the mask values as weights
-                weights = mask[y_indices, x_indices]
-                # Create pixel mask with (x, y, weight) format
-                pixel_mask = np.column_stack((x_indices, y_indices, weights))
-            else:
-                # For empty ROIs, create a dummy pixel mask with correct shape
-                pixel_mask = np.array([[0, 0, 1.0]])
-
-            pixel_masks.append(pixel_mask)
-
-        return pixel_masks
 
     def get_roi_ids(self) -> list:
         """Get ROI IDs as original string IDs from the CellSet."""

@@ -193,6 +193,10 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             all_masks.append(background_image_masks)
 
         # Concatenate all masks along the last axis to get (H, W, total_rois)
+        # TODO: Optimize memory usage by implementing lazy loading for Zarr arrays.
+        # Currently loads entire array into memory (~8.5 MB for 608x608x3 dataset, not so bad).
+        # Could use lazy wrapper similar to DatasetView (used by CNMF-E, EXTRACT, NWB)
+        # Let's re-assess if this becomes an issue in the future
         combined_masks = np.concatenate(all_masks, axis=2) if len(all_masks) > 1 else all_masks[0]
 
         return RoiRepresentations(
