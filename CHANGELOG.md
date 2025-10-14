@@ -5,6 +5,7 @@
 
 ### Fixes
 * Fixed `NumpySegmentationExtractor` to properly handle `raw=None` by adding None check before shape validation [PR #508](https://github.com/catalystneuro/roiextractors/pull/508)
+* Cap h5py to avoid install errors on macos 13 [PR #515](https://github.com/catalystneuro/roiextractors/pull/515)
 
 ### Deprecations And Removals
 * Deprecated `configuration_file_path` parameter in `MiniscopeImagingExtractor` (removal: March 2026). The device folder is now automatically inferred from `file_paths`. The parameter is ignored if provided. [PR #509](https://github.com/catalystneuro/roiextractors/pull/509)
