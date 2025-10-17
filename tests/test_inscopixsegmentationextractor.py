@@ -75,9 +75,9 @@ def test_inscopix_segmentation_extractor():
     assert extractor.get_frame_shape() == (398, 366)
     assert extractor.get_num_samples() == 5444
 
-    # Test image masks (using integer ID instead of string)
+    # Test image masks (using string ID)
     img = extractor.get_roi_image_masks(["C1"])
-    assert img.shape == (366, 398)
+    assert img.shape == (366, 398, 1)
 
     # Test pixel masks
     pixel_masks = extractor.get_roi_pixel_masks(["C1"])
@@ -181,7 +181,7 @@ def test_inscopix_segmentation_extractor_part1():
 
     # Test image masks
     img = extractor.get_roi_image_masks(["C1"])
-    assert img.shape == (21, 21)
+    assert img.shape == (21, 21, 1)  # Standard format: (H, W, N_rois)
 
     # Test pixel masks
     pixel_masks = extractor.get_roi_pixel_masks(["C1"])
