@@ -207,9 +207,9 @@ class NewExtractSegmentationExtractor(
         image_masks_data = self._image_mask_extractor_read()  # DatasetView (H, W, N)
         roi_id_map = {roi_id: index for index, roi_id in enumerate(cell_ids)}
 
-        self._roi_representations = _ROIMasks(
+        self._roi_masks = _ROIMasks(
             data=image_masks_data,
-            representation_type="nwb-image_mask",
+            mask_tpe="nwb-image_mask",
             field_of_view_shape=image_masks_data.shape[:-1],  # (H, W) from (H, W, N)
             roi_id_map=roi_id_map,
         )
@@ -276,7 +276,7 @@ class NewExtractSegmentationExtractor(
         return [
             roi_id
             for roi_id in self.get_roi_ids()
-            if np.any(self._roi_representations.data[..., self._roi_representations.roi_id_map[roi_id]])
+            if np.any(self._roi_masks.data[..., self._roi_masks.roi_id_map[roi_id]])
         ]
 
     def get_rejected_list(self) -> list:
@@ -296,7 +296,7 @@ class NewExtractSegmentationExtractor(
         ArrayType
             The frame shape as (height, width).
         """
-        return self._roi_representations.field_of_view_shape
+        return self._roi_masks.field_of_view_shape
 
     def get_image_size(self) -> ArrayType:
         warnings.warn(
@@ -357,9 +357,9 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         image_masks_data = self._image_mask_extractor_read()  # (H, W, N) array
         roi_id_map = {roi_id: index for index, roi_id in enumerate(cell_ids)}
 
-        self._roi_representations = _ROIMasks(
+        self._roi_masks = _ROIMasks(
             data=image_masks_data,
-            representation_type="nwb-image_mask",
+            mask_tpe="nwb-image_mask",
             field_of_view_shape=image_masks_data.shape[:-1],  # (H, W) from (H, W, N)
             roi_id_map=roi_id_map,
         )

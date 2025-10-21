@@ -108,9 +108,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
         # Create ROI representations combining cell and background masks
         background_image_masks = self._read_background_image_mask_from_zarr()
-        self._roi_representations = self._create_roi_representations(
-            cell_image_masks, background_image_masks, cell_ids, background_trace
-        )
+        self._roi_masks = self._create_roi_masks(cell_image_masks, background_image_masks, cell_ids, background_trace)
         # Check for spatial-temporal component mismatches
         has_temporal_responses = any(
             response.response_type in {"denoised", "deconvolved", "baseline"} for response in self._roi_responses
@@ -144,7 +142,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
                         "Please provide a valid timeStamps.csv file or a sampling_frequency parameter."
                     )
 
-    def _create_roi_representations(
+    def _create_roi_masks(
         self, cell_image_masks, background_image_masks, cell_ids, background_trace
     ) -> _ROIMasks | None:
         """Create ROI representations combining cell and background masks.
@@ -201,7 +199,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
         return _ROIMasks(
             data=combined_masks,
-            representation_type="nwb-image_mask",
+            mask_tpe="nwb-image_mask",
             field_of_view_shape=self.get_frame_shape(),  # (H, W) for 2D
             roi_id_map=roi_id_map,
         )
@@ -358,14 +356,13 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         # First try to get frame shape from the zarr dataset
         dataset = self._read_zarr_group("/A.zarr")
         if dataset is None or "height" not in dataset or "width" not in dataset:
-            # Fallback: try to infer from image masks if available
-            if self._image_masks is not None:
-                height, width, _ = self._image_masks.shape
-                return (height, width)
+            # Fallback: try to infer from roi_masks if available
+            if self._roi_masks is not None:
+                return self._roi_masks.field_of_view_shape
             else:
                 raise ValueError(
                     "Cannot determine frame shape: height/width dimensions not found, "
-                    "and no image masks are available to infer frame shape."
+                    "and no ROI masks are available to infer frame shape."
                 )
 
         height = dataset["height"].shape[0]

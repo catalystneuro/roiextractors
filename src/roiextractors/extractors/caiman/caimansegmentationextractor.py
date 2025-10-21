@@ -187,7 +187,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         self._sampling_frequency = self._params["data"]["fr"][()]
 
         # Create ROI representations from CaImAn sparse matrices
-        self._roi_representations = self._create_roi_representations()
+        self._roi_masks = self._create_roi_masks()
 
         # Store quality metrics as properties
         self._set_quality_metrics_as_properties()
@@ -196,7 +196,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         """Close the h5py file when the object is deleted."""
         self._dataset_file.close()
 
-    def _create_roi_representations(self) -> _ROIMasks | None:
+    def _create_roi_masks(self) -> _ROIMasks | None:
         """Create ROI representations from CaImAn CSC sparse matrices.
 
         Converts CaImAn's native CSC matrix format to NWB-compatible pixel mask format.
@@ -267,7 +267,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
         return _ROIMasks(
             data=pixel_masks,
-            representation_type="nwb-pixel_mask",
+            mask_tpe="nwb-pixel_mask",
             field_of_view_shape=(height, width),
             roi_id_map=roi_id_map,
         )

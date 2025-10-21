@@ -57,9 +57,9 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         image_masks_data = self._image_mask_extractor_read()  # DatasetView (H, W, N)
         roi_id_map = {roi_id: index for index, roi_id in enumerate(cell_ids)}
 
-        self._roi_representations = _ROIMasks(
+        self._roi_masks = _ROIMasks(
             data=image_masks_data,
-            representation_type="nwb-image_mask",
+            mask_tpe="nwb-image_mask",
             field_of_view_shape=self.get_frame_shape(),
             roi_id_map=roi_id_map,
         )

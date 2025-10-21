@@ -371,9 +371,9 @@ class NwbSegmentationExtractor(SegmentationExtractor):
 
             # Create ROI representations
             roi_id_map = {roi_id: index for index, roi_id in enumerate(self._roi_ids)}
-            self._roi_representations = _ROIMasks(
+            self._roi_masks = _ROIMasks(
                 data=image_masks_data,
-                representation_type="nwb-image_mask",
+                mask_tpe="nwb-image_mask",
                 field_of_view_shape=self.get_frame_shape(),
                 roi_id_map=roi_id_map,
             )
@@ -388,8 +388,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             imaging_plane = self.nwbfile.imaging_planes["ImagingPlane"]
             self._channel_names = [i.name for i in imaging_plane.optical_channel]
 
-        if self._roi_ids is None and self._roi_representations is not None:
-            self._roi_ids = list(range(self._roi_representations.num_rois))
+        if self._roi_ids is None and self._roi_masks is not None:
+            self._roi_ids = list(range(self._roi_masks.num_rois))
 
         if self._roi_ids is None:
             raise ValueError("Unable to determine ROI ids from NWB file.")

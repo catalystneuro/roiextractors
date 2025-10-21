@@ -330,9 +330,9 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
             # Create ROI representations
             roi_id_map = {roi_id: index for index, roi_id in enumerate(cell_ids)}
-            self._roi_representations = _ROIMasks(
+            self._roi_masks = _ROIMasks(
                 data=image_masks_data,
-                representation_type="nwb-image_mask",
+                mask_tpe="nwb-image_mask",
                 field_of_view_shape=image_masks_data.shape[:2],
                 roi_id_map=roi_id_map,
             )
@@ -390,9 +390,9 @@ class NumpySegmentationExtractor(SegmentationExtractor):
 
             # Create ROI representations
             roi_id_map = {roi_id: index for index, roi_id in enumerate(cell_ids)}
-            self._roi_representations = _ROIMasks(
+            self._roi_masks = _ROIMasks(
                 data=image_masks_data,
-                representation_type="nwb-image_mask",
+                mask_tpe="nwb-image_mask",
                 field_of_view_shape=image_masks_data.shape[:2],
                 roi_id_map=roi_id_map,
             )
@@ -441,7 +441,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             raise TypeError("'image_masks' can be a str or a numpy array")
 
         # Get image masks data from representations
-        image_masks_data = self._roi_representations.data
+        image_masks_data = self._roi_masks.data
         self._movie_dims = movie_dims if movie_dims is not None else image_masks_data.shape
         if mean_image is not None:
             self._summary_images["mean"] = mean_image
@@ -464,7 +464,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         image_dims: list
             The dimensions of the image (num_rois, num_rows, num_columns).
         """
-        return list(self._roi_representations.field_of_view_shape)
+        return list(self._roi_masks.field_of_view_shape)
 
     def get_accepted_list(self):
         if self._accepted_list is None:
@@ -483,7 +483,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         """Returns the center locations (x, y) of each ROI."""
         if self._roi_locs is None:
             num_ROIs = self.get_num_rois()
-            raw_images = self._roi_representations.data  # (H, W, N) array
+            raw_images = self._roi_masks.data  # (H, W, N) array
             roi_location = np.ndarray([2, num_ROIs], dtype="int")
             for i in range(num_ROIs):
                 temp = np.where(raw_images[:, :, i] == np.amax(raw_images[:, :, i]))

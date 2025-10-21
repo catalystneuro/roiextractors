@@ -48,7 +48,7 @@ class _ROIMasks:
         - "nwb-image_mask": (height, width, n_rois) dense array, possibly lazy (DatasetView/h5py.Dataset)
         - "nwb-pixel_mask": list of (n_pixels, 3) arrays with columns [y, x, weight]
         - "nwb-voxel_mask": list of (n_voxels, 4) arrays with columns [y, x, z, weight]
-    representation_type : Literal["nwb-image_mask", "nwb-pixel_mask", "nwb-voxel_mask"]
+    mask_tpe : Literal["nwb-image_mask", "nwb-pixel_mask", "nwb-voxel_mask"]
         Type of NWB-compatible representation.
     field_of_view_shape : tuple[int, ...]
         Shape of imaging FOV: (height, width) for 2D or (depth, height, width) for 3D.
@@ -62,7 +62,7 @@ class _ROIMasks:
     def __init__(
         self,
         data: ArrayLike,
-        representation_type: Literal["nwb-image_mask", "nwb-pixel_mask", "nwb-voxel_mask"],
+        mask_tpe: Literal["nwb-image_mask", "nwb-pixel_mask", "nwb-voxel_mask"],
         field_of_view_shape: tuple[int, ...],
         roi_id_map: dict[str | int, int],
     ):
@@ -72,7 +72,7 @@ class _ROIMasks:
         ----------
         data : ArrayLike
             ROI mask data in native format.
-        representation_type : Literal["nwb-image_mask", "nwb-pixel_mask", "nwb-voxel_mask"]
+        mask_tpe : Literal["nwb-image_mask", "nwb-pixel_mask", "nwb-voxel_mask"]
             Format type following NWB conventions.
         field_of_view_shape : tuple[int, ...]
             Shape of the imaging field of view (height, width) or (depth, height, width).
@@ -80,7 +80,7 @@ class _ROIMasks:
             Mapping from ROI ID to index in data structure.
         """
         self.data = data
-        self.representation_type = representation_type
+        self.mask_tpe = mask_tpe
         self.field_of_view_shape = field_of_view_shape
         self.roi_id_map = roi_id_map
 
@@ -119,11 +119,11 @@ class _ROIMasks:
         """
         index = self.roi_id_map[roi_id]
 
-        if self.representation_type == "nwb-image_mask":
+        if self.mask_tpe == "nwb-image_mask":
             # Extract slice from dense stack
             return np.asarray(self.data[:, :, index])
 
-        elif self.representation_type == "nwb-pixel_mask":
+        elif self.mask_tpe == "nwb-pixel_mask":
             # Convert sparse pixel list to dense
             dense_mask = np.zeros(self.field_of_view_shape, dtype=np.float32)
             pixel_data = self.data[index]  # (n_pixels, 3): [y, x, weight]
@@ -134,7 +134,7 @@ class _ROIMasks:
                 dense_mask[y_coords, x_coords] = weights
             return dense_mask
 
-        elif self.representation_type == "nwb-voxel_mask":
+        elif self.mask_tpe == "nwb-voxel_mask":
             # Convert sparse voxel list to dense 3D
             dense_mask = np.zeros(self.field_of_view_shape, dtype=np.float32)
             voxel_data = self.data[index]  # (n_voxels, 4): [y, x, z, weight]
@@ -162,10 +162,10 @@ class _ROIMasks:
         """
         index = self.roi_id_map[roi_id]
 
-        if self.representation_type == "nwb-pixel_mask":
+        if self.mask_tpe == "nwb-pixel_mask":
             return np.asarray(self.data[index])
 
-        elif self.representation_type == "nwb-voxel_mask":
+        elif self.mask_tpe == "nwb-voxel_mask":
             return np.asarray(self.data[index])
 
         else:
@@ -203,7 +203,7 @@ class SegmentationExtractor(ABC):
         self._roi_ids: list[str | int] | None = None
         self._roi_responses: list[RoiResponse] = []
         self._summary_images = {}
-        self._roi_representations: _ROIMasks | None = None
+        self._roi_masks: _ROIMasks | None = None
         self._properties = {}
 
     @abstractmethod
@@ -344,8 +344,8 @@ class SegmentationExtractor(ABC):
             return self._roi_ids
 
         # For backward compatibility, only return cell ROIs (exclude background components)
-        if self._roi_representations is not None:
-            all_roi_ids = self._roi_representations.get_roi_ids()
+        if self._roi_masks is not None:
+            all_roi_ids = self._roi_masks.get_roi_ids()
             cell_roi_ids = [rid for rid in all_roi_ids if not str(rid).startswith("background")]
             return cell_roi_ids
 
@@ -367,7 +367,7 @@ class SegmentationExtractor(ABC):
         if roi_ids is None:
             roi_ids = self.get_roi_ids()
 
-        if self._roi_representations is None:
+        if self._roi_masks is None:
             # Fallback for extractors that haven't migrated yet
             raise NotImplementedError("This extractor has not been updated to use the new ROI representation system.")
 
@@ -381,7 +381,7 @@ class SegmentationExtractor(ABC):
         # Get masks from representations
         masks = []
         for roi_id in cell_roi_ids:
-            mask = self._roi_representations.get_roi_image_mask(roi_id)
+            mask = self._roi_masks.get_roi_image_mask(roi_id)
             masks.append(mask)
 
         return np.stack(masks, axis=2)
@@ -404,7 +404,7 @@ class SegmentationExtractor(ABC):
         if roi_ids is None:
             roi_ids = self.get_roi_ids()
 
-        if self._roi_representations is None:
+        if self._roi_masks is None:
             # Fallback for extractors that haven't migrated yet
             raise NotImplementedError("This extractor has not been updated to use the new ROI representation system.")
 
@@ -414,7 +414,7 @@ class SegmentationExtractor(ABC):
         # Get pixel masks from representations
         pixel_masks = []
         for roi_id in cell_roi_ids:
-            pixel_mask = self._roi_representations.get_roi_pixel_mask(roi_id)
+            pixel_mask = self._roi_masks.get_roi_pixel_mask(roi_id)
             pixel_masks.append(pixel_mask)
 
         return pixel_masks
@@ -427,11 +427,11 @@ class SegmentationExtractor(ABC):
         background_components_ids: list
             List of background components ids.
         """
-        if self._roi_representations is None:
+        if self._roi_masks is None:
             return list(range(self.get_num_background_components()))
 
-        # Extract background IDs from roi_representations
-        all_roi_ids = self._roi_representations.get_roi_ids()
+        # Extract background IDs from roi_masks
+        all_roi_ids = self._roi_masks.get_roi_ids()
         background_ids = [rid for rid in all_roi_ids if str(rid).startswith("background")]
         return background_ids
 
@@ -451,7 +451,7 @@ class SegmentationExtractor(ABC):
         if background_ids is None:
             background_ids = self.get_background_ids()
 
-        if self._roi_representations is None:
+        if self._roi_masks is None:
             # Fallback for extractors that haven't migrated yet
             return np.zeros((*self.get_frame_shape(), 0))
 
@@ -462,7 +462,7 @@ class SegmentationExtractor(ABC):
         # Get masks from representations
         masks = []
         for bg_id in background_ids:
-            mask = self._roi_representations.get_roi_image_mask(bg_id)
+            mask = self._roi_masks.get_roi_image_mask(bg_id)
             masks.append(mask)
 
         return np.stack(masks, axis=2)
@@ -485,14 +485,14 @@ class SegmentationExtractor(ABC):
         if background_ids is None:
             background_ids = self.get_background_ids()
 
-        if self._roi_representations is None:
+        if self._roi_masks is None:
             # Fallback for extractors that haven't migrated yet
             return []
 
         # Get pixel masks from representations
         pixel_masks = []
         for bg_id in background_ids:
-            pixel_mask = self._roi_representations.get_roi_pixel_mask(bg_id)
+            pixel_mask = self._roi_masks.get_roi_pixel_mask(bg_id)
             pixel_masks.append(pixel_mask)
 
         return pixel_masks
@@ -664,9 +664,9 @@ class SegmentationExtractor(ABC):
         num_rois: int
             The number of ROIs extracted.
         """
-        if self._roi_representations is not None:
+        if self._roi_masks is not None:
             # Count only cell ROIs (exclude background)
-            all_roi_ids = self._roi_representations.get_roi_ids()
+            all_roi_ids = self._roi_masks.get_roi_ids()
             cell_roi_ids = [rid for rid in all_roi_ids if not str(rid).startswith("background")]
             return len(cell_roi_ids)
 
@@ -685,9 +685,9 @@ class SegmentationExtractor(ABC):
         num_background_components: int
             The number of background components extracted.
         """
-        if self._roi_representations is not None:
+        if self._roi_masks is not None:
             # Count background ROIs from representations
-            all_roi_ids = self._roi_representations.get_roi_ids()
+            all_roi_ids = self._roi_masks.get_roi_ids()
             background_ids = [rid for rid in all_roi_ids if str(rid).startswith("background")]
             return len(background_ids)
 
@@ -1000,8 +1000,8 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
         super().__init__()
 
         # Share the parent's ROI representations (spatial data is same, only temporal is sliced)
-        if hasattr(self._parent_segmentation, "_roi_representations"):
-            self._roi_representations = self._parent_segmentation._roi_representations
+        if hasattr(self._parent_segmentation, "_roi_masks"):
+            self._roi_masks = self._parent_segmentation._roi_masks
 
         self._roi_ids = list(self._parent_segmentation.get_roi_ids())
         for roi_response in self._parent_segmentation._roi_responses:

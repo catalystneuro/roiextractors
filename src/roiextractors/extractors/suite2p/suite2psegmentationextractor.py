@@ -200,9 +200,9 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         # Create roi_id_map
         roi_id_map = {roi_id: index for index, roi_id in enumerate(cell_ids)}
 
-        self._roi_representations = _ROIMasks(
+        self._roi_masks = _ROIMasks(
             data=pixel_masks,
-            representation_type="nwb-pixel_mask",
+            mask_tpe="nwb-pixel_mask",
             field_of_view_shape=self._image_shape,
             roi_id_map=roi_id_map,
         )
