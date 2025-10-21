@@ -9,7 +9,7 @@ from typing import Any
 import numpy as np
 
 from ...extraction_tools import ArrayType, PathType
-from ...segmentationextractor import SegmentationExtractor, _RoiRepresentations
+from ...segmentationextractor import SegmentationExtractor, _ROIMasks
 
 
 class InscopixSegmentationExtractor(SegmentationExtractor):
@@ -67,7 +67,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
 
             roi_id_map = {roi_id: index for index, roi_id in enumerate(self._roi_ids)}
 
-            self._roi_representations = _RoiRepresentations(
+            self._roi_representations = _ROIMasks(
                 data=all_masks,
                 representation_type="nwb-image_mask",
                 field_of_view_shape=frame_shape,

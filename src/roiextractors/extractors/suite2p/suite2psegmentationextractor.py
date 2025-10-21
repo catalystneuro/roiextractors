@@ -16,7 +16,7 @@ from ...extraction_tools import PathType
 from ...segmentationextractor import (
     RoiResponse,
     SegmentationExtractor,
-    _RoiRepresentations,
+    _ROIMasks,
 )
 
 
@@ -200,7 +200,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         # Create roi_id_map
         roi_id_map = {roi_id: index for index, roi_id in enumerate(cell_ids)}
 
-        self._roi_representations = _RoiRepresentations(
+        self._roi_representations = _ROIMasks(
             data=pixel_masks,
             representation_type="nwb-pixel_mask",
             field_of_view_shape=self._image_shape,

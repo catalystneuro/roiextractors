@@ -19,7 +19,7 @@ from ...extraction_tools import PathType
 from ...segmentationextractor import (
     RoiResponse,
     SegmentationExtractor,
-    _RoiRepresentations,
+    _ROIMasks,
 )
 
 
@@ -74,7 +74,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         image_masks_data = self._image_mask_extractor_read()  # (H, W, N) array
         roi_id_map = {roi_id: index for index, roi_id in enumerate(cell_ids)}
 
-        self._roi_representations = _RoiRepresentations(
+        self._roi_representations = _ROIMasks(
             data=image_masks_data,
             representation_type="nwb-image_mask",
             field_of_view_shape=self.get_frame_shape(),

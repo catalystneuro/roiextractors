@@ -17,7 +17,7 @@ from ...extraction_tools import FloatType, PathType
 from ...segmentationextractor import (
     RoiResponse,
     SegmentationExtractor,
-    _RoiRepresentations,
+    _ROIMasks,
 )
 
 
@@ -146,7 +146,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
     def _create_roi_representations(
         self, cell_image_masks, background_image_masks, cell_ids, background_trace
-    ) -> _RoiRepresentations | None:
+    ) -> _ROIMasks | None:
         """Create ROI representations combining cell and background masks.
 
         Minian is 2D only - no 3D/volumetric support needed.
@@ -164,7 +164,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
         Returns
         -------
-        _RoiRepresentations or None
+        _ROIMasks or None
             Combined ROI representations or None if no masks available.
         """
         if cell_image_masks is None:
@@ -199,7 +199,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         # Let's re-assess if this becomes an issue in the future
         combined_masks = np.concatenate(all_masks, axis=2) if len(all_masks) > 1 else all_masks[0]
 
-        return _RoiRepresentations(
+        return _ROIMasks(
             data=combined_masks,
             representation_type="nwb-image_mask",
             field_of_view_shape=self.get_frame_shape(),  # (H, W) for 2D

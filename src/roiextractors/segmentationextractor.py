@@ -32,7 +32,7 @@ class RoiResponse:
     roi_ids: list[str | int]
 
 
-class _RoiRepresentations:
+class _ROIMasks:
     """Internal container for all ROI spatial representations in native NWB-compatible format.
 
     Stores all ROI masks (cells + background/neuropil) together with their ID mapping.
@@ -203,7 +203,7 @@ class SegmentationExtractor(ABC):
         self._roi_ids: list[str | int] | None = None
         self._roi_responses: list[RoiResponse] = []
         self._summary_images = {}
-        self._roi_representations: _RoiRepresentations | None = None
+        self._roi_representations: _ROIMasks | None = None
         self._properties = {}
 
     @abstractmethod
@@ -342,6 +342,12 @@ class SegmentationExtractor(ABC):
         """
         if self._roi_ids is not None:
             return self._roi_ids
+
+        # For backward compatibility, only return cell ROIs (exclude background components)
+        if self._roi_representations is not None:
+            all_roi_ids = self._roi_representations.get_roi_ids()
+            cell_roi_ids = [rid for rid in all_roi_ids if not str(rid).startswith("background")]
+            return cell_roi_ids
 
         return list(range(self.get_num_rois()))
 
