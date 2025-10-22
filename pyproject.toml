@@ -32,8 +32,7 @@ classifiers = [
 requires-python = ">=3.10"
 
 dependencies = [
-  "h5py>=2.10.0,<3.15; sys_platform == 'darwin'",
-  "h5py>=2.10.0; sys_platform != 'darwin'",
+  "h5py>=2.10.0",
   "pynwb>=2.0.1",
   "tqdm>=4.48.2",
   "lazy_ops>=0.2.0",
