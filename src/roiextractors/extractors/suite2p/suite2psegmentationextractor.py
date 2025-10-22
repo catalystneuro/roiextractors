@@ -14,9 +14,9 @@ import numpy as np
 
 from ...extraction_tools import PathType
 from ...segmentationextractor import (
-    RoiResponse,
     SegmentationExtractor,
     _ROIMasks,
+    _RoiResponse,
 )
 
 
@@ -149,17 +149,17 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         cell_ids = None
         if raw_traces is not None:
             cell_ids = list(range(raw_traces.shape[1]))
-            self._roi_responses.append(RoiResponse("raw", raw_traces, cell_ids))
+            self._roi_responses.append(_RoiResponse("raw", raw_traces, cell_ids))
 
         if neuropil_traces is not None:
             if cell_ids is None:
                 cell_ids = list(range(neuropil_traces.shape[1]))
-            self._roi_responses.append(RoiResponse("neuropil", neuropil_traces, list(cell_ids)))
+            self._roi_responses.append(_RoiResponse("neuropil", neuropil_traces, list(cell_ids)))
 
         if deconvolved_traces is not None:
             if cell_ids is None:
                 cell_ids = list(range(deconvolved_traces.shape[1]))
-            self._roi_responses.append(RoiResponse("deconvolved", deconvolved_traces, list(cell_ids)))
+            self._roi_responses.append(_RoiResponse("deconvolved", deconvolved_traces, list(cell_ids)))
 
         if cell_ids is None:
             cell_ids = list(range(self.stat.size))

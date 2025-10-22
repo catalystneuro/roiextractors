@@ -26,9 +26,9 @@ from ...extraction_tools import (
 )
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import (
-    RoiResponse,
     SegmentationExtractor,
     _ROIMasks,
+    _RoiResponse,
 )
 
 
@@ -397,7 +397,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         for trace_name, dataset in collected_responses:
             data = dataset
             roi_ids = list(self._roi_ids)
-            self._roi_responses.append(RoiResponse(trace_name, data, roi_ids))
+            self._roi_responses.append(_RoiResponse(trace_name, data, roi_ids))
 
     def __del__(self):
         """Close the NWB file."""

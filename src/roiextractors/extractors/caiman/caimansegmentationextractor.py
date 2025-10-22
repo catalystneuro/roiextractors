@@ -14,9 +14,9 @@ from scipy.sparse import csc_matrix
 
 from ...extraction_tools import PathType, get_package
 from ...segmentationextractor import (
-    RoiResponse,
     SegmentationExtractor,
     _ROIMasks,
+    _RoiResponse,
 )
 
 
@@ -147,30 +147,30 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         raw_traces = self._raw_trace_extractor_read()
         if raw_traces is not None:
             cell_ids = list(range(raw_traces.shape[1]))
-            self._roi_responses.append(RoiResponse("raw", raw_traces, cell_ids))
+            self._roi_responses.append(_RoiResponse("raw", raw_traces, cell_ids))
 
         dff_traces = self._trace_extractor_read("F_dff")
         if dff_traces is not None:
             if cell_ids is None:
                 cell_ids = list(range(dff_traces.shape[1]))
-            self._roi_responses.append(RoiResponse("dff", dff_traces, cell_ids))
+            self._roi_responses.append(_RoiResponse("dff", dff_traces, cell_ids))
 
         denoised_traces = self._trace_extractor_read("C")
         if denoised_traces is not None:
             if cell_ids is None:
                 cell_ids = list(range(denoised_traces.shape[1]))
-            self._roi_responses.append(RoiResponse("denoised", denoised_traces, cell_ids))
+            self._roi_responses.append(_RoiResponse("denoised", denoised_traces, cell_ids))
 
         deconvolved_traces = self._trace_extractor_read("S")
         if deconvolved_traces is not None:
             if cell_ids is None:
                 cell_ids = list(range(deconvolved_traces.shape[1]))
-            self._roi_responses.append(RoiResponse("deconvolved", deconvolved_traces, cell_ids))
+            self._roi_responses.append(_RoiResponse("deconvolved", deconvolved_traces, cell_ids))
 
         background_traces = self._trace_extractor_read("f")
         if background_traces is not None:
             background_ids = [f"background{index}" for index in range(background_traces.shape[1])]
-            self._roi_responses.append(RoiResponse("background", background_traces, background_ids))
+            self._roi_responses.append(_RoiResponse("background", background_traces, background_ids))
 
         if cell_ids is not None:
             self._roi_ids = list(cell_ids)

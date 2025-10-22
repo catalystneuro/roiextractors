@@ -17,9 +17,9 @@ import numpy as np
 
 from ...extraction_tools import PathType
 from ...segmentationextractor import (
-    RoiResponse,
     SegmentationExtractor,
     _ROIMasks,
+    _RoiResponse,
 )
 
 
@@ -68,7 +68,7 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         traces = self._trace_extractor_read()
         cell_ids = list(range(traces.shape[1]))
         self._roi_ids = cell_ids
-        self._roi_responses.append(RoiResponse("raw", traces, cell_ids))
+        self._roi_responses.append(_RoiResponse("raw", traces, cell_ids))
 
         # Create ROI representations from dense image masks
         image_masks_data = self._image_mask_extractor_read()  # (H, W, N) array

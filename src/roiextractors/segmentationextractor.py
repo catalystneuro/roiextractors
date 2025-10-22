@@ -23,8 +23,9 @@ from numpy.typing import ArrayLike
 from .extraction_tools import ArrayType, FloatType, IntType
 
 
+# TODO make public once API stabilizes.
 @dataclass
-class RoiResponse:
+class _RoiResponse:
     """Represents a fluorescence response (trace) with its metadata."""
 
     response_type: str
@@ -201,7 +202,7 @@ class SegmentationExtractor(ABC):
         self._channel_names = ["OpticalChannel"]
         self._num_planes = 1
         self._roi_ids: list[str | int] | None = None
-        self._roi_responses: list[RoiResponse] = []
+        self._roi_responses: list[_RoiResponse] = []
         self._summary_images = {}
         self._roi_masks: _ROIMasks | None = None
         self._properties = {}
@@ -1006,7 +1007,9 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
         self._roi_ids = list(self._parent_segmentation.get_roi_ids())
         for roi_response in self._parent_segmentation._roi_responses:
             sliced_data = roi_response.data[start_sample:end_sample, :]
-            self._roi_responses.append(RoiResponse(roi_response.response_type, sliced_data, list(roi_response.roi_ids)))
+            self._roi_responses.append(
+                _RoiResponse(roi_response.response_type, sliced_data, list(roi_response.roi_ids))
+            )
         self._summary_images = dict(self._parent_segmentation.get_images_dict())
         # Preserve parent's channel names and other attributes
         self._channel_names = self._parent_segmentation.get_channel_names()
