@@ -21,9 +21,9 @@ from packaging import version
 
 from ...extraction_tools import ArrayType, PathType
 from ...segmentationextractor import (
-    RoiResponse,
     SegmentationExtractor,
     _ROIMasks,
+    _RoiResponse,
 )
 
 
@@ -197,9 +197,9 @@ class NewExtractSegmentationExtractor(
         cell_ids = list(range(traces.shape[1]))
         self._roi_ids = cell_ids
         if self.config["preprocess"][0] == 1:
-            self._roi_responses.append(RoiResponse("dff", traces, cell_ids))
+            self._roi_responses.append(_RoiResponse("dff", traces, cell_ids))
         else:
-            self._roi_responses.append(RoiResponse("raw", traces, cell_ids))
+            self._roi_responses.append(_RoiResponse("raw", traces, cell_ids))
 
         self._sampling_frequency = sampling_frequency
 
@@ -351,7 +351,7 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         traces = self._trace_extractor_read()
         cell_ids = list(range(traces.shape[1]))
         self._roi_ids = cell_ids
-        self._roi_responses.append(RoiResponse("raw", traces, cell_ids))
+        self._roi_responses.append(_RoiResponse("raw", traces, cell_ids))
 
         # Create ROI representations from dense image masks
         image_masks_data = self._image_mask_extractor_read()  # (H, W, N) array

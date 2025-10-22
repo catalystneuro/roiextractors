@@ -17,9 +17,9 @@ import numpy as np
 from ...extraction_tools import ArrayType, FloatType, PathType
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import (
-    RoiResponse,
     SegmentationExtractor,
     _ROIMasks,
+    _RoiResponse,
 )
 
 
@@ -342,28 +342,28 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                 raw = Path(raw)
                 assert raw.suffix == ".npy", "'raw' file is not a numpy file (.npy)"
                 raw_data = np.load(raw, mmap_mode="r")
-                self._roi_responses.append(RoiResponse("raw", raw_data, cell_ids))
+                self._roi_responses.append(_RoiResponse("raw", raw_data, cell_ids))
 
             dff_data = None
             if dff is not None:
                 dff = Path(dff)
                 assert dff.suffix == ".npy", "'dff' file is not a numpy file (.npy)"
                 dff_data = np.load(dff, mmap_mode="r")
-                self._roi_responses.append(RoiResponse("dff", dff_data, cell_ids))
+                self._roi_responses.append(_RoiResponse("dff", dff_data, cell_ids))
 
             deconvolved_data = None
             if deconvolved is not None:
                 deconvolved = Path(deconvolved)
                 assert deconvolved.suffix == ".npy", "'deconvolved' file is not a numpy file (.npy)"
                 deconvolved_data = np.load(deconvolved, mmap_mode="r")
-                self._roi_responses.append(RoiResponse("deconvolved", deconvolved_data, cell_ids))
+                self._roi_responses.append(_RoiResponse("deconvolved", deconvolved_data, cell_ids))
 
             neuropil_data = None
             if neuropil is not None:
                 neuropil = Path(neuropil)
                 assert neuropil.suffix == ".npy", "'neuropil' file is not a numpy file (.npy)"
                 neuropil_data = np.load(neuropil, mmap_mode="r")
-                self._roi_responses.append(RoiResponse("neuropil", neuropil_data, cell_ids))
+                self._roi_responses.append(_RoiResponse("neuropil", neuropil_data, cell_ids))
 
             self._kwargs = {"image_masks": str(image_masks.absolute())}
             if raw is not None:
@@ -403,7 +403,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                     "Image masks must be (px, py, num_rois), "
                     "traces must be (num_frames, num_rois)"
                 )
-                self._roi_responses.append(RoiResponse("raw", raw, cell_ids))
+                self._roi_responses.append(_RoiResponse("raw", raw, cell_ids))
 
             if dff is not None:
                 assert image_masks_data.shape[-1] == dff.shape[-1], (
@@ -411,7 +411,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                     "Image masks must be (px, py, num_rois), "
                     "traces must be (num_frames, num_rois)"
                 )
-                self._roi_responses.append(RoiResponse("dff", dff, cell_ids))
+                self._roi_responses.append(_RoiResponse("dff", dff, cell_ids))
 
             if neuropil is not None:
                 assert image_masks_data.shape[-1] == neuropil.shape[-1], (
@@ -419,7 +419,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                     "Image masks must be (px, py, num_rois), "
                     "traces must be (num_frames, num_rois)"
                 )
-                self._roi_responses.append(RoiResponse("neuropil", neuropil, cell_ids))
+                self._roi_responses.append(_RoiResponse("neuropil", neuropil, cell_ids))
 
             if deconvolved is not None:
                 assert image_masks_data.shape[-1] == deconvolved.shape[-1], (
@@ -427,7 +427,7 @@ class NumpySegmentationExtractor(SegmentationExtractor):
                     "Image masks must be (px, py, num_rois), "
                     "traces must be (num_frames, num_rois)"
                 )
-                self._roi_responses.append(RoiResponse("deconvolved", deconvolved, cell_ids))
+                self._roi_responses.append(_RoiResponse("deconvolved", deconvolved, cell_ids))
 
             self._kwargs = {
                 "image_masks": image_masks,

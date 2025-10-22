@@ -11,7 +11,7 @@ To build a custom SegmentationExtractor that interfaces with the output of a cus
 .. code-block:: python
 
     from roiextractors import SegmentationExtractor
-    from roiextractors.segmentationextractor import RoiResponse
+    from roiextractors.segmentationextractor import _RoiResponse
 
     class MyFormatSegmentationExtractor(SegmentationExtractor):
         def __init__(self, file_path):
@@ -26,19 +26,19 @@ To build a custom SegmentationExtractor that interfaces with the output of a cus
             cell_ids = list(range(self._image_masks.shape[2]))
             raw_traces = self._load_traces(name="raw")  # define a method to extract fluorescence traces
             if raw_traces is not None:
-                self._roi_responses.append(RoiResponse("raw", raw_traces, cell_ids))
+                self._roi_responses.append(_RoiResponse("raw", raw_traces, cell_ids))
             dff_traces = self._load_traces(name="dff")  # define a method to extract dF/F traces if any else None
             if dff_traces is not None:
-                self._roi_responses.append(RoiResponse("dff", dff_traces, cell_ids))
+                self._roi_responses.append(_RoiResponse("dff", dff_traces, cell_ids))
             neuropil_traces = self._load_traces(name="neuropil")  # define a method to extract neuropil info if any else None
             if neuropil_traces is not None:
-                self._roi_responses.append(RoiResponse("neuropil", neuropil_traces, cell_ids))
+                self._roi_responses.append(_RoiResponse("neuropil", neuropil_traces, cell_ids))
             denoised_traces = self._load_traces(name="denoised")  # define a method to extract denoised traces if any else None
             if denoised_traces is not None:
-                self._roi_responses.append(RoiResponse("denoised", denoised_traces, cell_ids))
+                self._roi_responses.append(_RoiResponse("denoised", denoised_traces, cell_ids))
             deconvolved_traces = self._load_traces(name="deconvolved")  # define a method to extract deconvolved traces if any else None
             if deconvolved_traces is not None:
-                self._roi_responses.append(RoiResponse("deconvolved", deconvolved_traces, cell_ids))
+                self._roi_responses.append(_RoiResponse("deconvolved", deconvolved_traces, cell_ids))
             self._image_correlation = self._load_summary_images()# define method to extract a correlation image else None
             self._image_mean = self._load_summary_images() # define method to extract a mean image else None
 

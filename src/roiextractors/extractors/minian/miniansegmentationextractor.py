@@ -15,9 +15,9 @@ import zarr
 
 from ...extraction_tools import FloatType, PathType
 from ...segmentationextractor import (
-    RoiResponse,
     SegmentationExtractor,
     _ROIMasks,
+    _RoiResponse,
 )
 
 
@@ -85,11 +85,11 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
         denoised_traces = self._read_trace_from_zarr_field(field="C")
         if denoised_traces is not None:
-            self._roi_responses.append(RoiResponse("denoised", denoised_traces, list(self._roi_ids)))
+            self._roi_responses.append(_RoiResponse("denoised", denoised_traces, list(self._roi_ids)))
 
         baseline_traces = self._read_trace_from_zarr_field(field="b0")
         if baseline_traces is not None:
-            self._roi_responses.append(RoiResponse("baseline", baseline_traces, list(self._roi_ids)))
+            self._roi_responses.append(_RoiResponse("baseline", baseline_traces, list(self._roi_ids)))
 
         background_trace = self._read_trace_from_zarr_field(field="f")
         if background_trace is not None:
@@ -97,11 +97,11 @@ class MinianSegmentationExtractor(SegmentationExtractor):
                 background_ids = list(self._roi_ids)
             else:
                 background_ids = [f"background-{idx}" for idx in range(background_trace.shape[1])]
-            self._roi_responses.append(RoiResponse("background", background_trace, background_ids))
+            self._roi_responses.append(_RoiResponse("background", background_trace, background_ids))
 
         deconvolved_traces = self._read_trace_from_zarr_field(field="S")
         if deconvolved_traces is not None:
-            self._roi_responses.append(RoiResponse("deconvolved", deconvolved_traces, list(self._roi_ids)))
+            self._roi_responses.append(_RoiResponse("deconvolved", deconvolved_traces, list(self._roi_ids)))
         max_proj_data = self._read_zarr_group("/max_proj.zarr/max_proj")
         if max_proj_data is not None:
             self._summary_images["maximum_projection"] = np.array(max_proj_data)
@@ -157,7 +157,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             Background image masks with shape (height, width, n_backgrounds) or (height, width).
         cell_ids : list
             List of cell IDs.
-        background_trace : RoiResponse or None
+        background_trace : _RoiResponse or None
             Background trace response to determine background IDs.
 
         Returns
