@@ -1,4 +1,14 @@
-# v0.7.1 (Upcoming)
+# v0.7.2 (Upcoming)
+
+### Features
+
+### Fixes
+
+### Deprecations And Removals
+
+### Improvements
+
+# v0.7.1 (October 22nd, 2025)
 
 ### Features
 * Introduced a unified ROI response data model based on `_RoiResponse` objects, replacing the legacy `_roi_response_*` attributes across segmentation extractors for explicit ROI-to-trace mapping [PR #505](https://github.com/catalystneuro/roiextractors/pull/505) [PR #517](https://github.com/catalystneuro/roiextractors/pull/517)
