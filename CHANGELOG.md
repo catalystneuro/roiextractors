@@ -16,6 +16,8 @@
 * Improved `MiniscopeImagingExtractor` documentation: reorganized class vs `__init__` docstrings, clarified device folder structure, added comprehensive `has_time_vector()` docstring, and removed personal information from examples. [PR #509](https://github.com/catalystneuro/roiextractors/pull/509)
 * Refactored Miniscope imaging extractor tests to native pytest style with fixture-based temp directories and warning suppression for expected conditions [PR #501](https://github.com/catalystneuro/roiextractors/pull/501)
 * Add ruff-rules to detect non-pep585 and non pep604 annotations: (tuple, list -> tuple, list)  (Union[x, y] -> X | Y )  (Optional[x] -> x | None) [PR #500](https://github.com/catalystneuro/roiextractors/pull/500) [PR #507](https://github.com/catalystneuro/roiextractors/pull/507)
+* Add testing for mac-os 15 intel in CI [PR #518](https://github.com/catalystneuro/roiextractors/pull/518)
+* Modify testing to only test the oldest and newest python versions on each OS to reduce CI time [PR #518](https://github.com/catalystneuro/roiextractors/pull/518)
 
 
 # v0.7.0 (September 26th, 2025)
