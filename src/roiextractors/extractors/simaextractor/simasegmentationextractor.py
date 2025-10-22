@@ -16,7 +16,11 @@ from shutil import copyfile
 import numpy as np
 
 from ...extraction_tools import PathType
-from ...segmentationextractor import RoiResponse, SegmentationExtractor
+from ...segmentationextractor import (
+    RoiResponse,
+    SegmentationExtractor,
+    _ROIMasks,
+)
 
 
 class SimaSegmentationExtractor(SegmentationExtractor):
@@ -59,11 +63,24 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         self._channel_names = [str(i) for i in self._dataset_file.channel_names]
         self._num_of_channels = len(self._channel_names)
         self.sima_segmentation_label = sima_segmentation_label
-        self._image_masks = self._image_mask_extractor_read()
+
+        # Read traces first to get number of ROIs
         traces = self._trace_extractor_read()
         cell_ids = list(range(traces.shape[1]))
         self._roi_ids = cell_ids
         self._roi_responses.append(RoiResponse("raw", traces, cell_ids))
+
+        # Create ROI representations from dense image masks
+        image_masks_data = self._image_mask_extractor_read()  # (H, W, N) array
+        roi_id_map = {roi_id: index for index, roi_id in enumerate(cell_ids)}
+
+        self._roi_masks = _ROIMasks(
+            data=image_masks_data,
+            mask_tpe="nwb-image_mask",
+            field_of_view_shape=self.get_frame_shape(),
+            roi_id_map=roi_id_map,
+        )
+
         mean_image = self._summary_image_read()
         if mean_image is not None:
             self._summary_images["mean"] = mean_image

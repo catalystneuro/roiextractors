@@ -117,7 +117,8 @@ class TestNewExtractSegmentationExtractor(TestCase):
             spatial_weights = DatasetView(
                 segmentation_file[self.output_struct_name]["spatial_weights"]
             ).lazy_transpose()
-            self.assertEqual(self.extractor._image_masks.shape, spatial_weights.shape)
+            # Check via the public API instead of internal attributes
+            self.assertEqual(self.extractor._roi_masks.data.shape, spatial_weights.shape)
 
             dff_traces = self.extractor.get_traces(name="dff")
             self.assertEqual(dff_traces.shape, (2000, 20))
@@ -173,7 +174,8 @@ class TestNewExtractSegmentationExtractor(TestCase):
         dummy_image_mask = np.zeros((50, 50, 20))
         dummy_image_mask[..., accepted_list] = 1
 
-        self.extractor._image_masks = dummy_image_mask
+        # Update the internal representation data
+        self.extractor._roi_masks.data = dummy_image_mask
 
         assert_array_equal(self.extractor.get_accepted_list(), accepted_list)
         assert_array_equal(

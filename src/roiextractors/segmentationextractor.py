@@ -15,11 +15,12 @@ FrameSliceSegmentationExtractor
 import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Literal
 
 import numpy as np
 from numpy.typing import ArrayLike
 
-from .extraction_tools import ArrayType, FloatType, IntType, _pixel_mask_extractor
+from .extraction_tools import ArrayType, FloatType, IntType
 
 
 @dataclass
@@ -29,6 +30,157 @@ class RoiResponse:
     response_type: str
     data: ArrayLike  # Shape: (num_samples, num_rois)
     roi_ids: list[str | int]
+
+
+class _ROIMasks:
+    """Internal container for all ROI spatial representations in native NWB-compatible format.
+
+    Stores all ROI masks (cells + background/neuropil) together with their ID mapping.
+    The representation format matches NWB standards for efficient reading/writing.
+
+    Note: This is a private class. Users should access ROI masks through SegmentationExtractor
+    methods like get_roi_image_masks() and get_roi_pixel_masks().
+
+    Attributes
+    ----------
+    data : ArrayLike
+        Native format data:
+        - "nwb-image_mask": (height, width, n_rois) dense array, possibly lazy (DatasetView/h5py.Dataset)
+        - "nwb-pixel_mask": list of (n_pixels, 3) arrays with columns [y, x, weight]
+        - "nwb-voxel_mask": list of (n_voxels, 4) arrays with columns [y, x, z, weight]
+    mask_tpe : Literal["nwb-image_mask", "nwb-pixel_mask", "nwb-voxel_mask"]
+        Type of NWB-compatible representation.
+    field_of_view_shape : tuple[int, ...]
+        Shape of imaging FOV: (height, width) for 2D or (depth, height, width) for 3D.
+    roi_id_map : dict[str | int, int]
+        Maps ROI ID -> index in data structure.
+        - For dense: roi_id -> slice index along last axis
+        - For sparse lists: roi_id -> list index
+        Examples: {0: 0, 1: 1, "background0": 2, "background1": 3}
+    """
+
+    def __init__(
+        self,
+        data: ArrayLike,
+        mask_tpe: Literal["nwb-image_mask", "nwb-pixel_mask", "nwb-voxel_mask"],
+        field_of_view_shape: tuple[int, ...],
+        roi_id_map: dict[str | int, int],
+    ):
+        """Initialize ROI representations container.
+
+        Parameters
+        ----------
+        data : ArrayLike
+            ROI mask data in native format.
+        mask_tpe : Literal["nwb-image_mask", "nwb-pixel_mask", "nwb-voxel_mask"]
+            Format type following NWB conventions.
+        field_of_view_shape : tuple[int, ...]
+            Shape of the imaging field of view (height, width) or (depth, height, width).
+        roi_id_map : dict[str | int, int]
+            Mapping from ROI ID to index in data structure.
+        """
+        self.data = data
+        self.mask_tpe = mask_tpe
+        self.field_of_view_shape = field_of_view_shape
+        self.roi_id_map = roi_id_map
+
+    @property
+    def is_volumetric(self) -> bool:
+        """True if this is 3D volumetric data, False for 2D."""
+        return len(self.field_of_view_shape) == 3
+
+    @property
+    def num_rois(self) -> int:
+        """Total number of ROIs in this container."""
+        return len(self.roi_id_map)
+
+    def get_roi_ids(self) -> list[str | int]:
+        """Get all ROI IDs in this container.
+
+        Returns
+        -------
+        list[str | int]
+            List of all ROI IDs (cells + background).
+        """
+        return list(self.roi_id_map.keys())
+
+    def get_roi_image_mask(self, roi_id: str | int) -> np.ndarray:
+        """Get dense image mask for a single ROI.
+
+        Parameters
+        ----------
+        roi_id : str | int
+            The ROI identifier.
+
+        Returns
+        -------
+        np.ndarray
+            Dense 2D or 3D array matching field_of_view_shape.
+        """
+        index = self.roi_id_map[roi_id]
+
+        if self.mask_tpe == "nwb-image_mask":
+            # Extract slice from dense stack
+            return np.asarray(self.data[:, :, index])
+
+        elif self.mask_tpe == "nwb-pixel_mask":
+            # Convert sparse pixel list to dense
+            dense_mask = np.zeros(self.field_of_view_shape, dtype=np.float32)
+            pixel_data = self.data[index]  # (n_pixels, 3): [y, x, weight]
+            if len(pixel_data) > 0:
+                y_coords = pixel_data[:, 0].astype(int)
+                x_coords = pixel_data[:, 1].astype(int)
+                weights = pixel_data[:, 2]
+                dense_mask[y_coords, x_coords] = weights
+            return dense_mask
+
+        elif self.mask_tpe == "nwb-voxel_mask":
+            # Convert sparse voxel list to dense 3D
+            dense_mask = np.zeros(self.field_of_view_shape, dtype=np.float32)
+            voxel_data = self.data[index]  # (n_voxels, 4): [y, x, z, weight]
+            if len(voxel_data) > 0:
+                y_coords = voxel_data[:, 0].astype(int)
+                x_coords = voxel_data[:, 1].astype(int)
+                z_coords = voxel_data[:, 2].astype(int)
+                weights = voxel_data[:, 3]
+                dense_mask[y_coords, x_coords, z_coords] = weights
+            return dense_mask
+
+    def get_roi_pixel_mask(self, roi_id: str | int) -> np.ndarray:
+        """Get sparse pixel mask for a single ROI.
+
+        Parameters
+        ----------
+        roi_id : str | int
+            The ROI identifier.
+
+        Returns
+        -------
+        np.ndarray
+            Array with shape (n_pixels, 3) with columns [y, x, weight].
+            For 3D: (n_voxels, 4) with columns [y, x, z, weight].
+        """
+        index = self.roi_id_map[roi_id]
+
+        if self.mask_tpe == "nwb-pixel_mask":
+            return np.asarray(self.data[index])
+
+        elif self.mask_tpe == "nwb-voxel_mask":
+            return np.asarray(self.data[index])
+
+        else:
+            # Convert dense to sparse
+            dense_mask = self.get_roi_image_mask(roi_id)
+            if self.is_volumetric:
+                # 3D case
+                y_coords, x_coords, z_coords = np.nonzero(dense_mask)
+                weights = dense_mask[y_coords, x_coords, z_coords]
+                return np.column_stack([y_coords, x_coords, z_coords, weights])
+            else:
+                # 2D case
+                y_coords, x_coords = np.nonzero(dense_mask)
+                weights = dense_mask[y_coords, x_coords]
+                return np.column_stack([y_coords, x_coords, weights])
 
 
 class SegmentationExtractor(ABC):
@@ -51,7 +203,7 @@ class SegmentationExtractor(ABC):
         self._roi_ids: list[str | int] | None = None
         self._roi_responses: list[RoiResponse] = []
         self._summary_images = {}
-        self._image_mask = None
+        self._roi_masks: _ROIMasks | None = None
         self._properties = {}
 
     @abstractmethod
@@ -191,6 +343,12 @@ class SegmentationExtractor(ABC):
         if self._roi_ids is not None:
             return self._roi_ids
 
+        # For backward compatibility, only return cell ROIs (exclude background components)
+        if self._roi_masks is not None:
+            all_roi_ids = self._roi_masks.get_roi_ids()
+            cell_roi_ids = [rid for rid in all_roi_ids if not str(rid).startswith("background")]
+            return cell_roi_ids
+
         return list(range(self.get_num_rois()))
 
     def get_roi_image_masks(self, roi_ids=None) -> np.ndarray:
@@ -207,12 +365,26 @@ class SegmentationExtractor(ABC):
             3-D array(val 0 or 1): image_height X image_width X length(roi_ids)
         """
         if roi_ids is None:
-            roi_indices = range(self.get_num_rois())
-        else:
-            all_roi_ids = self.get_roi_ids()
-            roi_indices = [all_roi_ids.index(roi_id) for roi_id in roi_ids]
+            roi_ids = self.get_roi_ids()
 
-        return np.stack([self._image_masks[:, :, k] for k in roi_indices], 2)
+        if self._roi_masks is None:
+            # Fallback for extractors that haven't migrated yet
+            raise NotImplementedError("This extractor has not been updated to use the new ROI representation system.")
+
+        # Filter to only cell ROIs (exclude background)
+        cell_roi_ids = [rid for rid in roi_ids if not str(rid).startswith("background")]
+
+        if len(cell_roi_ids) == 0:
+            frame_shape = self.get_frame_shape()
+            return np.zeros((*frame_shape, 0))
+
+        # Get masks from representations
+        masks = []
+        for roi_id in cell_roi_ids:
+            mask = self._roi_masks.get_roi_image_mask(roi_id)
+            masks.append(mask)
+
+        return np.stack(masks, axis=2)
 
     def get_roi_pixel_masks(self, roi_ids=None) -> np.array:
         """Get the weights applied to each of the pixels of the mask.
@@ -230,9 +402,22 @@ class SegmentationExtractor(ABC):
             the pixel.
         """
         if roi_ids is None:
-            roi_ids = range(self.get_num_rois())
+            roi_ids = self.get_roi_ids()
 
-        return _pixel_mask_extractor(self.get_roi_image_masks(roi_ids=roi_ids), roi_ids)
+        if self._roi_masks is None:
+            # Fallback for extractors that haven't migrated yet
+            raise NotImplementedError("This extractor has not been updated to use the new ROI representation system.")
+
+        # Filter to only cell ROIs (exclude background)
+        cell_roi_ids = [rid for rid in roi_ids if not str(rid).startswith("background")]
+
+        # Get pixel masks from representations
+        pixel_masks = []
+        for roi_id in cell_roi_ids:
+            pixel_mask = self._roi_masks.get_roi_pixel_mask(roi_id)
+            pixel_masks.append(pixel_mask)
+
+        return pixel_masks
 
     def get_background_ids(self) -> list:
         """Get the list of background components ids.
@@ -242,7 +427,13 @@ class SegmentationExtractor(ABC):
         background_components_ids: list
             List of background components ids.
         """
-        return list(range(self.get_num_background_components()))
+        if self._roi_masks is None:
+            return list(range(self.get_num_background_components()))
+
+        # Extract background IDs from roi_masks
+        all_roi_ids = self._roi_masks.get_roi_ids()
+        background_ids = [rid for rid in all_roi_ids if str(rid).startswith("background")]
+        return background_ids
 
     def get_background_image_masks(self, background_ids=None) -> np.ndarray:
         """Get the background image masks extracted from segmentation algorithm.
@@ -258,11 +449,23 @@ class SegmentationExtractor(ABC):
             3-D array(val 0 or 1): image_height X image_width X length(background_ids)
         """
         if background_ids is None:
-            background_ids_ = range(self.get_num_background_components())
-        else:
-            all_ids = self.get_background_ids()
-            background_ids_ = [all_ids.index(i) for i in background_ids]
-        return np.stack([self._background_image_masks[:, :, k] for k in background_ids_], 2)
+            background_ids = self.get_background_ids()
+
+        if self._roi_masks is None:
+            # Fallback for extractors that haven't migrated yet
+            return np.zeros((*self.get_frame_shape(), 0))
+
+        if len(background_ids) == 0:
+            frame_shape = self.get_frame_shape()
+            return np.zeros((*frame_shape, 0))
+
+        # Get masks from representations
+        masks = []
+        for bg_id in background_ids:
+            mask = self._roi_masks.get_roi_image_mask(bg_id)
+            masks.append(mask)
+
+        return np.stack(masks, axis=2)
 
     def get_background_pixel_masks(self, background_ids=None) -> np.array:
         """Get the weights applied to each of the pixels of the mask.
@@ -280,9 +483,19 @@ class SegmentationExtractor(ABC):
             the pixel.
         """
         if background_ids is None:
-            background_ids = range(self.get_num_background_components())
+            background_ids = self.get_background_ids()
 
-        return _pixel_mask_extractor(self.get_background_image_masks(background_ids=background_ids), background_ids)
+        if self._roi_masks is None:
+            # Fallback for extractors that haven't migrated yet
+            return []
+
+        # Get pixel masks from representations
+        pixel_masks = []
+        for bg_id in background_ids:
+            pixel_mask = self._roi_masks.get_roi_pixel_mask(bg_id)
+            pixel_masks.append(pixel_mask)
+
+        return pixel_masks
 
     def slice_samples(self, start_sample: int | None = None, end_sample: int | None = None):
         """Return a new SegmentationExtractor ranging from the start_sample to the end_sample.
@@ -451,9 +664,18 @@ class SegmentationExtractor(ABC):
         num_rois: int
             The number of ROIs extracted.
         """
+        if self._roi_masks is not None:
+            # Count only cell ROIs (exclude background)
+            all_roi_ids = self._roi_masks.get_roi_ids()
+            cell_roi_ids = [rid for rid in all_roi_ids if not str(rid).startswith("background")]
+            return len(cell_roi_ids)
+
+        # Fallback to trace-based counting
         for trace in self.get_traces_dict().values():
             if trace is not None and len(trace.shape) > 0:
                 return trace.shape[1]
+
+        return 0
 
     def get_num_background_components(self) -> int:
         """Get total number of background components in the acquired images.
@@ -463,6 +685,13 @@ class SegmentationExtractor(ABC):
         num_background_components: int
             The number of background components extracted.
         """
+        if self._roi_masks is not None:
+            # Count background ROIs from representations
+            all_roi_ids = self._roi_masks.get_roi_ids()
+            background_ids = [rid for rid in all_roi_ids if str(rid).startswith("background")]
+            return len(background_ids)
+
+        # Fallback to response-based counting
         for response in self._roi_responses:
             if response.response_type in {"neuropil", "background"}:
                 data = response.data
@@ -768,14 +997,12 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
         self._end_sample = end_sample
         self._num_samples = self._end_sample - self._start_sample
 
-        # Copy image masks if they exist
-        if hasattr(self._parent_segmentation, "_image_masks"):
-            self._image_masks = self._parent_segmentation._image_masks
-
-        if hasattr(self._parent_segmentation, "_background_image_masks"):
-            self._background_image_masks = self._parent_segmentation._background_image_masks
-
         super().__init__()
+
+        # Share the parent's ROI representations (spatial data is same, only temporal is sliced)
+        if hasattr(self._parent_segmentation, "_roi_masks"):
+            self._roi_masks = self._parent_segmentation._roi_masks
+
         self._roi_ids = list(self._parent_segmentation.get_roi_ids())
         for roi_response in self._parent_segmentation._roi_responses:
             sliced_data = roi_response.data[start_sample:end_sample, :]

@@ -14,7 +14,11 @@ import pandas as pd
 import zarr
 
 from ...extraction_tools import FloatType, PathType
-from ...segmentationextractor import RoiResponse, SegmentationExtractor
+from ...segmentationextractor import (
+    RoiResponse,
+    SegmentationExtractor,
+    _ROIMasks,
+)
 
 
 class MinianSegmentationExtractor(SegmentationExtractor):
@@ -70,9 +74,13 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         self._timestamps_path = (
             Path(timestamps_path) if timestamps_path is not None else self.folder_path / "timeStamps.csv"
         )
-        self._image_masks = self._read_roi_image_mask_from_zarr()
 
-        cell_ids = self.get_roi_ids()
+        # Read cell masks
+        cell_image_masks = self._read_roi_image_mask_from_zarr()
+        if cell_image_masks is not None:
+            cell_ids = list(range(cell_image_masks.shape[2]))
+        else:
+            cell_ids = []
         self._roi_ids = list(cell_ids)
 
         denoised_traces = self._read_trace_from_zarr_field(field="C")
@@ -97,19 +105,22 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         max_proj_data = self._read_zarr_group("/max_proj.zarr/max_proj")
         if max_proj_data is not None:
             self._summary_images["maximum_projection"] = np.array(max_proj_data)
-        self._background_image_masks = self._read_background_image_mask_from_zarr()
+
+        # Create ROI representations combining cell and background masks
+        background_image_masks = self._read_background_image_mask_from_zarr()
+        self._roi_masks = self._create_roi_masks(cell_image_masks, background_image_masks, cell_ids, background_trace)
         # Check for spatial-temporal component mismatches
         has_temporal_responses = any(
             response.response_type in {"denoised", "deconvolved", "baseline"} for response in self._roi_responses
         )
-        if self._image_masks is not None and not has_temporal_responses:
+        if cell_image_masks is not None and not has_temporal_responses:
             raise ValueError(
                 "Spatial components (A.zarr) are available but no temporal components (C.zarr, S.zarr, b0.zarr) are associated. "
                 "This means ROI masks exist but without any corresponding fluorescence traces."
             )
 
         has_background_response = any(response.response_type == "background" for response in self._roi_responses)
-        if self._background_image_masks is not None and not has_background_response:
+        if background_image_masks is not None and not has_background_response:
             raise ValueError(
                 "Background spatial components (b.zarr) are available but no background temporal component (f.zarr) is associated. "
                 "This means background masks exist but without corresponding temporal dynamics."
@@ -130,6 +141,68 @@ class MinianSegmentationExtractor(SegmentationExtractor):
                         f"Error reading timestamps from {self._timestamps_path}: {e}. "
                         "Please provide a valid timeStamps.csv file or a sampling_frequency parameter."
                     )
+
+    def _create_roi_masks(
+        self, cell_image_masks, background_image_masks, cell_ids, background_trace
+    ) -> _ROIMasks | None:
+        """Create ROI representations combining cell and background masks.
+
+        Minian is 2D only - no 3D/volumetric support needed.
+
+        Parameters
+        ----------
+        cell_image_masks : np.ndarray or None
+            Cell image masks with shape (height, width, n_cells).
+        background_image_masks : np.ndarray or None
+            Background image masks with shape (height, width, n_backgrounds) or (height, width).
+        cell_ids : list
+            List of cell IDs.
+        background_trace : RoiResponse or None
+            Background trace response to determine background IDs.
+
+        Returns
+        -------
+        _ROIMasks or None
+            Combined ROI representations or None if no masks available.
+        """
+        if cell_image_masks is None:
+            return None
+
+        # Stack cell and background masks
+        all_masks = [cell_image_masks]
+        roi_id_map = {roi_id: index for index, roi_id in enumerate(cell_ids)}
+        next_index = len(cell_ids)
+
+        # Add background masks if available (Minian is 2D only)
+        if background_image_masks is not None:
+            # Handle 2D (single background) vs 3D (multiple backgrounds)
+            if len(background_image_masks.shape) == 2:
+                # Single background: add a dimension to make it (H, W, 1)
+                background_image_masks = background_image_masks[:, :, np.newaxis]
+
+            num_backgrounds = background_image_masks.shape[2]
+
+            # Determine background IDs matching trace naming convention
+            for bg_index in range(num_backgrounds):
+                bg_id = f"background-{bg_index}"
+                roi_id_map[bg_id] = next_index
+                next_index += 1
+
+            all_masks.append(background_image_masks)
+
+        # Concatenate all masks along the last axis to get (H, W, total_rois)
+        # TODO: Optimize memory usage by implementing lazy loading for Zarr arrays.
+        # Currently loads entire array into memory (~8.5 MB for 608x608x3 dataset, not so bad).
+        # Could use lazy wrapper similar to DatasetView (used by CNMF-E, EXTRACT, NWB)
+        # Let's re-assess if this becomes an issue in the future
+        combined_masks = np.concatenate(all_masks, axis=2) if len(all_masks) > 1 else all_masks[0]
+
+        return _ROIMasks(
+            data=combined_masks,
+            mask_tpe="nwb-image_mask",
+            field_of_view_shape=self.get_frame_shape(),  # (H, W) for 2D
+            roi_id_map=roi_id_map,
+        )
 
     def _read_zarr_group(self, zarr_group: str):
         """Read the zarr group.
@@ -283,14 +356,13 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         # First try to get frame shape from the zarr dataset
         dataset = self._read_zarr_group("/A.zarr")
         if dataset is None or "height" not in dataset or "width" not in dataset:
-            # Fallback: try to infer from image masks if available
-            if self._image_masks is not None:
-                height, width, _ = self._image_masks.shape
-                return (height, width)
+            # Fallback: try to infer from roi_masks if available
+            if self._roi_masks is not None:
+                return self._roi_masks.field_of_view_shape
             else:
                 raise ValueError(
                     "Cannot determine frame shape: height/width dimensions not found, "
-                    "and no image masks are available to infer frame shape."
+                    "and no ROI masks are available to infer frame shape."
                 )
 
         height = dataset["height"].shape[0]

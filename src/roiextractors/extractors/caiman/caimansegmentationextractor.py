@@ -13,7 +13,11 @@ import numpy as np
 from scipy.sparse import csc_matrix
 
 from ...extraction_tools import PathType, get_package
-from ...segmentationextractor import RoiResponse, SegmentationExtractor
+from ...segmentationextractor import (
+    RoiResponse,
+    SegmentationExtractor,
+    _ROIMasks,
+)
 
 
 class CaimanSegmentationExtractor(SegmentationExtractor):
@@ -165,7 +169,7 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
         background_traces = self._trace_extractor_read("f")
         if background_traces is not None:
-            background_ids = [f"background{idx}" for idx in range(background_traces.shape[1])]
+            background_ids = [f"background{index}" for index in range(background_traces.shape[1])]
             self._roi_responses.append(RoiResponse("background", background_traces, background_ids))
 
         if cell_ids is not None:
@@ -181,8 +185,9 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
         # Sampling frequency and spatial information
         self._sampling_frequency = self._params["data"]["fr"][()]
-        self._image_masks = self._image_mask_sparse_read()
-        self._background_image_masks = self._background_image_mask_read()
+
+        # Create ROI representations from CaImAn sparse matrices
+        self._roi_masks = self._create_roi_masks()
 
         # Store quality metrics as properties
         self._set_quality_metrics_as_properties()
@@ -190,6 +195,82 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
     def __del__(self):  # TODO: refactor segmentation extractors who use __del__ together into a base class
         """Close the h5py file when the object is deleted."""
         self._dataset_file.close()
+
+    def _create_roi_masks(self) -> _ROIMasks | None:
+        """Create ROI representations from CaImAn CSC sparse matrices.
+
+        Converts CaImAn's native CSC matrix format to NWB-compatible pixel mask format.
+        Combines cell and background ROIs into a single container.
+
+        Returns
+        -------
+        _ROIMasks or None
+            Container with all ROI masks in nwb-pixel_mask format, or None if no masks available.
+        """
+        # Get cell masks from sparse matrix A
+        cell_sparse_matrix = self._get_sparse_dataset_safe("estimates/A")
+        if cell_sparse_matrix is None:
+            return None
+
+        height, width = self.get_frame_shape()
+        num_cells = cell_sparse_matrix.shape[1]
+
+        # Convert CSC matrix to per-ROI pixel masks
+        pixel_masks = []
+        roi_id_map = {}
+
+        # Process cell ROIs
+        for index in range(num_cells):
+            col = cell_sparse_matrix[:, index]
+            nonzero_flat_indices = col.nonzero()[0]
+            weights = col.data
+
+            # Convert flat Fortran-order indices to (y, x) coordinates
+            # In Fortran order: flat_index = y + x * height
+            y_coords = nonzero_flat_indices % height
+            x_coords = nonzero_flat_indices // height
+
+            pixel_mask = np.column_stack([y_coords, x_coords, weights])
+            pixel_masks.append(pixel_mask)
+
+            # Map cell_id to index
+            if self._roi_ids is not None and index < len(self._roi_ids):
+                cell_id = self._roi_ids[index]
+            else:
+                cell_id = index
+            roi_id_map[cell_id] = index
+
+        # Process background components if available
+        if "b" in self._estimates and not self._is_scalar_dataset(self._estimates["b"]):
+            background_data = np.array(self._estimates["b"])  # Shape: (n_pixels, n_backgrounds)
+            num_backgrounds = background_data.shape[1] if len(background_data.shape) > 1 else 1
+
+            if num_backgrounds == 1 and len(background_data.shape) == 1:
+                # Single background component as 1D array
+                background_data = background_data.reshape(-1, 1)
+
+            for bg_index in range(num_backgrounds):
+                bg_flat = background_data[:, bg_index]
+                nonzero_indices = np.nonzero(bg_flat)[0]
+
+                # Convert flat Fortran-order indices to (y, x) coordinates
+                y_coords = nonzero_indices % height
+                x_coords = nonzero_indices // height
+                weights = bg_flat[nonzero_indices]
+
+                pixel_mask = np.column_stack([y_coords, x_coords, weights])
+                pixel_masks.append(pixel_mask)
+
+                # Background IDs match trace naming (e.g., "background0", "background1")
+                bg_id = f"background{bg_index}"
+                roi_id_map[bg_id] = len(pixel_masks) - 1
+
+        return _ROIMasks(
+            data=pixel_masks,
+            mask_tpe="nwb-pixel_mask",
+            field_of_view_shape=(height, width),
+            roi_id_map=roi_id_map,
+        )
 
     def _is_scalar_dataset(self, dataset) -> bool:
         """Check if a dataset in the HDF5 file is a scalar value.
