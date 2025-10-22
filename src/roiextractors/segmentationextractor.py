@@ -23,6 +23,7 @@ from numpy.typing import ArrayLike
 from .extraction_tools import ArrayType, FloatType, IntType
 
 
+# TODO make public once API stabilizes.
 @dataclass
 class _RoiResponse:
     """Represents a fluorescence response (trace) with its metadata."""
