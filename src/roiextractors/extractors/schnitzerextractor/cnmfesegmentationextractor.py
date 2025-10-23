@@ -60,7 +60,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         self._roi_masks = _ROIMasks(
             data=image_masks_data,
             mask_tpe="nwb-image_mask",
-            field_of_view_shape=self.get_frame_shape(),
+            field_of_view_shape=image_masks_data.shape[0:2],
             roi_id_map=roi_id_map,
         )
 
@@ -158,7 +158,7 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
         tuple
             The frame shape as (height, width).
         """
-        return self._image_masks.shape[0:2]
+        return self._roi_masks.field_of_view_shape
 
     def get_image_size(self):
         warn(

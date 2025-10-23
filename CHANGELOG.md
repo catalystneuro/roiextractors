@@ -3,10 +3,15 @@
 ### Features
 
 ### Fixes
+* Fixed lingering `_image_masks` references in `get_frame_shape()` methods that were missed in PR #511 for `CnmfeSegmentationExtractor`, `LegacyExtractSegmentationExtractor`, `SimaSegmentationExtractor`, and `NwbSegmentationExtractor` [PR #487](https://github.com/catalystneuro/roiextractors/pull/487)
 
 ### Deprecations And Removals
 
 ### Improvements
+
+### Testing
+* Added tests for `CnmfeSegmentationExtractor` to cover basic functionality including `get_frame_shape()`, `get_num_rois()`, `get_roi_ids()`, and `get_traces()` [PR #487](https://github.com/catalystneuro/roiextractors/pull/487)
+* Added `get_frame_shape()` test for `LegacyExtractSegmentationExtractor` [PR #487](https://github.com/catalystneuro/roiextractors/pull/487)
 
 # v0.7.1 (October 22nd, 2025)
 

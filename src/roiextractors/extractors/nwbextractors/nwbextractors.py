@@ -462,7 +462,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         frame_shape: tuple
             Shape of the video frame (num_rows, num_columns).
         """
-        return self._image_masks.shape[:2]
+        return self._roi_masks.field_of_view_shape
 
     def get_image_shape(self):
         """Get the shape of the video frame (num_rows, num_columns).
@@ -472,7 +472,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         image_shape: tuple
             Shape of the video frame (num_rows, num_columns).
         """
-        return self._image_masks.shape[:2]
+        return self._roi_masks.field_of_view_shape
 
     def get_image_size(self):
         warnings.warn(
@@ -481,7 +481,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             DeprecationWarning,
             stacklevel=2,
         )
-        return self._image_masks.shape[:2]
+        return self._roi_masks.field_of_view_shape
 
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
