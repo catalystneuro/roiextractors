@@ -446,7 +446,7 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         tuple
             The frame shape as (height, width).
         """
-        return self._image_masks.shape[0:2]
+        return self._roi_masks.field_of_view_shape
 
     def get_image_size(self):
         warnings.warn(

@@ -77,6 +77,19 @@ class TestExtractSegmentationExtractor(TestCase):
 
         self.assertIsInstance(extractor, extractor_class)
 
+    def test_legacy_extractor_get_frame_shape(self):
+        """Test that LegacyExtractSegmentationExtractor.get_frame_shape() works correctly."""
+        file_path = self.ophys_data_path / "2014_04_01_p203_m19_check01_extractAnalysis.mat"
+        extractor = LegacyExtractSegmentationExtractor(file_path=file_path)
+
+        frame_shape = extractor.get_frame_shape()
+        # Verify the frame shape is returned correctly
+        self.assertEqual(len(frame_shape), 2)
+        self.assertIsInstance(frame_shape[0], (int, np.integer))
+        self.assertIsInstance(frame_shape[1], (int, np.integer))
+        # The test data has known dimensions
+        assert_array_equal(frame_shape, [250, 250])
+
 
 class TestNewExtractSegmentationExtractor(TestCase):
     @classmethod
