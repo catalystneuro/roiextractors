@@ -47,12 +47,16 @@ def generate_dummy_video(size: tuple[int, int, int], dtype: DtypeType = "uint16"
 
 
 def generate_dummy_imaging_extractor(
+    num_frames: int | None = None,
     num_rows: int = 10,
     num_columns: int = 10,
+    num_channels: int = 1,
     sampling_frequency: float = 30.0,
     dtype: DtypeType = "uint16",
+    channel_names: list[str] | None = None,
     seed: int = 0,
-    num_samples: int = 30,
+    *,
+    num_samples: int | None = 30,
 ):
     """Generate a dummy imaging extractor for testing.
 
@@ -60,14 +64,20 @@ def generate_dummy_imaging_extractor(
 
     Parameters
     ----------
+    num_frames : int, optional
+        number of frames in the video, by default 30.
     num_rows : int, optional
         number of rows in the video, by default 10.
     num_columns : int, optional
         number of columns in the video, by default 10.
+    num_channels : int, optional
+        number of channels in the video, by default 1.
     sampling_frequency : float, optional
         sampling frequency of the video, by default 30.
     dtype : DtypeType, optional
         dtype of the video, by default "uint16".
+    channel_names : list, optional
+        list of channel names.
     seed : int, default 0
         seed for the random number generator, by default 0.
     num_samples : int, default 30
@@ -78,8 +88,34 @@ def generate_dummy_imaging_extractor(
     ImagingExtractor
         An imaging extractor with random data fed into `NumpyImagingExtractor`.
     """
-    num_channels = 1
-    channel_names = [f"channel_num_{num}" for num in range(num_channels)]
+    if num_frames is not None:
+        warnings.warn(
+            "The 'num_frames' parameter is deprecated and will be removed on or after January 2026. "
+            "Use 'num_samples' instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
+    if channel_names is not None:
+        warnings.warn(
+            "The 'channel_names' parameter is deprecated and will be removed on or after January 2026.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
+    if num_channels != 1:
+        warnings.warn(
+            "The 'num_channels' parameter is deprecated and will be removed on or after January 2026. "
+            "Only single channel extractors are supported.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
+    if channel_names is None:
+        channel_names = [f"channel_num_{num}" for num in range(num_channels)]
+
+    if num_frames is not None:
+        num_samples = num_frames
 
     size = (num_samples, num_rows, num_columns, num_channels)
     video = generate_dummy_video(size=size, dtype=dtype, seed=seed)
