@@ -5,6 +5,16 @@
 ### Fixes
 
 ### Deprecations And Removals
+* Removed deprecated `get_image_size()` method from `ImagingExtractor`, `MultiImagingExtractor`, and `VolumetricImagingExtractor` (deprecated September 2025). Use `get_image_shape()` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
+* Removed deprecated `get_num_frames()` method from `ImagingExtractor`, `MultiImagingExtractor`, and `VolumetricImagingExtractor` (deprecated September 2025). Use `get_num_samples()` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
+* Removed deprecated `get_video()` method from `ImagingExtractor`, `MultiImagingExtractor`, and `VolumetricImagingExtractor` (deprecated September 2025). Use `get_series()` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
+* Removed deprecated `frame_to_time()` method from `ImagingExtractor` (deprecated October 2025). Use `sample_indices_to_time()` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
+* Removed deprecated `time_to_frame()` method from `ImagingExtractor` (deprecated October 2025). Use `time_to_sample_indices()` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
+* Removed deprecated `frame_slice()` method from `ImagingExtractor` and `VolumetricImagingExtractor` (deprecated October 2025). Use `slice_samples()` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
+* Removed deprecated `FrameSliceImagingExtractor` class (deprecated October 2025). Use `SampleSlicedImagingExtractor` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
+* Removed deprecated `channel` parameter from `get_frames()` and `get_video()` methods in all imaging extractors (deprecated August 2025). [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
+* Removed deprecated `num_frames`, `channel_names`, and `num_channels` parameters from `generate_dummy_imaging_extractor()` in testing utilities (deprecated January 2025). Use `num_samples` instead of `num_frames`. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
+* Removed deprecated ScanImage extractor classes (deprecated October 2025): `ScanImageTiffSinglePlaneImagingExtractor`, `ScanImageTiffMultiPlaneImagingExtractor`, `ScanImageTiffSinglePlaneMultiFileImagingExtractor`, and `ScanImageTiffMultiPlaneMultiFileImagingExtractor`. Use `ScanImageImagingExtractor` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
 
 ### Improvements
 

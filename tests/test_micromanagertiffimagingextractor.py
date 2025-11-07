@@ -69,7 +69,7 @@ class TestMicroManagerTiffExtractor(TestCase):
         self.assertEqual(self.extractor.get_sample_shape(), (1024, 1024))
 
     def test_micromanagertiffextractor_num_frames(self):
-        self.assertEqual(self.extractor.get_num_frames(), 15)
+        self.assertEqual(self.extractor.get_num_samples(), 15)
 
     def test_micromanagertiffextractor_sampling_frequency(self):
         self.assertEqual(self.extractor.get_sampling_frequency(), 20.0)
@@ -81,7 +81,7 @@ class TestMicroManagerTiffExtractor(TestCase):
         self.assertEqual(self.extractor.get_dtype(), np.uint16)
 
     def test_micromanagertiffextractor_get_video(self):
-        assert_array_equal(self.extractor.get_video(), self.video)
+        assert_array_equal(self.extractor.get_series(), self.video)
 
     def test_micromanagertiffextractor_get_single_frame(self):
         assert_array_equal(self.extractor.get_frames(frame_idxs=[0]), self.video[0][np.newaxis, ...])
@@ -111,5 +111,5 @@ class TestMicroManagerTiffExtractor(TestCase):
         """Test that the dtype of the video is uint16."""
         sub_extractor = self.extractor._imaging_extractors[0]
         expected_dtype = np.uint16
-        sub_extractor_video_dtype = sub_extractor.get_video().dtype
+        sub_extractor_video_dtype = sub_extractor.get_series().dtype
         self.assertEqual(sub_extractor_video_dtype, expected_dtype)

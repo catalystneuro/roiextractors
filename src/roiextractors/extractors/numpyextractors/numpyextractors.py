@@ -137,7 +137,7 @@ class NumpyImagingExtractor(ImagingExtractor):
                 stacklevel=2,
             )
         if frame_idxs is None:
-            frame_idxs = [frame for frame in range(self.get_num_frames())]
+            frame_idxs = [frame for frame in range(self.get_num_samples())]
 
         frames = self._video.take(indices=frame_idxs, axis=0)
         if channel is not None:

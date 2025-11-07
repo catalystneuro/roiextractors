@@ -10,12 +10,12 @@ class TestImagingExtractor(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.imaging_extractor = generate_dummy_imaging_extractor(
-            num_frames=3, num_rows=2, num_columns=4, sampling_frequency=20.0
+            num_samples=3, num_rows=2, num_columns=4, sampling_frequency=20.0
         )
 
     def test_has_time_vector_true(self):
         imaging_extractor_with_times = generate_dummy_imaging_extractor(
-            num_frames=3, num_rows=3, num_columns=4, sampling_frequency=20.0
+            num_samples=3, num_rows=3, num_columns=4, sampling_frequency=20.0
         )
         imaging_extractor_with_times.set_times(times=np.array([1.1, 2.3, 3.7]))
         self.assertTrue(imaging_extractor_with_times.has_time_vector())

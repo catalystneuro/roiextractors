@@ -68,8 +68,8 @@ class TestNwbImagingExtractor(unittest.TestCase):
     def test_basic_setup(self):
         nwb_imaging_extractor = NwbImagingExtractor(file_path=self.file_path)
 
-        image_size = nwb_imaging_extractor.get_image_size()
-        num_frames = nwb_imaging_extractor.get_num_frames()
+        image_size = nwb_imaging_extractor.get_image_shape()
+        num_frames = nwb_imaging_extractor.get_num_samples()
 
         expected_image_size = self.image_size
         expected_num_frames = self.num_frames
@@ -99,7 +99,7 @@ class TestNwbImagingExtractor(unittest.TestCase):
         expected_frames = self.video[frame_idxs, ...]
         np.testing.assert_array_almost_equal(frames_with_array, expected_frames)
 
-        video = nwb_imaging_extractor.get_video()
+        video = nwb_imaging_extractor.get_series()
         expected_video = self.video
 
         np.testing.assert_array_almost_equal(video, expected_video)

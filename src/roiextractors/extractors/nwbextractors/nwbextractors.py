@@ -451,7 +451,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         all_ids = self.get_roi_ids()
         roi_idxs = slice(None) if roi_ids is None else [all_ids.index(i) for i in roi_ids]
         # ROIExtractors uses height x width x (depth), but NWB uses width x height x depth
-        tranpose_image_convention = (1, 0) if len(self.get_image_size()) == 2 else (1, 0, 2)
+        tranpose_image_convention = (1, 0) if len(self.get_image_shape()) == 2 else (1, 0, 2)
         return np.array(self._roi_locs.data)[roi_idxs, tranpose_image_convention].T  # h5py fancy indexing is slow
 
     def get_frame_shape(self):

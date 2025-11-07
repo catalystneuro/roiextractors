@@ -13,15 +13,13 @@ def test_frame_slicing_imaging_times():
     times = np.array(range(num_frames)) + timestamp_shift
     start_frame, end_frame = 2, 7
 
-    toy_imaging_example = generate_dummy_imaging_extractor(
-        num_frames=num_frames, num_rows=5, num_columns=4, num_channels=1
-    )
+    toy_imaging_example = generate_dummy_imaging_extractor(num_samples=num_frames, num_rows=5, num_columns=4)
     toy_imaging_example.set_times(times=times)
 
-    frame_sliced_imaging = toy_imaging_example.frame_slice(start_frame=start_frame, end_frame=end_frame)
+    frame_sliced_imaging = toy_imaging_example.slice_samples(start_sample=start_frame, end_sample=end_frame)
     assert_array_equal(
-        frame_sliced_imaging.frame_to_time(
-            frames=np.array([idx for idx in range(frame_sliced_imaging.get_num_frames())])
+        frame_sliced_imaging.sample_indices_to_time(
+            sample_indices=np.array([idx for idx in range(frame_sliced_imaging.get_num_samples())])
         ),
         times[start_frame:end_frame],
     )
@@ -31,16 +29,14 @@ class TestFrameSliceImaging(TestCase):
     @classmethod
     def setUpClass(cls):
         """Use a toy example of ten frames of a 5 x 4 grayscale image."""
-        cls.toy_imaging_example = generate_dummy_imaging_extractor(
-            num_frames=10, num_rows=5, num_columns=4, num_channels=1
-        )
-        cls.frame_sliced_imaging = cls.toy_imaging_example.frame_slice(start_frame=2, end_frame=7)
+        cls.toy_imaging_example = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)
+        cls.frame_sliced_imaging = cls.toy_imaging_example.slice_samples(start_sample=2, end_sample=7)
 
     def test_get_image_size(self):
-        assert self.frame_sliced_imaging.get_image_size() == (5, 4)
+        assert self.frame_sliced_imaging.get_image_shape() == (5, 4)
 
     def test_get_num_frames(self):
-        assert self.frame_sliced_imaging.get_num_frames() == 5
+        assert self.frame_sliced_imaging.get_num_samples() == 5
 
     def test_get_sampling_frequency(self):
         assert self.frame_sliced_imaging.get_sampling_frequency() == 30.0

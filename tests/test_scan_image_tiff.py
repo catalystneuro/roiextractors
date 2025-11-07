@@ -69,16 +69,16 @@ class TestScanImageTiffExtractor(TestCase):
         assert_array_equal(self.imaging_extractor.get_frames(frame_idxs=frame_idxs), self.data[frame_idxs, ...])
 
     def test_scan_image_get_video(self):
-        assert_array_equal(self.imaging_extractor.get_video(), self.data)
+        assert_array_equal(self.imaging_extractor.get_series(), self.data)
 
     def test_scan_image_tiff_sampling_frequency(self):
         assert self.imaging_extractor.get_sampling_frequency() == 30.0
 
     def test_scan_image_tiff_num_frames(self):
-        assert self.imaging_extractor.get_num_frames() == 10
+        assert self.imaging_extractor.get_num_samples() == 10
 
     def test_scan_image_tiff_image_size(self):
-        assert self.imaging_extractor.get_image_size() == (256, 256)
+        assert self.imaging_extractor.get_image_shape() == (256, 256)
 
 
 if __name__ == "__main__":

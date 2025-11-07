@@ -344,9 +344,9 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
         if isinstance(frame_idxs, (int, np.integer)):
             frame_idxs = [frame_idxs]
         frame_idxs = np.array(frame_idxs)
-        assert np.all(frame_idxs < self.get_num_frames()), "'frame_idxs' exceed number of frames"
+        assert np.all(frame_idxs < self.get_num_samples()), "'frame_idxs' exceed number of frames"
 
-        frames_shape = (len(frame_idxs),) + self.get_image_size()
+        frames_shape = (len(frame_idxs),) + self._image_size
         frames = np.empty(shape=frames_shape, dtype=self.get_dtype())
 
         for plane_ind, extractor in enumerate(self._imaging_extractors):

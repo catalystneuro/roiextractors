@@ -162,11 +162,10 @@ class TestMultiImagingExtractor(TestCase):
         inconsistent_extractors = [
             self.extractors[0],
             generate_dummy_imaging_extractor(
-                num_frames=1,
+                num_samples=1,
                 num_rows=rows,
                 num_columns=columns,
                 sampling_frequency=sampling_frequency,
-                num_channels=num_channels,
             ),
         ]
         with self.assertRaisesWith(

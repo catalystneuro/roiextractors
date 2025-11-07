@@ -6,7 +6,6 @@ MultiImagingExtractor
     This class is used to combine multiple ImagingExtractor objects by frames.
 """
 
-import warnings
 from collections import defaultdict
 from typing import Iterable
 
@@ -89,7 +88,7 @@ class MultiImagingExtractor(ImagingExtractor):
             Array of times.
         """
         frame_indices = np.array([*range(self._start_frames[0], self._end_frames[-1])])
-        times = self.frame_to_time(frames=frame_indices)
+        times = self.sample_indices_to_time(sample_indices=frame_indices)
 
         for extractor_index, extractor in enumerate(self._imaging_extractors):
             if getattr(extractor, "_times") is not None:
@@ -120,27 +119,19 @@ class MultiImagingExtractor(ImagingExtractor):
     def get_dtype(self):
         return self._imaging_extractors[0].get_dtype()
 
-    def get_frames(self, frame_idxs: ArrayType, channel: int | None = 0) -> NumpyArray:
+    def get_frames(self, frame_idxs: ArrayType) -> NumpyArray:
         """Get specific video frames from indices.
 
         Parameters
         ----------
         frame_idxs: array-like
             Indices of frames to return.
-        channel: int, optional
-            Channel index. Deprecated: This parameter will be removed in August 2025.
 
         Returns
         -------
         frames: numpy.ndarray
             The video frames.
         """
-        if channel != 0:
-            warnings.warn(
-                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
         if isinstance(frame_idxs, (int, np.integer)):
             frame_idxs = [frame_idxs]
         frame_idxs = np.array(frame_idxs)
@@ -226,45 +217,6 @@ class MultiImagingExtractor(ImagingExtractor):
 
         return series
 
-    def get_video(self, start_frame: int | None = None, end_frame: int | None = None, channel: int = 0) -> np.ndarray:
-        """Get the video frames.
-
-        Parameters
-        ----------
-        start_frame: int, optional
-            Start frame index (inclusive).
-        end_frame: int, optional
-            End frame index (exclusive).
-        channel: int, optional
-            Channel index. Deprecated: This parameter will be removed in August 2025.
-
-        Returns
-        -------
-        video: numpy.ndarray
-            The video frames.
-
-        Deprecated
-        ----------
-        This method will be removed in or after September 2025.
-        Use get_series() instead.
-        """
-        warnings.warn(
-            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if channel != 0:
-            warnings.warn(
-                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            raise NotImplementedError(
-                f"MultiImagingExtractors for multiple channels have not yet been implemented! (Received '{channel}'."
-            )
-
-        return self.get_series(start_sample=start_frame, end_sample=end_frame)
-
     def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
@@ -275,38 +227,8 @@ class MultiImagingExtractor(ImagingExtractor):
         """
         return self._imaging_extractors[0].get_image_shape()
 
-    def get_image_size(self) -> tuple[int, int]:
-        warnings.warn(
-            "get_image_size() is deprecated and will be removed in or after September 2025. "
-            "Use get_image_shape() instead for consistent behavior across all extractors.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._imaging_extractors[0].get_image_size()
-
     def get_num_samples(self) -> int:
         return self._num_samples
-
-    def get_num_frames(self) -> int:
-        """Get the number of frames in the video.
-
-        Returns
-        -------
-        num_frames: int
-            Number of frames in the video.
-
-        Deprecated
-        ----------
-        This method will be removed in or after September 2025.
-        Use get_num_samples() instead.
-        """
-        warnings.warn(
-            "get_num_frames() is deprecated and will be removed in or after September 2025. "
-            "Use get_num_samples() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._imaging_extractors[0].get_sampling_frequency()

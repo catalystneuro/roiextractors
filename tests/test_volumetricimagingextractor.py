@@ -9,8 +9,8 @@ num_samples = 10
 
 @pytest.fixture(scope="module", params=[1, 2])
 def imaging_extractors(request):
-    num_channels = request.param
-    return [generate_dummy_imaging_extractor(num_channels=num_channels, num_samples=num_samples) for _ in range(3)]
+    # num_channels parameter is deprecated and removed - all extractors are single channel now
+    return [generate_dummy_imaging_extractor(num_samples=num_samples) for _ in range(3)]
 
 
 @pytest.fixture(scope="module")
@@ -23,8 +23,6 @@ def volumetric_imaging_extractor(imaging_extractors):
     [
         [dict(sampling_frequency=1), dict(sampling_frequency=2)],
         [dict(num_rows=1), dict(num_rows=2)],
-        [dict(num_channels=1), dict(num_channels=2)],
-        [dict(channel_names=["a"], num_channels=1), dict(channel_names=["b"], num_channels=1)],
         [dict(dtype=np.int16), dict(dtype=np.float32)],
         [dict(num_samples=1), dict(num_samples=2)],
     ],

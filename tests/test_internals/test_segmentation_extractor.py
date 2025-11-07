@@ -9,7 +9,7 @@ from roiextractors.testing import generate_dummy_segmentation_extractor
 class TestSegmentationExtractor(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.segmentation_extractor = generate_dummy_segmentation_extractor(num_frames=3, num_rows=2, num_columns=4)
+        cls.segmentation_extractor = generate_dummy_segmentation_extractor(num_samples=3, num_rows=2, num_columns=4)
 
     def test_has_time_vector_true(self):
         segmentation_extractor_with_times = generate_dummy_segmentation_extractor(

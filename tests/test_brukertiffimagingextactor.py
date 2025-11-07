@@ -81,10 +81,10 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
             BrukerTiffSinglePlaneImagingExtractor(folder_path=folder_path)
 
     def test_brukertiffextractor_image_size(self):
-        self.assertEqual(self.extractor.get_image_size(), (512, 512))
+        self.assertEqual(self.extractor.get_image_shape(), (512, 512))
 
     def test_brukertiffextractor_num_frames(self):
-        self.assertEqual(self.extractor.get_num_frames(), 10)
+        self.assertEqual(self.extractor.get_num_samples(), 10)
 
     def test_brukertiffextractor_sampling_frequency(self):
         self.assertEqual(self.extractor.get_sampling_frequency(), 29.873732099062256)
@@ -139,10 +139,10 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
         self.assertEqual(found_streams, expected_streams)
 
     def test_brukertiffextractor_image_size(self):
-        self.assertEqual(self.extractor.get_image_size(), (512, 512, 2))
+        self.assertEqual(self.extractor.get_image_shape(), (512, 512))
 
     def test_brukertiffextractor_num_frames(self):
-        self.assertEqual(self.extractor.get_num_frames(), 5)
+        self.assertEqual(self.extractor.get_num_samples(), 5)
 
     def test_brukertiffextractor_sampling_frequency(self):
         self.assertEqual(self.extractor.get_sampling_frequency(), 20.629515014336377)
@@ -226,7 +226,7 @@ class TestBrukerTiffExtractorDualColorCase(TestCase):
         )
 
     def test_brukertiffextractor_image_size(self):
-        self.assertEqual(self.extractor.get_image_size(), (512, 512))
+        self.assertEqual(self.extractor.get_image_shape(), (512, 512))
 
     def test_brukertiffextractor_channel_names(self):
         self.assertEqual(self.extractor.get_channel_names(), ["Ch1"])
