@@ -7,9 +7,8 @@ from roiextractors.testing import generate_dummy_imaging_extractor
 num_samples = 10
 
 
-@pytest.fixture(scope="module", params=[1, 2])
-def imaging_extractors(request):
-    # num_channels parameter is deprecated and removed - all extractors are single channel now
+@pytest.fixture(scope="module")
+def imaging_extractors():
     return [generate_dummy_imaging_extractor(num_samples=num_samples) for _ in range(3)]
 
 
