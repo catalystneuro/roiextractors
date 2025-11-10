@@ -248,33 +248,6 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         frame_indices = list(range(start_sample, end_sample))
         return self.get_frames(frame_indices)
 
-    def get_video(self, start_frame: int | None = None, end_frame: int | None = None) -> np.ndarray:
-        """Get a range of frames.
-
-        Parameters
-        ----------
-        start_frame: int, optional
-            Start frame index (inclusive).
-        end_frame: int, optional
-            End frame index (exclusive).
-
-        Returns
-        -------
-        video: numpy.ndarray
-            The video frames.
-
-        Deprecated
-        ----------
-        This method will be removed in or after September 2025.
-        Use get_series() instead.
-        """
-        warnings.warn(
-            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.get_series(start_sample=start_frame, end_sample=end_frame)
-
     def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
@@ -285,35 +258,9 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         """
         return self._num_rows, self._num_columns
 
-    def get_image_size(self) -> tuple[int, int]:
-        """Return the image dimensions (height, width)."""
-        warnings.warn(
-            "get_image_size() is deprecated and will be removed in or after September 2025. "
-            "Use get_image_shape() instead for consistent behavior across all extractors.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._num_rows, self._num_columns
-
     def get_num_samples(self) -> int:
         """Return the number of samples (time points)."""
         return self._num_samples
-
-    def get_num_frames(self) -> int:
-        """Return the number of frames (time points).
-
-        Deprecated
-        ----------
-        This method will be removed in or after September 2025.
-        Use get_num_samples() instead.
-        """
-        warnings.warn(
-            "get_num_frames() is deprecated and will be removed in or after September 2025. "
-            "Use get_num_samples() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float | None:
         """Return the sampling frequency, if available."""

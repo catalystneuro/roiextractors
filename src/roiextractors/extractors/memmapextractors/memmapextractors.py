@@ -6,7 +6,6 @@ MemmapImagingExtractor
     The base class for memmapable imaging extractors.
 """
 
-import warnings
 from warnings import warn
 
 import numpy as np
@@ -57,7 +56,7 @@ class MemmapImagingExtractor(ImagingExtractor):
             )
 
         if frame_idxs is None:
-            frame_idxs = [frame for frame in range(self.get_num_frames())]
+            frame_idxs = [frame for frame in range(self.get_num_samples())]
 
         frames = self._video.take(indices=frame_idxs, axis=0)
         if channel is not None:
@@ -74,22 +73,6 @@ class MemmapImagingExtractor(ImagingExtractor):
         # Use channel=None to preserve the channel dimension
         return self._video.take(indices=list(frame_idxs), axis=0)
 
-    def get_video(
-        self, start_frame: int | None = None, end_frame: int | None = None, channel: int | None = 0
-    ) -> np.ndarray:
-        warnings.warn(
-            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if channel != 0:
-            warn(
-                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        return self.get_series(start_sample=start_frame, end_sample=end_frame)
-
     def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
@@ -100,38 +83,8 @@ class MemmapImagingExtractor(ImagingExtractor):
         """
         return (self._num_rows, self._num_columns)
 
-    def get_image_size(self) -> tuple[int, int]:
-        warnings.warn(
-            "get_image_size() is deprecated and will be removed in or after September 2025. "
-            "Use get_image_shape() instead for consistent behavior across all extractors.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return (self._num_rows, self._num_columns)
-
     def get_num_samples(self) -> int:
         return self._num_samples
-
-    def get_num_frames(self) -> int:
-        """Get the number of frames in the video.
-
-        Returns
-        -------
-        num_frames: int
-            Number of frames in the video.
-
-        Deprecated
-        ----------
-        This method will be removed in or after September 2025.
-        Use get_num_samples() instead.
-        """
-        warnings.warn(
-            "get_num_frames() is deprecated and will be removed in or after September 2025. "
-            "Use get_num_samples() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.get_num_samples()
 
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency

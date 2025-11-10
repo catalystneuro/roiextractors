@@ -8,7 +8,6 @@ NwbSegmentationExtractor
     Extracts segmentation data from NWB files.
 """
 
-import warnings
 from pathlib import Path
 from typing import Iterable
 
@@ -19,8 +18,6 @@ from pynwb.ophys import OnePhotonSeries, TwoPhotonSeries
 
 from ...extraction_tools import (
     ArrayType,
-    FloatType,
-    IntType,
     PathType,
     raise_multi_channel_or_depth_not_implemented,
 )
@@ -116,24 +113,6 @@ class NwbImagingExtractor(ImagingExtractor):
         """Close the NWB file."""
         self.io.close()
 
-    def time_to_frame(self, times: FloatType | ArrayType) -> np.ndarray:
-        if self._times is None:
-            return ((times - self._imaging_start_time) * self.get_sampling_frequency()).astype("int64")
-        else:
-            return super().time_to_frame(times)
-
-    def frame_to_time(self, frames: IntType | ArrayType) -> np.ndarray:
-        warnings.warn(
-            "frame_to_time() is deprecated and will be removed on or after January 2026. "
-            "Use sample_indices_to_time() instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        if self._times is None:
-            return (frames / self.get_sampling_frequency() + self._imaging_start_time).astype("float")
-        else:
-            return super().frame_to_time(frames)
-
     def make_nwb_metadata(
         self, nwbfile, opts
     ):  # TODO: refactor to use two photon series name directly rather than via opts
@@ -207,43 +186,6 @@ class NwbImagingExtractor(ImagingExtractor):
         series = series[start_sample:end_sample].transpose([0, 2, 1])
         return series
 
-    def get_video(self, start_frame=None, end_frame=None, channel: int | None = 0) -> np.ndarray:
-        """Get the video frames.
-
-        Parameters
-        ----------
-        start_frame: int, optional
-            Start frame index (inclusive).
-        end_frame: int, optional
-            End frame index (exclusive).
-        channel: int, optional
-            Channel index. Deprecated: This parameter will be removed in August 2025.
-
-        Returns
-        -------
-        video: numpy.ndarray
-            The video frames.
-
-        Deprecated
-        ----------
-        This method will be removed in or after September 2025.
-        Use get_series() instead.
-        """
-        warnings.warn(
-            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if channel != 0:
-            from warnings import warn
-
-            warn(
-                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        return self.get_series(start_sample=start_frame, end_sample=end_frame)
-
     def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
@@ -254,38 +196,8 @@ class NwbImagingExtractor(ImagingExtractor):
         """
         return (self._num_rows, self._columns)  # TODO: change name of _columns to _num_cols for consistency
 
-    def get_image_size(self) -> tuple[int, int]:
-        warnings.warn(
-            "get_image_size() is deprecated and will be removed in or after September 2025. "
-            "Use get_image_shape() instead for consistent behavior across all extractors.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return (self._num_rows, self._columns)  # TODO: change name of _columns to _num_cols for consistency
-
     def get_num_samples(self):
         return self._num_samples
-
-    def get_num_frames(self):
-        """Get the number of frames in the video.
-
-        Returns
-        -------
-        num_frames: int
-            Number of frames in the video.
-
-        Deprecated
-        ----------
-        This method will be removed in or after September 2025.
-        Use get_num_samples() instead.
-        """
-        warnings.warn(
-            "get_num_frames() is deprecated and will be removed in or after September 2025. "
-            "Use get_num_samples() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.get_num_samples()
 
     def get_sampling_frequency(self):
         return self._sampling_frequency
@@ -451,7 +363,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         all_ids = self.get_roi_ids()
         roi_idxs = slice(None) if roi_ids is None else [all_ids.index(i) for i in roi_ids]
         # ROIExtractors uses height x width x (depth), but NWB uses width x height x depth
-        tranpose_image_convention = (1, 0) if len(self.get_image_size()) == 2 else (1, 0, 2)
+        tranpose_image_convention = (1, 0) if len(self.get_image_shape()) == 2 else (1, 0, 2)
         return np.array(self._roi_locs.data)[roi_idxs, tranpose_image_convention].T  # h5py fancy indexing is slow
 
     def get_frame_shape(self):
@@ -472,15 +384,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         image_shape: tuple
             Shape of the video frame (num_rows, num_columns).
         """
-        return self._roi_masks.field_of_view_shape
-
-    def get_image_size(self):
-        warnings.warn(
-            "get_image_size() is deprecated and will be removed in or after September 2025. "
-            "Use get_image_shape() instead for consistent behavior across all extractors.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         return self._roi_masks.field_of_view_shape
 
     def get_native_timestamps(

@@ -15,15 +15,15 @@ def test_sample_slicing_segmentation_times():
     times = np.array(range(num_samples)) + timestamp_shift
     start_sample, end_sample = 2, 7
 
-    toy_segmentation_example = generate_dummy_segmentation_extractor(num_frames=num_samples, num_rows=5, num_columns=4)
+    toy_segmentation_example = generate_dummy_segmentation_extractor(num_samples=num_samples, num_rows=5, num_columns=4)
     toy_segmentation_example.set_times(times=times)
 
     sample_sliced_segmentation = toy_segmentation_example.slice_samples(
         start_sample=start_sample, end_sample=end_sample
     )
     assert_array_equal(
-        sample_sliced_segmentation.frame_to_time(
-            frames=np.array([idx for idx in range(sample_sliced_segmentation.get_num_samples())])
+        sample_sliced_segmentation.sample_indices_to_time(
+            sample_indices=np.array([idx for idx in range(sample_sliced_segmentation.get_num_samples())])
         ),
         times[start_sample:end_sample],
     )
@@ -36,7 +36,7 @@ def segmentation_name_function(testcase_function, param_number, param):
 class BaseTestSampleSliceSegmentation(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.toy_segmentation_example = generate_dummy_segmentation_extractor(num_frames=15, num_rows=5, num_columns=4)
+        cls.toy_segmentation_example = generate_dummy_segmentation_extractor(num_samples=15, num_rows=5, num_columns=4)
         cls.sample_sliced_segmentation = cls.toy_segmentation_example.slice_samples(start_sample=2, end_sample=7)
 
     def test_get_frame_shape(self):
@@ -112,7 +112,7 @@ def test_sample_slicing_segmentation_missing_image_mask_attribute():
     num_samples = 10
     start_sample, end_sample = 2, 7
 
-    toy_segmentation_example = generate_dummy_segmentation_extractor(num_frames=num_samples)
+    toy_segmentation_example = generate_dummy_segmentation_extractor(num_samples=num_samples)
     # Set to None to simulate an extractor that hasn't populated ROI representations yet
     toy_segmentation_example._roi_masks = None
 
@@ -132,7 +132,7 @@ def test_sample_slicing_segmentation_get_roi_pixel_masks_override():
     def get_roi_pixel_masks_override(self, roi_ids=None) -> np.ndarray:
         return np.array([1, 2, 3])
 
-    toy_segmentation_example = generate_dummy_segmentation_extractor(num_frames=num_samples)
+    toy_segmentation_example = generate_dummy_segmentation_extractor(num_samples=num_samples)
     toy_segmentation_example.get_roi_pixel_masks = MethodType(get_roi_pixel_masks_override, toy_segmentation_example)
 
     sample_sliced_segmentation = toy_segmentation_example.slice_samples(

@@ -9,7 +9,6 @@ MicroManagerTiffImagingExtractor
 import json
 import logging
 import re
-import warnings
 from collections import Counter
 from itertools import islice
 from pathlib import Path
@@ -169,41 +168,11 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         """
         return self._height, self._width
 
-    def get_image_size(self) -> tuple[int, int]:
-        warnings.warn(
-            "get_image_size() is deprecated and will be removed in or after September 2025. "
-            "Use get_image_shape() instead for consistent behavior across all extractors.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._height, self._width
-
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
 
     def get_num_samples(self) -> int:
         return self._num_samples
-
-    def get_num_frames(self) -> int:
-        """Get the number of frames in the video.
-
-        Returns
-        -------
-        num_frames: int
-            Number of frames in the video.
-
-        Deprecated
-        ----------
-        This method will be removed in or after September 2025.
-        Use get_num_samples() instead.
-        """
-        warnings.warn(
-            "get_num_frames() is deprecated and will be removed in or after September 2025. "
-            "Use get_num_samples() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.get_num_samples()
 
     def get_channel_names(self) -> list:
         return self._channel_names
@@ -248,27 +217,6 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
     def get_num_samples(self):
         return self._num_samples
 
-    def get_num_frames(self):
-        """Get the number of frames in the video.
-
-        Returns
-        -------
-        num_frames: int
-            Number of frames in the video.
-
-        Deprecated
-        ----------
-        This method will be removed in or after September 2025.
-        Use get_num_samples() instead.
-        """
-        warnings.warn(
-            "get_num_frames() is deprecated and will be removed in or after September 2025. "
-            "Use get_num_samples() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.get_num_samples()
-
     def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
@@ -277,15 +225,6 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
         image_shape: tuple
             Shape of the video frame (num_rows, num_columns).
         """
-        return self._image_size
-
-    def get_image_size(self):
-        warnings.warn(
-            "get_image_size() is deprecated and will be removed in or after September 2025. "
-            "Use get_image_shape() instead for consistent behavior across all extractors.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         return self._image_size
 
     def get_sampling_frequency(self):
@@ -307,43 +246,6 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
         for page_ind, page in enumerate(islice(self.pages, start_sample, end_sample)):
             series[page_ind] = page.asarray()
         return series
-
-    def get_video(
-        self, start_frame: int | None = None, end_frame: int | None = None, channel: int | None = 0
-    ) -> np.ndarray:
-        """Get the video frames.
-
-        Parameters
-        ----------
-        start_frame: int, optional
-            Start frame index (inclusive).
-        end_frame: int, optional
-            End frame index (exclusive).
-        channel: int, optional
-            Channel index. Deprecated: This parameter will be removed in August 2025.
-
-        Returns
-        -------
-        video: numpy.ndarray
-            The video frames.
-
-        Deprecated
-        ----------
-        This method will be removed in or after September 2025.
-        Use get_series() instead.
-        """
-        warnings.warn(
-            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if channel != 0:
-            warnings.warn(
-                "The 'channel' parameter in get_video() is deprecated and will be removed in August 2025.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None

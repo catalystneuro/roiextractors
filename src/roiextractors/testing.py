@@ -80,6 +80,8 @@ def generate_dummy_imaging_extractor(
         list of channel names.
     seed : int, default 0
         seed for the random number generator, by default 0.
+    num_samples : int, default 30
+        number of samples in the video, by default 30.
 
     Returns
     -------
@@ -88,7 +90,7 @@ def generate_dummy_imaging_extractor(
     """
     if num_frames is not None:
         warnings.warn(
-            "The 'num_frames' parameter is deprecated and will be removed on or after January 2025. "
+            "The 'num_frames' parameter is deprecated and will be removed on or after January 2026. "
             "Use 'num_samples' instead.",
             FutureWarning,
             stacklevel=2,
@@ -96,14 +98,14 @@ def generate_dummy_imaging_extractor(
 
     if channel_names is not None:
         warnings.warn(
-            "The 'channel_names' parameter is deprecated and will be removed on or after January 2025.",
+            "The 'channel_names' parameter is deprecated and will be removed on or after January 2026.",
             FutureWarning,
             stacklevel=2,
         )
 
     if num_channels != 1:
         warnings.warn(
-            "The 'num_channels' parameter is deprecated and will be removed on or after January 2025. "
+            "The 'num_channels' parameter is deprecated and will be removed on or after January 2026. "
             "Only single channel extractors are supported.",
             FutureWarning,
             stacklevel=2,

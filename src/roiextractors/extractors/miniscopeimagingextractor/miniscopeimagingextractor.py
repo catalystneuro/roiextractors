@@ -918,27 +918,6 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
     def get_num_samples(self) -> int:
         return self._num_samples
 
-    def get_num_frames(self) -> int:
-        """Get the number of frames in the video.
-
-        Returns
-        -------
-        num_frames: int
-            Number of frames in the video.
-
-        Deprecated
-        ----------
-        This method will be removed in or after September 2025.
-        Use get_num_samples() instead.
-        """
-        warnings.warn(
-            "get_num_frames() is deprecated and will be removed in or after September 2025. "
-            "Use get_num_samples() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.get_num_samples()
-
     def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
@@ -947,15 +926,6 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
         image_shape: tuple
             Shape of the video frame (num_rows, num_columns).
         """
-        return self._image_size[:-1]
-
-    def get_image_size(self) -> tuple[int, int]:
-        warnings.warn(
-            "get_image_size() is deprecated and will be removed in or after September 2025. "
-            "Use get_image_shape() instead for consistent behavior across all extractors.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         return self._image_size[:-1]
 
     def get_sampling_frequency(self):
@@ -980,47 +950,6 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
                 series[frame_number] = self._cv2.cvtColor(frame, self._cv2.COLOR_RGB2GRAY)
 
         return series
-
-    def get_video(
-        self, start_frame: int | None = None, end_frame: int | None = None, channel: int | None = 0
-    ) -> np.ndarray:
-        """Get the video frames.
-
-        Parameters
-        ----------
-        start_frame: int, optional
-            Start frame index (inclusive).
-        end_frame: int, optional
-            End frame index (exclusive).
-        channel: int, optional
-            Channel index.
-
-        Returns
-        -------
-        video: numpy.ndarray
-            The video frames.
-
-        Notes
-        -----
-        The grayscale conversion is based on minian
-        https://github.com/denisecailab/minian/blob/f64c456ca027200e19cf40a80f0596106918fd09/minian/utilities.py#LL272C12-L272C12
-
-        Deprecated
-        ----------
-        This method will be removed in or after September 2025.
-        Use get_series() instead.
-        """
-        warnings.warn(
-            "get_video() is deprecated and will be removed in or after September 2025. " "Use get_series() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if channel != 0:
-            raise NotImplementedError(
-                f"The {self.extractor_name}Extractor does not currently support multiple color channels."
-            )
-
-        return self.get_series(start_sample=start_frame, end_sample=end_frame)
 
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
