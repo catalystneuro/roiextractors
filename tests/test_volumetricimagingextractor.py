@@ -8,12 +8,8 @@ num_samples = 10
 
 
 @pytest.fixture(scope="module")
-def imaging_extractors():
-    return [generate_dummy_imaging_extractor(num_samples=num_samples) for _ in range(3)]
-
-
-@pytest.fixture(scope="module")
-def volumetric_imaging_extractor(imaging_extractors):
+def volumetric_imaging_extractor():
+    imaging_extractors = [generate_dummy_imaging_extractor(num_samples=num_samples) for _ in range(3)]
     return VolumetricImagingExtractor(imaging_extractors)
 
 
