@@ -3,6 +3,7 @@
 ### Features
 
 ### Fixes
+* Bruker series can now read sequences of type `TSeries Brightness Over Time Element` [PR #527](https://github.com/catalystneuro/roiextractors/pull/527)
 
 ### Deprecations And Removals
 * Removed deprecated `get_image_size()` method from `ImagingExtractor`, `MultiImagingExtractor`, and `VolumetricImagingExtractor` (deprecated September 2025). Use `get_image_shape()` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
