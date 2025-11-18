@@ -6,6 +6,7 @@ MultiImagingExtractor
     This class is used to combine multiple ImagingExtractor objects by frames.
 """
 
+import warnings
 from collections import defaultdict
 from typing import Iterable
 
@@ -234,6 +235,11 @@ class MultiImagingExtractor(ImagingExtractor):
         return self._imaging_extractors[0].get_sampling_frequency()
 
     def get_channel_names(self) -> list:
+        warnings.warn(
+            "get_channel_names is deprecated and will be removed in May 2026 or after.",
+            category=FutureWarning,
+            stacklevel=2,
+        )
         return self._imaging_extractors[0].get_channel_names()
 
     def get_native_timestamps(
