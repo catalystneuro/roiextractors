@@ -4,8 +4,11 @@ from pathlib import Path
 from tempfile import mkdtemp
 
 import numpy as np
+import pytest
 from pynwb import NWBHDF5IO, NWBFile
 from pynwb.ophys import OpticalChannel, TwoPhotonSeries
+from pynwb.testing.mock.file import mock_NWBFile
+from pynwb.testing.mock.ophys import mock_ImagingPlane
 
 from roiextractors import NwbImagingExtractor
 from roiextractors.testing import generate_dummy_video
@@ -103,6 +106,66 @@ class TestNwbImagingExtractor(unittest.TestCase):
         expected_video = self.video
 
         np.testing.assert_array_almost_equal(video, expected_video)
+
+
+@pytest.fixture(scope="module")
+def nwb_volumetric_file(tmp_path_factory):
+    """Create a volumetric (3D) NWB file for testing."""
+    tmp_path = tmp_path_factory.mktemp("nwb_volumetric")
+    file_path = tmp_path / "test_nwb_volumetric_imaging_extractor.nwb"
+
+    sampling_frequency = 30.0
+    num_samples = 30
+    rows = 50
+    columns = 25
+    num_planes = 10
+
+    nwbfile = mock_NWBFile()
+
+    # Generate volumetric data: (time, rows, cols, planes)
+    video_shape = (num_samples, rows, columns, num_planes)
+
+    dtype = "uint16"
+    video = generate_dummy_video(size=video_shape, dtype=dtype)
+
+    imaging_plane = mock_ImagingPlane(nwbfile=nwbfile)
+
+    # NWB format: (time, width, height, depth)
+    # So transpose from (time, rows, cols, planes) to (time, cols, rows, planes)
+    image_series = TwoPhotonSeries(
+        name="TwoPhotonSeries",
+        data=video.transpose([0, 2, 1, 3]),  # roiextractors -> NWB transpose
+        imaging_plane=imaging_plane,
+        rate=sampling_frequency,
+        unit="normalized amplitude",
+    )
+
+    nwbfile.add_acquisition(image_series)
+
+    with NWBHDF5IO(file_path, "w") as io:
+        io.write(nwbfile)
+
+    return {
+        "file_path": file_path,
+        "video": video,
+        "frame_shape": (rows, columns),
+        "num_samples": num_samples,
+        "num_planes": num_planes,
+    }
+
+
+class TestNwbVolumetricImagingExtractor:
+    """Tests for volumetric (3D) NWB imaging data."""
+
+    def test_get_series_volumetric(self, nwb_volumetric_file):
+        nwb_imaging_extractor = NwbImagingExtractor(file_path=nwb_volumetric_file["file_path"])
+        video = nwb_volumetric_file["video"]
+
+        # Test full series
+        series = nwb_imaging_extractor.get_series()
+        expected_series = video
+        assert series.shape == expected_series.shape
+        np.testing.assert_array_almost_equal(series, expected_series)
 
 
 if __name__ == "__main__":

@@ -17,13 +17,17 @@ floattype = (float, np.floating)
 inttype = (int, np.integer)
 
 
-def generate_dummy_video(size: tuple[int, int, int], dtype: DtypeType = "uint16", seed: int = 0):
+def generate_dummy_video(
+    size: tuple[int, int, int] | tuple[int, int, int, int], dtype: DtypeType = "uint16", seed: int = 0
+):
     """Generate a dummy video of a given size and dtype.
 
     Parameters
     ----------
-    size : tuple[int, int, int]
+    size : tuple[int, int, int] or tuple[int, int, int, int]
         Size of the video to generate.
+        For planar data: (num_frames, num_rows, num_columns)
+        For volumetric data: (num_frames, num_rows, num_columns, num_planes)
     dtype : DtypeType, optional
         Dtype of the video to generate, by default "uint16".
     seed : int, default 0

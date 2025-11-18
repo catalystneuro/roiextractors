@@ -34,6 +34,9 @@ class NwbImagingExtractor(ImagingExtractor):
 
     Class used to extract data from the NWB data format. Also implements a
     static method to write any format specific object to NWB.
+
+    Supports both planar (2D) and volumetric (3D) imaging data from
+    OnePhotonSeries and TwoPhotonSeries objects.
     """
 
     extractor_name = "NwbImaging"
@@ -75,8 +78,16 @@ class NwbImagingExtractor(ImagingExtractor):
         # Load the two video structures that TwoPhotonSeries supports.
         self._data_has_channels_axis = True
         if len(self.photon_series.data.shape) == 3:
+            # Planar 2D imaging: (time, width, height)
             self._num_channels = 1
             self._num_samples, self._columns, self._num_rows = self.photon_series.data.shape
+            self.is_volumetric = False
+            self._num_planes = 1
+        elif len(self.photon_series.data.shape) == 4:
+            # Volumetric 3D imaging: (time, width, height, depth)
+            self._num_channels = 1
+            self._num_samples, self._columns, self._num_rows, self._num_planes = self.photon_series.data.shape
+            self.is_volumetric = True
         else:
             raise_multi_channel_or_depth_not_implemented(extractor_name=self.extractor_name)
 
@@ -173,7 +184,14 @@ class NwbImagingExtractor(ImagingExtractor):
             frame_idxs = [frame_idxs]
         elif isinstance(frame_idxs, np.ndarray):
             frame_idxs = frame_idxs.tolist()
-        frames = self.photon_series.data[frame_idxs].transpose([0, 2, 1])
+
+        if self.is_volumetric:
+            # NWB: (time, width, height, depth) -> roiextractors: (time, height, width, depth)
+            frames = self.photon_series.data[frame_idxs].transpose([0, 2, 1, 3])
+        else:
+            # NWB: (time, width, height) -> roiextractors: (time, height, width)
+            frames = self.photon_series.data[frame_idxs].transpose([0, 2, 1])
+
         if squeeze_data:
             frames = frames.squeeze()
         return frames
@@ -183,7 +201,12 @@ class NwbImagingExtractor(ImagingExtractor):
         end_sample = end_sample if end_sample is not None else self.get_num_samples()
 
         series = self.photon_series.data
-        series = series[start_sample:end_sample].transpose([0, 2, 1])
+        if self.is_volumetric:
+            # NWB: (time, width, height, depth) -> roiextractors: (time, height, width, depth)
+            series = series[start_sample:end_sample].transpose([0, 2, 1, 3])
+        else:
+            # NWB: (time, width, height) -> roiextractors: (time, height, width)
+            series = series[start_sample:end_sample].transpose([0, 2, 1])
         return series
 
     def get_image_shape(self) -> tuple[int, int]:
@@ -212,6 +235,16 @@ class NwbImagingExtractor(ImagingExtractor):
         # For now, return None to use calculated timestamps based on sampling frequency
         # TODO: extract the timestamps if the MiroscopySeries has timestamps
         return None
+
+    def get_num_planes(self) -> int:
+        """Get the number of depth planes.
+
+        Returns
+        -------
+        num_planes : int
+            The number of depth planes (1 for planar data).
+        """
+        return self._num_planes
 
 
 class NwbSegmentationExtractor(SegmentationExtractor):
