@@ -38,12 +38,12 @@ To build your custom ImagingExtractor to interface with a new raw image storage 
 
             return self.sampling_frequency
 
-        def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> NumpyArray:
+        def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> NumpyArray:
 
             # define a method to read a continuous slice of imaging data
             return self._data[start_sample:end_sample]
 
-        def get_image_shape(self) -> Tuple[int, int]:
+        def get_image_shape(self) -> tuple[int, int]:
 
             # returns the (height, width) dimensions of a single frame
             # this is the abstract method that must be implemented
