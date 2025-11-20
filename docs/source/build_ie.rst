@@ -3,10 +3,9 @@ Build an ImagingExtractor:
 
 To build your custom ImagingExtractor to interface with a new raw image storage format from your microscope, build a custom class inheriting from a base class that enforces certain methods that need to be defined:
 
-* `get_channel_names()`: returns a list of channel names
 * `get_num_samples()`: the number of image frames recorded
-* `get_image_size()`: the y,x dim of the image(the resolution)
-* `get_frames()`: return specific requested image frames
+* `get_image_shape()`: the y,x dimensions of a single frame
+* `get_series()`: return a continuous slice of imaging data
 
 
 
@@ -28,28 +27,24 @@ To build your custom ImagingExtractor to interface with a new raw image storage 
             # define a function that retrieves an in memory array from your native imaging format
             # returns: np.ndarray (shape: frames, image_dims)
 
-        def get_channel_names(self):
-
-            # Fill code to get a list of channel_ids. If channel ids are not specified, you can use:
-            # channel_ids = range(num_channels)
-
-            return self._channel_names
-
-        def get_num_samples(self):
+        def get_num_samples(self) -> int:
 
             # Fill code to get the number of frames (samples) in the recordings.
+            # Note that if the data is volumetric, num_samples corresponds to the number of volumes, not the number of 2D images.
 
-            return num_frames
+            return num_samples
 
-        def get_sampling_frequency():
+        def get_sampling_frequency(self) -> float:
 
             return self.sampling_frequency
 
-        def get_frames(self, frame_idxs: ArrayType, channel: int = 0) -> NumpyArray:
+        def get_series(self, start_sample: Optional[int] = None, end_sample: Optional[int] = None) -> NumpyArray:
 
-            # define a method to read a frame from the given frame numbers requested.
-            return self._data[frame_idxs]
+            # define a method to read a continuous slice of imaging data
+            return self._data[start_sample:end_sample]
 
-        def get_frame_shape(self)
+        def get_image_shape(self) -> Tuple[int, int]:
 
-            # returns something like self._data.shape[1:]
+            # returns the (height, width) dimensions of a single frame
+            # this is the abstract method that must be implemented
+            return self._data.shape[1:]

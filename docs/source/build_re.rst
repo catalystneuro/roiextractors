@@ -5,7 +5,7 @@ Build a SegmentationExtractor:
 To build a custom SegmentationExtractor that interfaces with the output of a custom segmentation pipeline used for post processing the raw image data.
 
 * `get_accepted_list()`: returns a list of accepted ROIs' id numbers
-* `get_image_size()`: the y,x dim of the image(the resolution)
+* `get_frame_shape()`: the (height, width) dimensions of the image
 
 
 .. code-block:: python
@@ -74,6 +74,8 @@ To build a custom SegmentationExtractor that interfaces with the output of a cus
 
             # define logic to get the numerical id of the ROI output by the segmentation pipeline.
 
-        def get_image_size(self)
+        def get_frame_shape(self):
 
-            # returns something like self._image_mean.shape
+            # returns the (height, width) dimensions as a tuple
+            # e.g., self._image_mean.shape
+            return self._image_mean.shape
