@@ -7,6 +7,7 @@
 * Bruker series can now read sequences of type `TSeries Brightness Over Time Element` [PR #527](https://github.com/catalystneuro/roiextractors/pull/527)
 
 ### Deprecations And Removals
+* Deprecated `get_channel_names()` method across all extractors (will be removed on or after May 2026). The method is no longer abstract and provides a default implementation returning `["channel_0", "channel_1", ...]` before removal. [PR #530](https://github.com/catalystneuro/roiextractors/pull/530)
 * Removed deprecated `get_image_size()` method from `ImagingExtractor`, `MultiImagingExtractor`, and `VolumetricImagingExtractor` (deprecated September 2025). Use `get_image_shape()` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
 * Removed deprecated `get_num_frames()` method from `ImagingExtractor`, `MultiImagingExtractor`, and `VolumetricImagingExtractor` (deprecated September 2025). Use `get_num_samples()` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
 * Removed deprecated `get_video()` method from `ImagingExtractor`, `MultiImagingExtractor`, and `VolumetricImagingExtractor` (deprecated September 2025). Use `get_series()` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
@@ -16,7 +17,6 @@
 * Removed deprecated `FrameSliceImagingExtractor` class (deprecated October 2025). Use `SampleSlicedImagingExtractor` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
 * Removed deprecated `channel` parameter from `get_frames()` and `get_video()` methods in all imaging extractors (deprecated August 2025). [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
 * Removed deprecated ScanImage extractor classes (deprecated October 2025): `ScanImageTiffSinglePlaneImagingExtractor`, `ScanImageTiffMultiPlaneImagingExtractor`, `ScanImageTiffSinglePlaneMultiFileImagingExtractor`, and `ScanImageTiffMultiPlaneMultiFileImagingExtractor`. Use `ScanImageImagingExtractor` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
-* Deprecated `get_channel_names()` method across all extractors (will be removed on or after May 2026). The method is no longer abstract and provides a default implementation returning `["channel_0", "channel_1", ...]` before removal. [PR #530](https://github.com/catalystneuro/roiextractors/pull/530)
 * Deprecated `make_nwb_metadata()` method in `NwbImagingExtractor` (will be removed on or after May 2026). [PR #529](https://github.com/catalystneuro/roiextractors/pull/529)
 
 ### Improvements
