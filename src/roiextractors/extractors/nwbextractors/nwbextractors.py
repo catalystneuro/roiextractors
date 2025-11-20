@@ -8,6 +8,7 @@ NwbSegmentationExtractor
     Extracts segmentation data from NWB files.
 """
 
+import warnings
 from pathlib import Path
 from typing import Iterable
 
@@ -233,6 +234,11 @@ class NwbImagingExtractor(ImagingExtractor):
         return self._sampling_frequency
 
     def get_channel_names(self):
+        warnings.warn(
+            "get_channel_names is deprecated and will be removed in May 2026 or after.",
+            category=FutureWarning,
+            stacklevel=2,
+        )
         return self._channel_names
 
     def get_native_timestamps(

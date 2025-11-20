@@ -10,6 +10,7 @@ BrukerTiffMultiPlaneImagingExtractor
 
 import logging
 import re
+import warnings
 from collections import Counter
 from itertools import islice
 from pathlib import Path
@@ -555,6 +556,11 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         return self._sampling_frequency
 
     def get_channel_names(self) -> list[str]:
+        warnings.warn(
+            "get_channel_names is deprecated and will be removed in May 2026 or after.",
+            category=FutureWarning,
+            stacklevel=2,
+        )
         return self._channel_names
 
     def get_dtype(self) -> DtypeType:
@@ -610,6 +616,11 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
         raise NotImplementedError(self.SAMPLING_FREQ_ERROR.format(self.extractor_name))
 
     def get_channel_names(self) -> list:
+        warnings.warn(
+            "get_channel_names is deprecated and will be removed in May 2026 or after.",
+            category=FutureWarning,
+            stacklevel=2,
+        )
         raise NotImplementedError(self.CHANNEL_NAMES_ERROR.format(self.extractor_name))
 
     def get_dtype(self):

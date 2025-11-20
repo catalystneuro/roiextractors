@@ -124,9 +124,6 @@ class TiffImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self):
         return self._sampling_frequency
 
-    def get_channel_names(self):
-        pass
-
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
     ) -> np.ndarray | None:

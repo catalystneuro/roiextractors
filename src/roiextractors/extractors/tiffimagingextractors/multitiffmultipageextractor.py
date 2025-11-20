@@ -513,5 +513,10 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         return None
 
     def get_channel_names(self):
+        warnings.warn(
+            "get_channel_names is deprecated and will be removed in May 2026 or after.",
+            category=FutureWarning,
+            stacklevel=2,
+        )
         channel_names = [str(i) for i in range(self._num_channels)]
         return channel_names

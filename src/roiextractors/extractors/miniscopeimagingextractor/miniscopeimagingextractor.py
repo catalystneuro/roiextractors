@@ -935,6 +935,11 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
         return self._dtype
 
     def get_channel_names(self) -> list[str]:
+        warnings.warn(
+            "get_channel_names is deprecated and will be removed in May 2026 or after.",
+            category=FutureWarning,
+            stacklevel=2,
+        )
         return ["OpticalChannel"]
 
     def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:

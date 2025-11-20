@@ -89,9 +89,6 @@ class MemmapImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
 
-    def get_channel_names(self):
-        pass
-
     def get_dtype(self) -> DtypeType:
         return self.dtype
 

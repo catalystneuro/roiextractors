@@ -63,6 +63,11 @@ class InscopixImagingExtractor(ImagingExtractor):
         return 1 / self.movie.timing.period.secs_float
 
     def get_channel_names(self) -> list[str]:
+        warnings.warn(
+            "get_channel_names is deprecated and will be removed in May 2026 or after.",
+            category=FutureWarning,
+            stacklevel=2,
+        )
         warnings.warn("isx only supports single channel videos.")
         return ["channel_0"]
 
