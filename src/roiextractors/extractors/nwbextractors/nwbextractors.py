@@ -20,7 +20,6 @@ from pynwb.ophys import OnePhotonSeries, TwoPhotonSeries
 from ...extraction_tools import (
     ArrayType,
     PathType,
-    raise_multi_channel_or_depth_not_implemented,
 )
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import (
@@ -77,7 +76,6 @@ class NwbImagingExtractor(ImagingExtractor):
         assert self.photon_series.external_file is None, "Only 'raw' format is currently supported"
 
         # Load the two video structures that TwoPhotonSeries supports.
-        self._data_has_channels_axis = True
         if len(self.photon_series.data.shape) == 3:
             # Planar 2D imaging: (time, width, height)
             self._num_channels = 1
@@ -89,8 +87,6 @@ class NwbImagingExtractor(ImagingExtractor):
             self._num_channels = 1
             self._num_samples, self._columns, self._num_rows, self._num_planes = self.photon_series.data.shape
             self.is_volumetric = True
-        else:
-            raise_multi_channel_or_depth_not_implemented(extractor_name=self.extractor_name)
 
         # Set channel names (This should disambiguate which optical channel)
         self._channel_names = [i.name for i in self.photon_series.imaging_plane.optical_channel]
@@ -140,7 +136,18 @@ class NwbImagingExtractor(ImagingExtractor):
         Notes
         -----
         Metadata dictionary is stored in the nwb_metadata attribute.
+
+        .. deprecated:: 0.7.3
+            This method is deprecated and will be removed on or after May 2026.
         """
+        from warnings import warn
+
+        warn(
+            "The 'make_nwb_metadata' method is deprecated and will be removed on or after May 2026.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
         # Metadata dictionary - useful for constructing a nwb file
         self.nwb_metadata = dict(
             NWBFile=dict(
@@ -237,10 +244,32 @@ class NwbImagingExtractor(ImagingExtractor):
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
     ) -> np.ndarray | None:
-        # NWB files may have timestamps but need to check the specific implementation
-        # For now, return None to use calculated timestamps based on sampling frequency
-        # TODO: extract the timestamps if the MiroscopySeries has timestamps
-        return None
+        """Retrieve the original unaltered timestamps for the data.
+
+        This method uses the NWB photon series get_timestamps() method, which properly handles
+        explicit timestamps, starting_time attribute, and rate-based calculations.
+
+        Parameters
+        ----------
+        start_sample : int, optional
+            The starting sample index. If None, starts from the beginning.
+        end_sample : int, optional
+            The ending sample index. If None, goes to the end.
+
+        Returns
+        -------
+        timestamps : numpy.ndarray
+            The timestamps for the data stream.
+        """
+        # Set defaults
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self.get_num_samples()
+
+        # Use NWB's native get_timestamps() method which handles timestamps, starting_time, and rate
+        timestamps = self.photon_series.get_timestamps()
+        return timestamps[start_sample:end_sample]
 
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
