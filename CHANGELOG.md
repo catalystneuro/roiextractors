@@ -21,6 +21,7 @@
 ### Improvements
 * Implemented `get_native_timestamps()` method in `NwbImagingExtractor` to properly extract timestamps using NWB's native `get_timestamps()` method. [PR #526](https://github.com/catalystneuro/roiextractors/pull/526)
 * Removed unreachable code in `NwbImagingExtractor.__init__()` for handling unsupported data shapes. [PR #526](https://github.com/catalystneuro/roiextractors/pull/526)
+* Updated documentation to use current API methods: replaced deprecated `get_frames()` with `get_series()`, `get_image_size()` with `get_frame_shape()`, and removed `get_channel_names()` examples from tutorials and use cases.
 
 
 # v0.7.2 (October 23rd, 2025)

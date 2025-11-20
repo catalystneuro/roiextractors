@@ -20,29 +20,29 @@ Create an Imaging Extractor Object:
 
 .. code-block:: python
 
-    img_ext.get_frames(10)
+    img_ext.get_series(start_sample=10, end_sample=11)
 
 Output:
 
 .. code-block:: shell
 
-    array([[1050,  676,  652, ..., 1523, 1406, 1627],
-       [ 898,  908,  864, ...,  990, 1016, 1058],
-       [ 899,  875,  827, ..., 1100, 1122, 1147],
-       ...,
-       [ 664,  957, 1040, ...,  833,  828, 1075],
-       [ 893,  899,  858, ...,  807,  899,  981],
-       [ 691,  653,  812, ...,  708,  715,  779]], dtype=uint16)
+    array([[[1050,  676,  652, ..., 1523, 1406, 1627],
+            [ 898,  908,  864, ...,  990, 1016, 1058],
+            [ 899,  875,  827, ..., 1100, 1122, 1147],
+            ...,
+            [ 664,  957, 1040, ...,  833,  828, 1075],
+            [ 893,  899,  858, ...,  807,  899,  981],
+            [ 691,  653,  812, ...,  708,  715,  779]]], dtype=uint16)
 
 .. code-block:: python
 
-    img_ext.get_image_size()
+    img_ext.get_frame_shape()
 
 Output:
 
 .. code-block:: shell
 
-    [60, 80]
+    (60, 80)
 
 .. code-block:: python
 
@@ -63,16 +63,6 @@ Output:
 .. code-block:: shell
 
     100.0
-
-.. code-block:: python
-
-    img_ext.get_channel_names()
-
-Output:
-
-.. code-block:: shell
-
-    ['channel_0']
 
 .. code-block:: python
 
@@ -155,13 +145,13 @@ Output:
 
 .. code-block:: python
 
-    seg_ext.get_image_size()
+    seg_ext.get_frame_shape()
 
 Output:
 
 .. code-block:: shell
 
-    array([128, 128])
+    (128, 128)
 
 .. code-block:: python
 
