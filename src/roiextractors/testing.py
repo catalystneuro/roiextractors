@@ -61,6 +61,8 @@ def generate_dummy_imaging_extractor(
     seed: int = 0,
     *,
     num_samples: int | None = 30,
+    has_native_timestamps: bool = False,
+    num_planes: int | None = None,
 ):
     """Generate a dummy imaging extractor for testing.
 
@@ -86,6 +88,10 @@ def generate_dummy_imaging_extractor(
         seed for the random number generator, by default 0.
     num_samples : int, default 30
         number of samples in the video, by default 30.
+    has_native_timestamps : bool, default False
+        if True, the extractor will return native timestamps (irregularly spaced).
+    num_planes : int, optional
+        number of depth planes for volumetric data. If None, creates 2D data.
 
     Returns
     -------
@@ -121,12 +127,82 @@ def generate_dummy_imaging_extractor(
     if num_frames is not None:
         num_samples = num_frames
 
-    size = (num_samples, num_rows, num_columns, num_channels)
+    # Generate video data - volumetric if num_planes is specified
+    if num_planes is not None:
+        size = (num_samples, num_rows, num_columns, num_planes)
+        # For volumetric data, channel_names should match num_planes since NumpyImagingExtractor
+        # treats the last dimension as channels
+        channel_names_to_use = [f"plane_{i}" for i in range(num_planes)]
+    else:
+        size = (num_samples, num_rows, num_columns, num_channels)
+        channel_names_to_use = channel_names
+
     video = generate_dummy_video(size=size, dtype=dtype, seed=seed)
 
+    # Create base extractor
     imaging_extractor = NumpyImagingExtractor(
-        timeseries=video, sampling_frequency=sampling_frequency, channel_names=channel_names
+        timeseries=video, sampling_frequency=sampling_frequency, channel_names=channel_names_to_use
     )
+
+    # Add volumetric support if requested
+    # TODO: Once channel names properly support planes, refactor NumpyImagingExtractor
+    # to natively handle volumetric data instead of using types.MethodType overrides.
+    # The challenge is that NumpyImagingExtractor fundamentally treats the last dimension
+    # as channels, but volumetric data needs the last dimension to be planes.
+    if num_planes is not None:
+        import types
+
+        imaging_extractor.is_volumetric = True
+        imaging_extractor._num_planes = num_planes
+
+        # Override methods to support volumetric data
+        def get_num_planes(self):
+            """Get the number of depth planes."""
+            return self._num_planes
+
+        def get_series(self, start_sample=None, end_sample=None):
+            """Get volumetric series data with all planes."""
+            if start_sample is None:
+                start_sample = 0
+            if end_sample is None:
+                end_sample = self.get_num_samples()
+            # Return all dimensions (time, height, width, planes)
+            return self._video[start_sample:end_sample, ...]
+
+        def get_sample_shape(self):
+            """Get the shape of a single volumetric sample."""
+            return (*self.get_image_shape(), self.get_num_planes())
+
+        def get_volume_shape(self):
+            """Get the shape of the volume (num_rows, num_columns, num_planes)."""
+            return (*self.get_image_shape(), self.get_num_planes())
+
+        # Bind methods to instance
+        imaging_extractor.get_num_planes = types.MethodType(get_num_planes, imaging_extractor)
+        imaging_extractor.get_series = types.MethodType(get_series, imaging_extractor)
+        imaging_extractor.get_sample_shape = types.MethodType(get_sample_shape, imaging_extractor)
+        imaging_extractor.get_volume_shape = types.MethodType(get_volume_shape, imaging_extractor)
+
+    # Add native timestamps if requested
+    # NOTE: We use types.MethodType here to override get_native_timestamps for testing purposes only.
+    # NumpyImagingExtractor correctly returns None for get_native_timestamps() because numpy arrays
+    # don't have native timestamps. This override creates synthetic timestamps to test code that
+    # handles extractors with native timestamp support (like some microscopy file formats).
+    # This is testing-specific functionality and should NOT be added to NumpyImagingExtractor itself.
+    if has_native_timestamps:
+        import types
+
+        # Generate regular timestamps (evenly spaced)
+        def get_native_timestamps(self, start_sample=None, end_sample=None):
+            if start_sample is None:
+                start_sample = 0
+            if end_sample is None:
+                end_sample = self.get_num_samples()
+            # Generate timestamps on the fly
+            timestamps = np.arange(self.get_num_samples()) / self.get_sampling_frequency()
+            return timestamps[start_sample:end_sample]
+
+        imaging_extractor.get_native_timestamps = types.MethodType(get_native_timestamps, imaging_extractor)
 
     return imaging_extractor
 
