@@ -181,7 +181,6 @@ class ImagingExtractor(ABC):
         """
         pass
 
-    @abstractmethod
     def get_channel_names(self) -> list:
         """Get the channel names in the recoding.
 
@@ -190,7 +189,7 @@ class ImagingExtractor(ABC):
         channel_names: list
             List of strings of channel names
         """
-        pass
+        return [f"channel_{i}" for i in range(self.get_num_channels())]
 
     def get_dtype(self) -> DtypeType:
         """Get the data type of the video.
@@ -570,6 +569,11 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         return self._parent_imaging.get_sampling_frequency()
 
     def get_channel_names(self) -> list:
+        warnings.warn(
+            "get_channel_names is deprecated and will be removed in May 2026 or after.",
+            category=FutureWarning,
+            stacklevel=2,
+        )
         return self._parent_imaging.get_channel_names()
 
     def get_num_planes(self) -> int:

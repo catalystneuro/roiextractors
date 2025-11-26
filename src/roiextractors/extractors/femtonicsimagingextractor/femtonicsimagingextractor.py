@@ -1,5 +1,6 @@
 """A Femtonics imaging extractor with corrected MSession/MUnit hierarchy handling."""
 
+import warnings
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
@@ -225,6 +226,11 @@ class FemtonicsImagingExtractor(ImagingExtractor):
 
     def get_channel_names(self) -> list[str]:
         """Get the channel names."""
+        warnings.warn(
+            "get_channel_names is deprecated and will be removed in May 2026 or after.",
+            category=FutureWarning,
+            stacklevel=2,
+        )
         return [self._selected_channel_name]
 
     def get_sampling_frequency(self) -> float:
