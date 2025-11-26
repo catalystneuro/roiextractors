@@ -2,6 +2,7 @@
 
 ### Features
 * Added volumetric (3D) imaging support to `NwbImagingExtractor` for reading 4D TwoPhotonSeries and OnePhotonSeries data [PR #526](https://github.com/catalystneuro/roiextractors/pull/526)
+* Added `slice_field_of_view()` method to `ImagingExtractor` and `VolumetricImagingExtractor` for spatial cropping of imaging data by specifying row and column ranges [PR #532](https://github.com/catalystneuro/roiextractors/pull/532)
 
 ### Fixes
 * Bruker series can now read sequences of type `TSeries Brightness Over Time Element` [PR #527](https://github.com/catalystneuro/roiextractors/pull/527)
