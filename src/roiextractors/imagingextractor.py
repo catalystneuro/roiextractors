@@ -471,6 +471,58 @@ class ImagingExtractor(ABC):
         """
         return SampleSlicedImagingExtractor(parent_imaging=self, start_sample=start_sample, end_sample=end_sample)
 
+    def slice_field_of_view(
+        self,
+        row_start: int | None = None,
+        row_end: int | None = None,
+        column_start: int | None = None,
+        column_end: int | None = None,
+    ):
+        """Return a new ImagingExtractor with a spatially sliced field of view.
+
+        Parameters
+        ----------
+        row_start: int, optional
+            Starting row index (inclusive). Default is 0.
+        row_end: int, optional
+            Ending row index (exclusive). Default is the full height.
+        column_start: int, optional
+            Starting column index (inclusive). Default is 0.
+        column_end: int, optional
+            Ending column index (exclusive). Default is the full width.
+
+        Returns
+        -------
+        imaging: FieldOfViewSlicedImagingExtractor
+            The spatially sliced ImagingExtractor object.
+
+        Notes
+        -----
+        This method creates a lazy view of the imaging data with a cropped field of view.
+        The slicing is applied to the spatial dimensions (rows and columns) of each frame.
+        For volumetric data, all depth planes are preserved with the same spatial crop applied.
+
+        Examples
+        --------
+        >>> # Crop to center 100x100 region starting at (50, 50)
+        >>> cropped_extractor = extractor.slice_field_of_view(row_start=50, row_end=150,
+        ...                                                    column_start=50, column_end=150)
+        >>>
+        >>> # Get top-left quadrant
+        >>> height, width = extractor.get_image_shape()
+        >>> quadrant = extractor.slice_field_of_view(row_end=height//2, column_end=width//2)
+        >>>
+        >>> # Compose with temporal slicing
+        >>> subset = extractor.slice_samples(0, 1000).slice_field_of_view(100, 200, 100, 200)
+        """
+        return _FieldOfViewSlicedImagingExtractor(
+            parent_imaging=self,
+            row_start=row_start,
+            row_end=row_end,
+            column_start=column_start,
+            column_end=column_end,
+        )
+
 
 class SampleSlicedImagingExtractor(ImagingExtractor):
     """Class to get a lazy sample slice.
@@ -614,4 +666,221 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
 
     def has_time_vector(self) -> bool:
         # Override to check parent imaging for time vector
+        return self._parent_imaging.has_time_vector()
+
+
+class _FieldOfViewSlicedImagingExtractor(ImagingExtractor):
+    """Class to get a lazy field of view slice.
+
+    Do not use this class directly but use `.slice_field_of_view(...)` on an ImagingExtractor object.
+    """
+
+    extractor_name = "FieldOfViewSlicedImagingExtractor"
+
+    def __init__(
+        self,
+        parent_imaging: ImagingExtractor,
+        row_start: int | None = None,
+        row_end: int | None = None,
+        column_start: int | None = None,
+        column_end: int | None = None,
+    ):
+        """Initialize an ImagingExtractor with a spatially sliced field of view.
+
+        Parameters
+        ----------
+        parent_imaging : ImagingExtractor
+            The ImagingExtractor object to spatially slice.
+        row_start : int, optional
+            The starting row index (inclusive). Default is 0.
+        row_end : int, optional
+            The ending row index (exclusive). Default is the full height.
+        column_start : int, optional
+            The starting column index (inclusive). Default is 0.
+        column_end : int, optional
+            The ending column index (exclusive). Default is the full width.
+        """
+        self._parent_imaging = parent_imaging
+
+        # Get parent image shape to determine defaults
+        parent_height, parent_width = parent_imaging.get_image_shape()
+
+        # Set defaults and validate
+        if row_start is None:
+            row_start = 0
+        if row_end is None:
+            row_end = parent_height
+        if column_start is None:
+            column_start = 0
+        if column_end is None:
+            column_end = parent_width
+
+        # Validation
+        assert (
+            0 <= row_start < parent_height
+        ), f"'row_start' ({row_start}) must be >= 0 and < parent height ({parent_height})"
+        assert 0 < row_end <= parent_height, f"'row_end' ({row_end}) must be > 0 and <= parent height ({parent_height})"
+        assert row_end > row_start, f"'row_end' ({row_end}) must be greater than 'row_start' ({row_start})"
+        assert (
+            0 <= column_start < parent_width
+        ), f"'column_start' ({column_start}) must be >= 0 and < parent width ({parent_width})"
+        assert (
+            0 < column_end <= parent_width
+        ), f"'column_end' ({column_end}) must be > 0 and <= parent width ({parent_width})"
+        assert (
+            column_end > column_start
+        ), f"'column_end' ({column_end}) must be greater than 'column_start' ({column_start})"
+
+        # Store slices
+        self._row_slice = slice(row_start, row_end)
+        self._column_slice = slice(column_start, column_end)
+
+        # Calculate new image shape
+        self._image_shape = (row_end - row_start, column_end - column_start)
+
+        super().__init__()
+
+        # Copy time vector from parent if it exists
+        if getattr(self._parent_imaging, "_times") is not None:
+            self._times = self._parent_imaging._times
+
+        # Inherit volumetric properties from parent
+        self.is_volumetric = self._parent_imaging.is_volumetric
+
+    def get_image_shape(self) -> tuple[int, int]:
+        """Get the shape of the spatially sliced video frame (num_rows, num_columns).
+
+        Returns
+        -------
+        image_shape: tuple
+            Shape of the sliced video frame (num_rows, num_columns).
+        """
+        return self._image_shape
+
+    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
+        """Get the spatially sliced series of samples.
+
+        Parameters
+        ----------
+        start_sample: int, optional
+            Start sample index (inclusive).
+        end_sample: int, optional
+            End sample index (exclusive).
+
+        Returns
+        -------
+        series: numpy.ndarray
+            The spatially sliced series with shape (samples, rows, columns) for 2D data
+            or (samples, rows, columns, planes) for volumetric data.
+        """
+        # Get full data from parent
+        data = self._parent_imaging.get_series(start_sample=start_sample, end_sample=end_sample)
+
+        # Apply spatial slicing
+        if self.is_volumetric:
+            # Volumetric data: (time, height, width, planes)
+            return data[:, self._row_slice, self._column_slice, :]
+        else:
+            # 2D data: (time, height, width)
+            return data[:, self._row_slice, self._column_slice]
+
+    def get_samples(self, sample_indices: ArrayType) -> np.ndarray:
+        """Get specific spatially sliced samples from indices.
+
+        Parameters
+        ----------
+        sample_indices: array-like
+            Indices of samples to return.
+
+        Returns
+        -------
+        samples: numpy.ndarray
+            The spatially sliced samples.
+        """
+        # Get samples from parent
+        data = self._parent_imaging.get_samples(sample_indices=sample_indices)
+
+        # Apply spatial slicing
+        if self.is_volumetric:
+            return data[:, self._row_slice, self._column_slice, :]
+        else:
+            return data[:, self._row_slice, self._column_slice]
+
+    def get_num_samples(self) -> int:
+        """Get the number of samples.
+
+        Returns
+        -------
+        num_samples: int
+            Number of samples in the video.
+        """
+        return self._parent_imaging.get_num_samples()
+
+    def get_sampling_frequency(self) -> float:
+        """Get the sampling frequency in Hz.
+
+        Returns
+        -------
+        sampling_frequency: float
+            Sampling frequency in Hz.
+        """
+        return self._parent_imaging.get_sampling_frequency()
+
+    def get_channel_names(self) -> list:
+        """Get the channel names.
+
+        Returns
+        -------
+        channel_names: list
+            List of strings of channel names.
+        """
+        return self._parent_imaging.get_channel_names()
+
+    def get_num_planes(self) -> int:
+        """Get the number of depth planes.
+
+        Returns
+        -------
+        num_planes: int
+            The number of depth planes.
+
+        Raises
+        ------
+        NotImplementedError
+            If the parent extractor is not volumetric.
+        """
+        if not self.is_volumetric:
+            raise NotImplementedError(
+                "This extractor is not volumetric. "
+                "The get_num_planes method is only available for volumetric extractors."
+            )
+        return self._parent_imaging.get_num_planes()
+
+    def get_native_timestamps(
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
+        """Get native timestamps from parent (FOV slicing doesn't affect temporal metadata).
+
+        Parameters
+        ----------
+        start_sample : int, optional
+            The starting sample index.
+        end_sample : int, optional
+            The ending sample index.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray or None
+            The timestamps for the data stream.
+        """
+        return self._parent_imaging.get_native_timestamps(start_sample=start_sample, end_sample=end_sample)
+
+    def has_time_vector(self) -> bool:
+        """Check if parent has time vector.
+
+        Returns
+        -------
+        has_times: bool
+            True if the parent ImagingExtractor has a time vector set.
+        """
         return self._parent_imaging.has_time_vector()

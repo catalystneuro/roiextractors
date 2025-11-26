@@ -202,7 +202,6 @@ class DepthSliceVolumetricImagingExtractor(VolumetricImagingExtractor):
     """
 
     extractor_name = "DepthSliceVolumetricImagingExtractor"
-    installation_mesg = ""
 
     def __init__(
         self,
