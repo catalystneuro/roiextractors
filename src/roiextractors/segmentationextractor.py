@@ -207,27 +207,47 @@ class SegmentationExtractor(ABC):
         self._roi_masks: _ROIMasks | None = None
         self._properties = {}
 
-    @abstractmethod
     def get_accepted_list(self) -> list:
         """Get a list of accepted ROI ids.
+
+        .. deprecated::
+            `get_accepted_list` is deprecated and will be removed in May 2026.
+            Use `get_property()` instead to access format-specific acceptance data.
 
         Returns
         -------
         accepted_list: list
             List of accepted ROI ids.
         """
-        pass
+        warnings.warn(
+            "get_accepted_list is deprecated and will be removed in May 2026. "
+            "Use get_property() instead to access format-specific acceptance data.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        # Default: all ROIs accepted
+        return list(self.get_roi_ids())
 
-    @abstractmethod
     def get_rejected_list(self) -> list:
         """Get a list of rejected ROI ids.
+
+        .. deprecated::
+            `get_rejected_list` is deprecated and will be removed in May 2026.
+            Use `get_property()` instead to access format-specific acceptance data.
 
         Returns
         -------
         rejected_list: list
             List of rejected ROI ids.
         """
-        pass
+        warnings.warn(
+            "get_rejected_list is deprecated and will be removed in May 2026. "
+            "Use get_property() instead to access format-specific acceptance data.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        # Default: no ROIs rejected
+        return []
 
     @abstractmethod
     def get_native_timestamps(
@@ -1033,11 +1053,8 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
         if getattr(self._parent_segmentation, "_times") is not None:
             self._times = self._parent_segmentation._times[start_sample:end_sample]
 
-    def get_accepted_list(self) -> list:
-        return self._parent_segmentation.get_accepted_list()
-
-    def get_rejected_list(self) -> list:
-        return self._parent_segmentation.get_rejected_list()
+        # Copy properties from parent (ROI properties are not affected by temporal slicing)
+        self._properties = dict(self._parent_segmentation._properties)
 
     def get_frame_shape(self) -> tuple[int, int]:
         return tuple(self._parent_segmentation.get_frame_shape())

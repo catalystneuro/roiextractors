@@ -272,7 +272,14 @@ class NewExtractSegmentationExtractor(
         """
         return DatasetView(self._output_struct["temporal_weights"]).lazy_transpose()
 
+    def get_roi_ids(self) -> list:
+        return list(range(self.get_num_rois()))
+
     def get_accepted_list(self) -> list:
+        """Get a list of accepted ROI ids based on non-zero spatial masks.
+
+        Note: This is computed dynamically from the current mask data.
+        """
         return [
             roi_id
             for roi_id in self.get_roi_ids()
@@ -280,13 +287,12 @@ class NewExtractSegmentationExtractor(
         ]
 
     def get_rejected_list(self) -> list:
+        """Get a list of rejected ROI ids based on empty spatial masks.
+
+        Note: This is computed dynamically from the current mask data.
+        """
         accepted_list = self.get_accepted_list()
-        rejected_list = list(set(self.get_roi_ids()) - set(accepted_list))
-
-        return rejected_list
-
-    def get_roi_ids(self) -> list:
-        return list(range(self.get_num_rois()))
+        return list(set(self.get_roi_ids()) - set(accepted_list))
 
     def get_frame_shape(self) -> ArrayType:
         """Get the frame shape (height, width) of the movie.
@@ -430,13 +436,6 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
         if self._dataset_file[self.output_struct_name].get("file"):
             charlist = [chr(i) for i in np.squeeze(self._dataset_file[self.output_struct_name]["file"][:])]
             return "".join(charlist)
-
-    def get_accepted_list(self):
-        return list(range(self.get_num_rois()))
-
-    def get_rejected_list(self):
-        ac_set = set(self.get_accepted_list())
-        return [a for a in range(self.get_num_rois()) if a not in ac_set]
 
     def get_frame_shape(self):
         """Get the frame shape (height, width) of the movie.

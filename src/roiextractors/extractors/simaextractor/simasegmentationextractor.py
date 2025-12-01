@@ -186,12 +186,6 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         summary_image = np.squeeze(self._dataset_file.time_averages[0]).T
         return np.array(summary_image).T
 
-    def get_accepted_list(self):
-        return list(range(self.get_num_rois()))
-
-    def get_rejected_list(self):
-        return [a for a in range(self.get_num_rois()) if a not in set(self.get_accepted_list())]
-
     def get_frame_shape(self):
         """Get the frame shape (height, width) of the movie.
 

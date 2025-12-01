@@ -424,34 +424,39 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             return np.array(b_sum).reshape(FOV_shape, order="F")
         return None
 
-    def get_accepted_list(self):
-        """Get list of accepted component indices.
+    def get_accepted_list(self) -> list:
+        """Get a list of accepted ROI ids.
 
         Returns
         -------
-        list
-            List of indices for components that passed quality assessment.
-            If no quality assessment was performed, returns all component indices.
+        accepted_list: list
+            List of accepted ROI ids.
         """
-        if "idx_components" in self._estimates and not self._is_scalar_dataset(self._estimates["idx_components"]):
-            return list(self._estimates["idx_components"][:])
-        # If no quality assessment, assume all components are accepted
-        return list(range(self.get_num_rois()))
+        warnings.warn(
+            "get_accepted_list is deprecated and will be removed in May 2026. "
+            "Use get_property('is_accepted', ids) instead to access CaImAn's component classification.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        is_accepted = self.get_property("is_accepted", self.get_roi_ids())
+        return [roi_id for roi_id, accepted in zip(self.get_roi_ids(), is_accepted) if accepted]
 
-    def get_rejected_list(self):
-        """Get list of rejected component indices.
+    def get_rejected_list(self) -> list:
+        """Get a list of rejected ROI ids.
 
         Returns
         -------
-        list
-            List of indices for components that failed quality assessment.
-            Returns empty list if no quality assessment was performed.
+        rejected_list: list
+            List of rejected ROI ids.
         """
-        if "idx_components_bad" in self._estimates and not self._is_scalar_dataset(
-            self._estimates["idx_components_bad"]
-        ):
-            return list(self._estimates["idx_components_bad"][:])
-        return []
+        warnings.warn(
+            "get_rejected_list is deprecated and will be removed in May 2026. "
+            "Use get_property('is_accepted', ids) instead to access CaImAn's component classification.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        is_accepted = self.get_property("is_accepted", self.get_roi_ids())
+        return [roi_id for roi_id, accepted in zip(self.get_roi_ids(), is_accepted) if not accepted]
 
     def get_frame_shape(self) -> tuple:
         return tuple(self._params["data"]["dims"][()])
@@ -522,6 +527,17 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         as properties that can be accessed via the property interface.
         """
         roi_ids = self.get_roi_ids()
+        num_rois = len(roi_ids)
+
+        # Set is_accepted property derived from idx_components/idx_components_bad
+        is_accepted = np.zeros(num_rois, dtype=bool)
+        if "idx_components" in self._estimates and not self._is_scalar_dataset(self._estimates["idx_components"]):
+            idx_components = list(self._estimates["idx_components"][:])
+            is_accepted[idx_components] = True
+        else:
+            # If no quality assessment was performed, assume all components are accepted
+            is_accepted[:] = True
+        self.set_property(key="is_accepted", values=is_accepted, ids=roi_ids)
 
         # Set SNR values as property if available
         snr_values = self._get_snr_values()

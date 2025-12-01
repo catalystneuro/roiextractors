@@ -143,13 +143,6 @@ class CnmfeSegmentationExtractor(SegmentationExtractor):
             charlist = [chr(i) for i in np.squeeze(self._dataset_file[self._group0[0]]["movieList"][:])]
             return "".join(charlist)
 
-    def get_accepted_list(self):
-        return list(range(self.get_num_rois()))
-
-    def get_rejected_list(self):
-        ac_set = set(self.get_accepted_list())
-        return [a for a in range(self.get_num_rois()) if a not in ac_set]
-
     def get_frame_shape(self):
         """Get the frame shape (height, width) of the movie.
 

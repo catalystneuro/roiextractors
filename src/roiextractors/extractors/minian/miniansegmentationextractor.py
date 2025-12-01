@@ -388,26 +388,6 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             return super().get_roi_ids()  # Fallback to default implementation
         return list(dataset["unit_id"])
 
-    def get_accepted_list(self) -> list:
-        """Get a list of accepted ROI ids.
-
-        Returns
-        -------
-        accepted_list: list
-            List of accepted ROI ids.
-        """
-        return self.get_roi_ids()
-
-    def get_rejected_list(self) -> list:
-        """Get a list of rejected ROI ids.
-
-        Returns
-        -------
-        rejected_list: list
-            List of rejected ROI ids.
-        """
-        return list()
-
     def get_images_dict(self) -> dict:
         """Get images as a dictionary with key as the name of the ROIResponseSeries.
 

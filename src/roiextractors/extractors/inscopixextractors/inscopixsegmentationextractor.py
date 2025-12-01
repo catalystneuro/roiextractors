@@ -74,6 +74,11 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
                 roi_id_map=roi_id_map,
             )
 
+        # Set cell_status as a property for ROI classification
+        if self.cell_set.num_cells > 0:
+            cell_status = np.array([self.cell_set.get_cell_status(i) for i in range(self.cell_set.num_cells)])
+            self.set_property("cell_status", cell_status, self._roi_ids)
+
     def get_num_rois(self) -> int:
         return self.cell_set.num_cells
 
@@ -103,20 +108,42 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         return self.get_frame_shape()
 
     def get_accepted_list(self) -> list:
-        """Get list of accepted ROI IDs (as string IDs)."""
-        accepted = []
-        for i, original_id in enumerate(self._roi_ids):
-            if self.cell_set.get_cell_status(i) == "accepted":
-                accepted.append(original_id)  # Return string IDs
-        return accepted
+        """Get a list of accepted ROI ids.
+
+        Returns
+        -------
+        accepted_list: list
+            List of accepted ROI ids.
+        """
+        warnings.warn(
+            "get_accepted_list is deprecated and will be removed in May 2026. "
+            "Use get_property('cell_status', ids) instead to access Inscopix's native classification.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if self.cell_set.num_cells == 0:
+            return []
+        cell_status = self.get_property("cell_status", self.get_roi_ids())
+        return [roi_id for roi_id, status in zip(self.get_roi_ids(), cell_status) if status == "accepted"]
 
     def get_rejected_list(self) -> list:
-        """Get list of rejected ROI IDs (as string IDs)."""
-        rejected = []
-        for i, original_id in enumerate(self._roi_ids):
-            if self.cell_set.get_cell_status(i) == "rejected":
-                rejected.append(original_id)  # Return string IDs
-        return rejected
+        """Get a list of rejected ROI ids.
+
+        Returns
+        -------
+        rejected_list: list
+            List of rejected ROI ids.
+        """
+        warnings.warn(
+            "get_rejected_list is deprecated and will be removed in May 2026. "
+            "Use get_property('cell_status', ids) instead to access Inscopix's native classification.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if self.cell_set.num_cells == 0:
+            return []
+        cell_status = self.get_property("cell_status", self.get_roi_ids())
+        return [roi_id for roi_id, status in zip(self.get_roi_ids(), cell_status) if status == "rejected"]
 
     def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="raw") -> ArrayType:
         """Get traces for the specified ROIs.
