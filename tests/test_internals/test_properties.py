@@ -88,7 +88,9 @@ def test_getter_property_validation():
     extractor.set_property(key="quality", values=[0.8, 0.9, 0.7], ids=roi_ids)
 
     # Try to get a property with similar name that doesn't exist, the error should tell the user what is available
-    with pytest.raises(KeyError, match="Property 'quality_score' not found. Available properties: \\['quality'\\]"):
+    with pytest.raises(
+        KeyError, match=r"Property 'quality_score' not found\. Available properties: \['is_accepted', 'quality'\]"
+    ):
         extractor.get_property(key="quality_score", ids=roi_ids)
 
 

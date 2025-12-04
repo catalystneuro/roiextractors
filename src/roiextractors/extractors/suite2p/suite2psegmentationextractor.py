@@ -172,6 +172,10 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         else:
             self.iscell = self._load_npy("iscell.npy", mmap_mode="r")
 
+        # Set iscell as a property for ROI classification (first column is the binary classification)
+        if self.iscell is not None:
+            self.set_property("iscell", self.iscell[:, 0], self._roi_ids)
+
         # The name of the OpticalChannel object is "OpticalChannel" if there is only one channel, otherwise it is
         # "Chan1" or "Chan2".
         self._channel_names = ["OpticalChannel" if len(channel_names) == 1 else channel_name.capitalize()]
@@ -256,11 +260,41 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         )
         return self.get_num_samples()
 
-    def get_accepted_list(self) -> list[int]:
-        return list(np.where(self.iscell[:, 0] == 1)[0])
+    def get_accepted_list(self) -> list:
+        """Get a list of accepted ROI ids.
 
-    def get_rejected_list(self) -> list[int]:
-        return list(np.where(self.iscell[:, 0] == 0)[0])
+        Returns
+        -------
+        accepted_list: list
+            List of accepted ROI ids.
+        """
+        warnings.warn(
+            "get_accepted_list is deprecated and will be removed in May 2026. "
+            "Use get_property('iscell', ids) instead to access Suite2p's native classification.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if self.iscell is None:
+            return list(self.get_roi_ids())
+        return [roi_id for roi_id, is_cell in zip(self.get_roi_ids(), self.iscell[:, 0]) if is_cell]
+
+    def get_rejected_list(self) -> list:
+        """Get a list of rejected ROI ids.
+
+        Returns
+        -------
+        rejected_list: list
+            List of rejected ROI ids.
+        """
+        warnings.warn(
+            "get_rejected_list is deprecated and will be removed in May 2026. "
+            "Use get_property('iscell', ids) instead to access Suite2p's native classification.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if self.iscell is None:
+            return []
+        return [roi_id for roi_id, is_cell in zip(self.get_roi_ids(), self.iscell[:, 0]) if not is_cell]
 
     def _correlation_image_read(self) -> np.ndarray | None:
         """Read correlation image from ops (settings) dict.

@@ -302,8 +302,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             raise Exception("file does not exist")
         self.file_path = file_path
         self._roi_locs = None
-        self._accepted_list = None
-        self._rejected_list = None
         self._io = NWBHDF5IO(str(file_path), mode="r")
         self.nwbfile = self._io.read()
 
@@ -342,8 +340,8 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             assert "image_mask" in ps.colnames, "Could not find any image_masks in nwbfile."
             image_masks_data = DatasetView(ps["image_mask"].data).lazy_transpose([2, 1, 0])
             self._roi_locs = ps["ROICentroids"] if "ROICentroids" in ps.colnames else None
-            self._accepted_list = ps["Accepted"].data[:] if "Accepted" in ps.colnames else None
-            self._rejected_list = ps["Rejected"].data[:] if "Rejected" in ps.colnames else None
+            accepted_data = ps["Accepted"].data[:] if "Accepted" in ps.colnames else None
+            rejected_data = ps["Rejected"].data[:] if "Rejected" in ps.colnames else None
             if hasattr(ps, "id"):
                 self._roi_ids = ps.id.data[:].tolist()
             else:
@@ -357,6 +355,12 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 field_of_view_shape=self.get_frame_shape(),
                 roi_id_map=roi_id_map,
             )
+
+            # Set accepted/rejected as properties if columns exist in NWB file
+            if accepted_data is not None:
+                self.set_property("accepted", accepted_data.astype(bool), self._roi_ids)
+            if rejected_data is not None:
+                self.set_property("rejected", rejected_data.astype(bool), self._roi_ids)
 
         # Extracting stored images as GrayscaleImages:
         self._segmentation_images = None
@@ -383,17 +387,43 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         """Close the NWB file."""
         self._io.close()
 
-    def get_accepted_list(self):
-        if self._accepted_list is None:
-            return list(range(self.get_num_rois()))
-        else:
-            return np.where(self._accepted_list == 1)[0].tolist()
+    def get_accepted_list(self) -> list:
+        """Get a list of accepted ROI ids.
 
-    def get_rejected_list(self):
-        if self._rejected_list is not None:
-            rej_list = np.where(self._rejected_list == 1)[0].tolist()
-            if len(rej_list) > 0:
-                return rej_list
+        Returns
+        -------
+        accepted_list: list
+            List of accepted ROI ids.
+        """
+        warnings.warn(
+            "get_accepted_list is deprecated and will be removed in May 2026. "
+            "Use get_property('accepted', ids) instead to access NWB's acceptance data.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if "accepted" not in self.get_property_keys():
+            return list(self.get_roi_ids())
+        accepted = self.get_property("accepted", self.get_roi_ids())
+        return [roi_id for roi_id, is_accepted in zip(self.get_roi_ids(), accepted) if is_accepted]
+
+    def get_rejected_list(self) -> list:
+        """Get a list of rejected ROI ids.
+
+        Returns
+        -------
+        rejected_list: list
+            List of rejected ROI ids.
+        """
+        warnings.warn(
+            "get_rejected_list is deprecated and will be removed in May 2026. "
+            "Use get_property('rejected', ids) instead to access NWB's rejection data.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if "rejected" not in self.get_property_keys():
+            return []
+        rejected = self.get_property("rejected", self.get_roi_ids())
+        return [roi_id for roi_id, is_rejected in zip(self.get_roi_ids(), rejected) if is_rejected]
 
     def get_images_dict(self):
         """Return traces as a dictionary with key as the name of the ROIResponseSeries.

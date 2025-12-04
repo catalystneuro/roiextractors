@@ -392,8 +392,14 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         self._roi_locs = roi_locations
         self._sampling_frequency = sampling_frequency
         self._channel_names = channel_names
-        self._rejected_list = rejected_list
-        self._accepted_list = accepted_list
+
+        # Set accepted_list and rejected_list as properties if provided
+        if accepted_list is not None:
+            is_accepted = np.array([roi_id in accepted_list for roi_id in self._roi_ids], dtype=bool)
+            self.set_property("is_accepted", is_accepted, self._roi_ids)
+        if rejected_list is not None:
+            is_rejected = np.array([roi_id in rejected_list for roi_id in self._roi_ids], dtype=bool)
+            self.set_property("is_rejected", is_rejected, self._roi_ids)
 
     @property
     def image_dims(self):
@@ -406,17 +412,43 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         """
         return list(self._roi_masks.field_of_view_shape)
 
-    def get_accepted_list(self):
-        if self._accepted_list is None:
-            return self.get_roi_ids()
-        else:
-            return self._accepted_list
+    def get_accepted_list(self) -> list:
+        """Get a list of accepted ROI ids.
 
-    def get_rejected_list(self):
-        if self._rejected_list is None:
-            return [a for a in self.get_roi_ids() if a not in set(self.get_accepted_list())]
-        else:
-            return self._rejected_list
+        Returns
+        -------
+        accepted_list: list
+            List of accepted ROI ids.
+        """
+        warnings.warn(
+            "get_accepted_list is deprecated and will be removed in May 2026. "
+            "Use get_property('is_accepted', ids) instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if "is_accepted" not in self.get_property_keys():
+            return list(self.get_roi_ids())
+        is_accepted = self.get_property("is_accepted", self.get_roi_ids())
+        return [roi_id for roi_id, accepted in zip(self.get_roi_ids(), is_accepted) if accepted]
+
+    def get_rejected_list(self) -> list:
+        """Get a list of rejected ROI ids.
+
+        Returns
+        -------
+        rejected_list: list
+            List of rejected ROI ids.
+        """
+        warnings.warn(
+            "get_rejected_list is deprecated and will be removed in May 2026. "
+            "Use get_property('is_rejected', ids) instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if "is_rejected" not in self.get_property_keys():
+            return []
+        is_rejected = self.get_property("is_rejected", self.get_roi_ids())
+        return [roi_id for roi_id, rejected in zip(self.get_roi_ids(), is_rejected) if rejected]
 
     @property
     def roi_locations(self):
