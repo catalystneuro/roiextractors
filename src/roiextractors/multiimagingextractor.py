@@ -61,8 +61,7 @@ class MultiImagingExtractor(ImagingExtractor):
         -----
         This method checks the following properties:
             - sampling frequency
-            - image size
-            - number of channels
+            - sample shape (image size and number of channels)
             - channel names
             - data type
         """
@@ -71,7 +70,6 @@ class MultiImagingExtractor(ImagingExtractor):
             get_sample_shape="The shape of a sample",
             get_channel_names="The name of the channels",
             get_dtype="The data type",
-            get_num_samples="The number of samples",
         )
         for method, property_message in properties_to_check.items():
             values = [getattr(extractor, method)() for extractor in self._imaging_extractors]
