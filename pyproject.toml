@@ -128,3 +128,8 @@ known-first-party = ["roiextractors"]
 skip = '.git*,*.pdf,*.css,*.svg'
 check-hidden = true
 ignore-words-list = 'assertin,tye'
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.0",
+]
