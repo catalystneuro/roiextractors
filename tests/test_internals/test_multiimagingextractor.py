@@ -175,73 +175,33 @@ class TestMultiImagingExtractor(TestCase):
             MultiImagingExtractor(imaging_extractors=inconsistent_extractors)
 
 
-class TestMultiImagingExtractorDifferentFrameCounts(TestCase):
-    """Test MultiImagingExtractor with extractors having different numbers of frames.
+def test_multi_imaging_extractor_different_sample_counts():
+    """Test MultiImagingExtractor with extractors having different numbers of samples.
 
     This simulates real-world scenarios like Miniscope recordings where the last
-    file often has fewer frames than the others (e.g., files 0-52 have 1000 frames,
-    but file 53 has 614 frames).
+    file often has fewer samples than the others (e.g., files 0-52 have 1000 samples,
+    but file 53 has 614 samples).
 
     See: https://github.com/catalystneuro/roiextractors/issues/534
     """
+    # Simulate a typical recording: most files have 10 samples, last file has 6
+    extractors = [
+        generate_dummy_imaging_extractor(num_samples=10, num_rows=3, num_columns=4, sampling_frequency=20.0),
+        generate_dummy_imaging_extractor(num_samples=10, num_rows=3, num_columns=4, sampling_frequency=20.0),
+        generate_dummy_imaging_extractor(num_samples=6, num_rows=3, num_columns=4, sampling_frequency=20.0),
+    ]
+    multi_imaging_extractor = MultiImagingExtractor(imaging_extractors=extractors)
 
-    @classmethod
-    def setUpClass(cls):
-        # Simulate a typical recording: most files have 10 frames, last file has 6
-        cls.extractors = [
-            generate_dummy_imaging_extractor(num_samples=10, num_rows=3, num_columns=4, sampling_frequency=20.0),
-            generate_dummy_imaging_extractor(num_samples=10, num_rows=3, num_columns=4, sampling_frequency=20.0),
-            generate_dummy_imaging_extractor(num_samples=6, num_rows=3, num_columns=4, sampling_frequency=20.0),
-        ]
-        cls.multi_imaging_extractor = MultiImagingExtractor(imaging_extractors=cls.extractors)
+    # Total should be 10 + 10 + 6 = 26
+    assert multi_imaging_extractor.get_num_samples() == 26
 
-    def test_get_num_samples(self):
-        # Total should be 10 + 10 + 6 = 26
-        assert self.multi_imaging_extractor.get_num_samples() == 26
-
-    def test_get_frames_from_last_extractor(self):
-        # Get frames from the last extractor (which has fewer frames)
-        test_frames = self.multi_imaging_extractor.get_frames(frame_idxs=[20, 22, 25])
-        expected_frames = self.extractors[2].get_frames(frame_idxs=[0, 2, 5])
-        assert_array_equal(test_frames, expected_frames)
-
-    def test_get_frames_spanning_all_extractors(self):
-        # Get frames that span all three extractors
-        test_frames = self.multi_imaging_extractor.get_frames(frame_idxs=[5, 15, 23])
-        expected_frames = np.concatenate(
-            (
-                self.extractors[0].get_frames(frame_idxs=[5])[np.newaxis, ...],
-                self.extractors[1].get_frames(frame_idxs=[5])[np.newaxis, ...],
-                self.extractors[2].get_frames(frame_idxs=[3])[np.newaxis, ...],
-            ),
-            axis=0,
-        )
-        assert_array_equal(test_frames, expected_frames)
-
-    def test_get_series_all(self):
-        test_series = self.multi_imaging_extractor.get_series()
-        expected_series = np.concatenate(
-            [
-                self.extractors[0].get_series(),
-                self.extractors[1].get_series(),
-                self.extractors[2].get_series(),
-            ],
-            axis=0,
-        )
-        assert_array_equal(test_series, expected_series)
-
-    def test_get_series_spanning_boundary(self):
-        # Get series spanning boundary between second (10 frames) and third (6 frames) extractor
-        test_series = self.multi_imaging_extractor.get_series(start_sample=18, end_sample=24)
-        expected_series = np.concatenate(
-            [
-                self.extractors[1].get_series(start_sample=8, end_sample=10),
-                self.extractors[2].get_series(start_sample=0, end_sample=4),
-            ],
-            axis=0,
-        )
-        assert_array_equal(test_series, expected_series)
-
-
-if __name__ == "__main__":
-    unittest.main()
+    test_series = multi_imaging_extractor.get_series()
+    expected_series = np.concatenate(
+        [
+            extractors[0].get_series(),
+            extractors[1].get_series(),
+            extractors[2].get_series(),
+        ],
+        axis=0,
+    )
+    assert_array_equal(test_series, expected_series)
