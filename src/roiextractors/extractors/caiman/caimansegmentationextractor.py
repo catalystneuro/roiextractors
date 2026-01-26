@@ -554,15 +554,6 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         if cnn_preds is not None and len(cnn_preds) == len(roi_ids):
             self.set_property(key="cnn_preds", values=cnn_preds, ids=roi_ids)
 
-    def get_image_size(self):
-        warnings.warn(
-            "get_image_size is deprecated and will be removed on or after January 2026. "
-            "Use get_frame_shape instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.get_frame_shape()
-
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
     ) -> np.ndarray | None:
