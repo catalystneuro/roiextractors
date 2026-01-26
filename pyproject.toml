@@ -50,7 +50,6 @@ dependencies = [
 full = [
     "tifffile>=2018.11.6",
     "scanimage-tiff-reader>=1.4.1.4",
-    "neuroconv[video]>=0.4.6",
     # Remove this pin when the following issue is resolved: https://github.com/opencv/opencv-python/issues/1192
     "opencv-python-headless>=4.8.1.78,<4.13; platform_system == 'Darwin' and platform_machine == 'x86_64'",
     "opencv-python-headless>=4.8.1.78; platform_system != 'Darwin' or platform_machine != 'x86_64'",
