@@ -4,8 +4,6 @@ Classes
 -------
 ImagingExtractor
     Abstract class that contains all the meta-data and input data from the imaging data.
-FrameSliceImagingExtractor
-    Class to get a lazy frame slice.
 """
 
 import warnings
