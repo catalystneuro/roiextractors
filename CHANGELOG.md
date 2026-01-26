@@ -6,6 +6,7 @@
 
 ### Fixes
 * Bruker series can now read sequences of type `TSeries Brightness Over Time Element` [PR #527](https://github.com/catalystneuro/roiextractors/pull/527)
+* Pinned opencv version for MacOs Intel [PR #536](https://github.com/catalystneuro/roiextractors/pull/536)
 
 ### Deprecations And Removals
 * Deprecated `get_accepted_list()` and `get_rejected_list()` methods (will be removed in May 2026). ROI classification is now stored as properties using format-native nomenclature. Use `get_property()` instead to access format-specific acceptance data. [PR #536](https://github.com/catalystneuro/roiextractors/pull/536)
