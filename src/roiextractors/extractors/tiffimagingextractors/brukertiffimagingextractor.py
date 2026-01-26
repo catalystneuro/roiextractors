@@ -20,7 +20,13 @@ from xml.etree import ElementTree
 import numpy as np
 from lxml import etree
 
-from ...extraction_tools import ArrayType, DtypeType, PathType, get_package
+from ...extraction_tools import (
+    ArrayType,
+    DtypeType,
+    PathType,
+    calculate_regular_series_rate,
+    get_package,
+)
 from ...imagingextractor import ImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor
 
@@ -40,8 +46,6 @@ def _get_tiff_reader() -> ModuleType:
 
 def _determine_frame_rate(element: etree.Element, file_names: list[str] | None = None) -> float | None:
     """Determine the frame rate from the difference in relative timestamps of the frame elements."""
-    from neuroconv.utils import calculate_regular_series_rate
-
     # Use a single XPath expression if file_names are provided
     if file_names:
         file_names_set = set(file_names)

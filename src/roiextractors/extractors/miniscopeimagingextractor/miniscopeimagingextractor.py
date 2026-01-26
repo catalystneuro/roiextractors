@@ -899,19 +899,16 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
         file_path: PathType
             The file path to the Miniscope video (.avi) file.
         """
-        from neuroconv.datainterfaces.behavior.video.video_utils import (
-            VideoCaptureContext,
-        )
-
-        self._video_capture = VideoCaptureContext
         self._cv2 = get_package(package_name="cv2", installation_instructions="pip install opencv-python-headless")
         self.file_path = file_path
         super().__init__()
 
-        with self._video_capture(file_path=str(file_path)) as video_obj:
-            self._num_samples = video_obj.get_video_frame_count()
-            self._image_size = video_obj.get_frame_shape()
-            self._dtype = video_obj.get_video_frame_dtype()
+        vc = self._cv2.VideoCapture(str(file_path))
+        self._num_samples = int(vc.get(self._cv2.CAP_PROP_FRAME_COUNT))
+        _, frame = vc.read()
+        self._image_size = frame.shape
+        self._dtype = frame.dtype
+        vc.release()
 
         self._sampling_frequency = None
 
@@ -947,12 +944,12 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
         start_sample = start_sample or 0
 
         series = np.empty(shape=(end_sample - start_sample, *self.get_sample_shape()), dtype=self.get_dtype())
-        with self._video_capture(file_path=str(self.file_path)) as video_obj:
-            # Set the starting frame position
-            video_obj.current_frame = start_sample
-            for frame_number in range(end_sample - start_sample):
-                frame = next(video_obj)
-                series[frame_number] = self._cv2.cvtColor(frame, self._cv2.COLOR_RGB2GRAY)
+        vc = self._cv2.VideoCapture(str(self.file_path))
+        vc.set(self._cv2.CAP_PROP_POS_FRAMES, start_sample)
+        for frame_number in range(end_sample - start_sample):
+            _, frame = vc.read()
+            series[frame_number] = self._cv2.cvtColor(frame, self._cv2.COLOR_BGR2GRAY)
+        vc.release()
 
         return series
 
