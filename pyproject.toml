@@ -14,7 +14,7 @@ authors = [
     { name = "Cody Baker" },
     { name = "Ben Dichter", email = "ben.dichter@gmail.com" },
     { name = "Alessio Buccino" },
-    { name = "Paul Adkisson" },
+    { name = "Paul Adkisson-Floro" },
     { name = "Alessandra Trapani" },
     { name = "Daphné de Quatrebarbes" },
 ]
@@ -51,7 +51,9 @@ full = [
     "tifffile>=2018.11.6",
     "scanimage-tiff-reader>=1.4.1.4",
     "neuroconv[video]>=0.4.6",
-    "opencv-python-headless>=4.8.1.78",
+    # Remove this pin when the following issue is resolved: https://github.com/opencv/opencv-python/issues/1192
+    "opencv-python-headless>=4.8.1.78,<4.13; platform_system == 'Darwin' and platform_machine == 'x86_64'",
+    "opencv-python-headless>=4.8.1.78; platform_system != 'Darwin' or platform_machine != 'x86_64'",
     "natsort>=8.3.1",
     "isx>=2.0; sys_platform != 'darwin' or platform_machine != 'arm64'"
 ]
