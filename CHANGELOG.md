@@ -23,7 +23,7 @@
 * Deprecated `make_nwb_metadata()` method in `NwbImagingExtractor` (will be removed on or after May 2026). [PR #529](https://github.com/catalystneuro/roiextractors/pull/529)
 
 ### Improvements
-* Removed neuroconv dependency from `MiniscopeImagingExtractor` by replacing `VideoCaptureContext` with direct `cv2.VideoCapture` calls [PR #537](https://github.com/catalystneuro/roiextractors/pull/537)
+* Removed neuroconv as a dependency by replacing `VideoCaptureContext` with direct `cv2.VideoCapture` calls in `MiniscopeImagingExtractor` and adding `calculate_regular_series_rate` to `extraction_tools` for `BrukerTiffImagingExtractor` [PR #537](https://github.com/catalystneuro/roiextractors/pull/537)
 * Implemented `get_native_timestamps()` method in `NwbImagingExtractor` to properly extract timestamps using NWB's native `get_timestamps()` method. [PR #526](https://github.com/catalystneuro/roiextractors/pull/526)
 * Removed unreachable code in `NwbImagingExtractor.__init__()` for handling unsupported data shapes. [PR #526](https://github.com/catalystneuro/roiextractors/pull/526)
 * Updated documentation to use current API methods: replaced deprecated `get_frames()` with `get_series()`, `get_image_size()` with `get_frame_shape()`, and removed `get_channel_names()` examples from tutorials and use cases.
