@@ -22,10 +22,17 @@ You can also install the optional dependencies by installing the package with th
 .. code-block:: shell
 
     $ pip install "roiextractors[full]"
-    $ pip install "roiextractors[test]"
-    $ pip install "roiextractors[docs]"
 
-These commands install the full, test, and documentation dependencies, respectively.
+The `full` extra installs format-specific dependencies.
+
+For development, testing, or building documentation, use dependency groups:
+
+.. code-block:: shell
+
+    $ pip install --group test
+    $ pip install --group docs
+
+These commands install the test and documentation dependencies, respectively.
 
 What is RoiExtractors
 ---------------------
