@@ -41,7 +41,7 @@ jobs:
         run: python -c "import roiextractors"
 
       - name: Install roiextractors with testing requirements
-        run: pip install .[test]
+        run: pip install --group test
       - name: Run minimal tests
         run: pytest tests/test_internals -n auto --dist loadscope
 

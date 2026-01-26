@@ -347,15 +347,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
     def get_frame_shape(self) -> tuple[int, int]:
         return self._image_shape
 
-    def get_image_size(self) -> tuple[int, int]:
-        warnings.warn(
-            "get_image_size is deprecated and will be removed on or after January 2026. "
-            "Use get_frame_shape instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.get_frame_shape()
-
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
     ) -> np.ndarray | None:

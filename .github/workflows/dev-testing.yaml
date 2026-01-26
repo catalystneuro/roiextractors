@@ -34,13 +34,15 @@ jobs:
 
       - name: Install full requirements
         run: |
-            pip install .[test,full]
+            pip install .[full]
+            pip install --group test
 
       - name: Clone and Install NeuroConv
         run: |
             git clone https://github.com/catalystneuro/neuroconv.git
             cd neuroconv
-            pip install --no-cache-dir .[full,test]
+            pip install --no-cache-dir .[full]
+            pip install --group test
             cd ../
       - name: Prepare data for tests
         uses: ./.github/actions/load-data

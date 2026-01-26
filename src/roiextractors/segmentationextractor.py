@@ -278,25 +278,6 @@ class SegmentationExtractor(ABC):
         """
         pass
 
-    def get_image_size(self) -> ArrayType:
-        """Get frame size of movie (height, width).
-
-        .. deprecated:: on or after January 2026
-           Use :meth:`get_frame_shape` instead.
-
-        Returns
-        -------
-        no_rois: array_like
-            2-D array: image height x image width
-        """
-        warnings.warn(
-            "get_image_size is deprecated and will be removed on or after January 2026. "
-            "Use get_frame_shape instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.get_frame_shape()
-
     def get_num_samples(self) -> int:
         """Get the number of samples in the recording (duration of recording).
 
