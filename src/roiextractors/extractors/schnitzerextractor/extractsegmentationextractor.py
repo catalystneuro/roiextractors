@@ -10,7 +10,6 @@ LegacyExtractSegmentationExtractor
     Extractor for reading the segmentation data that results from calls to older versions of EXTRACT.
 """
 
-import warnings
 from abc import ABC
 from pathlib import Path
 
@@ -304,15 +303,6 @@ class NewExtractSegmentationExtractor(
         """
         return self._roi_masks.field_of_view_shape
 
-    def get_image_size(self) -> ArrayType:
-        warnings.warn(
-            "get_image_size is deprecated and will be removed on or after January 2026. "
-            "Use get_frame_shape instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.get_frame_shape()
-
     def get_images_dict(self):
         return dict(self._summary_images)
 
@@ -446,15 +436,6 @@ class LegacyExtractSegmentationExtractor(SegmentationExtractor):
             The frame shape as (height, width).
         """
         return self._roi_masks.field_of_view_shape
-
-    def get_image_size(self):
-        warnings.warn(
-            "get_image_size is deprecated and will be removed on or after January 2026. "
-            "Use get_frame_shape instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.get_frame_shape()
 
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None

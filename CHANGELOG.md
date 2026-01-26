@@ -18,9 +18,10 @@
 * Removed deprecated `time_to_frame()` method from `ImagingExtractor` (deprecated October 2025). Use `time_to_sample_indices()` instead. [PR #524](https://github.com/catalystneuro/roiextractors/pull/524)
 * Removed deprecated `frame_slice()` method from `ImagingExtractor` and `VolumetricImagingExtractor` (deprecated October 2025). Use `slice_samples()` instead. [PR #524](https://github.com/catalystneuro/roiextractors/pull/524)
 * Removed deprecated `FrameSliceImagingExtractor` class (deprecated October 2025). Use `SampleSlicedImagingExtractor` instead. [PR #524](https://github.com/catalystneuro/roiextractors/pull/524)
+* Removed deprecated `get_image_size()` method from `SegmentationExtractor` and all subclasses (deprecated January 2026). Use `get_frame_shape()` instead. [PR #539](https://github.com/catalystneuro/roiextractors/pull/539)
 * Removed deprecated `channel` parameter from `get_frames()` and `get_video()` methods in all imaging extractors (deprecated August 2025). [PR #524](https://github.com/catalystneuro/roiextractors/pull/524)
 * Removed deprecated ScanImage extractor classes (deprecated October 2025): `ScanImageTiffSinglePlaneImagingExtractor`, `ScanImageTiffMultiPlaneImagingExtractor`, `ScanImageTiffSinglePlaneMultiFileImagingExtractor`, and `ScanImageTiffMultiPlaneMultiFileImagingExtractor`. Use `ScanImageImagingExtractor` instead. [PR #524](https://github.com/catalystneuro/roiextractors/pull/524)
-* Deprecated `make_nwb_metadata()` method in `NwbImagingExtractor` (will be removed on or after May 2026). [PR #524](https://github.com/catalystneuro/roiextractors/pull/524)
+* Deprecated `make_nwb_metadata()` method in `NwbImagingExtractor` (will be removed on or after May 2026). [PR #529](https://github.com/catalystneuro/roiextractors/pull/529)
 
 ### Improvements
 * Removed neuroconv as a dependency by replacing `VideoCaptureContext` with direct `cv2.VideoCapture` calls in `MiniscopeImagingExtractor` and adding `calculate_regular_series_rate` to `extraction_tools` for `BrukerTiffImagingExtractor` [PR #537](https://github.com/catalystneuro/roiextractors/pull/537)
