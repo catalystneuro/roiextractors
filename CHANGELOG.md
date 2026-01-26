@@ -1,7 +1,7 @@
 # v0.7.3 (Upcoming)
 
 ### Features
-* Added volumetric (3D) imaging support to `NwbImagingExtractor` for reading 4D TwoPhotonSeries and OnePhotonSeries data [PR #526](https://github.com/catalystneuro/roiextractors/pull/526)
+* Added volumetric (3D) imaging support to `NwbImagingExtractor` for reading 4D TwoPhotonSeries and OnePhotonSeries data [PR #528](https://github.com/catalystneuro/roiextractors/pull/528)
 * Added `slice_field_of_view()` method to `ImagingExtractor` and `VolumetricImagingExtractor` for spatial cropping of imaging data by specifying row and column ranges [PR #532](https://github.com/catalystneuro/roiextractors/pull/532)
 
 ### Fixes
@@ -9,23 +9,24 @@
 * Pinned opencv version for MacOs Intel [PR #536](https://github.com/catalystneuro/roiextractors/pull/536)
 
 ### Deprecations And Removals
-* Deprecated `get_accepted_list()` and `get_rejected_list()` methods (will be removed in May 2026). ROI classification is now stored as properties using format-native nomenclature. Use `get_property()` instead to access format-specific acceptance data. [PR #536](https://github.com/catalystneuro/roiextractors/pull/536)
+* Deprecated `get_accepted_list()` and `get_rejected_list()` methods (will be removed in May 2026). ROI classification is now stored as properties using format-native nomenclature. Use `get_property()` instead to access format-specific acceptance data. [PR #524](https://github.com/catalystneuro/roiextractors/pull/524) [PR #533](https://github.com/catalystneuro/roiextractors/pull/533)
 * Deprecated `get_channel_names()` method across all extractors (will be removed on or after May 2026). The method is no longer abstract and provides a default implementation returning `["channel_0", "channel_1", ...]` before removal. [PR #530](https://github.com/catalystneuro/roiextractors/pull/530)
-* Removed deprecated `get_image_size()` method from `ImagingExtractor`, `MultiImagingExtractor`, and `VolumetricImagingExtractor` (deprecated September 2025). Use `get_image_shape()` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
-* Removed deprecated `get_num_frames()` method from `ImagingExtractor`, `MultiImagingExtractor`, and `VolumetricImagingExtractor` (deprecated September 2025). Use `get_num_samples()` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
-* Removed deprecated `get_video()` method from `ImagingExtractor`, `MultiImagingExtractor`, and `VolumetricImagingExtractor` (deprecated September 2025). Use `get_series()` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
-* Removed deprecated `frame_to_time()` method from `ImagingExtractor` (deprecated October 2025). Use `sample_indices_to_time()` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
-* Removed deprecated `time_to_frame()` method from `ImagingExtractor` (deprecated October 2025). Use `time_to_sample_indices()` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
-* Removed deprecated `frame_slice()` method from `ImagingExtractor` and `VolumetricImagingExtractor` (deprecated October 2025). Use `slice_samples()` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
-* Removed deprecated `FrameSliceImagingExtractor` class (deprecated October 2025). Use `SampleSlicedImagingExtractor` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
-* Removed deprecated `channel` parameter from `get_frames()` and `get_video()` methods in all imaging extractors (deprecated August 2025). [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
-* Removed deprecated ScanImage extractor classes (deprecated October 2025): `ScanImageTiffSinglePlaneImagingExtractor`, `ScanImageTiffMultiPlaneImagingExtractor`, `ScanImageTiffSinglePlaneMultiFileImagingExtractor`, and `ScanImageTiffMultiPlaneMultiFileImagingExtractor`. Use `ScanImageImagingExtractor` instead. [PR #372](https://github.com/catalystneuro/roiextractors/pull/372)
-* Deprecated `make_nwb_metadata()` method in `NwbImagingExtractor` (will be removed on or after May 2026). [PR #529](https://github.com/catalystneuro/roiextractors/pull/529)
+* Removed deprecated `get_image_size()` method from `ImagingExtractor`, `MultiImagingExtractor`, and `VolumetricImagingExtractor` (deprecated September 2025). Use `get_image_shape()` instead. [PR #524](https://github.com/catalystneuro/roiextractors/pull/524)
+* Removed deprecated `get_num_frames()` method from `ImagingExtractor`, `MultiImagingExtractor`, and `VolumetricImagingExtractor` (deprecated September 2025). Use `get_num_samples()` instead. [PR #524](https://github.com/catalystneuro/roiextractors/pull/524)
+* Removed deprecated `get_video()` method from `ImagingExtractor`, `MultiImagingExtractor`, and `VolumetricImagingExtractor` (deprecated September 2025). Use `get_series()` instead. [PR #524](https://github.com/catalystneuro/roiextractors/pull/524)
+* Removed deprecated `frame_to_time()` method from `ImagingExtractor` (deprecated October 2025). Use `sample_indices_to_time()` instead. [PR #524](https://github.com/catalystneuro/roiextractors/pull/524)
+* Removed deprecated `time_to_frame()` method from `ImagingExtractor` (deprecated October 2025). Use `time_to_sample_indices()` instead. [PR #524](https://github.com/catalystneuro/roiextractors/pull/524)
+* Removed deprecated `frame_slice()` method from `ImagingExtractor` and `VolumetricImagingExtractor` (deprecated October 2025). Use `slice_samples()` instead. [PR #524](https://github.com/catalystneuro/roiextractors/pull/524)
+* Removed deprecated `FrameSliceImagingExtractor` class (deprecated October 2025). Use `SampleSlicedImagingExtractor` instead. [PR #524](https://github.com/catalystneuro/roiextractors/pull/524)
+* Removed deprecated `channel` parameter from `get_frames()` and `get_video()` methods in all imaging extractors (deprecated August 2025). [PR #524](https://github.com/catalystneuro/roiextractors/pull/524)
+* Removed deprecated ScanImage extractor classes (deprecated October 2025): `ScanImageTiffSinglePlaneImagingExtractor`, `ScanImageTiffMultiPlaneImagingExtractor`, `ScanImageTiffSinglePlaneMultiFileImagingExtractor`, and `ScanImageTiffMultiPlaneMultiFileImagingExtractor`. Use `ScanImageImagingExtractor` instead. [PR #524](https://github.com/catalystneuro/roiextractors/pull/524)
+* Deprecated `make_nwb_metadata()` method in `NwbImagingExtractor` (will be removed on or after May 2026). [PR #524](https://github.com/catalystneuro/roiextractors/pull/524)
 
 ### Improvements
-* Implemented `get_native_timestamps()` method in `NwbImagingExtractor` to properly extract timestamps using NWB's native `get_timestamps()` method. [PR #526](https://github.com/catalystneuro/roiextractors/pull/526)
-* Removed unreachable code in `NwbImagingExtractor.__init__()` for handling unsupported data shapes. [PR #526](https://github.com/catalystneuro/roiextractors/pull/526)
+* Implemented `get_native_timestamps()` method in `NwbImagingExtractor` to properly extract timestamps using NWB's native `get_timestamps()` method. [PR #528](https://github.com/catalystneuro/roiextractors/pull/528)
+* Removed unreachable code in `NwbImagingExtractor.__init__()` for handling unsupported data shapes. [PR #528](https://github.com/catalystneuro/roiextractors/pull/528)
 * Updated documentation to use current API methods: replaced deprecated `get_frames()` with `get_series()`, `get_image_size()` with `get_frame_shape()`, and removed `get_channel_names()` examples from tutorials and use cases.
+* Migrated to PEP 735 dependency groups: `test` and `docs` dependencies are now installed via `pip install --group test` and `pip install --group docs` instead of extras. The `full` extra remains for user-facing optional dependencies. [PR #540](https://github.com/catalystneuro/roiextractors/pull/540)
 
 
 # v0.7.2 (October 23rd, 2025)
