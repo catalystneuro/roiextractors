@@ -126,7 +126,7 @@ Output:
 
 .. code-block:: python
 
-    plt.plot(seg_ext.get_sampling_frequency()*np.arange(seg_ext.get_num_frames()),seg_ext.get_traces(roi_ids=[2], name='dff').squeeze())
+    plt.plot(seg_ext.get_sampling_frequency()*np.arange(seg_ext.get_num_samples()),seg_ext.get_traces(roi_ids=[2], name='dff').squeeze())
     plt.show()
 
 Output:

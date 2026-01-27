@@ -60,13 +60,15 @@ class TestScanImageTiffExtractor(TestCase):
             ScanImageLegacyImagingExtractor(file_path=different_suffix_file_path, sampling_frequency=30.0)
 
     def test_scan_image_tiff_consecutive_frames(self):
-        frame_idxs = [6, 8]
-        assert_array_equal(self.imaging_extractor.get_frames(frame_idxs=frame_idxs), self.data[frame_idxs])
+        sample_indices = [6, 8]
+        assert_array_equal(self.imaging_extractor.get_samples(sample_indices=sample_indices), self.data[sample_indices])
 
     def test_scan_image_tiff_nonconsecutive_frames(self):
-        frame_idxs = [3, 6]
+        sample_indices = [3, 6]
 
-        assert_array_equal(self.imaging_extractor.get_frames(frame_idxs=frame_idxs), self.data[frame_idxs, ...])
+        assert_array_equal(
+            self.imaging_extractor.get_samples(sample_indices=sample_indices), self.data[sample_indices, ...]
+        )
 
     def test_scan_image_get_video(self):
         assert_array_equal(self.imaging_extractor.get_series(), self.data)

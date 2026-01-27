@@ -32,9 +32,11 @@ class TestMultiImagingExtractor(TestCase):
     def test_get_channel_names(self):
         assert self.multi_imaging_extractor.get_channel_names() == ["channel_num_0"]
 
-    def test_get_frames_assertion(self):
-        with self.assertRaisesWith(exc_type=AssertionError, exc_msg="'frame_idxs' exceed number of samples"):
-            self.multi_imaging_extractor.get_frames(frame_idxs=[31])
+    def test_get_samples_assertion(self):
+        with self.assertRaisesWith(
+            exc_type=AssertionError, exc_msg="'sample_indices' range beyond number of available samples!"
+        ):
+            self.multi_imaging_extractor.get_samples(sample_indices=[31])
 
     def test_get_non_consecutive_frames(self):
         test_frames = self.multi_imaging_extractor.get_frames(frame_idxs=[8, 10, 12, 15, 20, 29])

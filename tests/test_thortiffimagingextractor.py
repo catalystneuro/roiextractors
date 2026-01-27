@@ -70,26 +70,26 @@ class TestThorTiffImagingExtractor:
         # Compare with the corresponding slice of test_data
         assert_array_equal(series_slice, self.test_data[start_sample:end_sample])
 
-    def test_thor_tiff_extractor_get_frames(self):
-        """Test the get_frames method."""
-        frame_idxs = [0, 1, 2]
-        frames = self.extractor.get_frames(frame_idxs=frame_idxs)
-        assert frames.shape[0] == len(frame_idxs)  # Correct number of frames
-        assert frames.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
+    def test_thor_tiff_extractor_get_samples(self):
+        """Test the get_samples method."""
+        sample_indices = [0, 1, 2]
+        samples = self.extractor.get_samples(sample_indices=sample_indices)
+        assert samples.shape[0] == len(sample_indices)  # Correct number of samples
+        assert samples.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
 
-        # Compare with frames extracted directly from the test_data
-        for i, frame_idx in enumerate(frame_idxs):
-            assert_array_equal(frames[i], self.test_data[frame_idx])
+        # Compare with samples extracted directly from the test_data
+        for i, sample_index in enumerate(sample_indices):
+            assert_array_equal(samples[i], self.test_data[sample_index])
 
-        # Test with non-consecutive frames
-        frame_idxs = [0, 2]
-        frames = self.extractor.get_frames(frame_idxs=frame_idxs)
-        assert frames.shape[0] == len(frame_idxs)  # Correct number of frames
-        assert frames.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
+        # Test with non-consecutive samples
+        sample_indices = [0, 2]
+        samples = self.extractor.get_samples(sample_indices=sample_indices)
+        assert samples.shape[0] == len(sample_indices)  # Correct number of samples
+        assert samples.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
 
-        # Compare with frames extracted directly from the test_data
-        for i, frame_idx in enumerate(frame_idxs):
-            assert_array_equal(frames[i], self.test_data[frame_idx])
+        # Compare with samples extracted directly from the test_data
+        for i, sample_index in enumerate(sample_indices):
+            assert_array_equal(samples[i], self.test_data[sample_index])
 
     def test_experiment_xml(self):
         """Test parsing of Experiment.xml."""

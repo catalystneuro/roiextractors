@@ -58,8 +58,8 @@ def test_get_frames():
     imaging_extractor = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)
     sample_sliced_imaging = imaging_extractor.slice_samples(start_sample=2, end_sample=7)
     assert_array_equal(
-        sample_sliced_imaging.get_frames(frame_idxs=[2, 4]),
-        imaging_extractor.get_frames(frame_idxs=[4, 6]),
+        sample_sliced_imaging.get_samples(sample_indices=[2, 4]),
+        imaging_extractor.get_samples(sample_indices=[4, 6]),
     )
 
 

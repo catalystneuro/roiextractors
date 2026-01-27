@@ -242,47 +242,34 @@ class ImagingExtractor(ABC):
 
         Parameters
         ----------
-        sample_indices: array-like
-            Indices of samples to return.
+        sample_indices: array-like or int
+            Indices of samples to return. Can be a single integer or an array-like.
 
         Returns
         -------
         samples: numpy.ndarray
             The samples.
         """
+        if isinstance(sample_indices, int):
+            sample_indices = [sample_indices]
+
+        # Convert to numpy array and handle negative indices
+        sample_indices = np.asarray(sample_indices)
+        negative_mask = sample_indices < 0
+        sample_indices[negative_mask] = self.get_num_samples() + sample_indices[negative_mask]
+
         assert (
             max(sample_indices) < self.get_num_samples()
         ), "'sample_indices' range beyond number of available samples!"
-        if np.all(np.diff(sample_indices) == 0):
-            return self.get_series(start_sample=sample_indices[0], end_sample=sample_indices[-1])
-        relative_indices = np.array(sample_indices) - sample_indices[0]
+
+        # If all indices are consecutive, use get_series directly
+        if len(sample_indices) > 1 and np.all(np.diff(sample_indices) == 1):
+            return self.get_series(start_sample=sample_indices[0], end_sample=sample_indices[-1] + 1)
+
+        # For non-consecutive or single indices, fetch the range and index into it
+        relative_indices = sample_indices - sample_indices[0]
         series = self.get_series(start_sample=sample_indices[0], end_sample=sample_indices[-1] + 1)
         return series[relative_indices]
-
-    def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
-        """Get specific video frames from indices (not necessarily continuous).
-
-        Parameters
-        ----------
-        frame_idxs: array-like
-            Indices of frames to return.
-
-        Returns
-        -------
-        frames: numpy.ndarray
-            The video frames.
-
-        Deprecated
-        ----------
-        This method will be removed on or after January 2026.
-        Use get_samples() instead.
-        """
-        warnings.warn(
-            "get_frames() is deprecated and will be removed on or after January 2026. " "Use get_samples() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.get_samples(sample_indices=frame_idxs)
 
     @abstractmethod
     def get_native_timestamps(
@@ -576,20 +563,6 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         assert max(sample_indices) < self._num_samples, "'sample_indices' range beyond number of available samples!"
         mapped_sample_indices = np.array(sample_indices) + self._start_frame
         return self._parent_imaging.get_samples(sample_indices=mapped_sample_indices)
-
-    def get_frames(self, frame_idxs: ArrayType, channel: int | None = 0) -> np.ndarray:
-        warnings.warn(
-            "get_frames() is deprecated and will be removed on or after January 2026. " "Use get_samples() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if channel != 0:
-            warnings.warn(
-                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        return self.get_samples(sample_indices=frame_idxs)
 
     def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         assert start_sample is None or start_sample >= 0, (

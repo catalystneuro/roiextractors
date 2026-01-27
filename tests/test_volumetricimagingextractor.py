@@ -45,21 +45,21 @@ def test_get_series_invalid(volumetric_imaging_extractor, start_sample, end_samp
         volumetric_imaging_extractor.get_series(start_sample=start_sample, end_sample=end_sample)
 
 
-@pytest.mark.parametrize("frame_idxs", [0, [0, 1, 2], [0, num_samples - 1], [-3, -1]])
-def test_get_frames(volumetric_imaging_extractor, frame_idxs):
-    frames = volumetric_imaging_extractor.get_frames(frame_idxs=frame_idxs)
-    expected_frames = []
+@pytest.mark.parametrize("sample_indices", [0, [0, 1, 2], [0, num_samples - 1], [-3, -1]])
+def test_get_samples(volumetric_imaging_extractor, sample_indices):
+    samples = volumetric_imaging_extractor.get_samples(sample_indices=sample_indices)
+    expected_samples = []
     for extractor in volumetric_imaging_extractor._imaging_extractors:
-        expected_frames.append(extractor.get_frames(frame_idxs=frame_idxs))
-    expected_frames = np.array(expected_frames)
-    expected_frames = np.moveaxis(expected_frames, 0, -1)
-    assert np.all(frames == expected_frames)
+        expected_samples.append(extractor.get_samples(sample_indices=sample_indices))
+    expected_samples = np.array(expected_samples)
+    expected_samples = np.moveaxis(expected_samples, 0, -1)
+    assert np.all(samples == expected_samples)
 
 
-@pytest.mark.parametrize("frame_idxs", [num_samples, [0, num_samples], [-num_samples - 1, -1]])
-def test_get_frames_invalid(volumetric_imaging_extractor, frame_idxs):
+@pytest.mark.parametrize("sample_indices", [num_samples, [0, num_samples], [-num_samples - 1, -1]])
+def test_get_samples_invalid(volumetric_imaging_extractor, sample_indices):
     with pytest.raises(ValueError):
-        volumetric_imaging_extractor.get_frames(frame_idxs=frame_idxs)
+        volumetric_imaging_extractor.get_samples(sample_indices=sample_indices)
 
 
 @pytest.mark.parametrize("num_rows, num_columns, num_planes", [(1, 2, 3), (2, 1, 3), (3, 2, 1)])
@@ -113,9 +113,9 @@ def test_depth_slice(volumetric_imaging_extractor, start_plane, end_plane):
     series = volumetric_imaging_extractor.get_series()
     sliced_series = sliced_extractor.get_series()
     assert np.all(series[..., start_plane:end_plane] == sliced_series)
-    frames = volumetric_imaging_extractor.get_frames(frame_idxs=[0, 1, 2])
-    sliced_frames = sliced_extractor.get_frames(frame_idxs=[0, 1, 2])
-    assert np.all(frames[..., start_plane:end_plane] == sliced_frames)
+    samples = volumetric_imaging_extractor.get_samples(sample_indices=[0, 1, 2])
+    sliced_samples = sliced_extractor.get_samples(sample_indices=[0, 1, 2])
+    assert np.all(samples[..., start_plane:end_plane] == sliced_samples)
 
 
 @pytest.mark.parametrize("start_plane, end_plane", [(0, -1), (1, 0), (0, 4)])

@@ -178,15 +178,6 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
                 return len(self.cell_set.get_cell_trace_data(0))
             return 0
 
-    def get_num_frames(self) -> int:
-        warnings.warn(
-            "get_num_frames is deprecated and will be removed on or after January 2026. "
-            "Use get_num_samples instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.get_num_samples()
-
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
 
