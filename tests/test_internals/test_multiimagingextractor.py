@@ -1,5 +1,3 @@
-import unittest
-
 import numpy as np
 from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
@@ -177,5 +175,33 @@ class TestMultiImagingExtractor(TestCase):
             MultiImagingExtractor(imaging_extractors=inconsistent_extractors)
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_multi_imaging_extractor_different_sample_counts():
+    """Test MultiImagingExtractor with extractors having different numbers of samples.
+
+    This simulates real-world scenarios like Miniscope recordings where the last
+    file often has fewer samples than the others (e.g., files 0-52 have 1000 samples,
+    but file 53 has 614 samples).
+
+    See: https://github.com/catalystneuro/roiextractors/issues/534
+    """
+    # Simulate a typical recording: most files have 10 samples, last file has 6
+    extractors = [
+        generate_dummy_imaging_extractor(num_samples=10, num_rows=3, num_columns=4, sampling_frequency=20.0),
+        generate_dummy_imaging_extractor(num_samples=10, num_rows=3, num_columns=4, sampling_frequency=20.0),
+        generate_dummy_imaging_extractor(num_samples=6, num_rows=3, num_columns=4, sampling_frequency=20.0),
+    ]
+    multi_imaging_extractor = MultiImagingExtractor(imaging_extractors=extractors)
+
+    # Total should be 10 + 10 + 6 = 26
+    assert multi_imaging_extractor.get_num_samples() == 26
+
+    test_series = multi_imaging_extractor.get_series()
+    expected_series = np.concatenate(
+        [
+            extractors[0].get_series(),
+            extractors[1].get_series(),
+            extractors[2].get_series(),
+        ],
+        axis=0,
+    )
+    assert_array_equal(test_series, expected_series)

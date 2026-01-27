@@ -6,6 +6,7 @@
 
 ### Fixes
 * Bruker series can now read sequences of type `TSeries Brightness Over Time Element` [PR #527](https://github.com/catalystneuro/roiextractors/pull/527)
+* Fixed `MultiImagingExtractor` to allow combining extractors with different numbers of frames, enabling support for real-world recordings where the last file has fewer frames than others (e.g., Miniscope recordings) [PR #535](https://github.com/catalystneuro/roiextractors/pull/535)
 * Pinned opencv version for MacOs Intel [PR #536](https://github.com/catalystneuro/roiextractors/pull/536)
 
 ### Deprecations And Removals
