@@ -344,49 +344,6 @@ class ImagingExtractor(ABC):
         sample_indices = np.arange(start_sample, end_sample)
         return sample_indices / self.get_sampling_frequency()
 
-    def sample_indices_to_time(self, sample_indices: FloatType | np.ndarray) -> FloatType | np.ndarray:
-        """Convert user-inputted sample indices to times with units of seconds.
-
-        Parameters
-        ----------
-        sample_indices: int or array-like
-            The sample indices to be converted to times.
-
-        Returns
-        -------
-        times: float or array-like
-            The corresponding times in seconds.
-
-        Deprecated
-        ----------
-        This method will be removed in or after January 2026.
-        Use get_timestamps() instead.
-        """
-        warnings.warn(
-            "sample_indices_to_time() is deprecated and will be removed in or after January 2026. "
-            "Use get_timestamps() instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        # Convert to numpy array if needed to handle indexing
-        sample_indices = np.array(sample_indices)
-
-        # Get all timestamps and index into them
-        if sample_indices.ndim == 0:
-            # Single index
-            start_sample = int(sample_indices)
-            end_sample = start_sample + 1
-            timestamps = self.get_timestamps(start_sample=start_sample, end_sample=end_sample)
-            return timestamps[0]
-        else:
-            # Multiple indices - get the range covering all indices
-            start_sample = int(sample_indices.min())
-            end_sample = int(sample_indices.max()) + 1
-            timestamps = self.get_timestamps(start_sample=start_sample, end_sample=end_sample)
-            # Adjust indices to be relative to the start_sample
-            relative_indices = sample_indices - start_sample
-            return timestamps[relative_indices]
-
     def time_to_sample_indices(self, times: FloatType | ArrayType) -> FloatType | np.ndarray:
         """Convert user-inputted times (in seconds) to sample indices.
 

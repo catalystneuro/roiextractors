@@ -18,9 +18,7 @@ def test_frame_slicing_imaging_times():
 
     frame_sliced_imaging = toy_imaging_example.slice_samples(start_sample=start_frame, end_sample=end_frame)
     assert_array_equal(
-        frame_sliced_imaging.sample_indices_to_time(
-            sample_indices=np.array([idx for idx in range(frame_sliced_imaging.get_num_samples())])
-        ),
+        frame_sliced_imaging.get_timestamps(),
         times[start_frame:end_frame],
     )
 

@@ -401,8 +401,8 @@ def check_segmentations_equal(
     assert_array_equal(segmentation_extractor1.get_traces(), segmentation_extractor2.get_traces())
 
     assert_array_equal(
-        segmentation_extractor1.sample_indices_to_time(np.arange(segmentation_extractor1.get_num_samples())),
-        segmentation_extractor2.sample_indices_to_time(np.arange(segmentation_extractor2.get_num_samples())),
+        segmentation_extractor1.get_timestamps(),
+        segmentation_extractor2.get_timestamps(),
     )
 
 
