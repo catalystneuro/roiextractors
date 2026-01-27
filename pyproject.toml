@@ -57,23 +57,6 @@ full = [
     "isx>=2.0; sys_platform != 'darwin' or platform_machine != 'arm64'"
 ]
 
-[dependency-groups]
-test = [
-    "pytest",
-    "pytest-cov",
-    "parameterized==0.8.1",
-    "spikeinterface>=0.100.7",
-    "pytest-xdist",
-]
-docs = [
-    "Jinja2",
-    "Sphinx",
-    "sphinx_rtd_theme",
-    "readthedocs-sphinx-search",
-    "sphinx-toggleprompt",
-    "sphinx-copybutton",
-    "pydata_sphinx_theme",
-]
 [project.urls]
 "Homepage" = "https://github.com/catalystneuro/roiextractors"
 "Documentation" = "https://roiextractors.readthedocs.io//"
@@ -131,6 +114,22 @@ check-hidden = true
 ignore-words-list = 'assertin,tye'
 
 [dependency-groups]
+test = [
+    "pytest",
+    "pytest-cov",
+    "parameterized==0.8.1",
+    "spikeinterface>=0.100.7",
+    "pytest-xdist",
+]
+docs = [
+    "Jinja2",
+    "Sphinx",
+    "sphinx_rtd_theme",
+    "readthedocs-sphinx-search",
+    "sphinx-toggleprompt",
+    "sphinx-copybutton",
+    "pydata_sphinx_theme",
+]
 dev = [
     "pre-commit>=4.5.0",
 ]
