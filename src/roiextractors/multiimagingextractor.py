@@ -7,7 +7,6 @@ MultiImagingExtractor
 """
 
 import warnings
-from collections import defaultdict
 from typing import Iterable
 
 import numpy as np
@@ -113,49 +112,11 @@ class MultiImagingExtractor(ImagingExtractor):
             Array of frames.
         """
         imaging_extractor = self._imaging_extractors[extractor_index]
-        frames = imaging_extractor.get_frames(frame_idxs=frame_idxs)
+        frames = imaging_extractor.get_samples(sample_indices=frame_idxs)
         return frames
 
     def get_dtype(self):
         return self._imaging_extractors[0].get_dtype()
-
-    def get_frames(self, frame_idxs: ArrayType) -> NumpyArray:
-        """Get specific video frames from indices.
-
-        Parameters
-        ----------
-        frame_idxs: array-like
-            Indices of frames to return.
-
-        Returns
-        -------
-        frames: numpy.ndarray
-            The video frames.
-        """
-        if isinstance(frame_idxs, (int, np.integer)):
-            frame_idxs = [frame_idxs]
-        frame_idxs = np.array(frame_idxs)
-        assert np.all(frame_idxs < self.get_num_samples()), "'frame_idxs' exceed number of samples"
-        extractor_indices = np.searchsorted(self._end_frames, frame_idxs, side="right")
-        relative_frame_indices = frame_idxs - np.array(self._start_frames)[extractor_indices]
-        # Match frame_idxs to imaging extractors
-        extractors_dict = defaultdict(list)
-        for extractor_index, frame_index in zip(extractor_indices, relative_frame_indices):
-            extractors_dict[extractor_index].append(frame_index)
-
-        frames_to_concatenate = []
-        # Extract frames for each extractor and concatenate
-        for extractor_index, frame_indices in extractors_dict.items():
-            frames_for_each_extractor = self._get_frames_from_an_imaging_extractor(
-                extractor_index=extractor_index,
-                frame_idxs=frame_indices,
-            )
-            if len(frame_indices) == 1:
-                frames_for_each_extractor = frames_for_each_extractor[np.newaxis, ...]
-            frames_to_concatenate.append(frames_for_each_extractor)
-
-        frames = np.concatenate(frames_to_concatenate, axis=0)
-        return frames
 
     def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """Get the video frames.

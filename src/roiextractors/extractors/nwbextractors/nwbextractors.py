@@ -18,7 +18,6 @@ from pynwb import NWBHDF5IO
 from pynwb.ophys import OnePhotonSeries, TwoPhotonSeries
 
 from ...extraction_tools import (
-    ArrayType,
     PathType,
 )
 from ...imagingextractor import ImagingExtractor
@@ -162,47 +161,6 @@ class NwbImagingExtractor(ImagingExtractor):
                 TwoPhotonSeries=[dict(name=opts.name)],
             ),
         )
-
-    def get_frames(self, frame_idxs: ArrayType, channel: int | None = 0):
-        """Get specific video frames from indices.
-
-        Parameters
-        ----------
-        frame_idxs: array-like
-            Indices of frames to return.
-        channel: int, optional
-            Channel index. Deprecated: This parameter will be removed in August 2025.
-
-        Returns
-        -------
-        frames: numpy.ndarray
-            The video frames.
-        """
-        if channel != 0:
-            from warnings import warn
-
-            warn(
-                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        squeeze_data = False
-        if isinstance(frame_idxs, int):
-            squeeze_data = True
-            frame_idxs = [frame_idxs]
-        elif isinstance(frame_idxs, np.ndarray):
-            frame_idxs = frame_idxs.tolist()
-
-        if self.is_volumetric:
-            # NWB: (time, width, height, depth) -> roiextractors: (time, height, width, depth)
-            frames = self.photon_series.data[frame_idxs].transpose([0, 2, 1, 3])
-        else:
-            # NWB: (time, width, height) -> roiextractors: (time, height, width)
-            frames = self.photon_series.data[frame_idxs].transpose([0, 2, 1])
-
-        if squeeze_data:
-            frames = frames.squeeze()
-        return frames
 
     def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
         start_sample = start_sample if start_sample is not None else 0

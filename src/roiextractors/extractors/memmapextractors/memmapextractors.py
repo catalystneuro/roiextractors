@@ -6,8 +6,6 @@ MemmapImagingExtractor
     The base class for memmapable imaging extractors.
 """
 
-from warnings import warn
-
 import numpy as np
 
 from ...extraction_tools import DtypeType
@@ -32,37 +30,6 @@ class MemmapImagingExtractor(ImagingExtractor):
         """
         self._video = video
         super().__init__()
-
-    def get_frames(self, frame_idxs=None, channel: int | None = 0) -> np.ndarray:
-        """Get specific video frames from indices.
-
-        Parameters
-        ----------
-        frame_idxs: array-like, optional
-            Indices of frames to return. If None, returns all frames.
-        channel: int, optional
-            Channel index. Deprecated: This parameter will be removed in August 2025.
-
-        Returns
-        -------
-        frames: numpy.ndarray
-            The video frames.
-        """
-        if channel != 0:
-            warn(
-                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
-        if frame_idxs is None:
-            frame_idxs = [frame for frame in range(self.get_num_samples())]
-
-        frames = self._video.take(indices=frame_idxs, axis=0)
-        if channel is not None:
-            frames = frames[..., channel]
-
-        return frames
 
     def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         if start_sample is None:

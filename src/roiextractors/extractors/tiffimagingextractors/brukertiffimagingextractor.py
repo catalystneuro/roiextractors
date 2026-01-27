@@ -21,7 +21,6 @@ import numpy as np
 from lxml import etree
 
 from ...extraction_tools import (
-    ArrayType,
     DtypeType,
     PathType,
     calculate_regular_series_rate,
@@ -289,43 +288,6 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
 
     def get_sampling_frequency(self) -> float:
         return self._imaging_extractors[0].get_sampling_frequency() * self._num_planes_per_channel_stream
-
-    def get_frames(self, frame_idxs: ArrayType, channel: int | None = 0) -> np.ndarray:
-        """Get specific frames from the video.
-
-        Parameters
-        ----------
-        frame_idxs: ArrayType
-            The indices of the frames to get.
-        channel: int, optional
-            Channel index. Deprecated: This parameter will be removed in August 2025.
-
-        Returns
-        -------
-        frames: numpy.ndarray
-            The requested frames.
-        """
-        if channel != 0:
-            from warnings import warn
-
-            warn(
-                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
-        if isinstance(frame_idxs, (int, np.integer)):
-            frame_idxs = [frame_idxs]
-        frame_idxs = np.array(frame_idxs)
-        assert np.all(frame_idxs < self.get_num_samples()), "'frame_idxs' exceed number of frames"
-
-        frames_shape = (len(frame_idxs),) + self._image_size
-        frames = np.empty(shape=frames_shape, dtype=self.get_dtype())
-
-        for plane_ind, extractor in enumerate(self._imaging_extractors):
-            frames[..., plane_ind] = extractor.get_frames(frame_idxs)
-
-        return frames
 
     def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         start = start_sample if start_sample is not None else 0

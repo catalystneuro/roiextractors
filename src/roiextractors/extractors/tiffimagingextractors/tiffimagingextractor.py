@@ -82,29 +82,6 @@ class TiffImagingExtractor(ImagingExtractor):
             "sampling_frequency": sampling_frequency,
         }
 
-    def get_frames(self, frame_idxs, channel: int = 0):
-        """Get specific video frames from indices.
-
-        Parameters
-        ----------
-        frame_idxs: array-like
-            Indices of frames to return.
-        channel: int, optional
-            Channel index. Deprecated: This parameter will be removed in August 2025.
-
-        Returns
-        -------
-        frames: numpy.ndarray
-            The video frames.
-        """
-        if channel != 0:
-            warn(
-                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        return self._video[frame_idxs, ...]
-
     def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
         return self._video[start_sample:end_sample, ...]
 

@@ -80,13 +80,10 @@ class TestMicroManagerTiffExtractor(TestCase):
     def test_micromanagertiffextractor_dtype(self):
         self.assertEqual(self.extractor.get_dtype(), np.uint16)
 
-    def test_micromanagertiffextractor_get_video(self):
+    def test_micromanagertiffextractor_get_series(self):
         assert_array_equal(self.extractor.get_series(), self.video)
 
-    def test_micromanagertiffextractor_get_single_frame(self):
-        assert_array_equal(self.extractor.get_frames(frame_idxs=[0]), self.video[0][np.newaxis, ...])
-
-    def test_private_micromanagertiffextractor_num_frames(self):
+    def test_private_micromanagertiffextractor_num_samples(self):
         for sub_extractor in self.extractor._imaging_extractors:
             self.assertEqual(sub_extractor.get_num_samples(), 5)
 

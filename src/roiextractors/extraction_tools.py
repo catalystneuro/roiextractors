@@ -339,7 +339,20 @@ def check_get_frames_args(func):
     ------
     AssertionError
         If 'frame_idxs' exceed the number of frames.
+
+    Deprecated
+    ----------
+    This function will be removed on or after June 2026.
+    The get_frames method it decorates has been removed.
     """
+    import warnings
+
+    warnings.warn(
+        "check_get_frames_args() is deprecated and will be removed on or after June 2026. "
+        "The get_frames method has been removed.",
+        FutureWarning,
+        stacklevel=2,
+    )
 
     @wraps(func)
     def corrected_args(imaging, frame_idxs, channel=0):
