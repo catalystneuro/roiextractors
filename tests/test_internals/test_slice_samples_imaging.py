@@ -16,9 +16,7 @@ def test_sample_slicing_imaging_times():
 
     sample_sliced_imaging = imaging_extractor.slice_samples(start_sample=start_sample, end_sample=end_sample)
     assert_array_equal(
-        sample_sliced_imaging.sample_indices_to_time(
-            sample_indices=np.array([idx for idx in range(sample_sliced_imaging.get_num_samples())])
-        ),
+        sample_sliced_imaging.get_timestamps(),
         times[start_sample:end_sample],
     )
 

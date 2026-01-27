@@ -86,8 +86,9 @@ class MultiImagingExtractor(ImagingExtractor):
         times: numpy.ndarray
             Array of times.
         """
-        frame_indices = np.array([*range(self._start_frames[0], self._end_frames[-1])])
-        times = self.sample_indices_to_time(sample_indices=frame_indices)
+        start_sample = self._start_frames[0]
+        end_sample = self._end_frames[-1]
+        times = self.get_timestamps(start_sample=start_sample, end_sample=end_sample)
 
         for extractor_index, extractor in enumerate(self._imaging_extractors):
             if getattr(extractor, "_times") is not None:

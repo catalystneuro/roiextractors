@@ -18,7 +18,7 @@ from typing import Literal
 import numpy as np
 from numpy.typing import ArrayLike
 
-from .extraction_tools import ArrayType, FloatType
+from .extraction_tools import ArrayType
 
 
 # TODO make public once API stabilizes.
@@ -758,48 +758,6 @@ class SegmentationExtractor(ABC):
         # Fallback to calculated timestamps from sampling frequency
         sample_indices = np.arange(start_sample, end_sample)
         return sample_indices / self.get_sampling_frequency()
-
-    def sample_indices_to_time(self, sample_indices: FloatType | np.ndarray) -> FloatType | np.ndarray:
-        """Convert user-inputted sample indices to times with units of seconds.
-
-        .. deprecated:: on or after January 2026
-           Use :meth:`get_timestamps` instead.
-
-        Parameters
-        ----------
-        sample_indices: int or array-like
-            The sample indices to be converted to times.
-
-        Returns
-        -------
-        times: float or array-like
-            The corresponding times in seconds.
-        """
-        warnings.warn(
-            "sample_indices_to_time is deprecated and will be removed on or after January 2026. "
-            "Use get_timestamps instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        # Handle scalar vs array input
-        is_scalar = np.isscalar(sample_indices)
-        if is_scalar:
-            sample_indices = np.array([sample_indices])
-        else:
-            sample_indices = np.asarray(sample_indices)
-
-        # Get the range of samples we need
-        start_sample = int(np.min(sample_indices))
-        end_sample = int(np.max(sample_indices)) + 1
-
-        # Get timestamps for the range
-        timestamps = self.get_timestamps(start_sample=start_sample, end_sample=end_sample)
-
-        # Map the requested indices to the timestamps
-        result = timestamps[sample_indices - start_sample]
-
-        return result[0] if is_scalar else result
 
     def set_property(self, key: str, values: ArrayType, ids: ArrayType):
         """Set property values for ROIs.
