@@ -262,13 +262,15 @@ class ImagingExtractor(ABC):
             max(sample_indices) < self.get_num_samples()
         ), "'sample_indices' range beyond number of available samples!"
 
-        # If all indices are consecutive, use get_series directly
+        # If all indices are consecutive and ascending, use get_series directly
         if len(sample_indices) > 1 and np.all(np.diff(sample_indices) == 1):
             return self.get_series(start_sample=sample_indices[0], end_sample=sample_indices[-1] + 1)
 
         # For non-consecutive or single indices, fetch the range and index into it
-        relative_indices = sample_indices - sample_indices[0]
-        series = self.get_series(start_sample=sample_indices[0], end_sample=sample_indices[-1] + 1)
+        min_idx = int(np.min(sample_indices))
+        max_idx = int(np.max(sample_indices))
+        relative_indices = sample_indices - min_idx
+        series = self.get_series(start_sample=min_idx, end_sample=max_idx + 1)
         return series[relative_indices]
 
     @abstractmethod
