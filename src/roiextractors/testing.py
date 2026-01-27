@@ -50,12 +50,12 @@ def generate_dummy_video(
 
 
 def generate_dummy_imaging_extractor(
+    *,
     num_rows: int = 10,
     num_columns: int = 10,
     sampling_frequency: float = 30.0,
     dtype: DtypeType = "uint16",
     seed: int = 0,
-    *,
     num_samples: int | None = 30,
     has_native_timestamps: bool = False,
     num_planes: int | None = None,
@@ -169,6 +169,7 @@ def generate_dummy_imaging_extractor(
 
 
 def generate_dummy_segmentation_extractor(
+    *,
     num_rois: int = 10,
     num_rows: int = 25,
     num_columns: int = 25,
@@ -180,7 +181,6 @@ def generate_dummy_segmentation_extractor(
     has_neuropil_signal: bool = True,
     rejected_list: list | None = None,
     seed: int = 0,
-    *,
     num_samples: int | None = 30,
 ) -> SegmentationExtractor:
     """Generate a dummy segmentation extractor for testing.
