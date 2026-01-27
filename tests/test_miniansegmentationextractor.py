@@ -136,7 +136,15 @@ def test_num_samples(extractor, expected_properties):
 
 
 def test_sample_indices_to_time(extractor, expected_properties):
-    assert extractor.sample_indices_to_time(sample_indices=[0]) == expected_properties["first_timestamp"]
+    import warnings
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        result = extractor.sample_indices_to_time(sample_indices=[0])
+        assert len(w) == 1
+        assert issubclass(w[-1].category, FutureWarning)
+        assert "deprecated" in str(w[-1].message).lower()
+        assert result == expected_properties["first_timestamp"]
 
 
 def test_num_rois(extractor, expected_properties):

@@ -328,7 +328,18 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         -------
         times: float or array-like
             The corresponding times in seconds.
+
+        Deprecated
+        ----------
+        This method will be removed on or after July 2026.
+        Use get_timestamps() instead.
         """
+        warnings.warn(
+            "sample_indices_to_time() is deprecated and will be removed on or after July 2026. "
+            "Use get_timestamps() instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         # Default implementation
         if self._times is None:
             self._times = self.get_native_timestamps()
