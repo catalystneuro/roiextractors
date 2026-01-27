@@ -10,7 +10,6 @@ import importlib
 import os
 import pickle
 import re
-import warnings
 from shutil import copyfile
 
 import numpy as np
@@ -195,15 +194,6 @@ class SimaSegmentationExtractor(SegmentationExtractor):
             The frame shape as (height, width).
         """
         return self._roi_masks.field_of_view_shape
-
-    def get_image_size(self):
-        warnings.warn(
-            "get_image_size is deprecated and will be removed on or after January 2026. "
-            "Use get_frame_shape instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.get_frame_shape()
 
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None

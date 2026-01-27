@@ -30,6 +30,31 @@ IntType = int | np.integer
 FloatType = float
 
 
+def calculate_regular_series_rate(series: ArrayType, tolerance_decimals: int = 6) -> float | None:
+    """Calculate the rate of a regular series from consecutive differences.
+
+    If all differences between consecutive points are the same (within rounding tolerance),
+    returns the rate as `1.0 / interval`. Otherwise returns None.
+
+    Parameters
+    ----------
+    series : array-like
+        Array of timestamps or time points.
+    tolerance_decimals : int, default: 6
+        Number of decimal places for rounding when checking uniformity.
+
+    Returns
+    -------
+    float | None
+        The calculated rate if the series is regular, None otherwise.
+    """
+    diff_ts = np.diff(series)
+    rounded_diff_ts = diff_ts.round(decimals=tolerance_decimals)
+    uniq_diff_ts = np.unique(rounded_diff_ts)
+    rate = 1.0 / diff_ts[0] if len(uniq_diff_ts) == 1 else None
+    return rate
+
+
 def raise_multi_channel_or_depth_not_implemented(extractor_name: str):
     """Raise a NotImplementedError for an extractor that does not support multiple channels or depth (z-axis)."""
     raise NotImplementedError(
