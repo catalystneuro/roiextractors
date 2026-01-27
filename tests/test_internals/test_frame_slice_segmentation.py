@@ -100,7 +100,7 @@ class TestMissingTraceSampleSliceSegmentation(BaseTestSampleSliceSegmentation):
     @classmethod
     def setUpClass(cls):
         cls.toy_segmentation_example = generate_dummy_segmentation_extractor(
-            num_frames=15, num_rows=5, num_columns=4, has_dff_signal=False
+            num_samples=15, num_rows=5, num_columns=4, has_dff_signal=False
         )
         cls.sample_sliced_segmentation = cls.toy_segmentation_example.slice_samples(start_sample=2, end_sample=7)
 
