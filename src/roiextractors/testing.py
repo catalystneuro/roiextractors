@@ -1,6 +1,5 @@
 """Testing utilities for the roiextractors package."""
 
-import warnings
 from collections.abc import Iterable
 
 import numpy as np
@@ -51,13 +50,10 @@ def generate_dummy_video(
 
 
 def generate_dummy_imaging_extractor(
-    num_frames: int | None = None,
     num_rows: int = 10,
     num_columns: int = 10,
-    num_channels: int = 1,
     sampling_frequency: float = 30.0,
     dtype: DtypeType = "uint16",
-    channel_names: list[str] | None = None,
     seed: int = 0,
     *,
     num_samples: int | None = 30,
@@ -70,20 +66,14 @@ def generate_dummy_imaging_extractor(
 
     Parameters
     ----------
-    num_frames : int, optional
-        number of frames in the video, by default 30.
     num_rows : int, optional
         number of rows in the video, by default 10.
     num_columns : int, optional
         number of columns in the video, by default 10.
-    num_channels : int, optional
-        number of channels in the video, by default 1.
     sampling_frequency : float, optional
         sampling frequency of the video, by default 30.
     dtype : DtypeType, optional
         dtype of the video, by default "uint16".
-    channel_names : list, optional
-        list of channel names.
     seed : int, default 0
         seed for the random number generator, by default 0.
     num_samples : int, default 30
@@ -98,35 +88,6 @@ def generate_dummy_imaging_extractor(
     ImagingExtractor
         An imaging extractor with random data fed into `NumpyImagingExtractor`.
     """
-    if num_frames is not None:
-        warnings.warn(
-            "The 'num_frames' parameter is deprecated and will be removed on or after January 2026. "
-            "Use 'num_samples' instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-    if channel_names is not None:
-        warnings.warn(
-            "The 'channel_names' parameter is deprecated and will be removed on or after January 2026.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-    if num_channels != 1:
-        warnings.warn(
-            "The 'num_channels' parameter is deprecated and will be removed on or after January 2026. "
-            "Only single channel extractors are supported.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-    if channel_names is None:
-        channel_names = [f"channel_num_{num}" for num in range(num_channels)]
-
-    if num_frames is not None:
-        num_samples = num_frames
-
     # Generate video data - volumetric if num_planes is specified
     if num_planes is not None:
         size = (num_samples, num_rows, num_columns, num_planes)
@@ -134,8 +95,8 @@ def generate_dummy_imaging_extractor(
         # treats the last dimension as channels
         channel_names_to_use = [f"plane_{i}" for i in range(num_planes)]
     else:
-        size = (num_samples, num_rows, num_columns, num_channels)
-        channel_names_to_use = channel_names
+        size = (num_samples, num_rows, num_columns, 1)
+        channel_names_to_use = ["channel_num_0"]
 
     video = generate_dummy_video(size=size, dtype=dtype, seed=seed)
 
@@ -209,7 +170,6 @@ def generate_dummy_imaging_extractor(
 
 def generate_dummy_segmentation_extractor(
     num_rois: int = 10,
-    num_frames: int | None = None,
     num_rows: int = 25,
     num_columns: int = 25,
     sampling_frequency: float = 30.0,
@@ -232,11 +192,6 @@ def generate_dummy_segmentation_extractor(
     ----------
     num_rois : int, optional
         number of regions of interest, by default 10.
-    num_frames : int, optional
-       Number of frames in the recording, by default 30.
-       .. deprecated::
-           The 'num_frames' parameter is deprecated and will be removed on or after January 2026.
-           Use 'num_samples' instead.
     num_rows : int, optional
         number of rows in the hypothetical video from which the data was extracted, by default 25.
     num_columns : int, optional
@@ -258,8 +213,7 @@ def generate_dummy_segmentation_extractor(
     seed : int, default 0
         seed for the random number generator, by default 0.
     num_samples : int, optional
-        Number of samples in the recording, by default None.
-        If specified, this will override num_frames.
+        Number of samples in the recording, by default 30.
 
     Returns
     -------
@@ -272,17 +226,6 @@ def generate_dummy_segmentation_extractor(
     contain meaningful content. That is, the image masks matrices are not plausible image mask for a roi, the raw signal
     is not a meaningful biological signal and is not related appropriately to the deconvolved signal , etc.
     """
-    if num_frames is not None:
-        warnings.warn(
-            "The 'num_frames' parameter is deprecated and will be removed on or after January 2026. "
-            "Use 'num_samples' instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-    if num_frames is not None:
-        num_samples = num_frames
-
     rng = np.random.default_rng(seed)
 
     # Create dummy image masks
@@ -491,26 +434,12 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
     assert {"raw", "dff", "neuropil", "deconvolved", "denoised"} == set(seg.get_traces_dict().keys())
 
 
-def check_imaging_equal(
-    imaging_extractor1: ImagingExtractor, imaging_extractor2: ImagingExtractor, exclude_channel_comparison: bool = False
-):
+def check_imaging_equal(imaging_extractor1: ImagingExtractor, imaging_extractor2: ImagingExtractor):
     """Check that two imaging extractors have equal fields."""
-    if not exclude_channel_comparison:
-        warnings.warn(
-            "The 'exclude_channel_comparison' parameter is deprecated and will be removed on or after January 2026. \n"
-            "Exclude channel comparison will become the default behavior and the parameter will be removed. \n"
-            "Extractors do not longer have multiple channels, so this parameter is not needed anymore.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
     # assert equality:
     assert imaging_extractor1.get_num_samples() == imaging_extractor2.get_num_samples()
     assert np.isclose(imaging_extractor1.get_sampling_frequency(), imaging_extractor2.get_sampling_frequency())
     assert_array_equal(imaging_extractor1.get_sample_shape(), imaging_extractor2.get_sample_shape())
-
-    if not exclude_channel_comparison:
-        assert_array_equal(imaging_extractor1.get_channel_names(), imaging_extractor2.get_channel_names())
 
     assert_array_equal(
         imaging_extractor1.get_series(start_sample=0, end_sample=1),

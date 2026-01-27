@@ -197,7 +197,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         dff=None,
         deconvolved=None,
         neuropil=None,
-        accepted_lst=None,
         mean_image=None,
         correlation_image=None,
         roi_ids=None,
@@ -239,15 +238,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         movie_dims: tuple
             height x width of the movie
         """
-        accepted_list = accepted_lst if accepted_lst is not None else accepted_list
-        if accepted_lst is not None:
-            warnings.warn(
-                "The 'accepted_lst' parameter is deprecated and will be removed on or after January 2026. "
-                "Use 'accepted_list' instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
-
         SegmentationExtractor.__init__(self)
 
         if roi_ids is None:
