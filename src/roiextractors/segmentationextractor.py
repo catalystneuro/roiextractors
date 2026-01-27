@@ -8,8 +8,6 @@ SegmentationExtractor
     processing pipelines like SIMA, CaImAn, Suite2p, CNMF-E.
 SampleSlicedSegmentationExtractor
     Class to get a lazy sample slice.
-FrameSliceSegmentationExtractor
-    Class to get a lazy frame slice.
 """
 
 import warnings
@@ -517,33 +515,6 @@ class SegmentationExtractor(ABC):
         return SampleSlicedSegmentationExtractor(
             parent_segmentation=self, start_sample=start_sample, end_sample=end_sample
         )
-
-    def frame_slice(self, start_frame: int | None = None, end_frame: int | None = None):
-        """Return a new SegmentationExtractor ranging from the start_frame to the end_frame.
-
-        Parameters
-        ----------
-        start_frame: int, optional
-            Start frame index (inclusive).
-        end_frame: int, optional
-            End frame index (exclusive).
-
-        Returns
-        -------
-        frame_slice_segmentation_extractor: FrameSliceSegmentationExtractor
-            The frame slice segmentation extractor object.
-
-        Deprecated
-        ----------
-        This method will be removed on or after January 2026.
-        Use slice_samples() instead.
-        """
-        warnings.warn(
-            "frame_slice() is deprecated and will be removed on or after January 2026. " "Use slice_samples() instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.slice_samples(start_sample=start_frame, end_sample=end_frame)
 
     def get_traces(
         self,
@@ -1113,47 +1084,3 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
     def has_time_vector(self) -> bool:
         # Override to check parent segmentation for time vector
         return self._parent_segmentation.has_time_vector()
-
-
-class FrameSliceSegmentationExtractor(SampleSlicedSegmentationExtractor):
-    """Class to get a lazy frame slice.
-
-    Do not use this class directly but use `.frame_slice(...)` on a SegmentationExtractor object.
-
-    Deprecated
-    ----------
-    This class will be removed on or after January 2026.
-    Use SampleSlicedSegmentationExtractor instead.
-    """
-
-    extractor_name = "FrameSliceSegmentationExtractor"
-
-    def __init__(
-        self,
-        parent_segmentation: SegmentationExtractor,
-        start_frame: int | None = None,
-        end_frame: int | None = None,
-    ):
-        """Create a new FrameSliceSegmentationExtractor from parent SegmentationExtractor.
-
-        Parameters
-        ----------
-        parent_segmentation: SegmentationExtractor
-            The parent SegmentationExtractor object.
-        start_frame: int, optional
-            The starting frame of the new SegmentationExtractor.
-        end_frame: int, optional
-            The ending frame of the new SegmentationExtractor.
-
-        Deprecated
-        ----------
-        This class will be removed on or after January 2026.
-        Use SampleSlicedSegmentationExtractor instead.
-        """
-        warnings.warn(
-            "FrameSliceSegmentationExtractor is deprecated and will be removed on or after January 2026. "
-            "Use SampleSlicedSegmentationExtractor instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        super().__init__(parent_segmentation=parent_segmentation, start_sample=start_frame, end_sample=end_frame)
