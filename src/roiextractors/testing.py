@@ -429,7 +429,7 @@ def check_segmentations_images(
 def check_segmentation_return_types(seg: SegmentationExtractor):
     """Check that the return types of the segmentation extractor are correct."""
     assert isinstance(seg.get_num_rois(), int)
-    assert isinstance(seg.get_num_frames(), int)
+    assert isinstance(seg.get_num_samples(), int)
     assert isinstance(seg.get_num_channels(), int)
     assert isinstance(seg.get_sampling_frequency(), (NoneType, floattype))
     _assert_iterable_complete(

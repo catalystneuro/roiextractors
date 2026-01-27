@@ -290,25 +290,6 @@ class SegmentationExtractor(ABC):
             if trace is not None and len(trace.shape) > 0:
                 return trace.shape[0]
 
-    def get_num_frames(self) -> int:
-        """Get the number of frames in the recording (duration of recording).
-
-        .. deprecated:: on or after January 2026
-           Use :meth:`get_num_samples` instead.
-
-        Returns
-        -------
-        num_frames: int
-            Number of frames in the recording.
-        """
-        warnings.warn(
-            "get_num_frames is deprecated and will be removed on or after January 2026. "
-            "Use get_num_samples instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.get_num_samples()
-
     def get_roi_locations(self, roi_ids=None) -> np.ndarray:
         """Get the locations of the Regions of Interest (ROIs).
 
@@ -942,25 +923,6 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
 
     def get_num_samples(self) -> int:
         return self._num_samples
-
-    def get_num_frames(self) -> int:
-        """Get the number of frames in the recording (duration of recording).
-
-        .. deprecated:: on or after January 2026
-           Use :meth:`get_num_samples` instead.
-
-        Returns
-        -------
-        num_frames: int
-            Number of frames in the recording.
-        """
-        warnings.warn(
-            "get_num_frames is deprecated and will be removed on or after January 2026. "
-            "Use get_num_samples instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.get_num_samples()
 
     def get_num_rois(self) -> int:
         return self._parent_segmentation.get_num_rois()

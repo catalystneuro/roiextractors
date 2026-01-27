@@ -251,15 +251,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
         """
         return self._num_frames
 
-    def get_num_frames(self) -> int:
-        warnings.warn(
-            "get_num_frames is deprecated and will be removed on or after January 2026. "
-            "Use get_num_samples instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.get_num_samples()
-
     def get_accepted_list(self) -> list:
         """Get a list of accepted ROI ids.
 
