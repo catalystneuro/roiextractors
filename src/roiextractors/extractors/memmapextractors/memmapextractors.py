@@ -36,9 +36,9 @@ class MemmapImagingExtractor(ImagingExtractor):
             start_sample = 0
         if end_sample is None:
             end_sample = self._num_samples
-        frame_idxs = range(start_sample, end_sample)
+        sample_indices = range(start_sample, end_sample)
         # Use channel=None to preserve the channel dimension
-        return self._video.take(indices=list(frame_idxs), axis=0)
+        return self._video.take(indices=list(sample_indices), axis=0)
 
     def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).

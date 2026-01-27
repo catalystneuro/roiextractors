@@ -96,24 +96,24 @@ class MultiImagingExtractor(ImagingExtractor):
 
         return times
 
-    def _get_frames_from_an_imaging_extractor(self, extractor_index: int, frame_idxs: ArrayType) -> NumpyArray:
-        """Get frames from a single imaging extractor.
+    def _get_frames_from_an_imaging_extractor(self, extractor_index: int, sample_indices: ArrayType) -> NumpyArray:
+        """Get samples from a single imaging extractor.
 
         Parameters
         ----------
         extractor_index: int
             Index of the imaging extractor to use.
-        frame_idxs: array_like
-            Indices of the frames to get.
+        sample_indices: array_like
+            Indices of the samples to get.
 
         Returns
         -------
-        frames: numpy.ndarray
-            Array of frames.
+        samples: numpy.ndarray
+            Array of samples.
         """
         imaging_extractor = self._imaging_extractors[extractor_index]
-        frames = imaging_extractor.get_samples(sample_indices=frame_idxs)
-        return frames
+        samples = imaging_extractor.get_samples(sample_indices=sample_indices)
+        return samples
 
     def get_dtype(self):
         return self._imaging_extractors[0].get_dtype()

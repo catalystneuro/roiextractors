@@ -468,7 +468,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         """Initialize an ImagingExtractor whose samples subset the parent.
 
         Subset is exclusive on the right bound, that is, the indexes of this ImagingExtractor range over
-        [0, ..., end_sample-start_sample-1], which is used to resolve the index mapping in `get_frames(frame_idxs=[...])`.
+        [0, ..., end_sample-start_sample-1], which is used to resolve the index mapping in `get_samples(sample_indices=[...])`.
 
         Parameters
         ----------
