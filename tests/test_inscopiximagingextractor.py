@@ -307,7 +307,7 @@ def test_inscopiximagingextractor_multiplane_movie():
     np.testing.assert_almost_equal(extractor.get_sampling_frequency(), 7.002533951423664, decimal=10)
     assert extractor.get_channel_names() == ["channel_0"]
     assert extractor.get_series().shape == (30, 100, 160)
-    assert extractor.get_samples([0]).shape == (30, 100, 160)
+    assert extractor.get_samples([0]).shape == (1, 100, 160)
 
     # Test session start time
     assert extractor._get_session_start_time() == datetime(2022, 6, 15, 23, 41, 43, 403000)
@@ -385,7 +385,7 @@ def test_inscopiximagingextractor_dual_color_movie_with_dropped_frames():
     assert extractor.get_dtype() is dtype("uint16")
     np.testing.assert_almost_equal(extractor.get_sampling_frequency(), 6.000177005221654, decimal=10)
     assert extractor.get_channel_names() == ["channel_0"]
-    assert extractor.get_samples([0]).shape == (25, 288, 480)
+    assert extractor.get_samples([0]).shape == (1, 288, 480)
     assert extractor.get_series().shape == (25, 288, 480)
 
     # Test session start time
