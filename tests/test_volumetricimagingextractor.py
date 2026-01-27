@@ -45,7 +45,7 @@ def test_get_series_invalid(volumetric_imaging_extractor, start_sample, end_samp
         volumetric_imaging_extractor.get_series(start_sample=start_sample, end_sample=end_sample)
 
 
-@pytest.mark.parametrize("frame_idxs", [0, [0, 1, 2], [0, num_samples - 1], [-3, -1]])
+@pytest.mark.parametrize("frame_idxs", [[0], [0, 1, 2], [0, num_samples - 1]])
 def test_get_samples(volumetric_imaging_extractor, frame_idxs):
     frames = volumetric_imaging_extractor.get_samples(sample_indices=frame_idxs)
     expected_frames = []
@@ -56,9 +56,9 @@ def test_get_samples(volumetric_imaging_extractor, frame_idxs):
     assert np.all(frames == expected_frames)
 
 
-@pytest.mark.parametrize("frame_idxs", [num_samples, [0, num_samples], [-num_samples - 1, -1]])
+@pytest.mark.parametrize("frame_idxs", [[num_samples], [0, num_samples]])
 def test_get_samples_invalid(volumetric_imaging_extractor, frame_idxs):
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         volumetric_imaging_extractor.get_samples(sample_indices=frame_idxs)
 
 

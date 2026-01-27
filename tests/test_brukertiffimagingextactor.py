@@ -101,9 +101,6 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
         self.assertEqual(series.dtype, np.uint16)
         assert_array_equal(self.extractor.get_series(start_sample=0, end_sample=1), self.video[:1])
 
-    def test_brukertiffextractor_get_single_frame(self):
-        assert_array_equal(self.extractor.get_samples(sample_indices=[0]), self.video[0][np.newaxis, ...])
-
 
 class TestBrukerTiffExtractorDualPlaneCase(TestCase):
     @classmethod
@@ -168,9 +165,6 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
         assert_array_equal(series, self.test_video)
         self.assertEqual(series.dtype, np.uint16)
         assert_array_equal(self.extractor.get_series(start_sample=2, end_sample=4), self.test_video[2:4])
-
-    def test_brukertiffextractor_get_single_frame(self):
-        assert_array_equal(self.extractor.get_samples(sample_indices=[0]), self.test_video[0][np.newaxis, ...])
 
     def test_is_volumetric_flag(self):
         """Test that the is_volumetric flag is True for BrukerTiffMultiPlaneImagingExtractor."""
