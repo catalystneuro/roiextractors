@@ -6,7 +6,7 @@ from roiextractors.testing import generate_dummy_segmentation_extractor
 
 def test_basic_properties():
     """Test basic property functionality."""
-    extractor = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
+    extractor = generate_dummy_segmentation_extractor(num_rois=5, num_frames=10)
 
     # Test setting and getting properties
     roi_ids = extractor.get_roi_ids()
@@ -22,7 +22,7 @@ def test_basic_properties():
 
 def test_multiple_properties_and_types():
     """Test setting multiple properties."""
-    extractor = generate_dummy_segmentation_extractor(num_rois=3, num_samples=10)
+    extractor = generate_dummy_segmentation_extractor(num_rois=3, num_frames=10)
 
     # Get ROI IDs
     roi_ids = extractor.get_roi_ids()
@@ -54,7 +54,7 @@ def test_multiple_properties_and_types():
 
 def test_setter_property_validation():
     """Test property validation."""
-    extractor = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
+    extractor = generate_dummy_segmentation_extractor(num_rois=5, num_frames=10)
     roi_ids = extractor.get_roi_ids()
 
     # Test wrong length values should raise error
@@ -82,7 +82,7 @@ def test_setter_property_validation():
 
 def test_getter_property_validation():
     """Test mismatch in property name."""
-    extractor = generate_dummy_segmentation_extractor(num_rois=3, num_samples=10)
+    extractor = generate_dummy_segmentation_extractor(num_rois=3, num_frames=10)
 
     roi_ids = extractor.get_roi_ids()
     extractor.set_property(key="quality", values=[0.8, 0.9, 0.7], ids=roi_ids)
@@ -113,7 +113,7 @@ def test_that_positional_order_does_not_matter():
 
     This test verifies this ID-based interface works correctly.
     """
-    extractor = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
+    extractor = generate_dummy_segmentation_extractor(num_rois=5, num_frames=10)
 
     # Get the ROI IDs from the extractor
     roi_ids = extractor.get_roi_ids()

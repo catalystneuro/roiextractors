@@ -28,11 +28,6 @@
 * Removed deprecated `channel` parameter from `get_frames()` and `get_video()` methods in all imaging extractors (deprecated August 2025). [PR #524](https://github.com/catalystneuro/roiextractors/pull/524)
 * Removed deprecated ScanImage extractor classes (deprecated October 2025): `ScanImageTiffSinglePlaneImagingExtractor`, `ScanImageTiffMultiPlaneImagingExtractor`, `ScanImageTiffSinglePlaneMultiFileImagingExtractor`, and `ScanImageTiffMultiPlaneMultiFileImagingExtractor`. Use `ScanImageImagingExtractor` instead. [PR #524](https://github.com/catalystneuro/roiextractors/pull/524)
 * Removed deprecated `sample_indices_to_time()` method from `ImagingExtractor` and `SegmentationExtractor` (deprecated January 2026). Use `get_timestamps()` instead. [PR #543](https://github.com/catalystneuro/roiextractors/pull/543)
-* Removed deprecated `num_frames` parameter from `generate_dummy_imaging_extractor()` and `generate_dummy_segmentation_extractor()` testing utilities (deprecated January 2026). Use `num_samples` parameter instead. [PR #545](https://github.com/catalystneuro/roiextractors/pull/545)
-* Removed deprecated `channel_names` parameter from `generate_dummy_imaging_extractor()` testing utility (deprecated January 2026). [PR #545](https://github.com/catalystneuro/roiextractors/pull/545)
-* Removed deprecated `num_channels` parameter from `generate_dummy_imaging_extractor()` testing utility (deprecated January 2026). Only single channel extractors are supported. [PR #545](https://github.com/catalystneuro/roiextractors/pull/545)
-* Removed deprecated `exclude_channel_comparison` parameter from `check_imaging_equal()` testing utility (deprecated January 2026). Extractors no longer have multiple channels, so channel comparison is always excluded. [PR #545](https://github.com/catalystneuro/roiextractors/pull/545)
-* Removed deprecated `accepted_lst` parameter from `NumpySegmentationExtractor` (deprecated January 2026). Use `accepted_list` parameter instead. [PR #545](https://github.com/catalystneuro/roiextractors/pull/545)
 * Deprecated `make_nwb_metadata()` method in `NwbImagingExtractor` (will be removed on or after May 2026). [PR #529](https://github.com/catalystneuro/roiextractors/pull/529)
 
 ### Improvements
