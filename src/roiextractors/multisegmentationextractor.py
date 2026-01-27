@@ -177,9 +177,6 @@ class MultiSegmentationExtractor(SegmentationExtractor):
     def get_roi_locations(self, roi_ids=None):
         return lambda x: np.concatenate(x, axis=1)
 
-    def get_num_frames(self):
-        return np.sum([self._segmentations[i].get_num_frames() for i in range(self._no_planes)])
-
     def get_accepted_list(self) -> list[int]:
         accepted_list_all = []
         for i in range(self._no_planes):
