@@ -5,7 +5,7 @@ from typing import Iterable
 
 import numpy as np
 
-from .extraction_tools import ArrayType, DtypeType
+from .extraction_tools import DtypeType
 from .imagingextractor import ImagingExtractor
 
 
@@ -91,34 +91,6 @@ class VolumetricImagingExtractor(ImagingExtractor):
         for i, imaging_extractor in enumerate(self._imaging_extractors):
             series[..., i] = imaging_extractor.get_series(start_sample, end_sample)
         return series
-
-    def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
-        """Get specific video frames from indices (not necessarily continuous).
-
-        Parameters
-        ----------
-        frame_idxs: array-like
-            Indices of frames to return.
-
-        Returns
-        -------
-        frames: numpy.ndarray
-            The 3D video frames (num_rows, num_columns, num_planes).
-        """
-        if isinstance(frame_idxs, int):
-            frame_idxs = [frame_idxs]
-        for frame_idx in frame_idxs:
-            if frame_idx < -1 * self.get_num_samples() or frame_idx >= self.get_num_samples():
-                raise ValueError(f"frame_idx {frame_idx} is out of bounds")
-
-        # Note np.all([]) returns True so not all(np.diff(frame_idxs) == 1) returns False if frame_idxs is a single int
-        if not all(np.diff(frame_idxs) == 1):
-            frames = np.zeros((len(frame_idxs), *self.get_sample_shape()), self.get_dtype())
-            for i, imaging_extractor in enumerate(self._imaging_extractors):
-                frames[..., i] = imaging_extractor.get_frames(frame_idxs)
-            return frames
-        else:
-            return self.get_series(start_sample=frame_idxs[0], end_sample=frame_idxs[-1] + 1)
 
     def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).

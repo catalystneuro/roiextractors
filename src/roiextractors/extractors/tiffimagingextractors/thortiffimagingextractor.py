@@ -180,14 +180,16 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         except ValueError:
             return ET.fromstring(metadata_string)
 
-    def get_frames(self, frame_idxs: list[int]) -> np.ndarray:
+    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """
-        Get specific frames by their time indices.
+        Get a series of frames as a contiguous block.
 
         Parameters
         ----------
-        frame_idxs : List[int]
-            List of time/frame indices to retrieve.
+        start_sample : int, optional
+            Starting frame index. If None, starts from 0.
+        end_sample : int, optional
+            Ending frame index (exclusive). If None, goes to end.
 
         Returns
         -------
@@ -195,6 +197,13 @@ class ThorTiffImagingExtractor(ImagingExtractor):
             Array of shape (n_frames, height, width) if no depth, or
             (n_frames, height, width, planes) if a Z dimension exists.
         """
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self._num_samples
+
+        sample_indices = list(range(start_sample, end_sample))
+
         # Use the stored tiff_reader instead of opening a new one
         series = self._tiff_reader.series[0]
         data_type = series.dtype
@@ -204,18 +213,18 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         has_z_dimension = self._z_axis_index is not None and self._num_z > 1
         number_of_z_planes = self._num_z if has_z_dimension else 1
 
-        n_frames = len(frame_idxs)
+        n_samples = len(sample_indices)
         output_shape = (
-            (n_frames, image_height, image_width, number_of_z_planes)
+            (n_samples, image_height, image_width, number_of_z_planes)
             if has_z_dimension
-            else (n_frames, image_height, image_width)
+            else (n_samples, image_height, image_width)
         )
         output_array = np.empty(output_shape, dtype=data_type)
 
-        for frame_counter, frame_idx in enumerate(frame_idxs):
-            if frame_idx not in self._frame_page_mapping:
-                raise ValueError(f"No pages found for frame {frame_idx}.")
-            page_mappings = self._frame_page_mapping[frame_idx]
+        for sample_counter, sample_index in enumerate(sample_indices):
+            if sample_index not in self._frame_page_mapping:
+                raise ValueError(f"No pages found for frame {sample_index}.")
+            page_mappings = self._frame_page_mapping[sample_index]
 
             # Filter by channel if a channel name was provided.
             if self._channel_axis_index is not None and self.channel_name is not None:
@@ -226,27 +235,19 @@ class ThorTiffImagingExtractor(ImagingExtractor):
                 page_mappings.sort(key=lambda entry: entry.depth_index)
                 if len(page_mappings) != number_of_z_planes:
                     raise ValueError(
-                        f"Expected {number_of_z_planes} pages for frame {frame_idx} but got {len(page_mappings)}."
+                        f"Expected {number_of_z_planes} pages for frame {sample_index} but got {len(page_mappings)}."
                     )
                 for depth_counter, mapping_entry in enumerate(page_mappings):
                     page_data = series.pages[mapping_entry.page_index].asarray()
-                    output_array[frame_counter, :, :, depth_counter] = page_data
+                    output_array[sample_counter, :, :, depth_counter] = page_data
             else:
                 if len(page_mappings) != 1:
-                    raise ValueError(f"Expected 1 page for frame {frame_idx} but got {len(page_mappings)}.")
+                    raise ValueError(f"Expected 1 page for frame {sample_index} but got {len(page_mappings)}.")
                 single_page_index = page_mappings[0].page_index
                 page_data = series.pages[single_page_index].asarray()
-                output_array[frame_counter, :, :] = page_data
+                output_array[sample_counter, :, :] = page_data
 
         return output_array
-
-    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
-        if start_sample is None:
-            start_sample = 0
-        if end_sample is None:
-            end_sample = self._num_samples
-        frame_indices = list(range(start_sample, end_sample))
-        return self.get_frames(frame_indices)
 
     def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).

@@ -253,36 +253,11 @@ class ImagingExtractor(ABC):
         assert (
             max(sample_indices) < self.get_num_samples()
         ), "'sample_indices' range beyond number of available samples!"
-        if np.all(np.diff(sample_indices) == 0):
-            return self.get_series(start_sample=sample_indices[0], end_sample=sample_indices[-1])
+        if np.all(np.diff(sample_indices) == 1):
+            return self.get_series(start_sample=sample_indices[0], end_sample=sample_indices[-1] + 1)
         relative_indices = np.array(sample_indices) - sample_indices[0]
         series = self.get_series(start_sample=sample_indices[0], end_sample=sample_indices[-1] + 1)
         return series[relative_indices]
-
-    def get_frames(self, frame_idxs: ArrayType) -> np.ndarray:
-        """Get specific video frames from indices (not necessarily continuous).
-
-        Parameters
-        ----------
-        frame_idxs: array-like
-            Indices of frames to return.
-
-        Returns
-        -------
-        frames: numpy.ndarray
-            The video frames.
-
-        Deprecated
-        ----------
-        This method will be removed on or after January 2026.
-        Use get_samples() instead.
-        """
-        warnings.warn(
-            "get_frames() is deprecated and will be removed on or after January 2026. " "Use get_samples() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.get_samples(sample_indices=frame_idxs)
 
     @abstractmethod
     def get_native_timestamps(
@@ -493,7 +468,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         """Initialize an ImagingExtractor whose samples subset the parent.
 
         Subset is exclusive on the right bound, that is, the indexes of this ImagingExtractor range over
-        [0, ..., end_sample-start_sample-1], which is used to resolve the index mapping in `get_frames(frame_idxs=[...])`.
+        [0, ..., end_sample-start_sample-1], which is used to resolve the index mapping in `get_samples(sample_indices=[...])`.
 
         Parameters
         ----------
@@ -533,20 +508,6 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         assert max(sample_indices) < self._num_samples, "'sample_indices' range beyond number of available samples!"
         mapped_sample_indices = np.array(sample_indices) + self._start_frame
         return self._parent_imaging.get_samples(sample_indices=mapped_sample_indices)
-
-    def get_frames(self, frame_idxs: ArrayType, channel: int | None = 0) -> np.ndarray:
-        warnings.warn(
-            "get_frames() is deprecated and will be removed on or after January 2026. " "Use get_samples() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if channel != 0:
-            warnings.warn(
-                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        return self.get_samples(sample_indices=frame_idxs)
 
     def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         assert start_sample is None or start_sample >= 0, (

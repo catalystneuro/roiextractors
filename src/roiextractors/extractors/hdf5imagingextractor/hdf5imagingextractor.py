@@ -110,38 +110,6 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         """Close the HDF5 file."""
         self._file.close()
 
-    def get_frames(self, frame_idxs: ArrayType, channel: int | None = 0):
-        """Get specific video frames from indices.
-
-        Parameters
-        ----------
-        frame_idxs: array-like
-            Indices of frames to return.
-        channel: int, optional
-            Channel index. Deprecated: This parameter will be removed in August 2025.
-
-        Returns
-        -------
-        frames: numpy.ndarray
-            The video frames.
-        """
-        if channel != 0:
-            warn(
-                "The 'channel' parameter in get_frames() is deprecated and will be removed in August 2025.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        squeeze_data = False
-        if isinstance(frame_idxs, int):
-            squeeze_data = True
-            frame_idxs = [frame_idxs]
-        elif isinstance(frame_idxs, np.ndarray):
-            frame_idxs = frame_idxs.tolist()
-        frames = self._video.lazy_slice[frame_idxs, :, :, channel].dsetread()
-        if squeeze_data:
-            frames = frames.squeeze()
-        return frames
-
     def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
         return self._video.lazy_slice[start_sample:end_sample, :, :, 0].dsetread()
 

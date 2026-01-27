@@ -339,7 +339,20 @@ def check_get_frames_args(func):
     ------
     AssertionError
         If 'frame_idxs' exceed the number of frames.
+
+    Deprecated
+    ----------
+    This function will be removed on or after June 2026.
+    The get_frames method it decorates has been removed.
     """
+    import warnings
+
+    warnings.warn(
+        "check_get_frames_args() is deprecated and will be removed on or after June 2026. "
+        "The get_frames method has been removed.",
+        FutureWarning,
+        stacklevel=2,
+    )
 
     @wraps(func)
     def corrected_args(imaging, frame_idxs, channel=0):
@@ -425,7 +438,20 @@ def check_get_videos_args(func):
         If 'end_frame' exceeds the number of frames.
     AssertionError
         If 'start_frame' is greater than 'end_frame'.
+
+    Deprecated
+    ----------
+    This function will be removed on or after January 2026.
+    The get_video method it decorates has been removed.
     """
+    import warnings
+
+    warnings.warn(
+        "check_get_videos_args() is deprecated and will be removed on or after January 2026. "
+        "The get_video method has been removed.",
+        FutureWarning,
+        stacklevel=2,
+    )
 
     @wraps(func)
     def corrected_args(imaging, start_frame=None, end_frame=None, channel=0):
@@ -586,13 +612,13 @@ def show_video(imaging, ax=None):
 
     def animate_func(i, imaging, im, ax):
         ax.set_title(f"{i}")
-        im.set_array(imaging.get_frames(i))
+        im.set_array(imaging.get_samples(sample_indices=[i])[0])
         return [im]
 
     if ax is None:
         fig = plt.figure(figsize=(5, 5))
         ax = fig.add_subplot(111)
-    im0 = imaging.get_frames(0)
+    im0 = imaging.get_samples(sample_indices=[0])[0]
     im = ax.imshow(im0, interpolation="none", aspect="auto", vmin=0, vmax=1)
     interval = 1 / imaging.get_sampling_frequency() * 1000
     anim = animation.FuncAnimation(
