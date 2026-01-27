@@ -18,7 +18,7 @@ from typing import Literal
 import numpy as np
 from numpy.typing import ArrayLike
 
-from .extraction_tools import ArrayType, FloatType, IntType
+from .extraction_tools import ArrayType, FloatType
 
 
 # TODO make public once API stabilizes.
@@ -722,35 +722,6 @@ class SegmentationExtractor(ABC):
             True if the SegmentationExtractor has a time vector set, otherwise False.
         """
         return self._times is not None
-
-    def frame_to_time(self, frames: IntType | ArrayType) -> FloatType | ArrayType:
-        """Get the timing of frames in unit of seconds.
-
-        Parameters
-        ----------
-        frames: int or array-like
-            The frame or frames to be converted to times
-
-        Returns
-        -------
-        times: float or array-like
-            The corresponding times in seconds
-
-        Deprecated
-        ----------
-        This method will be removed on or after January 2026.
-        Use sample_indices_to_time() instead.
-        """
-        warnings.warn(
-            "frame_to_time() is deprecated and will be removed on or after January 2026. "
-            "Use sample_indices_to_time() instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        if self._times is None:
-            return frames / self.get_sampling_frequency()
-        else:
-            return self._times[frames]
 
     def get_timestamps(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """
