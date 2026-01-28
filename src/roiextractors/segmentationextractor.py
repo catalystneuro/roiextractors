@@ -497,6 +497,55 @@ class SegmentationExtractor(ABC):
             parent_segmentation=self, start_sample=start_sample, end_sample=end_sample
         )
 
+    def select_rois(self, roi_ids: list[str | int]):
+        """Return a new SegmentationExtractor with only the specified ROIs.
+
+        Parameters
+        ----------
+        roi_ids : list[str | int]
+            List of ROI IDs to include. Can include both cell and background ROI IDs.
+            The order of IDs is preserved in the returned extractor.
+
+        Returns
+        -------
+        segmentation : RoiSlicedSegmentationExtractor
+            The ROI-sliced SegmentationExtractor object.
+
+        Raises
+        ------
+        ValueError
+            If roi_ids is empty or contains IDs not present in the extractor.
+
+        Notes
+        -----
+        This method creates a lazy view of the segmentation data with a subset of ROIs.
+        The slicing is applied to ROI-related data while temporal and spatial properties
+        are preserved.
+
+        Examples
+        --------
+        >>> # Select specific ROIs
+        >>> subset = extractor.select_rois([0, 1, 2])
+        >>>
+        >>> # Compose with temporal slicing
+        >>> subset = extractor.select_rois([0, 1, 2]).slice_samples(100, 200)
+        """
+        if not roi_ids:
+            raise ValueError("roi_ids cannot be empty")
+
+        all_valid_ids = set(self.get_roi_ids()) | set(self.get_background_ids())
+        invalid_ids = [rid for rid in roi_ids if rid not in all_valid_ids]
+        if invalid_ids:
+            raise ValueError(
+                f"ROI ids {invalid_ids} not found in extractor. "
+                f"Available cell ROI ids: {self.get_roi_ids()}, "
+                f"Available background ids: {self.get_background_ids()}"
+            )
+
+        from .roislicedsegmentationextractor import RoiSlicedSegmentationExtractor
+
+        return RoiSlicedSegmentationExtractor(parent_segmentation=self, roi_ids=roi_ids)
+
     def get_traces(
         self,
         roi_ids: list[int | str] = None,
@@ -898,8 +947,8 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
                 _RoiResponse(roi_response.response_type, sliced_data, list(roi_response.roi_ids))
             )
         self._summary_images = dict(self._parent_segmentation.get_images_dict())
-        # Preserve parent's channel names and other attributes
-        self._channel_names = self._parent_segmentation.get_channel_names()
+        # Preserve parent's channel names and other attributes (access attribute directly to avoid deprecation warning)
+        self._channel_names = self._parent_segmentation._channel_names
         self._num_planes = self._parent_segmentation.get_num_planes()
 
         # The _times attribute of the sliced extractor acts like a view to the parent's _times,
