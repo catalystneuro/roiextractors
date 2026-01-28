@@ -1,4 +1,4 @@
-"""Module for RoiSlicedSegmentationExtractor class."""
+"""Module for _RoiSlicedSegmentationExtractor class."""
 
 import numpy as np
 
@@ -10,13 +10,13 @@ from .segmentationextractor import (
 )
 
 
-class RoiSlicedSegmentationExtractor(SegmentationExtractor):
+class _RoiSlicedSegmentationExtractor(SegmentationExtractor):
     """Class to get a lazy ROI subset.
 
     Do not use this class directly but use `.select_rois(...)` on a SegmentationExtractor object.
     """
 
-    extractor_name = "RoiSlicedSegmentationExtractor"
+    extractor_name = "_RoiSlicedSegmentationExtractor"
 
     def __init__(
         self,
@@ -135,8 +135,6 @@ class RoiSlicedSegmentationExtractor(SegmentationExtractor):
 
     def get_num_planes(self) -> int:
         return self._parent_segmentation.get_num_planes()
-
-    # --- Property Methods ---
 
     def get_property(self, key: str, ids: ArrayType) -> ArrayType:
         # Validate IDs are in selection

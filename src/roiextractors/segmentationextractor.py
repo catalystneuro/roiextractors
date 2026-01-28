@@ -542,9 +542,9 @@ class SegmentationExtractor(ABC):
                 f"Available background ids: {self.get_background_ids()}"
             )
 
-        from .roislicedsegmentationextractor import RoiSlicedSegmentationExtractor
+        from .roislicedsegmentationextractor import _RoiSlicedSegmentationExtractor
 
-        return RoiSlicedSegmentationExtractor(parent_segmentation=self, roi_ids=roi_ids)
+        return _RoiSlicedSegmentationExtractor(parent_segmentation=self, roi_ids=roi_ids)
 
     def get_traces(
         self,
