@@ -1,4 +1,15 @@
-# v0.7.3 (Upcoming)
+# v0.8.0 (Upcoming)
+
+### Features
+
+### Fixes
+
+### Deprecations And Removals
+
+### Improvements
+
+
+# v0.7.3 (January 27th, 2026)
 
 ### Features
 * Added volumetric (3D) imaging support to `NwbImagingExtractor` for reading 4D TwoPhotonSeries and OnePhotonSeries data [PR #528](https://github.com/catalystneuro/roiextractors/pull/528)
