@@ -967,12 +967,46 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
         # Copy properties from parent (ROI properties are not affected by temporal slicing)
         self._properties = dict(self._parent_segmentation._properties)
 
+    def get_native_timestamps(
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
+        # Adjust the sample indices to account for the slice offset
+        start_sample = start_sample or 0
+        end_sample = end_sample or self.get_num_samples()
+
+        # Map slice-relative indices to parent indices
+        parent_start = self._start_sample + start_sample
+        parent_end = self._start_sample + end_sample
+
+        return self._parent_segmentation.get_native_timestamps(start_sample=parent_start, end_sample=parent_end)
+
     def get_frame_shape(self) -> tuple[int, int]:
         return tuple(self._parent_segmentation.get_frame_shape())
 
     def get_num_samples(self) -> int:
         return self._num_samples
 
+    def get_roi_locations(self, roi_ids=None) -> np.ndarray:
+        return self._parent_segmentation.get_roi_locations(roi_ids=roi_ids)
+    
+    def get_roi_ids(self) -> list:
+        return self._parent_segmentation.get_roi_ids()
+
+    def get_roi_image_masks(self, roi_ids=None) -> np.ndarray:
+        return self._parent_segmentation.get_roi_image_masks(roi_ids=roi_ids)
+
+    def get_roi_pixel_masks(self, roi_ids: ArrayLike | None = None) -> list[np.ndarray]:
+        return self._parent_segmentation.get_roi_pixel_masks(roi_ids=roi_ids)
+
+    def get_background_ids(self) -> list:
+        return self._parent_segmentation.get_background_ids()
+
+    def get_background_image_masks(self, background_ids=None) -> np.ndarray:
+        return self._parent_segmentation.get_background_image_masks(background_ids=background_ids)
+
+    def get_background_pixel_masks(self, background_ids: ArrayLike | None = None) -> list[np.ndarray]:
+        return self._parent_segmentation.get_background_pixel_masks(background_ids=background_ids)
+                
     def get_num_rois(self) -> int:
         return self._parent_segmentation.get_num_rois()
 
@@ -1001,25 +1035,6 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
 
     def get_num_planes(self) -> int:
         return self._parent_segmentation.get_num_planes()
-
-    def get_roi_pixel_masks(self, roi_ids: ArrayLike | None = None) -> list[np.ndarray]:
-        return self._parent_segmentation.get_roi_pixel_masks(roi_ids=roi_ids)
-
-    def get_background_pixel_masks(self, background_ids: ArrayLike | None = None) -> list[np.ndarray]:
-        return self._parent_segmentation.get_background_pixel_masks(background_ids=background_ids)
-
-    def get_native_timestamps(
-        self, start_sample: int | None = None, end_sample: int | None = None
-    ) -> np.ndarray | None:
-        # Adjust the sample indices to account for the slice offset
-        start_sample = start_sample or 0
-        end_sample = end_sample or self.get_num_samples()
-
-        # Map slice-relative indices to parent indices
-        parent_start = self._start_sample + start_sample
-        parent_end = self._start_sample + end_sample
-
-        return self._parent_segmentation.get_native_timestamps(start_sample=parent_start, end_sample=parent_end)
 
     def has_time_vector(self) -> bool:
         # Override to check parent segmentation for time vector
