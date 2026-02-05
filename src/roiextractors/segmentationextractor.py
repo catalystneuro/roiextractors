@@ -988,7 +988,7 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
 
     def get_roi_locations(self, roi_ids=None) -> np.ndarray:
         return self._parent_segmentation.get_roi_locations(roi_ids=roi_ids)
-    
+
     def get_roi_ids(self) -> list:
         return self._parent_segmentation.get_roi_ids()
 
@@ -1006,7 +1006,7 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
 
     def get_background_pixel_masks(self, background_ids: ArrayLike | None = None) -> list[np.ndarray]:
         return self._parent_segmentation.get_background_pixel_masks(background_ids=background_ids)
-                
+
     def get_num_rois(self) -> int:
         return self._parent_segmentation.get_num_rois()
 
