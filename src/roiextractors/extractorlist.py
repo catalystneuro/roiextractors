@@ -35,7 +35,6 @@ from .multisegmentationextractor import MultiSegmentationExtractor
 from .multiimagingextractor import MultiImagingExtractor
 from .volumetricimagingextractor import VolumetricImagingExtractor
 
-
 imaging_extractor_full_list = [
     FemtonicsImagingExtractor,
     NumpyImagingExtractor,
