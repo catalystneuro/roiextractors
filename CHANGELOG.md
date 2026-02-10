@@ -3,8 +3,6 @@
 ### Features
 
 ### Fixes
-### Improvements
-### Fixes
 * Fixed `SampleSlicedImagingExtractor` `AttributeError` by standardizing internal variable name from `_start_frame` to `_start_sample` to match usage in `get_native_timestamps()` method [PR #550](https://github.com/catalystneuro/roiextractors/pull/550)
 * Fixed `SampleSlicedSegmentationExtractor` to properly delegate ROI and background methods to parent extractor by adding implementations for `get_roi_locations()`, `get_roi_ids()`, `get_roi_image_masks()`, `get_background_ids()`, and `get_background_image_masks()` [PR #550](https://github.com/catalystneuro/roiextractors/pull/550)
 
