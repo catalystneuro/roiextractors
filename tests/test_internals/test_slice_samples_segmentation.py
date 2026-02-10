@@ -111,108 +111,112 @@ class TestSampleSlicedTimestampInheritance:
         assert_array_equal(self.parent_extractor.get_timestamps(), parent_times)
 
     def test_get_frame_shape(self):
-        sample_sliced_imaging = self.parent_extractor.slice_samples(
+        sample_sliced_segmentation = self.parent_extractor.slice_samples(
             start_sample=self.start_sample, end_sample=self.end_sample
         )
-        assert sample_sliced_imaging.get_frame_shape() == (5, 4)
+        assert sample_sliced_segmentation.get_frame_shape() == (5, 4)
 
     def test_get_roi_locations(self):
-        sample_sliced_imaging = self.parent_extractor.slice_samples(
+        sample_sliced_segmentation = self.parent_extractor.slice_samples(
             start_sample=self.start_sample, end_sample=self.end_sample
         )
-        assert_array_equal(sample_sliced_imaging.get_roi_locations(), self.parent_extractor.get_roi_locations())
+        assert_array_equal(sample_sliced_segmentation.get_roi_locations(), self.parent_extractor.get_roi_locations())
 
     def test_get_roi_ids(self):
-        sample_sliced_imaging = self.parent_extractor.slice_samples(
+        sample_sliced_segmentation = self.parent_extractor.slice_samples(
             start_sample=self.start_sample, end_sample=self.end_sample
         )
-        assert sample_sliced_imaging.get_roi_ids() == self.parent_extractor.get_roi_ids()
+        assert sample_sliced_segmentation.get_roi_ids() == self.parent_extractor.get_roi_ids()
 
     def test_get_roi_image_masks(self):
-        sample_sliced_imaging = self.parent_extractor.slice_samples(
-            start_sample=self.start_sample, end_sample=self.end_sample
-        )
-        assert_array_equal(sample_sliced_imaging.get_roi_image_masks(), self.parent_extractor.get_roi_image_masks())
-
-    def test_get_roi_pixel_masks(self):
-        sample_sliced_imaging = self.parent_extractor.slice_samples(
-            start_sample=self.start_sample, end_sample=self.end_sample
-        )
-        assert_array_equal(sample_sliced_imaging.get_roi_pixel_masks(), self.parent_extractor.get_roi_pixel_masks())
-
-    def test_get_background_ids(self):
-        sample_sliced_imaging = self.parent_extractor.slice_samples(
-            start_sample=self.start_sample, end_sample=self.end_sample
-        )
-        assert sample_sliced_imaging.get_background_ids() == self.parent_extractor.get_background_ids()
-
-    def test_get_background_image_masks(self):
-        sample_sliced_imaging = self.parent_extractor.slice_samples(
+        sample_sliced_segmentation = self.parent_extractor.slice_samples(
             start_sample=self.start_sample, end_sample=self.end_sample
         )
         assert_array_equal(
-            sample_sliced_imaging.get_background_image_masks(), self.parent_extractor.get_background_image_masks()
+            sample_sliced_segmentation.get_roi_image_masks(), self.parent_extractor.get_roi_image_masks()
+        )
+
+    def test_get_roi_pixel_masks(self):
+        sample_sliced_segmentation = self.parent_extractor.slice_samples(
+            start_sample=self.start_sample, end_sample=self.end_sample
+        )
+        assert_array_equal(
+            sample_sliced_segmentation.get_roi_pixel_masks(), self.parent_extractor.get_roi_pixel_masks()
+        )
+
+    def test_get_background_ids(self):
+        sample_sliced_segmentation = self.parent_extractor.slice_samples(
+            start_sample=self.start_sample, end_sample=self.end_sample
+        )
+        assert sample_sliced_segmentation.get_background_ids() == self.parent_extractor.get_background_ids()
+
+    def test_get_background_image_masks(self):
+        sample_sliced_segmentation = self.parent_extractor.slice_samples(
+            start_sample=self.start_sample, end_sample=self.end_sample
+        )
+        assert_array_equal(
+            sample_sliced_segmentation.get_background_image_masks(), self.parent_extractor.get_background_image_masks()
         )
 
     def test_get_background_pixel_masks(self):
-        sample_sliced_imaging = self.parent_extractor.slice_samples(
+        sample_sliced_segmentation = self.parent_extractor.slice_samples(
             start_sample=self.start_sample, end_sample=self.end_sample
         )
         assert_array_equal(
-            sample_sliced_imaging.get_background_pixel_masks(), self.parent_extractor.get_background_pixel_masks()
+            sample_sliced_segmentation.get_background_pixel_masks(), self.parent_extractor.get_background_pixel_masks()
         )
 
     def test_get_num_rois(self):
-        sample_sliced_imaging = self.parent_extractor.slice_samples(
+        sample_sliced_segmentation = self.parent_extractor.slice_samples(
             start_sample=self.start_sample, end_sample=self.end_sample
         )
-        assert sample_sliced_imaging.get_num_rois() == 10
+        assert sample_sliced_segmentation.get_num_rois() == 10
 
     def test_get_num_background_components(self):
-        sample_sliced_imaging = self.parent_extractor.slice_samples(
+        sample_sliced_segmentation = self.parent_extractor.slice_samples(
             start_sample=self.start_sample, end_sample=self.end_sample
         )
-        assert sample_sliced_imaging.get_num_background_components() == 0
+        assert sample_sliced_segmentation.get_num_background_components() == 0
 
     def test_get_images_dict(self):
-        sample_sliced_imaging = self.parent_extractor.slice_samples(
+        sample_sliced_segmentation = self.parent_extractor.slice_samples(
             start_sample=self.start_sample, end_sample=self.end_sample
         )
-        assert sample_sliced_imaging.get_images_dict() == self.parent_extractor.get_images_dict()
+        assert sample_sliced_segmentation.get_images_dict() == self.parent_extractor.get_images_dict()
 
     def test_get_num_samples(self):
-        sample_sliced_imaging = self.parent_extractor.slice_samples(
+        sample_sliced_segmentation = self.parent_extractor.slice_samples(
             start_sample=self.start_sample, end_sample=self.end_sample
         )
-        assert sample_sliced_imaging.get_num_samples() == 5
+        assert sample_sliced_segmentation.get_num_samples() == 5
 
     def test_get_sampling_frequency(self):
-        sample_sliced_imaging = self.parent_extractor.slice_samples(
+        sample_sliced_segmentation = self.parent_extractor.slice_samples(
             start_sample=self.start_sample, end_sample=self.end_sample
         )
-        assert sample_sliced_imaging.get_sampling_frequency() == 30.0
+        assert sample_sliced_segmentation.get_sampling_frequency() == 30.0
 
     def test_get_channel_names(self):
-        sample_sliced_imaging = self.parent_extractor.slice_samples(
+        sample_sliced_segmentation = self.parent_extractor.slice_samples(
             start_sample=self.start_sample, end_sample=self.end_sample
         )
-        assert sample_sliced_imaging.get_channel_names() == ["channel_num_0"]
+        assert sample_sliced_segmentation.get_channel_names() == ["channel_num_0"]
 
     def test_has_time_vector_inherits_from_parent(self):
         """Test that sliced extractor's has_time_vector delegates to parent."""
 
         # Parent without time vector
-        sample_sliced_imaging = self.parent_extractor.slice_samples(
+        sample_sliced_segmentation = self.parent_extractor.slice_samples(
             start_sample=self.start_sample, end_sample=self.end_sample
         )
-        assert sample_sliced_imaging.has_time_vector() == self.parent_extractor.has_time_vector()
-        assert not sample_sliced_imaging.has_time_vector()
+        assert sample_sliced_segmentation.has_time_vector() == self.parent_extractor.has_time_vector()
+        assert not sample_sliced_segmentation.has_time_vector()
 
         # Parent with time vector
         times = np.array(range(10)) + 5.5
         self.parent_extractor.set_times(times=times)
-        sample_sliced_imaging_with_times = self.parent_extractor.slice_samples(
+        sample_sliced_segmentation_with_times = self.parent_extractor.slice_samples(
             start_sample=self.start_sample, end_sample=self.end_sample
         )
-        assert sample_sliced_imaging_with_times.has_time_vector() == self.parent_extractor.has_time_vector()
-        assert sample_sliced_imaging_with_times.has_time_vector()
+        assert sample_sliced_segmentation_with_times.has_time_vector() == self.parent_extractor.has_time_vector()
+        assert sample_sliced_segmentation_with_times.has_time_vector()

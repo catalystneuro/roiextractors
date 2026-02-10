@@ -483,8 +483,8 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         """
         self._parent_imaging = parent_imaging
         self._start_sample = start_sample
-        self._end_frame = end_sample
-        self._num_samples = self._end_frame - self._start_sample
+        self._end_sample = end_sample
+        self._num_samples = self._end_sample - self._start_sample
 
         parent_size = self._parent_imaging.get_num_samples()
         if start_sample is None:
