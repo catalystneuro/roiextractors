@@ -482,9 +482,9 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
             The default is end sample of the parent.
         """
         self._parent_imaging = parent_imaging
-        self._start_frame = start_sample
-        self._end_frame = end_sample
-        self._num_samples = self._end_frame - self._start_frame
+        self._start_sample = start_sample
+        self._end_sample = end_sample
+        self._num_samples = self._end_sample - self._start_sample
 
         parent_size = self._parent_imaging.get_num_samples()
         if start_sample is None:
@@ -506,7 +506,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
 
     def get_samples(self, sample_indices: ArrayType) -> np.ndarray:
         assert max(sample_indices) < self._num_samples, "'sample_indices' range beyond number of available samples!"
-        mapped_sample_indices = np.array(sample_indices) + self._start_frame
+        mapped_sample_indices = np.array(sample_indices) + self._start_sample
         return self._parent_imaging.get_samples(sample_indices=mapped_sample_indices)
 
     def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
@@ -514,10 +514,10 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
             f"'start_sample' must be greater than or equal to zero! Received '{start_sample}'.\n"
             "Negative slicing semantics are not supported."
         )
-        start_sample_shifted = (start_sample or 0) + self._start_frame
+        start_sample_shifted = (start_sample or 0) + self._start_sample
         end_sample_shifted = end_sample
         if end_sample is not None:
-            end_sample_shifted = end_sample + self._start_frame
+            end_sample_shifted = end_sample + self._start_sample
         return self._parent_imaging.get_series(start_sample=start_sample_shifted, end_sample=end_sample_shifted)
 
     def get_image_shape(self) -> tuple[int, int]:
