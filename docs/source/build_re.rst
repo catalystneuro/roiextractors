@@ -4,8 +4,12 @@ Build a SegmentationExtractor:
 
 To build a custom SegmentationExtractor that interfaces with the output of a custom segmentation pipeline used for post processing the raw image data.
 
-* `get_accepted_list()`: returns a list of accepted ROIs' id numbers
-* `get_frame_shape()`: the (height, width) dimensions of the image
+* ``get_accepted_list()``: returns a list of accepted ROIs' id numbers
+* ``get_frame_shape()``: the (height, width) dimensions of the image
+
+Additionally, if your format stores hardware timestamps, you should override:
+
+* ``get_native_timestamps()``: return the format's native timestamps, or ``None`` if unavailable (see :doc:`timestamps` for details)
 
 
 .. code-block:: python
@@ -79,3 +83,12 @@ To build a custom SegmentationExtractor that interfaces with the output of a cus
             # returns the (height, width) dimensions as a tuple
             # e.g., self._image_mean.shape
             return self._image_mean.shape
+
+        def get_native_timestamps(self, start_sample=None, end_sample=None):
+
+            # Optional: override this if your format has hardware timestamps.
+            # Return None (the default) if it does not.
+            timestamps = self._read_timestamps_from_file()
+            start = start_sample or 0
+            end = end_sample or len(timestamps)
+            return timestamps[start:end]

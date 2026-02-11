@@ -265,7 +265,7 @@ class SegmentationExtractor(ABC):
         timestamps : np.ndarray or None
             The original timestamps in seconds, or None if not available.
         """
-        pass
+        return None
 
     @abstractmethod
     def get_frame_shape(self) -> ArrayType:

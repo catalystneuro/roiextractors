@@ -30,6 +30,7 @@ With this package, a user can:
    compatible
    usage
    usecase
+   timestamps
    contribute
    api/index
    licence

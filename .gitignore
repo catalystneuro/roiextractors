@@ -47,6 +47,7 @@ coverage.xml
 
 # Sphinx documentation
 docs/build
+docs/_build
 docs/make.bat
 docs/Makefile
 

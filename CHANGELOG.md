@@ -7,6 +7,7 @@
 ### Deprecations And Removals
 
 ### Improvements
+* Added documentation for the timestamp API: a user-facing guide (`timestamps.rst`) covering `get_timestamps()` and `set_times()`, and a developer-facing design decisions page (`design_decisions.rst`) explaining the separation of `get_native_timestamps` and `get_timestamps`, why `get_native_timestamps` is abstract, and copy vs. view semantics for sliced timestamps. Updated the extractor build guides (`build_ie.rst`, `build_re.rst`) to consistently document `get_native_timestamps`. [PR #552](https://github.com/catalystneuro/roiextractors/pull/552)
 
 
 # v0.8.0 (February 10th, 2026)
