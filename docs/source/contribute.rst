@@ -41,3 +41,4 @@ More details on how to construct individual extractors can be found here:
 
    build_ie
    build_re
+   design_decisions

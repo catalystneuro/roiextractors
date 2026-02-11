@@ -3,11 +3,13 @@ Build an ImagingExtractor:
 
 To build your custom ImagingExtractor to interface with a new raw image storage format from your microscope, build a custom class inheriting from a base class that enforces certain methods that need to be defined:
 
-* `get_num_samples()`: the number of image frames recorded
-* `get_image_shape()`: the y,x dimensions of a single frame
-* `get_series()`: return a continuous slice of imaging data
+* ``get_num_samples()``: the number of image frames recorded
+* ``get_image_shape()``: the y,x dimensions of a single frame
+* ``get_series()``: return a continuous slice of imaging data
 
+Additionally, if your format stores hardware timestamps, you should override:
 
+* ``get_native_timestamps()``: return the format's native timestamps, or ``None`` if unavailable (see :doc:`timestamps` for details)
 
 .. code-block:: python
 
@@ -48,3 +50,12 @@ To build your custom ImagingExtractor to interface with a new raw image storage 
             # returns the (height, width) dimensions of a single frame
             # this is the abstract method that must be implemented
             return self._data.shape[1:]
+
+        def get_native_timestamps(self, start_sample=None, end_sample=None):
+
+            # Optional: override this if your format has hardware timestamps.
+            # Return None (the default) if it does not.
+            timestamps = self._read_timestamps_from_file()
+            start = start_sample or 0
+            end = end_sample or len(timestamps)
+            return timestamps[start:end]
