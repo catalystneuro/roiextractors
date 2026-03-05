@@ -183,16 +183,18 @@ class TestMemoryUsage:
     Skipped on Windows because memray only supports Linux and macOS.
     """
 
-    @pytest.mark.limit_memory("420 MB")
+    @pytest.mark.limit_memory("1350 MB")
     def test_poisson_get_series_memory(self):
-        """256x256 int64: tile ~100 MB (200 samples) + result ~250 MB (500 samples) = ~350 MB.
-        An accidental extra copy of the result would push to ~600 MB, well over the limit."""
-        ext = PoissonNoiseImagingExtractor(num_samples=5000, num_rows=256, num_columns=256)
-        ext.get_series(0, 500)
+        """get_series result: 512 samples * 512 * 512 * 8 bytes (int64) = 1024 MB.
+        The tile is at most 100 MB, so expected total is ~1124 MB.
+        An extra allocation of the result would push to ~2148 MB, exceeding the limit."""
+        ext = PoissonNoiseImagingExtractor(num_samples=50_000, num_rows=512, num_columns=512)
+        ext.get_series(0, 512)
 
-    @pytest.mark.limit_memory("270 MB")
+    @pytest.mark.limit_memory("1350 MB")
     def test_gaussian_get_series_memory(self):
-        """256x256 float32: tile ~100 MB (400 samples) + result ~125 MB (500 samples) = ~225 MB.
-        An accidental extra copy of the result would push to ~350 MB, well over the limit."""
-        ext = GaussianNoiseImagingExtractor(num_samples=5000, num_rows=256, num_columns=256)
-        ext.get_series(0, 500)
+        """get_series result: 1024 samples * 512 * 512 * 4 bytes (float32) = 1024 MB.
+        The tile is at most 100 MB, so expected total is ~1124 MB.
+        An extra allocation of the result would push to ~2148 MB, exceeding the limit."""
+        ext = GaussianNoiseImagingExtractor(num_samples=50_000, num_rows=512, num_columns=512)
+        ext.get_series(0, 1024)
