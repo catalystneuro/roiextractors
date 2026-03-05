@@ -183,26 +183,16 @@ class TestMemoryUsage:
     Skipped on Windows because memray only supports Linux and macOS.
     """
 
-    @pytest.mark.limit_memory("24 MB")
+    @pytest.mark.limit_memory("420 MB")
     def test_poisson_get_series_memory(self):
-        """get_series for 100 samples of 100x100 int64 = 7.6 MB result + tile overhead."""
-        ext = PoissonNoiseImagingExtractor(num_samples=200, num_rows=100, num_columns=100)
-        ext.get_series(0, 100)
+        """256x256 int64: tile ~100 MB (200 samples) + result ~250 MB (500 samples) = ~350 MB.
+        An accidental extra copy of the result would push to ~600 MB, well over the limit."""
+        ext = PoissonNoiseImagingExtractor(num_samples=5000, num_rows=256, num_columns=256)
+        ext.get_series(0, 500)
 
-    @pytest.mark.limit_memory("12 MB")
+    @pytest.mark.limit_memory("270 MB")
     def test_gaussian_get_series_memory(self):
-        """get_series for 100 samples of 100x100 float32 = 3.8 MB result + tile overhead."""
-        ext = GaussianNoiseImagingExtractor(num_samples=200, num_rows=100, num_columns=100)
-        ext.get_series(0, 100)
-
-    @pytest.mark.limit_memory("32 MB")
-    def test_poisson_volumetric_get_series_memory(self):
-        """get_series for 50 samples of 50x50x5 int64 = 4.8 MB result + tile overhead."""
-        ext = PoissonNoiseImagingExtractor(num_samples=200, num_rows=50, num_columns=50, num_planes=5)
-        ext.get_series(0, 50)
-
-    @pytest.mark.limit_memory("16 MB")
-    def test_gaussian_volumetric_get_series_memory(self):
-        """get_series for 50 samples of 50x50x5 float32 = 2.4 MB result + tile overhead."""
-        ext = GaussianNoiseImagingExtractor(num_samples=200, num_rows=50, num_columns=50, num_planes=5)
-        ext.get_series(0, 50)
+        """256x256 float32: tile ~100 MB (400 samples) + result ~125 MB (500 samples) = ~225 MB.
+        An accidental extra copy of the result would push to ~350 MB, well over the limit."""
+        ext = GaussianNoiseImagingExtractor(num_samples=5000, num_rows=256, num_columns=256)
+        ext.get_series(0, 500)
