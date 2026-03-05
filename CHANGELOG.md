@@ -1,6 +1,7 @@
 # v0.8.1 (Upcoming)
 
 ### Features
+* Added `PoissonNoiseImagingExtractor` and `GaussianNoiseImagingExtractor` for generating synthetic noise imaging data with volumetric support and a tile-pregenerated strategy for fast reads [PR #555](https://github.com/catalystneuro/roiextractors/pull/555)
 
 ### Fixes
 
