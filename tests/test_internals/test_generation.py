@@ -48,7 +48,7 @@ class TestNoiseImagingExtractors:
     def test_reproducibility(self, extractor_cls):
         """Two extractors with the same seed must return identical data, just
         like reading the same file twice would."""
-        kwargs = dict(num_rows=20, num_columns=20, num_samples=200, seed=42)
+        kwargs = dict(num_samples=200, num_rows=20, num_columns=20, seed=42)
         ext1 = extractor_cls(**kwargs)
         ext2 = extractor_cls(**kwargs)
         np.testing.assert_array_equal(ext1.get_series(0, 50), ext2.get_series(0, 50))
@@ -56,7 +56,7 @@ class TestNoiseImagingExtractors:
     def test_contiguous_reads_equal_single_read(self, extractor_cls):
         """Reading [0, 200) must equal concatenating [0, 100) and [100, 200),
         just like reading contiguous chunks from a real file would."""
-        ext = extractor_cls(num_rows=10, num_columns=10, num_samples=300, seed=42)
+        ext = extractor_cls(num_samples=300, num_rows=10, num_columns=10, seed=42)
         full = ext.get_series(0, 200)
         part1 = ext.get_series(0, 100)
         part2 = ext.get_series(100, 200)
@@ -66,18 +66,18 @@ class TestNoiseImagingExtractors:
     def test_sub_range_matches_slice(self, extractor_cls):
         """A sub-range must match the corresponding slice of a larger read,
         just like indexing into real array data would."""
-        ext = extractor_cls(num_rows=10, num_columns=10, num_samples=300, seed=42)
+        ext = extractor_cls(num_samples=300, num_rows=10, num_columns=10, seed=42)
         full_start = ext.get_series(0, 50)
         partial = ext.get_series(10, 40)
         np.testing.assert_array_equal(full_start[10:40], partial)
 
     def test_different_seeds_produce_different_data(self, extractor_cls):
-        ext1 = extractor_cls(num_rows=10, num_columns=10, num_samples=100, seed=0)
-        ext2 = extractor_cls(num_rows=10, num_columns=10, num_samples=100, seed=1)
+        ext1 = extractor_cls(num_samples=100, num_rows=10, num_columns=10, seed=0)
+        ext2 = extractor_cls(num_samples=100, num_rows=10, num_columns=10, seed=1)
         assert not np.array_equal(ext1.get_series(0, 50), ext2.get_series(0, 50))
 
     def test_native_timestamps_returns_none(self, extractor_cls):
-        ext = extractor_cls(num_rows=10, num_columns=10, num_samples=100, seed=0)
+        ext = extractor_cls(num_samples=100, num_rows=10, num_columns=10)
         assert ext.get_native_timestamps() is None
 
 
@@ -89,7 +89,7 @@ class TestNoiseImagingExtractors:
 class TestPoissonNoiseImagingExtractor:
     def test_non_negative_integer_values(self):
         """Poisson data represents photon counts: values must be non-negative integers."""
-        ext = PoissonNoiseImagingExtractor(num_rows=20, num_columns=20, num_samples=100, seed=42)
+        ext = PoissonNoiseImagingExtractor(num_samples=100, num_rows=20, num_columns=20)
         data = ext.get_series(0, 100)
         assert np.all(data >= 0)
         np.testing.assert_array_equal(data, np.floor(data))
@@ -98,7 +98,7 @@ class TestPoissonNoiseImagingExtractor:
         """Verify that the baseline parameter is correctly propagated to the Poisson
         lambda, so the sample mean is close to the requested baseline."""
         baseline = 100.0
-        ext = PoissonNoiseImagingExtractor(num_rows=50, num_columns=50, num_samples=1000, seed=42, baseline=baseline)
+        ext = PoissonNoiseImagingExtractor(num_samples=1000, num_rows=50, num_columns=50, baseline=baseline)
         data = ext.get_series(0, 1000)
         np.testing.assert_allclose(data.mean(), baseline, rtol=0.05)
 
@@ -113,7 +113,7 @@ class TestGaussianNoiseImagingExtractor:
         """Verify that noise_mean and noise_std are correctly propagated to the
         Gaussian generator, so the sample statistics match the requested values."""
         ext = GaussianNoiseImagingExtractor(
-            num_rows=50, num_columns=50, num_samples=1000, seed=42, noise_mean=5.0, noise_std=2.0
+            num_samples=1000, num_rows=50, num_columns=50, noise_mean=5.0, noise_std=2.0
         )
         data = ext.get_series(0, 1000)
         np.testing.assert_allclose(data.mean(), 5.0, atol=0.1)
@@ -128,7 +128,7 @@ class TestGaussianNoiseImagingExtractor:
 class TestVolumetricNoiseGenerator:
     @pytest.fixture(params=generator_classes)
     def volumetric_ext(self, request):
-        return request.param(num_rows=30, num_columns=40, num_planes=5, num_samples=200, seed=42)
+        return request.param(num_samples=200, num_rows=30, num_columns=40, num_planes=5)
 
     def test_basic_properties(self, volumetric_ext):
         num_rows = 30
@@ -147,7 +147,7 @@ class TestVolumetricNoiseGenerator:
     def test_non_volumetric_raises_get_num_planes(self):
         """A non-volumetric extractor must raise NotImplementedError when
         get_num_planes is called, matching the base class contract."""
-        ext = PoissonNoiseImagingExtractor(num_rows=10, num_columns=10, num_samples=10, seed=0)
+        ext = PoissonNoiseImagingExtractor(num_samples=10, num_rows=10, num_columns=10)
         assert not ext.is_volumetric
         with pytest.raises(NotImplementedError):
             ext.get_num_planes()
@@ -186,23 +186,23 @@ class TestMemoryUsage:
     @pytest.mark.limit_memory("24 MB")
     def test_poisson_get_series_memory(self):
         """get_series for 100 samples of 100x100 int64 = 7.6 MB result + tile overhead."""
-        ext = PoissonNoiseImagingExtractor(num_rows=100, num_columns=100, num_samples=200, seed=42)
+        ext = PoissonNoiseImagingExtractor(num_samples=200, num_rows=100, num_columns=100)
         ext.get_series(0, 100)
 
     @pytest.mark.limit_memory("12 MB")
     def test_gaussian_get_series_memory(self):
         """get_series for 100 samples of 100x100 float32 = 3.8 MB result + tile overhead."""
-        ext = GaussianNoiseImagingExtractor(num_rows=100, num_columns=100, num_samples=200, seed=42)
+        ext = GaussianNoiseImagingExtractor(num_samples=200, num_rows=100, num_columns=100)
         ext.get_series(0, 100)
 
     @pytest.mark.limit_memory("32 MB")
     def test_poisson_volumetric_get_series_memory(self):
         """get_series for 50 samples of 50x50x5 int64 = 4.8 MB result + tile overhead."""
-        ext = PoissonNoiseImagingExtractor(num_rows=50, num_columns=50, num_planes=5, num_samples=200, seed=42)
+        ext = PoissonNoiseImagingExtractor(num_samples=200, num_rows=50, num_columns=50, num_planes=5)
         ext.get_series(0, 50)
 
     @pytest.mark.limit_memory("16 MB")
     def test_gaussian_volumetric_get_series_memory(self):
         """get_series for 50 samples of 50x50x5 float32 = 2.4 MB result + tile overhead."""
-        ext = GaussianNoiseImagingExtractor(num_rows=50, num_columns=50, num_planes=5, num_samples=200, seed=42)
+        ext = GaussianNoiseImagingExtractor(num_samples=200, num_rows=50, num_columns=50, num_planes=5)
         ext.get_series(0, 50)
