@@ -93,6 +93,11 @@ def test_caiman_segmentation_extractor_1000():
     assert "r_values" == property_keys[property_keys.index("r_values")]
     assert "cnn_preds" not in property_keys  # Should not be present since it's None
 
+    # Test property descriptions are set correctly
+    assert extractor.get_property_description("is_accepted") == "Whether the ROI was accepted during quality assessment"
+    assert extractor.get_property_description("snr") == "Signal-to-noise ratio for each component"
+    assert extractor.get_property_description("r_values") == "Spatial correlation values for each component"
+
     # Test getting quality metrics via property interface
     expected_snr = np.array(
         [

@@ -143,13 +143,16 @@ class _RoiSlicedSegmentationExtractor(SegmentationExtractor):
                 raise ValueError(f"ROI id {roi_id} not in selected ROIs: {self._selected_cell_ids}")
         return self._parent_segmentation.get_property(key=key, ids=ids)
 
-    def set_property(self, key: str, values: ArrayType, ids: ArrayType):
+    def set_property(self, key: str, values: ArrayType, ids: ArrayType, description: str = ""):
         # Validate IDs are in selection
         for roi_id in ids:
             if roi_id not in self._selected_cell_ids:
                 raise ValueError(f"ROI id {roi_id} not in selected ROIs: {self._selected_cell_ids}")
         # Note: This modifies parent's properties
-        self._parent_segmentation.set_property(key=key, values=values, ids=ids)
+        self._parent_segmentation.set_property(key=key, values=values, ids=ids, description=description)
+
+    def get_property_description(self, key: str) -> str:
+        return self._parent_segmentation.get_property_description(key=key)
 
     def get_property_keys(self) -> list[str]:
         return self._parent_segmentation.get_property_keys()

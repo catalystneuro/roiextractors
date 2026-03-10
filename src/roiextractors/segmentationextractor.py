@@ -204,6 +204,7 @@ class SegmentationExtractor(ABC):
         self._summary_images = {}
         self._roi_masks: _ROIMasks | None = None
         self._properties = {}
+        self._property_descriptions = {}
 
     def get_accepted_list(self) -> list:
         """Get a list of accepted ROI ids.
@@ -808,7 +809,7 @@ class SegmentationExtractor(ABC):
         sample_indices = np.arange(start_sample, end_sample)
         return sample_indices / self.get_sampling_frequency()
 
-    def set_property(self, key: str, values: ArrayType, ids: ArrayType):
+    def set_property(self, key: str, values: ArrayType, ids: ArrayType, description: str = ""):
         """Set property values for ROIs.
 
         Parameters
@@ -819,6 +820,8 @@ class SegmentationExtractor(ABC):
             Array of property values. Must have same length as ids and num_rois.
         ids: array-like
             Array of ROI ids corresponding to the values. Must have same length as values and num_rois.
+        description: str, optional
+            Description of the property.
         """
         values = np.asarray(values)
         ids = list(ids)
@@ -842,6 +845,25 @@ class SegmentationExtractor(ABC):
             property_array[roi_index] = values[id_index]
 
         self._properties[key] = property_array
+        self._property_descriptions[key] = description
+
+    def get_property_description(self, key: str) -> str:
+        """Get description for a property.
+
+        Parameters
+        ----------
+        key: str
+            The name of the property.
+
+        Returns
+        -------
+        description: str
+            Description of the property.
+        """
+        if key not in self._property_descriptions:
+            available_keys = list(self._property_descriptions.keys())
+            raise KeyError(f"Property '{key}' not found. Available properties: {available_keys}")
+        return self._property_descriptions[key]
 
     def get_property(self, key: str, ids: ArrayType) -> ArrayType:
         """Get property values for ROIs.
@@ -966,6 +988,7 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
 
         # Copy properties from parent (ROI properties are not affected by temporal slicing)
         self._properties = dict(self._parent_segmentation._properties)
+        self._property_descriptions = dict(self._parent_segmentation._property_descriptions)
 
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None

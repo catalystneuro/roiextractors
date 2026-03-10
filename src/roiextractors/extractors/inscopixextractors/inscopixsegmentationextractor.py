@@ -77,7 +77,12 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         # Set cell_status as a property for ROI classification
         if self.cell_set.num_cells > 0:
             cell_status = np.array([self.cell_set.get_cell_status(i) for i in range(self.cell_set.num_cells)])
-            self.set_property("cell_status", cell_status, self._roi_ids)
+            self.set_property(
+                "cell_status",
+                cell_status,
+                self._roi_ids,
+                description="Cell status classification from Inscopix",
+            )
 
     def get_num_rois(self) -> int:
         return self.cell_set.num_cells
