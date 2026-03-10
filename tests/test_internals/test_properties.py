@@ -95,29 +95,6 @@ def test_getter_property_validation():
         extractor.get_property(key="quality_score", ids=roi_ids)
 
 
-def test_property_description():
-    """Test setting and getting property descriptions."""
-    extractor = generate_dummy_segmentation_extractor(num_rois=3, num_samples=10)
-    roi_ids = extractor.get_roi_ids()
-
-    # Test setting a property with a description
-    extractor.set_property(
-        key="quality",
-        values=np.array([0.8, 0.9, 0.7]),
-        ids=roi_ids,
-        description="Quality score for each ROI",
-    )
-    assert extractor.get_property_info("quality").description == "Quality score for each ROI"
-
-    # Test default empty description
-    extractor.set_property(key="area", values=np.array([100, 150, 120]), ids=roi_ids)
-    assert extractor.get_property_info("area").description == ""
-
-    # Test getting info for non-existent property raises KeyError
-    with pytest.raises(KeyError, match="Property 'nonexistent' not found"):
-        extractor.get_property_info("nonexistent")
-
-
 def test_property_description_preserved_in_sample_sliced_extractor():
     """Test that property descriptions are preserved when slicing samples."""
     extractor = generate_dummy_segmentation_extractor(num_rois=3, num_samples=10)

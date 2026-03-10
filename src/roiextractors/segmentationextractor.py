@@ -874,24 +874,7 @@ class SegmentationExtractor(ABC):
         values: array-like
             Array of property values for the specified ROIs.
         """
-        ids = np.asarray(ids)
-        if key not in self._properties:
-            available_keys = list(self._properties.keys())
-            raise KeyError(f"Property '{key}' not found. Available properties: {available_keys}")
-
-        # Check that all requested ROI ids exist in extractor
-        all_roi_ids = self.get_roi_ids()
-        for roi_id in ids:
-            if roi_id not in all_roi_ids:
-                raise ValueError(f"ROI id {roi_id} not found in extractor. Available ROI ids: {all_roi_ids}")
-
-        # Map ids to indices and get values
-        values = []
-        for roi_id in ids:
-            roi_index = all_roi_ids.index(roi_id)
-            values.append(self._properties[key][roi_index])
-
-        return np.array(values)
+        return self.get_property_info(key=key, ids=ids).data
 
     def get_property_keys(self) -> list[str]:
         """Get list of available property keys.
@@ -920,7 +903,25 @@ class SegmentationExtractor(ABC):
         """
         if ids is None:
             ids = self.get_roi_ids()
-        data = self.get_property(key=key, ids=ids)
+
+        ids = np.asarray(ids)
+        if key not in self._properties:
+            available_keys = list(self._properties.keys())
+            raise KeyError(f"Property '{key}' not found. Available properties: {available_keys}")
+
+        # Check that all requested ROI ids exist in extractor
+        all_roi_ids = self.get_roi_ids()
+        for roi_id in ids:
+            if roi_id not in all_roi_ids:
+                raise ValueError(f"ROI id {roi_id} not found in extractor. Available ROI ids: {all_roi_ids}")
+
+        # Map ids to indices and get values
+        values = []
+        for roi_id in ids:
+            roi_index = all_roi_ids.index(roi_id)
+            values.append(self._properties[key][roi_index])
+
+        data = np.array(values)
         description = self._property_descriptions.get(key, "")
         return _PropertyInfo(data=data, description=description)
 
