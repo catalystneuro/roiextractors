@@ -283,3 +283,17 @@ class TestPropertyCopySemantics:
 
         assert parent.get_property_info("quality").description == "original"
         assert selected.get_property_info("quality").description == "modified"
+
+    def test_roi_sliced_properties_are_accessible(self):
+        """Properties set on parent are visible through the ROI-sliced extractor."""
+        parent = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
+        roi_ids = parent.get_roi_ids()
+        parent.set_property(
+            key="quality", values=np.array([0.8, 0.9, 0.7, 0.6, 0.5]), ids=roi_ids, description="Quality score"
+        )
+
+        selected = parent.select_rois(roi_ids[:3])
+
+        assert "quality" in selected.get_property_keys()
+        assert selected.get_property_info("quality").description == "Quality score"
+        assert_array_equal(selected.get_property("quality", roi_ids[:3]), [0.8, 0.9, 0.7])

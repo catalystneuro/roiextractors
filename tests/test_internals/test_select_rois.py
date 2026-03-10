@@ -277,33 +277,3 @@ class TestRoiSelectionTraceTypes:
         traces_dict = selected.get_traces_dict()
 
         assert isinstance(traces_dict, dict)
-
-
-class TestRoiSelectionProperties:
-    """Tests for property handling with ROI selection."""
-
-    def test_get_property_keys_from_selected(self):
-        """Test that property keys are accessible from a ROI-sliced extractor."""
-        segmentation = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
-        roi_ids = segmentation.get_roi_ids()
-        segmentation.set_property("quality", np.array([0.8, 0.9, 0.7, 0.6, 0.5]), roi_ids)
-
-        selected = segmentation.select_rois(roi_ids[:3])
-        assert "quality" in selected.get_property_keys()
-
-    def test_get_property_info_from_selected(self):
-        """Test that property info is accessible from a ROI-sliced extractor."""
-        segmentation = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
-        roi_ids = segmentation.get_roi_ids()
-        segmentation.set_property(
-            "quality",
-            np.array([0.8, 0.9, 0.7, 0.6, 0.5]),
-            roi_ids,
-            description="Quality score for each ROI",
-        )
-
-        selected = segmentation.select_rois(roi_ids[:3])
-        info = selected.get_property_info("quality")
-        assert info.description == "Quality score for each ROI"
-        # get_property_info returns all stored data; use get_property for ID-filtered values
-        assert_array_equal(selected.get_property("quality", roi_ids[:3]), [0.8, 0.9, 0.7])
