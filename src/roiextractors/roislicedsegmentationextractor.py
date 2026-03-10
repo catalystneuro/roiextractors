@@ -143,5 +143,5 @@ class _RoiSlicedSegmentationExtractor(SegmentationExtractor):
         return self._parent_segmentation.get_num_planes()
 
     # Note: get_property(), set_property(), get_property_info(), and get_property_keys()
-    # are inherited from the base class and operate on the copied _properties and
-    # _property_descriptions dicts. See the copy-on-write comment in __init__.
+    # are inherited from the base class and operate on the copied _properties dict.
+    # See the copy-on-write comment in __init__.
