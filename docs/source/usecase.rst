@@ -115,17 +115,6 @@ Output:
 
 .. code-block:: python
 
-    # get_roi_locations() is deprecated, use get_property() instead:
-    seg_ext.get_property("roi_centroids", roi_ids=[2])
-
-Output:
-
-.. code-block:: shell
-
-    array([[ 4, 43]])
-
-.. code-block:: python
-
     plt.plot(seg_ext.get_sampling_frequency()*np.arange(seg_ext.get_num_samples()),seg_ext.get_traces(roi_ids=[2], name='dff').squeeze())
     plt.show()
 
