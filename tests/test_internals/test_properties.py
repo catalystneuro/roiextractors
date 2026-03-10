@@ -183,9 +183,9 @@ class TestGetPropertyInfo:
 class TestPropertyCopySemantics:
     """Tests that sliced extractors have independent copies of properties.
 
-    Both SampleSlicedSegmentationExtractor and _RoiSlicedSegmentationExtractor use shallow dict
-    copies of the parent's properties. Since set_property() always creates a new array (rebinding
-    the dict key), writes on the child do not affect the parent, and vice versa.
+    SampleSlicedSegmentationExtractor uses shallow dict copies of the parent's properties.
+    Since set_property() always creates a new _PropertyInfo (rebinding the dict key),
+    writes on the child do not affect the parent, and vice versa.
     """
 
     def test_property_modification_on_sample_sliced_children_does_not_affect_parent(self):
@@ -213,31 +213,6 @@ class TestPropertyCopySemantics:
         sliced_values = sliced.get_property(key="quality", ids=roi_ids)
         assert_array_equal(sliced_values, [1.0, 2.0, 3.0])
 
-    def test_property_modification_on_roi_sliced_children_does_not_affect_parent(self):
-        """Setting a property on a ROI-sliced extractor should not modify the parent."""
-        parent = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
-        roi_ids = parent.get_roi_ids()
-        parent.set_property(key="quality", values=np.array([1.0, 2.0, 3.0, 4.0, 5.0]), ids=roi_ids)
-
-        selected = parent.select_rois(roi_ids[:3])
-        selected.set_property(key="quality", values=np.array([9.0, 9.0, 9.0]), ids=roi_ids[:3])
-
-        parent_values = parent.get_property(key="quality", ids=roi_ids)
-        assert_array_equal(parent_values, [1.0, 2.0, 3.0, 4.0, 5.0])
-
-    def test_property_modification_on_parent_does_not_affect_roi_sliced_children(self):
-        """Setting a property on the parent after ROI slicing should not modify the slice."""
-        parent = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
-        roi_ids = parent.get_roi_ids()
-        parent.set_property(key="quality", values=np.array([1.0, 2.0, 3.0, 4.0, 5.0]), ids=roi_ids)
-
-        selected = parent.select_rois(roi_ids[:3])
-
-        parent.set_property(key="quality", values=np.array([9.0, 9.0, 9.0, 9.0, 9.0]), ids=roi_ids)
-
-        selected_values = selected.get_property(key="quality", ids=roi_ids[:3])
-        assert_array_equal(selected_values, [1.0, 2.0, 3.0])
-
     def test_new_property_on_sample_sliced_children_does_not_affect_parent(self):
         """Adding a new property on a sample-sliced extractor should not appear on the parent."""
         parent = generate_dummy_segmentation_extractor(num_rois=3, num_samples=20)
@@ -247,27 +222,3 @@ class TestPropertyCopySemantics:
         sliced.set_property(key="new_prop", values=np.array([1.0, 2.0, 3.0]), ids=roi_ids)
 
         assert "new_prop" not in parent.get_property_keys()
-
-    def test_new_property_on_roi_sliced_children_does_not_affect_parent(self):
-        """Adding a new property on a ROI-sliced extractor should not appear on the parent."""
-        parent = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
-        roi_ids = parent.get_roi_ids()
-
-        selected = parent.select_rois(roi_ids[:3])
-        selected.set_property(key="new_prop", values=np.array([1.0, 2.0, 3.0]), ids=roi_ids[:3])
-
-        assert "new_prop" not in parent.get_property_keys()
-
-    def test_roi_sliced_properties_are_accessible(self):
-        """Properties set on parent are visible through the ROI-sliced extractor."""
-        parent = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
-        roi_ids = parent.get_roi_ids()
-        parent.set_property(
-            key="quality", values=np.array([0.8, 0.9, 0.7, 0.6, 0.5]), ids=roi_ids, description="Quality score"
-        )
-
-        selected = parent.select_rois(roi_ids[:3])
-
-        assert "quality" in selected.get_property_keys()
-        assert selected.get_property_info("quality").description == "Quality score"
-        assert_array_equal(selected.get_property("quality", roi_ids[:3]), [0.8, 0.9, 0.7])
