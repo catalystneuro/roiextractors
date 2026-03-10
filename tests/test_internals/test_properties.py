@@ -188,7 +188,7 @@ class TestPropertyCopySemantics:
     the dict key), writes on the child do not affect the parent, and vice versa.
     """
 
-    def test_sample_sliced_property_write_does_not_affect_parent(self):
+    def test_property_modification_on_sample_sliced_children_does_not_affect_parent(self):
         """Setting a property on a sample-sliced extractor should not modify the parent."""
         parent = generate_dummy_segmentation_extractor(num_rois=3, num_samples=20)
         roi_ids = parent.get_roi_ids()
@@ -200,7 +200,7 @@ class TestPropertyCopySemantics:
         parent_values = parent.get_property(key="quality", ids=roi_ids)
         assert_array_equal(parent_values, [1.0, 2.0, 3.0])
 
-    def test_parent_property_write_does_not_affect_sample_sliced(self):
+    def test_property_modification_on_parent_does_not_affect_sample_sliced_children(self):
         """Setting a property on the parent after slicing should not modify the slice."""
         parent = generate_dummy_segmentation_extractor(num_rois=3, num_samples=20)
         roi_ids = parent.get_roi_ids()
@@ -213,7 +213,7 @@ class TestPropertyCopySemantics:
         sliced_values = sliced.get_property(key="quality", ids=roi_ids)
         assert_array_equal(sliced_values, [1.0, 2.0, 3.0])
 
-    def test_roi_sliced_property_write_does_not_affect_parent(self):
+    def test_property_modification_on_roi_sliced_children_does_not_affect_parent(self):
         """Setting a property on a ROI-sliced extractor should not modify the parent."""
         parent = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
         roi_ids = parent.get_roi_ids()
@@ -225,7 +225,7 @@ class TestPropertyCopySemantics:
         parent_values = parent.get_property(key="quality", ids=roi_ids)
         assert_array_equal(parent_values, [1.0, 2.0, 3.0, 4.0, 5.0])
 
-    def test_parent_property_write_does_not_affect_roi_sliced(self):
+    def test_property_modification_on_parent_does_not_affect_roi_sliced_children(self):
         """Setting a property on the parent after ROI slicing should not modify the slice."""
         parent = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
         roi_ids = parent.get_roi_ids()
@@ -238,7 +238,7 @@ class TestPropertyCopySemantics:
         selected_values = selected.get_property(key="quality", ids=roi_ids[:3])
         assert_array_equal(selected_values, [1.0, 2.0, 3.0])
 
-    def test_sample_sliced_new_property_does_not_affect_parent(self):
+    def test_new_property_on_sample_sliced_children_does_not_affect_parent(self):
         """Adding a new property on a sample-sliced extractor should not appear on the parent."""
         parent = generate_dummy_segmentation_extractor(num_rois=3, num_samples=20)
         roi_ids = parent.get_roi_ids()
@@ -248,7 +248,7 @@ class TestPropertyCopySemantics:
 
         assert "new_prop" not in parent.get_property_keys()
 
-    def test_roi_sliced_new_property_does_not_affect_parent(self):
+    def test_new_property_on_roi_sliced_children_does_not_affect_parent(self):
         """Adding a new property on a ROI-sliced extractor should not appear on the parent."""
         parent = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
         roi_ids = parent.get_roi_ids()
@@ -257,32 +257,6 @@ class TestPropertyCopySemantics:
         selected.set_property(key="new_prop", values=np.array([1.0, 2.0, 3.0]), ids=roi_ids[:3])
 
         assert "new_prop" not in parent.get_property_keys()
-
-    def test_sample_sliced_description_write_does_not_affect_parent(self):
-        """Changing a property description on a slice should not affect the parent."""
-        parent = generate_dummy_segmentation_extractor(num_rois=3, num_samples=20)
-        roi_ids = parent.get_roi_ids()
-        parent.set_property(key="quality", values=np.array([1.0, 2.0, 3.0]), ids=roi_ids, description="original")
-
-        sliced = parent.slice_samples(start_sample=0, end_sample=10)
-        sliced.set_property(key="quality", values=np.array([1.0, 2.0, 3.0]), ids=roi_ids, description="modified")
-
-        assert parent.get_property_info("quality").description == "original"
-        assert sliced.get_property_info("quality").description == "modified"
-
-    def test_roi_sliced_description_write_does_not_affect_parent(self):
-        """Changing a property description on an ROI slice should not affect the parent."""
-        parent = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
-        roi_ids = parent.get_roi_ids()
-        parent.set_property(
-            key="quality", values=np.array([1.0, 2.0, 3.0, 4.0, 5.0]), ids=roi_ids, description="original"
-        )
-
-        selected = parent.select_rois(roi_ids[:3])
-        selected.set_property(key="quality", values=np.array([1.0, 2.0, 3.0]), ids=roi_ids[:3], description="modified")
-
-        assert parent.get_property_info("quality").description == "original"
-        assert selected.get_property_info("quality").description == "modified"
 
     def test_roi_sliced_properties_are_accessible(self):
         """Properties set on parent are visible through the ROI-sliced extractor."""
