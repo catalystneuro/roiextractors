@@ -872,36 +872,6 @@ class SegmentationExtractor(ABC):
         values: array-like
             Array of property values for the specified ROIs.
         """
-        return self.get_property_info(key=key, ids=ids).data
-
-    def get_property_keys(self) -> list[str]:
-        """Get list of available property keys.
-
-        Returns
-        -------
-        keys: list
-            List of property names.
-        """
-        return list(self._properties.keys())
-
-    def get_property_info(self, key: str, ids: ArrayType | None = None) -> _PropertyInfo:
-        """Get property data and metadata bundled together.
-
-        Parameters
-        ----------
-        key: str
-            The name of the property.
-        ids: array-like or None, optional
-            Array of ROI ids to get property values for. If None, returns values for all ROIs.
-
-        Returns
-        -------
-        property_info: _PropertyInfo
-            Dataclass containing the property data and description.
-        """
-        if ids is None:
-            ids = self.get_roi_ids()
-
         ids = np.asarray(ids)
         if key not in self._properties:
             available_keys = list(self._properties.keys())
@@ -914,11 +884,37 @@ class SegmentationExtractor(ABC):
                 raise ValueError(f"ROI id {roi_id} not found in extractor. Available ROI ids: {all_roi_ids}")
 
         # Map ids to indices and filter data
-        stored = self._properties[key]
         indices = [all_roi_ids.index(roi_id) for roi_id in ids]
-        filtered_data = stored.data[indices]
+        return self._properties[key].data[indices]
 
-        return _PropertyInfo(data=filtered_data, description=stored.description)
+    def get_property_keys(self) -> list[str]:
+        """Get list of available property keys.
+
+        Returns
+        -------
+        keys: list
+            List of property names.
+        """
+        return list(self._properties.keys())
+
+    def get_property_info(self, key: str) -> _PropertyInfo:
+        """Get property data and metadata bundled together.
+
+        Parameters
+        ----------
+        key: str
+            The name of the property.
+
+        Returns
+        -------
+        property_info: _PropertyInfo
+            Dataclass containing the property data and description.
+        """
+        if key not in self._properties:
+            available_keys = list(self._properties.keys())
+            raise KeyError(f"Property '{key}' not found. Available properties: {available_keys}")
+
+        return self._properties[key]
 
 
 class SampleSlicedSegmentationExtractor(SegmentationExtractor):

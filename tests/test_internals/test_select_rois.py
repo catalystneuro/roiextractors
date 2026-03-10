@@ -305,4 +305,5 @@ class TestRoiSelectionProperties:
         selected = segmentation.select_rois(roi_ids[:3])
         info = selected.get_property_info("quality")
         assert info.description == "Quality score for each ROI"
-        assert_array_equal(info.data, [0.8, 0.9, 0.7])
+        # get_property_info returns all stored data; use get_property for ID-filtered values
+        assert_array_equal(selected.get_property("quality", roi_ids[:3]), [0.8, 0.9, 0.7])

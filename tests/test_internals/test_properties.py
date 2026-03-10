@@ -173,28 +173,6 @@ class TestGetPropertyInfo:
         assert_array_equal(info.data, values)
         assert info.description == "Quality score"
 
-    def test_get_property_info_with_ids(self):
-        extractor = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
-        roi_ids = extractor.get_roi_ids()
-        values = np.array([0.8, 0.9, 0.7, 0.6, 0.5])
-
-        extractor.set_property(key="quality", values=values, ids=roi_ids, description="Quality score")
-
-        info = extractor.get_property_info("quality", ids=roi_ids[:3])
-        assert_array_equal(info.data, values[:3])
-        assert info.description == "Quality score"
-
-    def test_get_property_info_without_ids_returns_all_rois(self):
-        extractor = generate_dummy_segmentation_extractor(num_rois=4, num_samples=10)
-        roi_ids = extractor.get_roi_ids()
-        values = np.array([1.0, 2.0, 3.0, 4.0])
-
-        extractor.set_property(key="snr", values=values, ids=roi_ids)
-
-        info = extractor.get_property_info("snr")
-        assert_array_equal(info.data, values)
-        assert info.description == ""
-
     def test_get_property_info_nonexistent_key_raises(self):
         extractor = generate_dummy_segmentation_extractor(num_rois=3, num_samples=10)
 
