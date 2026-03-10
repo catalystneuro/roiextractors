@@ -93,11 +93,10 @@ class _RoiSlicedSegmentationExtractor(SegmentationExtractor):
         self._sampling_frequency = self._parent_segmentation._sampling_frequency
 
         # Properties use the same copy-on-write pattern as _times above.
-        # The shallow dict copy shares the underlying numpy arrays with the parent (memory efficient),
-        # but set_property() always creates a new array and rebinds the dict key, so writes only
-        # affect this instance. Same for descriptions: strings are immutable, so sharing is safe.
+        # The shallow dict copy shares the underlying _PropertyInfo instances with the parent
+        # (memory efficient), but set_property() always creates a new _PropertyInfo and rebinds
+        # the dict key, so writes only affect this instance.
         self._properties = dict(self._parent_segmentation._properties)
-        self._property_descriptions = dict(self._parent_segmentation._property_descriptions)
 
     # --- Core ROI Methods ---
 

@@ -215,8 +215,7 @@ class SegmentationExtractor(ABC):
         self._roi_responses: list[_RoiResponse] = []
         self._summary_images = {}
         self._roi_masks: _ROIMasks | None = None
-        self._properties = {}
-        self._property_descriptions = {}
+        self._properties: dict[str, _PropertyInfo] = {}
 
     def get_accepted_list(self) -> list:
         """Get a list of accepted ROI ids.
@@ -856,8 +855,7 @@ class SegmentationExtractor(ABC):
             id_index = ids.index(roi_id)
             property_array[roi_index] = values[id_index]
 
-        self._properties[key] = property_array
-        self._property_descriptions[key] = description
+        self._properties[key] = _PropertyInfo(data=property_array, description=description)
 
     def get_property(self, key: str, ids: ArrayType) -> ArrayType:
         """Get property values for ROIs.
@@ -915,15 +913,12 @@ class SegmentationExtractor(ABC):
             if roi_id not in all_roi_ids:
                 raise ValueError(f"ROI id {roi_id} not found in extractor. Available ROI ids: {all_roi_ids}")
 
-        # Map ids to indices and get values
-        values = []
-        for roi_id in ids:
-            roi_index = all_roi_ids.index(roi_id)
-            values.append(self._properties[key][roi_index])
+        # Map ids to indices and filter data
+        stored = self._properties[key]
+        indices = [all_roi_ids.index(roi_id) for roi_id in ids]
+        filtered_data = stored.data[indices]
 
-        data = np.array(values)
-        description = self._property_descriptions.get(key, "")
-        return _PropertyInfo(data=data, description=description)
+        return _PropertyInfo(data=filtered_data, description=stored.description)
 
 
 class SampleSlicedSegmentationExtractor(SegmentationExtractor):
@@ -1003,11 +998,10 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
             self._times = self._parent_segmentation._times[start_sample:end_sample]
 
         # Properties use the same copy-on-write pattern as _times above.
-        # The shallow dict copy shares the underlying numpy arrays with the parent (memory efficient),
-        # but set_property() always creates a new array and rebinds the dict key, so writes only
-        # affect this instance. Same for descriptions: strings are immutable, so sharing is safe.
+        # The shallow dict copy shares the underlying _PropertyInfo instances with the parent
+        # (memory efficient), but set_property() always creates a new _PropertyInfo and rebinds
+        # the dict key, so writes only affect this instance.
         self._properties = dict(self._parent_segmentation._properties)
-        self._property_descriptions = dict(self._parent_segmentation._property_descriptions)
 
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
