@@ -92,6 +92,13 @@ class _RoiSlicedSegmentationExtractor(SegmentationExtractor):
         self._num_planes = self._parent_segmentation._num_planes
         self._sampling_frequency = self._parent_segmentation._sampling_frequency
 
+        # Properties use the same copy-on-write pattern as _times above.
+        # The shallow dict copy shares the underlying numpy arrays with the parent (memory efficient),
+        # but set_property() always creates a new array and rebinds the dict key, so writes only
+        # affect this instance. Same for descriptions: strings are immutable, so sharing is safe.
+        self._properties = dict(self._parent_segmentation._properties)
+        self._property_descriptions = dict(self._parent_segmentation._property_descriptions)
+
     # --- Core ROI Methods ---
 
     def get_roi_ids(self) -> list:
@@ -136,23 +143,6 @@ class _RoiSlicedSegmentationExtractor(SegmentationExtractor):
     def get_num_planes(self) -> int:
         return self._parent_segmentation.get_num_planes()
 
-    def get_property(self, key: str, ids: ArrayType) -> ArrayType:
-        # Validate IDs are in selection
-        for roi_id in ids:
-            if roi_id not in self._selected_cell_ids:
-                raise ValueError(f"ROI id {roi_id} not in selected ROIs: {self._selected_cell_ids}")
-        return self._parent_segmentation.get_property(key=key, ids=ids)
-
-    def set_property(self, key: str, values: ArrayType, ids: ArrayType, description: str = ""):
-        # Validate IDs are in selection
-        for roi_id in ids:
-            if roi_id not in self._selected_cell_ids:
-                raise ValueError(f"ROI id {roi_id} not in selected ROIs: {self._selected_cell_ids}")
-        # Note: This modifies parent's properties
-        self._parent_segmentation.set_property(key=key, values=values, ids=ids, description=description)
-
-    def get_property_description(self, key: str) -> str:
-        return self._parent_segmentation.get_property_description(key=key)
-
-    def get_property_keys(self) -> list[str]:
-        return self._parent_segmentation.get_property_keys()
+    # Note: get_property(), set_property(), get_property_info(), and get_property_keys()
+    # are inherited from the base class and operate on the copied _properties and
+    # _property_descriptions dicts. See the copy-on-write comment in __init__.

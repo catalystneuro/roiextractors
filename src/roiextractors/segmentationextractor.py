@@ -31,6 +31,18 @@ class _RoiResponse:
     roi_ids: list[str | int]
 
 
+@dataclass
+class _PropertyInfo:
+    """Bundles property data with its metadata.
+
+    Keeps the property values and their descriptive metadata together as a single unit,
+    so they cannot drift out of sync when copied or passed around.
+    """
+
+    data: np.ndarray
+    description: str = ""
+
+
 class _ROIMasks:
     """Internal container for all ROI spatial representations in native NWB-compatible format.
 
@@ -809,7 +821,7 @@ class SegmentationExtractor(ABC):
         sample_indices = np.arange(start_sample, end_sample)
         return sample_indices / self.get_sampling_frequency()
 
-    def set_property(self, key: str, values: ArrayType, ids: ArrayType, description: str = ""):
+    def set_property(self, key: str, values: ArrayType, ids: ArrayType, *, description: str = ""):
         """Set property values for ROIs.
 
         Parameters
@@ -846,24 +858,6 @@ class SegmentationExtractor(ABC):
 
         self._properties[key] = property_array
         self._property_descriptions[key] = description
-
-    def get_property_description(self, key: str) -> str:
-        """Get description for a property.
-
-        Parameters
-        ----------
-        key: str
-            The name of the property.
-
-        Returns
-        -------
-        description: str
-            Description of the property.
-        """
-        if key not in self._property_descriptions:
-            available_keys = list(self._property_descriptions.keys())
-            raise KeyError(f"Property '{key}' not found. Available properties: {available_keys}")
-        return self._property_descriptions[key]
 
     def get_property(self, key: str, ids: ArrayType) -> ArrayType:
         """Get property values for ROIs.
@@ -908,6 +902,27 @@ class SegmentationExtractor(ABC):
             List of property names.
         """
         return list(self._properties.keys())
+
+    def get_property_info(self, key: str, ids: ArrayType | None = None) -> _PropertyInfo:
+        """Get property data and metadata bundled together.
+
+        Parameters
+        ----------
+        key: str
+            The name of the property.
+        ids: array-like or None, optional
+            Array of ROI ids to get property values for. If None, returns values for all ROIs.
+
+        Returns
+        -------
+        property_info: _PropertyInfo
+            Dataclass containing the property data and description.
+        """
+        if ids is None:
+            ids = self.get_roi_ids()
+        data = self.get_property(key=key, ids=ids)
+        description = self._property_descriptions.get(key, "")
+        return _PropertyInfo(data=data, description=description)
 
 
 class SampleSlicedSegmentationExtractor(SegmentationExtractor):
@@ -986,7 +1001,10 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
         if getattr(self._parent_segmentation, "_times") is not None:
             self._times = self._parent_segmentation._times[start_sample:end_sample]
 
-        # Copy properties from parent (ROI properties are not affected by temporal slicing)
+        # Properties use the same copy-on-write pattern as _times above.
+        # The shallow dict copy shares the underlying numpy arrays with the parent (memory efficient),
+        # but set_property() always creates a new array and rebinds the dict key, so writes only
+        # affect this instance. Same for descriptions: strings are immutable, so sharing is safe.
         self._properties = dict(self._parent_segmentation._properties)
         self._property_descriptions = dict(self._parent_segmentation._property_descriptions)
 

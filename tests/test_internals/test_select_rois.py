@@ -277,3 +277,53 @@ class TestRoiSelectionTraceTypes:
         traces_dict = selected.get_traces_dict()
 
         assert isinstance(traces_dict, dict)
+
+
+class TestRoiSelectionProperties:
+    """Tests for property handling with ROI selection."""
+
+    def test_get_property_keys_from_selected(self):
+        """Test that property keys are accessible from a ROI-sliced extractor."""
+        segmentation = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
+        roi_ids = segmentation.get_roi_ids()
+        segmentation.set_property("quality", np.array([0.8, 0.9, 0.7, 0.6, 0.5]), roi_ids)
+
+        selected = segmentation.select_rois(roi_ids[:3])
+        assert "quality" in selected.get_property_keys()
+
+    def test_get_property_returns_selected_rois_only(self):
+        """Test that get_property returns values for the selected ROI subset."""
+        segmentation = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
+        roi_ids = segmentation.get_roi_ids()
+        values = np.array([0.8, 0.9, 0.7, 0.6, 0.5])
+        segmentation.set_property("quality", values, roi_ids)
+
+        selected = segmentation.select_rois(roi_ids[:3])
+        result = selected.get_property("quality", roi_ids[:3])
+        assert_array_equal(result, values[:3])
+
+    def test_get_property_rejects_non_selected_roi(self):
+        """Test that get_property raises for ROI IDs not in the selection."""
+        segmentation = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
+        roi_ids = segmentation.get_roi_ids()
+        segmentation.set_property("quality", np.array([0.8, 0.9, 0.7, 0.6, 0.5]), roi_ids)
+
+        selected = segmentation.select_rois(roi_ids[:3])
+        with pytest.raises(ValueError, match="not found in extractor"):
+            selected.get_property("quality", [roi_ids[4]])
+
+    def test_get_property_info_from_selected(self):
+        """Test that property info is accessible from a ROI-sliced extractor."""
+        segmentation = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
+        roi_ids = segmentation.get_roi_ids()
+        segmentation.set_property(
+            "quality",
+            np.array([0.8, 0.9, 0.7, 0.6, 0.5]),
+            roi_ids,
+            description="Quality score for each ROI",
+        )
+
+        selected = segmentation.select_rois(roi_ids[:3])
+        info = selected.get_property_info("quality")
+        assert info.description == "Quality score for each ROI"
+        assert_array_equal(info.data, [0.8, 0.9, 0.7])
