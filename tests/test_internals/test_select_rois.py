@@ -112,16 +112,6 @@ class TestRoiSelectionMasks:
 
         assert len(pixel_masks) == 2
 
-    def test_get_roi_locations(self):
-        """Test that ROI locations are filtered correctly."""
-        segmentation = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
-        roi_ids = segmentation.get_roi_ids()
-
-        selected = segmentation.select_rois(roi_ids[:2])
-        locations = selected.get_roi_locations()
-
-        assert locations.shape == (2, 2)  # 2D locations for 2 ROIs
-
 
 class TestRoiSelectionValidation:
     """Tests for validation and edge cases."""

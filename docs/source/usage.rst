@@ -14,7 +14,7 @@ Features
 - ``seg_obj.get_pixel_masks(roi_ids=None)``: Get pixel masks as (total_pixels(ht*wid), no_rois)
 - ``seg_obj.get_traces(self, roi_ids=None, start_frame=None, end_frame=None)``: df/F trace as (num_rois, num_frames)
 - ``seg_obj.get_sampling_frequency()``: Sampling frequency of movie/df/F trace.
-- ``seg_obj.get_roi_locations()``: Centroid pixel location of the ROI (Regions Of Interest) as (x,y).
+- ``seg_obj.get_roi_locations()``: *(deprecated)* Centroid pixel location of the ROI (Regions Of Interest) as (x,y). Use ``get_property("roi_centroids", roi_ids)`` instead.
 - ``seg_obj.get_num_rois()``: Total number of ROIs after segmentation operation.
 - ``seg_obj.get_roi_ids()``: Any integer tags associated with an ROI, defaults to `0:num_of_rois`
 - ``seg_obj.get_timestamps(start_sample=None, end_sample=None)``: Timestamps in seconds (always available, see :doc:`timestamps`).

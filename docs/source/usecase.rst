@@ -115,14 +115,14 @@ Output:
 
 .. code-block:: python
 
-    seg_ext.get_roi_locations(roi_ids=[2])
+    # get_roi_locations() is deprecated, use get_property() instead:
+    seg_ext.get_property("roi_centroids", roi_ids=[2])
 
 Output:
 
 .. code-block:: shell
 
-    array([[ 4],
-       [43]])
+    array([[ 4, 43]])
 
 .. code-block:: python
 

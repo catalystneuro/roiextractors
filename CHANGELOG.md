@@ -5,6 +5,7 @@
 ### Fixes
 
 ### Deprecations And Removals
+* Deprecated `get_roi_locations()` method across `SegmentationExtractor`, `NwbSegmentationExtractor`, and `MultiSegmentationExtractor` (will be removed in or after September 2026). ROI centroids are now stored as a multi-dimensional property. Use `get_property("roi_centroids", roi_ids)` instead. [PR #557](https://github.com/catalystneuro/roiextractors/pull/557)
 
 ### Improvements
 * Added documentation for the timestamp API: a user-facing guide (`timestamps.rst`) covering `get_timestamps()` and `set_times()`, and a developer-facing design decisions page (`design_decisions.rst`) explaining the separation of `get_native_timestamps` and `get_timestamps`, why `get_native_timestamps` is abstract, and copy vs. view semantics for sliced timestamps. Updated the extractor build guides (`build_ie.rst`, `build_re.rst`) to consistently document `get_native_timestamps`. [PR #552](https://github.com/catalystneuro/roiextractors/pull/552)
