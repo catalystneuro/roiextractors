@@ -73,6 +73,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         self,
         folder_path: PathType | None = None,
         file_paths: list[PathType] | None = None,
+        configuration_file_path: PathType | None = None,  # Ignored, pending removal in neuroconv (May 2026)
         timestamps_path: PathType | None = None,
         *,
         sampling_frequency: float | None = None,
@@ -92,6 +93,9 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         file_paths : list[PathType] | None, optional
             List of .avi file paths to be processed. These files should be from the same
             recording session and will be concatenated in the order provided.
+        configuration_file_path : PathType | None, optional
+            Deprecated. This parameter is ignored. Kept temporarily for backwards compatibility
+            with neuroconv, which still forwards it. Will be removed on or after May 2026.
         timestamps_path : PathType | None, optional
             Path to the timeStamps.csv file containing timestamps relative to the recording start.
             If not provided, the extractor will look for a timeStamps.csv file in the same directory
