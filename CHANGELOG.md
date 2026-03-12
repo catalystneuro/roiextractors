@@ -1,6 +1,7 @@
 # v0.8.1 (Upcoming)
 
 ### Features
+* Added `description` parameter to `set_property()` and `get_property_info()` method to `SegmentationExtractor`, allowing property descriptions to be stored and retrieved for use in NWB file metadata [PR #558](https://github.com/catalystneuro/roiextractors/pull/558)
 
 ### Fixes
 

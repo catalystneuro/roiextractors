@@ -316,9 +316,19 @@ class NwbSegmentationExtractor(SegmentationExtractor):
 
             # Set accepted/rejected as properties if columns exist in NWB file
             if accepted_data is not None:
-                self.set_property("accepted", accepted_data.astype(bool), self._roi_ids)
+                self.set_property(
+                    "accepted",
+                    accepted_data.astype(bool),
+                    self._roi_ids,
+                    description="Whether the ROI was accepted during segmentation",
+                )
             if rejected_data is not None:
-                self.set_property("rejected", rejected_data.astype(bool), self._roi_ids)
+                self.set_property(
+                    "rejected",
+                    rejected_data.astype(bool),
+                    self._roi_ids,
+                    description="Whether the ROI was rejected during segmentation",
+                )
 
         # Extracting stored images as GrayscaleImages:
         self._segmentation_images = None

@@ -31,6 +31,18 @@ class _RoiResponse:
     roi_ids: list[str | int]
 
 
+@dataclass
+class _PropertyInfo:
+    """Bundles property data with its metadata.
+
+    Keeps the property values and their descriptive metadata together as a single unit,
+    so they cannot drift out of sync when copied or passed around.
+    """
+
+    data: np.ndarray
+    description: str = ""
+
+
 class _ROIMasks:
     """Internal container for all ROI spatial representations in native NWB-compatible format.
 
@@ -203,7 +215,7 @@ class SegmentationExtractor(ABC):
         self._roi_responses: list[_RoiResponse] = []
         self._summary_images = {}
         self._roi_masks: _ROIMasks | None = None
-        self._properties = {}
+        self._properties: dict[str, _PropertyInfo] = {}
 
     def get_accepted_list(self) -> list:
         """Get a list of accepted ROI ids.
@@ -817,7 +829,7 @@ class SegmentationExtractor(ABC):
         sample_indices = np.arange(start_sample, end_sample)
         return sample_indices / self.get_sampling_frequency()
 
-    def set_property(self, key: str, values: ArrayType, ids: ArrayType):
+    def set_property(self, key: str, values: ArrayType, ids: ArrayType, *, description: str = ""):
         """Set property values for ROIs.
 
         Parameters
@@ -828,6 +840,8 @@ class SegmentationExtractor(ABC):
             Array of property values. Must have same length as ids and num_rois.
         ids: array-like
             Array of ROI ids corresponding to the values. Must have same length as values and num_rois.
+        description: str, optional
+            Description of the property.
         """
         values = np.asarray(values)
         ids = list(ids)
@@ -850,7 +864,7 @@ class SegmentationExtractor(ABC):
             id_index = ids.index(roi_id)
             property_array[roi_index] = values[id_index]
 
-        self._properties[key] = property_array
+        self._properties[key] = _PropertyInfo(data=property_array, description=description)
 
     def get_property(self, key: str, ids: ArrayType) -> ArrayType:
         """Get property values for ROIs.
@@ -878,13 +892,9 @@ class SegmentationExtractor(ABC):
             if roi_id not in all_roi_ids:
                 raise ValueError(f"ROI id {roi_id} not found in extractor. Available ROI ids: {all_roi_ids}")
 
-        # Map ids to indices and get values
-        values = []
-        for roi_id in ids:
-            roi_index = all_roi_ids.index(roi_id)
-            values.append(self._properties[key][roi_index])
-
-        return np.array(values)
+        # Map ids to indices and filter data
+        indices = [all_roi_ids.index(roi_id) for roi_id in ids]
+        return self._properties[key].data[indices]
 
     def get_property_keys(self) -> list[str]:
         """Get list of available property keys.
@@ -895,6 +905,25 @@ class SegmentationExtractor(ABC):
             List of property names.
         """
         return list(self._properties.keys())
+
+    def get_property_info(self, key: str) -> _PropertyInfo:
+        """Get property data and metadata bundled together.
+
+        Parameters
+        ----------
+        key: str
+            The name of the property.
+
+        Returns
+        -------
+        property_info: _PropertyInfo
+            Dataclass containing the property data and description.
+        """
+        if key not in self._properties:
+            available_keys = list(self._properties.keys())
+            raise KeyError(f"Property '{key}' not found. Available properties: {available_keys}")
+
+        return self._properties[key]
 
 
 class SampleSlicedSegmentationExtractor(SegmentationExtractor):
