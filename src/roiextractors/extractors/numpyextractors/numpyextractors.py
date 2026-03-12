@@ -355,10 +355,20 @@ class NumpySegmentationExtractor(SegmentationExtractor):
         # Set accepted_list and rejected_list as properties if provided
         if accepted_list is not None:
             is_accepted = np.array([roi_id in accepted_list for roi_id in self._roi_ids], dtype=bool)
-            self.set_property("is_accepted", is_accepted, self._roi_ids)
+            self.set_property(
+                "is_accepted",
+                is_accepted,
+                self._roi_ids,
+                description="Whether the ROI was accepted during segmentation",
+            )
         if rejected_list is not None:
             is_rejected = np.array([roi_id in rejected_list for roi_id in self._roi_ids], dtype=bool)
-            self.set_property("is_rejected", is_rejected, self._roi_ids)
+            self.set_property(
+                "is_rejected",
+                is_rejected,
+                self._roi_ids,
+                description="Whether the ROI was rejected during segmentation",
+            )
 
     @property
     def image_dims(self):

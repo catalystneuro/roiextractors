@@ -174,7 +174,12 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
 
         # Set iscell as a property for ROI classification (first column is the binary classification)
         if self.iscell is not None:
-            self.set_property("iscell", self.iscell[:, 0], self._roi_ids)
+            self.set_property(
+                "iscell",
+                self.iscell[:, 0],
+                self._roi_ids,
+                description="Binary cell classification from Suite2p",
+            )
 
         # The name of the OpticalChannel object is "OpticalChannel" if there is only one channel, otherwise it is
         # "Chan1" or "Chan2".

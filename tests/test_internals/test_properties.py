@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from numpy.testing import assert_array_equal
 
 from roiextractors.testing import generate_dummy_segmentation_extractor
 
@@ -94,6 +95,22 @@ def test_getter_property_validation():
         extractor.get_property(key="quality_score", ids=roi_ids)
 
 
+def test_property_description_preserved_in_sample_sliced_extractor():
+    """Test that property descriptions are preserved when slicing samples."""
+    extractor = generate_dummy_segmentation_extractor(num_rois=3, num_samples=10)
+    roi_ids = extractor.get_roi_ids()
+
+    extractor.set_property(
+        key="quality",
+        values=np.array([0.8, 0.9, 0.7]),
+        ids=roi_ids,
+        description="Quality score for each ROI",
+    )
+
+    sliced = extractor.slice_samples(start_sample=2, end_sample=8)
+    assert sliced.get_property_info("quality").description == "Quality score for each ROI"
+
+
 def test_that_positional_order_does_not_matter():
     """Test that the property interface is ID-based, not position-based.
 
@@ -140,3 +157,24 @@ def test_that_positional_order_does_not_matter():
     assert len(subset_quality) == 2, "Subset should have 2 values"
     assert subset_quality[0] == 0.9, "First subset value incorrect"  # roi_ids[1] -> 0.9
     assert subset_quality[1] == 0.95, "Second subset value incorrect"  # roi_ids[3] -> 0.95
+
+
+class TestGetPropertyInfo:
+    """Tests for get_property_info method."""
+
+    def test_get_property_info_returns_data_and_description(self):
+        extractor = generate_dummy_segmentation_extractor(num_rois=3, num_samples=10)
+        roi_ids = extractor.get_roi_ids()
+        values = np.array([0.8, 0.9, 0.7])
+
+        extractor.set_property(key="quality", values=values, ids=roi_ids, description="Quality score")
+
+        info = extractor.get_property_info("quality")
+        assert_array_equal(info.data, values)
+        assert info.description == "Quality score"
+
+    def test_get_property_info_nonexistent_key_raises(self):
+        extractor = generate_dummy_segmentation_extractor(num_rois=3, num_samples=10)
+
+        with pytest.raises(KeyError, match="Property 'missing' not found"):
+            extractor.get_property_info("missing")
