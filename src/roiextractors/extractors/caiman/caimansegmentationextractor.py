@@ -537,22 +537,42 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
         else:
             # If no quality assessment was performed, assume all components are accepted
             is_accepted[:] = True
-        self.set_property(key="is_accepted", values=is_accepted, ids=roi_ids)
+        self.set_property(
+            key="is_accepted",
+            values=is_accepted,
+            ids=roi_ids,
+            description="Whether the ROI was accepted during quality assessment",
+        )
 
         # Set SNR values as property if available
         snr_values = self._get_snr_values()
         if snr_values is not None and len(snr_values) == len(roi_ids):
-            self.set_property(key="snr", values=snr_values, ids=roi_ids)
+            self.set_property(
+                key="snr",
+                values=snr_values,
+                ids=roi_ids,
+                description="Signal-to-noise ratio for each component",
+            )
 
         # Set spatial correlation values as property if available
         r_values = self._get_spatial_correlation_values()
         if r_values is not None and len(r_values) == len(roi_ids):
-            self.set_property(key="r_values", values=r_values, ids=roi_ids)
+            self.set_property(
+                key="r_values",
+                values=r_values,
+                ids=roi_ids,
+                description="Spatial correlation values for each component",
+            )
 
         # Set CNN predictions as property if available
         cnn_preds = self._get_cnn_predictions()
         if cnn_preds is not None and len(cnn_preds) == len(roi_ids):
-            self.set_property(key="cnn_preds", values=cnn_preds, ids=roi_ids)
+            self.set_property(
+                key="cnn_preds",
+                values=cnn_preds,
+                ids=roi_ids,
+                description="CNN classifier predictions for component quality",
+            )
 
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
