@@ -73,7 +73,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         self,
         folder_path: PathType | None = None,
         file_paths: list[PathType] | None = None,
-        configuration_file_path: PathType | None = None,
+        configuration_file_path: PathType | None = None,  # Ignored, pending removal in neuroconv (May 2026)
         timestamps_path: PathType | None = None,
         *,
         sampling_frequency: float | None = None,
@@ -94,33 +94,8 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
             List of .avi file paths to be processed. These files should be from the same
             recording session and will be concatenated in the order provided.
         configuration_file_path : PathType | None, optional
-            **DEPRECATED**: This parameter is deprecated and will be removed in March 2026.
-            **This parameter is no longer used and is ignored.**
-
-            The device folder is now automatically inferred from file_paths. If provided,
-            this parameter only triggers validation (checking if the file exists and is valid JSON),
-            but has no functional effect on the extractor's behavior.
-
-            Migration: Simply remove this parameter from your code. For example:
-                # Old (deprecated):
-                extractor = MiniscopeImagingExtractor(file_paths=files, configuration_file_path=config)
-                # New (recommended):
-                extractor = MiniscopeImagingExtractor(file_paths=files)
-
-            If you need to read metaData.json files, use the private static methods:
-            - MiniscopeImagingExtractor._read_device_folder_metadata(file_path)
-            - MiniscopeImagingExtractor._read_session_folder_metadata(file_path)
-
-            Deprecation rationale:
-            - The metaData.json frameRate field is user-settable, not measured. The DAQ system
-              attempts to achieve this rate but cannot guarantee it due to hardware limitations.
-            - Analysis shows sampling frequency calculated from timeStamps.csv often differs from
-              the configured frameRate, making metaData.json unreliable for timing information.
-            - timeStamps.csv provides ground truth timing (hardware-generated, always produced by DAQ)
-            - Requiring both file_paths and configuration_file_path is redundant when timestamps
-              are available
-
-            Default is None.
+            Deprecated. This parameter is ignored. Kept temporarily for backwards compatibility
+            with neuroconv, which still forwards it. Will be removed on or after May 2026.
         timestamps_path : PathType | None, optional
             Path to the timeStamps.csv file containing timestamps relative to the recording start.
             If not provided, the extractor will look for a timeStamps.csv file in the same directory
@@ -146,40 +121,24 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         >>> timestamps_path = "/path/to/device_folder/timeStamps.csv"
         >>> extractor = MiniscopeImagingExtractor(file_paths=file_paths, timestamps_path=timestamps_path)
 
-        >>> # Legacy usage with configuration_file_path (deprecated, triggers warning)
-        >>> config_path = "/path/to/device_folder/metaData.json"
-        >>> extractor = MiniscopeImagingExtractor(file_paths=file_paths, configuration_file_path=config_path)
-
         Notes
         -----
         For each video file, a _MiniscopeSingleVideoExtractor is created. These individual extractors
         are then combined into the MiniscopeImagingExtractor to handle the session's recordings
         as a unified, continuous dataset.
         """
-        # Determine file paths and configuration file path based on folder_path or provided arguments
+        # Determine file paths based on folder_path or provided arguments
         if folder_path is not None:
-            if file_paths is not None or configuration_file_path is not None:
+            if file_paths is not None:
                 raise ValueError(
-                    "When folder_path is provided, file_paths and configuration_file_path cannot be specified. "
-                    "Use either folder_path alone or provide file_paths with configuration_file_path."
+                    "When folder_path is provided, file_paths cannot be specified. "
+                    "Use either folder_path alone or provide file_paths."
                 )
 
-            file_paths, configuration_file_path, timestamps_path = self._get_miniscope_files_from_direct_folder(
-                folder_path
-            )
+            file_paths, timestamps_path = self._get_miniscope_files_from_direct_folder(folder_path)
         else:
             if file_paths is None:
                 raise ValueError("When folder_path is not provided, file_paths must be specified.")
-
-            # Emit deprecation warning if configuration_file_path is provided
-            if configuration_file_path is not None:
-                warnings.warn(
-                    "The 'configuration_file_path' parameter is deprecated and will be removed in March 2026. "
-                    "The device folder is now automatically inferred from file_paths. "
-                    "To silence this warning, remove the configuration_file_path parameter from your code.",
-                    FutureWarning,
-                    stacklevel=2,
-                )
 
         # Validate input files
         self.validate_miniscope_files(file_paths, timestamps_path)
@@ -322,15 +281,14 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
 
         Returns
         -------
-        tuple[list[PathType], PathType, PathType | None]
+        tuple[list[PathType], PathType | None]
             - list[PathType]: .avi file paths sorted naturally
-            - PathType: path to the configuration file (metaData.json)
             - PathType | None: path to the timestamps file (timeStamps.csv) if present, otherwise None
 
         Raises
         ------
         AssertionError
-            If no .avi files or configuration files are found.
+            If no .avi files are found.
         ValueError
             If file names do not follow the expected sequential naming convention.
         """
@@ -339,7 +297,6 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         folder_path = Path(folder_path)
 
         miniscope_avi_file_paths = natsort.natsorted(list(folder_path.glob("*.avi")))
-        miniscope_config_files = natsort.natsorted(list(folder_path.glob("metaData.json")))
         miniscope_timestamps_files = natsort.natsorted(list(folder_path.glob("timeStamps.csv")))
 
         assert miniscope_avi_file_paths, f"No .avi files found in direct folder structure at '{folder_path}'"
@@ -352,10 +309,6 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
                     "Ensure .avi files are named sequentially starting from 0 (e.g., 0.avi, 1.avi, 2.avi, ...)."
                 )
 
-        # check that the configuration file exists and is unique
-        assert miniscope_config_files, f"No configuration file found at '{folder_path}', expected 'metaData.json'"
-        assert len(miniscope_config_files) == 1, f"Multiple configuration files found at '{folder_path}'"
-
         # timestamps file is optional
         if miniscope_timestamps_files:
             assert (
@@ -365,7 +318,7 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
         else:
             timestamps_path = None
 
-        return miniscope_avi_file_paths, miniscope_config_files[0], timestamps_path
+        return miniscope_avi_file_paths, timestamps_path
 
     @staticmethod
     def validate_miniscope_files(file_paths: list[PathType], timestamps_path: PathType | None = None) -> None:
@@ -755,16 +708,12 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
 
     def __init__(self, folder_path: PathType, miniscope_device_name: str = "Miniscope"):
         """Create a MiniscopeMultiRecordingImagingExtractor instance from folder_path."""
-        # Get file paths and configuration file path
-
         self.miniscope_device_name = miniscope_device_name
         self.folder_path = Path(folder_path)
 
-        file_paths, configuration_file_path = self._get_miniscope_files_from_multi_recordings_subfolders(
-            folder_path, miniscope_device_name
-        )
+        file_paths = self._get_miniscope_files_from_multi_recordings_subfolders(folder_path, miniscope_device_name)
 
-        super().__init__(file_paths=file_paths, configuration_file_path=configuration_file_path)
+        super().__init__(file_paths=file_paths)
 
     @staticmethod
     def _get_miniscope_files_from_multi_recordings_subfolders(
@@ -806,15 +755,13 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
 
         Returns
         -------
-        Tuple[List[PathType], PathType]
-            A tuple containing:
-            - List of .avi file paths sorted naturally
-            - Path to the first configuration file found (metaData.json)
+        list[PathType]
+            List of .avi file paths sorted naturally.
 
         Raises
         ------
         AssertionError
-            If no .avi files or configuration files are found.
+            If no .avi files are found.
         """
         from pathlib import Path
 
@@ -823,17 +770,12 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
         natsort = get_package(package_name="natsort", installation_instructions="pip install natsort")
 
         folder_path = Path(folder_path)
-        configuration_file_name = "metaData.json"
 
         miniscope_avi_file_paths = natsort.natsorted(list(folder_path.glob(f"*/{miniscope_device_name}/*.avi")))
-        miniscope_config_files = natsort.natsorted(
-            list(folder_path.glob(f"*/{miniscope_device_name}/{configuration_file_name}"))
-        )
 
         assert miniscope_avi_file_paths, f"No Miniscope .avi files found at '{folder_path}'"
-        assert miniscope_config_files, f"No Miniscope configuration files found at '{folder_path}'"
 
-        return miniscope_avi_file_paths, miniscope_config_files[0]
+        return miniscope_avi_file_paths
 
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
