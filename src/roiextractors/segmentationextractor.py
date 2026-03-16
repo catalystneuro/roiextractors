@@ -753,7 +753,16 @@ class SegmentationExtractor(ABC):
         -------
         num_of_channels: int
             number of channels
+
+        Deprecated
+        ----------
+        This method will be removed on or after September 2026.
         """
+        warnings.warn(
+            "get_num_channels is deprecated and will be removed on or after September 2026.",
+            FutureWarning,
+            stacklevel=2,
+        )
         return len(self._channel_names)
 
     def get_num_planes(self) -> int:
