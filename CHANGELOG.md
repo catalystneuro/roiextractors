@@ -7,6 +7,10 @@
 ### Fixes
 
 ### Deprecations And Removals
+* Removed deprecated `check_get_videos_args()` function from `extraction_tools` (deprecated January 2026). The `get_video()` method it decorated was already removed. [PR #560](https://github.com/catalystneuro/roiextractors/pull/560)
+* Removed deprecated `write_to_h5_dataset_format()` function from `extraction_tools` (deprecated March 2026). ROIExtractors no longer supports write operations. [PR #560](https://github.com/catalystneuro/roiextractors/pull/560)
+* The `configuration_file_path` parameter in `MiniscopeImagingExtractor` is now ignored and will be removed on or after May 2026 (pending neuroconv deprecation timeline). The device folder is automatically inferred from `file_paths`. [PR #560](https://github.com/catalystneuro/roiextractors/pull/560)
+* Deprecated `get_num_channels()` method in `SegmentationExtractor` (will be removed on or after September 2026). [PR #560](https://github.com/catalystneuro/roiextractors/pull/560)
 
 ### Improvements
 * Added documentation for the timestamp API: a user-facing guide (`timestamps.rst`) covering `get_timestamps()` and `set_times()`, and a developer-facing design decisions page (`design_decisions.rst`) explaining the separation of `get_native_timestamps` and `get_timestamps`, why `get_native_timestamps` is abstract, and copy vs. view semantics for sliced timestamps. Updated the extractor build guides (`build_ie.rst`, `build_re.rst`) to consistently document `get_native_timestamps`. [PR #552](https://github.com/catalystneuro/roiextractors/pull/552)
