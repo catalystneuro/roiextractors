@@ -2,6 +2,7 @@
 
 import warnings
 from collections.abc import Iterable
+from typing import Literal
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -183,6 +184,8 @@ def generate_dummy_segmentation_extractor(
     rejected_list: list | None = None,
     seed: int = 0,
     num_samples: int | None = 30,
+    mask_type: Literal["image", "pixel"] = "image",
+    has_native_timestamps: bool = False,
 ) -> SegmentationExtractor:
     """Generate a dummy segmentation extractor for testing.
 
@@ -215,6 +218,12 @@ def generate_dummy_segmentation_extractor(
         seed for the random number generator, by default 0.
     num_samples : int, optional
         Number of samples in the recording, by default 30.
+    mask_type : str, default "image"
+        Type of mask to generate. One of "image" or "pixel".
+        "image" generates dense masks of shape (num_rows, num_columns, num_rois).
+        "pixel" generates sparse masks as a list of (n_pixels, 3) arrays with columns [y, x, weight].
+    has_native_timestamps : bool, default False
+        If True, the extractor will return native timestamps (evenly spaced based on sampling_frequency).
 
     Returns
     -------
@@ -227,9 +236,13 @@ def generate_dummy_segmentation_extractor(
     contain meaningful content. That is, the image masks matrices are not plausible image mask for a roi, the raw signal
     is not a meaningful biological signal and is not related appropriately to the deconvolved signal , etc.
     """
+    valid_mask_types = ("image", "pixel")
+    if mask_type not in valid_mask_types:
+        raise ValueError(f"mask_type must be one of {valid_mask_types}, got '{mask_type}'")
+
     rng = np.random.default_rng(seed)
 
-    # Create dummy image masks
+    # Create dummy image masks (always needed for NumpySegmentationExtractor construction)
     image_masks = rng.random((num_rows, num_columns, num_rois))
     movie_dims = (num_rows, num_columns)
 
@@ -272,6 +285,42 @@ def generate_dummy_segmentation_extractor(
         movie_dims=movie_dims,
         channel_names=["channel_num_0"],
     )
+
+    # Replace mask data with pixel masks if requested
+    if mask_type == "pixel":
+        from .segmentationextractor import _ROIMasks
+
+        num_pixels_per_roi = 5
+        pixel_masks = []
+        for _ in range(num_rois):
+            y_coords = rng.integers(low=0, high=num_rows, size=num_pixels_per_roi).astype(float)
+            x_coords = rng.integers(low=0, high=num_columns, size=num_pixels_per_roi).astype(float)
+            weights = rng.random(num_pixels_per_roi)
+            pixel_masks.append(np.column_stack([y_coords, x_coords, weights]))
+
+        roi_id_map = {roi_id: index for index, roi_id in enumerate(dummy_segmentation_extractor.get_roi_ids())}
+        dummy_segmentation_extractor._roi_masks = _ROIMasks(
+            data=pixel_masks,
+            mask_tpe="nwb-pixel_mask",
+            field_of_view_shape=(num_rows, num_columns),
+            roi_id_map=roi_id_map,
+        )
+
+    # Add native timestamps if requested (same pattern as imaging dummy)
+    if has_native_timestamps:
+        import types
+
+        def get_native_timestamps(self, start_sample=None, end_sample=None):
+            if start_sample is None:
+                start_sample = 0
+            if end_sample is None:
+                end_sample = self.get_num_samples()
+            timestamps = np.arange(self.get_num_samples()) / self.get_sampling_frequency()
+            return timestamps[start_sample:end_sample]
+
+        dummy_segmentation_extractor.get_native_timestamps = types.MethodType(
+            get_native_timestamps, dummy_segmentation_extractor
+        )
 
     return dummy_segmentation_extractor
 
