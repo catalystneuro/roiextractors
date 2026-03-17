@@ -116,12 +116,6 @@ class TestSampleSlicedTimestampInheritance:
         )
         assert sample_sliced_segmentation.get_frame_shape() == (5, 4)
 
-    def test_get_roi_locations(self):
-        sample_sliced_segmentation = self.parent_extractor.slice_samples(
-            start_sample=self.start_sample, end_sample=self.end_sample
-        )
-        assert_array_equal(sample_sliced_segmentation.get_roi_locations(), self.parent_extractor.get_roi_locations())
-
     def test_get_roi_ids(self):
         sample_sliced_segmentation = self.parent_extractor.slice_samples(
             start_sample=self.start_sample, end_sample=self.end_sample

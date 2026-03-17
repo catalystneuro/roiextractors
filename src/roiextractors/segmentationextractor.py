@@ -305,6 +305,11 @@ class SegmentationExtractor(ABC):
     def get_roi_locations(self, roi_ids=None) -> np.ndarray:
         """Get the locations of the Regions of Interest (ROIs).
 
+        .. deprecated::
+            `get_roi_locations` is deprecated and will be removed in or after September 2026.
+            Use `get_property("roi_centroids", roi_ids)` instead for centroid data
+            stored as a property.
+
         Parameters
         ----------
         roi_ids: array_like
@@ -315,6 +320,12 @@ class SegmentationExtractor(ABC):
         roi_locs: numpy.ndarray
             2-D array: 2 X no_ROIs. The pixel ids (x,y) where the centroid of the ROI is.
         """
+        warnings.warn(
+            "get_roi_locations is deprecated and will be removed in or after September 2026. "
+            "Use get_property('roi_centroids', roi_ids) instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         if roi_ids is None:
             roi_ids = self.get_roi_ids()
 
@@ -742,7 +753,16 @@ class SegmentationExtractor(ABC):
         -------
         num_of_channels: int
             number of channels
+
+        Deprecated
+        ----------
+        This method will be removed on or after September 2026.
         """
+        warnings.warn(
+            "get_num_channels is deprecated and will be removed on or after September 2026.",
+            FutureWarning,
+            stacklevel=2,
+        )
         return len(self._channel_names)
 
     def get_num_planes(self) -> int:
@@ -850,7 +870,7 @@ class SegmentationExtractor(ABC):
             raise ValueError("Provided ids must match the extractor's ROI ids")
 
         # Create property array with values in the correct order
-        property_array = np.empty(num_rois, dtype=values.dtype)
+        property_array = np.empty(values.shape, dtype=values.dtype)
         for roi_index, roi_id in enumerate(extractor_roi_ids):
             id_index = ids.index(roi_id)
             property_array[roi_index] = values[id_index]
@@ -1017,9 +1037,6 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
 
     def get_num_samples(self) -> int:
         return self._num_samples
-
-    def get_roi_locations(self, roi_ids=None) -> np.ndarray:
-        return self._parent_segmentation.get_roi_locations(roi_ids=roi_ids)
 
     def get_roi_ids(self) -> list:
         return self._parent_segmentation.get_roi_ids()
