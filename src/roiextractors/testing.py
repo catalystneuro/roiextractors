@@ -1,5 +1,6 @@
 """Testing utilities for the roiextractors package."""
 
+import warnings
 from collections.abc import Iterable
 from typing import Literal
 
@@ -388,7 +389,6 @@ def check_segmentations_equal(
 
     assert_array_equal(segmentation_extractor1.get_accepted_list(), segmentation_extractor2.get_accepted_list())
     assert_array_equal(segmentation_extractor1.get_rejected_list(), segmentation_extractor2.get_rejected_list())
-    assert_array_equal(segmentation_extractor1.get_roi_locations(), segmentation_extractor2.get_roi_locations())
     assert_array_equal(segmentation_extractor1.get_roi_ids(), segmentation_extractor2.get_roi_ids())
     assert_array_equal(segmentation_extractor1.get_traces(), segmentation_extractor2.get_traces())
 
@@ -466,12 +466,14 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
         dtypes=(list, NoneType),
         shape_max=(seg.get_num_rois(),),
     )
-    _assert_iterable_complete(
-        seg.get_roi_locations(),
-        dtypes=(np.ndarray,),
-        shape=(2, seg.get_num_rois()),
-        element_dtypes=inttype,
-    )
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="get_roi_locations", category=FutureWarning)
+        _assert_iterable_complete(
+            seg.get_roi_locations(),
+            dtypes=(np.ndarray,),
+            shape=(2, seg.get_num_rois()),
+            element_dtypes=inttype,
+        )
     _assert_iterable_complete(
         seg.get_traces(),
         dtypes=(np.ndarray, NoneType),

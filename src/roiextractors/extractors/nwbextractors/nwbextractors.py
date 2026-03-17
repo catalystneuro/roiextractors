@@ -330,6 +330,14 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                     description="Whether the ROI was rejected during segmentation",
                 )
 
+            # Store ROI centroids as a multi-dimensional property
+            if self._roi_locs is not None:
+                raw_centroids = np.array(self._roi_locs.data)
+                # NWB uses width x height, ROIExtractors uses height x width
+                transpose_order = (1, 0) if len(self.get_frame_shape()) == 2 else (1, 0, 2)
+                centroids = raw_centroids[:, transpose_order]
+                self.set_property("roi_centroids", centroids, self._roi_ids)
+
         # Extracting stored images as GrayscaleImages:
         self._segmentation_images = None
         if "SegmentationImages" in ophys.data_interfaces:
@@ -413,6 +421,10 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     def get_roi_locations(self, roi_ids: Iterable[int] | None = None) -> np.ndarray:
         """Return the locations of the Regions of Interest (ROIs).
 
+        .. deprecated::
+            `get_roi_locations` is deprecated and will be removed in or after September 2026.
+            Use `get_property("roi_centroids", roi_ids)` instead.
+
         Parameters
         ----------
         roi_ids: array_like
@@ -424,6 +436,12 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         roi_locs: numpy.ndarray
             2-D array: 2 X no_ROIs. The pixel ids (x,y) where the centroid of the ROI is.
         """
+        warnings.warn(
+            "get_roi_locations is deprecated and will be removed in or after September 2026. "
+            "Use get_property('roi_centroids', roi_ids) instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         if self._roi_locs is None:
             return
         all_ids = self.get_roi_ids()

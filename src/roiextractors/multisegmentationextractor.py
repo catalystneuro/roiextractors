@@ -6,6 +6,8 @@ MultiSegmentationExtractor
     This class is used to combine multiple SegmentationExtractor objects by frames.
 """
 
+import warnings
+
 import numpy as np
 
 from .segmentationextractor import SegmentationExtractor
@@ -175,6 +177,12 @@ class MultiSegmentationExtractor(SegmentationExtractor):
 
     @concatenate_output
     def get_roi_locations(self, roi_ids=None):
+        warnings.warn(
+            "get_roi_locations is deprecated and will be removed in or after September 2026. "
+            "Use get_property('roi_centroids', roi_ids) instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         return lambda x: np.concatenate(x, axis=1)
 
     def get_accepted_list(self) -> list[int]:
