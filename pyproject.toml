@@ -120,6 +120,7 @@ test = [
     "parameterized==0.8.1",
     "spikeinterface>=0.100.7",
     "pytest-xdist",
+    "pytest-memray; sys_platform != 'win32'",
 ]
 docs = [
     "Jinja2",
