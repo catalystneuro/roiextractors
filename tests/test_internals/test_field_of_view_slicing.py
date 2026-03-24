@@ -82,7 +82,6 @@ class TestFieldOfViewSlicing2D:
 
         assert fov_sliced.get_num_samples() == imaging.get_num_samples()
         assert fov_sliced.get_sampling_frequency() == imaging.get_sampling_frequency()
-        assert fov_sliced.get_channel_names() == imaging.get_channel_names()
         assert fov_sliced.get_dtype() == imaging.get_dtype()
 
     def test_set_timestamps_preservation(self):
@@ -100,7 +99,7 @@ class TestFieldOfViewSlicing2D:
         """Test that native timestamps are delegated to parent."""
         # Test with extractor that has native timestamps
         imaging = generate_dummy_imaging_extractor(
-            num_samples=10, num_rows=100, num_columns=80, has_native_timestamps=True
+            num_samples=10, num_rows=100, num_columns=80, native_timestamps="evenly_spaced"
         )
         fov_sliced = imaging.slice_field_of_view(row_start=20, row_end=60, column_start=10, column_end=50)
 
@@ -119,7 +118,7 @@ class TestFieldOfViewSlicing2D:
         """Test that native timestamps work correctly when present."""
         # Create extractor with native timestamps
         imaging = generate_dummy_imaging_extractor(
-            num_samples=10, num_rows=100, num_columns=80, has_native_timestamps=True
+            num_samples=10, num_rows=100, num_columns=80, native_timestamps="evenly_spaced"
         )
         fov_sliced = imaging.slice_field_of_view(row_start=20, row_end=60, column_start=10, column_end=50)
 
@@ -302,6 +301,5 @@ class TestFieldOfViewSlicingVolumetric:
 
         assert fov_sliced.get_num_samples() == volumetric.get_num_samples()
         assert fov_sliced.get_sampling_frequency() == volumetric.get_sampling_frequency()
-        assert fov_sliced.get_channel_names() == volumetric.get_channel_names()
         assert fov_sliced.get_dtype() == volumetric.get_dtype()
         assert fov_sliced.is_volumetric == volumetric.is_volumetric
