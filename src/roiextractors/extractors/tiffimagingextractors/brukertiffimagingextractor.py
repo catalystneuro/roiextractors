@@ -21,7 +21,6 @@ import numpy as np
 from lxml import etree
 
 from ...extraction_tools import (
-    DtypeType,
     PathType,
     calculate_regular_series_rate,
     get_package,
@@ -529,7 +528,7 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         )
         return self._channel_names
 
-    def get_dtype(self) -> DtypeType:
+    def get_dtype(self) -> np.dtype:
         return self._dtype
 
 
