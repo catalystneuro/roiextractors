@@ -14,6 +14,7 @@
 * Deprecated `get_num_channels()` method in `SegmentationExtractor` (will be removed on or after September 2026). [PR #560](https://github.com/catalystneuro/roiextractors/pull/560)
 
 ### Improvements
+* Sliced extractors (`SampleSlicedSegmentationExtractor` and `RoiSlicedSegmentationExtractor`) now use copy semantics for properties, so modifications on a child do not affect the parent and vice versa [PR #559](https://github.com/catalystneuro/roiextractors/pull/559)
 * Added documentation for the timestamp API: a user-facing guide (`timestamps.rst`) covering `get_timestamps()` and `set_times()`, and a developer-facing design decisions page (`design_decisions.rst`) explaining the separation of `get_native_timestamps` and `get_timestamps`, why `get_native_timestamps` is abstract, and copy vs. view semantics for sliced timestamps. Updated the extractor build guides (`build_ie.rst`, `build_re.rst`) to consistently document `get_native_timestamps`. [PR #552](https://github.com/catalystneuro/roiextractors/pull/552)
 
 

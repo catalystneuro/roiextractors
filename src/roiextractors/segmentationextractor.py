@@ -1013,7 +1013,10 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
         if getattr(self._parent_segmentation, "_times") is not None:
             self._times = self._parent_segmentation._times[start_sample:end_sample]
 
-        # Copy properties from parent (ROI properties are not affected by temporal slicing)
+        # Properties use the same copy-on-write pattern as _times above.
+        # The shallow dict copy shares the underlying _PropertyInfo instances with the parent
+        # (memory efficient), but set_property() always creates a new _PropertyInfo and rebinds
+        # the dict key, so writes only affect this instance.
         self._properties = dict(self._parent_segmentation._properties)
 
     def get_native_timestamps(
