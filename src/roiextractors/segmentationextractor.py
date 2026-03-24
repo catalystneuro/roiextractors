@@ -18,7 +18,7 @@ from typing import Literal
 import numpy as np
 from numpy.typing import ArrayLike
 
-from .extraction_tools import ArrayType
+from .extraction_tools import ArrayType, FloatType
 
 
 # TODO make public once API stabilizes.
@@ -839,6 +839,26 @@ class SegmentationExtractor(ABC):
         # Fallback to calculated timestamps from sampling frequency
         sample_indices = np.arange(start_sample, end_sample)
         return sample_indices / self.get_sampling_frequency()
+
+    def time_to_sample_indices(self, times: FloatType | ArrayType) -> FloatType | np.ndarray:
+        """Convert user-inputted times (in seconds) to sample indices.
+
+        Parameters
+        ----------
+        times: float or array-like
+            The times (in seconds) to be converted to sample indices.
+
+        Returns
+        -------
+        sample_indices: float or array-like
+            The corresponding sample indices.
+        """
+        # Ensure native timestamps are cached if available
+        self.get_timestamps()
+        if self._times is not None:
+            return (np.searchsorted(self._times, times, side="right") - 1).astype("int64")
+        else:
+            return np.round(times * self.get_sampling_frequency()).astype("int64")
 
     def set_property(self, key: str, values: ArrayType, ids: ArrayType, *, description: str = ""):
         """Set property values for ROIs.

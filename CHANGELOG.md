@@ -5,6 +5,7 @@
 * Added `description` parameter to `set_property()` and `get_property_info()` method to `SegmentationExtractor`, allowing property descriptions to be stored and retrieved for use in NWB file metadata [PR #558](https://github.com/catalystneuro/roiextractors/pull/558)
 
 ### Fixes
+* Fixed `time_to_sample_indices` on `ImagingExtractor` to properly resolve native timestamps before choosing its lookup strategy, and aligned `searchsorted` behavior with SpikeInterface (`side="right" - 1`). Added the method to `SegmentationExtractor` for API consistency. [PR #564](https://github.com/catalystneuro/roiextractors/pull/564)
 
 ### Deprecations And Removals
 * Deprecated `get_roi_locations()` method across `SegmentationExtractor`, `NwbSegmentationExtractor`, and `MultiSegmentationExtractor` (will be removed in or after September 2026). ROI centroids are now stored as a multi-dimensional property. Use `get_property("roi_centroids", roi_ids)` instead. [PR #557](https://github.com/catalystneuro/roiextractors/pull/557)
