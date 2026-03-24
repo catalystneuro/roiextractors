@@ -2,7 +2,7 @@
 
 ### Features
 * Added `description` parameter to `set_property()` and `get_property_info()` method to `SegmentationExtractor`, allowing property descriptions to be stored and retrieved for use in NWB file metadata [PR #558](https://github.com/catalystneuro/roiextractors/pull/558)
-* Added `mask_type` and `has_native_timestamps` parameters to `generate_dummy_segmentation_extractor()`. `mask_type` supports `"image"` (default) and `"pixel"` for testing sparse pixel mask workflows. `has_native_timestamps` adds evenly-spaced timestamps to the dummy extractor for testing timestamp round-trips. [PR #561](https://github.com/catalystneuro/roiextractors/pull/561)
+* Added `mask_type` and `native_timestamps` parameters to `generate_dummy_segmentation_extractor()`. `mask_type` supports `"image"` (default) and `"pixel"` for testing sparse pixel mask workflows. `native_timestamps` supports `"evenly_spaced"` and `"unevenly_spaced"` for testing timestamp round-trips. [PR #561](https://github.com/catalystneuro/roiextractors/pull/561)
 
 ### Fixes
 
