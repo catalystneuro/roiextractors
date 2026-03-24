@@ -170,6 +170,31 @@ def generate_dummy_imaging_extractor(
     return imaging_extractor
 
 
+class _DummySegmentationExtractor(NumpySegmentationExtractor):
+    """A private subclass of NumpySegmentationExtractor that optionally provides native timestamps.
+
+    NumpySegmentationExtractor returns None for get_native_timestamps() because numpy arrays
+    do not have native timestamps. This subclass allows the dummy generator to optionally
+    produce timestamps without modifying the production class.
+    """
+
+    def __init__(self, *args, has_native_timestamps=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._has_native_timestamps = has_native_timestamps
+
+    def get_native_timestamps(
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
+        if not self._has_native_timestamps:
+            return None
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self.get_num_samples()
+        timestamps = np.arange(self.get_num_samples()) / self.get_sampling_frequency()
+        return timestamps[start_sample:end_sample]
+
+
 def generate_dummy_segmentation_extractor(
     *,
     num_rois: int = 10,
@@ -269,7 +294,7 @@ def generate_dummy_segmentation_extractor(
     if rejected_list is not None:
         accepted_list = list(set(accepted_list).difference(rejected_list))
 
-    dummy_segmentation_extractor = NumpySegmentationExtractor(
+    dummy_segmentation_extractor = _DummySegmentationExtractor(
         sampling_frequency=sampling_frequency,
         image_masks=image_masks,
         raw=raw,
@@ -284,6 +309,7 @@ def generate_dummy_segmentation_extractor(
         rejected_list=rejected_list,
         movie_dims=movie_dims,
         channel_names=["channel_num_0"],
+        has_native_timestamps=has_native_timestamps,
     )
 
     # Replace mask data with pixel masks if requested
@@ -304,22 +330,6 @@ def generate_dummy_segmentation_extractor(
             mask_tpe="nwb-pixel_mask",
             field_of_view_shape=(num_rows, num_columns),
             roi_id_map=roi_id_map,
-        )
-
-    # Add native timestamps if requested (same pattern as imaging dummy)
-    if has_native_timestamps:
-        import types
-
-        def get_native_timestamps(self, start_sample=None, end_sample=None):
-            if start_sample is None:
-                start_sample = 0
-            if end_sample is None:
-                end_sample = self.get_num_samples()
-            timestamps = np.arange(self.get_num_samples()) / self.get_sampling_frequency()
-            return timestamps[start_sample:end_sample]
-
-        dummy_segmentation_extractor.get_native_timestamps = types.MethodType(
-            get_native_timestamps, dummy_segmentation_extractor
         )
 
     return dummy_segmentation_extractor
