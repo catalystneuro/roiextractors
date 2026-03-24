@@ -7,5 +7,6 @@ __version__ = version("roiextractors")
 from .example_datasets import toy_example
 from .extraction_tools import show_video
 from .extractorlist import *
+from .generation import GaussianNoiseImagingExtractor, PoissonNoiseImagingExtractor
 from .imagingextractor import ImagingExtractor
 from .segmentationextractor import SegmentationExtractor
