@@ -3,10 +3,15 @@
 ### Features
 * Added `PoissonNoiseImagingExtractor` and `GaussianNoiseImagingExtractor` for generating synthetic noise imaging data with volumetric support and a tile-pregenerated strategy for fast reads [PR #555](https://github.com/catalystneuro/roiextractors/pull/555)
 * Added `description` parameter to `set_property()` and `get_property_info()` method to `SegmentationExtractor`, allowing property descriptions to be stored and retrieved for use in NWB file metadata [PR #558](https://github.com/catalystneuro/roiextractors/pull/558)
+* Added `mask_type` and `native_timestamps` parameters to `generate_dummy_segmentation_extractor()`. `mask_type` supports `"image"` (default) and `"pixel"` for testing sparse pixel mask workflows. `native_timestamps` supports `"evenly_spaced"` and `"unevenly_spaced"` for testing timestamp round-trips. [PR #561](https://github.com/catalystneuro/roiextractors/pull/561)
+* `generate_dummy_imaging_extractor()` now uses `GaussianNoiseImagingExtractor` internally and supports the `native_timestamps` parameter with `"evenly_spaced"` and `"unevenly_spaced"` options. [PR #561](https://github.com/catalystneuro/roiextractors/pull/561)
 
 ### Fixes
 
 ### Deprecations And Removals
+* Deprecated `generate_dummy_video()` (will be removed in or after September 2026). Use `GaussianNoiseImagingExtractor` or `PoissonNoiseImagingExtractor` instead. [PR #561](https://github.com/catalystneuro/roiextractors/pull/561)
+* Deprecated `dtype` parameter in `generate_dummy_imaging_extractor()` (will be removed in or after September 2026). The extractor now always returns float32 data. [PR #561](https://github.com/catalystneuro/roiextractors/pull/561)
+* Deprecated `has_native_timestamps` parameter in `generate_dummy_imaging_extractor()` (will be removed in or after September 2026). Use `native_timestamps="evenly_spaced"` instead. [PR #561](https://github.com/catalystneuro/roiextractors/pull/561)
 * Deprecated `get_roi_locations()` method across `SegmentationExtractor`, `NwbSegmentationExtractor`, and `MultiSegmentationExtractor` (will be removed in or after September 2026). ROI centroids are now stored as a multi-dimensional property. Use `get_property("roi_centroids", roi_ids)` instead. [PR #557](https://github.com/catalystneuro/roiextractors/pull/557)
 * Removed deprecated `check_get_videos_args()` function from `extraction_tools` (deprecated January 2026). The `get_video()` method it decorated was already removed. [PR #560](https://github.com/catalystneuro/roiextractors/pull/560)
 * Removed deprecated `write_to_h5_dataset_format()` function from `extraction_tools` (deprecated March 2026). ROIExtractors no longer supports write operations. [PR #560](https://github.com/catalystneuro/roiextractors/pull/560)

@@ -58,7 +58,6 @@ class VolumetricImagingExtractor(ImagingExtractor):
         properties_to_check = dict(
             get_sampling_frequency="The sampling frequency",
             get_image_shape="The shape of a frame",
-            get_channel_names="The name of the channels",
             get_dtype="The data type",
             get_num_samples="The number of samples",
         )

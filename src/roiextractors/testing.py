@@ -2,11 +2,12 @@
 
 import warnings
 from collections.abc import Iterable
+from typing import Literal
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
-from roiextractors import NumpyImagingExtractor, NumpySegmentationExtractor
+from roiextractors import GaussianNoiseImagingExtractor, NumpySegmentationExtractor
 from roiextractors.extraction_tools import DtypeType
 
 from .imagingextractor import ImagingExtractor
@@ -21,6 +22,10 @@ def generate_dummy_video(
     size: tuple[int, int, int] | tuple[int, int, int, int], dtype: DtypeType = "uint16", seed: int = 0
 ):
     """Generate a dummy video of a given size and dtype.
+
+    .. deprecated::
+        ``generate_dummy_video`` is deprecated and will be removed in or after September 2026.
+        Use ``GaussianNoiseImagingExtractor`` or ``PoissonNoiseImagingExtractor`` instead.
 
     Parameters
     ----------
@@ -38,6 +43,12 @@ def generate_dummy_video(
     video : np.ndarray
         A dummy video of the given size and dtype.
     """
+    warnings.warn(
+        "generate_dummy_video is deprecated and will be removed in or after September 2026. "
+        "Use GaussianNoiseImagingExtractor or PoissonNoiseImagingExtractor instead.",
+        FutureWarning,
+        stacklevel=2,
+    )
     dtype = np.dtype(dtype)
     number_of_bytes = dtype.itemsize
 
@@ -50,6 +61,30 @@ def generate_dummy_video(
     return video
 
 
+class _DummyImagingExtractor(GaussianNoiseImagingExtractor):
+    """A private subclass of GaussianNoiseImagingExtractor that optionally provides native timestamps.
+
+    GaussianNoiseImagingExtractor returns None for get_native_timestamps() because generated
+    data does not have native timestamps. This subclass allows the dummy generator to optionally
+    produce timestamps without modifying the production class.
+    """
+
+    def __init__(self, *args, native_timestamps: np.ndarray | None = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._native_timestamps = native_timestamps
+
+    def get_native_timestamps(
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
+        if self._native_timestamps is None:
+            return None
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self.get_num_samples()
+        return self._native_timestamps[start_sample:end_sample]
+
+
 def generate_dummy_imaging_extractor(
     *,
     num_rows: int = 10,
@@ -59,11 +94,13 @@ def generate_dummy_imaging_extractor(
     seed: int = 0,
     num_samples: int | None = 30,
     has_native_timestamps: bool = False,
+    native_timestamps: Literal["evenly_spaced", "unevenly_spaced"] | None = None,
     num_planes: int | None = None,
 ):
     """Generate a dummy imaging extractor for testing.
 
-    The imaging extractor is built by feeding random data into the `NumpyImagingExtractor`.
+    The imaging extractor is built using a `GaussianNoiseImagingExtractor` which generates
+    Gaussian noise on-the-fly.
 
     Parameters
     ----------
@@ -74,97 +111,70 @@ def generate_dummy_imaging_extractor(
     sampling_frequency : float, optional
         sampling frequency of the video, by default 30.
     dtype : DtypeType, optional
-        dtype of the video, by default "uint16".
+        Deprecated. This parameter is no longer used. The extractor now always returns float32 data.
     seed : int, default 0
         seed for the random number generator, by default 0.
     num_samples : int, default 30
         number of samples in the video, by default 30.
     has_native_timestamps : bool, default False
-        if True, the extractor will return native timestamps (irregularly spaced).
+        Deprecated. Use ``native_timestamps="evenly_spaced"`` instead.
+    native_timestamps : "evenly_spaced" | "unevenly_spaced" | None, default None
+        Controls whether the extractor returns native timestamps.
+        None: no native timestamps (returns None).
+        "evenly_spaced": evenly spaced timestamps based on sampling_frequency.
+        "unevenly_spaced": timestamps with small random jitter around the regular spacing.
     num_planes : int, optional
         number of depth planes for volumetric data. If None, creates 2D data.
 
     Returns
     -------
     ImagingExtractor
-        An imaging extractor with random data fed into `NumpyImagingExtractor`.
+        An imaging extractor with random Gaussian noise data.
     """
-    # Generate video data - volumetric if num_planes is specified
-    if num_planes is not None:
-        size = (num_samples, num_rows, num_columns, num_planes)
-        # For volumetric data, channel_names should match num_planes since NumpyImagingExtractor
-        # treats the last dimension as channels
-        channel_names_to_use = [f"plane_{i}" for i in range(num_planes)]
-    else:
-        size = (num_samples, num_rows, num_columns, 1)
-        channel_names_to_use = ["channel_num_0"]
+    if dtype != "uint16":
+        warnings.warn(
+            "dtype is deprecated and will be removed in or after September 2026. "
+            "generate_dummy_imaging_extractor now uses GaussianNoiseImagingExtractor "
+            "which always returns float32 data.",
+            FutureWarning,
+            stacklevel=2,
+        )
 
-    video = generate_dummy_video(size=size, dtype=dtype, seed=seed)
-
-    # Create base extractor
-    imaging_extractor = NumpyImagingExtractor(
-        timeseries=video, sampling_frequency=sampling_frequency, channel_names=channel_names_to_use
-    )
-
-    # Add volumetric support if requested
-    # TODO: Once channel names properly support planes, refactor NumpyImagingExtractor
-    # to natively handle volumetric data instead of using types.MethodType overrides.
-    # The challenge is that NumpyImagingExtractor fundamentally treats the last dimension
-    # as channels, but volumetric data needs the last dimension to be planes.
-    if num_planes is not None:
-        import types
-
-        imaging_extractor.is_volumetric = True
-        imaging_extractor._num_planes = num_planes
-
-        # Override methods to support volumetric data
-        def get_num_planes(self):
-            """Get the number of depth planes."""
-            return self._num_planes
-
-        def get_series(self, start_sample=None, end_sample=None):
-            """Get volumetric series data with all planes."""
-            if start_sample is None:
-                start_sample = 0
-            if end_sample is None:
-                end_sample = self.get_num_samples()
-            # Return all dimensions (time, height, width, planes)
-            return self._video[start_sample:end_sample, ...]
-
-        def get_sample_shape(self):
-            """Get the shape of a single volumetric sample."""
-            return (*self.get_image_shape(), self.get_num_planes())
-
-        def get_volume_shape(self):
-            """Get the shape of the volume (num_rows, num_columns, num_planes)."""
-            return (*self.get_image_shape(), self.get_num_planes())
-
-        # Bind methods to instance
-        imaging_extractor.get_num_planes = types.MethodType(get_num_planes, imaging_extractor)
-        imaging_extractor.get_series = types.MethodType(get_series, imaging_extractor)
-        imaging_extractor.get_sample_shape = types.MethodType(get_sample_shape, imaging_extractor)
-        imaging_extractor.get_volume_shape = types.MethodType(get_volume_shape, imaging_extractor)
-
-    # Add native timestamps if requested
-    # NOTE: We use types.MethodType here to override get_native_timestamps for testing purposes only.
-    # NumpyImagingExtractor correctly returns None for get_native_timestamps() because numpy arrays
-    # don't have native timestamps. This override creates synthetic timestamps to test code that
-    # handles extractors with native timestamp support (like some microscopy file formats).
-    # This is testing-specific functionality and should NOT be added to NumpyImagingExtractor itself.
     if has_native_timestamps:
-        import types
+        warnings.warn(
+            "has_native_timestamps is deprecated and will be removed in or after September 2026. "
+            'Use native_timestamps="evenly_spaced" instead.',
+            FutureWarning,
+            stacklevel=2,
+        )
+        if native_timestamps is None:
+            native_timestamps = "evenly_spaced"
 
-        # Generate regular timestamps (evenly spaced)
-        def get_native_timestamps(self, start_sample=None, end_sample=None):
-            if start_sample is None:
-                start_sample = 0
-            if end_sample is None:
-                end_sample = self.get_num_samples()
-            # Generate timestamps on the fly
-            timestamps = np.arange(self.get_num_samples()) / self.get_sampling_frequency()
-            return timestamps[start_sample:end_sample]
+    rng = np.random.default_rng(seed)
 
-        imaging_extractor.get_native_timestamps = types.MethodType(get_native_timestamps, imaging_extractor)
+    # Generate native timestamps if requested
+    native_timestamps_array = None
+    if native_timestamps is None:
+        native_timestamps_array = None
+    elif native_timestamps == "evenly_spaced":
+        native_timestamps_array = np.arange(num_samples) / sampling_frequency
+    elif native_timestamps == "unevenly_spaced":
+        timestamps = np.arange(num_samples) / sampling_frequency
+        jitter = rng.normal(loc=0.0, scale=0.1 / sampling_frequency, size=num_samples)
+        native_timestamps_array = np.sort(timestamps + jitter)
+    else:
+        valid_types = (None, "evenly_spaced", "unevenly_spaced")
+        raise ValueError(f"native_timestamps must be one of {valid_types}, got '{native_timestamps}'")
+
+    imaging_extractor = _DummyImagingExtractor(
+        num_samples=num_samples,
+        num_rows=num_rows,
+        num_columns=num_columns,
+        num_planes=num_planes,
+        sampling_frequency=sampling_frequency,
+        seed=seed,
+        native_timestamps=native_timestamps_array,
+    )
 
     return imaging_extractor
 
