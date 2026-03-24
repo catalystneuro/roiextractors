@@ -87,7 +87,7 @@ class PoissonNoiseImagingExtractor(ImagingExtractor):
         self._seed = int(seed) if seed is not None else int(np.random.default_rng().integers(0, 2**31))
         self._baseline = baseline
 
-        if num_planes is not None:
+        if num_planes is not None and num_planes > 1:
             self.is_volumetric = True
             self._num_planes = num_planes
 
@@ -205,7 +205,7 @@ class GaussianNoiseImagingExtractor(ImagingExtractor):
         self._noise_mean = noise_mean
         self._noise_std = noise_std
 
-        if num_planes is not None:
+        if num_planes is not None and num_planes > 1:
             self.is_volumetric = True
             self._num_planes = num_planes
 
