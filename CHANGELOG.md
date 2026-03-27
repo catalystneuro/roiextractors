@@ -6,6 +6,7 @@
 * Added `mask_type` and `native_timestamps` parameters to `generate_dummy_segmentation_extractor()`. `mask_type` supports `"image"` (default) and `"pixel"` for testing sparse pixel mask workflows. `native_timestamps` supports `"evenly_spaced"` and `"unevenly_spaced"` for testing timestamp round-trips. [PR #561](https://github.com/catalystneuro/roiextractors/pull/561)
 
 ### Fixes
+* Fixed return type annotations that incorrectly used `ArrayLike`/`DTypeLike` (meant for inputs) instead of concrete `np.ndarray`/`np.dtype` for outputs. Also fixed several potentially unbound variables that could crash at runtime. [PR #563](https://github.com/catalystneuro/roiextractors/pull/563)
 
 ### Deprecations And Removals
 * Deprecated `get_roi_locations()` method across `SegmentationExtractor`, `NwbSegmentationExtractor`, and `MultiSegmentationExtractor` (will be removed in or after September 2026). ROI centroids are now stored as a multi-dimensional property. Use `get_property("roi_centroids", roi_ids)` instead. [PR #557](https://github.com/catalystneuro/roiextractors/pull/557)

@@ -280,7 +280,7 @@ class SegmentationExtractor(ABC):
         return None
 
     @abstractmethod
-    def get_frame_shape(self) -> ArrayType:
+    def get_frame_shape(self) -> tuple[int, int]:
         """Get frame size of movie (height, width).
 
         Returns
@@ -575,7 +575,7 @@ class SegmentationExtractor(ABC):
         start_frame: int | None = None,
         end_frame: int | None = None,
         name: str = "raw",
-    ) -> ArrayType:
+    ) -> np.ndarray:
         """Get the traces of each ROI specified by roi_ids.
 
         Parameters
@@ -653,7 +653,7 @@ class SegmentationExtractor(ABC):
         """
         return dict(self._summary_images)
 
-    def get_image(self, name: str = "correlation") -> ArrayType:
+    def get_image(self, name: str = "correlation") -> np.ndarray:
         """Get specific images: mean or correlation.
 
         Parameters
@@ -877,7 +877,7 @@ class SegmentationExtractor(ABC):
 
         self._properties[key] = _PropertyInfo(data=property_array, description=description)
 
-    def get_property(self, key: str, ids: ArrayType) -> ArrayType:
+    def get_property(self, key: str, ids: ArrayType) -> np.ndarray:
         """Get property values for ROIs.
 
         Parameters
@@ -1065,7 +1065,7 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
     def get_images_dict(self) -> dict:
         return self._parent_segmentation.get_images_dict()
 
-    def get_image(self, name: str = "correlation") -> ArrayType:
+    def get_image(self, name: str = "correlation") -> np.ndarray:
         return self._parent_segmentation.get_image(name=name)
 
     def get_sampling_frequency(self) -> float:
