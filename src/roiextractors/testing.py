@@ -179,6 +179,30 @@ def generate_dummy_imaging_extractor(
     return imaging_extractor
 
 
+class _DummySegmentationExtractor(NumpySegmentationExtractor):
+    """A private subclass of NumpySegmentationExtractor that optionally provides native timestamps.
+
+    NumpySegmentationExtractor returns None for get_native_timestamps() because numpy arrays
+    do not have native timestamps. This subclass allows the dummy generator to optionally
+    produce timestamps without modifying the underlying class.
+    """
+
+    def __init__(self, *args, native_timestamps: np.ndarray | None = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._native_timestamps = native_timestamps
+
+    def get_native_timestamps(
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
+        if self._native_timestamps is None:
+            return None
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self.get_num_samples()
+        return self._native_timestamps[start_sample:end_sample]
+
+
 def generate_dummy_segmentation_extractor(
     *,
     num_rois: int = 10,
@@ -193,6 +217,8 @@ def generate_dummy_segmentation_extractor(
     rejected_list: list | None = None,
     seed: int = 0,
     num_samples: int | None = 30,
+    mask_type: Literal["image", "pixel"] = "image",
+    native_timestamps: Literal["evenly_spaced", "unevenly_spaced"] | None = None,
 ) -> SegmentationExtractor:
     """Generate a dummy segmentation extractor for testing.
 
@@ -225,6 +251,15 @@ def generate_dummy_segmentation_extractor(
         seed for the random number generator, by default 0.
     num_samples : int, optional
         Number of samples in the recording, by default 30.
+    mask_type : str, default "image"
+        Type of mask to generate. One of "image" or "pixel".
+        "image" generates dense masks of shape (num_rows, num_columns, num_rois).
+        "pixel" generates sparse masks as a list of (n_pixels, 3) arrays with columns [y, x, weight].
+    native_timestamps : "evenly_spaced" | "unevenly_spaced" | None, default None
+        Controls whether the extractor returns native timestamps.
+        None: no native timestamps (returns None).
+        "evenly_spaced": evenly spaced timestamps based on sampling_frequency.
+        "unevenly_spaced": timestamps with small random jitter around the regular spacing.
 
     Returns
     -------
@@ -237,9 +272,13 @@ def generate_dummy_segmentation_extractor(
     contain meaningful content. That is, the image masks matrices are not plausible image mask for a roi, the raw signal
     is not a meaningful biological signal and is not related appropriately to the deconvolved signal , etc.
     """
+    valid_mask_types = ("image", "pixel")
+    if mask_type not in valid_mask_types:
+        raise ValueError(f"mask_type must be one of {valid_mask_types}, got '{mask_type}'")
+
     rng = np.random.default_rng(seed)
 
-    # Create dummy image masks
+    # Create dummy image masks (always needed for NumpySegmentationExtractor construction)
     image_masks = rng.random((num_rows, num_columns, num_rois))
     movie_dims = (num_rows, num_columns)
 
@@ -266,7 +305,21 @@ def generate_dummy_segmentation_extractor(
     if rejected_list is not None:
         accepted_list = list(set(accepted_list).difference(rejected_list))
 
-    dummy_segmentation_extractor = NumpySegmentationExtractor(
+    # Generate native timestamps if requested
+    native_timestamps_array = None
+    if native_timestamps is None:
+        native_timestamps_array = None
+    elif native_timestamps == "evenly_spaced":
+        native_timestamps_array = np.arange(num_samples) / sampling_frequency
+    elif native_timestamps == "unevenly_spaced":
+        timestamps = np.arange(num_samples) / sampling_frequency
+        jitter = rng.normal(loc=0.0, scale=0.1 / sampling_frequency, size=num_samples)
+        native_timestamps_array = np.sort(timestamps + jitter)
+    else:
+        valid_types = (None, "evenly_spaced", "unevenly_spaced")
+        raise ValueError(f"native_timestamps must be one of {valid_types}, got '{native_timestamps}'")
+
+    dummy_segmentation_extractor = _DummySegmentationExtractor(
         sampling_frequency=sampling_frequency,
         image_masks=image_masks,
         raw=raw,
@@ -281,7 +334,28 @@ def generate_dummy_segmentation_extractor(
         rejected_list=rejected_list,
         movie_dims=movie_dims,
         channel_names=["channel_num_0"],
+        native_timestamps=native_timestamps_array,
     )
+
+    # Replace mask data with pixel masks if requested
+    if mask_type == "pixel":
+        from .segmentationextractor import _ROIMasks
+
+        num_pixels_per_roi = 5
+        pixel_masks = []
+        for _ in range(num_rois):
+            y_coords = rng.integers(low=0, high=num_rows, size=num_pixels_per_roi).astype(float)
+            x_coords = rng.integers(low=0, high=num_columns, size=num_pixels_per_roi).astype(float)
+            weights = rng.random(num_pixels_per_roi)
+            pixel_masks.append(np.column_stack([y_coords, x_coords, weights]))
+
+        roi_id_map = {roi_id: index for index, roi_id in enumerate(dummy_segmentation_extractor.get_roi_ids())}
+        dummy_segmentation_extractor._roi_masks = _ROIMasks(
+            data=pixel_masks,
+            mask_tpe="nwb-pixel_mask",
+            field_of_view_shape=(num_rows, num_columns),
+            roi_id_map=roi_id_map,
+        )
 
     return dummy_segmentation_extractor
 
