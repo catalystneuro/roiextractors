@@ -5,7 +5,6 @@ from typing import Iterable
 
 import numpy as np
 
-from .extraction_tools import DtypeType
 from .imagingextractor import ImagingExtractor
 
 
@@ -125,7 +124,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
         )
         return self._imaging_extractors[0].get_channel_names()
 
-    def get_dtype(self) -> DtypeType:
+    def get_dtype(self) -> np.dtype:
         return self._imaging_extractors[0].get_dtype()
 
     def get_volume_shape(self) -> tuple[int, int, int]:

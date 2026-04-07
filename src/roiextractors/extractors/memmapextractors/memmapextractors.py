@@ -10,7 +10,6 @@ import warnings
 
 import numpy as np
 
-from ...extraction_tools import DtypeType
 from ...imagingextractor import ImagingExtractor
 
 
@@ -58,7 +57,7 @@ class MemmapImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
 
-    def get_dtype(self) -> DtypeType:
+    def get_dtype(self) -> np.dtype:
         return self.dtype
 
     def get_channel_names(self) -> list:

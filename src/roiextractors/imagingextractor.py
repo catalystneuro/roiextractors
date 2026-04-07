@@ -14,7 +14,7 @@ from math import prod
 import numpy as np
 
 from .core_utils import _convert_bytes_to_str, _convert_seconds_to_str
-from .extraction_tools import ArrayType, DtypeType, FloatType
+from .extraction_tools import ArrayType, FloatType
 
 
 class ImagingExtractor(ABC):

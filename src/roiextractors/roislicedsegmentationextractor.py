@@ -3,7 +3,6 @@
 import numpy as np
 
 from .segmentationextractor import (
-    ArrayType,
     SegmentationExtractor,
     _ROIMasks,
     _RoiResponse,
@@ -136,7 +135,7 @@ class _RoiSlicedSegmentationExtractor(SegmentationExtractor):
     def get_images_dict(self) -> dict:
         return self._parent_segmentation.get_images_dict()
 
-    def get_image(self, name: str = "correlation") -> ArrayType:
+    def get_image(self, name: str = "correlation") -> np.ndarray:
         return self._parent_segmentation.get_image(name=name)
 
     def get_num_planes(self) -> int:
