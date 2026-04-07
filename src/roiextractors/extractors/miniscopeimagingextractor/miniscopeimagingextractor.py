@@ -13,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ...extraction_tools import DtypeType, PathType, get_package
+from ...extraction_tools import PathType, get_package
 from ...imagingextractor import ImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor
 
@@ -870,7 +870,7 @@ class _MiniscopeSingleVideoExtractor(ImagingExtractor):
     def get_sampling_frequency(self):
         return self._sampling_frequency
 
-    def get_dtype(self) -> DtypeType:
+    def get_dtype(self) -> np.dtype:
         return self._dtype
 
     def get_channel_names(self) -> list[str]:

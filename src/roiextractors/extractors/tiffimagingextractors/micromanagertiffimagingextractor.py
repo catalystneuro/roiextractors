@@ -18,7 +18,7 @@ from xml.etree import ElementTree
 
 import numpy as np
 
-from ...extraction_tools import DtypeType, PathType, get_package
+from ...extraction_tools import PathType, get_package
 from ...imagingextractor import ImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor
 
@@ -183,7 +183,7 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         )
         return self._channel_names
 
-    def get_dtype(self) -> DtypeType:
+    def get_dtype(self) -> np.dtype:
         return self._dtype
 
 

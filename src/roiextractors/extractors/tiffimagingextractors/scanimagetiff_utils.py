@@ -160,9 +160,13 @@ def read_scanimage_metadata(file_path: PathType) -> dict:
     # `channelSave` indicates whether the channel is saved. Note that a channel might not be saved even if it is active.
     # We check `channelSave` first but keep the `channelsActive` check for backward compatibility.
     channel_availability_keys = ["SI.hChannels.channelSave", "SI.hChannels.channelsActive"]
-    for channel_availability in channel_availability_keys:
-        if channel_availability in non_varying_frame_metadata.keys():
+    channel_availability = None
+    for key in channel_availability_keys:
+        if key in non_varying_frame_metadata.keys():
+            channel_availability = key
             break
+    if channel_availability is None:
+        raise ValueError(f"Could not find any of {channel_availability_keys} in metadata.")
 
     available_channels = non_varying_frame_metadata[channel_availability]
     available_channels = [available_channels] if not isinstance(available_channels, list) else available_channels
@@ -231,9 +235,13 @@ def parse_metadata(metadata: dict) -> dict:
     # `channelSave` indicates whether the channel is saved. Note that a channel might not be saved even if it is active.
     # We check `channelSave` first but keep the `channelsActive` check for backward compatibility.
     channel_availability_keys = ["SI.hChannels.channelSave", "SI.hChannels.channelsActive"]
-    for channel_availability in channel_availability_keys:
-        if channel_availability in metadata.keys():
+    channel_availability = None
+    for key in channel_availability_keys:
+        if key in metadata.keys():
+            channel_availability = key
             break
+    if channel_availability is None:
+        raise ValueError(f"Could not find any of {channel_availability_keys} in metadata.")
 
     available_channels = parse_matlab_vector(metadata[channel_availability])
     channel_indices = np.array(available_channels) - 1  # Account for MATLAB indexing
