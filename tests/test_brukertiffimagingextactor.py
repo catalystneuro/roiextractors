@@ -434,6 +434,19 @@ class TestBrukerTiffImagingExtractorDualChannel:
         assert extractor.get_sampling_frequency() == pytest.approx(expected_frequency, rel=1e-4)
 
 
+@pytest.mark.skip(reason="No dual-channel volumetric Bruker test data available")
+class TestBrukerTiffImagingExtractorDualChannelVolumetric:
+    """TODO: Test BrukerTiffImagingExtractor with dual-channel volumetric data.
+
+    This combination (num_channels > 1 and num_planes > 1) is untested because
+    no sample data exists. The extractor emits a UserWarning for this case.
+    If you have this type of data, please open an issue at
+    https://github.com/catalystneuro/roiextractors/issues
+    """
+
+    pass
+
+
 @bruker_stubs_available
 class TestBrukerTiffImagingExtractorErrors:
     """Test error handling for BrukerTiffImagingExtractor."""

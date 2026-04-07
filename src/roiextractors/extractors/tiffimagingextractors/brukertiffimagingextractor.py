@@ -164,7 +164,17 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
         self._bruker_xml_metadata = self._parse_bruker_xml_metadata()
 
         ome_metadata = self._parse_ome_metadata(ome_file)
+        num_channels = ome_metadata["num_channels"]
         num_planes = ome_metadata["num_planes"]
+
+        if num_channels > 1 and num_planes > 1:
+            warnings.warn(
+                "Multi-channel volumetric Bruker data is not tested due to lack of sample data. "
+                "Use with care. If you have this type of data, please open an issue at "
+                "https://github.com/catalystneuro/roiextractors/issues "
+                "with a sample dataset so we can verify correctness.",
+                stacklevel=2,
+            )
 
         # Extract native timestamps from Frame elements and derive sampling frequency.
         # For volumetric data, take every num_planes-th timestamp (one per volume).
