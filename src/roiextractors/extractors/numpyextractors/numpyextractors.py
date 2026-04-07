@@ -12,8 +12,9 @@ import warnings
 from pathlib import Path
 
 import numpy as np
+from numpy.typing import ArrayLike
 
-from ...extraction_tools import ArrayType, FloatType, PathType
+from ...extraction_tools import PathType
 from ...imagingextractor import ImagingExtractor
 from ...segmentationextractor import (
     SegmentationExtractor,
@@ -31,8 +32,8 @@ class NumpyImagingExtractor(ImagingExtractor):
     def __init__(
         self,
         timeseries: PathType,
-        sampling_frequency: FloatType,
-        channel_names: ArrayType = None,
+        sampling_frequency: float,
+        channel_names: ArrayLike = None,
     ):
         """Create a NumpyImagingExtractor from a .npy file.
 
@@ -40,9 +41,9 @@ class NumpyImagingExtractor(ImagingExtractor):
         ----------
         timeseries: PathType
             Path to .npy file.
-        sampling_frequency: FloatType
+        sampling_frequency: float
             Sampling frequency of the video in Hz.
-        channel_names: ArrayType
+        channel_names: ArrayLike
             List of channel names.
         """
         ImagingExtractor.__init__(self)

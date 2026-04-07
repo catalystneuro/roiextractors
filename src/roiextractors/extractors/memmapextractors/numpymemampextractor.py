@@ -8,8 +8,9 @@ NumpyMemmapImagingExtractor
 
 from pathlib import Path
 
+from numpy.typing import DTypeLike
+
 from roiextractors.extraction_tools import (
-    DtypeType,
     PathType,
     VideoStructure,
     read_numpy_memmap_video,
@@ -28,7 +29,7 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
         file_path: PathType,
         video_structure: VideoStructure,
         sampling_frequency: float,
-        dtype: DtypeType,
+        dtype: DTypeLike,
         offset: int = 0,
     ):
         """Create an instance of NumpyMemmapImagingExtractor.
@@ -66,7 +67,7 @@ class NumpyMemmapImagingExtractor(MemmapImagingExtractor):
 
         sampling_frequency : float, optional
             The sampling frequency.
-        dtype : DtypeType
+        dtype : DTypeLike
             The type of the data to be loaded (int, float, etc.)
         offset : int, optional
             The offset in bytes. Usually corresponds to the number of bytes occupied by the header. 0 by default.

@@ -6,9 +6,9 @@ from typing import Literal
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.typing import DTypeLike
 
 from roiextractors import GaussianNoiseImagingExtractor, NumpySegmentationExtractor
-from roiextractors.extraction_tools import DtypeType
 
 from .imagingextractor import ImagingExtractor
 from .segmentationextractor import SegmentationExtractor
@@ -19,7 +19,7 @@ inttype = (int, np.integer)
 
 
 def generate_dummy_video(
-    size: tuple[int, int, int] | tuple[int, int, int, int], dtype: DtypeType = "uint16", seed: int = 0
+    size: tuple[int, int, int] | tuple[int, int, int, int], dtype: DTypeLike = "uint16", seed: int = 0
 ):
     """Generate a dummy video of a given size and dtype.
 
@@ -33,7 +33,7 @@ def generate_dummy_video(
         Size of the video to generate.
         For planar data: (num_frames, num_rows, num_columns)
         For volumetric data: (num_frames, num_rows, num_columns, num_planes)
-    dtype : DtypeType, optional
+    dtype : DTypeLike, optional
         Dtype of the video to generate, by default "uint16".
     seed : int, default 0
         seed for the random number generator, by default 0.
@@ -90,7 +90,7 @@ def generate_dummy_imaging_extractor(
     num_rows: int = 10,
     num_columns: int = 10,
     sampling_frequency: float = 30.0,
-    dtype: DtypeType = "uint16",
+    dtype: DTypeLike = "uint16",
     seed: int = 0,
     num_samples: int | None = 30,
     has_native_timestamps: bool = False,
@@ -110,7 +110,7 @@ def generate_dummy_imaging_extractor(
         number of columns in the video, by default 10.
     sampling_frequency : float, optional
         sampling frequency of the video, by default 30.
-    dtype : DtypeType, optional
+    dtype : DTypeLike, optional
         Deprecated. This parameter is no longer used. The extractor now always returns float32 data.
     seed : int, default 0
         seed for the random number generator, by default 0.

@@ -298,7 +298,7 @@ class NewExtractSegmentationExtractor(
 
         Returns
         -------
-        ArrayType
+        tuple[int, int]
             The frame shape as (height, width).
         """
         return self._roi_masks.field_of_view_shape

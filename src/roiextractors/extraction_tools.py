@@ -21,15 +21,11 @@ import zarr
 from numpy.typing import ArrayLike, DTypeLike
 from packaging import version
 
-ArrayType = ArrayLike
 PathType = str | Path
-NumpyArray = np.ndarray
-DtypeType = DTypeLike
 IntType = int | np.integer
-FloatType = float
 
 
-def calculate_regular_series_rate(series: ArrayType, tolerance_decimals: int = 6) -> float | None:
+def calculate_regular_series_rate(series: ArrayLike, tolerance_decimals: int = 6) -> float | None:
     """Calculate the rate of a regular series from consecutive differences.
 
     If all differences between consecutive points are the same (within rounding tolerance),
@@ -205,7 +201,7 @@ class VideoStructure:
 
 
 def read_numpy_memmap_video(
-    file_path: PathType, video_structure: VideoStructure, dtype: DtypeType, offset: int = 0
+    file_path: PathType, video_structure: VideoStructure, dtype: DTypeLike, offset: int = 0
 ) -> np.array:
     """Auxiliary function to read videos from binary files.
 
@@ -240,7 +236,7 @@ def read_numpy_memmap_video(
                 frame_axis=frame_axis,
             )
 
-        dtype : DtypeType
+        dtype : DTypeLike
             The type of the data to be loaded (int, float, etc.)
         offset : int, optional
             The offset in bytes. Usually corresponds to the number of bytes occupied by the header. 0 by default.
