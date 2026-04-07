@@ -148,7 +148,6 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
     """
 
     extractor_name = "BrukerTiffImagingExtractor"
-    mode = "folder"
 
     def __init__(self, folder_path: PathType, channel_name: str | None = None):
         folder_path = Path(folder_path)
@@ -158,19 +157,21 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
             raise FileNotFoundError(f"No .ome.tif files found in '{folder_path}'.")
         ome_file = ome_files[0]
 
-        xml_root = _parse_xml(folder_path)
-        frame_rate = _determine_frame_rate(xml_root)
-        if frame_rate is None:
-            raise ValueError(f"Could not determine sampling frequency from Bruker XML in '{folder_path}'.")
+        xml_file_path = folder_path / f"{folder_path.name}.xml"
+        if not xml_file_path.is_file():
+            raise FileNotFoundError(f"Bruker XML configuration file not found at '{xml_file_path}'.")
+        self._xml_root = etree.parse(str(xml_file_path)).getroot()
+        self._bruker_xml_metadata = self._parse_bruker_xml_metadata()
 
-        # For volumetric data, the frame rate from the XML reflects per-frame timing
-        # (each plane gets its own relativeTime). MultiTIFFMultiPageExtractor expects
-        # the volume rate, so divide by the number of planes.
         ome_metadata = self._parse_ome_metadata(ome_file)
         num_planes = ome_metadata["num_planes"]
-        sampling_frequency = frame_rate / num_planes
 
-        self.xml_metadata = self._parse_bruker_xml_metadata(xml_root)
+        # Extract native timestamps from Frame elements and derive sampling frequency.
+        # For volumetric data, take every num_planes-th timestamp (one per volume).
+        self._native_timestamps = self._extract_native_timestamps(num_planes=num_planes)
+        sampling_frequency = calculate_regular_series_rate(self._native_timestamps)
+        if sampling_frequency is None:
+            raise ValueError("Could not determine sampling frequency from Bruker configuration XML.")
 
         super().__init__(
             file_path=ome_file,
@@ -178,14 +179,45 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
             channel_name=channel_name,
         )
 
-    @staticmethod
-    def _parse_bruker_xml_metadata(xml_root: etree._Element) -> dict[str, str | list[dict[str, str]]]:
-        """Parse PVStateValue elements from the Bruker configuration XML into a dictionary.
+        self.set_times(times=self._native_timestamps)
+
+    def _extract_native_timestamps(self, num_planes: int) -> np.ndarray:
+        """Extract per-sample timestamps from Frame relativeTime attributes in the Bruker XML.
+
+        For volumetric data, each plane gets its own relativeTime entry. This method
+        takes every num_planes-th timestamp to produce one timestamp per volume (sample).
 
         Parameters
         ----------
-        xml_root : lxml.etree._Element
-            Root element of the parsed Bruker configuration XML.
+        num_planes : int
+            Number of depth planes (from OME metadata SizeZ).
+
+        Returns
+        -------
+        np.ndarray
+            Timestamps in seconds, one per sample.
+        """
+        frame_elements = self._xml_root.xpath(".//Frame")
+
+        try:
+            all_relative_times = np.array([float(frame.attrib["relativeTime"]) for frame in frame_elements])
+        except KeyError:
+            raise ValueError("One or more Frame elements are missing the 'relativeTime' attribute.")
+
+        if len(all_relative_times) == 0:
+            raise ValueError("No Frame elements found in the Bruker configuration XML.")
+
+        # For volumetric data, frames alternate between planes.
+        # Take every num_planes-th timestamp to get one per volume.
+        return all_relative_times[::num_planes]
+
+    def get_native_timestamps(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
+        start_sample = start_sample or 0
+        end_sample = end_sample or len(self._native_timestamps)
+        return self._native_timestamps[start_sample:end_sample]
+
+    def _parse_bruker_xml_metadata(self) -> dict[str, str | list[dict[str, str]]]:
+        """Parse PVStateValue elements from the Bruker configuration XML into a dictionary.
 
         Returns
         -------
@@ -193,9 +225,9 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
             Metadata dictionary with keys from PVStateValue elements.
         """
         xml_metadata = dict()
-        xml_metadata.update(xml_root.attrib)
+        xml_metadata.update(self._xml_root.attrib)
 
-        pv_state_values = xml_root.xpath(".//PVStateValue")
+        pv_state_values = self._xml_root.xpath(".//PVStateValue")
 
         for child in pv_state_values:
             metadata_root_key = child.attrib["key"]

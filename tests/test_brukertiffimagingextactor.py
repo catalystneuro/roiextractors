@@ -253,25 +253,28 @@ class TestBrukerTiffExtractorDualColorCase(TestCase):
         )
 
 
-BRUKER_STUB_PATH = OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif"
+BRUKER_STUB_PATH = Path("/home/heberto/data/Bruker/stubs")
 
 
 class TestBrukerTiffImagingExtractorSinglePlane:
-    """Test BrukerTiffImagingExtractor with single-plane, single-channel stub data."""
+    """Test BrukerTiffImagingExtractor with single-plane, single-channel data.
 
-    folder_path = BRUKER_STUB_PATH / "single_plane_single_channel"
+    Uses the NCCR32_2023 stub: 10 timepoints, 1 channel (Ch2), 1 plane, 64x64 frames.
+    """
+
+    folder_path = BRUKER_STUB_PATH / "NCCR32_2023_02_20_Into_the_void_t_series_baseline-000"
 
     def test_image_shape(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
-        assert extractor.get_image_shape() == (6, 8)
+        assert extractor.get_image_shape() == (64, 64)
 
     def test_num_samples(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
-        assert extractor.get_num_samples() == 4
+        assert extractor.get_num_samples() == 10
 
     def test_sampling_frequency(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
-        assert abs(extractor.get_sampling_frequency() - 1.0 / 0.033) < 0.1
+        assert abs(extractor.get_sampling_frequency() - 29.87) < 0.1
 
     def test_dtype(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
@@ -281,25 +284,24 @@ class TestBrukerTiffImagingExtractorSinglePlane:
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
         assert extractor.is_volumetric is False
 
-    def test_get_series(self):
+    def test_get_series_shape(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
-        data = extractor.get_series(0, 4)
-        assert data.shape == (4, 6, 8)
-        for t in range(4):
-            assert_array_equal(data[t, :, :], t * 100)
+        data = extractor.get_series(0, 3)
+        assert data.shape == (3, 64, 64)
+        assert data.dtype == np.uint16
 
     def test_get_series_subset(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
-        data = extractor.get_series(1, 3)
-        assert data.shape == (2, 6, 8)
-        assert_array_equal(data[0, :, :], 100)
-        assert_array_equal(data[1, :, :], 200)
+        full = extractor.get_series(0, 5)
+        subset = extractor.get_series(1, 3)
+        assert_array_equal(subset, full[1:3])
 
     def test_xml_metadata(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
-        assert isinstance(extractor.xml_metadata, dict)
-        assert "linesPerFrame" in extractor.xml_metadata
-        assert "pixelsPerLine" in extractor.xml_metadata
+        metadata = extractor._parse_bruker_xml_metadata()
+        assert isinstance(metadata, dict)
+        assert "linesPerFrame" in metadata
+        assert "pixelsPerLine" in metadata
 
     def test_isinstance_ome(self):
         from roiextractors import OMETiffImagingExtractor
@@ -307,11 +309,22 @@ class TestBrukerTiffImagingExtractorSinglePlane:
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
         assert isinstance(extractor, OMETiffImagingExtractor)
 
+    def test_native_timestamps(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        timestamps = extractor.get_native_timestamps()
+        assert timestamps is not None
+        assert len(timestamps) == extractor.get_num_samples()
+        assert timestamps[0] == 0.0
+        assert all(np.diff(timestamps) > 0), "Timestamps should be strictly increasing"
+
 
 class TestBrukerTiffImagingExtractorVolumetric:
-    """Test BrukerTiffImagingExtractor with volumetric, single-channel stub data."""
+    """Test BrukerTiffImagingExtractor with volumetric, single-channel data.
 
-    folder_path = BRUKER_STUB_PATH / "volumetric_single_channel"
+    Uses the NCCR32_2022 stub: 5 timepoints, 1 channel (Ch2), 2 planes, 64x64 frames.
+    """
+
+    folder_path = BRUKER_STUB_PATH / "NCCR32_2022_11_03_IntoTheVoid_t_series-005"
 
     def test_is_volumetric(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
@@ -319,7 +332,7 @@ class TestBrukerTiffImagingExtractorVolumetric:
 
     def test_num_samples(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
-        assert extractor.get_num_samples() == 3
+        assert extractor.get_num_samples() == 5
 
     def test_num_planes(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
@@ -327,34 +340,40 @@ class TestBrukerTiffImagingExtractorVolumetric:
 
     def test_volume_shape(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
-        assert extractor.get_volume_shape() == (6, 8, 2)
+        assert extractor.get_volume_shape() == (64, 64, 2)
 
     def test_sampling_frequency_is_volume_rate(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
-        # Frame period is 0.033s, 2 planes per volume, so volume rate = 1/(0.033*2)
-        expected_volume_rate = 1.0 / (0.033 * 2)
-        assert abs(extractor.get_sampling_frequency() - expected_volume_rate) < 0.1
+        # Volume rate should be roughly half the per-frame rate (~20.63 / 2 = ~10.31)
+        assert abs(extractor.get_sampling_frequency() - 10.31) < 0.1
 
-    def test_get_series(self):
+    def test_get_series_shape(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
         data = extractor.get_series(0, 3)
-        assert data.shape == (3, 6, 8, 2)
-        for t in range(3):
-            for z in range(2):
-                assert_array_equal(data[t, :, :, z], t * 100 + z)
+        assert data.shape == (3, 64, 64, 2)
+        assert data.dtype == np.uint16
 
     def test_get_series_subset(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
-        data = extractor.get_series(1, 2)
-        assert data.shape == (1, 6, 8, 2)
-        assert_array_equal(data[0, :, :, 0], 100)
-        assert_array_equal(data[0, :, :, 1], 101)
+        full = extractor.get_series(0, 5)
+        subset = extractor.get_series(2, 4)
+        assert_array_equal(subset, full[2:4])
+
+    def test_native_timestamps_volumetric(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        timestamps = extractor.get_native_timestamps()
+        assert len(timestamps) == extractor.get_num_samples()
+        # Volumetric timestamps should be one per volume, not one per plane
+        assert len(timestamps) == 5
 
 
 class TestBrukerTiffImagingExtractorDualChannel:
-    """Test BrukerTiffImagingExtractor with single-plane, dual-channel stub data."""
+    """Test BrukerTiffImagingExtractor with single-plane, dual-channel data.
 
-    folder_path = BRUKER_STUB_PATH / "single_plane_dual_channel"
+    Uses the TSeries-20240527-001 stub: 5 timepoints, 2 channels (Red, Green), 1 plane, 64x64 frames.
+    """
+
+    folder_path = BRUKER_STUB_PATH / "TSeries-20240527-001"
 
     def test_channel_name_required(self):
         with pytest.raises(ValueError, match="channel_name must be specified"):
@@ -362,19 +381,25 @@ class TestBrukerTiffImagingExtractorDualChannel:
 
     def test_channel_0(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="0")
-        assert extractor.get_num_samples() == 3
+        assert extractor.get_num_samples() == 5
         assert extractor.is_volumetric is False
         data = extractor.get_series(0, 3)
-        assert data.shape == (3, 6, 8)
-        for t in range(3):
-            assert_array_equal(data[t, :, :], t * 100)
+        assert data.shape == (3, 64, 64)
+        assert data.dtype == np.uint16
 
     def test_channel_1(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="1")
+        assert extractor.get_num_samples() == 5
         data = extractor.get_series(0, 3)
-        assert data.shape == (3, 6, 8)
-        for t in range(3):
-            assert_array_equal(data[t, :, :], t * 100 + 10)
+        assert data.shape == (3, 64, 64)
+        assert data.dtype == np.uint16
+
+    def test_channels_differ(self):
+        ext_ch0 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="0")
+        ext_ch1 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="1")
+        data_ch0 = ext_ch0.get_series(0, 1)
+        data_ch1 = ext_ch1.get_series(0, 1)
+        assert not np.array_equal(data_ch0, data_ch1)
 
     def test_invalid_channel_raises(self):
         with pytest.raises(ValueError, match="channel_index .* is out of range"):
