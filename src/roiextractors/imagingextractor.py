@@ -250,6 +250,7 @@ class ImagingExtractor(ABC):
         samples: numpy.ndarray
             The samples.
         """
+        sample_indices = np.asarray(sample_indices)
         assert (
             max(sample_indices) < self.get_num_samples()
         ), "'sample_indices' range beyond number of available samples!"
