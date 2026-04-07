@@ -10,6 +10,7 @@
 ### Fixes
 
 ### Deprecations And Removals
+* Deprecated `BrukerTiffSinglePlaneImagingExtractor` and `BrukerTiffMultiPlaneImagingExtractor` (will be removed in or after October 2026). Use `BrukerTiffImagingExtractor` instead. [PR #567](https://github.com/catalystneuro/roiextractors/pull/567)
 * Deprecated `get_roi_locations()` method across `SegmentationExtractor`, `NwbSegmentationExtractor`, and `MultiSegmentationExtractor` (will be removed in or after September 2026). ROI centroids are now stored as a multi-dimensional property. Use `get_property("roi_centroids", roi_ids)` instead. [PR #557](https://github.com/catalystneuro/roiextractors/pull/557)
 * Removed deprecated `check_get_videos_args()` function from `extraction_tools` (deprecated January 2026). The `get_video()` method it decorated was already removed. [PR #560](https://github.com/catalystneuro/roiextractors/pull/560)
 * Removed deprecated `write_to_h5_dataset_format()` function from `extraction_tools` (deprecated March 2026). ROIExtractors no longer supports write operations. [PR #560](https://github.com/catalystneuro/roiextractors/pull/560)
