@@ -281,15 +281,15 @@ class TestBrukerTiffImagingExtractorSinglePlane:
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
 
         assert extractor.get_image_shape() == (64, 64)
+        assert extractor.get_sample_shape() == (64, 64)
         assert extractor.get_num_samples() == 10
         assert extractor.get_dtype() == np.uint16
         assert extractor.is_volumetric is False
 
-        full = extractor.get_series()
-        assert full.shape == (10, 64, 64)
-        assert full.dtype == np.uint16
-        subset = extractor.get_series(start_sample=2, end_sample=5)
-        assert_array_equal(subset, full[2:5])
+        # Verify data values match the raw TIFF files
+        file_paths = sorted(self.folder_path.glob("*.ome.tif"))
+        expected_data = np.stack([tifffile.imread(f) for f in file_paths], axis=0)
+        assert_array_equal(extractor.get_series(), expected_data)
 
     def test_timestamps_and_sampling_frequency(self):
         """Timestamps are the relativeTime values from the Bruker configuration XML.
@@ -300,6 +300,7 @@ class TestBrukerTiffImagingExtractorSinglePlane:
         """
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
 
+        # Hardcoded relativeTime values extracted from the stub's Bruker XML
         expected_timestamps = np.array(
             [
                 0.0,
@@ -345,12 +346,14 @@ class TestBrukerTiffImagingExtractorVolumetric:
         assert extractor.get_num_samples() == 5
         assert extractor.get_num_planes() == 2
         assert extractor.get_volume_shape() == (64, 64, 2)
+        assert extractor.get_sample_shape() == (64, 64, 2)
 
-        full = extractor.get_series()
-        assert full.shape == (5, 64, 64, 2)
-        assert full.dtype == np.uint16
-        subset = extractor.get_series(start_sample=1, end_sample=3)
-        assert_array_equal(subset, full[1:3])
+        # Verify data values: files are ordered (t0_z0, t0_z1, t1_z0, ...).
+        # Reshape to (T, Z, H, W) then transpose to (T, H, W, Z) to match get_series().
+        file_paths = sorted(self.folder_path.glob("*.ome.tif"))
+        all_frames = np.stack([tifffile.imread(f) for f in file_paths])
+        expected_data = all_frames.reshape(5, 2, 64, 64).transpose(0, 2, 3, 1)
+        assert_array_equal(extractor.get_series(), expected_data)
 
     def test_timestamps_and_sampling_frequency(self):
         """Timestamps are subsampled by num_planes to give one per volume.
@@ -362,6 +365,7 @@ class TestBrukerTiffImagingExtractorVolumetric:
         """
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
 
+        # Hardcoded relativeTime values extracted from the stub's Bruker XML (every 2nd, one per volume)
         expected_timestamps = np.array([0.0, 0.09694847, 0.19389695, 0.29084542, 0.3877939])
         assert_array_equal(extractor.get_timestamps(), extractor.get_native_timestamps())
         np.testing.assert_allclose(extractor.get_timestamps(), expected_timestamps, atol=1e-6)
@@ -400,9 +404,14 @@ class TestBrukerTiffImagingExtractorDualChannel:
         ext_ch1 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="1")
         assert ext_ch1.get_num_samples() == 5
 
-        data_ch0 = ext_ch0.get_series(start_sample=0, end_sample=1)
-        data_ch1 = ext_ch1.get_series(start_sample=0, end_sample=1)
-        assert not np.array_equal(data_ch0, data_ch1)
+        # Verify data values match the raw TIFF files per channel
+        ch1_files = sorted(self.folder_path.glob("*_Ch1_*.ome.tif"))
+        ch2_files = sorted(self.folder_path.glob("*_Ch2_*.ome.tif"))
+        expected_ch0 = np.stack([tifffile.imread(f) for f in ch1_files])
+        expected_ch1 = np.stack([tifffile.imread(f) for f in ch2_files])
+        assert_array_equal(ext_ch0.get_series(), expected_ch0)
+        assert_array_equal(ext_ch1.get_series(), expected_ch1)
+        assert not np.array_equal(expected_ch0, expected_ch1)
 
     def test_invalid_channel_raises(self):
         with pytest.raises(ValueError, match="channel_index .* is out of range"):
@@ -417,6 +426,7 @@ class TestBrukerTiffImagingExtractorDualChannel:
         """
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="0")
 
+        # Hardcoded relativeTime values extracted from the stub's Bruker XML
         expected_timestamps = np.array([0.0, 0.00474538, 0.00949076, 0.01423614, 0.01898152])
         assert_array_equal(extractor.get_timestamps(), extractor.get_native_timestamps())
         np.testing.assert_allclose(extractor.get_timestamps(), expected_timestamps, atol=1e-6)
