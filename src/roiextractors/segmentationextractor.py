@@ -18,8 +18,6 @@ from typing import Literal
 import numpy as np
 from numpy.typing import ArrayLike
 
-from .extraction_tools import ArrayType
-
 
 # TODO make public once API stabilizes.
 @dataclass
@@ -779,7 +777,7 @@ class SegmentationExtractor(ABC):
         """
         return self._num_planes
 
-    def set_times(self, times: ArrayType):
+    def set_times(self, times: ArrayLike):
         """Set the recording times in seconds for each frame.
 
         Parameters
@@ -840,7 +838,7 @@ class SegmentationExtractor(ABC):
         sample_indices = np.arange(start_sample, end_sample)
         return sample_indices / self.get_sampling_frequency()
 
-    def set_property(self, key: str, values: ArrayType, ids: ArrayType, *, description: str = ""):
+    def set_property(self, key: str, values: ArrayLike, ids: ArrayLike, *, description: str = ""):
         """Set property values for ROIs.
 
         Parameters
@@ -877,7 +875,7 @@ class SegmentationExtractor(ABC):
 
         self._properties[key] = _PropertyInfo(data=property_array, description=description)
 
-    def get_property(self, key: str, ids: ArrayType) -> np.ndarray:
+    def get_property(self, key: str, ids: ArrayLike) -> np.ndarray:
         """Get property values for ROIs.
 
         Parameters

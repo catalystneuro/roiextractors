@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import zarr
 
-from ...extraction_tools import FloatType, PathType
+from ...extraction_tools import PathType
 from ...segmentationextractor import (
     SegmentationExtractor,
     _ROIMasks,
@@ -316,7 +316,7 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
         return native_timestamps[start_sample:end_sample]
 
-    def sample_indices_to_time(self, sample_indices: FloatType | np.ndarray) -> FloatType | np.ndarray:
+    def sample_indices_to_time(self, sample_indices: float | np.ndarray) -> float | np.ndarray:
         """Convert user-inputted sample indices to times with units of seconds.
 
         Parameters

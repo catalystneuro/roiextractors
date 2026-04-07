@@ -15,7 +15,7 @@ import numpy as np
 from .scanimagetiff_utils import (
     _get_scanimage_reader,
 )
-from ...extraction_tools import FloatType, PathType, get_package
+from ...extraction_tools import PathType, get_package
 from ...imagingextractor import ImagingExtractor
 
 
@@ -1021,7 +1021,7 @@ class ScanImageLegacyImagingExtractor(ImagingExtractor):
     def __init__(
         self,
         file_path: PathType,
-        sampling_frequency: FloatType,
+        sampling_frequency: float,
     ):
         """Create a ScanImageLegacyImagingExtractor instance from a TIFF file produced by ScanImage.
 

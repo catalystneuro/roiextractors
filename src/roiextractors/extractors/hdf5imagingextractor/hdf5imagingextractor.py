@@ -13,12 +13,9 @@ from warnings import warn
 import h5py
 import numpy as np
 from lazy_ops import DatasetView
+from numpy.typing import ArrayLike
 
-from ...extraction_tools import (
-    ArrayType,
-    FloatType,
-    PathType,
-)
+from ...extraction_tools import PathType
 from ...imagingextractor import ImagingExtractor
 
 
@@ -31,10 +28,10 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         self,
         file_path: PathType,
         mov_field: str = "mov",
-        sampling_frequency: FloatType = None,
-        start_time: FloatType = None,
+        sampling_frequency: float = None,
+        start_time: float = None,
         metadata: dict = None,
-        channel_names: ArrayType = None,
+        channel_names: ArrayLike = None,
     ):
         """Create an ImagingExtractor from an HDF5 file.
 
