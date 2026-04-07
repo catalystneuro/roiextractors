@@ -1,6 +1,7 @@
 # v0.8.1 (Upcoming)
 
 ### Features
+* Added `BrukerTiffImagingExtractor`, a unified extractor for Bruker Prairie View OME-TIFF files that inherits from `OMETiffImagingExtractor`. Reads structural metadata from OME-XML and derives timestamps from the Bruker configuration XML's `Frame/@relativeTime` attributes. Supports single-plane, volumetric, and multi-channel data. [PR #567](https://github.com/catalystneuro/roiextractors/pull/567)
 * Added `OMETiffImagingExtractor` for reading OME-TIFF files by parsing embedded OME-XML metadata. Supports all 6 valid dimension orders, multi-file datasets with TiffData file discovery, multi-channel selection, and volumetric data. Built on top of `MultiTIFFMultiPageExtractor`. [PR #566](https://github.com/catalystneuro/roiextractors/pull/566)
 * Added `PoissonNoiseImagingExtractor` and `GaussianNoiseImagingExtractor` for generating synthetic noise imaging data with volumetric support and a tile-pregenerated strategy for fast reads [PR #555](https://github.com/catalystneuro/roiextractors/pull/555)
 * Added `description` parameter to `set_property()` and `get_property_info()` method to `SegmentationExtractor`, allowing property descriptions to be stored and retrieved for use in NWB file metadata [PR #558](https://github.com/catalystneuro/roiextractors/pull/558)
