@@ -2,10 +2,12 @@
 
 Classes
 -------
+BrukerTiffImagingExtractor
+    Unified extractor for Bruker OME-TIFF files. Inherits from OMETiffImagingExtractor.
 BrukerTiffSinglePlaneImagingExtractor
-    A ImagingExtractor for TIFF files produced by Bruker with only 1 plane.
+    Deprecated. Use BrukerTiffImagingExtractor instead.
 BrukerTiffMultiPlaneImagingExtractor
-    A MultiImagingExtractor for TIFF files produced by Bruker with multiple planes.
+    Deprecated. Use BrukerTiffImagingExtractor instead.
 """
 
 import logging
@@ -20,6 +22,7 @@ from xml.etree import ElementTree
 import numpy as np
 from lxml import etree
 
+from .ometiffimagingextractor import OMETiffImagingExtractor
 from ...extraction_tools import (
     DtypeType,
     PathType,
@@ -123,6 +126,107 @@ def _parse_xml(folder_path: PathType) -> etree.Element:
     return tree.getroot()
 
 
+class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
+    """An extractor for Bruker Prairie View OME-TIFF files.
+
+    Inherits from OMETiffImagingExtractor and adds automatic sampling frequency
+    computation from the Bruker configuration XML. Supports single-plane, volumetric,
+    and multi-channel data.
+
+    The user provides a folder path containing .ome.tif files and a Bruker configuration
+    XML. The extractor reads structural metadata (dimensions, channels, planes, file layout)
+    from the OME-XML embedded in the first TIFF file, and computes sampling frequency from
+    the relativeTime attributes in the Bruker XML.
+
+    Parameters
+    ----------
+    folder_path : str or Path
+        Path to the folder containing Bruker .ome.tif files and the configuration XML.
+    channel_name : str or None, optional
+        Name of the channel to extract. Required when the data has more than one channel.
+        Channel names are zero-indexed strings (e.g., "0", "1").
+    """
+
+    extractor_name = "BrukerTiffImagingExtractor"
+    mode = "folder"
+
+    def __init__(self, folder_path: PathType, channel_name: str | None = None):
+        folder_path = Path(folder_path)
+
+        ome_files = sorted(folder_path.glob("*.ome.tif"))
+        if not ome_files:
+            raise FileNotFoundError(f"No .ome.tif files found in '{folder_path}'.")
+        ome_file = ome_files[0]
+
+        xml_root = _parse_xml(folder_path)
+        frame_rate = _determine_frame_rate(xml_root)
+        if frame_rate is None:
+            raise ValueError(f"Could not determine sampling frequency from Bruker XML in '{folder_path}'.")
+
+        # For volumetric data, the frame rate from the XML reflects per-frame timing
+        # (each plane gets its own relativeTime). MultiTIFFMultiPageExtractor expects
+        # the volume rate, so divide by the number of planes.
+        ome_metadata = self._parse_ome_metadata(ome_file)
+        num_planes = ome_metadata["num_planes"]
+        sampling_frequency = frame_rate / num_planes
+
+        self.xml_metadata = self._parse_bruker_xml_metadata(xml_root)
+
+        super().__init__(
+            file_path=ome_file,
+            sampling_frequency=sampling_frequency,
+            channel_name=channel_name,
+        )
+
+    @staticmethod
+    def _parse_bruker_xml_metadata(xml_root: etree._Element) -> dict[str, str | list[dict[str, str]]]:
+        """Parse PVStateValue elements from the Bruker configuration XML into a dictionary.
+
+        Parameters
+        ----------
+        xml_root : lxml.etree._Element
+            Root element of the parsed Bruker configuration XML.
+
+        Returns
+        -------
+        dict
+            Metadata dictionary with keys from PVStateValue elements.
+        """
+        xml_metadata = dict()
+        xml_metadata.update(xml_root.attrib)
+
+        pv_state_values = xml_root.xpath(".//PVStateValue")
+
+        for child in pv_state_values:
+            metadata_root_key = child.attrib["key"]
+            if "value" in child.attrib:
+                if metadata_root_key not in xml_metadata:
+                    xml_metadata[metadata_root_key] = child.attrib["value"]
+            else:
+                xml_metadata[metadata_root_key] = []
+                for indexed_value in child:
+                    if "description" in indexed_value.attrib:
+                        xml_metadata[metadata_root_key].append(
+                            {indexed_value.attrib["description"]: indexed_value.attrib["value"]}
+                        )
+                    elif "value" in indexed_value.attrib:
+                        xml_metadata[metadata_root_key].append(
+                            {indexed_value.attrib["index"]: indexed_value.attrib["value"]}
+                        )
+                    else:
+                        for subindexed_value in indexed_value:
+                            if "description" in subindexed_value.attrib:
+                                xml_metadata[metadata_root_key].append(
+                                    {subindexed_value.attrib["description"]: subindexed_value.attrib["value"]}
+                                )
+                            else:
+                                xml_metadata[metadata_root_key].append(
+                                    {indexed_value.attrib["index"]: subindexed_value.attrib["value"]}
+                                )
+
+        return xml_metadata
+
+
 class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
     """A MultiImagingExtractor for TIFF files produced by Bruke with multiple planes.
 
@@ -203,6 +307,9 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
     ):
         """Create a BrukerTiffMultiPlaneImagingExtractor instance from a folder path that contains the image files.
 
+        .. deprecated::
+            Use :class:`BrukerTiffImagingExtractor` instead.
+
         Parameters
         ----------
         folder_path : PathType
@@ -221,6 +328,12 @@ class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):
         AssertionError
             If the imaging is not volumetric.
         """
+        warnings.warn(
+            "BrukerTiffMultiPlaneImagingExtractor is deprecated and will be removed in October 2026 or after. "
+            "Use BrukerTiffImagingExtractor instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         self._tifffile = _get_tiff_reader()
 
         folder_path = Path(folder_path)
@@ -388,6 +501,9 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
     def __init__(self, folder_path: PathType, stream_name: str | None = None):
         """Create a BrukerTiffSinglePlaneImagingExtractor instance from a folder path that contains the image files.
 
+        .. deprecated::
+            Use :class:`BrukerTiffImagingExtractor` instead.
+
         Parameters
         ----------
         folder_path : PathType
@@ -395,6 +511,12 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         stream_name: str, optional
             The name of the recording channel (e.g. "Ch2" or "Green").
         """
+        warnings.warn(
+            "BrukerTiffSinglePlaneImagingExtractor is deprecated and will be removed in October 2026 or after. "
+            "Use BrukerTiffImagingExtractor instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         self._tifffile = _get_tiff_reader()
 
         folder_path = Path(folder_path)

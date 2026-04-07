@@ -3,12 +3,14 @@ import tempfile
 from pathlib import Path
 
 import numpy as np
+import pytest
 from hdmf.testing import TestCase
 from natsort import natsorted
 from numpy.testing import assert_array_equal
 from tifffile import tifffile
 
 from roiextractors import (
+    BrukerTiffImagingExtractor,
     BrukerTiffMultiPlaneImagingExtractor,
     BrukerTiffSinglePlaneImagingExtractor,
 )
@@ -249,3 +251,131 @@ class TestBrukerTiffExtractorDualColorCase(TestCase):
             self.extractor.get_sampling_frequency(),
             extractor.get_sampling_frequency(),
         )
+
+
+BRUKER_STUB_PATH = OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif"
+
+
+class TestBrukerTiffImagingExtractorSinglePlane:
+    """Test BrukerTiffImagingExtractor with single-plane, single-channel stub data."""
+
+    folder_path = BRUKER_STUB_PATH / "single_plane_single_channel"
+
+    def test_image_shape(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        assert extractor.get_image_shape() == (6, 8)
+
+    def test_num_samples(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        assert extractor.get_num_samples() == 4
+
+    def test_sampling_frequency(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        assert abs(extractor.get_sampling_frequency() - 1.0 / 0.033) < 0.1
+
+    def test_dtype(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        assert extractor.get_dtype() == np.uint16
+
+    def test_not_volumetric(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        assert extractor.is_volumetric is False
+
+    def test_get_series(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        data = extractor.get_series(0, 4)
+        assert data.shape == (4, 6, 8)
+        for t in range(4):
+            assert_array_equal(data[t, :, :], t * 100)
+
+    def test_get_series_subset(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        data = extractor.get_series(1, 3)
+        assert data.shape == (2, 6, 8)
+        assert_array_equal(data[0, :, :], 100)
+        assert_array_equal(data[1, :, :], 200)
+
+    def test_xml_metadata(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        assert isinstance(extractor.xml_metadata, dict)
+        assert "linesPerFrame" in extractor.xml_metadata
+        assert "pixelsPerLine" in extractor.xml_metadata
+
+    def test_isinstance_ome(self):
+        from roiextractors import OMETiffImagingExtractor
+
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        assert isinstance(extractor, OMETiffImagingExtractor)
+
+
+class TestBrukerTiffImagingExtractorVolumetric:
+    """Test BrukerTiffImagingExtractor with volumetric, single-channel stub data."""
+
+    folder_path = BRUKER_STUB_PATH / "volumetric_single_channel"
+
+    def test_is_volumetric(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        assert extractor.is_volumetric is True
+
+    def test_num_samples(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        assert extractor.get_num_samples() == 3
+
+    def test_num_planes(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        assert extractor.get_num_planes() == 2
+
+    def test_volume_shape(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        assert extractor.get_volume_shape() == (6, 8, 2)
+
+    def test_sampling_frequency_is_volume_rate(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        # Frame period is 0.033s, 2 planes per volume, so volume rate = 1/(0.033*2)
+        expected_volume_rate = 1.0 / (0.033 * 2)
+        assert abs(extractor.get_sampling_frequency() - expected_volume_rate) < 0.1
+
+    def test_get_series(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        data = extractor.get_series(0, 3)
+        assert data.shape == (3, 6, 8, 2)
+        for t in range(3):
+            for z in range(2):
+                assert_array_equal(data[t, :, :, z], t * 100 + z)
+
+    def test_get_series_subset(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        data = extractor.get_series(1, 2)
+        assert data.shape == (1, 6, 8, 2)
+        assert_array_equal(data[0, :, :, 0], 100)
+        assert_array_equal(data[0, :, :, 1], 101)
+
+
+class TestBrukerTiffImagingExtractorDualChannel:
+    """Test BrukerTiffImagingExtractor with single-plane, dual-channel stub data."""
+
+    folder_path = BRUKER_STUB_PATH / "single_plane_dual_channel"
+
+    def test_channel_name_required(self):
+        with pytest.raises(ValueError, match="channel_name must be specified"):
+            BrukerTiffImagingExtractor(folder_path=self.folder_path)
+
+    def test_channel_0(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="0")
+        assert extractor.get_num_samples() == 3
+        assert extractor.is_volumetric is False
+        data = extractor.get_series(0, 3)
+        assert data.shape == (3, 6, 8)
+        for t in range(3):
+            assert_array_equal(data[t, :, :], t * 100)
+
+    def test_channel_1(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="1")
+        data = extractor.get_series(0, 3)
+        assert data.shape == (3, 6, 8)
+        for t in range(3):
+            assert_array_equal(data[t, :, :], t * 100 + 10)
+
+    def test_invalid_channel_raises(self):
+        with pytest.raises(ValueError, match="channel_index .* is out of range"):
+            BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="5")
