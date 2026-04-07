@@ -18,8 +18,6 @@ from typing import Literal
 import numpy as np
 from numpy.typing import ArrayLike
 
-from .extraction_tools import ArrayType, FloatType
-
 
 # TODO make public once API stabilizes.
 @dataclass
@@ -280,7 +278,7 @@ class SegmentationExtractor(ABC):
         return None
 
     @abstractmethod
-    def get_frame_shape(self) -> ArrayType:
+    def get_frame_shape(self) -> tuple[int, int]:
         """Get frame size of movie (height, width).
 
         Returns
@@ -575,7 +573,7 @@ class SegmentationExtractor(ABC):
         start_frame: int | None = None,
         end_frame: int | None = None,
         name: str = "raw",
-    ) -> ArrayType:
+    ) -> np.ndarray:
         """Get the traces of each ROI specified by roi_ids.
 
         Parameters
@@ -653,7 +651,7 @@ class SegmentationExtractor(ABC):
         """
         return dict(self._summary_images)
 
-    def get_image(self, name: str = "correlation") -> ArrayType:
+    def get_image(self, name: str = "correlation") -> np.ndarray:
         """Get specific images: mean or correlation.
 
         Parameters
@@ -779,7 +777,7 @@ class SegmentationExtractor(ABC):
         """
         return self._num_planes
 
-    def set_times(self, times: ArrayType):
+    def set_times(self, times: ArrayLike):
         """Set the recording times in seconds for each frame.
 
         Parameters
@@ -840,7 +838,7 @@ class SegmentationExtractor(ABC):
         sample_indices = np.arange(start_sample, end_sample)
         return sample_indices / self.get_sampling_frequency()
 
-    def time_to_sample_indices(self, times: FloatType | ArrayType) -> FloatType | np.ndarray:
+    def time_to_sample_indices(self, times: float | ArrayLike) -> np.ndarray:
         """Convert user-inputted times (in seconds) to sample indices.
 
         Parameters
@@ -850,7 +848,7 @@ class SegmentationExtractor(ABC):
 
         Returns
         -------
-        sample_indices: float or array-like
+        sample_indices: np.ndarray
             The corresponding sample indices.
         """
         # Ensure native timestamps are cached if available
@@ -860,7 +858,7 @@ class SegmentationExtractor(ABC):
         else:
             return np.round(times * self.get_sampling_frequency()).astype("int64")
 
-    def set_property(self, key: str, values: ArrayType, ids: ArrayType, *, description: str = ""):
+    def set_property(self, key: str, values: ArrayLike, ids: ArrayLike, *, description: str = ""):
         """Set property values for ROIs.
 
         Parameters
@@ -897,7 +895,7 @@ class SegmentationExtractor(ABC):
 
         self._properties[key] = _PropertyInfo(data=property_array, description=description)
 
-    def get_property(self, key: str, ids: ArrayType) -> ArrayType:
+    def get_property(self, key: str, ids: ArrayLike) -> np.ndarray:
         """Get property values for ROIs.
 
         Parameters
@@ -1085,7 +1083,7 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
     def get_images_dict(self) -> dict:
         return self._parent_segmentation.get_images_dict()
 
-    def get_image(self, name: str = "correlation") -> ArrayType:
+    def get_image(self, name: str = "correlation") -> np.ndarray:
         return self._parent_segmentation.get_image(name=name)
 
     def get_sampling_frequency(self) -> float:

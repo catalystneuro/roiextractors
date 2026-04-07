@@ -8,7 +8,7 @@ from typing import Any
 
 import numpy as np
 
-from ...extraction_tools import ArrayType, PathType
+from ...extraction_tools import PathType
 from ...segmentationextractor import SegmentationExtractor, _ROIMasks
 
 
@@ -141,7 +141,7 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         cell_status = self.get_property("cell_status", self.get_roi_ids())
         return [roi_id for roi_id, status in zip(self.get_roi_ids(), cell_status) if status == "rejected"]
 
-    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="raw") -> ArrayType:
+    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="raw") -> np.ndarray:
         """Get traces for the specified ROIs.
 
         Parameters
