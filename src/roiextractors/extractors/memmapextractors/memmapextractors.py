@@ -6,6 +6,8 @@ MemmapImagingExtractor
     The base class for memmapable imaging extractors.
 """
 
+import warnings
+
 import numpy as np
 
 from ...extraction_tools import DtypeType
@@ -58,6 +60,14 @@ class MemmapImagingExtractor(ImagingExtractor):
 
     def get_dtype(self) -> DtypeType:
         return self.dtype
+
+    def get_channel_names(self) -> list:
+        warnings.warn(
+            "get_channel_names is deprecated and will be removed in or after October 2026.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return [f"channel_{i}" for i in range(self._num_channels)]
 
     def get_volume_shape(self) -> tuple[int, int, int, int]:
         """Return the shape of the video data.

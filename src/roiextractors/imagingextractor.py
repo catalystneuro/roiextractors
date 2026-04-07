@@ -179,16 +179,6 @@ class ImagingExtractor(ABC):
         """
         pass
 
-    def get_channel_names(self) -> list:
-        """Get the channel names in the recoding.
-
-        Returns
-        -------
-        channel_names: list
-            List of strings of channel names
-        """
-        return [f"channel_{i}" for i in range(self.get_num_channels())]
-
     def get_dtype(self) -> DtypeType:
         """Get the data type of the video.
 

@@ -101,6 +101,14 @@ class TiffImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self):
         return self._sampling_frequency
 
+    def get_channel_names(self) -> list:
+        warn(
+            "get_channel_names is deprecated and will be removed in or after October 2026.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return [f"channel_{i}" for i in range(self._num_channels)]
+
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
     ) -> np.ndarray | None:
