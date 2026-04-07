@@ -53,30 +53,6 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         )
 
     @staticmethod
-    def _parse_ome_xml(metadata_string: str) -> ET.Element:
-        """Parse an OME-XML metadata string.
-
-        Handles both the old format (wrapped in XML comments) and the new format
-        (plain UTF-8 XML string).
-
-        Parameters
-        ----------
-        metadata_string : str
-            The OME-XML metadata string from the TIFF file.
-
-        Returns
-        -------
-        xml.etree.ElementTree.Element
-            The root element of the parsed OME-XML.
-        """
-        if metadata_string.lstrip().startswith("<!--"):
-            metadata_string = metadata_string.replace("<!--", "").replace("-->", "")
-        try:
-            return ET.fromstring(metadata_string.encode("utf-8"))
-        except ValueError:
-            return ET.fromstring(metadata_string)
-
-    @staticmethod
     def _parse_ome_metadata(file_path: PathType) -> dict:
         """Parse OME-XML metadata from a TIFF file.
 
@@ -115,7 +91,13 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         finally:
             tiff.close()
 
-        ome_root = OMETiffImagingExtractor._parse_ome_xml(ome_xml_string)
+        # Old OME-TIFF versions wrapped the XML in comments (<!-- ... -->)
+        if ome_xml_string.lstrip().startswith("<!--"):
+            ome_xml_string = ome_xml_string.replace("<!--", "").replace("-->", "")
+        try:
+            ome_root = ET.fromstring(ome_xml_string.encode("utf-8"))
+        except ValueError:
+            ome_root = ET.fromstring(ome_xml_string)
         pixels_element = ome_root.find(".//{*}Pixels")
         if pixels_element is None:
             raise ValueError(f"No Pixels element found in OME-XML metadata of {file_path}")
@@ -130,9 +112,16 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         # Convert OME dimension order (e.g. "XYCZT") to 3-letter format (e.g. "CZT")
         dimension_order = ome_dimension_order.replace("X", "").replace("Y", "")
 
-        # Discover and order file paths from TiffData elements
-        file_paths = OMETiffImagingExtractor._parse_file_paths_from_ome_metadata(pixels_element, file_path)
-        file_paths = OMETiffImagingExtractor._sort_paths_by_dimension_order(file_paths, dimension_order)
+        # Discover file paths from TiffData elements
+        file_positions = OMETiffImagingExtractor._parse_file_paths_from_ome_metadata(pixels_element, file_path)
+
+        # Sort files to match the dimension order: slowest-varying dimension as primary key
+        dimension_to_key = {"C": "first_c", "Z": "first_z", "T": "first_t"}
+        sort_keys = [dimension_to_key[d] for d in reversed(dimension_order)]
+        file_paths = sorted(
+            file_positions.keys(),
+            key=lambda fp: tuple(file_positions[fp][k] for k in sort_keys) + (file_positions[fp]["ifd"],),
+        )
 
         return dict(
             file_paths=file_paths,
@@ -169,7 +158,7 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
             return {source_file_path: dict(first_c=0, first_z=0, first_t=0, ifd=0)}
 
         folder = source_file_path.parent
-        seen_files: dict[Path, dict] = {}
+        found_files: dict[Path, dict] = {}
 
         for tiff_data in tiff_data_elements:
             uuid_element = tiff_data.find("{*}UUID")
@@ -191,47 +180,16 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
             )
 
             # Keep the earliest logical position per file
-            if file_path not in seen_files:
-                seen_files[file_path] = entry
+            if file_path not in found_files:
+                found_files[file_path] = entry
             else:
-                existing = seen_files[file_path]
+                existing = found_files[file_path]
                 if (entry["first_t"], entry["first_z"], entry["first_c"], entry["ifd"]) < (
                     existing["first_t"],
                     existing["first_z"],
                     existing["first_c"],
                     existing["ifd"],
                 ):
-                    seen_files[file_path] = entry
+                    found_files[file_path] = entry
 
-        return seen_files
-
-    @staticmethod
-    def _sort_paths_by_dimension_order(file_positions: dict[Path, dict], dimension_order: str) -> list[Path]:
-        """Sort file paths to match the dimension order expected by MultiTIFFMultiPageExtractor.
-
-        Parameters
-        ----------
-        file_positions : dict[Path, dict]
-            Mapping from file path to its logical position (first_c, first_z, first_t, ifd),
-            as returned by _parse_file_paths_from_ome_metadata.
-        dimension_order : str
-            The 3-letter dimension order (e.g. "ZTC", "CZT"). The first letter is the
-            fastest-varying dimension. Files are sorted so the slowest dimension varies
-            outermost, matching how MultiTIFFMultiPageExtractor interprets the linear
-            IFD sequence.
-
-        Returns
-        -------
-        list[Path]
-            Ordered list of file paths.
-        """
-        # dimension_order[0] is fastest, dimension_order[-1] is slowest.
-        # Sort with slowest as primary key.
-        dimension_to_key = {"C": "first_c", "Z": "first_z", "T": "first_t"}
-        sort_keys = [dimension_to_key[d] for d in reversed(dimension_order)]
-
-        def sort_key(file_path):
-            pos = file_positions[file_path]
-            return tuple(pos[key] for key in sort_keys) + (pos["ifd"],)
-
-        return sorted(file_positions.keys(), key=sort_key)
+        return found_files
