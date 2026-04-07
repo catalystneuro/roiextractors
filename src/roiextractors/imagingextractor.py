@@ -179,7 +179,7 @@ class ImagingExtractor(ABC):
         """
         pass
 
-    def get_dtype(self) -> DtypeType:
+    def get_dtype(self) -> np.dtype:
         """Get the data type of the video.
 
         Returns
