@@ -10,8 +10,8 @@ import warnings
 from typing import Iterable
 
 import numpy as np
+from numpy.typing import ArrayLike
 
-from .extraction_tools import ArrayType, NumpyArray
 from .imagingextractor import ImagingExtractor
 
 
@@ -96,7 +96,7 @@ class MultiImagingExtractor(ImagingExtractor):
 
         return times
 
-    def _get_frames_from_an_imaging_extractor(self, extractor_index: int, sample_indices: ArrayType) -> NumpyArray:
+    def _get_frames_from_an_imaging_extractor(self, extractor_index: int, sample_indices: ArrayLike) -> np.ndarray:
         """Get samples from a single imaging extractor.
 
         Parameters
