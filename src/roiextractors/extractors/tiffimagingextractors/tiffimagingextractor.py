@@ -102,6 +102,7 @@ class TiffImagingExtractor(ImagingExtractor):
         return self._sampling_frequency
 
     def get_channel_names(self) -> list:
+        """Return the channel names (deprecated)."""
         warn(
             "get_channel_names is deprecated and will be removed in or after October 2026.",
             FutureWarning,

@@ -527,6 +527,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         return self._parent_imaging.get_sampling_frequency()
 
     def get_channel_names(self) -> list:
+        """Return the channel names (deprecated)."""
         warnings.warn(
             "get_channel_names is deprecated and will be removed in May 2026 or after.",
             category=FutureWarning,

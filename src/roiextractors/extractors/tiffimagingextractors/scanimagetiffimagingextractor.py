@@ -675,6 +675,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         return self._sampling_frequency
 
     def get_channel_names(self):
+        """Return the channel names (deprecated)."""
         warnings.warn(
             "get_channel_names is deprecated and will be removed in May 2026 or after.",
             category=FutureWarning,
@@ -1097,6 +1098,7 @@ class ScanImageLegacyImagingExtractor(ImagingExtractor):
         return self._sampling_frequency
 
     def get_channel_names(self) -> list:
+        """Return the channel names (deprecated)."""
         warnings.warn(
             "get_channel_names is deprecated and will be removed in May 2026 or after.",
             category=FutureWarning,
