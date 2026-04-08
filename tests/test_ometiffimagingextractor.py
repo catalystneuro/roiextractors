@@ -1,15 +1,14 @@
 """Tests for the OMETiffImagingExtractor using real OME-TIFF test data."""
 
-from pathlib import Path
-
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
 from tifffile import TiffFile
 
 from roiextractors import OMETiffImagingExtractor
+from tests.setup_paths import OPHYS_DATA_PATH
 
-OME_TIFF_PATH = Path("/home/heberto/data/ome_tiff/stubs")
+OME_TIFF_PATH = OPHYS_DATA_PATH / "imaging_datasets" / "OME-TIFF"
 
 
 @pytest.mark.skipif(not OME_TIFF_PATH.exists(), reason=f"Test data not found at {OME_TIFF_PATH}")
