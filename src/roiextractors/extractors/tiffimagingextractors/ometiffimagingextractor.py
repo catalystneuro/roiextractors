@@ -14,7 +14,7 @@ from .multitiffmultipageextractor import MultiTIFFMultiPageExtractor
 from ...extraction_tools import PathType, get_package
 
 # Conversion factors from OME UnitsTime to seconds. Covers the full enumeration
-# from the OME 2016-06 schema (http://www.openmicroscopy.org/Schemas/OME/2016-06/ome.xsd).
+# from the OME 2016-06 schema (https://www.openmicroscopy.org/Schemas/Documentation/Generated/OME-2016-06/ome.html).
 _TIME_UNIT_TO_SECONDS = {
     "Ys": 1e24,
     "Zs": 1e21,
