@@ -5,7 +5,6 @@ from typing import Iterable
 
 import numpy as np
 
-from .extraction_tools import DtypeType
 from .imagingextractor import ImagingExtractor
 
 
@@ -51,14 +50,12 @@ class VolumetricImagingExtractor(ImagingExtractor):
             - sampling frequency
             - image size
             - number of channels
-            - channel names
             - data type
             - num_frames
         """
         properties_to_check = dict(
             get_sampling_frequency="The sampling frequency",
             get_image_shape="The shape of a frame",
-            get_channel_names="The name of the channels",
             get_dtype="The data type",
             get_num_samples="The number of samples",
         )
@@ -119,6 +116,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
         return self._imaging_extractors[0].get_sampling_frequency()
 
     def get_channel_names(self) -> list:
+        """Return the channel names (deprecated)."""
         warnings.warn(
             "get_channel_names is deprecated and will be removed in May 2026 or after.",
             category=FutureWarning,
@@ -126,7 +124,7 @@ class VolumetricImagingExtractor(ImagingExtractor):
         )
         return self._imaging_extractors[0].get_channel_names()
 
-    def get_dtype(self) -> DtypeType:
+    def get_dtype(self) -> np.dtype:
         return self._imaging_extractors[0].get_dtype()
 
     def get_volume_shape(self) -> tuple[int, int, int]:

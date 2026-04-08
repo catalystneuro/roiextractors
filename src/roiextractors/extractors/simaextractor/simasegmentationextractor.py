@@ -155,19 +155,26 @@ class SimaSegmentationExtractor(SegmentationExtractor):
 
     def _trace_extractor_read(self):
         """Read the traces from the sima.ImagingDataset object (self._dataset_file)."""
+        _active_channel = None
         for channel_now in self._channel_names:
             for labels in self._dataset_file.signals(channel=channel_now):
                 if labels:
                     _active_channel = channel_now
                     break
-            print(
-                "extracting signal from channel {} from {} no of channels".format(
-                    _active_channel, self._num_of_channels
+            if _active_channel is not None:
+                print(
+                    "extracting signal from channel {} from {} no of channels".format(
+                        _active_channel, self._num_of_channels
+                    )
                 )
-            )
+                break
+        if _active_channel is None:
+            raise ValueError("No active channel found in any of the channel names.")
+
         # label for the extraction method in SIMA:
+        _label = None
+        _count = 0
         for labels in self._dataset_file.signals(channel=_active_channel):
-            _count = 0
             if not re.findall(r"[\d]{4}-[\d]{2}-[\d]{2}-", labels):
                 _count = _count + 1
                 _label = labels
@@ -177,6 +184,8 @@ class SimaSegmentationExtractor(SegmentationExtractor):
         elif _count == 0:
             print("no label found for extract method using {}".format(labels))
             _label = labels
+        if _label is None:
+            raise ValueError("No valid extraction label found in sima signals.")
         extracted_signals = np.array(self._dataset_file.signals(channel=_active_channel)[_label]["raw"][0])
         return extracted_signals
 

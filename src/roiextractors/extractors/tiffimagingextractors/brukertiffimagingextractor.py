@@ -24,7 +24,6 @@ from lxml import etree
 
 from .ometiffimagingextractor import OMETiffImagingExtractor
 from ...extraction_tools import (
-    DtypeType,
     PathType,
     calculate_regular_series_rate,
     get_package,
@@ -686,6 +685,7 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         return self._sampling_frequency
 
     def get_channel_names(self) -> list[str]:
+        """Return the channel names (deprecated)."""
         warnings.warn(
             "get_channel_names is deprecated and will be removed in May 2026 or after.",
             category=FutureWarning,
@@ -693,7 +693,7 @@ class BrukerTiffSinglePlaneImagingExtractor(MultiImagingExtractor):
         )
         return self._channel_names
 
-    def get_dtype(self) -> DtypeType:
+    def get_dtype(self) -> np.dtype:
         return self._dtype
 
 
@@ -746,6 +746,7 @@ class _BrukerTiffSinglePlaneImagingExtractor(ImagingExtractor):
         raise NotImplementedError(self.SAMPLING_FREQ_ERROR.format(self.extractor_name))
 
     def get_channel_names(self) -> list:
+        """Return the channel names (deprecated)."""
         warnings.warn(
             "get_channel_names is deprecated and will be removed in May 2026 or after.",
             category=FutureWarning,

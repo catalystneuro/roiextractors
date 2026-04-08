@@ -15,7 +15,7 @@ import numpy as np
 from .scanimagetiff_utils import (
     _get_scanimage_reader,
 )
-from ...extraction_tools import DtypeType, FloatType, PathType, get_package
+from ...extraction_tools import PathType, get_package
 from ...imagingextractor import ImagingExtractor
 
 
@@ -675,6 +675,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         return self._sampling_frequency
 
     def get_channel_names(self):
+        """Return the channel names (deprecated)."""
         warnings.warn(
             "get_channel_names is deprecated and will be removed in May 2026 or after.",
             category=FutureWarning,
@@ -727,9 +728,13 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # `channelSave` indicates whether the channel is saved
         # We check `channelSave` first but keep the `channelsActive` check for backward compatibility
         channel_availability_keys = ["SI.hChannels.channelSave", "SI.hChannels.channelsActive"]
-        for channel_availability in channel_availability_keys:
-            if channel_availability in non_varying_frame_metadata.keys():
+        channel_availability = None
+        for key in channel_availability_keys:
+            if key in non_varying_frame_metadata.keys():
+                channel_availability = key
                 break
+        if channel_availability is None:
+            raise ValueError(f"Could not find any of {channel_availability_keys} in metadata.")
 
         available_channels = non_varying_frame_metadata[channel_availability]
         available_channels = [available_channels] if not isinstance(available_channels, list) else available_channels
@@ -739,7 +744,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         return channel_names_available
 
-    def get_dtype(self) -> DtypeType:
+    def get_dtype(self) -> np.dtype:
         """Get the data type of the video.
 
         Returns
@@ -1011,7 +1016,7 @@ class ScanImageLegacyImagingExtractor(ImagingExtractor):
     def __init__(
         self,
         file_path: PathType,
-        sampling_frequency: FloatType,
+        sampling_frequency: float,
     ):
         """Create a ScanImageLegacyImagingExtractor instance from a TIFF file produced by ScanImage.
 
@@ -1093,6 +1098,7 @@ class ScanImageLegacyImagingExtractor(ImagingExtractor):
         return self._sampling_frequency
 
     def get_channel_names(self) -> list:
+        """Return the channel names (deprecated)."""
         warnings.warn(
             "get_channel_names is deprecated and will be removed in May 2026 or after.",
             category=FutureWarning,

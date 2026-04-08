@@ -10,8 +10,8 @@ import warnings
 from typing import Iterable
 
 import numpy as np
+from numpy.typing import ArrayLike
 
-from .extraction_tools import ArrayType, NumpyArray
 from .imagingextractor import ImagingExtractor
 
 
@@ -61,13 +61,11 @@ class MultiImagingExtractor(ImagingExtractor):
         This method checks the following properties:
             - sampling frequency
             - sample shape (image size and number of channels)
-            - channel names
             - data type
         """
         properties_to_check = dict(
             get_sampling_frequency="The sampling frequency",
             get_sample_shape="The shape of a sample",
-            get_channel_names="The name of the channels",
             get_dtype="The data type",
         )
         for method, property_message in properties_to_check.items():
@@ -96,7 +94,7 @@ class MultiImagingExtractor(ImagingExtractor):
 
         return times
 
-    def _get_frames_from_an_imaging_extractor(self, extractor_index: int, sample_indices: ArrayType) -> NumpyArray:
+    def _get_frames_from_an_imaging_extractor(self, extractor_index: int, sample_indices: ArrayLike) -> np.ndarray:
         """Get samples from a single imaging extractor.
 
         Parameters
@@ -195,6 +193,7 @@ class MultiImagingExtractor(ImagingExtractor):
         return self._imaging_extractors[0].get_sampling_frequency()
 
     def get_channel_names(self) -> list:
+        """Return the channel names (deprecated)."""
         warnings.warn(
             "get_channel_names is deprecated and will be removed in May 2026 or after.",
             category=FutureWarning,

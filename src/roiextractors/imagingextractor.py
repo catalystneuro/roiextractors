@@ -12,9 +12,9 @@ from copy import deepcopy
 from math import prod
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 from .core_utils import _convert_bytes_to_str, _convert_seconds_to_str
-from .extraction_tools import ArrayType, DtypeType, FloatType
 
 
 class ImagingExtractor(ABC):
@@ -179,17 +179,7 @@ class ImagingExtractor(ABC):
         """
         pass
 
-    def get_channel_names(self) -> list:
-        """Get the channel names in the recoding.
-
-        Returns
-        -------
-        channel_names: list
-            List of strings of channel names
-        """
-        return [f"channel_{i}" for i in range(self.get_num_channels())]
-
-    def get_dtype(self) -> DtypeType:
+    def get_dtype(self) -> np.dtype:
         """Get the data type of the video.
 
         Returns
@@ -237,7 +227,7 @@ class ImagingExtractor(ABC):
         """
         pass
 
-    def get_samples(self, sample_indices: ArrayType) -> np.ndarray:
+    def get_samples(self, sample_indices: ArrayLike) -> np.ndarray:
         """Get specific samples from indices (not necessarily continuous).
 
         Parameters
@@ -250,6 +240,7 @@ class ImagingExtractor(ABC):
         samples: numpy.ndarray
             The samples.
         """
+        sample_indices = np.asarray(sample_indices)
         assert (
             max(sample_indices) < self.get_num_samples()
         ), "'sample_indices' range beyond number of available samples!"
@@ -319,7 +310,7 @@ class ImagingExtractor(ABC):
         sample_indices = np.arange(start_sample, end_sample)
         return sample_indices / self.get_sampling_frequency()
 
-    def time_to_sample_indices(self, times: FloatType | ArrayType) -> FloatType | np.ndarray:
+    def time_to_sample_indices(self, times: float | ArrayLike) -> float | np.ndarray:
         """Convert user-inputted times (in seconds) to sample indices.
 
         Parameters
@@ -338,7 +329,7 @@ class ImagingExtractor(ABC):
         else:
             return np.searchsorted(self._times, times).astype("int64")
 
-    def set_times(self, times: ArrayType) -> None:
+    def set_times(self, times: ArrayLike) -> None:
         """Set the recording times (in seconds) for each frame.
 
         Parameters
@@ -504,7 +495,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         # Inherit volumetric properties from parent
         self.is_volumetric = self._parent_imaging.is_volumetric
 
-    def get_samples(self, sample_indices: ArrayType) -> np.ndarray:
+    def get_samples(self, sample_indices: ArrayLike) -> np.ndarray:
         assert max(sample_indices) < self._num_samples, "'sample_indices' range beyond number of available samples!"
         mapped_sample_indices = np.array(sample_indices) + self._start_sample
         return self._parent_imaging.get_samples(sample_indices=mapped_sample_indices)
@@ -537,6 +528,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         return self._parent_imaging.get_sampling_frequency()
 
     def get_channel_names(self) -> list:
+        """Return the channel names (deprecated)."""
         warnings.warn(
             "get_channel_names is deprecated and will be removed in May 2026 or after.",
             category=FutureWarning,
@@ -700,7 +692,7 @@ class _FieldOfViewSlicedImagingExtractor(ImagingExtractor):
             # 2D data: (time, height, width)
             return data[:, self._row_slice, self._column_slice]
 
-    def get_samples(self, sample_indices: ArrayType) -> np.ndarray:
+    def get_samples(self, sample_indices: ArrayLike) -> np.ndarray:
         """Get specific spatially sliced samples from indices.
 
         Parameters

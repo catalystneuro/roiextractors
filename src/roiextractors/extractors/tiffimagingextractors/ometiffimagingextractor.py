@@ -11,7 +11,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 from .multitiffmultipageextractor import MultiTIFFMultiPageExtractor
-from ...extraction_tools import FloatType, PathType, get_package
+from ...extraction_tools import PathType, get_package
 
 # Conversion factors from OME UnitsTime to seconds. Covers the full enumeration
 # from the OME 2016-06 schema (http://www.openmicroscopy.org/Schemas/OME/2016-06/ome.xsd).
@@ -75,7 +75,7 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
     def __init__(
         self,
         file_path: PathType,
-        sampling_frequency: FloatType | None = None,
+        sampling_frequency: float | None = None,
         channel_name: str | None = None,
     ):
         metadata = self._parse_ome_metadata(file_path)
