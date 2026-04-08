@@ -27,9 +27,6 @@ class TestMultiImagingExtractor(TestCase):
     def test_get_sampling_frequency(self):
         assert self.multi_imaging_extractor.get_sampling_frequency() == 20.0
 
-    def test_get_channel_names(self):
-        assert self.multi_imaging_extractor.get_channel_names() == ["channel_num_0"]
-
     @parameterized.expand(
         [
             param(  # All 3

@@ -18,7 +18,7 @@ import numpy as np
 from lazy_ops import DatasetView
 from packaging import version
 
-from ...extraction_tools import ArrayType, PathType
+from ...extraction_tools import PathType
 from ...segmentationextractor import (
     SegmentationExtractor,
     _ROIMasks,
@@ -293,12 +293,12 @@ class NewExtractSegmentationExtractor(
         accepted_list = self.get_accepted_list()
         return list(set(self.get_roi_ids()) - set(accepted_list))
 
-    def get_frame_shape(self) -> ArrayType:
+    def get_frame_shape(self) -> tuple[int, int]:
         """Get the frame shape (height, width) of the movie.
 
         Returns
         -------
-        ArrayType
+        tuple[int, int]
             The frame shape as (height, width).
         """
         return self._roi_masks.field_of_view_shape

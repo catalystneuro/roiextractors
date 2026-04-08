@@ -7,6 +7,8 @@
 * Added `mask_type` and `native_timestamps` parameters to `generate_dummy_segmentation_extractor()`. `mask_type` supports `"image"` (default) and `"pixel"` for testing sparse pixel mask workflows. `native_timestamps` supports `"evenly_spaced"` and `"unevenly_spaced"` for testing timestamp round-trips. [PR #561](https://github.com/catalystneuro/roiextractors/pull/561)
 
 ### Fixes
+* Removed `get_channel_names` from the base `ImagingExtractor` class. The implementation was broken for any extractor not defining `get_num_channels`. All concrete extractors already have their own deprecated override. `MultiImagingExtractor` and `VolumetricImagingExtractor` no longer enforce matching channel names across child extractors. `MemmapImagingExtractor` and `TiffImagingExtractor` now have their own deprecated `get_channel_names` (will be removed in or after October 2026). [PR #570](https://github.com/catalystneuro/roiextractors/pull/570)
+* Fixed return type annotations that incorrectly used `ArrayLike`/`DTypeLike` (meant for inputs) instead of concrete `np.ndarray`/`np.dtype` for outputs. Also fixed several potentially unbound variables that could crash at runtime. [PR #563](https://github.com/catalystneuro/roiextractors/pull/563)
 
 ### Deprecations And Removals
 * Deprecated `get_roi_locations()` method across `SegmentationExtractor`, `NwbSegmentationExtractor`, and `MultiSegmentationExtractor` (will be removed in or after September 2026). ROI centroids are now stored as a multi-dimensional property. Use `get_property("roi_centroids", roi_ids)` instead. [PR #557](https://github.com/catalystneuro/roiextractors/pull/557)
@@ -16,6 +18,7 @@
 * Deprecated `get_num_channels()` method in `SegmentationExtractor` (will be removed on or after September 2026). [PR #560](https://github.com/catalystneuro/roiextractors/pull/560)
 
 ### Improvements
+* Removed `ArrayType`, `DtypeType`, `FloatType`, and `NumpyArray` type aliases from `extraction_tools` and replaced all usages with direct `ArrayLike` and `DTypeLike` imports from `numpy.typing`, built-in `float`, and `np.ndarray`. [PR #568](https://github.com/catalystneuro/roiextractors/pull/568)
 * Sliced extractors (`SampleSlicedSegmentationExtractor` and `RoiSlicedSegmentationExtractor`) now use copy semantics for properties, so modifications on a child do not affect the parent and vice versa [PR #559](https://github.com/catalystneuro/roiextractors/pull/559)
 * Added documentation for the timestamp API: a user-facing guide (`timestamps.rst`) covering `get_timestamps()` and `set_times()`, and a developer-facing design decisions page (`design_decisions.rst`) explaining the separation of `get_native_timestamps` and `get_timestamps`, why `get_native_timestamps` is abstract, and copy vs. view semantics for sliced timestamps. Updated the extractor build guides (`build_ie.rst`, `build_re.rst`) to consistently document `get_native_timestamps`. [PR #552](https://github.com/catalystneuro/roiextractors/pull/552)
 

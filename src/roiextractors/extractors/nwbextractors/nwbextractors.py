@@ -192,6 +192,7 @@ class NwbImagingExtractor(ImagingExtractor):
         return self._sampling_frequency
 
     def get_channel_names(self):
+        """Return the channel names (deprecated)."""
         warnings.warn(
             "get_channel_names is deprecated and will be removed in May 2026 or after.",
             category=FutureWarning,
@@ -290,8 +291,9 @@ class NwbSegmentationExtractor(SegmentationExtractor):
                 "named RoiResponseSeries in nwbfile"
             )
         # Extract image_mask/background:
-        if "ImageSegmentation" in ophys.data_interfaces:
-            image_seg = ophys.data_interfaces["ImageSegmentation"]
+        if "ImageSegmentation" not in ophys.data_interfaces:
+            raise ValueError("Could not find ImageSegmentation in nwbfile.")
+        image_seg = ophys.data_interfaces["ImageSegmentation"]
         assert len(image_seg.plane_segmentations), "Could not find any PlaneSegmentation in nwbfile."
         if "PlaneSegmentation" in image_seg.plane_segmentations:  # this requirement in nwbfile is enforced
             ps = image_seg.plane_segmentations["PlaneSegmentation"]

@@ -18,7 +18,7 @@ from xml.etree import ElementTree
 
 import numpy as np
 
-from ...extraction_tools import DtypeType, PathType, get_package
+from ...extraction_tools import PathType, get_package
 from ...imagingextractor import ImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor
 
@@ -176,6 +176,7 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         return self._num_samples
 
     def get_channel_names(self) -> list:
+        """Return the channel names (deprecated)."""
         warnings.warn(
             "get_channel_names is deprecated and will be removed in May 2026 or after.",
             category=FutureWarning,
@@ -183,7 +184,7 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         )
         return self._channel_names
 
-    def get_dtype(self) -> DtypeType:
+    def get_dtype(self) -> np.dtype:
         return self._dtype
 
 
@@ -237,6 +238,7 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
         raise NotImplementedError(self.SAMPLING_FREQ_ERROR.format(self.extractor_name))
 
     def get_channel_names(self) -> list:
+        """Return the channel names (deprecated)."""
         warnings.warn(
             "get_channel_names is deprecated and will be removed in May 2026 or after.",
             category=FutureWarning,

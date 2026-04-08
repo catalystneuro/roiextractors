@@ -12,7 +12,6 @@ from warnings import warn
 import numpy as np
 
 from ...extraction_tools import (
-    FloatType,
     PathType,
     get_package,
     raise_multi_channel_or_depth_not_implemented,
@@ -26,7 +25,7 @@ class TiffImagingExtractor(ImagingExtractor):
     extractor_name = "TiffImaging"
     mode = "file"
 
-    def __init__(self, file_path: PathType, sampling_frequency: FloatType):
+    def __init__(self, file_path: PathType, sampling_frequency: float):
         """Create a TiffImagingExtractor instance from a TIFF file.
 
         Parameters
@@ -100,6 +99,15 @@ class TiffImagingExtractor(ImagingExtractor):
 
     def get_sampling_frequency(self):
         return self._sampling_frequency
+
+    def get_channel_names(self) -> list:
+        """Return the channel names (deprecated)."""
+        warn(
+            "get_channel_names is deprecated and will be removed in or after October 2026.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return [f"channel_{i}" for i in range(self._num_channels)]
 
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
