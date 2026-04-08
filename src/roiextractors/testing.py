@@ -61,17 +61,63 @@ def generate_dummy_video(
     return video
 
 
-class _DummyImagingExtractor(GaussianNoiseImagingExtractor):
-    """A private subclass of GaussianNoiseImagingExtractor that optionally provides native timestamps.
+class MockImagingExtractor(GaussianNoiseImagingExtractor):
+    """A mock imaging extractor for testing, extending GaussianNoiseImagingExtractor.
 
-    GaussianNoiseImagingExtractor returns None for get_native_timestamps() because generated
-    data does not have native timestamps. This subclass allows the dummy generator to optionally
-    produce timestamps without modifying the production class.
+    Adds two capabilities that the production class intentionally omits:
+
+    - ``native_timestamps``: synthetic timestamps generated from the sampling frequency,
+      either evenly spaced or with random jitter. The production class always returns None
+      because generated data has no inherent timestamps.
+    - ``dtype``: the tile is cast to the requested dtype after generation, and ``get_dtype``
+      reflects it. The production class is fixed at float32.
+
+    Parameters
+    ----------
+    native_timestamps : "evenly_spaced" | "unevenly_spaced" | None, default None
+        Controls whether the extractor returns native timestamps.
+        None: no native timestamps (returns None).
+        "evenly_spaced": evenly spaced timestamps based on sampling_frequency.
+        "unevenly_spaced": timestamps with small random jitter around the regular spacing.
+    dtype : DTypeLike, default np.float32
+        The dtype of the data returned by ``get_series``. The noise tile is cast to this
+        dtype at construction time.
+    *args, **kwargs
+        Passed through to ``GaussianNoiseImagingExtractor``.
     """
 
-    def __init__(self, *args, native_timestamps: np.ndarray | None = None, **kwargs):
+    def __init__(
+        self,
+        *args,
+        native_timestamps: Literal["evenly_spaced", "unevenly_spaced"] | None = None,
+        dtype: DTypeLike = np.float32,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
-        self._native_timestamps = native_timestamps
+        self._dtype = np.dtype(dtype)
+
+        valid_types = (None, "evenly_spaced", "unevenly_spaced")
+        if native_timestamps not in valid_types:
+            raise ValueError(f"native_timestamps must be one of {valid_types}, got '{native_timestamps}'")
+
+        rng = np.random.default_rng(self._seed)
+        num_samples = self.get_num_samples()
+        sampling_frequency = self.get_sampling_frequency()
+
+        if native_timestamps is None:
+            self._native_timestamps = None
+        elif native_timestamps == "evenly_spaced":
+            self._native_timestamps = np.arange(num_samples) / sampling_frequency
+        elif native_timestamps == "unevenly_spaced":
+            timestamps = np.arange(num_samples) / sampling_frequency
+            jitter = rng.normal(loc=0.0, scale=0.1 / sampling_frequency, size=num_samples)
+            self._native_timestamps = np.sort(timestamps + jitter)
+
+    def get_dtype(self) -> np.dtype:
+        return self._dtype
+
+    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
+        return super().get_series(start_sample, end_sample).astype(self._dtype, copy=False)
 
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
@@ -90,7 +136,7 @@ def generate_dummy_imaging_extractor(
     num_rows: int = 10,
     num_columns: int = 10,
     sampling_frequency: float = 30.0,
-    dtype: DTypeLike = "uint16",
+    dtype: DTypeLike = np.float32,
     seed: int = 0,
     num_samples: int | None = 30,
     has_native_timestamps: bool = False,
@@ -99,7 +145,7 @@ def generate_dummy_imaging_extractor(
 ):
     """Generate a dummy imaging extractor for testing.
 
-    The imaging extractor is built using a `GaussianNoiseImagingExtractor` which generates
+    The imaging extractor is built using a `MockImagingExtractor` which generates
     Gaussian noise on-the-fly.
 
     Parameters
@@ -111,7 +157,7 @@ def generate_dummy_imaging_extractor(
     sampling_frequency : float, optional
         sampling frequency of the video, by default 30.
     dtype : DTypeLike, optional
-        Deprecated. This parameter is no longer used. The extractor now always returns float32 data.
+        dtype of the returned data, by default np.float32.
     seed : int, default 0
         seed for the random number generator, by default 0.
     num_samples : int, default 30
@@ -131,15 +177,6 @@ def generate_dummy_imaging_extractor(
     ImagingExtractor
         An imaging extractor with random Gaussian noise data.
     """
-    if dtype != "uint16":
-        warnings.warn(
-            "dtype is deprecated and will be removed in or after September 2026. "
-            "generate_dummy_imaging_extractor now uses GaussianNoiseImagingExtractor "
-            "which always returns float32 data.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
     if has_native_timestamps:
         warnings.warn(
             "has_native_timestamps is deprecated and will be removed in or after September 2026. "
@@ -150,33 +187,16 @@ def generate_dummy_imaging_extractor(
         if native_timestamps is None:
             native_timestamps = "evenly_spaced"
 
-    rng = np.random.default_rng(seed)
-
-    # Generate native timestamps if requested
-    native_timestamps_array = None
-    if native_timestamps is None:
-        native_timestamps_array = None
-    elif native_timestamps == "evenly_spaced":
-        native_timestamps_array = np.arange(num_samples) / sampling_frequency
-    elif native_timestamps == "unevenly_spaced":
-        timestamps = np.arange(num_samples) / sampling_frequency
-        jitter = rng.normal(loc=0.0, scale=0.1 / sampling_frequency, size=num_samples)
-        native_timestamps_array = np.sort(timestamps + jitter)
-    else:
-        valid_types = (None, "evenly_spaced", "unevenly_spaced")
-        raise ValueError(f"native_timestamps must be one of {valid_types}, got '{native_timestamps}'")
-
-    imaging_extractor = _DummyImagingExtractor(
+    return MockImagingExtractor(
         num_samples=num_samples,
         num_rows=num_rows,
         num_columns=num_columns,
         num_planes=num_planes,
         sampling_frequency=sampling_frequency,
         seed=seed,
-        native_timestamps=native_timestamps_array,
+        native_timestamps=native_timestamps,
+        dtype=dtype,
     )
-
-    return imaging_extractor
 
 
 class _DummySegmentationExtractor(NumpySegmentationExtractor):

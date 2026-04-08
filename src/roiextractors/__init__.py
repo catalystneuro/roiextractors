@@ -10,3 +10,4 @@ from .extractorlist import *
 from .generation import GaussianNoiseImagingExtractor, PoissonNoiseImagingExtractor
 from .imagingextractor import ImagingExtractor
 from .segmentationextractor import SegmentationExtractor
+from .testing import MockImagingExtractor
