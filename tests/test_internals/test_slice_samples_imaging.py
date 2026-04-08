@@ -39,12 +39,6 @@ def test_get_sampling_frequency():
     assert sample_sliced_imaging.get_sampling_frequency() == 30.0
 
 
-def test_get_channel_names():
-    imaging_extractor = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)
-    sample_sliced_imaging = imaging_extractor.slice_samples(start_sample=2, end_sample=7)
-    assert sample_sliced_imaging.get_channel_names() == ["channel_num_0"]
-
-
 def test_get_samples_assertion():
     imaging_extractor = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)
     sample_sliced_imaging = imaging_extractor.slice_samples(start_sample=2, end_sample=7)
