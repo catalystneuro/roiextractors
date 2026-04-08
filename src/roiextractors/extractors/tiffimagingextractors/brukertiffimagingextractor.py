@@ -176,9 +176,9 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
         if num_channels > 1 and num_planes > 1:
             warnings.warn(
                 "Multi-channel volumetric Bruker data is not tested due to lack of sample data. "
-                "Use with care. If you have this type of data, please open an issue at "
-                "https://github.com/catalystneuro/roiextractors/issues "
-                "with a sample dataset so we can verify correctness.",
+                "Use with care. If you have this type of data and detect errors please open an issue at "
+                "https://github.com/catalystneuro/roiextractors/issues \n"
+                "We welcome sample data for improving our test coverage and ensuring correctness.",
                 stacklevel=2,
             )
 
