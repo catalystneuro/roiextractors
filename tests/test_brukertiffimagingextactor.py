@@ -253,13 +253,9 @@ class TestBrukerTiffExtractorDualColorCase(TestCase):
         )
 
 
-BRUKER_STUB_PATH = Path("/home/heberto/data/Bruker/stubs")
-bruker_stubs_available = pytest.mark.skipif(
-    not BRUKER_STUB_PATH.exists(), reason=f"Bruker stub data not found at {BRUKER_STUB_PATH}"
-)
+BRUKER_STUB_PATH = OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif"
 
 
-@bruker_stubs_available
 class TestBrukerTiffImagingExtractorSinglePlane:
     """Test BrukerTiffImagingExtractor with single-plane, single-channel data.
 
@@ -321,7 +317,6 @@ class TestBrukerTiffImagingExtractorSinglePlane:
         assert extractor.get_sampling_frequency() == pytest.approx(expected_frequency, rel=1e-4)
 
 
-@bruker_stubs_available
 class TestBrukerTiffImagingExtractorVolumetric:
     """Test BrukerTiffImagingExtractor with volumetric, single-channel data.
 
@@ -373,7 +368,6 @@ class TestBrukerTiffImagingExtractorVolumetric:
         assert extractor.get_sampling_frequency() == pytest.approx(expected_frequency, rel=1e-4)
 
 
-@bruker_stubs_available
 class TestBrukerTiffImagingExtractorDualChannel:
     """Test BrukerTiffImagingExtractor with single-plane, dual-channel data.
 
@@ -447,7 +441,6 @@ class TestBrukerTiffImagingExtractorDualChannelVolumetric:
     pass
 
 
-@bruker_stubs_available
 class TestBrukerTiffImagingExtractorErrors:
     """Test error handling for BrukerTiffImagingExtractor."""
 
