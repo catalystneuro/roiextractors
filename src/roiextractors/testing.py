@@ -62,45 +62,69 @@ def generate_dummy_video(
 
 
 class MockImagingExtractor(GaussianNoiseImagingExtractor):
-    """A mock imaging extractor for testing, extending GaussianNoiseImagingExtractor.
+    """A mock imaging extractor for use in tests.
 
-    Adds two capabilities that the production class intentionally omits:
-
-    - ``native_timestamps``: synthetic timestamps generated from the sampling frequency,
-      either evenly spaced or with random jitter. The production class always returns None
-      because generated data has no inherent timestamps.
-    - ``dtype``: the tile is cast to the requested dtype after generation, and ``get_dtype``
-      reflects it. The production class is fixed at float32.
+    Generates Gaussian noise data and supports optional synthetic timestamps and a
+    configurable dtype, making it suitable for testing code paths that depend on
+    those properties.
 
     Parameters
     ----------
+    num_samples : int, default 30
+        Number of samples in the video.
+    num_rows : int, default 10
+        Number of rows in each sample.
+    num_columns : int, default 10
+        Number of columns in each sample.
+    num_planes : int or None, default None
+        Number of depth planes. When not None the extractor is volumetric.
+    sampling_frequency : float, default 30.0
+        Sampling frequency in Hz.
+    seed : int, default 0
+        Random seed for reproducibility.
+    noise_mean : float, default 0.0
+        Mean of the Gaussian noise distribution.
+    noise_std : float, default 1.0
+        Standard deviation of the Gaussian noise distribution.
     native_timestamps : "evenly_spaced" | "unevenly_spaced" | None, default None
         Controls whether the extractor returns native timestamps.
         None: no native timestamps (returns None).
         "evenly_spaced": evenly spaced timestamps based on sampling_frequency.
         "unevenly_spaced": timestamps with small random jitter around the regular spacing.
     dtype : DTypeLike, default np.float32
-        The dtype of the data returned by ``get_series``. The noise tile is cast to this
-        dtype at construction time.
-    *args, **kwargs
-        Passed through to ``GaussianNoiseImagingExtractor``.
+        The dtype of the data returned by ``get_series``.
     """
 
     def __init__(
         self,
-        *args,
+        *,
+        num_samples: int = 30,
+        num_rows: int = 10,
+        num_columns: int = 10,
+        num_planes: int | None = None,
+        sampling_frequency: float = 30.0,
+        seed: int = 0,
+        noise_mean: float = 0.0,
+        noise_std: float = 1.0,
         native_timestamps: Literal["evenly_spaced", "unevenly_spaced"] | None = None,
         dtype: DTypeLike = np.float32,
-        **kwargs,
     ):
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            num_samples=num_samples,
+            num_rows=num_rows,
+            num_columns=num_columns,
+            num_planes=num_planes,
+            sampling_frequency=sampling_frequency,
+            seed=seed,
+            noise_mean=noise_mean,
+            noise_std=noise_std,
+        )
         self._dtype = np.dtype(dtype)
 
         valid_types = (None, "evenly_spaced", "unevenly_spaced")
         if native_timestamps not in valid_types:
             raise ValueError(f"native_timestamps must be one of {valid_types}, got '{native_timestamps}'")
 
-        rng = np.random.default_rng(self._seed)
         num_samples = self.get_num_samples()
         sampling_frequency = self.get_sampling_frequency()
 
@@ -109,6 +133,7 @@ class MockImagingExtractor(GaussianNoiseImagingExtractor):
         elif native_timestamps == "evenly_spaced":
             self._native_timestamps = np.arange(num_samples) / sampling_frequency
         elif native_timestamps == "unevenly_spaced":
+            rng = np.random.default_rng(self._seed)
             timestamps = np.arange(num_samples) / sampling_frequency
             jitter = rng.normal(loc=0.0, scale=0.1 / sampling_frequency, size=num_samples)
             self._native_timestamps = np.sort(timestamps + jitter)
