@@ -1,6 +1,7 @@
 # v0.8.1 (Upcoming)
 
 ### Features
+* Added `BrukerTiffImagingExtractor`, a unified extractor for Bruker Prairie View OME-TIFF files that inherits from `OMETiffImagingExtractor`. Reads structural metadata from OME-XML and derives timestamps from the Bruker configuration XML's `Frame/@relativeTime` attributes. Supports single-plane, volumetric, and multi-channel data. [PR #567](https://github.com/catalystneuro/roiextractors/pull/567)
 * Added `OMETiffImagingExtractor` for reading OME-TIFF files by parsing embedded OME-XML metadata. Supports all 6 valid dimension orders, multi-file datasets with TiffData file discovery, multi-channel selection, and volumetric data. Built on top of `MultiTIFFMultiPageExtractor`. [PR #566](https://github.com/catalystneuro/roiextractors/pull/566)
 * Added `PoissonNoiseImagingExtractor` and `GaussianNoiseImagingExtractor` for generating synthetic noise imaging data with volumetric support and a tile-pregenerated strategy for fast reads [PR #555](https://github.com/catalystneuro/roiextractors/pull/555)
 * Added `description` parameter to `set_property()` and `get_property_info()` method to `SegmentationExtractor`, allowing property descriptions to be stored and retrieved for use in NWB file metadata [PR #558](https://github.com/catalystneuro/roiextractors/pull/558)
@@ -11,6 +12,7 @@
 * Fixed return type annotations that incorrectly used `ArrayLike`/`DTypeLike` (meant for inputs) instead of concrete `np.ndarray`/`np.dtype` for outputs. Also fixed several potentially unbound variables that could crash at runtime. [PR #563](https://github.com/catalystneuro/roiextractors/pull/563)
 
 ### Deprecations And Removals
+* Deprecated `BrukerTiffSinglePlaneImagingExtractor` and `BrukerTiffMultiPlaneImagingExtractor` (will be removed in or after October 2026). Use `BrukerTiffImagingExtractor` instead. [PR #567](https://github.com/catalystneuro/roiextractors/pull/567)
 * Deprecated `get_roi_locations()` method across `SegmentationExtractor`, `NwbSegmentationExtractor`, and `MultiSegmentationExtractor` (will be removed in or after September 2026). ROI centroids are now stored as a multi-dimensional property. Use `get_property("roi_centroids", roi_ids)` instead. [PR #557](https://github.com/catalystneuro/roiextractors/pull/557)
 * Removed deprecated `check_get_videos_args()` function from `extraction_tools` (deprecated January 2026). The `get_video()` method it decorated was already removed. [PR #560](https://github.com/catalystneuro/roiextractors/pull/560)
 * Removed deprecated `write_to_h5_dataset_format()` function from `extraction_tools` (deprecated March 2026). ROIExtractors no longer supports write operations. [PR #560](https://github.com/catalystneuro/roiextractors/pull/560)
