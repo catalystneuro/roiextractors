@@ -83,7 +83,7 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
             BrukerTiffSinglePlaneImagingExtractor(folder_path=folder_path)
 
     def test_brukertiffextractor_image_size(self):
-        self.assertEqual(self.extractor.get_image_shape(), (512, 512))
+        self.assertEqual(self.extractor.get_image_shape(), (64, 64))
 
     def test_brukertiffextractor_num_frames(self):
         self.assertEqual(self.extractor.get_num_samples(), 10)
@@ -126,7 +126,7 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
             channel_streams=["Ch2"],
             plane_streams=dict(Ch2=["Ch2_000001", "Ch2_000002"]),
         )
-        cls.test_video = np.zeros((5, 512, 512, 2), dtype=np.uint16)
+        cls.test_video = np.zeros((5, 64, 64, 2), dtype=np.uint16)
         first_plane_video = _get_test_video(file_paths=first_plane_file_paths)
         cls.test_video[..., 0] = first_plane_video
         second_plane_video = _get_test_video(file_paths=second_plane_file_paths)
@@ -138,7 +138,7 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
         self.assertEqual(found_streams, expected_streams)
 
     def test_brukertiffextractor_image_size(self):
-        self.assertEqual(self.extractor.get_image_shape(), (512, 512))
+        self.assertEqual(self.extractor.get_image_shape(), (64, 64))
 
     def test_brukertiffextractor_num_frames(self):
         self.assertEqual(self.extractor.get_num_samples(), 5)
