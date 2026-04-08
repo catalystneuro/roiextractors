@@ -448,6 +448,12 @@ class TestBrukerTiffImagingExtractorErrors:
         with pytest.raises(FileNotFoundError, match="No .ome.tif files found"):
             BrukerTiffImagingExtractor(folder_path=tmp_path)
 
+    def test_pre_51_format_raises(self, tmp_path):
+        """Plain .tif files (no .ome.tif) indicate pre-5.1 Prairie View data."""
+        (tmp_path / "Image_001.tif").touch()
+        with pytest.raises(ValueError, match="No Bruker extractor in roiextractors supports pre-5.1 data"):
+            BrukerTiffImagingExtractor(folder_path=tmp_path)
+
     def test_missing_bruker_xml(self, tmp_path):
         dummy = tmp_path / "dummy.ome.tif"
         dummy.touch()
