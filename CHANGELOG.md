@@ -7,7 +7,7 @@
 * `generate_dummy_imaging_extractor()` now uses `GaussianNoiseImagingExtractor` internally and supports the `native_timestamps` parameter with `"evenly_spaced"` and `"unevenly_spaced"` options. [PR #561](https://github.com/catalystneuro/roiextractors/pull/561)
 
 ### Fixes
-* Removed `get_channel_names` from the base `ImagingExtractor` class. All concrete extractors that support channel names already expose their own deprecated override. `MultiImagingExtractor` and `VolumetricImagingExtractor` no longer enforce matching channel names across child extractors. `MemmapImagingExtractor` and `TiffImagingExtractor` now have their own deprecated `get_channel_names` override (will be removed in or after October 2026). [PR #562](https://github.com/catalystneuro/roiextractors/pull/562)
+* Removed `get_channel_names` from the base `ImagingExtractor` class. The implementation was broken for any extractor not defining `get_num_channels`. All concrete extractors already have their own deprecated override. `MultiImagingExtractor` and `VolumetricImagingExtractor` no longer enforce matching channel names across child extractors. `MemmapImagingExtractor` and `TiffImagingExtractor` now have their own deprecated `get_channel_names` (will be removed in or after October 2026). [PR #570](https://github.com/catalystneuro/roiextractors/pull/570)
 * Fixed return type annotations that incorrectly used `ArrayLike`/`DTypeLike` (meant for inputs) instead of concrete `np.ndarray`/`np.dtype` for outputs. Also fixed several potentially unbound variables that could crash at runtime. [PR #563](https://github.com/catalystneuro/roiextractors/pull/563)
 
 ### Deprecations And Removals

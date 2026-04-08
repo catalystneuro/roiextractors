@@ -50,7 +50,6 @@ class VolumetricImagingExtractor(ImagingExtractor):
             - sampling frequency
             - image size
             - number of channels
-            - channel names
             - data type
             - num_frames
         """
