@@ -11,7 +11,6 @@ from tests.setup_paths import OPHYS_DATA_PATH
 OME_TIFF_PATH = OPHYS_DATA_PATH / "imaging_datasets" / "OME-TIFF"
 
 
-@pytest.mark.skipif(not OME_TIFF_PATH.exists(), reason=f"Test data not found at {OME_TIFF_PATH}")
 class TestOMETiffImagingExtractor:
     """Test the OMETiffImagingExtractor with various OME-TIFF datasets."""
 
