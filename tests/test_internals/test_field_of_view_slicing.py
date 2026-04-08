@@ -82,7 +82,6 @@ class TestFieldOfViewSlicing2D:
 
         assert fov_sliced.get_num_samples() == imaging.get_num_samples()
         assert fov_sliced.get_sampling_frequency() == imaging.get_sampling_frequency()
-        assert fov_sliced.get_channel_names() == imaging.get_channel_names()
         assert fov_sliced.get_dtype() == imaging.get_dtype()
 
     def test_set_timestamps_preservation(self):
@@ -302,6 +301,5 @@ class TestFieldOfViewSlicingVolumetric:
 
         assert fov_sliced.get_num_samples() == volumetric.get_num_samples()
         assert fov_sliced.get_sampling_frequency() == volumetric.get_sampling_frequency()
-        assert fov_sliced.get_channel_names() == volumetric.get_channel_names()
         assert fov_sliced.get_dtype() == volumetric.get_dtype()
         assert fov_sliced.is_volumetric == volumetric.is_volumetric

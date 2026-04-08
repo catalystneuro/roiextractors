@@ -63,6 +63,7 @@ class InscopixImagingExtractor(ImagingExtractor):
         return 1 / self.movie.timing.period.secs_float
 
     def get_channel_names(self) -> list[str]:
+        """Return the channel names (deprecated)."""
         warnings.warn(
             "get_channel_names is deprecated and will be removed in May 2026 or after.",
             category=FutureWarning,
