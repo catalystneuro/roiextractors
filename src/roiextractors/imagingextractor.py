@@ -323,11 +323,12 @@ class ImagingExtractor(ABC):
         sample_indices: float or array-like
             The corresponding sample indices.
         """
-        # Default implementation
-        if self._times is None:
-            return np.round(times * self.get_sampling_frequency()).astype("int64")
+        # Ensure native timestamps are cached if available
+        self.get_timestamps()
+        if self._times is not None:
+            return (np.searchsorted(self._times, times, side="right") - 1).astype("int64")
         else:
-            return np.searchsorted(self._times, times).astype("int64")
+            return np.round(times * self.get_sampling_frequency()).astype("int64")
 
     def set_times(self, times: ArrayLike) -> None:
         """Set the recording times (in seconds) for each frame.

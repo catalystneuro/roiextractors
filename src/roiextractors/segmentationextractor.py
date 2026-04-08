@@ -838,6 +838,26 @@ class SegmentationExtractor(ABC):
         sample_indices = np.arange(start_sample, end_sample)
         return sample_indices / self.get_sampling_frequency()
 
+    def time_to_sample_indices(self, times: float | ArrayLike) -> np.ndarray:
+        """Convert user-inputted times (in seconds) to sample indices.
+
+        Parameters
+        ----------
+        times: float or array-like
+            The times (in seconds) to be converted to sample indices.
+
+        Returns
+        -------
+        sample_indices: np.ndarray
+            The corresponding sample indices.
+        """
+        # Ensure native timestamps are cached if available
+        self.get_timestamps()
+        if self._times is not None:
+            return (np.searchsorted(self._times, times, side="right") - 1).astype("int64")
+        else:
+            return np.round(times * self.get_sampling_frequency()).astype("int64")
+
     def set_property(self, key: str, values: ArrayLike, ids: ArrayLike, *, description: str = ""):
         """Set property values for ROIs.
 
