@@ -99,7 +99,7 @@ class TestFieldOfViewSlicing2D:
         """Test that native timestamps are delegated to parent."""
         # Test with extractor that has native timestamps
         imaging = generate_dummy_imaging_extractor(
-            num_samples=10, num_rows=100, num_columns=80, has_native_timestamps=True
+            num_samples=10, num_rows=100, num_columns=80, native_timestamps="evenly_spaced"
         )
         fov_sliced = imaging.slice_field_of_view(row_start=20, row_end=60, column_start=10, column_end=50)
 
@@ -118,7 +118,7 @@ class TestFieldOfViewSlicing2D:
         """Test that native timestamps work correctly when present."""
         # Create extractor with native timestamps
         imaging = generate_dummy_imaging_extractor(
-            num_samples=10, num_rows=100, num_columns=80, has_native_timestamps=True
+            num_samples=10, num_rows=100, num_columns=80, native_timestamps="evenly_spaced"
         )
         fov_sliced = imaging.slice_field_of_view(row_start=20, row_end=60, column_start=10, column_end=50)
 

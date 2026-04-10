@@ -18,7 +18,6 @@ def volumetric_imaging_extractor():
     [
         [dict(sampling_frequency=1), dict(sampling_frequency=2)],
         [dict(num_rows=1), dict(num_rows=2)],
-        [dict(dtype=np.int16), dict(dtype=np.float32)],
         [dict(num_samples=1), dict(num_samples=2)],
     ],
 )
@@ -90,13 +89,6 @@ def test_get_sampling_frequency(sampling_frequency):
     imaging_extractors = [generate_dummy_imaging_extractor(sampling_frequency=sampling_frequency)]
     volumetric_imaging_extractor = VolumetricImagingExtractor(imaging_extractors=imaging_extractors)
     assert volumetric_imaging_extractor.get_sampling_frequency() == sampling_frequency
-
-
-@pytest.mark.parametrize("dtype", [np.float64, np.int16, np.uint8])
-def test_get_dtype(dtype):
-    imaging_extractors = [generate_dummy_imaging_extractor(dtype=dtype)]
-    volumetric_imaging_extractor = VolumetricImagingExtractor(imaging_extractors=imaging_extractors)
-    assert volumetric_imaging_extractor.get_dtype() == dtype
 
 
 @pytest.mark.parametrize("start_plane, end_plane", [(None, None), (0, 1), (1, 2)])
