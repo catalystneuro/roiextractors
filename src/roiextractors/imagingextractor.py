@@ -324,7 +324,9 @@ class ImagingExtractor(ABC):
             The corresponding sample indices.
         """
         # Ensure native timestamps are cached if available
-        self.get_timestamps()
+        native_timestamps = self.get_native_timestamps()
+        if native_timestamps is not None:
+            self._times = native_timestamps  # Cache the native timestamps
         if self._times is not None:
             return (np.searchsorted(self._times, times, side="right") - 1).astype("int64")
         else:
