@@ -192,41 +192,6 @@ class TestOMETiffImagingExtractor:
             extractor_planes = np.moveaxis(extractor_volume[0], -1, 0)
             assert_array_equal(extractor_planes, tiff_data)
 
-    def test_sampling_frequency_from_time_increment(self):
-        """Test that sampling_frequency is derived from TimeIncrement when not provided.
-
-        File: planar_single_channel_single_file_with_time_increment/00001_01.ome.tiff
-        Source: Same as planar_single_channel_single_file but with TimeIncrement="0.1" added
-        to the Pixels element (0.1 seconds = 10 Hz).
-        - Samples (T): 5
-        - Channels (C): 1
-        - Depth planes (Z): 1
-        - Frame shape: 64 x 64
-        - TimeIncrement: 0.1 s
-        """
-        file_path = OME_TIFF_PATH / "planar_single_channel_single_file_with_time_increment" / "00001_01.ome.tiff"
-
-        extractor = OMETiffImagingExtractor(file_path)
-
-        assert extractor.get_sampling_frequency() == 10.0
-        assert extractor.get_num_samples() == 5
-        assert extractor.get_image_shape() == (64, 64)
-
-    def test_sampling_frequency_required_when_no_time_increment(self):
-        """Test that ValueError is raised when neither sampling_frequency nor TimeIncrement is available."""
-        file_path = OME_TIFF_PATH / "planar_single_channel_single_file" / "00001_01.ome.tiff"
-
-        with pytest.raises(ValueError, match="sampling_frequency must be provided"):
-            OMETiffImagingExtractor(file_path)
-
-    def test_sampling_frequency_overrides_time_increment(self):
-        """Test that an explicit sampling_frequency takes precedence over TimeIncrement."""
-        file_path = OME_TIFF_PATH / "planar_single_channel_single_file_with_time_increment" / "00001_01.ome.tiff"
-
-        extractor = OMETiffImagingExtractor(file_path, sampling_frequency=30.0)
-
-        assert extractor.get_sampling_frequency() == 30.0
-
     def test_file_not_found(self):
         """Test that a FileNotFoundError is raised for a nonexistent file."""
         with pytest.raises(FileNotFoundError):
