@@ -13,35 +13,6 @@ from xml.etree import ElementTree as ET
 from .multitiffmultipageextractor import MultiTIFFMultiPageExtractor
 from ...extraction_tools import PathType, get_package
 
-# Conversion factors from OME UnitsTime to seconds. Covers the full enumeration
-# from the OME 2016-06 schema (https://www.openmicroscopy.org/Schemas/Documentation/Generated/OME-2016-06/ome.html).
-_TIME_UNIT_TO_SECONDS = {
-    "Ys": 1e24,
-    "Zs": 1e21,
-    "Es": 1e18,
-    "Ps": 1e15,
-    "Ts": 1e12,
-    "Gs": 1e9,
-    "Ms": 1e6,
-    "ks": 1e3,
-    "hs": 1e2,
-    "das": 1e1,
-    "s": 1.0,
-    "ds": 1e-1,
-    "cs": 1e-2,
-    "ms": 1e-3,
-    "\u00b5s": 1e-6,
-    "ns": 1e-9,
-    "ps": 1e-12,
-    "fs": 1e-15,
-    "as": 1e-18,
-    "zs": 1e-21,
-    "ys": 1e-24,
-    "min": 60.0,
-    "h": 3600.0,
-    "d": 86400.0,
-}
-
 
 class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
     """An extractor for OME-TIFF files that automatically parses metadata from embedded OME-XML.
@@ -71,6 +42,35 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
     """
 
     extractor_name = "OMETiffImagingExtractor"
+
+    # Conversion factors from OME UnitsTime to seconds. Covers the full enumeration
+    # from the OME 2016-06 schema (https://www.openmicroscopy.org/Schemas/Documentation/Generated/OME-2016-06/ome.html).
+    _TIME_UNIT_TO_SECONDS = {
+        "Ys": 1e24,
+        "Zs": 1e21,
+        "Es": 1e18,
+        "Ps": 1e15,
+        "Ts": 1e12,
+        "Gs": 1e9,
+        "Ms": 1e6,
+        "ks": 1e3,
+        "hs": 1e2,
+        "das": 1e1,
+        "s": 1.0,
+        "ds": 1e-1,
+        "cs": 1e-2,
+        "ms": 1e-3,
+        "\u00b5s": 1e-6,
+        "ns": 1e-9,
+        "ps": 1e-12,
+        "fs": 1e-15,
+        "as": 1e-18,
+        "zs": 1e-21,
+        "ys": 1e-24,
+        "min": 60.0,
+        "h": 3600.0,
+        "d": 86400.0,
+    }
 
     def __init__(
         self,
@@ -162,7 +162,7 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         if time_increment_str is not None:
             time_increment = float(time_increment_str)
             unit = pixels_element.get("TimeIncrementUnit", "s")
-            time_increment_in_seconds = time_increment * _TIME_UNIT_TO_SECONDS[unit]
+            time_increment_in_seconds = time_increment * OMETiffImagingExtractor._TIME_UNIT_TO_SECONDS[unit]
             sampling_frequency = 1.0 / time_increment_in_seconds
         else:
             sampling_frequency = None
