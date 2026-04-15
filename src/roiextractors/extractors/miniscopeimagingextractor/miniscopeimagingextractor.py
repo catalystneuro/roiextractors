@@ -708,6 +708,12 @@ class MiniscopeMultiRecordingImagingExtractor(MiniscopeImagingExtractor):
 
     def __init__(self, folder_path: PathType, miniscope_device_name: str = "Miniscope"):
         """Create a MiniscopeMultiRecordingImagingExtractor instance from folder_path."""
+        warnings.warn(
+            "MiniscopeMultiRecordingImagingExtractor is deprecated and will be removed in or after December 2026. "
+            "Use MiniscopeImagingExtractor with explicit file_paths instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         self.miniscope_device_name = miniscope_device_name
         self.folder_path = Path(folder_path)
 
