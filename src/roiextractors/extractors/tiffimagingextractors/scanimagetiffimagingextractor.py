@@ -922,48 +922,54 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
     def get_original_frame_indices(self, plane_index: int | None = None) -> np.ndarray:
         """
-        Get the original frame indices for each sample.
+        Map each extractor sample back to its corresponding raw frame index in the TIFF file(s).
 
-        Returns the index of the original frame for each sample, mapping processed samples
-        back to their corresponding frames in the raw microscopy data. This accounts for
-        any filtering, subsampling, or exclusions (such as flyback frames) performed by
-        the extractor.
+        The extractor presents imaging data as a sequence of samples, abstracting away
+        the underlying file structure (channel interleaving, flyback frames, multi-file
+        splits, volumetric plane ordering). This method reverses that abstraction,
+        returning the raw Image File Directory (IFD) index for each sample.
+
+        This is primarily useful for temporal alignment with external acquisition systems.
+        When an external device (e.g., a DAQ) records one sync pulse per raw frame,
+        these indices let you look up the corresponding sync timestamp for each
+        extractor sample.
 
         Parameters
         ----------
         plane_index : int, optional
-            Which plane to use for frame index calculation in volumetric data.
-            If None, plane_index is set to the last plane in the volume. This is because the timestamp of the acquisition of the last plane in a volume is typically set as the timestamp of the volume as a whole. It must be less than the total number of planes.
+            For volumetric data, which Z-plane's frame index to return for each volume.
+            Defaults to the last plane, as acquisition systems commonly assign the
+            volume timestamp at the end of the volume scan. Set to 0 if your system
+            timestamps at the start of each volume.
 
         Returns
         -------
         np.ndarray
-            Array of original frame indices (dtype: int64) with length equal to the
-            number of samples. Each element represents the index of the original
-            microscopy frame that corresponds to that sample.
+            Array of shape (num_samples,) with dtype int64. Each element is a global
+            IFD index across all files in the dataset.
 
         Notes
         -----
-        **Frame Index Calculation:**
+        The returned indices account for:
 
-        - **Planar data**: Frame indices are sequential (0, 1, 2, ...)
-        - **Multi-channel data**: Accounts for channel interleaving
-        - **Volumetric data**: Uses the specified plane (default: last plane)
-        - **Multi-file data**: Includes file offsets for global indexing
-        - **Flyback frames**: Automatically excluded from indexing
+        - Channel interleaving (CZT frame ordering in ScanImage)
+        - Flyback frame exclusion
+        - Multi-file IFD offsets (indices are global, not per-file)
+        - Plane selection in volumetric data
 
-        **Common Use Cases:**
+        For multi-channel data, note that the raw frame indices include the channel
+        dimension. If your sync system fires once per plane (not once per channel
+        per plane), divide the returned indices by the number of channels to get
+        the sync pulse index.
 
-        - Synchronizing with external timing systems
-        - Mapping back to original acquisition timestamps
-        - Data provenance and traceability
-        - Cross-referencing with raw data files
+        Examples
+        --------
+        Aligning with sync pulses from an external DAQ:
 
-        **Examples:**
-
-        For a 3-sample volumetric dataset with 5 planes per volume:
-        - Default behavior returns indices [4, 9, 14] (last plane of each volumetric sample)
-        - With plane_index=0 returns indices [0, 5, 10] (first plane of each volumetric sample)
+        >>> frame_indices = extractor.get_original_frame_indices()
+        >>> # If sync fires once per plane (not per channel), adjust:
+        >>> sync_indices = frame_indices // num_channels
+        >>> aligned_timestamps = sync_timestamps[sync_indices]
         """
         num_planes = self.get_num_planes()
         if plane_index is not None:
