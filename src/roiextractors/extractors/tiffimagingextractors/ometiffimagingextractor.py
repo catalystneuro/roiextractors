@@ -60,7 +60,7 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         "ds": 1e-1,
         "cs": 1e-2,
         "ms": 1e-3,
-        "\u00b5s": 1e-6,
+        "\u00b5s": 1e-6,  # micro sign (U+00B5), used by OME-XML for microseconds
         "ns": 1e-9,
         "ps": 1e-12,
         "fs": 1e-15,
