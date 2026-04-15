@@ -13,35 +13,6 @@ from xml.etree import ElementTree as ET
 from .multitiffmultipageextractor import MultiTIFFMultiPageExtractor
 from ...extraction_tools import PathType, get_package
 
-# Conversion factors from OME UnitsTime to seconds. Covers the full enumeration
-# from the OME 2016-06 schema (https://www.openmicroscopy.org/Schemas/Documentation/Generated/OME-2016-06/ome.html).
-_TIME_UNIT_TO_SECONDS = {
-    "Ys": 1e24,
-    "Zs": 1e21,
-    "Es": 1e18,
-    "Ps": 1e15,
-    "Ts": 1e12,
-    "Gs": 1e9,
-    "Ms": 1e6,
-    "ks": 1e3,
-    "hs": 1e2,
-    "das": 1e1,
-    "s": 1.0,
-    "ds": 1e-1,
-    "cs": 1e-2,
-    "ms": 1e-3,
-    "\u00b5s": 1e-6,
-    "ns": 1e-9,
-    "ps": 1e-12,
-    "fs": 1e-15,
-    "as": 1e-18,
-    "zs": 1e-21,
-    "ys": 1e-24,
-    "min": 60.0,
-    "h": 3600.0,
-    "d": 86400.0,
-}
-
 
 class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
     """An extractor for OME-TIFF files that automatically parses metadata from embedded OME-XML.
@@ -58,13 +29,8 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
     file_path : str or Path
         Path to an OME-TIFF file (.ome.tif or .ome.tiff). For multi-file datasets,
         this should be the file containing the full OME-XML metadata (typically the first file).
-    sampling_frequency : float or None, optional
-        The sampling frequency in Hz. If None, the extractor will attempt to derive it from
-        the TimeIncrement attribute on the Pixels element in the OME-XML metadata
-        (as 1.0 / TimeIncrement). Per the OME specification (https://www.openmicroscopy.org/Schemas/Documentation/Generated/OME-2016-06/ome.html), TimeIncrement
-        stores the global time interval between timepoints in seconds. If neither
-        sampling_frequency nor TimeIncrement is available, a ValueError is raised.
-        Default is None.
+    sampling_frequency : float
+        The sampling frequency in Hz.
     channel_name : str or None, optional
         Name of the channel to extract (e.g., "0", "1"). Required when the data has
         more than one channel. Default is None.
@@ -75,19 +41,10 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
     def __init__(
         self,
         file_path: PathType,
-        sampling_frequency: float | None = None,
+        sampling_frequency: float,
         channel_name: str | None = None,
     ):
         metadata = self._parse_ome_metadata(file_path)
-
-        metadata_sampling_frequency = metadata.pop("sampling_frequency", None)
-        if sampling_frequency is None:
-            if metadata_sampling_frequency is None:
-                raise ValueError(
-                    "sampling_frequency must be provided when the OME-XML metadata "
-                    "does not contain a TimeIncrement attribute on the Pixels element."
-                )
-            sampling_frequency = metadata_sampling_frequency
 
         super().__init__(
             sampling_frequency=sampling_frequency,
@@ -116,9 +73,7 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         Returns
         -------
         dict
-            Dictionary with keys: file_paths, dimension_order, num_channels, num_planes,
-            and optionally sampling_frequency (float, in Hz) if the Pixels element has
-            a TimeIncrement attribute.
+            Dictionary with keys: file_paths, dimension_order, num_channels, num_planes.
         """
         tifffile = get_package(package_name="tifffile")
 
@@ -154,19 +109,6 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         num_channels = int(pixels_element.get("SizeC", "1"))
         num_planes = int(pixels_element.get("SizeZ", "1"))
 
-        # TimeIncrement is a global timing attribute on Pixels (OME spec:
-        # https://www.openmicroscopy.org/Schemas/Documentation/Generated/OME-2016-06/ome.html):
-        # "used for time series that have a global timing specification instead of
-        # per-timepoint timing info". TimeIncrementUnit defaults to seconds ("s").
-        time_increment_str = pixels_element.get("TimeIncrement")
-        if time_increment_str is not None:
-            time_increment = float(time_increment_str)
-            unit = pixels_element.get("TimeIncrementUnit", "s")
-            time_increment_in_seconds = time_increment * _TIME_UNIT_TO_SECONDS[unit]
-            sampling_frequency = 1.0 / time_increment_in_seconds
-        else:
-            sampling_frequency = None
-
         # Convert OME dimension order (e.g. "XYCZT") to 3-letter format (e.g. "CZT")
         dimension_order = ome_dimension_order.replace("X", "").replace("Y", "")
 
@@ -181,16 +123,12 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
             key=lambda fp: tuple(file_positions[fp][k] for k in sort_keys) + (file_positions[fp]["ifd"],),
         )
 
-        result = dict(
+        return dict(
             file_paths=file_paths,
             dimension_order=dimension_order,
             num_channels=num_channels,
             num_planes=num_planes,
         )
-        if sampling_frequency is not None:
-            result["sampling_frequency"] = sampling_frequency
-
-        return result
 
     @staticmethod
     def _parse_file_paths_from_ome_metadata(pixels_element: ET.Element, source_file_path: Path) -> dict[Path, dict]:
