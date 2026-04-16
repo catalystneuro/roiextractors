@@ -227,6 +227,35 @@ class TestOMETiffImagingExtractor:
 
         assert extractor.get_sampling_frequency() == 30.0
 
+    def test_native_timestamps_from_delta_t(self):
+        """Test that native timestamps are extracted from Plane/@DeltaT attributes.
+
+        File: planar_single_channel_single_file_with_delta_t/00001_01.ome.tiff
+        Source: Same as planar_single_channel_single_file but with 5 Plane elements added,
+        each with non-uniform DeltaT values.
+        - Samples (T): 5
+        - Channels (C): 1
+        - Depth planes (Z): 1
+        - Frame shape: 64 x 64
+        - DeltaT values: [0.0, 0.0651, 0.1337, 0.1982, 0.2671] seconds
+        """
+        file_path = OME_TIFF_PATH / "planar_single_channel_single_file_with_delta_t" / "00001_01.ome.tiff"
+
+        extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0)
+
+        timestamps = extractor.get_native_timestamps()
+        assert timestamps is not None
+        expected = np.array([0.0, 0.0651, 0.1337, 0.1982, 0.2671])
+        np.testing.assert_allclose(timestamps, expected)
+
+    def test_native_timestamps_none_when_no_delta_t(self):
+        """Test that get_native_timestamps returns None when Plane elements lack DeltaT."""
+        file_path = OME_TIFF_PATH / "planar_single_channel_single_file" / "00001_01.ome.tiff"
+
+        extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0)
+
+        assert extractor.get_native_timestamps() is None
+
     def test_file_not_found(self):
         """Test that a FileNotFoundError is raised for a nonexistent file."""
         with pytest.raises(FileNotFoundError):
