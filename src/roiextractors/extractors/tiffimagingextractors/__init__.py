@@ -36,6 +36,7 @@ MultiTIFFMultiPageExtractor
 """
 
 from .brukertiffimagingextractor import (
+    BrukerTiffImagingExtractor,
     BrukerTiffMultiPlaneImagingExtractor,
     BrukerTiffSinglePlaneImagingExtractor,
 )
