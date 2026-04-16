@@ -108,6 +108,14 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
 
         # Validate that timestamps cover all timepoints; discard if incomplete
         if self._ome_timestamps is not None and len(self._ome_timestamps) != self.get_num_samples():
+            import warnings
+
+            warnings.warn(
+                f"OME-XML contains Plane elements with DeltaT but only {len(self._ome_timestamps)} "
+                f"of {self.get_num_samples()} timepoints have timestamps. "
+                f"Falling back to timestamps derived from sampling_frequency.",
+                stacklevel=2,
+            )
             self._ome_timestamps = None
 
     def get_native_timestamps(
