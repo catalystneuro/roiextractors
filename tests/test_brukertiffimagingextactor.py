@@ -389,13 +389,13 @@ class TestBrukerTiffImagingExtractorDualChannel:
         with pytest.raises(ValueError, match="channel_name must be specified"):
             BrukerTiffImagingExtractor(folder_path=self.folder_path)
 
-        ext_ch0 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="0")
+        ext_ch0 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch1")
         assert ext_ch0.get_image_shape() == (64, 64)
         assert ext_ch0.get_num_samples() == 5
         assert ext_ch0.get_dtype() == np.uint16
         assert ext_ch0.is_volumetric is False
 
-        ext_ch1 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="1")
+        ext_ch1 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
         assert ext_ch1.get_num_samples() == 5
 
         # Verify data values match the raw TIFF files per channel
@@ -408,7 +408,7 @@ class TestBrukerTiffImagingExtractorDualChannel:
         assert not np.array_equal(expected_ch0, expected_ch1)
 
     def test_invalid_channel_raises(self):
-        with pytest.raises(ValueError, match="channel_index .* is out of range"):
+        with pytest.raises(ValueError, match="Channel '5' not found.*Available channels"):
             BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="5")
 
     def test_timestamps_and_sampling_frequency(self):
@@ -418,7 +418,7 @@ class TestBrukerTiffImagingExtractorDualChannel:
         recomputed from sampling_frequency). The sampling frequency is derived from
         these timestamps.
         """
-        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="0")
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch1")
 
         # Hardcoded relativeTime values extracted from the stub's Bruker XML
         expected_timestamps = np.array([0.0, 0.00474538, 0.00949076, 0.01423614, 0.01898152])

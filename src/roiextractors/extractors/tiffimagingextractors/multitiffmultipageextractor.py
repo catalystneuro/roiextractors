@@ -167,27 +167,21 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         if num_planes < 1:
             raise ValueError("num_planes must be at least 1")
 
+        self._file_paths = [Path(file_path) for file_path in file_paths]
+        self._dimension_order = dimension_order
+        self._num_channels = num_channels
+
         # Handle channel selection
         if num_channels > 1:
             if channel_name is None:
                 raise ValueError("channel_name must be specified when num_channels > 1")
-            # Parse channel name to get index (assumes numeric format "0", "1", etc.)
-            try:
-                channel_index = int(channel_name)
-            except ValueError:
-                raise ValueError(
-                    f"Invalid channel name format: {channel_name}. Expected numeric format: '0', '1', etc."
-                )
+            available_names = self._get_channel_names()
+            if channel_name not in available_names:
+                raise ValueError(f"Channel '{channel_name}' not found. Available channels: {available_names}")
+            channel_index = available_names.index(channel_name)
         else:
             channel_index = 0  # Single channel case
 
-        # Validate channel_index
-        if channel_index >= num_channels:
-            raise ValueError(f"channel_index {channel_index} is out of range (0 to {num_channels-1})")
-
-        self._file_paths = [Path(file_path) for file_path in file_paths]
-        self._dimension_order = dimension_order
-        self._num_channels = num_channels
         self._channel_index = channel_index
         self._num_planes = num_planes
         self._sampling_frequency = sampling_frequency
@@ -512,6 +506,23 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         """No native timestamps for native this extractor."""
         return None
 
+    def _get_channel_names(self) -> list[str]:
+        """Return valid channel names for this extractor.
+
+        This method is the single point where valid channel names are defined.
+        During ``__init__``, the base class calls this to get the list of names,
+        checks whether the user's ``channel_name`` argument is in the list, and
+        resolves it to a positional index via ``.index()``. The latter is needed
+        because the layout on disk is integer based. The resolution logic,
+        validation, and error messages all live in the base class. Subclasses only
+        need to override this method to return their format-specific names.
+
+        Default implementation returns numeric strings ("0", "1", ...).
+        ``OMETiffImagingExtractor`` overrides this to return names from OME-XML
+        ``Channel/@Name`` attributes (e.g. "Ch1", "GFP") when present.
+        """
+        return [str(i) for i in range(self._num_channels)]
+
     def get_channel_names(self):
         """Return the channel names (deprecated)."""
         warnings.warn(
@@ -519,5 +530,4 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             category=FutureWarning,
             stacklevel=2,
         )
-        channel_names = [str(i) for i in range(self._num_channels)]
-        return channel_names
+        return self._get_channel_names()
