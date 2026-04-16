@@ -111,7 +111,7 @@ known-first-party = ["roiextractors"]
 [tool.codespell]
 skip = '.git*,*.pdf,*.css,*.svg'
 check-hidden = true
-ignore-words-list = 'assertin,tye'
+ignore-words-list = 'assertin,tye,thet'
 
 [dependency-groups]
 test = [
