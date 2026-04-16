@@ -227,6 +227,38 @@ class TestOMETiffImagingExtractor:
 
         assert extractor.get_sampling_frequency() == 30.0
 
+    def test_channel_names_from_ome_xml(self):
+        """Test that real channel names from OME-XML Channel/@Name are used when present.
+
+        Uses the Bruker dual-channel stub which has Channel/@Name="Ch1" and "Ch2".
+        """
+        bruker_path = OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif" / "TSeries-20240527-001"
+        ome_file = bruker_path / "TSeries-20240527-001_Cycle00001_Ch1_000001.ome.tif"
+
+        names = OMETiffImagingExtractor.get_available_channel_names(ome_file)
+        assert names == ["Ch1", "Ch2"]
+
+        extractor = OMETiffImagingExtractor(ome_file, sampling_frequency=1.0, channel_name="Ch1")
+        assert extractor.get_num_samples() == 5
+
+    def test_channel_names_numeric_fallback(self):
+        """Test that numeric string names are used when OME-XML has no Channel/@Name."""
+        file_path = OME_TIFF_PATH / "planar_multi_channel_single_file" / "multi-channel-time-series.ome.tiff"
+
+        names = OMETiffImagingExtractor.get_available_channel_names(file_path)
+        assert names == ["0", "1", "2"]
+
+        extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0, channel_name="0")
+        assert extractor.get_num_samples() == 7
+
+    def test_invalid_channel_name_shows_available(self):
+        """Test that error message shows available channel names."""
+        bruker_path = OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif" / "TSeries-20240527-001"
+        ome_file = bruker_path / "TSeries-20240527-001_Cycle00001_Ch1_000001.ome.tif"
+
+        with pytest.raises(ValueError, match="Channel 'bad' not found.*Available channels.*Ch1.*Ch2"):
+            OMETiffImagingExtractor(ome_file, sampling_frequency=1.0, channel_name="bad")
+
     def test_file_not_found(self):
         """Test that a FileNotFoundError is raised for a nonexistent file."""
         with pytest.raises(FileNotFoundError):
