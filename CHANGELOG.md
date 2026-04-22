@@ -20,6 +20,7 @@
 * Removed deprecated `write_to_h5_dataset_format()` function from `extraction_tools` (deprecated March 2026). ROIExtractors no longer supports write operations. [PR #560](https://github.com/catalystneuro/roiextractors/pull/560)
 * The `configuration_file_path` parameter in `MiniscopeImagingExtractor` is now ignored and will be removed on or after May 2026 (pending neuroconv deprecation timeline). The device folder is automatically inferred from `file_paths`. [PR #560](https://github.com/catalystneuro/roiextractors/pull/560)
 * Deprecated `get_num_channels()` method in `SegmentationExtractor` (will be removed on or after September 2026). [PR #560](https://github.com/catalystneuro/roiextractors/pull/560)
+* Deprecated `MiniscopeMultiRecordingImagingExtractor` (will be removed in or after December 2026). Use `MiniscopeImagingExtractor` with explicit `file_paths` instead. The neuroconv legacy path that consumed this class has also been deprecated (catalystneuro/neuroconv#1706). [PR #572](https://github.com/catalystneuro/roiextractors/pull/572)
 
 ### Improvements
 * Improved the docstring for `get_original_frame_indices()` in `ScanImageTiffImagingExtractor` to better explain the core motivation (mapping samples to raw IFD indices for temporal alignment with external acquisition systems) and to clarify the multi-channel sync pulse adjustment. [PR #569](https://github.com/catalystneuro/roiextractors/pull/569)
