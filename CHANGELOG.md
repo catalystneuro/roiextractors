@@ -27,6 +27,7 @@
 * Removed `ArrayType`, `DtypeType`, `FloatType`, and `NumpyArray` type aliases from `extraction_tools` and replaced all usages with direct `ArrayLike` and `DTypeLike` imports from `numpy.typing`, built-in `float`, and `np.ndarray`. [PR #568](https://github.com/catalystneuro/roiextractors/pull/568)
 * Sliced extractors (`SampleSlicedSegmentationExtractor` and `RoiSlicedSegmentationExtractor`) now use copy semantics for properties, so modifications on a child do not affect the parent and vice versa [PR #559](https://github.com/catalystneuro/roiextractors/pull/559)
 * Added documentation for the timestamp API: a user-facing guide (`timestamps.rst`) covering `get_timestamps()` and `set_times()`, and a developer-facing design decisions page (`design_decisions.rst`) explaining the separation of `get_native_timestamps` and `get_timestamps`, why `get_native_timestamps` is abstract, and copy vs. view semantics for sliced timestamps. Updated the extractor build guides (`build_ie.rst`, `build_re.rst`) to consistently document `get_native_timestamps`. [PR #552](https://github.com/catalystneuro/roiextractors/pull/552)
+* Updated GitHub Actions to `actions/checkout@v6` and `actions/setup-python@v6` for Node.js 24 compatibility ahead of GitHub's removal of Node.js 20 runners on September 16, 2026. [PR #576](https://github.com/catalystneuro/roiextractors/pull/576)
 
 
 # v0.8.0 (February 10th, 2026)
