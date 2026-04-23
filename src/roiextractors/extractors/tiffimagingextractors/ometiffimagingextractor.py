@@ -10,6 +10,8 @@ OMETiffImagingExtractor
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+import numpy as np
+
 from .multitiffmultipageextractor import MultiTIFFMultiPageExtractor
 from ...extraction_tools import PathType, get_package
 
@@ -90,10 +92,55 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
             sampling_frequency = metadata_sampling_frequency
 
         super().__init__(
+            file_paths=metadata["file_paths"],
             sampling_frequency=sampling_frequency,
             channel_name=channel_name,
-            **metadata,
+            dimension_order=metadata["dimension_order"],
+            num_channels=metadata["num_channels"],
+            num_planes=metadata["num_planes"],
         )
+
+    def get_native_timestamps(
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
+        """Return per-timepoint timestamps from OME-XML Plane/@DeltaT attributes.
+
+        Parses the OME-XML on demand. Filters to the selected channel and uses Z=0
+        planes for volumetric data to get one timestamp per timepoint. Returns None
+        if no matching timestamps are found or if the count doesn't match num_samples.
+        """
+        all_planes = self._parse_ome_native_timestamps(self._file_paths[0])
+        if all_planes is None:
+            return None
+
+        # Filter planes to get one timestamp per timepoint
+        timepoint_to_delta_t: dict[int, float] = {}
+        for plane in all_planes:
+            if self._num_channels > 1 and plane["the_c"] != self._channel_index:
+                continue
+            if self.is_volumetric and plane["the_z"] != 0:
+                continue
+            timepoint_to_delta_t[plane["the_t"]] = plane["delta_t_seconds"]
+
+        if not timepoint_to_delta_t:
+            return None
+
+        sorted_timepoints = sorted(timepoint_to_delta_t.keys())
+        timestamps = np.array([timepoint_to_delta_t[t] for t in sorted_timepoints])
+
+        if len(timestamps) != self.get_num_samples():
+            import warnings
+
+            warnings.warn(
+                f"OME-XML contains Plane elements with DeltaT but only {len(timestamps)} "
+                f"of {self.get_num_samples()} timepoints have timestamps. "
+                f"Native timestamps will not be used. "
+                f"Call _parse_ome_native_timestamps() directly to inspect the raw timestamps.",
+                stacklevel=2,
+            )
+            return None
+
+        return timestamps[start_sample:end_sample]
 
     @staticmethod
     def _parse_ome_metadata(file_path: PathType) -> dict:
@@ -189,7 +236,6 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         )
         if sampling_frequency is not None:
             result["sampling_frequency"] = sampling_frequency
-
         return result
 
     @staticmethod
@@ -255,3 +301,68 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
                     found_files[file_path] = entry
 
         return found_files
+
+    @staticmethod
+    def _parse_ome_native_timestamps(file_path: PathType) -> list[dict] | None:
+        """Parse DeltaT timestamps from all Plane elements in the OME-XML.
+
+        Returns the raw plane data without any filtering by channel or Z-plane.
+        Each entry contains the plane's channel index, Z index, timepoint index,
+        and DeltaT value converted to seconds.
+
+        Parameters
+        ----------
+        file_path : PathType
+            Path to an OME-TIFF file containing the OME-XML metadata.
+
+        Returns
+        -------
+        list[dict] or None
+            List of dicts with keys "the_c", "the_z", "the_t", "delta_t_seconds",
+            or None if no Plane elements have DeltaT attributes.
+        """
+        tifffile = get_package(package_name="tifffile")
+
+        tiff = tifffile.TiffFile(file_path)
+        try:
+            ome_xml_string = tiff.ome_metadata
+            if ome_xml_string is None:
+                ome_xml_string = tiff.pages[0].description
+        finally:
+            tiff.close()
+
+        if not ome_xml_string:
+            return None
+
+        if ome_xml_string.lstrip().startswith("<!--"):
+            ome_xml_string = ome_xml_string.replace("<!--", "").replace("-->", "")
+        try:
+            ome_root = ET.fromstring(ome_xml_string.encode("utf-8"))
+        except ValueError:
+            ome_root = ET.fromstring(ome_xml_string)
+
+        pixels_element = ome_root.find(".//{*}Pixels")
+        if pixels_element is None:
+            return None
+
+        plane_elements = pixels_element.findall(".//{*}Plane")
+        if not plane_elements:
+            return None
+
+        result = []
+        for plane in plane_elements:
+            delta_t_str = plane.get("DeltaT")
+            if delta_t_str is None:
+                continue
+
+            unit = plane.get("DeltaTUnit", "s")
+            result.append(
+                dict(
+                    the_c=int(plane.get("TheC", "0")),
+                    the_z=int(plane.get("TheZ", "0")),
+                    the_t=int(plane.get("TheT", "0")),
+                    delta_t_seconds=float(delta_t_str) * OMETiffImagingExtractor._TIME_UNIT_TO_SECONDS[unit],
+                )
+            )
+
+        return result if result else None
