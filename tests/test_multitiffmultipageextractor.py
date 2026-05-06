@@ -532,8 +532,8 @@ def test_channel_name_validation_error_handling(tmp_path):
             channel_name=None,
         )
 
-    # Test that invalid channel_name format raises ValueError
-    with pytest.raises(ValueError, match="Invalid channel name format.*Expected numeric format"):
+    # Test that invalid channel_name raises ValueError with available names
+    with pytest.raises(ValueError, match="Channel 'invalid_name' not found.*Available channels"):
         MultiTIFFMultiPageExtractor(
             file_paths=[empty_file_path],
             sampling_frequency=30.0,
@@ -543,7 +543,7 @@ def test_channel_name_validation_error_handling(tmp_path):
         )
 
     # Test that channel_name out of range raises ValueError
-    with pytest.raises(ValueError, match="channel_index 2 is out of range \\(0 to 1\\)"):
+    with pytest.raises(ValueError, match="Channel '2' not found.*Available channels"):
         MultiTIFFMultiPageExtractor(
             file_paths=[empty_file_path],
             sampling_frequency=30.0,
