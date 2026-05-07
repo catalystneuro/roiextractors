@@ -23,6 +23,7 @@
 * Deprecated `get_num_channels()` method in `SegmentationExtractor` (will be removed on or after September 2026). [PR #560](https://github.com/catalystneuro/roiextractors/pull/560)
 
 ### Improvements
+* `BrukerTiffImagingExtractor` now reads the Prairie View version from the configuration XML (`PVScan/@version`) and warns when the detected version is below 5.5 (the earliest version with test coverage), or when the version string is missing or unparsable. Pre-5.1 data is still rejected via the file-shape check (plain `.tif` with no `.ome.tif`). [PR #577](https://github.com/catalystneuro/roiextractors/pull/577)
 * Improved the docstring for `get_original_frame_indices()` in `ScanImageTiffImagingExtractor` to better explain the core motivation (mapping samples to raw IFD indices for temporal alignment with external acquisition systems) and to clarify the multi-channel sync pulse adjustment. [PR #569](https://github.com/catalystneuro/roiextractors/pull/569)
 * Removed `ArrayType`, `DtypeType`, `FloatType`, and `NumpyArray` type aliases from `extraction_tools` and replaced all usages with direct `ArrayLike` and `DTypeLike` imports from `numpy.typing`, built-in `float`, and `np.ndarray`. [PR #568](https://github.com/catalystneuro/roiextractors/pull/568)
 * Sliced extractors (`SampleSlicedSegmentationExtractor` and `RoiSlicedSegmentationExtractor`) now use copy semantics for properties, so modifications on a child do not affect the parent and vice versa [PR #559](https://github.com/catalystneuro/roiextractors/pull/559)
