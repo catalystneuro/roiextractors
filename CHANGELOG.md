@@ -15,6 +15,8 @@
 * Fixed return type annotations that incorrectly used `ArrayLike`/`DTypeLike` (meant for inputs) instead of concrete `np.ndarray`/`np.dtype` for outputs. Also fixed several potentially unbound variables that could crash at runtime. [PR #563](https://github.com/catalystneuro/roiextractors/pull/563)
 
 ### Deprecations And Removals
+* Removed deprecated `get_accepted_list` and `get_rejected_list` from segmentation extractors. Use `get_property()` instead to access format-specific acceptance data. `ExtractSegmentationExtractor` retains its own implementations because they were never deprecated and compute the lists dynamically from the spatial masks. [PR #581](https://github.com/catalystneuro/roiextractors/pull/581)
+* Removed the deprecated `make_nwb_metadata` method from `NwbImagingExtractor`. [PR #581](https://github.com/catalystneuro/roiextractors/pull/581)
 * Deprecated `BrukerTiffSinglePlaneImagingExtractor` and `BrukerTiffMultiPlaneImagingExtractor` (will be removed in or after October 2026). Use `BrukerTiffImagingExtractor` instead. [PR #567](https://github.com/catalystneuro/roiextractors/pull/567)
 * Deprecated `get_roi_locations()` method across `SegmentationExtractor`, `NwbSegmentationExtractor`, and `MultiSegmentationExtractor` (will be removed in or after September 2026). ROI centroids are now stored as a multi-dimensional property. Use `get_property("roi_centroids", roi_ids)` instead. [PR #557](https://github.com/catalystneuro/roiextractors/pull/557)
 * Removed deprecated `check_get_videos_args()` function from `extraction_tools` (deprecated January 2026). The `get_video()` method it decorated was already removed. [PR #560](https://github.com/catalystneuro/roiextractors/pull/560)

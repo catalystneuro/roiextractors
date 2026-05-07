@@ -2,7 +2,6 @@
 
 import platform
 import sys
-import warnings
 from datetime import datetime
 from typing import Any
 
@@ -102,44 +101,6 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
                 # Swap dimensions to return (width, height)
                 return (shape[1], shape[0])
             raise ValueError("No ROIs found in the segmentation. Unable to determine image size.")
-
-    def get_accepted_list(self) -> list:
-        """Get a list of accepted ROI ids.
-
-        Returns
-        -------
-        accepted_list: list
-            List of accepted ROI ids.
-        """
-        warnings.warn(
-            "get_accepted_list is deprecated and will be removed in May 2026. "
-            "Use get_property('cell_status', ids) instead to access Inscopix's native classification.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if self.cell_set.num_cells == 0:
-            return []
-        cell_status = self.get_property("cell_status", self.get_roi_ids())
-        return [roi_id for roi_id, status in zip(self.get_roi_ids(), cell_status) if status == "accepted"]
-
-    def get_rejected_list(self) -> list:
-        """Get a list of rejected ROI ids.
-
-        Returns
-        -------
-        rejected_list: list
-            List of rejected ROI ids.
-        """
-        warnings.warn(
-            "get_rejected_list is deprecated and will be removed in May 2026. "
-            "Use get_property('cell_status', ids) instead to access Inscopix's native classification.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if self.cell_set.num_cells == 0:
-            return []
-        cell_status = self.get_property("cell_status", self.get_roi_ids())
-        return [roi_id for roi_id, status in zip(self.get_roi_ids(), cell_status) if status == "rejected"]
 
     def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="raw") -> np.ndarray:
         """Get traces for the specified ROIs.

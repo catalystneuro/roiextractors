@@ -6,8 +6,6 @@ CaimanSegmentationExtractor
     A class for extracting segmentation from CaImAn output.
 """
 
-import warnings
-
 import h5py
 import numpy as np
 from scipy.sparse import csc_matrix
@@ -423,40 +421,6 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
             b_sum = background_data.sum(axis=1)
             return np.array(b_sum).reshape(FOV_shape, order="F")
         return None
-
-    def get_accepted_list(self) -> list:
-        """Get a list of accepted ROI ids.
-
-        Returns
-        -------
-        accepted_list: list
-            List of accepted ROI ids.
-        """
-        warnings.warn(
-            "get_accepted_list is deprecated and will be removed in May 2026. "
-            "Use get_property('is_accepted', ids) instead to access CaImAn's component classification.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        is_accepted = self.get_property("is_accepted", self.get_roi_ids())
-        return [roi_id for roi_id, accepted in zip(self.get_roi_ids(), is_accepted) if accepted]
-
-    def get_rejected_list(self) -> list:
-        """Get a list of rejected ROI ids.
-
-        Returns
-        -------
-        rejected_list: list
-            List of rejected ROI ids.
-        """
-        warnings.warn(
-            "get_rejected_list is deprecated and will be removed in May 2026. "
-            "Use get_property('is_accepted', ids) instead to access CaImAn's component classification.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        is_accepted = self.get_property("is_accepted", self.get_roi_ids())
-        return [roi_id for roi_id, accepted in zip(self.get_roi_ids(), is_accepted) if not accepted]
 
     def get_frame_shape(self) -> tuple:
         return tuple(self._params["data"]["dims"][()])
