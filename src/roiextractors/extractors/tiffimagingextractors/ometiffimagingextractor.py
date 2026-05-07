@@ -91,6 +91,11 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
                 )
             sampling_frequency = metadata_sampling_frequency
 
+        # Store channel names before super().__init__() because the base class
+        # calls self._get_channel_names() during init, and Python's MRO dispatches
+        # to our override which needs this attribute to be set.
+        self._ome_channel_names = metadata.pop("channel_names", None)
+
         super().__init__(
             file_paths=metadata["file_paths"],
             sampling_frequency=sampling_frequency,
@@ -99,6 +104,33 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
             num_channels=metadata["num_channels"],
             num_planes=metadata["num_planes"],
         )
+
+    def _get_channel_names(self) -> list[str]:
+        """Return channel names from OME-XML Channel/@Name attributes when available."""
+        if self._ome_channel_names is not None:
+            return self._ome_channel_names
+        return super()._get_channel_names()
+
+    @staticmethod
+    def get_available_channel_names(file_path: PathType) -> list[str]:
+        """Return the available channel names for an OME-TIFF file without constructing an extractor.
+
+        Parameters
+        ----------
+        file_path : PathType
+            Path to an OME-TIFF file.
+
+        Returns
+        -------
+        list[str]
+            Channel names from OME-XML Channel/@Name attributes, or numeric strings
+            ("0", "1", ...) if names are not present.
+        """
+        metadata = OMETiffImagingExtractor._parse_ome_metadata(file_path)
+        channel_names = metadata.get("channel_names")
+        if channel_names is not None:
+            return channel_names
+        return [str(i) for i in range(metadata["num_channels"])]
 
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
@@ -201,6 +233,14 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         num_channels = int(pixels_element.get("SizeC", "1"))
         num_planes = int(pixels_element.get("SizeZ", "1"))
 
+        # Extract channel names from Channel/@Name attributes when present
+        channel_elements = pixels_element.findall(".//{*}Channel")
+        channel_names = None
+        if channel_elements:
+            names = [ch.get("Name") for ch in channel_elements]
+            if all(name is not None for name in names):
+                channel_names = names
+
         # TimeIncrement is a global timing attribute on Pixels (OME spec:
         # https://www.openmicroscopy.org/Schemas/Documentation/Generated/OME-2016-06/ome.html):
         # "used for time series that have a global timing specification instead of
@@ -236,6 +276,8 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         )
         if sampling_frequency is not None:
             result["sampling_frequency"] = sampling_frequency
+        if channel_names is not None:
+            result["channel_names"] = channel_names
         return result
 
     @staticmethod
