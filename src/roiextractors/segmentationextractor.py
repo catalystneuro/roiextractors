@@ -729,21 +729,6 @@ class SegmentationExtractor(ABC):
 
         return 0
 
-    def get_channel_names(self) -> list[str]:
-        """Get names of channels in the pipeline.
-
-        Returns
-        -------
-        _channel_names: list
-            names of channels (str)
-        """
-        warnings.warn(
-            "get_channel_names is deprecated and will be removed in May 2026 or after.",
-            category=FutureWarning,
-            stacklevel=2,
-        )
-        return self._channel_names
-
     def get_num_channels(self) -> int:
         """Get number of channels in the pipeline.
 
@@ -1090,14 +1075,6 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
 
     def get_sampling_frequency(self) -> float:
         return self._parent_segmentation.get_sampling_frequency()
-
-    def get_channel_names(self) -> list[str]:
-        warnings.warn(
-            "get_channel_names is deprecated and will be removed in May 2026 or after.",
-            category=FutureWarning,
-            stacklevel=2,
-        )
-        return self._parent_segmentation.get_channel_names()
 
     def get_num_channels(self) -> int:
         return self._parent_segmentation.get_num_channels()
