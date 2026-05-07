@@ -120,48 +120,6 @@ class NwbImagingExtractor(ImagingExtractor):
         """Close the NWB file."""
         self.io.close()
 
-    def make_nwb_metadata(
-        self, nwbfile, opts
-    ):  # TODO: refactor to use two photon series name directly rather than via opts
-        """Create metadata dictionary for NWB file.
-
-        Parameters
-        ----------
-        nwbfile: pynwb.NWBFile
-            The NWBFile object associated with the metadata.
-        opts: object
-            The options object with name of TwoPhotonSeries as an attribute.
-
-        Notes
-        -----
-        Metadata dictionary is stored in the nwb_metadata attribute.
-
-        .. deprecated:: 0.7.3
-            This method is deprecated and will be removed on or after May 2026.
-        """
-        from warnings import warn
-
-        warn(
-            "The 'make_nwb_metadata' method is deprecated and will be removed on or after May 2026.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        # Metadata dictionary - useful for constructing a nwb file
-        self.nwb_metadata = dict(
-            NWBFile=dict(
-                session_description=nwbfile.session_description,
-                identifier=nwbfile.identifier,
-                session_start_time=nwbfile.session_start_time,
-                institution=nwbfile.institution,
-                lab=nwbfile.lab,
-            ),
-            Ophys=dict(
-                Device=[dict(name=dev) for dev in nwbfile.devices],
-                TwoPhotonSeries=[dict(name=opts.name)],
-            ),
-        )
-
     def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
         start_sample = start_sample if start_sample is not None else 0
         end_sample = end_sample if end_sample is not None else self.get_num_samples()
@@ -364,44 +322,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     def __del__(self):
         """Close the NWB file."""
         self._io.close()
-
-    def get_accepted_list(self) -> list:
-        """Get a list of accepted ROI ids.
-
-        Returns
-        -------
-        accepted_list: list
-            List of accepted ROI ids.
-        """
-        warnings.warn(
-            "get_accepted_list is deprecated and will be removed in May 2026. "
-            "Use get_property('accepted', ids) instead to access NWB's acceptance data.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if "accepted" not in self.get_property_keys():
-            return list(self.get_roi_ids())
-        accepted = self.get_property("accepted", self.get_roi_ids())
-        return [roi_id for roi_id, is_accepted in zip(self.get_roi_ids(), accepted) if is_accepted]
-
-    def get_rejected_list(self) -> list:
-        """Get a list of rejected ROI ids.
-
-        Returns
-        -------
-        rejected_list: list
-            List of rejected ROI ids.
-        """
-        warnings.warn(
-            "get_rejected_list is deprecated and will be removed in May 2026. "
-            "Use get_property('rejected', ids) instead to access NWB's rejection data.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if "rejected" not in self.get_property_keys():
-            return []
-        rejected = self.get_property("rejected", self.get_roi_ids())
-        return [roi_id for roi_id, is_rejected in zip(self.get_roi_ids(), rejected) if is_rejected]
 
     def get_images_dict(self):
         """Return traces as a dictionary with key as the name of the ROIResponseSeries.

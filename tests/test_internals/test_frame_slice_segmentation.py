@@ -58,15 +58,6 @@ class BaseTestSampleSliceSegmentation(TestCase):
     def test_get_num_rois(self):
         assert self.sample_sliced_segmentation.get_num_rois() == 10
 
-    def test_get_accepted_list(self):
-        return assert_array_equal(
-            self.sample_sliced_segmentation.get_accepted_list(),
-            ["roi_0", "roi_1", "roi_2", "roi_3", "roi_4", "roi_5", "roi_6", "roi_7", "roi_8", "roi_9"],
-        )
-
-    def test_get_rejected_list(self):
-        return assert_array_equal(self.sample_sliced_segmentation.get_rejected_list(), [])
-
     @parameterized.expand(
         [param(name="raw"), param(name="dff"), param(name="neuropil"), param(name="deconvolved")],
         name_func=segmentation_name_function,

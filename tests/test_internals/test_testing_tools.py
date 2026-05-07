@@ -31,8 +31,6 @@ class TestDummySegmentationExtractor(TestCase):
         assert segmentation_extractor.get_sampling_frequency() == self.sampling_frequency
         expected_roi_ids = [f"roi_{i}" for i in range(self.num_rois)]
         assert segmentation_extractor.get_roi_ids() == expected_roi_ids
-        assert segmentation_extractor.get_accepted_list() == segmentation_extractor.get_roi_ids()
-        assert segmentation_extractor.get_rejected_list() == []
 
         # Test timestamps
         times = np.arange(self.num_frames) / self.sampling_frequency
@@ -63,8 +61,6 @@ class TestDummySegmentationExtractor(TestCase):
         assert segmentation_extractor.get_sampling_frequency() == self.sampling_frequency
         expected_roi_ids = [f"roi_{i}" for i in range(self.num_rois)]
         assert segmentation_extractor.get_roi_ids() == expected_roi_ids
-        assert segmentation_extractor.get_accepted_list() == segmentation_extractor.get_roi_ids()
-        assert segmentation_extractor.get_rejected_list() == []
 
         # Test image masks
         assert segmentation_extractor.get_roi_image_masks().shape == (self.num_rows, self.num_columns, self.num_rois)

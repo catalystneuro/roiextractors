@@ -184,17 +184,3 @@ class MultiSegmentationExtractor(SegmentationExtractor):
             stacklevel=2,
         )
         return lambda x: np.concatenate(x, axis=1)
-
-    def get_accepted_list(self) -> list[int]:
-        accepted_list_all = []
-        for i in range(self._no_planes):
-            ids_loop = self._segmentations[i].get_accepted_list()
-            accepted_list_all.extend([j for j in self._all_roi_ids if self._roi_map[j]["roi_id"] in ids_loop])
-        return accepted_list_all
-
-    def get_rejected_list(self) -> list[int]:
-        rejected_list_all = []
-        for i in range(self._no_planes):
-            ids_loop = self._segmentations[i].get_rejected_list()
-            rejected_list_all.extend([j for j in self._all_roi_ids if self._roi_map[j]["roi_id"] in ids_loop])
-        return rejected_list_all

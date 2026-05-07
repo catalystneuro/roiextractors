@@ -42,11 +42,6 @@ def test_caiman_segmentation_extractor_1000():
     roi_ids = extractor.get_roi_ids()
     assert len(roi_ids) == 10
 
-    # Test accepted/rejected lists
-    accepted_list = extractor.get_accepted_list()
-    rejected_list = extractor.get_rejected_list()
-    assert len(accepted_list) + len(rejected_list) <= 10
-
     # Test ROI image masks
     single_mask = extractor.get_roi_image_masks([roi_ids[0]])
     assert single_mask.shape == (231, 242, 1)
@@ -172,12 +167,12 @@ def test_caiman_segmentation_extractor_450():
     roi_ids = extractor.get_roi_ids()
     assert len(roi_ids) == 10
 
-    # Test accepted/rejected lists
-    accepted_list = extractor.get_accepted_list()
-    rejected_list = extractor.get_rejected_list()
+    # Verify CaImAn's component classification via the property API
+    is_accepted = extractor.get_property("is_accepted", roi_ids)
+    accepted_list = [roi_id for roi_id, accepted in zip(roi_ids, is_accepted) if accepted]
+    rejected_list = [roi_id for roi_id, accepted in zip(roi_ids, is_accepted) if not accepted]
     assert accepted_list == [2, 9]
     assert rejected_list == [0, 1, 3, 4, 5, 6, 7, 8]
-    assert len(accepted_list) + len(rejected_list) <= 10
 
     # Test ROI image masks
     single_mask = extractor.get_roi_image_masks([roi_ids[0]])
@@ -295,11 +290,6 @@ def test_caiman_segmentation_extractor_750():
     roi_ids = extractor.get_roi_ids()
     assert len(roi_ids) == 10
 
-    # Test accepted/rejected lists
-    accepted_list = extractor.get_accepted_list()
-    rejected_list = extractor.get_rejected_list()
-    assert len(accepted_list) + len(rejected_list) <= 10
-
     # Test ROI image masks
     single_mask = extractor.get_roi_image_masks([roi_ids[0]])
     assert single_mask.shape == (231, 242, 1)
@@ -411,11 +401,6 @@ def test_caiman_segmentation_extractor_analysis():
     # Test ROI IDs
     roi_ids = extractor.get_roi_ids()
     assert len(roi_ids) == 72
-
-    # Test accepted/rejected lists
-    accepted_list = extractor.get_accepted_list()
-    rejected_list = extractor.get_rejected_list()
-    assert len(accepted_list) + len(rejected_list) <= 72
 
     # Test ROI image masks
     single_mask = extractor.get_roi_image_masks([roi_ids[0]])

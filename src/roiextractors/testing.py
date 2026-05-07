@@ -413,8 +413,6 @@ def check_segmentations_equal(
 
     check_segmentations_images(segmentation_extractor1, segmentation_extractor2)
 
-    assert_array_equal(segmentation_extractor1.get_accepted_list(), segmentation_extractor2.get_accepted_list())
-    assert_array_equal(segmentation_extractor1.get_rejected_list(), segmentation_extractor2.get_rejected_list())
     assert_array_equal(segmentation_extractor1.get_roi_ids(), segmentation_extractor2.get_roi_ids())
     assert_array_equal(segmentation_extractor1.get_traces(), segmentation_extractor2.get_traces())
 
@@ -482,16 +480,6 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
             element_dtypes=floattype,
             shape_max=(*seg.get_image_size(),),
         )
-    _assert_iterable_complete(
-        seg.get_accepted_list(),
-        dtypes=(list, NoneType),
-        shape_max=(seg.get_num_rois(),),
-    )
-    _assert_iterable_complete(
-        seg.get_rejected_list(),
-        dtypes=(list, NoneType),
-        shape_max=(seg.get_num_rois(),),
-    )
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message="get_roi_locations", category=FutureWarning)
         _assert_iterable_complete(
