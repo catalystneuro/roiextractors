@@ -1,309 +1,115 @@
 """Extractor for Thor TIFF files."""
 
-import math
-import warnings
 import xml.etree.ElementTree as ET
-from collections import defaultdict, namedtuple
+from datetime import datetime, timezone
 from pathlib import Path
 
-import numpy as np
+from .ometiffimagingextractor import OMETiffImagingExtractor
+from ...extraction_tools import PathType
 
-from ...imagingextractor import ImagingExtractor
 
+class ThorTiffImagingExtractor(OMETiffImagingExtractor):
+    """Read imaging data exported by the ThorImage software.
 
-class ThorTiffImagingExtractor(ImagingExtractor):
-    """
-    An ImagingExtractor for TIFF files exported files exported with the `ThorImage` software.
+    A ThorImage acquisition is stored as a folder of TIFF files (one or more) plus a
+    sidecar ``Experiment.xml`` in the same folder. Both must be present. Pointing the
+    extractor at any of the TIFF files is enough; related files in a multi-file
+    dataset are discovered automatically.
 
-    Note that is possible that the data is acquired with a Thor microscope but not with the ThorImage software and
-    this extractor will not work in that case.
+    Note that data acquired with a Thor microscope but not exported through ThorImage
+    will not have ``Experiment.xml`` and is not supported by this extractor.
 
-    The ThorImage software exports TIFF files following (loosely) the OME-TIFF standard. Plus, there is a file
-    `Experiment.xml` that contains metadata about the acquisition. This extractor reads the TIFF file and the
-    `Experiment.xml` file to extract the image data and metadata.
-
-    This extractor builds a mapping between the T (time) dimension and the corresponding
-    pages/IFDs of the TIFF files using a named tuple structure:
-
-    For each time frame (T), we record a list of PageMapping objects that correspond to the
-    pages of the TIFF file that contain the image data for that frame.
-
-    Each PageMapping object contains:
-      - page_index: The index of the page in the TIFF file (which holds the complete X and Y image data),
-      - channel_index: The coordinate along the channel (C) axis (or None if absent),
-      - depth_index: The coordinate along the depth (Z) axis (or None if absent).
-
-    When get_frames() is called, the mapping is used to load only the pages for the requested
-    frames into a preallocated NumPy array.
-
-    Note: According to the OME specification (see
-    https://www.openmicroscopy.org/Schemas/Documentation/Generated/OME-2016-06/ome_xsd.html#Pixels_DimensionOrder),
-    the spatial dimensions (X and Y) are always stored on a single page.
+    Parameters
+    ----------
+    file_path : str or Path
+        Path to one of the TIFF files in the dataset folder. For multi-file datasets,
+        any of the files works.
+    channel_name : str or None, optional
+        For multi-channel data, the name of the channel to read (e.g. ``"ChanA"``).
+        Channel names follow ThorImage's convention as configured in the acquisition.
+        Required when more than one channel is present and ignored otherwise.
     """
 
     extractor_name = "ThorTiffImaging"
 
-    # Named tuple to hold page mapping details.
-    PageMapping = namedtuple("PageMapping", ["page_index", "channel_index", "depth_index"])
+    def __init__(self, file_path: PathType, channel_name: str | None = None):
+        file_path = Path(file_path)
+        folder_path = file_path.parent
 
-    def __init__(self, file_path: str | Path, channel_name: str | None = None):
-        """Create a ThorTiffImagingExtractor instance from a TIFF file."""
-        super().__init__()
-        self.file_path = Path(file_path)
-        self.folder_path = self.file_path.parent
-        self.channel_name = channel_name
+        experiment_xml_path = folder_path / "Experiment.xml"
+        if not experiment_xml_path.is_file():
+            raise FileNotFoundError(f"Experiment.xml file not found in '{folder_path}'.")
 
-        # Load Experiment.xml metadata if available.
-        self._parse_experiment_xml()
+        self._experiment_xml_root = ET.parse(experiment_xml_path).getroot()
 
-        # Open the TIFF file to extract OME metadata and series information.
-        # Keep the file reference open instead of using a context manager
-        import tifffile
+        # Backwards-compat alias for downstream consumers that traverse the parsed XML
+        # as a nested dict (notably neuroconv.ThorImagingInterface). New code should use
+        # `_experiment_xml_root` and ElementTree's `.find()/.get()` API. This alias and
+        # the helper functions below should be removed after consumers migrate.
+        self._experiment_xml_dict = _xml_element_to_dict(self._experiment_xml_root)
 
-        self._tiff_reader = tifffile.TiffFile(self.file_path)
-        self._ome_metadata = self._tiff_reader.ome_metadata
-        ome_root = self._parse_ome_metadata(self._ome_metadata)
-        pixels_element = ome_root.find(".//{*}Pixels")
-        if pixels_element is None:
-            raise ValueError("Could not find 'Pixels' element in OME metadata.")
+        lsm = self._experiment_xml_root.find("LSM")
+        if lsm is None or lsm.get("frameRate") is None:
+            raise ValueError("Could not find 'LSM' element with frameRate attribute in Experiment.xml.")
+        sampling_frequency = float(lsm.get("frameRate"))
 
-        self._num_channels = int(pixels_element.get("SizeC", "1"))
-        self._num_samples = int(pixels_element.get("SizeT", "1"))
-        self._num_rows = int(pixels_element.get("SizeY"))
-        self._num_columns = int(pixels_element.get("SizeX"))
-        self._num_z = int(pixels_element.get("SizeZ", "1"))
-        self._dimension_order = pixels_element.get("DimensionOrder")
+        # Build channel names from Wavelengths. ThorImage uses these as the user-facing
+        # channel identifiers (e.g. "ChanA", "ChanB"); they're stored before super().__init__()
+        # because the base class calls self._get_channel_names() during init for validation.
+        self._thor_channel_names = [
+            wavelength.get("name")
+            for wavelength in self._experiment_xml_root.findall("Wavelengths/Wavelength")
+            if wavelength.get("name") is not None
+        ]
 
-        # Series is a concept from the tifffile library.
-        # It indexes all the data across pages and files
-        series = self._tiff_reader.series[0]
-        self._dtype = series.dtype
-        number_of_pages = len(series)
-        series_axes = series.axes
-        # "XYZTC" or "XYCZT" Note this is different from OME metadata as this is data layout
-        series_shape = series.shape
-
-        # Determine non-spatial axes (remove X and Y).
-        non_spatial_axes = [axis for axis in series_axes if axis not in ("X", "Y")]
-        non_spatial_shape = [dim for axis, dim in zip(series_axes, series_shape) if axis not in ("X", "Y")]
-
-        if "T" not in non_spatial_axes:
-            raise ValueError("The TIFF file must have a T (time) dimension. Image stack mode is not supported.")
-
-        total_expected_pages = math.prod(non_spatial_shape)
-        if total_expected_pages != number_of_pages:
-            warnings.warn(f"Expected {total_expected_pages} pages but found {number_of_pages} pages in the series.")
-
-        # Identify axis indices.
-        self._time_axis_index = non_spatial_axes.index("T")
-        self._z_axis_index = non_spatial_axes.index("Z") if "Z" in non_spatial_axes else None
-        self._channel_axis_index = non_spatial_axes.index("C") if "C" in non_spatial_axes else None
-
-        self._non_spatial_axes = non_spatial_axes
-        self._non_spatial_shape = non_spatial_shape
-
-        # Build the mapping from each time frame (T) to its corresponding pages.
-        self._frame_page_mapping: dict[int, list[ThorTiffImagingExtractor.PageMapping]] = defaultdict(list)
-        for page_index in range(number_of_pages):
-            page_multi_index = np.unravel_index(page_index, non_spatial_shape, order="C")
-            time_index = page_multi_index[self._time_axis_index]
-            channel_index = page_multi_index[self._channel_axis_index] if self._channel_axis_index is not None else None
-            depth_index = page_multi_index[self._z_axis_index] if self._z_axis_index is not None else None
-            mapping_entry = ThorTiffImagingExtractor.PageMapping(
-                page_index=page_index, channel_index=channel_index, depth_index=depth_index
-            )
-            self._frame_page_mapping[time_index].append(mapping_entry)
-
-        self._kwargs = {"file_path": str(file_path)}
-
-    def _parse_experiment_xml(self) -> None:
-        """Parse Experiment.xml and extract metadata.
-
-        Extract metadata such as frame rate and channel names from the Experiment.xml file.
-        """
-        experiment_xml_path = self.folder_path / "Experiment.xml"
-        if experiment_xml_path.exists():
-            # Parse the XML file into a dictionary
-            self._experiment_xml_dict = _read_xml_as_dict(experiment_xml_path)
-
-            # Extract sampling frequency from LSM element
-            thor_experiment = self._experiment_xml_dict.get("ThorImageExperiment", {})
-            lsm = thor_experiment.get("LSM", {})
-            if lsm and "@frameRate" in lsm:
-                self._sampling_frequency = float(lsm["@frameRate"])
-            else:
-                raise ValueError("Could not find 'LSM' element with frameRate attribute in Experiment.xml.")
-
-            # Extract channel names from Wavelength elements
-            wavelengths = thor_experiment.get("Wavelengths", {})
-            wavelength_list = wavelengths.get("Wavelength", [])
-
-            # Ensure wavelength_list is a list even if there's only one wavelength
-            if not isinstance(wavelength_list, list):
-                wavelength_list = [wavelength_list]
-
-            self._channel_names = [w.get("@name") for w in wavelength_list if "@name" in w]
-
-            if self.channel_name is not None and self.channel_name not in self._channel_names:
-                raise ValueError(
-                    f"Channel '{self.channel_name}' not available. Available channels: {self._channel_names}"
-                )
-
-            # Set channel filter if a channel name is provided.
-            if self.channel_name is not None:
-                self._channel_index_for_filter = None
-                for index, name in enumerate(self._channel_names):
-                    if self.channel_name in name:
-                        self._channel_index_for_filter = index
-                        break
-                if self._channel_index_for_filter is None:
-                    raise ValueError(f"Channel '{self.channel_name}' not found in Experiment.xml.")
-                # Update channel names and count based on the filter.
-                self._channel_names = [self._channel_names[self._channel_index_for_filter]]
-                self._num_channels = 1
-        else:
-            raise ValueError(f"Experiment.xml file not found in {self.folder_path}.")
-
-    @staticmethod
-    def _parse_ome_metadata(metadata_string: str):
-        """Parse an OME metadata string using lxml.etree.
-
-        Removes XML comments if present and attempts to parse as bytes first.
-
-        In the old version of ome tiff the metadata is stored as a comment. In the new version, the metadata
-        is stored as an utf-8 encoded xml string.
-        """
-        if metadata_string.lstrip().startswith("<!--"):
-            metadata_string = metadata_string.replace("<!--", "").replace("-->", "")
-        try:
-            return ET.fromstring(metadata_string.encode("utf-8"))
-        except ValueError:
-            return ET.fromstring(metadata_string)
-
-    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
-        """
-        Get a series of frames as a contiguous block.
-
-        Parameters
-        ----------
-        start_sample : int, optional
-            Starting frame index. If None, starts from 0.
-        end_sample : int, optional
-            Ending frame index (exclusive). If None, goes to end.
-
-        Returns
-        -------
-        np.ndarray
-            Array of shape (n_frames, height, width) if no depth, or
-            (n_frames, height, width, planes) if a Z dimension exists.
-        """
-        if start_sample is None:
-            start_sample = 0
-        if end_sample is None:
-            end_sample = self._num_samples
-
-        sample_indices = list(range(start_sample, end_sample))
-
-        # Use the stored tiff_reader instead of opening a new one
-        series = self._tiff_reader.series[0]
-        data_type = series.dtype
-        image_height = self._num_rows
-        image_width = self._num_columns
-
-        has_z_dimension = self._z_axis_index is not None and self._num_z > 1
-        number_of_z_planes = self._num_z if has_z_dimension else 1
-
-        n_samples = len(sample_indices)
-        output_shape = (
-            (n_samples, image_height, image_width, number_of_z_planes)
-            if has_z_dimension
-            else (n_samples, image_height, image_width)
+        super().__init__(
+            file_path=file_path,
+            sampling_frequency=sampling_frequency,
+            channel_name=channel_name,
         )
-        output_array = np.empty(output_shape, dtype=data_type)
 
-        for sample_counter, sample_index in enumerate(sample_indices):
-            if sample_index not in self._frame_page_mapping:
-                raise ValueError(f"No pages found for frame {sample_index}.")
-            page_mappings = self._frame_page_mapping[sample_index]
+        self._kwargs = {"file_path": str(file_path), "channel_name": channel_name}
 
-            # Filter by channel if a channel name was provided.
-            if self._channel_axis_index is not None and self.channel_name is not None:
-                filter_index = self._channel_index_for_filter
-                page_mappings = [m for m in page_mappings if m.channel_index == filter_index]
+    def _get_channel_names(self) -> list[str]:
+        """Return Thor-specific channel names from Experiment.xml when available."""
+        if self._thor_channel_names:
+            return self._thor_channel_names
+        return super()._get_channel_names()
 
-            if has_z_dimension:
-                page_mappings.sort(key=lambda entry: entry.depth_index)
-                if len(page_mappings) != number_of_z_planes:
-                    raise ValueError(
-                        f"Expected {number_of_z_planes} pages for frame {sample_index} but got {len(page_mappings)}."
-                    )
-                for depth_counter, mapping_entry in enumerate(page_mappings):
-                    page_data = series.pages[mapping_entry.page_index].asarray()
-                    output_array[sample_counter, :, :, depth_counter] = page_data
-            else:
-                if len(page_mappings) != 1:
-                    raise ValueError(f"Expected 1 page for frame {sample_index} but got {len(page_mappings)}.")
-                single_page_index = page_mappings[0].page_index
-                page_data = series.pages[single_page_index].asarray()
-                output_array[sample_counter, :, :] = page_data
+    def _get_session_start_time(self) -> datetime:
+        """Return the acquisition start time as a tz-aware UTC ``datetime``.
 
-        return output_array
-
-    def get_image_shape(self) -> tuple[int, int]:
-        """Get the shape of the video frame (num_rows, num_columns).
-
-        Returns
-        -------
-        image_shape: tuple
-            Shape of the video frame (num_rows, num_columns).
+        Read from the ``Date/@uTime`` Unix timestamp in ``Experiment.xml``.
         """
-        return self._num_rows, self._num_columns
-
-    def get_num_samples(self) -> int:
-        """Return the number of samples (time points)."""
-        return self._num_samples
-
-    def get_sampling_frequency(self) -> float | None:
-        """Return the sampling frequency, if available."""
-        return self._sampling_frequency
-
-    def get_channel_names(self) -> list[str]:
-        """Return the channel names."""
-        warnings.warn(
-            "get_channel_names is deprecated and will be removed in May 2026 or after.",
-            category=FutureWarning,
-            stacklevel=2,
-        )
-        return self._channel_names
-
-    def get_dtype(self):
-        """Return the data type of the video."""
-        return self._dtype
-
-    def get_native_timestamps(
-        self, start_sample: int | None = None, end_sample: int | None = None
-    ) -> np.ndarray | None:
-        # ThorLabs TIFF imaging data does not have native timestamps
-        return None
-
-    def __del__(self):
-        """Close the tiff_reader when the object is garbage collected."""
-        if hasattr(self, "_tiff_reader"):
-            self._tiff_reader.close()
+        date_element = self._experiment_xml_root.find("Date")
+        if date_element is None or date_element.get("uTime") is None:
+            raise ValueError("Could not find 'Date' element with uTime attribute in Experiment.xml.")
+        return datetime.fromtimestamp(int(date_element.get("uTime")), tz=timezone.utc)
 
 
-def _xml_element_to_dict(elem):
-    """Convert an ElementTree element into a dictionary."""
+def _xml_element_to_dict(elem: ET.Element) -> dict:
+    """Convert an ElementTree element into a nested dictionary.
+
+    Attributes are prefixed with ``@`` and repeated child tags become lists. The
+    representation is intentionally simple, not a general XML-to-dict converter
+    (no namespace handling, no tail text, mixed-content nodes are flattened).
+
+    .. note::
+        This helper exists only to populate ``self._experiment_xml_dict``, which is
+        kept as a backwards-compatibility for neuroconv.
+
+        We should remove this once we address:
+        https://github.com/catalystneuro/roiextractors/issues/578
+    """
     dictionary = {elem.tag: {} if elem.attrib else None}
     children = list(elem)
     if children:
-        nested_dictionary = {}
+        nested_dictionary: dict = {}
         for child in children:
             child_dict = _xml_element_to_dict(child)
             tag = child.tag
-            # If the tag is already present, convert to a list
             if tag in nested_dictionary:
-                if type(nested_dictionary[tag]) is list:
+                if isinstance(nested_dictionary[tag], list):
                     nested_dictionary[tag].append(child_dict[tag])
                 else:
                     nested_dictionary[tag] = [nested_dictionary[tag], child_dict[tag]]
@@ -319,9 +125,3 @@ def _xml_element_to_dict(elem):
         else:
             dictionary[elem.tag] = text
     return dictionary
-
-
-def _read_xml_as_dict(file_path: str | Path) -> dict:
-    """Read an XML file and convert it to a dictionary."""
-    xml_dict = _xml_element_to_dict(ET.parse(file_path).getroot())
-    return xml_dict
