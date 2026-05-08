@@ -41,6 +41,20 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
     channel_name : str or None, optional
         Name of the channel to extract (e.g., "0", "1"). Required when the data has
         more than one channel. Default is None.
+    metadata : dict or None, optional
+        Per-field overrides on top of the metadata parsed from the embedded
+        OME-XML. Keys may include ``file_paths``, ``dimension_order``,
+        ``num_channels``, ``num_planes``, ``channel_names``, and
+        ``sampling_frequency``. Any field present in this dict replaces the
+        value parsed from OME-XML; fields not present are taken from OME-XML.
+        If OME-XML parsing fails (e.g. the file uses ``BinaryOnly`` packaging
+        with no resolvable ``<Pixels>`` element), this dict must supply all
+        required fields (``file_paths``, ``dimension_order``, ``num_channels``,
+        ``num_planes``) on its own. Vendor extractors that derive structural
+        metadata from a non-OME source (e.g. Bruker's configuration XML) use
+        this to override fields where the vendor source is authoritative while
+        still inheriting any field that is cleanly recoverable from OME-XML.
+        Default is None.
     """
 
     extractor_name = "OMETiffImagingExtractor"
@@ -81,28 +95,6 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         channel_name: str | None = None,
         metadata: dict | None = None,
     ):
-        """
-        Initialize the extractor.
-
-        Parameters
-        ----------
-        file_path, sampling_frequency, channel_name
-            See class docstring.
-        metadata : dict or None, optional
-            Per-field overrides on top of the metadata parsed from the embedded
-            OME-XML. Keys may include ``file_paths``, ``dimension_order``,
-            ``num_channels``, ``num_planes``, ``channel_names``, and
-            ``sampling_frequency``. Any field present in this dict replaces the
-            value parsed from OME-XML; fields not present are taken from OME-XML.
-            If OME-XML parsing fails (e.g. the file uses ``BinaryOnly`` packaging
-            with no resolvable ``<Pixels>`` element), this dict must supply all
-            required fields (``file_paths``, ``dimension_order``,
-            ``num_channels``, ``num_planes``) on its own. Vendor extractors that
-            derive structural metadata from a non-OME source (e.g. Bruker's
-            configuration XML) use this to override fields where the vendor
-            source is authoritative while still inheriting any field that is
-            cleanly recoverable from OME-XML. Default is None.
-        """
         try:
             parsed_metadata = self._parse_ome_metadata(file_path)
         except ValueError:
