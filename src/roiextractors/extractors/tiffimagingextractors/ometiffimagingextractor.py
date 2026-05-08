@@ -137,26 +137,28 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
     def _validate_layout_dict(layout_dict: dict, file_path: PathType | None = None) -> None:
         """Validate that ``layout_dict`` supplies every required structural field.
 
-        Designed to be called on the *combined* layout dict (OME-XML parse
-        merged with caller-supplied overrides). Concerned only with the
-        presence of required fields — type and value validation happen
-        downstream in ``MultiTIFFMultiPageExtractor.__init__``.
+        Pure presence check — concerned only with whether the four required
+        keys are present. Type and value validation happen downstream in
+        ``MultiTIFFMultiPageExtractor.__init__``. Diagnostic context (e.g.
+        "the OME-XML parse came up empty, suggesting BinaryOnly packaging")
+        is the responsibility of the caller, who has visibility into where
+        the dict came from.
 
         Parameters
         ----------
         layout_dict : dict
-            The combined layout dict to validate.
+            The dict to validate. Typically the combined parsed-OME-XML +
+            caller-overrides dict, but the validator doesn't require that.
         file_path : PathType or None, optional
-            Path to the OME-TIFF the dict was parsed from. Used only to make
-            the error message more informative; pass ``None`` when validating
-            a vendor-built dict that didn't come from a file.
+            Path to the file the dict relates to. Used only to make the error
+            message more informative.
 
         Raises
         ------
         ValueError
-            If any required structural field is missing from ``layout_dict``.
-            The message lists the missing fields and shows a template for the
-            ``multitiff_layout_dict=`` constructor parameter.
+            If any required structural field is missing. The message lists
+            the missing fields and shows the ``multitiff_layout_dict=``
+            template the caller can use to supply them.
         """
         required_fields = ("file_paths", "dimension_order", "num_channels", "num_planes")
         missing = [field for field in required_fields if field not in layout_dict]
@@ -166,17 +168,15 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         location = f"from {file_path}" if file_path is not None else "in the supplied layout dict"
         raise ValueError(
             f"Required structural fields {missing} could not be obtained "
-            f"{location}. Pass these via the `multitiff_layout_dict=` parameter when "
-            f"the OME-XML embedded in the file does not carry them — typical reason: "
-            f"the file uses ``BinaryOnly`` packaging where the ``<Pixels>`` block "
-            f"lives in a separate ``.companion.ome`` sidecar that this reader is not "
-            f"following. Example:\n"
+            f"{location}. Pass the missing fields via the `multitiff_layout_dict=` "
+            f"parameter — typical reasons are BinaryOnly OME-XML packaging (the "
+            f"<Pixels> block lives in a separate .companion.ome sidecar that this "
+            f"reader is not following) or a malformed <Pixels> element. Example:\n"
             f"    multitiff_layout_dict={{\n"
             f'        "file_paths": ["/path/to/file1.ome.tif", "/path/to/file2.ome.tif"],\n'
             f'        "dimension_order": "CZT",  # one of ZCT, ZTC, CZT, CTZ, TCZ, TZC\n'
             f'        "num_channels": 2,\n'
             f'        "num_planes": 1,\n'
-            f'        "channel_names": ["Ch1", "Ch2"],  # optional\n'
             f"    }}"
         )
 
@@ -281,8 +281,18 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
             a TimeIncrement attribute, plus channel_names if Channel/@Name attributes
             are present. Returns an empty dict when the OME-XML has no resolvable
             <Pixels> element (e.g. BinaryOnly packaging where structural metadata
-            lives in a companion sidecar). Callers are expected to validate that all
-            fields they need are present in the returned dict.
+            lives in a companion sidecar). Returns a partial dict (missing
+            ``file_paths`` and ``dimension_order`` only) when <Pixels> exists but
+            its DimensionOrder attribute is missing. Callers are expected to
+            validate that all fields they need are present in the returned dict.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the file does not exist.
+        ValueError
+            If the file has no embedded OME-XML at all (suggests it isn't an
+            OME-TIFF; for plain TIFFs use ``MultiTIFFMultiPageExtractor`` directly).
         """
         tifffile = get_package(package_name="tifffile")
 
@@ -298,9 +308,16 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         finally:
             tiff.close()
         if not ome_xml_string:
-            # File has no OME-XML at all (not an OME-TIFF, or stripped). Return an
-            # empty dict so the caller can decide via the `metadata=` parameter.
-            return {}
+            # The file has no OME-XML at all — not just a BinaryOnly stub, but
+            # genuinely no embedded OME metadata. This is a categorical
+            # mismatch (the caller is using OMETiffImagingExtractor on a file
+            # that isn't an OME-TIFF), not a recoverable BinaryOnly case.
+            # Use MultiTIFFMultiPageExtractor directly for non-OME TIFFs.
+            raise ValueError(
+                f"No OME-XML metadata found in {file_path}. The file may not be an "
+                f"OME-TIFF; if it's a plain TIFF, use MultiTIFFMultiPageExtractor "
+                f"directly instead of OMETiffImagingExtractor."
+            )
 
         # Old OME-TIFF versions wrapped the XML in comments (<!-- ... -->)
         if ome_xml_string.lstrip().startswith("<!--"):
