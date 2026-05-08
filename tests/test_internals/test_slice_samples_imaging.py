@@ -69,31 +69,21 @@ def test_has_time_vector_inherits_from_parent():
     assert sample_sliced_imaging_with_times.has_time_vector()
 
 
-def test_get_series_default_args_clamps_to_slice_bounds():
-    """Regression test for #585.
-
-    `SampleSlicedImagingExtractor.get_series()` with no arguments must return only
-    the samples within the slice's [start_sample, end_sample) range. Previously,
-    end_sample=None passed straight through to the parent, which returned all samples
-    from the shifted start to the parent's full end, silently producing too many samples.
-    """
+def test_get_series_default_start_default_end():
+    """Both args default. Regression for #585: must return only the slice's range."""
     imaging = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)
     sliced = imaging.slice_samples(start_sample=2, end_sample=6)
 
-    # No-arg call should respect the slice bounds.
     series = sliced.get_series()
     assert series.shape == (4, 5, 4)
     assert_array_equal(series, imaging.get_series()[2:6])
 
-    # Explicit end_sample beyond the slice's own length is allowed; bounds are caller's responsibility.
-    # But default (None) must clamp to the slice.
-    full_via_default = sliced.get_series()
-    full_via_explicit = sliced.get_series(start_sample=0, end_sample=4)
-    assert_array_equal(full_via_default, full_via_explicit)
+    # Default and explicit-equivalent paths agree.
+    assert_array_equal(sliced.get_series(), sliced.get_series(start_sample=0, end_sample=4))
 
 
-def test_get_series_partial_default_clamps_to_slice_bounds():
-    """Default end_sample with explicit start_sample should still clamp to the slice."""
+def test_get_series_explicit_start_default_end():
+    """Explicit start, default end. Upper bound must clamp to the slice's own end."""
     imaging = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)
     sliced = imaging.slice_samples(start_sample=2, end_sample=6)
 
@@ -102,8 +92,8 @@ def test_get_series_partial_default_clamps_to_slice_bounds():
     assert_array_equal(series, imaging.get_series()[3:6])
 
 
-def test_get_series_default_start_clamps_correctly():
-    """Default start_sample with explicit end_sample should still respect the slice's start."""
+def test_get_series_default_start_explicit_end():
+    """Default start, explicit end. Lower bound must respect the slice's own start."""
     imaging = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)
     sliced = imaging.slice_samples(start_sample=2, end_sample=6)
 
