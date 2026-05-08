@@ -108,7 +108,7 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         parsed_sampling_frequency = parsed.pop("sampling_frequency", None)
 
         combined_layout_dict = {**parsed, **(multitiff_layout_dict or {})}
-        self._validate_layout_dict(combined_layout_dict, file_path=file_path)
+        self._validate_layout_dict(combined_layout_dict)
 
         if sampling_frequency is None:
             if parsed_sampling_frequency is None:
@@ -134,24 +134,20 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         )
 
     @staticmethod
-    def _validate_layout_dict(layout_dict: dict, file_path: PathType | None = None) -> None:
+    def _validate_layout_dict(layout_dict: dict) -> None:
         """Validate that ``layout_dict`` supplies every required structural field.
 
         Pure presence check — concerned only with whether the four required
         keys are present. Type and value validation happen downstream in
-        ``MultiTIFFMultiPageExtractor.__init__``. Diagnostic context (e.g.
-        "the OME-XML parse came up empty, suggesting BinaryOnly packaging")
-        is the responsibility of the caller, who has visibility into where
-        the dict came from.
+        ``MultiTIFFMultiPageExtractor.__init__``. Diagnostic context (which
+        file the dict came from, why the OME-XML parse was incomplete, etc.)
+        is the responsibility of the caller.
 
         Parameters
         ----------
         layout_dict : dict
             The dict to validate. Typically the combined parsed-OME-XML +
             caller-overrides dict, but the validator doesn't require that.
-        file_path : PathType or None, optional
-            Path to the file the dict relates to. Used only to make the error
-            message more informative.
 
         Raises
         ------
@@ -165,13 +161,12 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         if not missing:
             return
 
-        location = f"from {file_path}" if file_path is not None else "in the supplied layout dict"
         raise ValueError(
-            f"Required structural fields {missing} could not be obtained "
-            f"{location}. Pass the missing fields via the `multitiff_layout_dict=` "
-            f"parameter — typical reasons are BinaryOnly OME-XML packaging (the "
-            f"<Pixels> block lives in a separate .companion.ome sidecar that this "
-            f"reader is not following) or a malformed <Pixels> element. Example:\n"
+            f"Required structural fields {missing} are missing from the layout dict. "
+            f"Pass them via the `multitiff_layout_dict=` constructor parameter — "
+            f"typical reasons are BinaryOnly OME-XML packaging (the <Pixels> block "
+            f"lives in a separate .companion.ome sidecar that this reader is not "
+            f"following) or a malformed <Pixels> element. Example:\n"
             f"    multitiff_layout_dict={{\n"
             f'        "file_paths": ["/path/to/file1.ome.tif", "/path/to/file2.ome.tif"],\n'
             f'        "dimension_order": "CZT",  # one of ZCT, ZTC, CZT, CTZ, TCZ, TZC\n'
