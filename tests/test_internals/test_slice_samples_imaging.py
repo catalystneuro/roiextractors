@@ -67,3 +67,46 @@ def test_has_time_vector_inherits_from_parent():
     sample_sliced_imaging_with_times = imaging_extractor.slice_samples(start_sample=2, end_sample=7)
     assert sample_sliced_imaging_with_times.has_time_vector() == imaging_extractor.has_time_vector()
     assert sample_sliced_imaging_with_times.has_time_vector()
+
+
+def test_get_series_default_args_clamps_to_slice_bounds():
+    """Regression test for #585.
+
+    `SampleSlicedImagingExtractor.get_series()` with no arguments must return only
+    the samples within the slice's [start_sample, end_sample) range. Previously,
+    end_sample=None passed straight through to the parent, which returned all samples
+    from the shifted start to the parent's full end, silently producing too many samples.
+    """
+    imaging = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)
+    sliced = imaging.slice_samples(start_sample=2, end_sample=6)
+
+    # No-arg call should respect the slice bounds.
+    series = sliced.get_series()
+    assert series.shape == (4, 5, 4)
+    assert_array_equal(series, imaging.get_series()[2:6])
+
+    # Explicit end_sample beyond the slice's own length is allowed; bounds are caller's responsibility.
+    # But default (None) must clamp to the slice.
+    full_via_default = sliced.get_series()
+    full_via_explicit = sliced.get_series(start_sample=0, end_sample=4)
+    assert_array_equal(full_via_default, full_via_explicit)
+
+
+def test_get_series_partial_default_clamps_to_slice_bounds():
+    """Default end_sample with explicit start_sample should still clamp to the slice."""
+    imaging = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)
+    sliced = imaging.slice_samples(start_sample=2, end_sample=6)
+
+    series = sliced.get_series(start_sample=1)
+    assert series.shape == (3, 5, 4)
+    assert_array_equal(series, imaging.get_series()[3:6])
+
+
+def test_get_series_default_start_clamps_correctly():
+    """Default start_sample with explicit end_sample should still respect the slice's start."""
+    imaging = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)
+    sliced = imaging.slice_samples(start_sample=2, end_sample=6)
+
+    series = sliced.get_series(end_sample=3)
+    assert series.shape == (3, 5, 4)
+    assert_array_equal(series, imaging.get_series()[2:5])

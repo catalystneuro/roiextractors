@@ -508,10 +508,12 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
             f"'start_sample' must be greater than or equal to zero! Received '{start_sample}'.\n"
             "Negative slicing semantics are not supported."
         )
-        start_sample_shifted = (start_sample or 0) + self._start_sample
-        end_sample_shifted = end_sample
-        if end_sample is not None:
-            end_sample_shifted = end_sample + self._start_sample
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self._num_samples
+        start_sample_shifted = start_sample + self._start_sample
+        end_sample_shifted = end_sample + self._start_sample
         return self._parent_imaging.get_series(start_sample=start_sample_shifted, end_sample=end_sample_shifted)
 
     def get_image_shape(self) -> tuple[int, int]:
