@@ -128,14 +128,15 @@ def _parse_xml(folder_path: PathType) -> etree.Element:
 class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
     """An extractor for Bruker Prairie View OME-TIFF files.
 
-    Inherits from OMETiffImagingExtractor and adds automatic sampling frequency
-    computation from the Bruker configuration XML. Supports single-plane, volumetric,
-    and multi-channel data.
+    Reads all structural metadata (dimensions, channels, planes, file layout) from
+    Bruker's own configuration XML rather than from the embedded OME-XML. The Bruker
+    XML is the authoritative source for Bruker recordings across all PrairieView
+    versions; embedded OME-XML packaging changed at PV 5.7+ to a `BinaryOnly` +
+    companion sidecar that the parent OMETiffImagingExtractor does not handle.
+    Bio-Formats' `PrairieReader` makes the same choice for the same reason.
 
-    The user provides a folder path containing .ome.tif files and a Bruker configuration
-    XML. The extractor reads structural metadata (dimensions, channels, planes, file layout)
-    from the OME-XML embedded in the first TIFF file, and computes sampling frequency from
-    the relativeTime attributes in the Bruker XML.
+    Sampling frequency is computed from the relativeTime attributes on `<Frame>`
+    elements in the Bruker XML.
 
     Parameters
     ----------
@@ -143,7 +144,6 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
         Path to the folder containing Bruker .ome.tif files and the configuration XML.
     channel_name : str or None, optional
         Name of the channel to extract. Required when the data has more than one channel.
-        Channel names are zero-indexed strings (e.g., "0", "1").
     """
 
     extractor_name = "BrukerTiffImagingExtractor"
@@ -168,10 +168,9 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
         self._xml_root = etree.parse(xml_file_path).getroot()
         self._bruker_xml_metadata = self._parse_bruker_xml_metadata()
 
-        ome_file = ome_files[0]  # Any file works: Bruker embeds the full dataset structure in every .ome.tif it writes.
-        ome_metadata = self._parse_ome_metadata(ome_file)
-        num_channels = ome_metadata["num_channels"]
-        num_planes = ome_metadata["num_planes"]
+        metadata = self._build_structural_metadata_from_bruker_xml(folder_path)
+        num_channels = metadata["num_channels"]
+        num_planes = metadata["num_planes"]
 
         if num_channels > 1 and num_planes > 1:
             warnings.warn(
@@ -182,7 +181,7 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
                 stacklevel=2,
             )
 
-        # Pre-set _num_planes so get_native_timestamps() can be called before super().__init__().
+        # Pre-set _num_planes so get_native_timestamps() can be called before init.
         # MultiTIFFMultiPageExtractor.__init__() will set it again to the same value.
         self._num_planes = num_planes
         timestamps = self.get_native_timestamps()
@@ -190,13 +189,98 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
         if sampling_frequency is None:
             raise ValueError("Could not determine sampling frequency from Bruker configuration XML.")
 
+        # Pass the Bruker-derived metadata to OMETiffImagingExtractor.__init__ via
+        # the optional `metadata=` parameter, which skips OME-XML parsing. file_path
+        # is unused when metadata is provided but kept for API consistency.
         super().__init__(
-            file_path=ome_file,
+            file_path=ome_files[0],
             sampling_frequency=sampling_frequency,
             channel_name=channel_name,
+            metadata=metadata,
         )
 
         self.set_times(timestamps)
+
+    @staticmethod
+    def _build_structural_metadata_from_bruker_xml(folder_path: PathType) -> dict:
+        """Build structural metadata for MultiTIFFMultiPageExtractor from the Bruker XML.
+
+        Returns the same five fields as OMETiffImagingExtractor._parse_ome_metadata,
+        derived from Bruker's own configuration XML and file naming conventions.
+
+        Dimension order is hardcoded to ``"CZT"`` (i.e. OME ``"XYCZT"``: C fastest
+        within a frame, then Z, then T). This matches Bruker's actual on-disk
+        storage — each ``<Sequence>`` rasterizes T outermost, each ``<Frame>``
+        within rasterizes Z, and each ``<File>`` within a Frame rasterizes C. It
+        also matches Bio-Formats' ``PrairieReader``, which hardcodes the same
+        ``XYCZT`` order. The OME-XML embedded in Bruker's ``.ome.tif`` files
+        sometimes reports ``XYZCT`` on the ``<Pixels>`` element, but the actual
+        storage layout follows ``XYCZT``; we trust the storage layout.
+
+        File ordering matches what _parse_ome_metadata would produce for
+        ``"CZT"``: sorted by (first_t, first_z, first_c) — slowest-varying
+        dimension first.
+
+        Parameters
+        ----------
+        folder_path : PathType
+            Folder containing the Bruker .ome.tif files and `<folder>.xml` config.
+
+        Returns
+        -------
+        dict
+            Keys: file_paths, dimension_order, num_channels, num_planes, channel_names.
+        """
+        folder_path = Path(folder_path)
+        xml_root = etree.parse(folder_path / f"{folder_path.name}.xml").getroot()
+        is_volumetric = _determine_imaging_is_volumetric(folder_path=folder_path)
+
+        # Walk Sequence/Frame/File to compute (first_t, first_z, first_c) for each
+        # unique filename. The tuple order matches the CZT sort key
+        # (slowest-varying dimension first). For volumetric data each Sequence is
+        # one timepoint with Frames as Z-planes; for planar data Frames count
+        # timepoints across the whole recording (independent of Sequence
+        # boundaries).
+        file_positions: dict[str, tuple[int, int, int]] = {}
+        global_frame_index = 0
+        for sequence_index, sequence in enumerate(xml_root.findall(".//Sequence")):
+            for frame_within_sequence, frame in enumerate(sequence.findall("Frame")):
+                if is_volumetric:
+                    first_t = sequence_index
+                    first_z = frame_within_sequence
+                else:
+                    first_t = global_frame_index
+                    first_z = 0
+                for file_elem in frame.findall("File"):
+                    filename = file_elem.attrib["filename"]
+                    first_c = int(file_elem.attrib["channel"]) - 1
+                    position = (first_t, first_z, first_c)
+                    existing = file_positions.get(filename)
+                    if existing is None or position < existing:
+                        file_positions[filename] = position
+                global_frame_index += 1
+
+        if not file_positions:
+            raise ValueError(f"No <File> elements found in Bruker XML at '{folder_path}/{folder_path.name}.xml'.")
+
+        sorted_filenames = sorted(file_positions.keys(), key=lambda fn: file_positions[fn])
+        file_paths = [str(folder_path / fn) for fn in sorted_filenames]
+
+        channel_names = sorted({f.attrib["channelName"] for f in xml_root.findall(".//File")})
+        num_channels = len(channel_names)
+
+        if is_volumetric:
+            num_planes = max(pos[1] for pos in file_positions.values()) + 1
+        else:
+            num_planes = 1
+
+        return {
+            "file_paths": file_paths,
+            "dimension_order": "CZT",
+            "num_channels": num_channels,
+            "num_planes": num_planes,
+            "channel_names": channel_names,
+        }
 
     def get_native_timestamps(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """Extract per-sample timestamps from Frame relativeTime attributes in the Bruker XML.

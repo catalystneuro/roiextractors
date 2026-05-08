@@ -79,8 +79,48 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         file_path: PathType,
         sampling_frequency: float | None = None,
         channel_name: str | None = None,
+        metadata: dict | None = None,
     ):
-        metadata = self._parse_ome_metadata(file_path)
+        """
+        Initialize the extractor.
+
+        Parameters
+        ----------
+        file_path, sampling_frequency, channel_name
+            See class docstring.
+        metadata : dict or None, optional
+            Per-field overrides on top of the metadata parsed from the embedded
+            OME-XML. Keys may include ``file_paths``, ``dimension_order``,
+            ``num_channels``, ``num_planes``, ``channel_names``, and
+            ``sampling_frequency``. Any field present in this dict replaces the
+            value parsed from OME-XML; fields not present are taken from OME-XML.
+            If OME-XML parsing fails (e.g. the file uses ``BinaryOnly`` packaging
+            with no resolvable ``<Pixels>`` element), this dict must supply all
+            required fields (``file_paths``, ``dimension_order``,
+            ``num_channels``, ``num_planes``) on its own. Vendor extractors that
+            derive structural metadata from a non-OME source (e.g. Bruker's
+            configuration XML) use this to override fields where the vendor
+            source is authoritative while still inheriting any field that is
+            cleanly recoverable from OME-XML. Default is None.
+        """
+        try:
+            parsed_metadata = self._parse_ome_metadata(file_path)
+        except ValueError:
+            if not metadata:
+                raise
+            parsed_metadata = {}
+
+        if metadata:
+            parsed_metadata.update(metadata)
+
+        required_fields = ("file_paths", "dimension_order", "num_channels", "num_planes")
+        missing = [field for field in required_fields if field not in parsed_metadata]
+        if missing:
+            raise ValueError(
+                f"Required structural metadata fields are missing after merging "
+                f"OME-XML and caller-provided overrides: {missing}"
+            )
+        metadata = parsed_metadata
 
         metadata_sampling_frequency = metadata.pop("sampling_frequency", None)
         if sampling_frequency is None:
