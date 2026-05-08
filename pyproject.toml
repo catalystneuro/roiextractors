@@ -111,7 +111,10 @@ known-first-party = ["roiextractors"]
 [tool.codespell]
 skip = '.git*,*.pdf,*.css,*.svg'
 check-hidden = true
-ignore-words-list = 'assertin,tye'
+# assertin: unittest method name
+# tye: common variable name in codebase
+# thet: OME-XML attribute Plane/@TheT (timepoint index)
+ignore-words-list = 'assertin,tye,thet'
 
 [dependency-groups]
 test = [
