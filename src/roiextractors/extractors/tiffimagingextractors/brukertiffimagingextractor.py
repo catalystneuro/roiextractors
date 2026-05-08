@@ -126,24 +126,59 @@ def _parse_xml(folder_path: PathType) -> etree.Element:
 
 
 class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
-    """An extractor for Bruker Prairie View OME-TIFF files.
+    """An extractor for Bruker Prairie View two-photon imaging recordings.
 
-    Reads all structural metadata (dimensions, channels, planes, file layout) from
-    Bruker's own configuration XML rather than from the embedded OME-XML. The Bruker
-    XML is the authoritative source for Bruker recordings across all PrairieView
-    versions; embedded OME-XML packaging changed at PV 5.7+ to a `BinaryOnly` +
-    companion sidecar that the parent OMETiffImagingExtractor does not handle.
-    Bio-Formats' `PrairieReader` makes the same choice for the same reason.
+    Reads single-plane time series, volumetric (Z-stack) time series, and
+    multi-channel data from a Bruker / Prairie View recording folder. The
+    folder is what Prairie View writes at acquisition time, with all
+    ``.ome.tif`` files and the accompanying ``<folder_name>.xml`` configuration
+    file kept together.
 
-    Sampling frequency is computed from the relativeTime attributes on `<Frame>`
-    elements in the Bruker XML.
+    Supported Prairie View versions: 5.5 onwards (tested on 5.5, 5.6, 5.8;
+    5.1-5.4 are expected to work but untested). Pre-5.1 data, which uses plain
+    ``.tif`` files with no embedded OME-XML, is not supported and is rejected
+    at construction with a clear error.
+
+    For multi-channel recordings, ``channel_name`` is required at construction.
+    Channel names come from the Bruker configuration XML's
+    ``<File channelName="..."/>`` attribute, which carries the labels the user
+    set in Prairie View (e.g. ``"Green"``, ``"Red"``, or generic ``"Ch1"``/
+    ``"Ch2"`` if no custom label was set). Constructing without
+    ``channel_name`` on a multi-channel recording, or with an unknown name,
+    raises ``ValueError`` with the available channel names listed.
+
+    Volumetric (Z-stack) recordings are detected automatically from the Bruker
+    XML's ``<Sequence type="...">`` attribute. ``is_volumetric`` reports the
+    result; ``get_series`` returns a 4D array shaped
+    ``(num_samples, num_rows, num_cols, num_planes)``; ``get_volume_shape``
+    returns ``(num_rows, num_cols, num_planes)``.
 
     Parameters
     ----------
     folder_path : str or Path
-        Path to the folder containing Bruker .ome.tif files and the configuration XML.
+        Path to the recording folder. Must contain at least one ``.ome.tif``
+        file and a ``<folder_name>.xml`` configuration file (Prairie View
+        writes both at acquisition time; the XML is named after the folder).
     channel_name : str or None, optional
-        Name of the channel to extract. Required when the data has more than one channel.
+        Name of the channel to extract. Required when the recording has more
+        than one channel. Default is None.
+
+    Raises
+    ------
+    FileNotFoundError
+        If no ``.ome.tif`` files are found, or if the ``<folder_name>.xml``
+        file is missing.
+    ValueError
+        If only plain ``.tif`` files are present (Prairie View 5.0 and earlier,
+        not supported); if no ``channel_name`` is provided for a multi-channel
+        recording; if an unknown ``channel_name`` is given; or if the sampling
+        frequency cannot be determined from the Bruker XML.
+
+    Notes
+    -----
+    Sampling frequency is computed automatically from the Bruker configuration
+    XML; it is not a constructor parameter. Per-sample timestamps are available
+    via ``get_native_timestamps()``.
     """
 
     extractor_name = "BrukerTiffImagingExtractor"
@@ -168,9 +203,9 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
         self._xml_root = etree.parse(xml_file_path).getroot()
         self._bruker_xml_metadata = self._parse_bruker_xml_metadata()
 
-        metadata = self._build_structural_metadata_from_bruker_xml(folder_path)
-        num_channels = metadata["num_channels"]
-        num_planes = metadata["num_planes"]
+        layout_dict = self._build_structural_metadata_from_bruker_xml(folder_path)
+        num_channels = layout_dict["num_channels"]
+        num_planes = layout_dict["num_planes"]
 
         if num_channels > 1 and num_planes > 1:
             warnings.warn(
@@ -189,33 +224,37 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
         if sampling_frequency is None:
             raise ValueError("Could not determine sampling frequency from Bruker configuration XML.")
 
-        # Pass the Bruker-derived metadata to OMETiffImagingExtractor.__init__ via
-        # the optional `metadata=` parameter, which skips OME-XML parsing. file_path
-        # is unused when metadata is provided but kept for API consistency.
+        # Pass the Bruker-derived layout to OMETiffImagingExtractor.__init__ via the
+        # optional `multitiff_layout_dict=` parameter — it overrides every required
+        # field, so OME-XML parsing yields data that's then completely overridden.
         super().__init__(
             file_path=ome_files[0],
             sampling_frequency=sampling_frequency,
             channel_name=channel_name,
-            metadata=metadata,
+            multitiff_layout_dict=layout_dict,
         )
 
         self.set_times(timestamps)
 
     @staticmethod
     def _build_structural_metadata_from_bruker_xml(folder_path: PathType) -> dict:
-        """Build structural metadata for MultiTIFFMultiPageExtractor from the Bruker XML.
+        """Build the layout dict for MultiTIFFMultiPageExtractor from the Bruker XML.
 
-        Returns the same five fields as OMETiffImagingExtractor._parse_ome_metadata,
-        derived from Bruker's own configuration XML and file naming conventions.
+        Returns the four required structural fields (file paths, dimension
+        order, channel count, plane count) derived from Bruker's own
+        configuration XML and file naming conventions. Channel labels are
+        not included here — those are returned by the
+        ``_get_channel_names()`` override on the class.
 
-        Dimension order is hardcoded to ``"CZT"`` (i.e. OME ``"XYCZT"``: C fastest
-        within a frame, then Z, then T). This matches Bruker's actual on-disk
-        storage — each ``<Sequence>`` rasterizes T outermost, each ``<Frame>``
-        within rasterizes Z, and each ``<File>`` within a Frame rasterizes C. It
-        also matches Bio-Formats' ``PrairieReader``, which hardcodes the same
-        ``XYCZT`` order. The OME-XML embedded in Bruker's ``.ome.tif`` files
-        sometimes reports ``XYZCT`` on the ``<Pixels>`` element, but the actual
-        storage layout follows ``XYCZT``; we trust the storage layout.
+        Dimension order is hardcoded to ``"CZT"`` (i.e. OME ``"XYCZT"``: C
+        fastest within a frame, then Z, then T). This matches Bruker's actual
+        on-disk storage — each ``<Sequence>`` rasterizes T outermost, each
+        ``<Frame>`` within rasterizes Z, and each ``<File>`` within a Frame
+        rasterizes C. It also matches Bio-Formats' ``PrairieReader``, which
+        hardcodes the same ``XYCZT`` order. The OME-XML embedded in Bruker's
+        ``.ome.tif`` files sometimes reports ``XYZCT`` on the ``<Pixels>``
+        element, but the actual storage layout follows ``XYCZT``; we trust
+        the storage layout.
 
         File ordering matches what _parse_ome_metadata would produce for
         ``"CZT"``: sorted by (first_t, first_z, first_c) — slowest-varying
@@ -229,7 +268,7 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
         Returns
         -------
         dict
-            Keys: file_paths, dimension_order, num_channels, num_planes, channel_names.
+            Keys: file_paths, dimension_order, num_channels, num_planes.
         """
         folder_path = Path(folder_path)
         xml_root = etree.parse(folder_path / f"{folder_path.name}.xml").getroot()
@@ -266,8 +305,7 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
         sorted_filenames = sorted(file_positions.keys(), key=lambda fn: file_positions[fn])
         file_paths = [str(folder_path / fn) for fn in sorted_filenames]
 
-        channel_names = sorted({f.attrib["channelName"] for f in xml_root.findall(".//File")})
-        num_channels = len(channel_names)
+        num_channels = len({f.attrib["channelName"] for f in xml_root.findall(".//File")})
 
         if is_volumetric:
             num_planes = max(pos[1] for pos in file_positions.values()) + 1
@@ -279,8 +317,21 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
             "dimension_order": "CZT",
             "num_channels": num_channels,
             "num_planes": num_planes,
-            "channel_names": channel_names,
         }
+
+    def _get_channel_names(self) -> list[str]:
+        """Return channel labels from the Bruker XML's ``<File channelName="..."/>`` attribute.
+
+        Overrides ``OMETiffImagingExtractor._get_channel_names`` to read from
+        Bruker's configuration XML instead of OME-XML. PrairieView lets users
+        set custom fluorophore labels (e.g. ``"Green"``, ``"Red"``) which the
+        Bruker XML carries but OME-XML's generic ``<Channel Name="Ch1"/>``
+        does not. ``self._xml_root`` is set in ``__init__`` before
+        ``super().__init__()``, so the override has the data it needs by the
+        time the parent class calls this method during channel-name-to-index
+        resolution.
+        """
+        return sorted({f.attrib["channelName"] for f in self._xml_root.findall(".//File")})
 
     def get_native_timestamps(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """Extract per-sample timestamps from Frame relativeTime attributes in the Bruker XML.
