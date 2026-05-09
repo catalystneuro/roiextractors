@@ -274,38 +274,49 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
         xml_root = etree.parse(folder_path / f"{folder_path.name}.xml").getroot()
         is_volumetric = _determine_imaging_is_volumetric(folder_path=folder_path)
 
-        # Walk Sequence/Frame/File to compute (first_t, first_z, first_c) for each
-        # unique filename. The tuple order matches the CZT sort key
-        # (slowest-varying dimension first). For volumetric data each Sequence is
-        # one timepoint with Frames as Z-planes; for planar data Frames count
-        # timepoints across the whole recording (independent of Sequence
-        # boundaries).
+        # Single pass over Sequence/Frame/File via lxml's C-level tag-filtered
+        # iter(). Tracks the parent context (current Sequence index, current
+        # frame-within-sequence) with simple counters as we go, so we never
+        # have to re-traverse children. ``iter()`` does pre-order DFS — by the
+        # time we hit a File, the most-recent Frame is its parent and the
+        # most-recent Sequence is the Frame's parent.
+        #
+        # For volumetric data each Sequence is one timepoint with Frames as
+        # Z-planes; for planar data Frames count timepoints across the whole
+        # recording (independent of Sequence boundaries).
         file_positions: dict[str, tuple[int, int, int]] = {}
-        global_frame_index = 0
-        for sequence_index, sequence in enumerate(xml_root.findall(".//Sequence")):
-            for frame_within_sequence, frame in enumerate(sequence.findall("Frame")):
+        channel_names_seen: set[str] = set()
+        sequence_index = -1
+        frame_within_sequence = -1
+        global_frame_index = -1
+        for elem in xml_root.iter("Sequence", "Frame", "File"):
+            tag = elem.tag
+            if tag == "Sequence":
+                sequence_index += 1
+                frame_within_sequence = -1
+            elif tag == "Frame":
+                frame_within_sequence += 1
+                global_frame_index += 1
+            else:  # File
                 if is_volumetric:
                     first_t = sequence_index
                     first_z = frame_within_sequence
                 else:
                     first_t = global_frame_index
                     first_z = 0
-                for file_elem in frame.findall("File"):
-                    filename = file_elem.attrib["filename"]
-                    first_c = int(file_elem.attrib["channel"]) - 1
-                    position = (first_t, first_z, first_c)
-                    existing = file_positions.get(filename)
-                    if existing is None or position < existing:
-                        file_positions[filename] = position
-                global_frame_index += 1
+                first_c = int(elem.attrib["channel"]) - 1
+                filename = elem.attrib["filename"]
+                position = (first_t, first_z, first_c)
+                existing = file_positions.get(filename)
+                if existing is None or position < existing:
+                    file_positions[filename] = position
+                channel_names_seen.add(elem.attrib["channelName"])
 
         if not file_positions:
             raise ValueError(f"No <File> elements found in Bruker XML at '{folder_path}/{folder_path.name}.xml'.")
 
         sorted_filenames = sorted(file_positions.keys(), key=lambda fn: file_positions[fn])
         file_paths = [str(folder_path / fn) for fn in sorted_filenames]
-
-        num_channels = len({f.attrib["channelName"] for f in xml_root.findall(".//File")})
 
         if is_volumetric:
             num_planes = max(pos[1] for pos in file_positions.values()) + 1
@@ -315,7 +326,7 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
         return {
             "file_paths": file_paths,
             "dimension_order": "CZT",
-            "num_channels": num_channels,
+            "num_channels": len(channel_names_seen),
             "num_planes": num_planes,
         }
 
