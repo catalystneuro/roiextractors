@@ -9,12 +9,15 @@ MultiTIFFMultiPageExtractor
 import glob
 import warnings
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
 from ...extraction_tools import PathType, get_package
 from ...imagingextractor import ImagingExtractor
+
+if TYPE_CHECKING:
+    import tifffile
 
 
 class MultiTIFFMultiPageExtractor(ImagingExtractor):
@@ -186,36 +189,29 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         self._num_planes = num_planes
         self._sampling_frequency = sampling_frequency
 
-        tifffile = get_package(package_name="tifffile")
+        self._tifffile = get_package(package_name="tifffile")
 
-        # Open all TIFF files and store file handles for lazy loading
-        self._file_handles = []
-        total_ifds = 0
+        # File handles are opened lazily on first read. This avoids an O(N) syscall
+        # storm at construction time for recordings with tens of thousands of files.
+        self._file_handles: dict[int, "tifffile.TiffFile"] = {}
 
-        for file_path in self._file_paths:
-            # Check if file exists first
-            if not Path(file_path).exists():
-                # Close any already opened file handles before raising the exception
-                for handle in self._file_handles:
-                    handle.close()
-                raise FileNotFoundError(f"TIFF file not found: {file_path}")
+        # Probe only the first file to learn shape/dtype; assume all files are compatible.
+        first_path = self._file_paths[0]
+        if not first_path.exists():
+            raise FileNotFoundError(f"TIFF file not found: {first_path}")
+        try:
+            with self._tifffile.TiffFile(first_path) as first_tiff:
+                first_ifd = first_tiff.pages[0]
+                self._num_rows, self._num_columns = first_ifd.shape
+                self._dtype = first_ifd.dtype
+        except Exception as e:
+            raise RuntimeError(f"Error opening TIFF file {first_path}: {e}")
 
-            try:
-                tiff_handle = tifffile.TiffFile(file_path)
-                self._file_handles.append(tiff_handle)
-                total_ifds += len(tiff_handle.pages)
-            except Exception as e:
-                # Close any opened file handles before raising the exception
-                for handle in self._file_handles:
-                    handle.close()
-                raise RuntimeError(f"Error opening TIFF file {file_path}: {e}")
-
-        first_ifd = self._file_handles[0].pages[0]
-        self._num_rows, self._num_columns = first_ifd.shape
-        self._dtype = first_ifd.dtype
-
-        # Create mapping table for all available IFDs
-        ifds_per_file = [len(handle.pages) for handle in self._file_handles]
+        ifds_per_file = self._get_ifds_per_file()
+        if len(ifds_per_file) != len(self._file_paths):
+            raise ValueError(
+                f"_get_ifds_per_file() returned {len(ifds_per_file)} entries " f"for {len(self._file_paths)} files."
+            )
         total_ifds = sum(ifds_per_file)
 
         ifds_per_cycle = num_channels * num_planes
@@ -306,11 +302,11 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         """
         mapping_dtype = np.dtype(
             [
-                ("file_index", np.uint16),
-                ("IFD_index", np.uint16),
+                ("file_index", np.uint32),
+                ("IFD_index", np.uint32),
                 ("channel_index", np.uint8),
                 ("depth_index", np.uint8),
-                ("time_index", np.uint16),
+                ("time_index", np.uint32),
             ]
         )
 
@@ -334,10 +330,10 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         channel_indices = (indices // dimension_divisors["C"]) % dimension_sizes["C"]
 
         file_indices = np.concatenate(
-            [np.full(num_ifds, file_idx, dtype=np.uint16) for file_idx, num_ifds in enumerate(ifds_per_file)]
+            [np.full(num_ifds, file_idx, dtype=np.uint32) for file_idx, num_ifds in enumerate(ifds_per_file)]
         )
 
-        ifd_indices = np.concatenate([np.arange(num_ifds, dtype=np.uint16) for num_ifds in ifds_per_file])
+        ifd_indices = np.concatenate([np.arange(num_ifds, dtype=np.uint32) for num_ifds in ifds_per_file])
 
         file_indices = file_indices[:total_entries]
         ifd_indices = ifd_indices[:total_entries]
@@ -390,8 +386,8 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
                 file_index = table_row["file_index"]
                 ifd_index = table_row["IFD_index"]
 
-                tiff_handle = self._file_handles[file_index]
-                image_file_directory = tiff_handle.pages[ifd_index]
+                tiff_handle = self._get_file_handle(int(file_index))
+                image_file_directory = tiff_handle.pages[int(ifd_index)]
                 samples[return_index, :, :, depth_position] = image_file_directory.asarray()
 
         # Squeeze the depth dimension if not volumetric
@@ -443,9 +439,9 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         return self._dtype
 
     def __del__(self):
-        """Close file handles when the extractor is garbage collected."""
+        """Close any cached file handles when the extractor is garbage collected."""
         if hasattr(self, "_file_handles"):
-            for handle in self._file_handles:
+            for handle in self._file_handles.values():
                 try:
                     handle.close()
                 except Exception:
@@ -505,6 +501,54 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
     ) -> np.ndarray | None:
         """No native timestamps for native this extractor."""
         return None
+
+    _SLOW_OPEN_FILE_THRESHOLD = 1000
+
+    def _get_ifds_per_file(self) -> list[int]:
+        """Return the number of IFDs (pages) in each file in ``self._file_paths``.
+
+        The default implementation opens every file with ``tifffile.TiffFile`` to count
+        its pages. This is correct but linear in the number of files: on recordings
+        with tens of thousands of single-page files (Bruker T-series, large ScanImage
+        runs) this dominates ``__init__`` and can take minutes.
+
+        Subclasses that have access to a faster source of truth, e.g. a vendor XML
+        that already records pages-per-file, should override this method to skip the
+        per-file opens entirely.
+        """
+        num_files = len(self._file_paths)
+        is_slow = num_files > self._SLOW_OPEN_FILE_THRESHOLD
+        if is_slow:
+            warnings.warn(
+                f"Counting IFDs by opening {num_files} files. For large recordings this can "
+                "be slow. Subclasses should override _get_ifds_per_file() to use a faster "
+                "metadata source.",
+                stacklevel=3,
+            )
+            try:
+                from tqdm import tqdm
+
+                iterator = tqdm(self._file_paths, desc="Counting IFDs", unit="file")
+            except ImportError:
+                iterator = self._file_paths
+        else:
+            iterator = self._file_paths
+
+        ifds_per_file = []
+        for file_path in iterator:
+            if not file_path.exists():
+                raise FileNotFoundError(f"TIFF file not found: {file_path}")
+            with self._tifffile.TiffFile(file_path) as tif:
+                ifds_per_file.append(len(tif.pages))
+        return ifds_per_file
+
+    def _get_file_handle(self, file_index: int) -> "tifffile.TiffFile":
+        """Return the cached ``TiffFile`` for ``file_index``, opening it on first access."""
+        handle = self._file_handles.get(file_index)
+        if handle is None:
+            handle = self._tifffile.TiffFile(self._file_paths[file_index])
+            self._file_handles[file_index] = handle
+        return handle
 
     def _get_channel_names(self) -> list[str]:
         """Return valid channel names for this extractor.

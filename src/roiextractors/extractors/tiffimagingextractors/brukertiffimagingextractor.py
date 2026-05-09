@@ -198,6 +198,37 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
 
         self.set_times(timestamps)
 
+    def _get_ifds_per_file(self) -> list[int]:
+        """Return per-file IFD counts derived from the Bruker XML.
+
+        Each ``<File>`` element in the Bruker configuration XML has a ``page`` attribute
+        giving the IFD index (1-based) of that frame within its multi-page TIFF. For each
+        physical file, the IFD count is the maximum ``page`` value across all ``<File>``
+        elements that reference it. This avoids opening every TIFF at construction time,
+        which is the dominant cost for large Bruker recordings (tens to hundreds of
+        thousands of files).
+        """
+        page_count_by_filename: dict[str, int] = {}
+        for file_elem in self._xml_root.iter("File"):
+            filename = file_elem.attrib.get("filename")
+            if filename is None:
+                continue
+            page = int(file_elem.attrib.get("page", "1"))
+            current = page_count_by_filename.get(filename, 0)
+            if page > current:
+                page_count_by_filename[filename] = page
+
+        ifds_per_file: list[int] = []
+        for path in self._file_paths:
+            count = page_count_by_filename.get(path.name)
+            if count is None:
+                raise ValueError(
+                    f"Bruker XML has no <File> entry referencing '{path.name}'. "
+                    "Cannot determine IFD count without opening the file."
+                )
+            ifds_per_file.append(count)
+        return ifds_per_file
+
     def get_native_timestamps(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """Extract per-sample timestamps from Frame relativeTime attributes in the Bruker XML.
 
