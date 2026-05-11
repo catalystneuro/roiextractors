@@ -169,9 +169,11 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
         self._bruker_xml_metadata = self._parse_bruker_xml_metadata()
 
         ome_file = ome_files[0]  # Any file works: Bruker embeds the full dataset structure in every .ome.tif it writes.
-        ome_metadata = self._parse_ome_metadata(ome_file)
-        num_channels = ome_metadata["num_channels"]
-        num_planes = ome_metadata["num_planes"]
+        # Cache the parsed OME metadata so the parent OMETiffImagingExtractor.__init__ can reuse it
+        # instead of re-parsing the same large XML (significant on >100K-file recordings).
+        self._parsed_ome_metadata = self._parse_ome_metadata(ome_file)
+        num_channels = self._parsed_ome_metadata["num_channels"]
+        num_planes = self._parsed_ome_metadata["num_planes"]
 
         if num_channels > 1 and num_planes > 1:
             warnings.warn(
