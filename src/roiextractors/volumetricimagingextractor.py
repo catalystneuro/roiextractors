@@ -1,6 +1,5 @@
 """Base class definition for volumetric imaging extractors."""
 
-import warnings
 from typing import Iterable
 
 import numpy as np
@@ -114,15 +113,6 @@ class VolumetricImagingExtractor(ImagingExtractor):
 
     def get_sampling_frequency(self) -> float:
         return self._imaging_extractors[0].get_sampling_frequency()
-
-    def get_channel_names(self) -> list:
-        """Return the channel names (deprecated)."""
-        warnings.warn(
-            "get_channel_names is deprecated and will be removed in May 2026 or after.",
-            category=FutureWarning,
-            stacklevel=2,
-        )
-        return self._imaging_extractors[0].get_channel_names()
 
     def get_dtype(self) -> np.dtype:
         return self._imaging_extractors[0].get_dtype()

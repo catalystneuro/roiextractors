@@ -694,7 +694,7 @@ class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
         assert extractor_sample_1.get_sampling_frequency() == 14.5517
 
         frames_in_dataset = 24
-        num_channels = len(extractor_sample_1.get_channel_names())
+        num_channels = 2  # ['Channel 1', 'Channel 4']
         num_planes = extractor_sample_1.get_num_planes()
         frames_in_a_sample = num_channels * num_planes * frames_per_slice
         expected_samples = frames_in_dataset // frames_in_a_sample
@@ -1754,7 +1754,7 @@ def test_get_frames_per_slice():
 
 
 def test_get_availale_channel_names():
-    """Test the static get_channel_names method.
+    """Test the static get_available_channel_names method.
 
     This test verifies that the static get_available_channel_names method correctly extracts
     channel names from ScanImage TIFF files without needing to create an extractor instance.

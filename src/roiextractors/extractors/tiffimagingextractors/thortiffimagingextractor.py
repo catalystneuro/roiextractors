@@ -267,15 +267,6 @@ class ThorTiffImagingExtractor(ImagingExtractor):
         """Return the sampling frequency, if available."""
         return self._sampling_frequency
 
-    def get_channel_names(self) -> list[str]:
-        """Return the channel names."""
-        warnings.warn(
-            "get_channel_names is deprecated and will be removed in May 2026 or after.",
-            category=FutureWarning,
-            stacklevel=2,
-        )
-        return self._channel_names
-
     def get_dtype(self):
         """Return the data type of the video."""
         return self._dtype
