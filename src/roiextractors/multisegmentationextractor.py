@@ -99,8 +99,6 @@ class MultiSegmentationExtractor(SegmentationExtractor):
         self._plane_names = plane_names
         self._sampling_frequency = self._segmentations[0].get_sampling_frequency()
         self._raw_movie_file_location = self._segmentations[0]._raw_movie_file_location
-        self._channel_names = []
-        _ = [self._channel_names.extend(self._segmentations[i].get_channel_names()) for i in range(self._no_planes)]
 
     @property
     def no_planes(self) -> int:
