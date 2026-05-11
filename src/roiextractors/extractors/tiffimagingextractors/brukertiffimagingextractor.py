@@ -151,6 +151,8 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
     def __init__(self, folder_path: PathType, channel_name: str | None = None):
         folder_path = Path(folder_path)
 
+        # Check the file shape before parsing the Bruker XML so that pre-5.1 datasets
+        # (plain .tif files only) get a clear error without doing XML I/O first.
         ome_files = sorted(folder_path.glob("*.ome.tif"))
         if not ome_files:
             tif_files = list(folder_path.glob("*.tif"))
@@ -167,6 +169,22 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
             raise FileNotFoundError(f"Bruker XML configuration file not found at '{xml_file_path}'.")
         self._xml_root = etree.parse(xml_file_path).getroot()
         self._bruker_xml_metadata = self._parse_bruker_xml_metadata()
+
+        prairie_view_version = self._parse_prairie_view_version(self._xml_root.get("version"))
+        if prairie_view_version is None:
+            warnings.warn(
+                "Could not determine Prairie View version from the Bruker XML. "
+                "The earliest tested version is 5.5. Use with care.\n"
+                "File an issue at https://github.com/catalystneuro/roiextractors/issues if you find errors or problems.",
+                stacklevel=2,
+            )
+        elif prairie_view_version < (5, 5):
+            warnings.warn(
+                f"Prairie View version {prairie_view_version[0]}.{prairie_view_version[1]} detected. "
+                "The earliest tested version is 5.5. Use with care.\n"
+                "File an issue at https://github.com/catalystneuro/roiextractors/issues if you find errors or problems.",
+                stacklevel=2,
+            )
 
         ome_file = ome_files[0]  # Any file works: Bruker embeds the full dataset structure in every .ome.tif it writes.
         ome_metadata = self._parse_ome_metadata(ome_file)
@@ -257,6 +275,22 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
                                 )
 
         return xml_metadata
+
+    @staticmethod
+    def _parse_prairie_view_version(version_str: str | None) -> tuple[int, int] | None:
+        """Parse the Prairie View version string from the PVScan/@version XML attribute.
+
+        Returns (major, minor) or None if the version is missing or malformed. The format
+        is documented in the OME-Bio-Formats reference (Wussow 2014, ome/bioformats#1306):
+        `MAJOR.MINOR.BUILD.REVISION`. We only need MAJOR and MINOR for support decisions.
+        """
+        if version_str is None:
+            return None
+        try:
+            parts = version_str.split(".")
+            return (int(parts[0]), int(parts[1]))
+        except (IndexError, ValueError):
+            return None
 
 
 class BrukerTiffMultiPlaneImagingExtractor(MultiImagingExtractor):

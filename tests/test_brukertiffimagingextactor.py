@@ -450,3 +450,40 @@ class TestBrukerTiffImagingExtractorErrors:
         dummy.touch()
         with pytest.raises(FileNotFoundError, match="Bruker XML configuration file not found"):
             BrukerTiffImagingExtractor(folder_path=tmp_path)
+
+
+class TestBrukerTiffImagingExtractorVersionWarnings:
+    """End-to-end tests for the Prairie View version warning path.
+
+    Each test copies a real data to tmp_path and rewrites the PVScan/@version
+    attribute on the configuration XML. The OME-TIFF data is left untouched so the
+    constructor runs to completion and the warning is emitted on the real code path.
+    """
+
+    source_fixture = BRUKER_STUB_PATH / "NCCR32_2023_02_20_Into_the_void_t_series_baseline-000"
+
+    @classmethod
+    def _setup_fixture_with_version_attr(cls, tmp_path: Path, replacement: str) -> Path:
+        """Copy the source fixture and substitute `<PVScan version="..."` with `<PVScan{replacement}`.
+
+        Pass replacement=' version="5.3.0.0"' to set a specific version, or '' to drop the attribute.
+        """
+        import re
+
+        destination = tmp_path / cls.source_fixture.name
+        shutil.copytree(cls.source_fixture, destination)
+        xml_path = destination / f"{destination.name}.xml"
+        content = xml_path.read_text()
+        content = re.sub(r'<PVScan version="[^"]+"', f"<PVScan{replacement}", content, count=1)
+        xml_path.write_text(content)
+        return destination
+
+    def test_warning_for_pre_55_version(self, tmp_path):
+        folder_path = self._setup_fixture_with_version_attr(tmp_path, ' version="5.3.0.0"')
+        with pytest.warns(UserWarning, match=r"Prairie View version 5\.3 detected"):
+            BrukerTiffImagingExtractor(folder_path=folder_path)
+
+    def test_warning_for_missing_version(self, tmp_path):
+        folder_path = self._setup_fixture_with_version_attr(tmp_path, "")
+        with pytest.warns(UserWarning, match="Could not determine Prairie View version"):
+            BrukerTiffImagingExtractor(folder_path=folder_path)
