@@ -1,6 +1,7 @@
 # v0.8.1 (Upcoming)
 
 ### Features
+* Added `select_plane(plane_index)` to `ImagingExtractor`. Returns a lazy planar extractor from volumetric one [PR #584](https://github.com/catalystneuro/roiextractors/pull/584)
 * Added `BrukerTiffImagingExtractor`, a unified extractor for Bruker Prairie View OME-TIFF files that inherits from `OMETiffImagingExtractor`. Reads structural metadata from OME-XML and derives timestamps from the Bruker configuration XML's `Frame/@relativeTime` attributes. Supports single-plane, volumetric, and multi-channel data. [PR #567](https://github.com/catalystneuro/roiextractors/pull/567)
 * Added `OMETiffImagingExtractor` for reading OME-TIFF files by parsing embedded OME-XML metadata. Supports all 6 valid dimension orders, multi-file datasets with TiffData file discovery, multi-channel selection, and volumetric data. Built on top of `MultiTIFFMultiPageExtractor`. [PR #571](https://github.com/catalystneuro/roiextractors/pull/571)
 * `OMETiffImagingExtractor` now derives `sampling_frequency` from the OME-XML `TimeIncrement` attribute when not provided explicitly. [PR #566](https://github.com/catalystneuro/roiextractors/pull/566)

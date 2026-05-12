@@ -446,6 +446,44 @@ class ImagingExtractor(ABC):
             column_end=column_end,
         )
 
+    def select_plane(self, plane_index: int):
+        """Return a lazy planar extractor for a single depth plane.
+
+        Only valid for volumetric extractors. The returned extractor has
+        ``is_volumetric=False`` and emits a 3D series of shape
+        ``(samples, rows, columns)``.
+
+        Parameters
+        ----------
+        plane_index : int
+            The depth plane to select. Must satisfy ``0 <= plane_index < self.get_num_planes()``.
+
+        Returns
+        -------
+        imaging : _SinglePlaneImagingExtractor
+            A planar view of the selected depth plane.
+
+        Raises
+        ------
+        ValueError
+            If the extractor is not volumetric, or if ``plane_index`` is out of range.
+
+        Examples
+        --------
+        >>> # Disjoint per-plane processing
+        >>> for i in range(volumetric.get_num_planes()):
+        ...     planar = volumetric.select_plane(i)
+        ...     # planar.get_series() has shape (samples, rows, columns)
+        >>>
+        >>> # Composes with the other slicers
+        >>> subset = volumetric.select_plane(2).slice_samples(0, 100)
+        """
+        if not self.is_volumetric:
+            raise ValueError("select_plane is only valid for volumetric extractors.")
+        from .singleplaneimagingextractor import _SinglePlaneImagingExtractor
+
+        return _SinglePlaneImagingExtractor(parent_imaging=self, plane_index=plane_index)
+
 
 class SampleSlicedImagingExtractor(ImagingExtractor):
     """Class to get a lazy sample slice.
