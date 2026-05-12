@@ -9,6 +9,6 @@ MultiImagingExtractor
 ---------------------
 .. automodule:: roiextractors.multiimagingextractor
 
-VolumetricImagingExtractor
---------------------------
-.. automodule:: roiextractors.volumetricimagingextractor
+PlanarStackImagingExtractor
+---------------------------
+.. automodule:: roiextractors.planarstackimagingextractor
