@@ -15,7 +15,6 @@ class PlanarStackImagingExtractor(ImagingExtractor):
     """
 
     extractor_name = "PlanarStackImaging"
-    installatiuon_mesage = ""
 
     def __init__(self, imaging_extractors: list[ImagingExtractor]):
         """Initialize a PlanarStackImagingExtractor object from a list of ImagingExtractors.
