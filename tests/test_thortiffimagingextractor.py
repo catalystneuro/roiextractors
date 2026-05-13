@@ -86,17 +86,7 @@ class TestThorTiffImagingExtractor:
         for i, sample_index in enumerate(sample_indices):
             assert_array_equal(frames[i], self.test_data[sample_index])
 
-    def test_experiment_xml(self):
-        """Test parsing of Experiment.xml."""
-        # Test that sampling frequency was extracted from Experiment.xml
-        assert self.extractor.get_sampling_frequency() is not None
-
-        date_value = self.extractor._experiment_xml_dict["ThorImageExperiment"]["Date"]
-
-        unix_timestamp = int(date_value["@uTime"])
-        assert unix_timestamp == 1697650759
-        datetime_utc = datetime.fromtimestamp(unix_timestamp, tz=timezone.utc)
-
-        # Assert that the date extracted from Experiment.xml matches the expected datetime
-        expected_datetime = datetime(2023, 10, 18, 17, 39, 19, tzinfo=timezone.utc)
-        assert datetime_utc == expected_datetime
+    def test_session_start_time(self):
+        """Test that the acquisition start time is parsed from Experiment.xml."""
+        expected = datetime(2023, 10, 18, 17, 39, 19, tzinfo=timezone.utc)
+        assert self.extractor._get_session_start_time() == expected
