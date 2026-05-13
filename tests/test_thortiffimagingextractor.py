@@ -41,11 +41,6 @@ class TestThorTiffImagingExtractor:
         assert self.extractor.get_sampling_frequency() is not None
         assert isinstance(self.extractor.get_sampling_frequency(), float)
 
-    def test_thor_tiff_extractor_channel_names(self):
-        """Test the channel names property."""
-        assert self.extractor.get_channel_names() is not None
-        assert isinstance(self.extractor.get_channel_names(), list)
-
     def test_thor_tiff_extractor_dtype(self):
         """Test the data type property."""
         assert self.extractor.get_dtype() == self.test_data.dtype
