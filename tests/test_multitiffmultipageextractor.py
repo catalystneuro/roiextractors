@@ -109,7 +109,6 @@ class TestSingleChannelPlanar:
         assert extractor.get_num_planes() == self.num_planes
         assert extractor.get_dtype() == np.uint16
         assert extractor.is_volumetric == False
-        assert extractor.get_channel_names() == [str(i) for i in range(self.num_channels)]
         assert extractor.get_native_timestamps() is None
 
     def test_get_series(self, tiff_file_paths, test_data_array):
@@ -168,7 +167,6 @@ class TestSingleChannelVolumetric:
         assert extractor.get_num_planes() == self.num_planes
         assert extractor.get_dtype() == np.uint16
         assert extractor.is_volumetric == True
-        assert extractor.get_channel_names() == [str(i) for i in range(self.num_channels)]
         assert extractor.get_native_timestamps() is None
 
     def test_get_series(self, tiff_file_paths, test_data_array):
@@ -249,7 +247,6 @@ class TestMultiChannelPlanar:
         assert extractor.get_num_planes() == self.num_planes
         assert extractor.get_dtype() == np.uint16
         assert extractor.is_volumetric == False
-        assert extractor.get_channel_names() == [str(i) for i in range(self.num_channels)]
         assert extractor.get_native_timestamps() is None
 
     def test_get_series_channel_0(self, tiff_file_paths, test_data_array):
@@ -327,7 +324,6 @@ class TestMultiChannelVolumetric:
         assert extractor.get_num_planes() == self.num_planes
         assert extractor.get_dtype() == np.uint16
         assert extractor.is_volumetric == True
-        assert extractor.get_channel_names() == [str(i) for i in range(self.num_channels)]
         assert extractor.get_native_timestamps() is None
 
     def test_get_series_channel_0(self, tiff_file_paths, test_data_array):

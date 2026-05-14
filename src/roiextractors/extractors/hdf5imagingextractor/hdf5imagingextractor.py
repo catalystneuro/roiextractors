@@ -6,7 +6,6 @@ Hdf5ImagingExtractor
     An imaging extractor for HDF5.
 """
 
-import warnings
 from pathlib import Path
 from warnings import warn
 
@@ -125,15 +124,6 @@ class Hdf5ImagingExtractor(ImagingExtractor):
 
     def get_sampling_frequency(self):
         return self._sampling_frequency
-
-    def get_channel_names(self):
-        """Return the channel names (deprecated)."""
-        warnings.warn(
-            "get_channel_names is deprecated and will be removed in May 2026 or after.",
-            category=FutureWarning,
-            stacklevel=2,
-        )
-        return self._channel_names
 
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None

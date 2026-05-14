@@ -101,9 +101,6 @@ class TestSuite2pSegmentationExtractor(TestCase):
     def test_sampling_frequency(self):
         self.assertEqual(self.extractor.get_sampling_frequency(), 10.0)
 
-    def test_optical_channel_names(self):
-        self.assertEqual(self.extractor.get_channel_names(), ["Chan1"])
-
     def test_num_rois(self):
         self.assertEqual(self.extractor.get_num_rois(), self.num_rois)
 
@@ -112,7 +109,6 @@ class TestSuite2pSegmentationExtractor(TestCase):
 
     def test_extractor_second_channel(self):
         extractor = Suite2pSegmentationExtractor(folder_path=self.folder_path, channel_name="chan2")
-        self.assertEqual(extractor.get_channel_names(), ["Chan2"])
         traces = extractor.get_traces_dict()
         self.assertEqual(traces["deconvolved"], None)
         assert_array_equal(traces["raw"], self.second_channel_raw_traces)

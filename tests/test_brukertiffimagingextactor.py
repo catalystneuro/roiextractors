@@ -91,9 +91,6 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
     def test_brukertiffextractor_sampling_frequency(self):
         self.assertEqual(self.extractor.get_sampling_frequency(), 29.873732099062256)
 
-    def test_brukertiffextractor_channel_names(self):
-        self.assertEqual(self.extractor.get_channel_names(), ["Ch2"])
-
     def test_brukertiffextractor_dtype(self):
         self.assertEqual(self.extractor.get_dtype(), np.uint16)
 
@@ -145,9 +142,6 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
 
     def test_brukertiffextractor_sampling_frequency(self):
         self.assertEqual(self.extractor.get_sampling_frequency(), 20.629515014336377)
-
-    def test_brukertiffextractor_channel_names(self):
-        self.assertEqual(self.extractor.get_channel_names(), ["Ch2"])
 
     def test_brukertiffextractor_dtype(self):
         self.assertEqual(self.extractor.get_dtype(), np.uint16)
@@ -223,9 +217,6 @@ class TestBrukerTiffExtractorDualColorCase(TestCase):
 
     def test_brukertiffextractor_image_size(self):
         self.assertEqual(self.extractor.get_image_shape(), (512, 512))
-
-    def test_brukertiffextractor_channel_names(self):
-        self.assertEqual(self.extractor.get_channel_names(), ["Ch1"])
 
     def test_brukertiffextractor_dtype(self):
         self.assertEqual(self.extractor.get_dtype(), np.uint16)
