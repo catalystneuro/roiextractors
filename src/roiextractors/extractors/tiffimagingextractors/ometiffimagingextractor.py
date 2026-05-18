@@ -80,14 +80,7 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         sampling_frequency: float | None = None,
         channel_name: str | None = None,
     ):
-        # Reuse a parsed OME metadata dict if a subclass already produced one.
-        # On large datasets (>100K sibling-file <TiffData> references) parsing this
-        # XML costs >10 seconds, so avoiding a duplicate parse matters.
-        metadata = getattr(self, "_parsed_ome_metadata", None)
-        if metadata is None:
-            metadata = self._parse_ome_metadata(file_path)
-        else:
-            del self._parsed_ome_metadata  # release the large dict once consumed
+        metadata = self._parse_ome_metadata(file_path)
 
         metadata_sampling_frequency = metadata.pop("sampling_frequency", None)
         if sampling_frequency is None:
