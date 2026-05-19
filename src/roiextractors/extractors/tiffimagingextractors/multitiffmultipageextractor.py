@@ -378,26 +378,29 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         dtype = self.get_dtype()
         samples = np.empty((samples_in_series, num_rows, num_columns, num_planes), dtype=dtype)
 
-        # We open the files to extract the data
+        # Open every distinct file this call needs, up front. The dict's key
+        # semantics deduplicate naturally: multi-page TIFF formats have many rows
+        # sharing the same file_index, and we only want to open each file once.
+        start_frame = start_sample * num_planes
+        end_frame = end_sample * num_planes
         opened_handles: dict[int, "tifffile.TiffFile"] = {}
+        file_indices = self._frames_to_ifd_table["file_index"][start_frame:end_frame]
+        for file_index in file_indices:
+            if file_index not in opened_handles:
+                opened_handles[file_index] = self._tifffile.TiffFile(self._file_paths[file_index])
+
         for return_index, sample_index in enumerate(range(start_sample, end_sample)):
             for depth_position in range(num_planes):
 
                 # Calculate the index in the mapping table array
                 frame_index = sample_index * num_planes + depth_position
                 table_row = self._frames_to_ifd_table[frame_index]
-                file_index = table_row["file_index"]
-                ifd_index = table_row["IFD_index"]
-
-                tiff_handle = opened_handles.get(file_index)
-                if tiff_handle is None:
-                    tiff_handle = self._tifffile.TiffFile(self._file_paths[file_index])
-                    opened_handles[file_index] = tiff_handle
-                image_file_directory = tiff_handle.pages[ifd_index]
+                tiff_handle = opened_handles[table_row["file_index"]]
+                image_file_directory = tiff_handle.pages[table_row["IFD_index"]]
                 samples[return_index, :, :, depth_position] = image_file_directory.asarray()
 
-        # Explicit close all the files used here: tifffile holds internal references so the refcount
-        # GC won't promptly free these handles when the local dict goes out of scope.
+        # Explicit close: tifffile holds internal references so the refcount in the garbage collector
+        # won't promptly free these handles when the local dict goes out of scope.
         for handle in opened_handles.values():
             handle.close()
 
