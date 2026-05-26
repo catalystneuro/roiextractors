@@ -306,11 +306,11 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         """
         mapping_dtype = np.dtype(
             [
-                ("file_index", np.uint16),
-                ("IFD_index", np.uint16),
+                ("file_index", np.uint32),
+                ("IFD_index", np.uint32),
                 ("channel_index", np.uint8),
                 ("depth_index", np.uint8),
-                ("time_index", np.uint16),
+                ("time_index", np.uint32),
             ]
         )
 
@@ -334,10 +334,10 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         channel_indices = (indices // dimension_divisors["C"]) % dimension_sizes["C"]
 
         file_indices = np.concatenate(
-            [np.full(num_ifds, file_idx, dtype=np.uint16) for file_idx, num_ifds in enumerate(ifds_per_file)]
+            [np.full(num_ifds, file_idx, dtype=np.uint32) for file_idx, num_ifds in enumerate(ifds_per_file)]
         )
 
-        ifd_indices = np.concatenate([np.arange(num_ifds, dtype=np.uint16) for num_ifds in ifds_per_file])
+        ifd_indices = np.concatenate([np.arange(num_ifds, dtype=np.uint32) for num_ifds in ifds_per_file])
 
         file_indices = file_indices[:total_entries]
         ifd_indices = ifd_indices[:total_entries]
