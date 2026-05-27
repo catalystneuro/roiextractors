@@ -8,6 +8,7 @@ MultiTIFFMultiPageExtractor
 
 import glob
 import warnings
+from collections import OrderedDict
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
@@ -378,29 +379,35 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         dtype = self.get_dtype()
         samples = np.empty((samples_in_series, num_rows, num_columns, num_planes), dtype=dtype)
 
-        # Open every distinct file this call needs, up front. The dict's key
-        # semantics deduplicate naturally: multi-page TIFF formats have many rows
-        # sharing the same file_index, and we only want to open each file once.
-        start_frame = start_sample * num_planes
-        end_frame = end_sample * num_planes
-        opened_handles: dict[int, "tifffile.TiffFile"] = {}
-        file_indices = self._frames_to_ifd_table["file_index"][start_frame:end_frame]
-        for file_index in file_indices:
-            if file_index not in opened_handles:
-                opened_handles[file_index] = self._tifffile.TiffFile(self._file_paths[file_index])
-
+        # Bounded LRU of open TIFF handles so a full get_series() over a 100k-file
+        # dataset never blows past the per-process file-descriptor limit. The mapping
+        # table is lexsorted by (time, depth), so file_index is almost always
+        # monotonic in the iteration below; the cache mostly hits and rarely evicts.
+        # 16 is large enough to absorb depth/channel scrambling across a few files,
+        # and orders of magnitude below typical `ulimit -n` (1024+).
+        max_open_handles = 16
+        opened_handles: "OrderedDict[int, tifffile.TiffFile]" = OrderedDict()
         for return_index, sample_index in enumerate(range(start_sample, end_sample)):
             for depth_position in range(num_planes):
-
-                # Calculate the index in the mapping table array
                 frame_index = sample_index * num_planes + depth_position
                 table_row = self._frames_to_ifd_table[frame_index]
-                tiff_handle = opened_handles[table_row["file_index"]]
+                file_index = int(table_row["file_index"])
+
+                tiff_handle = opened_handles.get(file_index)
+                if tiff_handle is None:
+                    if len(opened_handles) >= max_open_handles:
+                        _, evicted = opened_handles.popitem(last=False)
+                        evicted.close()
+                    tiff_handle = self._tifffile.TiffFile(self._file_paths[file_index])
+                    opened_handles[file_index] = tiff_handle
+                else:
+                    opened_handles.move_to_end(file_index)
+
                 image_file_directory = tiff_handle.pages[table_row["IFD_index"]]
                 samples[return_index, :, :, depth_position] = image_file_directory.asarray()
 
-        # Explicit close: tifffile holds internal references so the refcount in the garbage collector
-        # won't promptly free these handles when the local dict goes out of scope.
+        # Explicit close: tifffile holds internal references so refcount-based
+        # cleanup won't promptly free these handles when the dict goes out of scope.
         for handle in opened_handles.values():
             handle.close()
 
