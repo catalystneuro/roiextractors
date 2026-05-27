@@ -724,3 +724,43 @@ def test_comparison_with_scanimage_volumetric_multi_channel():
         atol=1e-8,
         err_msg="Complete series do not match between ScanImage and MultiTIFF extractors",
     )
+
+
+def test_frame_to_ifd_table_on_long_planar_t_series():
+    """Regression: ``_create_frame_to_ifd_table`` on a long planar T-series.
+
+    Models a long single-plane two-photon T-series, single channel, ~470k
+    single-page .ome.tif frames (one .ome.tif per timepoint, no Z-stack).
+    A recording at this scale failed at construction with ``OverflowError``
+    before the structured-array index fields in the mapping table were
+    widened from ``uint16`` to ``uint32``. ~4 hours of acquisition at a
+    ~30 Hz frame rate.
+
+    The test calls ``_create_frame_to_ifd_table`` directly as a
+    ``@staticmethod`` rather than constructing a full extractor over real
+    TIFF files. The reasons:
+
+    - A fixture with hundreds of thousands of files is impractical to host
+      alongside the rest of the gin test data, and the file-count alone
+      strains the test infrastructure regardless of per-file size.
+    - Mocking ``tifffile.TiffFile`` to fake N file handles is brittle and
+      tests the mock, not the code path that actually overflowed.
+    - The bug was entirely contained in ``_create_frame_to_ifd_table``: a
+      structured-array dtype declaration plus a few matching ``np.full`` /
+      ``np.arange`` calls. Calling the function directly with a realistic
+      ``ifds_per_file`` list exercises exactly the code that broke, with no
+      file I/O, no mocking, and a wall-clock cost of milliseconds.
+    """
+    num_timepoints = 470_904
+    ifds_per_file = [1] * num_timepoints
+
+    table = MultiTIFFMultiPageExtractor._create_frame_to_ifd_table(
+        dimension_order="CZT",
+        num_channels=1,
+        num_planes=1,
+        ifds_per_file=ifds_per_file,
+    )
+
+    assert table.shape == (num_timepoints,)
+    assert table["file_index"].max() == num_timepoints - 1
+    assert table["time_index"].max() == num_timepoints - 1
