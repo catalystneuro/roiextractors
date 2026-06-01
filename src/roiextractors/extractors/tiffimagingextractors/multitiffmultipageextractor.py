@@ -389,7 +389,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             for depth_position in range(num_planes):
                 frame_index = sample_index * num_planes + depth_position
                 table_row = self._frames_to_ifd_table[frame_index]
-                file_index = int(table_row["file_index"])
+                file_index = table_row["file_index"]
 
                 if file_index != current_file_index:
                     if tiff_handle is not None:
