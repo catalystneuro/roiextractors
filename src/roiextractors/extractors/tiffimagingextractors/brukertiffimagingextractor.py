@@ -215,9 +215,9 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         self._xml_root = etree.parse(xml_file_path).getroot()
         self._bruker_xml_metadata = self._parse_bruker_xml_metadata()
 
-        layout_dict = self._build_structural_metadata_from_bruker_xml(folder_path)
+        file_paths = self._fetch_filenames_from_bruker_xml(folder_path)
         num_channels = len(self._get_channel_names())
-        num_planes = layout_dict["num_planes"]
+        num_planes = self._determine_num_planes()
 
         if num_channels > 1 and num_planes > 1:
             warnings.warn(
@@ -242,7 +242,7 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         # MultiTIFFMultiPageExtractor directly and passes the layout fields to it,
         # bypassing OME-XML parsing entirely.
         super().__init__(
-            file_paths=layout_dict["file_paths"],
+            file_paths=file_paths,
             sampling_frequency=sampling_frequency,
             dimension_order=self._DIMENSION_ORDER,
             num_channels=num_channels,
@@ -252,16 +252,19 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
 
         self.set_times(timestamps)
 
-    def _build_structural_metadata_from_bruker_xml(self, folder_path: PathType) -> dict:
-        """Derive the file ordering and plane count from the Bruker XML in a single pass.
+    def _fetch_filenames_from_bruker_xml(self, folder_path: PathType) -> list[str]:
+        """Return the dataset's ``.ome.tif`` paths in CZT order (channels fastest, then frames).
 
-        Walks Sequence/Frame/File once to produce the ordered file list and the
-        number of depth planes. Dimension order is the fixed ``_DIMENSION_ORDER``
-        class attribute (see its comment for the source); channel labels and count
-        come from ``_get_channel_names()``, not from here.
+        Walks ``<Frame>``/``<File>`` once over the already-parsed ``self._xml_root``.
+        Each file is keyed by its first appearance as ``(frame_index, channel)``, where
+        ``frame_index`` counts ``<Frame>`` elements in document order. Sorting by that
+        key orders channels within a frame, then frames in acquisition order, which is
+        the "CZT" layout ``MultiTIFFMultiPageExtractor`` expects (see ``_DIMENSION_ORDER``).
 
-        File ordering follows ``_DIMENSION_ORDER`` ("CZT"): sorted by
-        ``(first_t, first_z, first_c)``, slowest-varying dimension first.
+        This ordering does not depend on whether the recording is volumetric: a
+        ``<Frame>`` is a timepoint for planar data and a Z-plane for volumetric data, but
+        the file order is the same either way (frames in document order, channels within
+        each frame). The plane count is computed separately in ``_determine_num_planes``.
 
         Parameters
         ----------
@@ -270,73 +273,45 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
 
         Returns
         -------
-        dict
-            Keys: file_paths, num_planes.
+        list[str]
+            Absolute paths to the .ome.tif files in CZT order.
         """
         folder_path = Path(folder_path)
-        # Reuse the root parsed once in __init__ rather than reading the XML again.
-        xml_root = self._xml_root
-        first_sequence = next(xml_root.iter("Sequence"), None)
+        file_positions: dict[str, tuple[int, int]] = {}
+        frame_index = -1
+        for elem in self._xml_root.iter("Frame", "File"):
+            if elem.tag == "Frame":
+                frame_index += 1
+            else:  # File; the channel is encoded in the filename, so it is constant per file
+                filename = elem.attrib["filename"]
+                if filename not in file_positions:  # keep the first (earliest) appearance
+                    file_positions[filename] = (frame_index, int(elem.attrib["channel"]))
+
+        if not file_positions:
+            raise ValueError(f"No <File> elements found in Bruker XML at '{folder_path}/{folder_path.name}.xml'.")
+
+        sorted_filenames = sorted(file_positions, key=file_positions.get)
+        return [str(folder_path / fn) for fn in sorted_filenames]
+
+    def _determine_num_planes(self) -> int:
+        """Return the number of depth planes from the Bruker XML.
+
+        Planar recordings have one plane. Volumetric recordings store each volume as one
+        ``<Sequence>`` whose ``<Frame>`` children are the Z-planes, so the plane count is
+        the number of frames in the first sequence. Whether the recording is volumetric is
+        read from the first ``<Sequence type="...">`` via ``_SEQUENCE_TYPE_IS_VOLUMETRIC``.
+        """
+        first_sequence = next(self._xml_root.iter("Sequence"), None)
         if first_sequence is None:
-            raise ValueError(f"No <Sequence> elements found in Bruker XML at '{folder_path}/{folder_path.name}.xml'.")
+            raise ValueError("No <Sequence> elements found in the Bruker configuration XML.")
         series_type = first_sequence.attrib.get("type")
         if series_type not in _SEQUENCE_TYPE_IS_VOLUMETRIC:
             raise ValueError(
                 f"Unknown series type: {series_type}, please raise an issue in the roiextractor repository"
             )
-        is_volumetric = _SEQUENCE_TYPE_IS_VOLUMETRIC[series_type]
-
-        # Single pass over Sequence/Frame/File via lxml's C-level tag-filtered
-        # iter(). Tracks the parent context (current Sequence index, current
-        # frame-within-sequence) with simple counters as we go, so we never
-        # have to re-traverse children. ``iter()`` does pre-order DFS — by the
-        # time we hit a File, the most-recent Frame is its parent and the
-        # most-recent Sequence is the Frame's parent.
-        #
-        # For volumetric data each Sequence is one timepoint with Frames as
-        # Z-planes; for planar data Frames count timepoints across the whole
-        # recording (independent of Sequence boundaries).
-        file_positions: dict[str, tuple[int, int, int]] = {}
-        sequence_index = -1
-        frame_within_sequence = -1
-        global_frame_index = -1
-        for elem in xml_root.iter("Sequence", "Frame", "File"):
-            tag = elem.tag
-            if tag == "Sequence":
-                sequence_index += 1
-                frame_within_sequence = -1
-            elif tag == "Frame":
-                frame_within_sequence += 1
-                global_frame_index += 1
-            else:  # File
-                if is_volumetric:
-                    first_t = sequence_index
-                    first_z = frame_within_sequence
-                else:
-                    first_t = global_frame_index
-                    first_z = 0
-                first_c = int(elem.attrib["channel"]) - 1
-                filename = elem.attrib["filename"]
-                position = (first_t, first_z, first_c)
-                existing = file_positions.get(filename)
-                if existing is None or position < existing:
-                    file_positions[filename] = position
-
-        if not file_positions:
-            raise ValueError(f"No <File> elements found in Bruker XML at '{folder_path}/{folder_path.name}.xml'.")
-
-        sorted_filenames = sorted(file_positions.keys(), key=lambda fn: file_positions[fn])
-        file_paths = [str(folder_path / fn) for fn in sorted_filenames]
-
-        if is_volumetric:
-            num_planes = max(pos[1] for pos in file_positions.values()) + 1
-        else:
-            num_planes = 1
-
-        return {
-            "file_paths": file_paths,
-            "num_planes": num_planes,
-        }
+        if not _SEQUENCE_TYPE_IS_VOLUMETRIC[series_type]:
+            return 1
+        return sum(1 for _ in first_sequence.iter("Frame"))
 
     def _get_channel_names(self) -> list[str]:
         """Return channel labels from the Bruker XML's ``<File channelName="..."/>`` attribute.
