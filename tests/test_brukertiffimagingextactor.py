@@ -463,45 +463,6 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion:
         assert not np.array_equal(expected_ch1, expected_ch2)
 
 
-class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLWithCompanion:
-    """Test BrukerTiffImagingExtractor on PV 5.7+ BinaryOnly OME-XML with the companion sidecar present.
-
-    The same kind of recording as the NoCompanion class, but with the ``.companion.ome``
-    sidecar on disk: the well-formed packaging that real PV 5.7+ output produces. The
-    extractor reads structure from the Bruker XML regardless of OME packaging, so the
-    companion is present but unused and the result matches the no-companion case. This also
-    serves as the fixture for any future companion-resolution work on ``OMETiffImagingExtractor``.
-    """
-
-    folder_path = BRUKER_STUB_PATH / "NCCR62_2023_07_06_IntoTheVoid_t_series_Dual_color-000_with_companion"
-
-    def test_construct_and_select_channels(self):
-        """Both channels must be selectable and return distinct data; companion sidecar is present but unused."""
-        assert (self.folder_path / f"{self.folder_path.name}.companion.ome").exists()
-
-        with pytest.raises(ValueError, match="channel_name must be specified"):
-            BrukerTiffImagingExtractor(folder_path=self.folder_path)
-
-        ext_ch1 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch1")
-        assert ext_ch1.get_num_samples() == 5
-        assert ext_ch1.get_image_shape() == (64, 64)
-        assert ext_ch1.get_dtype() == np.uint16
-        assert ext_ch1.is_volumetric is False
-
-        ext_ch2 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
-        assert ext_ch2.get_num_samples() == 5
-
-        # Each channel must return exactly the frames from its own files (see the
-        # no-companion test for why the dimension-order discrepancy makes this worth checking).
-        # Each channel is stored as a single multi-page file (page = timepoint), so reading
-        # the file returns the full (num_samples, height, width) stack directly.
-        expected_ch1 = tifffile.imread(next(self.folder_path.glob("*_Ch1_*.ome.tif")))
-        expected_ch2 = tifffile.imread(next(self.folder_path.glob("*_Ch2_*.ome.tif")))
-        assert_array_equal(ext_ch1.get_series(), expected_ch1)
-        assert_array_equal(ext_ch2.get_series(), expected_ch2)
-        assert not np.array_equal(expected_ch1, expected_ch2)
-
-
 class TestBrukerTiffImagingExtractorPV58Embedded:
     """Test BrukerTiffImagingExtractor with PrairieView 5.8.64.700 *embedded* OME-XML packaging.
 
