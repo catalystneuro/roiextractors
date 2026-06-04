@@ -128,59 +128,24 @@ def _parse_xml(folder_path: PathType) -> etree.Element:
 
 
 class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
-    """An extractor for Bruker Prairie View two-photon imaging recordings.
+    """An extractor for Bruker Prairie View OME-TIFF files.
 
-    Reads single-plane time series, volumetric (Z-stack) time series, and
-    multi-channel data from a Bruker / Prairie View recording folder. The
-    folder is what Prairie View writes at acquisition time, with all
-    ``.ome.tif`` files and the accompanying ``<folder_name>.xml`` configuration
-    file kept together.
+    Inherits from MultiTIFFMultiPageExtractor and reads structural metadata and the
+    sampling frequency from the Bruker configuration XML. Supports single-plane,
+    volumetric, and multi-channel data.
 
-    Supported Prairie View versions: 5.5 onwards (tested on 5.5, 5.6, 5.8;
-    5.1-5.4 are expected to work but untested). Pre-5.1 data, which uses plain
-    ``.tif`` files with no embedded OME-XML, is not supported and is rejected
-    at construction with a clear error.
-
-    For multi-channel recordings, ``channel_name`` is required at construction.
-    Channel names come from the Bruker configuration XML's
-    ``<File channelName="..."/>`` attribute, which carries the labels the user
-    set in Prairie View (e.g. ``"Green"``, ``"Red"``, or generic ``"Ch1"``/
-    ``"Ch2"`` if no custom label was set). Constructing without
-    ``channel_name`` on a multi-channel recording, or with an unknown name,
-    raises ``ValueError`` with the available channel names listed.
-
-    Volumetric (Z-stack) recordings are detected automatically from the Bruker
-    XML's ``<Sequence type="...">`` attribute. ``is_volumetric`` reports the
-    result; ``get_series`` returns a 4D array shaped
-    ``(num_samples, num_rows, num_cols, num_planes)``; ``get_volume_shape``
-    returns ``(num_rows, num_cols, num_planes)``.
+    The user provides a folder path containing .ome.tif files and a Bruker configuration
+    XML. The extractor reads structural metadata (dimensions, channels, planes, file layout)
+    from that XML, which is authoritative across all PrairieView versions, and computes
+    sampling frequency from its relativeTime attributes.
 
     Parameters
     ----------
     folder_path : str or Path
-        Path to the recording folder. Must contain at least one ``.ome.tif``
-        file and a ``<folder_name>.xml`` configuration file (Prairie View
-        writes both at acquisition time; the XML is named after the folder).
+        Path to the folder containing Bruker .ome.tif files and the configuration XML.
     channel_name : str or None, optional
-        Name of the channel to extract. Required when the recording has more
-        than one channel. Default is None.
-
-    Raises
-    ------
-    FileNotFoundError
-        If no ``.ome.tif`` files are found, or if the ``<folder_name>.xml``
-        file is missing.
-    ValueError
-        If only plain ``.tif`` files are present (Prairie View 5.0 and earlier,
-        not supported); if no ``channel_name`` is provided for a multi-channel
-        recording; if an unknown ``channel_name`` is given; or if the sampling
-        frequency cannot be determined from the Bruker XML.
-
-    Notes
-    -----
-    Sampling frequency is computed automatically from the Bruker configuration
-    XML; it is not a constructor parameter. Per-sample timestamps are available
-    via ``get_native_timestamps()``.
+        Name of the channel to extract. Required when the data has more than one channel.
+        Channel names come from the Bruker XML's ``<File channelName="...">`` attribute.
     """
 
     extractor_name = "BrukerTiffImagingExtractor"
@@ -215,8 +180,13 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         self._xml_root = etree.parse(xml_file_path).getroot()
         self._bruker_xml_metadata = self._parse_bruker_xml_metadata()
 
-        file_names = self._fetch_filenames_from_bruker_xml()
-        file_paths = [str(folder_path / file_name) for file_name in file_names]
+        file_positions = self._fetch_filenames_from_bruker_xml()
+        # Order files into the CZT layout MultiTIFFMultiPageExtractor expects: channels
+        # fastest within a frame, then frames in acquisition order. Sorting by
+        # (frame_index, channel) also forces a frame's channels into ascending channel
+        # order regardless of how the XML lists its <File> elements.
+        ordered_filenames = sorted(file_positions, key=file_positions.get)
+        file_paths = [folder_path / file_name for file_name in ordered_filenames]
         num_channels = len(self._get_channel_names())
         num_planes = self._determine_num_planes()
 
@@ -253,25 +223,12 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
 
         self.set_times(timestamps)
 
-    def _fetch_filenames_from_bruker_xml(self) -> list[str]:
-        """Return the dataset's ``.ome.tif`` filenames in CZT order (channels fastest, then frames).
+    def _fetch_filenames_from_bruker_xml(self) -> dict[str, tuple[int, int]]:
+        """Map each ``.ome.tif`` filename to its ``(frame_index, channel)`` position.
 
-        Walks ``<Frame>``/``<File>`` once over the already-parsed ``self._xml_root``.
-        Each file is keyed by its first appearance as ``(frame_index, channel)``, where
-        ``frame_index`` counts ``<Frame>`` elements in document order. Sorting by that
-        key orders channels within a frame, then frames in acquisition order, which is
-        the "CZT" layout ``MultiTIFFMultiPageExtractor`` expects (see ``_DIMENSION_ORDER``).
-
-        This ordering does not depend on whether the recording is volumetric: a
-        ``<Frame>`` is a timepoint for planar data and a Z-plane for volumetric data, but
-        the file order is the same either way (frames in document order, channels within
-        each frame). The caller joins these names to the recording folder; the plane
-        count is computed separately in ``_determine_num_planes``.
-
-        Returns
-        -------
-        list[str]
-            The .ome.tif filenames (as written in the XML) in CZT order.
+        Walks ``<Frame>``/``<File>`` once over ``self._xml_root``, recording for each
+        file's first appearance the index of its ``<Frame>`` in document order and its
+        channel. Reports positions only; the caller decides the file ordering.
         """
         file_positions: dict[str, tuple[int, int]] = {}
         frame_index = -1
@@ -286,7 +243,7 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         if not file_positions:
             raise ValueError("No <File> elements found in the Bruker configuration XML.")
 
-        return sorted(file_positions, key=file_positions.get)
+        return file_positions
 
     def _determine_is_volumetric(self) -> bool:
         """Return whether the recording is volumetric, from the first ``<Sequence type="...">``.
