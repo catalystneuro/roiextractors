@@ -75,17 +75,6 @@ def _determine_frame_rate(element: etree.Element, file_names: list[str] | None =
     return frame_rate
 
 
-# Maps the Bruker `<Sequence type="...">` attribute to whether the recording is volumetric.
-_SEQUENCE_TYPE_IS_VOLUMETRIC = {
-    "TSeries ZSeries Element": True,  # XYZT
-    "TSeries Timed Element": False,  # XYT
-    "ZSeries": True,  # ZT (not a time series)
-    "Single": False,  # Single image (not a time series)
-    "BrightnessOverTime": False,  # XYT (not a volumetric series)
-    "TSeries Brightness Over Time Element": False,  # XYT
-}
-
-
 def _determine_imaging_is_volumetric(folder_path: PathType) -> bool:
     """Determine whether imaging is volumetric.
 
@@ -103,12 +92,21 @@ def _determine_imaging_is_volumetric(folder_path: PathType) -> bool:
     xml_file_path = folder_path / f"{folder_path.name}.xml"
     assert xml_file_path.is_file(), f"The XML configuration file is not found at '{xml_file_path}'."
 
+    is_series_type_volumetric = {
+        "TSeries ZSeries Element": True,  # XYZT
+        "TSeries Timed Element": False,  # XYT
+        "ZSeries": True,  # ZT (not a time series)
+        "Single": False,  # Single image (not a time series)
+        "BrightnessOverTime": False,  # XYT (not a volumetric series)
+        "TSeries Brightness Over Time Element": False,  # XYT
+    }
+
     is_volumetric = False
     for event, elem in etree.iterparse(xml_file_path, events=("start",)):
         if elem.tag == "Sequence":
             series_type = elem.attrib.get("type")
-            if series_type in _SEQUENCE_TYPE_IS_VOLUMETRIC:
-                is_volumetric = _SEQUENCE_TYPE_IS_VOLUMETRIC[series_type]
+            if series_type in is_series_type_volumetric:
+                is_volumetric = is_series_type_volumetric[series_type]
                 break
             else:
                 raise ValueError(
@@ -207,11 +205,6 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         if sampling_frequency is None:
             raise ValueError("Could not determine sampling frequency from Bruker configuration XML.")
 
-        # Bruker reads its structural layout from the Bruker configuration XML
-        # (authoritative across all PrairieView versions, including BinaryOnly
-        # packaging where the OME-XML is absent), so it inherits from
-        # MultiTIFFMultiPageExtractor directly and passes the layout fields to it,
-        # bypassing OME-XML parsing entirely.
         super().__init__(
             file_paths=file_paths,
             sampling_frequency=sampling_frequency,
@@ -246,19 +239,24 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         return file_positions
 
     def _determine_is_volumetric(self) -> bool:
-        """Return whether the recording is volumetric, from the first ``<Sequence type="...">``.
-
-        The series type is mapped through ``_SEQUENCE_TYPE_IS_VOLUMETRIC``.
-        """
+        """Return whether the recording is volumetric, from the first ``<Sequence type="...">``."""
+        is_series_type_volumetric = {
+            "TSeries ZSeries Element": True,  # XYZT
+            "TSeries Timed Element": False,  # XYT
+            "ZSeries": True,  # ZT (not a time series)
+            "Single": False,  # Single image (not a time series)
+            "BrightnessOverTime": False,  # XYT (not a volumetric series)
+            "TSeries Brightness Over Time Element": False,  # XYT
+        }
         first_sequence = next(self._xml_root.iter("Sequence"), None)
         if first_sequence is None:
             raise ValueError("No <Sequence> elements found in the Bruker configuration XML.")
         series_type = first_sequence.attrib.get("type")
-        if series_type not in _SEQUENCE_TYPE_IS_VOLUMETRIC:
+        if series_type not in is_series_type_volumetric:
             raise ValueError(
                 f"Unknown series type: {series_type}, please raise an issue in the roiextractor repository"
             )
-        return _SEQUENCE_TYPE_IS_VOLUMETRIC[series_type]
+        return is_series_type_volumetric[series_type]
 
     def _determine_num_planes(self) -> int:
         """Return the number of depth planes from the Bruker XML.
