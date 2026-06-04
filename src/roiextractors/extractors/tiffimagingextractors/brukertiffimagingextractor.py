@@ -215,7 +215,8 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         self._xml_root = etree.parse(xml_file_path).getroot()
         self._bruker_xml_metadata = self._parse_bruker_xml_metadata()
 
-        file_paths = self._fetch_filenames_from_bruker_xml(folder_path)
+        file_names = self._fetch_filenames_from_bruker_xml()
+        file_paths = [str(folder_path / file_name) for file_name in file_names]
         num_channels = len(self._get_channel_names())
         num_planes = self._determine_num_planes()
 
@@ -252,8 +253,8 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
 
         self.set_times(timestamps)
 
-    def _fetch_filenames_from_bruker_xml(self, folder_path: PathType) -> list[str]:
-        """Return the dataset's ``.ome.tif`` paths in CZT order (channels fastest, then frames).
+    def _fetch_filenames_from_bruker_xml(self) -> list[str]:
+        """Return the dataset's ``.ome.tif`` filenames in CZT order (channels fastest, then frames).
 
         Walks ``<Frame>``/``<File>`` once over the already-parsed ``self._xml_root``.
         Each file is keyed by its first appearance as ``(frame_index, channel)``, where
@@ -264,19 +265,14 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         This ordering does not depend on whether the recording is volumetric: a
         ``<Frame>`` is a timepoint for planar data and a Z-plane for volumetric data, but
         the file order is the same either way (frames in document order, channels within
-        each frame). The plane count is computed separately in ``_determine_num_planes``.
-
-        Parameters
-        ----------
-        folder_path : PathType
-            Folder containing the Bruker .ome.tif files and `<folder>.xml` config.
+        each frame). The caller joins these names to the recording folder; the plane
+        count is computed separately in ``_determine_num_planes``.
 
         Returns
         -------
         list[str]
-            Absolute paths to the .ome.tif files in CZT order.
+            The .ome.tif filenames (as written in the XML) in CZT order.
         """
-        folder_path = Path(folder_path)
         file_positions: dict[str, tuple[int, int]] = {}
         frame_index = -1
         for elem in self._xml_root.iter("Frame", "File"):
@@ -288,18 +284,14 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
                     file_positions[filename] = (frame_index, int(elem.attrib["channel"]))
 
         if not file_positions:
-            raise ValueError(f"No <File> elements found in Bruker XML at '{folder_path}/{folder_path.name}.xml'.")
+            raise ValueError("No <File> elements found in the Bruker configuration XML.")
 
-        sorted_filenames = sorted(file_positions, key=file_positions.get)
-        return [str(folder_path / fn) for fn in sorted_filenames]
+        return sorted(file_positions, key=file_positions.get)
 
-    def _determine_num_planes(self) -> int:
-        """Return the number of depth planes from the Bruker XML.
+    def _determine_is_volumetric(self) -> bool:
+        """Return whether the recording is volumetric, from the first ``<Sequence type="...">``.
 
-        Planar recordings have one plane. Volumetric recordings store each volume as one
-        ``<Sequence>`` whose ``<Frame>`` children are the Z-planes, so the plane count is
-        the number of frames in the first sequence. Whether the recording is volumetric is
-        read from the first ``<Sequence type="...">`` via ``_SEQUENCE_TYPE_IS_VOLUMETRIC``.
+        The series type is mapped through ``_SEQUENCE_TYPE_IS_VOLUMETRIC``.
         """
         first_sequence = next(self._xml_root.iter("Sequence"), None)
         if first_sequence is None:
@@ -309,8 +301,18 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
             raise ValueError(
                 f"Unknown series type: {series_type}, please raise an issue in the roiextractor repository"
             )
-        if not _SEQUENCE_TYPE_IS_VOLUMETRIC[series_type]:
+        return _SEQUENCE_TYPE_IS_VOLUMETRIC[series_type]
+
+    def _determine_num_planes(self) -> int:
+        """Return the number of depth planes from the Bruker XML.
+
+        Planar recordings have one plane. Volumetric recordings store each volume as one
+        ``<Sequence>`` whose ``<Frame>`` children are the Z-planes, so the plane count is
+        the number of frames in the first sequence.
+        """
+        if not self._determine_is_volumetric():
             return 1
+        first_sequence = next(self._xml_root.iter("Sequence"))
         return sum(1 for _ in first_sequence.iter("Frame"))
 
     def _get_channel_names(self) -> list[str]:
