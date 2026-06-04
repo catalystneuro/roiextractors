@@ -3,7 +3,7 @@
 Classes
 -------
 BrukerTiffImagingExtractor
-    Unified extractor for Bruker OME-TIFF files. Inherits from OMETiffImagingExtractor.
+    Unified extractor for Bruker OME-TIFF files. Inherits from MultiTIFFMultiPageExtractor.
 BrukerTiffSinglePlaneImagingExtractor
     Deprecated. Use BrukerTiffImagingExtractor instead.
 BrukerTiffMultiPlaneImagingExtractor
@@ -22,7 +22,7 @@ from xml.etree import ElementTree
 import numpy as np
 from lxml import etree
 
-from .ometiffimagingextractor import OMETiffImagingExtractor
+from .multitiffmultipageextractor import MultiTIFFMultiPageExtractor
 from ...extraction_tools import (
     PathType,
     calculate_regular_series_rate,
@@ -125,7 +125,7 @@ def _parse_xml(folder_path: PathType) -> etree.Element:
     return tree.getroot()
 
 
-class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
+class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
     """An extractor for Bruker Prairie View two-photon imaging recordings.
 
     Reads single-plane time series, volumetric (Z-stack) time series, and
@@ -224,14 +224,18 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
         if sampling_frequency is None:
             raise ValueError("Could not determine sampling frequency from Bruker configuration XML.")
 
-        # Pass the Bruker-derived layout to OMETiffImagingExtractor.__init__ via the
-        # optional `multitiff_layout_dict=` parameter — it overrides every required
-        # field, so OME-XML parsing yields data that's then completely overridden.
+        # Bruker reads its structural layout from the Bruker configuration XML
+        # (authoritative across all PrairieView versions, including BinaryOnly
+        # packaging where the OME-XML is absent), so it inherits from
+        # MultiTIFFMultiPageExtractor directly and passes the layout fields to it,
+        # bypassing OME-XML parsing entirely.
         super().__init__(
-            file_path=ome_files[0],
+            file_paths=layout_dict["file_paths"],
             sampling_frequency=sampling_frequency,
+            dimension_order=layout_dict["dimension_order"],
+            num_channels=num_channels,
             channel_name=channel_name,
-            multitiff_layout_dict=layout_dict,
+            num_planes=num_planes,
         )
 
         self.set_times(timestamps)
@@ -333,7 +337,7 @@ class BrukerTiffImagingExtractor(OMETiffImagingExtractor):
     def _get_channel_names(self) -> list[str]:
         """Return channel labels from the Bruker XML's ``<File channelName="..."/>`` attribute.
 
-        Overrides ``OMETiffImagingExtractor._get_channel_names`` to read from
+        Overrides ``MultiTIFFMultiPageExtractor._get_channel_names`` to read from
         Bruker's configuration XML instead of OME-XML. PrairieView lets users
         set custom fluorophore labels (e.g. ``"Green"``, ``"Red"``) which the
         Bruker XML carries but OME-XML's generic ``<Channel Name="Ch1"/>``

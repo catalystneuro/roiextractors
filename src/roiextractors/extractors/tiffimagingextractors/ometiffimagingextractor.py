@@ -41,23 +41,6 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
     channel_name : str or None, optional
         Name of the channel to extract (e.g., "0", "1"). Required when the data has
         more than one channel. Default is None.
-    multitiff_layout_dict : dict or None, optional
-        Describes the multi-page TIFF dataset's layout: which files belong to
-        it, how the dimensions are ordered, how many channels and planes it
-        has. Used when the OME-TIFF's embedded OME-XML doesn't carry this
-        information, or to override fields where the OME-XML is present but
-        unreliable. Keys: ``file_paths``, ``dimension_order``,
-        ``num_channels``, ``num_planes``. Any field present here replaces
-        the value parsed from OME-XML; fields not present are taken from
-        OME-XML. When OME-XML parsing yields no structural data (e.g.
-        ``BinaryOnly`` packaging with no resolvable ``<Pixels>`` element)
-        this dict must supply all four fields on its own. Channel labels
-        and sampling frequency are not part of this dict — channel labels
-        come from the ``_get_channel_names()`` override (which subclasses
-        provide; see ``BrukerTiffImagingExtractor`` for an example), and
-        ``sampling_frequency`` is its own constructor kwarg.
-
-        Default is None.
     """
 
     extractor_name = "OMETiffImagingExtractor"
@@ -96,19 +79,24 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         file_path: PathType,
         sampling_frequency: float | None = None,
         channel_name: str | None = None,
-        multitiff_layout_dict: dict | None = None,
     ):
-        # ``_parse_ome_metadata`` returns whatever it can extract from the
-        # file's OME-XML — possibly empty (e.g. BinaryOnly packaging). Pull
-        # the non-layout fields out of it for their own routing, then merge
-        # the remaining layout fields with caller-supplied overrides and
-        # validate.
+        # ``_parse_ome_metadata`` extracts each field independently from the file's
+        # OME-XML and returns whatever is present. The structural fields below are
+        # required; if the OME-XML does not supply them we raise rather than guess.
         parsed = self._parse_ome_metadata(file_path)
         parsed_channel_names = parsed.pop("channel_names", None)
         parsed_sampling_frequency = parsed.pop("sampling_frequency", None)
 
-        combined_layout_dict = {**parsed, **(multitiff_layout_dict or {})}
-        self._validate_layout_dict(combined_layout_dict)
+        required_fields = ("file_paths", "dimension_order", "num_channels", "num_planes")
+        missing = [field for field in required_fields if field not in parsed]
+        if missing:
+            raise ValueError(
+                f"OME-XML in {file_path} is missing required structural metadata {missing}. "
+                f"This usually means BinaryOnly packaging, where the <Pixels> block lives in a "
+                f"separate .companion.ome sidecar that this reader does not follow, or a malformed "
+                f"<Pixels> element. For Bruker recordings use BrukerTiffImagingExtractor; for plain "
+                f"TIFFs with no OME-XML use MultiTIFFMultiPageExtractor directly."
+            )
 
         if sampling_frequency is None:
             if parsed_sampling_frequency is None:
@@ -118,61 +106,16 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
                 )
             sampling_frequency = parsed_sampling_frequency
 
-        # Cache the OME-XML channel names for our ``_get_channel_names()``
-        # override. Subclasses that override ``_get_channel_names()``
-        # themselves (e.g. BrukerTiffImagingExtractor reading from Bruker's
-        # ``<File channelName=...>``) bypass this attribute via Python's MRO.
+        # Cache the OME-XML channel names for our ``_get_channel_names()`` override.
         self._ome_channel_names = parsed_channel_names
 
         super().__init__(
-            file_paths=combined_layout_dict["file_paths"],
+            file_paths=parsed["file_paths"],
             sampling_frequency=sampling_frequency,
             channel_name=channel_name,
-            dimension_order=combined_layout_dict["dimension_order"],
-            num_channels=combined_layout_dict["num_channels"],
-            num_planes=combined_layout_dict["num_planes"],
-        )
-
-    @staticmethod
-    def _validate_layout_dict(layout_dict: dict) -> None:
-        """Validate that ``layout_dict`` supplies every required structural field.
-
-        Pure presence check — concerned only with whether the four required
-        keys are present. Type and value validation happen downstream in
-        ``MultiTIFFMultiPageExtractor.__init__``. Diagnostic context (which
-        file the dict came from, why the OME-XML parse was incomplete, etc.)
-        is the responsibility of the caller.
-
-        Parameters
-        ----------
-        layout_dict : dict
-            The dict to validate. Typically the combined parsed-OME-XML +
-            caller-overrides dict, but the validator doesn't require that.
-
-        Raises
-        ------
-        ValueError
-            If any required structural field is missing. The message lists
-            the missing fields and shows the ``multitiff_layout_dict=``
-            template the caller can use to supply them.
-        """
-        required_fields = ("file_paths", "dimension_order", "num_channels", "num_planes")
-        missing = [field for field in required_fields if field not in layout_dict]
-        if not missing:
-            return
-
-        raise ValueError(
-            f"Required structural fields {missing} are missing from the layout dict. "
-            f"Pass them via the `multitiff_layout_dict=` constructor parameter — "
-            f"typical reasons are BinaryOnly OME-XML packaging (the <Pixels> block "
-            f"lives in a separate .companion.ome sidecar that this reader is not "
-            f"following) or a malformed <Pixels> element. Example:\n"
-            f"    multitiff_layout_dict={{\n"
-            f'        "file_paths": ["/path/to/file1.ome.tif", "/path/to/file2.ome.tif"],\n'
-            f'        "dimension_order": "CZT",  # one of ZCT, ZTC, CZT, CTZ, TCZ, TZC\n'
-            f'        "num_channels": 2,\n'
-            f'        "num_planes": 1,\n'
-            f"    }}"
+            dimension_order=parsed["dimension_order"],
+            num_channels=parsed["num_channels"],
+            num_planes=parsed["num_planes"],
         )
 
     def _get_channel_names(self) -> list[str]:
@@ -323,12 +266,10 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
             ome_root = ET.fromstring(ome_xml_string)
         pixels_element = ome_root.find(".//{*}Pixels")
         if pixels_element is None:
-            # No <Pixels> element — typically a <BinaryOnly MetadataFile=".../>
+            # No <Pixels> element — typically <BinaryOnly MetadataFile=".../>
             # packaging where the structural metadata lives in a companion sidecar
             # we are not following here, OR a malformed OME-XML. Return an empty
-            # dict and let the caller decide how to proceed (the constructor's
-            # required-fields check will raise a clear error if no overrides are
-            # supplied via the `metadata=` parameter).
+            # dict; the constructor's required-fields check raises a clear error.
             return {}
 
         # Extract every field independently; a missing or malformed attribute
@@ -353,7 +294,6 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         # "used for time series that have a global timing specification instead
         # of per-timepoint timing info"). TimeIncrementUnit defaults to "s".
         time_increment_str = pixels_element.get("TimeIncrement")
-        sampling_frequency = None
         if time_increment_str is not None:
             time_increment = float(time_increment_str)
             # ThorImage and some other writers emit TimeIncrement="0" as a "no value"
@@ -366,7 +306,7 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         # dimension_order and file_paths are paired: the file-path sort key
         # depends on dimension_order, so both are present together or both
         # absent. If <Pixels DimensionOrder="..."/> is missing we omit both
-        # and let the caller override (or the validator complain).
+        # and the constructor's required-fields check raises a clear error.
         ome_dimension_order = pixels_element.get("DimensionOrder")
         if ome_dimension_order is not None:
             # OME 5-letter form (e.g. "XYCZT") to the 3-letter form
