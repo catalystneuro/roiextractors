@@ -80,42 +80,29 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         sampling_frequency: float | None = None,
         channel_name: str | None = None,
     ):
-        # ``_parse_ome_metadata`` extracts each field independently from the file's
-        # OME-XML and returns whatever is present. The structural fields below are
-        # required; if the OME-XML does not supply them we raise rather than guess.
-        parsed = self._parse_ome_metadata(file_path)
-        parsed_channel_names = parsed.pop("channel_names", None)
-        parsed_sampling_frequency = parsed.pop("sampling_frequency", None)
+        metadata = self._parse_ome_metadata(file_path)
 
-        required_fields = ("file_paths", "dimension_order", "num_channels", "num_planes")
-        missing = [field for field in required_fields if field not in parsed]
-        if missing:
-            raise ValueError(
-                f"OME-XML in {file_path} is missing required structural metadata {missing}. "
-                f"This usually means BinaryOnly packaging, where the <Pixels> block lives in a "
-                f"separate .companion.ome sidecar that this reader does not follow, or a malformed "
-                f"<Pixels> element. For Bruker recordings use BrukerTiffImagingExtractor; for plain "
-                f"TIFFs with no OME-XML use MultiTIFFMultiPageExtractor directly."
-            )
-
+        metadata_sampling_frequency = metadata.pop("sampling_frequency", None)
         if sampling_frequency is None:
-            if parsed_sampling_frequency is None:
+            if metadata_sampling_frequency is None:
                 raise ValueError(
                     "sampling_frequency must be provided when the OME-XML metadata "
                     "does not contain a TimeIncrement attribute on the Pixels element."
                 )
-            sampling_frequency = parsed_sampling_frequency
+            sampling_frequency = metadata_sampling_frequency
 
-        # Cache the OME-XML channel names for our ``_get_channel_names()`` override.
-        self._ome_channel_names = parsed_channel_names
+        # Store channel names before super().__init__() because the base class
+        # calls self._get_channel_names() during init, and Python's MRO dispatches
+        # to our override which needs this attribute to be set.
+        self._ome_channel_names = metadata.pop("channel_names", None)
 
         super().__init__(
-            file_paths=parsed["file_paths"],
+            file_paths=metadata["file_paths"],
             sampling_frequency=sampling_frequency,
             channel_name=channel_name,
-            dimension_order=parsed["dimension_order"],
-            num_channels=parsed["num_channels"],
-            num_planes=parsed["num_planes"],
+            dimension_order=metadata["dimension_order"],
+            num_channels=metadata["num_channels"],
+            num_planes=metadata["num_planes"],
         )
 
     def _get_channel_names(self) -> list[str]:
@@ -143,13 +130,7 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         channel_names = metadata.get("channel_names")
         if channel_names is not None:
             return channel_names
-        num_channels = metadata.get("num_channels")
-        if num_channels is None:
-            raise ValueError(
-                f"Cannot determine channel names for {file_path}: the OME-XML does not "
-                f"contain a resolvable <Pixels> element."
-            )
-        return [str(i) for i in range(num_channels)]
+        return [str(i) for i in range(metadata["num_channels"])]
 
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
@@ -216,21 +197,7 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         dict
             Dictionary with keys: file_paths, dimension_order, num_channels, num_planes,
             and optionally sampling_frequency (float, in Hz) if the Pixels element has
-            a TimeIncrement attribute, plus channel_names if Channel/@Name attributes
-            are present. Returns an empty dict when the OME-XML has no resolvable
-            <Pixels> element (e.g. BinaryOnly packaging where structural metadata
-            lives in a companion sidecar). Returns a partial dict (missing
-            ``file_paths`` and ``dimension_order`` only) when <Pixels> exists but
-            its DimensionOrder attribute is missing. Callers are expected to
-            validate that all fields they need are present in the returned dict.
-
-        Raises
-        ------
-        FileNotFoundError
-            If the file does not exist.
-        ValueError
-            If the file has no embedded OME-XML at all (suggests it isn't an
-            OME-TIFF; for plain TIFFs use ``MultiTIFFMultiPageExtractor`` directly).
+            a TimeIncrement attribute.
         """
         tifffile = get_package(package_name="tifffile")
 
@@ -243,19 +210,10 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
             ome_xml_string = tiff.ome_metadata
             if ome_xml_string is None:
                 ome_xml_string = tiff.pages[0].description
+            if not ome_xml_string:
+                raise ValueError(f"No OME-XML metadata found in {file_path}")
         finally:
             tiff.close()
-        if not ome_xml_string:
-            # The file has no OME-XML at all — not just a BinaryOnly stub, but
-            # genuinely no embedded OME metadata. This is a categorical
-            # mismatch (the caller is using OMETiffImagingExtractor on a file
-            # that isn't an OME-TIFF), not a recoverable BinaryOnly case.
-            # Use MultiTIFFMultiPageExtractor directly for non-OME TIFFs.
-            raise ValueError(
-                f"No OME-XML metadata found in {file_path}. The file may not be an "
-                f"OME-TIFF; if it's a plain TIFF, use MultiTIFFMultiPageExtractor "
-                f"directly instead of OMETiffImagingExtractor."
-            )
 
         # Old OME-TIFF versions wrapped the XML in comments (<!-- ... -->)
         if ome_xml_string.lstrip().startswith("<!--"):
@@ -266,34 +224,29 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
             ome_root = ET.fromstring(ome_xml_string)
         pixels_element = ome_root.find(".//{*}Pixels")
         if pixels_element is None:
-            # No <Pixels> element — typically <BinaryOnly MetadataFile=".../>
-            # packaging where the structural metadata lives in a companion sidecar
-            # we are not following here, OR a malformed OME-XML. Return an empty
-            # dict; the constructor's required-fields check raises a clear error.
-            return {}
+            raise ValueError(f"No Pixels element found in OME-XML metadata of {file_path}")
 
-        # Extract every field independently; a missing or malformed attribute
-        # for one field never blocks the others. The constructor's
-        # _validate_metadata pass and any caller-supplied overrides decide
-        # whether the partial result is enough to construct on.
-        result: dict = {
-            "num_channels": int(pixels_element.get("SizeC", "1")),
-            "num_planes": int(pixels_element.get("SizeZ", "1")),
-        }
+        ome_dimension_order = pixels_element.get("DimensionOrder")
+        if ome_dimension_order is None:
+            raise ValueError(f"No DimensionOrder attribute found in OME-XML metadata of {file_path}")
 
-        # Channel names from <Channel Name="..."/>; included only when ALL
-        # channels carry a Name (mixed-naming is treated as no naming).
+        num_channels = int(pixels_element.get("SizeC", "1"))
+        num_planes = int(pixels_element.get("SizeZ", "1"))
+
+        # Extract channel names from Channel/@Name attributes when present
         channel_elements = pixels_element.findall(".//{*}Channel")
+        channel_names = None
         if channel_elements:
             names = [ch.get("Name") for ch in channel_elements]
             if all(name is not None for name in names):
-                result["channel_names"] = names
+                channel_names = names
 
-        # Sampling frequency from Pixels/@TimeIncrement (OME spec:
-        # https://www.openmicroscopy.org/Schemas/Documentation/Generated/OME-2016-06/ome.html
-        # "used for time series that have a global timing specification instead
-        # of per-timepoint timing info"). TimeIncrementUnit defaults to "s".
+        # TimeIncrement is a global timing attribute on Pixels (OME spec:
+        # https://www.openmicroscopy.org/Schemas/Documentation/Generated/OME-2016-06/ome.html):
+        # "used for time series that have a global timing specification instead of
+        # per-timepoint timing info". TimeIncrementUnit defaults to seconds ("s").
         time_increment_str = pixels_element.get("TimeIncrement")
+        sampling_frequency = None
         if time_increment_str is not None:
             time_increment = float(time_increment_str)
             # ThorImage and some other writers emit TimeIncrement="0" as a "no value"
@@ -301,27 +254,32 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
             if time_increment > 0:
                 unit = pixels_element.get("TimeIncrementUnit", "s")
                 time_increment_in_seconds = time_increment * OMETiffImagingExtractor._TIME_UNIT_TO_SECONDS[unit]
-                result["sampling_frequency"] = 1.0 / time_increment_in_seconds
+                sampling_frequency = 1.0 / time_increment_in_seconds
 
-        # dimension_order and file_paths are paired: the file-path sort key
-        # depends on dimension_order, so both are present together or both
-        # absent. If <Pixels DimensionOrder="..."/> is missing we omit both
-        # and the constructor's required-fields check raises a clear error.
-        ome_dimension_order = pixels_element.get("DimensionOrder")
-        if ome_dimension_order is not None:
-            # OME 5-letter form (e.g. "XYCZT") to the 3-letter form
-            # MultiTIFFMultiPageExtractor expects (e.g. "CZT").
-            dimension_order = ome_dimension_order.replace("X", "").replace("Y", "")
-            result["dimension_order"] = dimension_order
+        # Convert OME dimension order (e.g. "XYCZT") to 3-letter format (e.g. "CZT")
+        dimension_order = ome_dimension_order.replace("X", "").replace("Y", "")
 
-            file_positions = OMETiffImagingExtractor._parse_file_paths_from_ome_metadata(pixels_element, file_path)
-            dimension_to_key = {"C": "first_c", "Z": "first_z", "T": "first_t"}
-            sort_keys = [dimension_to_key[d] for d in reversed(dimension_order)]
-            result["file_paths"] = sorted(
-                file_positions.keys(),
-                key=lambda fp: tuple(file_positions[fp][k] for k in sort_keys) + (file_positions[fp]["ifd"],),
-            )
+        # Discover file paths from TiffData elements
+        file_positions = OMETiffImagingExtractor._parse_file_paths_from_ome_metadata(pixels_element, file_path)
 
+        # Sort files to match the dimension order: slowest-varying dimension as primary key
+        dimension_to_key = {"C": "first_c", "Z": "first_z", "T": "first_t"}
+        sort_keys = [dimension_to_key[d] for d in reversed(dimension_order)]
+        file_paths = sorted(
+            file_positions.keys(),
+            key=lambda fp: tuple(file_positions[fp][k] for k in sort_keys) + (file_positions[fp]["ifd"],),
+        )
+
+        result = dict(
+            file_paths=file_paths,
+            dimension_order=dimension_order,
+            num_channels=num_channels,
+            num_planes=num_planes,
+        )
+        if sampling_frequency is not None:
+            result["sampling_frequency"] = sampling_frequency
+        if channel_names is not None:
+            result["channel_names"] = channel_names
         return result
 
     @staticmethod

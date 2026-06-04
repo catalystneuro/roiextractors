@@ -75,6 +75,17 @@ def _determine_frame_rate(element: etree.Element, file_names: list[str] | None =
     return frame_rate
 
 
+# Maps the Bruker `<Sequence type="...">` attribute to whether the recording is volumetric.
+_SEQUENCE_TYPE_IS_VOLUMETRIC = {
+    "TSeries ZSeries Element": True,  # XYZT
+    "TSeries Timed Element": False,  # XYT
+    "ZSeries": True,  # ZT (not a time series)
+    "Single": False,  # Single image (not a time series)
+    "BrightnessOverTime": False,  # XYT (not a volumetric series)
+    "TSeries Brightness Over Time Element": False,  # XYT
+}
+
+
 def _determine_imaging_is_volumetric(folder_path: PathType) -> bool:
     """Determine whether imaging is volumetric.
 
@@ -92,21 +103,12 @@ def _determine_imaging_is_volumetric(folder_path: PathType) -> bool:
     xml_file_path = folder_path / f"{folder_path.name}.xml"
     assert xml_file_path.is_file(), f"The XML configuration file is not found at '{xml_file_path}'."
 
-    is_series_type_volumetric = {
-        "TSeries ZSeries Element": True,  # XYZT
-        "TSeries Timed Element": False,  # XYT
-        "ZSeries": True,  # ZT (not a time series)
-        "Single": False,  # Single image (not a time series)
-        "BrightnessOverTime": False,  # XYT (not a volumetric series)
-        "TSeries Brightness Over Time Element": False,  # XYT
-    }
-
     is_volumetric = False
     for event, elem in etree.iterparse(xml_file_path, events=("start",)):
         if elem.tag == "Sequence":
             series_type = elem.attrib.get("type")
-            if series_type in is_series_type_volumetric:
-                is_volumetric = is_series_type_volumetric[series_type]
+            if series_type in _SEQUENCE_TYPE_IS_VOLUMETRIC:
+                is_volumetric = _SEQUENCE_TYPE_IS_VOLUMETRIC[series_type]
                 break
             else:
                 raise ValueError(
@@ -240,8 +242,7 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
 
         self.set_times(timestamps)
 
-    @staticmethod
-    def _build_structural_metadata_from_bruker_xml(folder_path: PathType) -> dict:
+    def _build_structural_metadata_from_bruker_xml(self, folder_path: PathType) -> dict:
         """Build the layout dict for MultiTIFFMultiPageExtractor from the Bruker XML.
 
         Returns the four required structural fields (file paths, dimension
@@ -275,8 +276,17 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
             Keys: file_paths, dimension_order, num_channels, num_planes.
         """
         folder_path = Path(folder_path)
-        xml_root = etree.parse(folder_path / f"{folder_path.name}.xml").getroot()
-        is_volumetric = _determine_imaging_is_volumetric(folder_path=folder_path)
+        # Reuse the root parsed once in __init__ rather than reading the XML again.
+        xml_root = self._xml_root
+        first_sequence = next(xml_root.iter("Sequence"), None)
+        if first_sequence is None:
+            raise ValueError(f"No <Sequence> elements found in Bruker XML at '{folder_path}/{folder_path.name}.xml'.")
+        series_type = first_sequence.attrib.get("type")
+        if series_type not in _SEQUENCE_TYPE_IS_VOLUMETRIC:
+            raise ValueError(
+                f"Unknown series type: {series_type}, please raise an issue in the roiextractor repository"
+            )
+        is_volumetric = _SEQUENCE_TYPE_IS_VOLUMETRIC[series_type]
 
         # Single pass over Sequence/Frame/File via lxml's C-level tag-filtered
         # iter(). Tracks the parent context (current Sequence index, current
