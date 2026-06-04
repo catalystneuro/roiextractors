@@ -30,6 +30,18 @@ def _get_test_video(file_paths):
     return np.stack(frames, axis=0)
 
 
+def _stack_all_pages(file_paths):
+    """Read every page from each file into (num_frames, H, W).
+
+    Handles both single-page-per-file recordings and recordings that store many frames
+    as pages of a single multi-page file (e.g. dual-color single-plane recordings, where
+    each channel is one multi-page TIFF with page = timepoint).
+    """
+    arrays = [tifffile.imread(file) for file in file_paths]
+    arrays = [array[np.newaxis] if array.ndim == 2 else array for array in arrays]
+    return np.concatenate(arrays, axis=0)
+
+
 class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -392,13 +404,15 @@ class TestBrukerTiffImagingExtractorDualChannel:
         ext_red = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Red")
         assert ext_red.get_num_samples() == 5
 
-        # Verify data values match the raw TIFF files per channel. The Bruker XML
-        # labels the channels Green and Red, but the file naming convention uses
-        # Ch1 (Green, channel="1") and Ch2 (Red, channel="2").
-        ch1_files = sorted(self.folder_path.glob("*_Ch1_*.ome.tif"))
-        ch2_files = sorted(self.folder_path.glob("*_Ch2_*.ome.tif"))
-        expected_green = np.stack([tifffile.imread(f) for f in ch1_files])
-        expected_red = np.stack([tifffile.imread(f) for f in ch2_files])
+        # Verify data values match the raw TIFF files per channel. The user-set labels do
+        # NOT match the generic Ch1/Ch2 file naming: in this recording channel 1 (the
+        # *_Ch1_* files) is "Red" and channel 2 (the *_Ch2_* files) is "Green". The
+        # extractor must map each label to its real files (alphabetical name order would
+        # swap them).
+        ch1_files = sorted(self.folder_path.glob("*_Ch1_*.ome.tif"))  # channel 1 = Red
+        ch2_files = sorted(self.folder_path.glob("*_Ch2_*.ome.tif"))  # channel 2 = Green
+        expected_red = np.stack([tifffile.imread(f) for f in ch1_files])
+        expected_green = np.stack([tifffile.imread(f) for f in ch2_files])
         assert_array_equal(ext_green.get_series(), expected_green)
         assert_array_equal(ext_red.get_series(), expected_red)
         assert not np.array_equal(expected_green, expected_red)
@@ -451,8 +465,18 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion:
 
         ext_ch2 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
         assert ext_ch2.get_num_samples() == 10
-        # Both channels reference different data — confirm they don't return the same pixels.
-        assert not np.array_equal(ext_ch1.get_series(), ext_ch2.get_series())
+
+        # Each channel must return exactly the frames from its own files, in order. This
+        # guards against a channel swap: the embedded OME-XML reports the wrong dimension
+        # order (XYZCT) while the bytes are XYCZT, so reading the Bruker XML (CZT) must
+        # still map Ch1/Ch2 to the correct *_Ch1_*/*_Ch2_* files.
+        # Each channel is stored as a single multi-page file (page = timepoint), so read
+        # all pages to build the expected per-channel data.
+        expected_ch1 = _stack_all_pages(sorted(self.folder_path.glob("*_Ch1_*.ome.tif")))
+        expected_ch2 = _stack_all_pages(sorted(self.folder_path.glob("*_Ch2_*.ome.tif")))
+        assert_array_equal(ext_ch1.get_series(), expected_ch1)
+        assert_array_equal(ext_ch2.get_series(), expected_ch2)
+        assert not np.array_equal(expected_ch1, expected_ch2)
 
 
 class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLWithCompanion:
@@ -484,7 +508,16 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLWithCompanion:
 
         ext_ch2 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
         assert ext_ch2.get_num_samples() == 5
-        assert not np.array_equal(ext_ch1.get_series(), ext_ch2.get_series())
+
+        # Each channel must return exactly the frames from its own files (see the
+        # no-companion test for why the dimension-order discrepancy makes this worth checking).
+        # Each channel is stored as a single multi-page file (page = timepoint), so read
+        # all pages to build the expected per-channel data.
+        expected_ch1 = _stack_all_pages(sorted(self.folder_path.glob("*_Ch1_*.ome.tif")))
+        expected_ch2 = _stack_all_pages(sorted(self.folder_path.glob("*_Ch2_*.ome.tif")))
+        assert_array_equal(ext_ch1.get_series(), expected_ch1)
+        assert_array_equal(ext_ch2.get_series(), expected_ch2)
+        assert not np.array_equal(expected_ch1, expected_ch2)
 
 
 class TestBrukerTiffImagingExtractorPV58Embedded:

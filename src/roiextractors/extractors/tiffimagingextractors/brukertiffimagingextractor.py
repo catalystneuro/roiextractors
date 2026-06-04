@@ -148,16 +148,6 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
 
     extractor_name = "BrukerTiffImagingExtractor"
 
-    # Bruker stores frames in XYCZT order: within each `<Frame>` the channels (`<File>`)
-    # vary fastest, then Z-planes across `<Frame>`s, then T across `<Sequence>`s. We assert
-    # this rather than read it from the OME-XML, whose `<Pixels DimensionOrder=>` is
-    # unreliable for Bruker (it sometimes reports XYZCT while the bytes are XYCZT). This
-    # matches Bio-Formats' PrairieReader, which hardcodes `cm.dimensionOrder = "XYCZT"`
-    # unconditionally:
-    # https://github.com/ome/bioformats/blob/4fe6b0d71ef4b201824ed2d5d90117e929420dfd/components/formats-gpl/src/loci/formats/in/PrairieReader.java#L470
-    # MultiTIFFMultiPageExtractor uses the 3-letter form (XY implied), so "CZT".
-    _DIMENSION_ORDER = "CZT"
-
     def __init__(self, folder_path: PathType, channel_name: str | None = None):
         folder_path = Path(folder_path)
 
@@ -208,7 +198,7 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         super().__init__(
             file_paths=file_paths,
             sampling_frequency=sampling_frequency,
-            dimension_order=self._DIMENSION_ORDER,
+            dimension_order=self._get_dimension_order(),
             num_channels=num_channels,
             channel_name=channel_name,
             num_planes=num_planes,
@@ -270,19 +260,44 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         first_sequence = next(self._xml_root.iter("Sequence"))
         return sum(1 for _ in first_sequence.iter("Frame"))
 
-    def _get_channel_names(self) -> list[str]:
-        """Return channel labels from the Bruker XML's ``<File channelName="..."/>`` attribute.
+    def _get_dimension_order(self) -> str:
+        """Return the recording's physical dimension order, ``"CZT"`` or ``"TZC"``.
 
-        Overrides ``MultiTIFFMultiPageExtractor._get_channel_names`` to read from
-        Bruker's configuration XML instead of OME-XML. PrairieView lets users
-        set custom fluorophore labels (e.g. ``"Green"``, ``"Red"``) which the
-        Bruker XML carries but OME-XML's generic ``<Channel Name="Ch1"/>``
-        does not. ``self._xml_root`` is set in ``__init__`` before
-        ``super().__init__()``, so the override has the data it needs by the
-        time the parent class calls this method during channel-name-to-index
-        resolution.
+        Bruker writes multi-channel data in one of two physical layouts. Per-frame: one
+        single-page ``.ome.tif`` per (timepoint, channel), so channels are interleaved and
+        vary fastest ("CZT"). Per-channel: one multi-page file per channel with page =
+        timepoint, so channel is the slowest dimension and time the fastest ("TZC"); this is
+        what dual-color single-plane recordings use. We detect the per-channel case by the
+        files being multi-page (a filename referenced by more than one ``<File>`` element).
+        Single-channel recordings are unaffected: the channel dimension is trivial and "CZT"
+        reduces to the correct planar/volumetric order.
         """
-        return sorted({f.attrib["channelName"] for f in self._xml_root.findall(".//File")})
+        files = list(self._xml_root.iter("File"))
+        num_channels = len({elem.attrib["channelName"] for elem in files})
+        distinct_filenames = len({elem.attrib["filename"] for elem in files})
+        files_are_multipage = distinct_filenames < len(files)
+        if num_channels > 1 and files_are_multipage:
+            return "TZC"
+        return "CZT"
+
+    def _get_channel_names(self) -> list[str]:
+        """Return channel labels in acquisition order, from the Bruker XML's ``<File>`` attributes.
+
+        Overrides ``MultiTIFFMultiPageExtractor._get_channel_names`` to read from Bruker's
+        configuration XML instead of OME-XML. PrairieView lets users set custom fluorophore
+        labels (e.g. ``"Green"``, ``"Red"``) which the Bruker XML carries via ``channelName``
+        but OME-XML's generic ``<Channel Name="Ch1"/>`` does not.
+
+        Order matters: the base resolves a user's ``channel_name`` to a positional index and
+        assigns each plane its channel by acquisition position, so the names must be returned
+        in acquisition order (by the ``<File channel="...">`` number), not alphabetically.
+        Sorting alphabetically would swap channels whenever the labels do not sort in
+        acquisition order (e.g. channel 1 = "Red", channel 2 = "Green").
+        """
+        channel_number_to_name = {
+            int(elem.attrib["channel"]): elem.attrib["channelName"] for elem in self._xml_root.iter("File")
+        }
+        return [channel_number_to_name[number] for number in sorted(channel_number_to_name)]
 
     def get_native_timestamps(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """Extract per-sample timestamps from Frame relativeTime attributes in the Bruker XML.
