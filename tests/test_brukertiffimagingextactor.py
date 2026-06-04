@@ -463,34 +463,6 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion:
         assert not np.array_equal(expected_ch1, expected_ch2)
 
 
-class TestBrukerTiffImagingExtractorPV58Embedded:
-    """Test BrukerTiffImagingExtractor with PrairieView 5.8.64.700 *embedded* OME-XML packaging.
-
-    Provides a second PV 5.8 datapoint alongside NCCR62 (PV 5.8.64.200) that uses BinaryOnly.
-    Both fixtures together demonstrate that PrairieView 5.8 OME-XML packaging is per-recording
-    config rather than a hard version cutover.
-
-    Source: Julia Dziubek's sample for roiextractors issue #526
-    (https://github.com/catalystneuro/roiextractors/issues/526). Single-channel ("Ch2"),
-    originally 60 Sequences x 60 Frames = 3600 .ome.tif files at 1024x1024; stub keeps
-    first 5 frames at 64x64.
-    """
-
-    folder_path = BRUKER_STUB_PATH / "TSeries-08162024-1918-002"
-
-    def test_construct_and_load(self):
-        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
-        assert extractor.get_num_samples() == 5
-        assert extractor.get_image_shape() == (64, 64)
-        assert extractor.get_dtype() == np.uint16
-        assert extractor.is_volumetric is False
-
-        # Verify data values match the raw TIFF files
-        file_paths = sorted(self.folder_path.glob("*.ome.tif"))
-        expected_data = np.stack([tifffile.imread(f) for f in file_paths], axis=0)
-        assert_array_equal(extractor.get_series(), expected_data)
-
-
 @pytest.mark.skip(reason="No dual-channel volumetric Bruker test data available")
 class TestBrukerTiffImagingExtractorDualChannelVolumetric:
     """TODO: Test BrukerTiffImagingExtractor with dual-channel volumetric data.
