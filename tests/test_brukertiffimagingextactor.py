@@ -30,18 +30,6 @@ def _get_test_video(file_paths):
     return np.stack(frames, axis=0)
 
 
-def _stack_all_pages(file_paths):
-    """Read every page from each file into (num_frames, H, W).
-
-    Handles both single-page-per-file recordings and recordings that store many frames
-    as pages of a single multi-page file (e.g. dual-color single-plane recordings, where
-    each channel is one multi-page TIFF with page = timepoint).
-    """
-    arrays = [tifffile.imread(file) for file in file_paths]
-    arrays = [array[np.newaxis] if array.ndim == 2 else array for array in arrays]
-    return np.concatenate(arrays, axis=0)
-
-
 class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -470,10 +458,10 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion:
         # guards against a channel swap: the embedded OME-XML reports the wrong dimension
         # order (XYZCT) while the bytes are XYCZT, so reading the Bruker XML (CZT) must
         # still map Ch1/Ch2 to the correct *_Ch1_*/*_Ch2_* files.
-        # Each channel is stored as a single multi-page file (page = timepoint), so read
-        # all pages to build the expected per-channel data.
-        expected_ch1 = _stack_all_pages(sorted(self.folder_path.glob("*_Ch1_*.ome.tif")))
-        expected_ch2 = _stack_all_pages(sorted(self.folder_path.glob("*_Ch2_*.ome.tif")))
+        # Each channel is stored as a single multi-page file (page = timepoint), so reading
+        # the file returns the full (num_samples, height, width) stack directly.
+        expected_ch1 = tifffile.imread(next(self.folder_path.glob("*_Ch1_*.ome.tif")))
+        expected_ch2 = tifffile.imread(next(self.folder_path.glob("*_Ch2_*.ome.tif")))
         assert_array_equal(ext_ch1.get_series(), expected_ch1)
         assert_array_equal(ext_ch2.get_series(), expected_ch2)
         assert not np.array_equal(expected_ch1, expected_ch2)
@@ -511,10 +499,10 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLWithCompanion:
 
         # Each channel must return exactly the frames from its own files (see the
         # no-companion test for why the dimension-order discrepancy makes this worth checking).
-        # Each channel is stored as a single multi-page file (page = timepoint), so read
-        # all pages to build the expected per-channel data.
-        expected_ch1 = _stack_all_pages(sorted(self.folder_path.glob("*_Ch1_*.ome.tif")))
-        expected_ch2 = _stack_all_pages(sorted(self.folder_path.glob("*_Ch2_*.ome.tif")))
+        # Each channel is stored as a single multi-page file (page = timepoint), so reading
+        # the file returns the full (num_samples, height, width) stack directly.
+        expected_ch1 = tifffile.imread(next(self.folder_path.glob("*_Ch1_*.ome.tif")))
+        expected_ch2 = tifffile.imread(next(self.folder_path.glob("*_Ch2_*.ome.tif")))
         assert_array_equal(ext_ch1.get_series(), expected_ch1)
         assert_array_equal(ext_ch2.get_series(), expected_ch2)
         assert not np.array_equal(expected_ch1, expected_ch2)
