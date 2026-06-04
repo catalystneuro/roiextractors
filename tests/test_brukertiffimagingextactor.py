@@ -427,15 +427,13 @@ class TestBrukerTiffImagingExtractorDualChannel:
 
 
 class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion:
-    """Test BrukerTiffImagingExtractor on PV 5.7+ BinaryOnly OME-XML *without* the companion sidecar.
+    """Test BrukerTiffImagingExtractor on PV 5.7+ BinaryOnly OME-XML without the companion sidecar.
 
-    The canonical NCCR62 dual-color fixture is a PV 5.8.64.200 recording where each
-    .ome.tif's embedded OME-XML is just `<BinaryOnly MetadataFile="...companion.ome" .../>`
-    rather than a full `<Pixels>` block, AND the companion sidecar is not present on disk.
-    This is the degraded "user lost the companion file" case — also the original fixture
-    state on gin since 2023, before PR #587. Exercises the structural-metadata-from-Bruker-XML
-    code path; previously this fixture failed at construction with
-    "No Pixels element found in OME-XML metadata".
+    A dual-channel recording where each ``.ome.tif``'s embedded OME-XML is only a
+    ``<BinaryOnly MetadataFile="...companion.ome" .../>`` stub rather than a full ``<Pixels>``
+    block, and the companion sidecar is absent. With no ``<Pixels>`` available anywhere, the
+    extractor must read all structural metadata from the Bruker configuration XML; this is
+    the case that fails if anything still depends on OME-XML.
     """
 
     folder_path = BRUKER_STUB_PATH / "NCCR62_2023_07_06_IntoTheVoid_t_series_Dual_color-000"
@@ -454,12 +452,10 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion:
         ext_ch2 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
         assert ext_ch2.get_num_samples() == 10
 
-        # Each channel must return exactly the frames from its own files, in order. This
-        # guards against a channel swap: the embedded OME-XML reports the wrong dimension
-        # order (XYZCT) while the bytes are XYCZT, so reading the Bruker XML (CZT) must
-        # still map Ch1/Ch2 to the correct *_Ch1_*/*_Ch2_* files.
-        # Each channel is stored as a single multi-page file (page = timepoint), so reading
-        # the file returns the full (num_samples, height, width) stack directly.
+        # Each channel must return exactly the frames from its own file, in order. Here each
+        # channel is stored as a single multi-page file (page = timepoint), so the extractor
+        # must map Ch1/Ch2 to the correct *_Ch1_*/*_Ch2_* files rather than mixing pages
+        # across them. A single imread returns the full (num_samples, height, width) stack.
         expected_ch1 = tifffile.imread(next(self.folder_path.glob("*_Ch1_*.ome.tif")))
         expected_ch2 = tifffile.imread(next(self.folder_path.glob("*_Ch2_*.ome.tif")))
         assert_array_equal(ext_ch1.get_series(), expected_ch1)
@@ -468,15 +464,13 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion:
 
 
 class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLWithCompanion:
-    """Test BrukerTiffImagingExtractor on PV 5.7+ BinaryOnly OME-XML *with* the companion sidecar.
+    """Test BrukerTiffImagingExtractor on PV 5.7+ BinaryOnly OME-XML with the companion sidecar present.
 
-    Same recording as the NoCompanion class but with the `.companion.ome` sidecar present
-    on disk (re-stubbed from the original Pinto recording). This is the well-formed case
-    that real PV 5.7+ Bruker output produces. PR #587 reads structural metadata from the
-    Bruker .xml regardless of OME-XML packaging, so the result is identical to the
-    no-companion case in terms of what the extractor returns; the companion file is
-    present but unused. Future companion-resolution work on `OMETiffImagingExtractor` would
-    use this fixture.
+    The same kind of recording as the NoCompanion class, but with the ``.companion.ome``
+    sidecar on disk: the well-formed packaging that real PV 5.7+ output produces. The
+    extractor reads structure from the Bruker XML regardless of OME packaging, so the
+    companion is present but unused and the result matches the no-companion case. This also
+    serves as the fixture for any future companion-resolution work on ``OMETiffImagingExtractor``.
     """
 
     folder_path = BRUKER_STUB_PATH / "NCCR62_2023_07_06_IntoTheVoid_t_series_Dual_color-000_with_companion"
