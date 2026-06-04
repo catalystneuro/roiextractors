@@ -74,9 +74,6 @@ class TestMicroManagerTiffExtractor(TestCase):
     def test_micromanagertiffextractor_sampling_frequency(self):
         self.assertEqual(self.extractor.get_sampling_frequency(), 20.0)
 
-    def test_micromanagertiffextractor_channel_names(self):
-        self.assertEqual(self.extractor.get_channel_names(), ["Default"])
-
     def test_micromanagertiffextractor_dtype(self):
         self.assertEqual(self.extractor.get_dtype(), np.uint16)
 
@@ -92,12 +89,6 @@ class TestMicroManagerTiffExtractor(TestCase):
         exc_msg = f"The {sub_extractor.extractor_name}Extractor does not support retrieving the imaging rate."
         with self.assertRaisesWith(NotImplementedError, exc_msg=exc_msg):
             self.extractor._imaging_extractors[0].get_sampling_frequency()
-
-    def test_private_micromanagertiffextractor_channel_names(self):
-        sub_extractor = self.extractor._imaging_extractors[0]
-        exc_msg = f"The {sub_extractor.extractor_name}Extractor does not support retrieving the name of the channels."
-        with self.assertRaisesWith(NotImplementedError, exc_msg=exc_msg):
-            self.extractor._imaging_extractors[0].get_channel_names()
 
     def test_private_micromanagertiffextractor_dtype(self):
         """Test that the dtype of the private extractor is the same as the dtype of the main extractor."""

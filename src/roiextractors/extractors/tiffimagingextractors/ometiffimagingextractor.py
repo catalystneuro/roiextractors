@@ -353,11 +353,15 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         # "used for time series that have a global timing specification instead
         # of per-timepoint timing info"). TimeIncrementUnit defaults to "s".
         time_increment_str = pixels_element.get("TimeIncrement")
+        sampling_frequency = None
         if time_increment_str is not None:
             time_increment = float(time_increment_str)
-            unit = pixels_element.get("TimeIncrementUnit", "s")
-            time_increment_in_seconds = time_increment * OMETiffImagingExtractor._TIME_UNIT_TO_SECONDS[unit]
-            result["sampling_frequency"] = 1.0 / time_increment_in_seconds
+            # ThorImage and some other writers emit TimeIncrement="0" as a "no value"
+            # sentinel rather than omitting the attribute. Treat it as missing.
+            if time_increment > 0:
+                unit = pixels_element.get("TimeIncrementUnit", "s")
+                time_increment_in_seconds = time_increment * OMETiffImagingExtractor._TIME_UNIT_TO_SECONDS[unit]
+                result["sampling_frequency"] = 1.0 / time_increment_in_seconds
 
         # dimension_order and file_paths are paired: the file-path sort key
         # depends on dimension_order, so both are present together or both
