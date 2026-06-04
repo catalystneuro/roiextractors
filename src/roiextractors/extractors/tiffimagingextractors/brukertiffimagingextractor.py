@@ -185,6 +185,16 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
 
     extractor_name = "BrukerTiffImagingExtractor"
 
+    # Bruker stores frames in XYCZT order: within each `<Frame>` the channels (`<File>`)
+    # vary fastest, then Z-planes across `<Frame>`s, then T across `<Sequence>`s. We assert
+    # this rather than read it from the OME-XML, whose `<Pixels DimensionOrder=>` is
+    # unreliable for Bruker (it sometimes reports XYZCT while the bytes are XYCZT). This
+    # matches Bio-Formats' PrairieReader, which hardcodes `cm.dimensionOrder = "XYCZT"`
+    # unconditionally:
+    # https://github.com/ome/bioformats/blob/4fe6b0d71ef4b201824ed2d5d90117e929420dfd/components/formats-gpl/src/loci/formats/in/PrairieReader.java#L470
+    # MultiTIFFMultiPageExtractor uses the 3-letter form (XY implied), so "CZT".
+    _DIMENSION_ORDER = "CZT"
+
     def __init__(self, folder_path: PathType, channel_name: str | None = None):
         folder_path = Path(folder_path)
 
@@ -206,7 +216,7 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         self._bruker_xml_metadata = self._parse_bruker_xml_metadata()
 
         layout_dict = self._build_structural_metadata_from_bruker_xml(folder_path)
-        num_channels = layout_dict["num_channels"]
+        num_channels = len(self._get_channel_names())
         num_planes = layout_dict["num_planes"]
 
         if num_channels > 1 and num_planes > 1:
@@ -234,7 +244,7 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         super().__init__(
             file_paths=layout_dict["file_paths"],
             sampling_frequency=sampling_frequency,
-            dimension_order=layout_dict["dimension_order"],
+            dimension_order=self._DIMENSION_ORDER,
             num_channels=num_channels,
             channel_name=channel_name,
             num_planes=num_planes,
@@ -243,27 +253,15 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         self.set_times(timestamps)
 
     def _build_structural_metadata_from_bruker_xml(self, folder_path: PathType) -> dict:
-        """Build the layout dict for MultiTIFFMultiPageExtractor from the Bruker XML.
+        """Derive the file ordering and plane count from the Bruker XML in a single pass.
 
-        Returns the four required structural fields (file paths, dimension
-        order, channel count, plane count) derived from Bruker's own
-        configuration XML and file naming conventions. Channel labels are
-        not included here — those are returned by the
-        ``_get_channel_names()`` override on the class.
+        Walks Sequence/Frame/File once to produce the ordered file list and the
+        number of depth planes. Dimension order is the fixed ``_DIMENSION_ORDER``
+        class attribute (see its comment for the source); channel labels and count
+        come from ``_get_channel_names()``, not from here.
 
-        Dimension order is hardcoded to ``"CZT"`` (i.e. OME ``"XYCZT"``: C
-        fastest within a frame, then Z, then T). This matches Bruker's actual
-        on-disk storage — each ``<Sequence>`` rasterizes T outermost, each
-        ``<Frame>`` within rasterizes Z, and each ``<File>`` within a Frame
-        rasterizes C. It also matches Bio-Formats' ``PrairieReader``, which
-        hardcodes the same ``XYCZT`` order. The OME-XML embedded in Bruker's
-        ``.ome.tif`` files sometimes reports ``XYZCT`` on the ``<Pixels>``
-        element, but the actual storage layout follows ``XYCZT``; we trust
-        the storage layout.
-
-        File ordering matches what _parse_ome_metadata would produce for
-        ``"CZT"``: sorted by (first_t, first_z, first_c) — slowest-varying
-        dimension first.
+        File ordering follows ``_DIMENSION_ORDER`` ("CZT"): sorted by
+        ``(first_t, first_z, first_c)``, slowest-varying dimension first.
 
         Parameters
         ----------
@@ -273,7 +271,7 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         Returns
         -------
         dict
-            Keys: file_paths, dimension_order, num_channels, num_planes.
+            Keys: file_paths, num_planes.
         """
         folder_path = Path(folder_path)
         # Reuse the root parsed once in __init__ rather than reading the XML again.
@@ -299,7 +297,6 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         # Z-planes; for planar data Frames count timepoints across the whole
         # recording (independent of Sequence boundaries).
         file_positions: dict[str, tuple[int, int, int]] = {}
-        channel_names_seen: set[str] = set()
         sequence_index = -1
         frame_within_sequence = -1
         global_frame_index = -1
@@ -324,7 +321,6 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
                 existing = file_positions.get(filename)
                 if existing is None or position < existing:
                     file_positions[filename] = position
-                channel_names_seen.add(elem.attrib["channelName"])
 
         if not file_positions:
             raise ValueError(f"No <File> elements found in Bruker XML at '{folder_path}/{folder_path.name}.xml'.")
@@ -339,8 +335,6 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
 
         return {
             "file_paths": file_paths,
-            "dimension_order": "CZT",
-            "num_channels": len(channel_names_seen),
             "num_planes": num_planes,
         }
 
