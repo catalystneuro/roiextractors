@@ -463,6 +463,65 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion:
         assert not np.array_equal(expected_ch1, expected_ch2)
 
 
+class TestBrukerTiffImagingExtractorMultiSequenceBOT:
+    """Multi-burst Brightness Over Time recording: relativeTime resets per <Sequence>.
+
+    The recording is not uniformly sampled (real gaps between bursts), so the extractor must
+    construct (not raise "Could not determine sampling frequency"), report the within-burst
+    frame rate as sampling_frequency, and expose the true gapped timeline via get_timestamps().
+    """
+
+    folder_path = BRUKER_STUB_PATH / "TSeries-02022026-001_multisequence"
+
+    def test_multisequence_within_burst_rate_and_gapped_timestamps(self):
+        with pytest.warns(UserWarning, match="multiple <Sequence>"):
+            extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
+
+        assert extractor.get_num_samples() == 15  # 3 bursts x 5 frames, single channel
+        assert extractor.get_image_shape() == (64, 64)
+        assert extractor.is_volumetric is False
+        # within-burst frame rate (no single global rate exists across the gaps)
+        assert extractor.get_sampling_frequency() == pytest.approx(15.02, rel=1e-3)
+
+        # true timeline: regular within each burst, real inter-burst gaps preserved
+        assert extractor.has_time_vector()
+        timestamps = extractor.get_timestamps()
+        assert len(timestamps) == 15
+        assert timestamps[0] == pytest.approx(0.0, abs=1e-6)
+        assert timestamps[1] - timestamps[0] == pytest.approx(0.0666, rel=1e-2)  # within burst
+        assert timestamps[5] - timestamps[4] == pytest.approx(10.34, rel=1e-2)  # burst 1 -> 2
+        assert timestamps[10] - timestamps[9] == pytest.approx(10.13, rel=1e-2)  # burst 2 -> 3
+
+
+class TestBrukerTiffImagingExtractorMultiSequenceTimedElement:
+    """Multi-cycle Timed Element recording (non-BOT) that also resets relativeTime per <Sequence>.
+
+    Confirms the multi-sequence sampling-frequency bug is not specific to Brightness Over Time.
+    "Timed Element" means the frames within a cycle are regularly timed, not the cycles, which are
+    irregularly spaced in this recording, so the inter-cycle gaps differ.
+    """
+
+    folder_path = BRUKER_STUB_PATH / "TSeries-08162024-1918-002_multisequence"
+
+    def test_multisequence_timed_element_within_cycle_rate_and_gapped_timestamps(self):
+        with pytest.warns(UserWarning, match="multiple <Sequence>"):
+            extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+
+        assert extractor.get_num_samples() == 9  # 3 cycles x 3 frames, single channel
+        assert extractor.get_image_shape() == (64, 64)
+        assert extractor.is_volumetric is False
+        assert extractor.get_sampling_frequency() == pytest.approx(15.11, rel=1e-3)
+
+        assert extractor.has_time_vector()
+        timestamps = extractor.get_timestamps()
+        assert len(timestamps) == 9
+        assert timestamps[0] == pytest.approx(0.0, abs=1e-6)
+        assert timestamps[1] - timestamps[0] == pytest.approx(0.0662, rel=1e-2)  # within cycle
+        # the cycles are irregularly spaced in this recording (real, not uniform)
+        assert timestamps[3] - timestamps[2] == pytest.approx(25.72, rel=1e-2)  # cycle 0 -> 1
+        assert timestamps[6] - timestamps[5] == pytest.approx(7.70, rel=1e-2)  # cycle 1 -> 2
+
+
 @pytest.mark.skip(reason="No dual-channel volumetric Bruker test data available")
 class TestBrukerTiffImagingExtractorDualChannelVolumetric:
     """TODO: Test BrukerTiffImagingExtractor with dual-channel volumetric data.
