@@ -674,15 +674,6 @@ class ScanImageImagingExtractor(ImagingExtractor):
         """
         return self._sampling_frequency
 
-    def get_channel_names(self):
-        """Return the channel names (deprecated)."""
-        warnings.warn(
-            "get_channel_names is deprecated and will be removed in May 2026 or after.",
-            category=FutureWarning,
-            stacklevel=2,
-        )
-        return self.channel_names
-
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
 
@@ -716,7 +707,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         Examples
         --------
-        >>> channel_names = ScanImageImagingExtractor.get_channel_names('path/to/file.tif')
+        >>> channel_names = ScanImageImagingExtractor.get_available_channel_names('path/to/file.tif')
         >>> print(f"Available channels: {channel_names}")
         """
         from tifffile import read_scanimage_metadata
@@ -1102,15 +1093,6 @@ class ScanImageLegacyImagingExtractor(ImagingExtractor):
 
     def get_sampling_frequency(self) -> float:
         return self._sampling_frequency
-
-    def get_channel_names(self) -> list:
-        """Return the channel names (deprecated)."""
-        warnings.warn(
-            "get_channel_names is deprecated and will be removed in May 2026 or after.",
-            category=FutureWarning,
-            stacklevel=2,
-        )
-        pass
 
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None

@@ -49,9 +49,6 @@ class BaseTestSampleSliceSegmentation(TestCase):
     def test_get_sampling_frequency(self):
         assert self.sample_sliced_segmentation.get_sampling_frequency() == 30.0
 
-    def test_get_channel_names(self):
-        assert self.sample_sliced_segmentation.get_channel_names() == ["channel_num_0"]
-
     def test_get_num_channels(self):
         assert self.sample_sliced_segmentation.get_num_channels() == 1
 

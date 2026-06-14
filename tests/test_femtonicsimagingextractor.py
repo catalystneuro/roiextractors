@@ -63,7 +63,6 @@ def test_femtonicsimagingextractor_p29_mesc():
     actual_freq = extractor.get_sampling_frequency()
     assert abs(actual_freq - expected_freq) < 0.01
 
-    assert extractor.get_channel_names() == ["UG"]
     assert extractor.extractor_name == "FemtonicsImaging"
 
     # Test session info
@@ -78,9 +77,6 @@ def test_femtonicsimagingextractor_p29_mesc():
     extractor_ur = FemtonicsImagingExtractor(
         file_path=file_path, session_name="MSession_0", munit_name="MUnit_0", channel_name="UR"
     )
-
-    assert extractor_ug.get_channel_names() == ["UG"]
-    assert extractor_ur.get_channel_names() == ["UR"]
 
     # Test pixel size extraction - should be exactly 1.782 µm
     pixel_size = extractor._get_pixels_sizes_and_units()
@@ -274,7 +270,6 @@ def test_femtonicsimagingextractor_p30_mesc():
     actual_freq = extractor.get_sampling_frequency()
     assert abs(actual_freq - expected_freq) < 0.01  # ~30.96 Hz
 
-    assert extractor.get_channel_names() == ["UG"]
     assert extractor.extractor_name == "FemtonicsImaging"
 
     # Test session info
@@ -289,9 +284,6 @@ def test_femtonicsimagingextractor_p30_mesc():
     extractor_ur = FemtonicsImagingExtractor(
         file_path=file_path, session_name="MSession_0", munit_name="MUnit_0", channel_name="UR"
     )
-
-    assert extractor_ug.get_channel_names() == ["UG"]
-    assert extractor_ur.get_channel_names() == ["UR"]
 
     # Test pixel size extraction - should be exactly 1.782 µm
     pixel_size = extractor._get_pixels_sizes_and_units()
