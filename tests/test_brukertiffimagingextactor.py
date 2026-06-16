@@ -307,6 +307,22 @@ class TestBrukerTiffImagingExtractorSinglePlane:
         expected_frequency = 1.0 / np.mean(np.diff(expected_timestamps))
         assert extractor.get_sampling_frequency() == pytest.approx(expected_frequency, rel=1e-4)
 
+    def test_ifds_per_file_matches_physical_page_counts(self):
+        """The XML-derived per-file IFD counts equal what opening each TIFF reports.
+
+        ``_get_ifds_per_file()`` reads page counts from the Bruker XML's ``<File page="..."/>``
+        attribute instead of opening every TIFF at construction. This pins those counts to the
+        physical truth: opening each file and counting its pages must give the same list. Here
+        every file is single-page, so the expected counts are all 1.
+        """
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        physical_counts = []
+        for path in extractor._file_paths:
+            with tifffile.TiffFile(path) as tif:
+                physical_counts.append(len(tif.pages))
+        assert extractor._get_ifds_per_file() == physical_counts
+        assert set(physical_counts) == {1}
+
 
 class TestBrukerTiffImagingExtractorVolumetric:
     """Test BrukerTiffImagingExtractor with volumetric, single-channel data.
@@ -461,6 +477,22 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion:
         assert_array_equal(ext_ch1.get_series(), expected_ch1)
         assert_array_equal(ext_ch2.get_series(), expected_ch2)
         assert not np.array_equal(expected_ch1, expected_ch2)
+
+    def test_ifds_per_file_matches_physical_page_counts(self):
+        """The XML-derived per-file IFD counts equal what opening each TIFF reports.
+
+        This is the multi-page case: each channel is one file holding all timepoints as pages,
+        so ``_get_ifds_per_file()`` must return the per-file page count (> 1) by taking the max
+        ``<File page="...">`` value, not by counting ``<File>`` elements. Asserting equality with
+        the physically opened page counts exercises that ``max(page)`` branch directly.
+        """
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch1")
+        physical_counts = []
+        for path in extractor._file_paths:
+            with tifffile.TiffFile(path) as tif:
+                physical_counts.append(len(tif.pages))
+        assert extractor._get_ifds_per_file() == physical_counts
+        assert max(physical_counts) > 1
 
 
 @pytest.mark.skip(reason="No dual-channel volumetric Bruker test data available")
