@@ -18,6 +18,7 @@ def _metadata_with_rois(rois) -> dict:
     """Wrap a ROI list (or single ROI dict) in the nested scanimage_metadata structure."""
     return {"RoiGroups": {"imagingRoiGroup": {"rois": rois}}}
 
+
 # Synthetic ROI list: note "ROI dup" appears twice (duplicate name), mirroring real recordings.
 ROIS = [
     {"name": "ROI A", "roiUuid": "AAAA1111"},
