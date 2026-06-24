@@ -310,29 +310,22 @@ class TestBrukerTiffImagingExtractorSinglePlane:
     def test_init_opens_only_the_shape_probe_tiff(self):
         """Construction must not open every TIFF just to count pages.
 
-        The point of the Bruker ``_get_ifds_per_file()`` override is to read IFD counts from
-        the configuration XML instead of opening each file. The base class still opens exactly
-        one file to probe frame shape and dtype, so a full construction must open ``TiffFile``
-        exactly once regardless of file count. This stub has 10 files; without the override,
-        init would open 11. Asserting a single open pins the override's performance benefit so a
-        future regression back to per-file opens is caught.
-        """
-        from unittest.mock import patch
+        The point of the Bruker ``_get_ifds_per_file()`` override is to read per-file page
+        counts from the configuration XML instead of opening each file. The base class still
+        opens exactly one file to probe frame shape and dtype, so a full construction must open
+        ``TiffFile`` exactly once regardless of file count.
 
-        with patch("tifffile.TiffFile", wraps=tifffile.TiffFile) as mock_tiff_file:
-            BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        ``num_samples`` and pixel data are identical whether the counts come from the XML or
+        from opening every file, so the test measures the file opens directly. ``tifffile.TiffFile``
+        is the call that opens a TIFF on disk. ``patch("tifffile.TiffFile", ...)`` swaps it for a
+        spy for the duration of the ``with`` block and restores the original on exit; the spy
+        intercepts every call the extractor makes to it. ``wraps=tifffile.TiffFile`` makes the spy
+        forward each call to the real opener and return its real result, so the shape/dtype probe
+        still gets a genuine file handle while the spy records the call. ``call_count`` is then the
+        number of files opened during construction, which must be exactly one.
 
-        assert mock_tiff_file.call_count == 1
-
-    def test_init_opens_only_the_shape_probe_tiff(self):
-        """Construction must not open every TIFF just to count pages.
-
-        The point of the Bruker ``_get_ifds_per_file()`` override is to read IFD counts from
-        the configuration XML instead of opening each file. The base class still opens exactly
-        one file to probe frame shape and dtype, so a full construction must open ``TiffFile``
-        exactly once regardless of file count. This stub has 10 files; without the override,
-        init would open 11. Asserting a single open pins the override's performance benefit so a
-        future regression back to per-file opens is caught.
+        This stub has 10 files; without the override, init would open 11 (one probe plus one per
+        file to count pages). Pinning the count to one catches a regression back to per-file opens.
         """
         from unittest.mock import patch
 
