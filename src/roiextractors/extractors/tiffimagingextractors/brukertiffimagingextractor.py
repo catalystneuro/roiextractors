@@ -26,6 +26,7 @@ from .multitiffmultipageextractor import MultiTIFFMultiPageExtractor
 from ...extraction_tools import (
     PathType,
     calculate_regular_series_rate,
+    calculate_segmented_series_rate,
     get_package,
 )
 from ...imagingextractor import ImagingExtractor
@@ -190,20 +191,15 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         # Pre-set _num_planes so get_native_timestamps() can be called before init.
         # MultiTIFFMultiPageExtractor.__init__() will set it again to the same value.
         self._num_planes = num_planes
+        # Derive the rate from the true per-frame timeline. Burst/cycle recordings (e.g. Brightness
+        # Over Time) are not uniformly sampled: their timeline is regular within each burst but has
+        # large gaps between bursts, so calculate_segmented_series_rate splits at those gaps and
+        # reports the within-burst rate. Uniformly-sampled recordings come back as a single segment.
         timestamps = self.get_native_timestamps()
-        sampling_frequency = calculate_regular_series_rate(timestamps)
+        sampling_frequency, num_segments = calculate_segmented_series_rate(timestamps)
         if sampling_frequency is None:
-            # Burst/cycle recordings (e.g. Brightness Over Time) are not uniformly sampled:
-            # the global timeline has gaps between bursts, so no single regular rate exists.
-            # Fall back to the within-burst rate (relativeTime is regular inside one <Sequence>)
-            # and expose the true gapped timeline through the timestamps set below.
-            first_sequence = self._xml_root.find("Sequence")
-            within_burst = np.array([float(frame.attrib["relativeTime"]) for frame in first_sequence.findall("Frame")])[
-                ::num_planes
-            ]
-            sampling_frequency = calculate_regular_series_rate(within_burst)
-            if sampling_frequency is None:
-                raise ValueError("Could not determine sampling frequency from Bruker configuration XML.")
+            raise ValueError("Could not determine sampling frequency from Bruker configuration XML.")
+        if num_segments > 1:
             warnings.warn(
                 "This Bruker recording has multiple <Sequence> blocks (bursts/cycles) and is not "
                 "uniformly sampled. Reporting the within-burst frame rate as sampling_frequency; "
