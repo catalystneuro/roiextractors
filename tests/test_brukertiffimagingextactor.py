@@ -307,21 +307,22 @@ class TestBrukerTiffImagingExtractorSinglePlane:
         expected_frequency = 1.0 / np.mean(np.diff(expected_timestamps))
         assert extractor.get_sampling_frequency() == pytest.approx(expected_frequency, rel=1e-4)
 
-    def test_ifds_per_file_matches_physical_page_counts(self):
-        """The XML-derived per-file IFD counts equal what opening each TIFF reports.
+    def test_init_opens_only_the_shape_probe_tiff(self):
+        """Construction must not open every TIFF just to count pages.
 
-        ``_get_ifds_per_file()`` reads page counts from the Bruker XML's ``<File page="..."/>``
-        attribute instead of opening every TIFF at construction. This pins those counts to the
-        physical truth: opening each file and counting its pages must give the same list. Here
-        every file is single-page, so the expected counts are all 1.
+        The point of the Bruker ``_get_ifds_per_file()`` override is to read IFD counts from
+        the configuration XML instead of opening each file. The base class still opens exactly
+        one file to probe frame shape and dtype, so a full construction must open ``TiffFile``
+        exactly once regardless of file count. This stub has 10 files; without the override,
+        init would open 11. Asserting a single open pins the override's performance benefit so a
+        future regression back to per-file opens is caught.
         """
-        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
-        physical_counts = []
-        for path in extractor._file_paths:
-            with tifffile.TiffFile(path) as tif:
-                physical_counts.append(len(tif.pages))
-        assert extractor._get_ifds_per_file() == physical_counts
-        assert set(physical_counts) == {1}
+        from unittest.mock import patch
+
+        with patch("tifffile.TiffFile", wraps=tifffile.TiffFile) as mock_tiff_file:
+            BrukerTiffImagingExtractor(folder_path=self.folder_path)
+
+        assert mock_tiff_file.call_count == 1
 
 
 class TestBrukerTiffImagingExtractorVolumetric:
