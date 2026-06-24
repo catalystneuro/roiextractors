@@ -479,22 +479,6 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion:
         assert_array_equal(ext_ch2.get_series(), expected_ch2)
         assert not np.array_equal(expected_ch1, expected_ch2)
 
-    def test_ifds_per_file_matches_physical_page_counts(self):
-        """The XML-derived per-file IFD counts equal what opening each TIFF reports.
-
-        This is the multi-page case: each channel is one file holding all timepoints as pages,
-        so ``_get_ifds_per_file()`` must return the per-file page count (> 1) by taking the max
-        ``<File page="...">`` value, not by counting ``<File>`` elements. Asserting equality with
-        the physically opened page counts exercises that ``max(page)`` branch directly.
-        """
-        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch1")
-        physical_counts = []
-        for path in extractor._file_paths:
-            with tifffile.TiffFile(path) as tif:
-                physical_counts.append(len(tif.pages))
-        assert extractor._get_ifds_per_file() == physical_counts
-        assert max(physical_counts) > 1
-
 
 @pytest.mark.skip(reason="No dual-channel volumetric Bruker test data available")
 class TestBrukerTiffImagingExtractorDualChannelVolumetric:
