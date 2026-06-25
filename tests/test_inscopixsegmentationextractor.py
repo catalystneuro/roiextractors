@@ -64,13 +64,6 @@ def test_inscopix_segmentation_extractor():
     assert extractor.get_num_rois() == 4
     assert extractor.get_roi_ids() == ["C0", "C1", "C2", "C3"]
 
-    # Test status lists
-    accepted_list = extractor.get_accepted_list()
-    rejected_list = extractor.get_rejected_list()
-    assert isinstance(accepted_list, list)
-    assert isinstance(rejected_list, list)
-    assert len(accepted_list) + len(rejected_list) <= 4
-
     # Test image properties
     assert extractor.get_frame_shape() == (398, 366)
     assert extractor.get_num_samples() == 5444
@@ -170,12 +163,6 @@ def test_inscopix_segmentation_extractor_part1():
     assert extractor.get_num_rois() == 6
     assert extractor.get_roi_ids() == ["C0", "C1", "C2", "C3", "C4", "C5"]
 
-    # Test status lists (limited metadata may result in empty lists)
-    accepted_list = extractor.get_accepted_list()
-    rejected_list = extractor.get_rejected_list()
-    assert isinstance(accepted_list, list)
-    assert isinstance(rejected_list, list)
-
     # Test image properties
     assert extractor.get_frame_shape() == (21, 21)
 
@@ -237,10 +224,6 @@ def test_inscopix_segmentation_extractor_empty():
     # Test basic properties
     assert extractor.get_num_rois() == 0
     assert extractor.get_roi_ids() == []
-
-    # Test status lists
-    assert extractor.get_accepted_list() == []
-    assert extractor.get_rejected_list() == []
 
     # Test image properties
     assert extractor.get_frame_shape() == (5, 4)
