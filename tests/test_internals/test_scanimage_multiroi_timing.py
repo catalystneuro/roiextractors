@@ -94,13 +94,41 @@ class _FakePage:
         return self._array
 
 
-def test_read_ifd_as_frame_crops_the_rois_rows():
-    """The selected ROI's frame is exactly the page rows in [roi_row_start, roi_row_end)."""
+class _FakeReader:
+    """Minimal stand-in for a tifffile reader exposing its pages as a list."""
+
+    def __init__(self, pages: list):
+        self.pages = pages
+
+    def close(self) -> None:
+        """No-op close so the extractor's __del__ handle cleanup succeeds."""
+
+
+def test_get_series_crops_the_rois_rows():
+    """get_series slices the configured field-of-view window down to the ROI's rows.
+
+    The multi-ROI extractor sets ``_row_slice``/``_column_slice`` to the ROI window in ``__init__``
+    and lets the base class crop each page as it is read; this checks that wiring with a fake page.
+    """
     extractor = object.__new__(ScanImageMultiROIImagingExtractor)
+    # State that __init__ would set for an ROI spanning page rows [100, 150) over a full-width page.
     extractor._roi_row_start = 100
     extractor._roi_row_end = 150
+    extractor._row_slice = slice(100, 150)
+    extractor._column_slice = slice(0, 8)
+    extractor._num_rows = 50
+    extractor._num_columns = 8
+    extractor._num_planes = 1
+    extractor._num_samples = 1
+    extractor._dtype = np.dtype("float64")
+    extractor.is_volumetric = False
     # A 0..209 row-indexed page so the cropped rows are self-identifying.
     page_array = np.arange(210)[:, np.newaxis] * np.ones((210, 8))
-    cropped = extractor._read_ifd_as_frame(_FakePage(page_array))
-    assert cropped.shape == (50, 8)
-    np.testing.assert_array_equal(cropped, page_array[100:150, :])
+    extractor._tiff_readers = [_FakeReader([_FakePage(page_array)])]
+    extractor._frames_to_ifd_table = np.array([(0, 0)], dtype=[("file_index", int), ("IFD_index", int)])
+
+    series = extractor.get_series()
+
+    assert series.shape == (1, 50, 8)
+    # The cropped rows are exactly page rows 100..149.
+    np.testing.assert_array_equal(series[0, :, 0], np.arange(100, 150))
