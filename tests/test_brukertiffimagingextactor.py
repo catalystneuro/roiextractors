@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from hdmf.testing import TestCase
 from natsort import natsorted
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_allclose, assert_array_equal
 from tifffile import tifffile
 
 from roiextractors import (
@@ -488,6 +488,87 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion:
         assert_array_equal(ext_ch1.get_series(), expected_ch1)
         assert_array_equal(ext_ch2.get_series(), expected_ch2)
         assert not np.array_equal(expected_ch1, expected_ch2)
+
+
+class TestBrukerTiffImagingExtractorMultiSequenceBOT:
+    """Multi-burst Brightness Over Time recording: relativeTime resets per <Sequence>.
+
+    The recording is not uniformly sampled (real gaps between bursts), so the extractor must
+    construct (not raise "Could not determine sampling frequency"), report the within-burst
+    frame rate as sampling_frequency, and expose the true gapped timeline via get_timestamps().
+    """
+
+    folder_path = BRUKER_STUB_PATH / "TSeries-02022026-001_multisequence"
+
+    def test_multisequence_within_burst_rate_and_gapped_timestamps(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
+
+        assert extractor.get_num_samples() == 15  # 3 bursts x 5 frames, single channel
+        assert extractor.get_image_shape() == (64, 64)
+        assert extractor.is_volumetric is False
+        # within-burst frame rate (no single global rate exists across the gaps)
+        assert extractor.get_sampling_frequency() == pytest.approx(15.02, rel=1e-3)
+
+        # true timeline: regular within each burst (~0.0666 s steps), real inter-burst gaps preserved
+        assert extractor.has_time_vector()
+        timestamps = extractor.get_timestamps()
+        expected_timestamps = np.array(
+            [
+                0.0,
+                0.066564,
+                0.133127,
+                0.199691,
+                0.266255,  # burst 1
+                10.606227,
+                10.67279,
+                10.739354,
+                10.805918,
+                10.872482,  # burst 2
+                21.002329,
+                21.068893,
+                21.135456,
+                21.20202,
+                21.268584,  # burst 3
+            ]
+        )
+        assert_allclose(timestamps, expected_timestamps, atol=1e-6)
+
+
+class TestBrukerTiffImagingExtractorMultiSequenceTimedElement:
+    """Multi-cycle Timed Element recording (non-BOT) that also resets relativeTime per <Sequence>.
+
+    Confirms the multi-sequence sampling-frequency bug is not specific to Brightness Over Time.
+    "Timed Element" means the frames within a cycle are regularly timed, not the cycles, which are
+    irregularly spaced in this recording, so the inter-cycle gaps differ.
+    """
+
+    folder_path = BRUKER_STUB_PATH / "TSeries-08162024-1918-002_multisequence"
+
+    def test_multisequence_timed_element_within_cycle_rate_and_gapped_timestamps(self):
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+
+        assert extractor.get_num_samples() == 9  # 3 cycles x 3 frames, single channel
+        assert extractor.get_image_shape() == (64, 64)
+        assert extractor.is_volumetric is False
+        assert extractor.get_sampling_frequency() == pytest.approx(15.11, rel=1e-3)
+
+        # regular within each cycle (~0.0662 s steps); the cycles are irregularly spaced (real gaps)
+        assert extractor.has_time_vector()
+        timestamps = extractor.get_timestamps()
+        expected_timestamps = np.array(
+            [
+                0.0,
+                0.066181,
+                0.132361,  # cycle 1
+                25.851706,
+                25.917887,
+                25.984068,  # cycle 2
+                33.683408,
+                33.749589,
+                33.815769,  # cycle 3
+            ]
+        )
+        assert_allclose(timestamps, expected_timestamps, atol=1e-6)
 
 
 @pytest.mark.skip(reason="No dual-channel volumetric Bruker test data available")
