@@ -196,16 +196,9 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         # large gaps between bursts, so calculate_segmented_series_rate splits at those gaps and
         # reports the within-burst rate. Uniformly-sampled recordings come back as a single segment.
         timestamps = self.get_native_timestamps()
-        sampling_frequency, num_segments = calculate_segmented_series_rate(timestamps)
+        sampling_frequency, _ = calculate_segmented_series_rate(timestamps)
         if sampling_frequency is None:
             raise ValueError("Could not determine sampling frequency from Bruker configuration XML.")
-        if num_segments > 1:
-            warnings.warn(
-                "This Bruker recording has multiple <Sequence> blocks (bursts/cycles) and is not "
-                "uniformly sampled. Reporting the within-burst frame rate as sampling_frequency; "
-                "use get_timestamps() for the true (gapped) per-frame timeline.",
-                stacklevel=2,
-            )
 
         super().__init__(
             file_paths=file_paths,

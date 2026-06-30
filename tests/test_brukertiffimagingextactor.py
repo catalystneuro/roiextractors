@@ -501,8 +501,7 @@ class TestBrukerTiffImagingExtractorMultiSequenceBOT:
     folder_path = BRUKER_STUB_PATH / "TSeries-02022026-001_multisequence"
 
     def test_multisequence_within_burst_rate_and_gapped_timestamps(self):
-        with pytest.warns(UserWarning, match="multiple <Sequence>"):
-            extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
 
         assert extractor.get_num_samples() == 15  # 3 bursts x 5 frames, single channel
         assert extractor.get_image_shape() == (64, 64)
@@ -546,8 +545,7 @@ class TestBrukerTiffImagingExtractorMultiSequenceTimedElement:
     folder_path = BRUKER_STUB_PATH / "TSeries-08162024-1918-002_multisequence"
 
     def test_multisequence_timed_element_within_cycle_rate_and_gapped_timestamps(self):
-        with pytest.warns(UserWarning, match="multiple <Sequence>"):
-            extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
 
         assert extractor.get_num_samples() == 9  # 3 cycles x 3 frames, single channel
         assert extractor.get_image_shape() == (64, 64)
