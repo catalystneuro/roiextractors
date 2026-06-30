@@ -158,10 +158,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # and `_num_columns` always equal the window's height and width.
         self._row_slice = slice(0, self._num_rows)
         self._column_slice = slice(0, self._num_columns)
-        # Set on the copies returned by `slice_field_of_view` to the originating extractor, so that a
-        # derived view keeps the extractor that owns the (shared) file handles alive and does not close
-        # them itself. `None` marks the owner.
-        self._fov_parent = None
+        # Set on the copies returned by `slice_field_of_view` to the root extractor that owns the
+        # (shared) file handles, so that a derived view keeps the owner alive and does not close the
+        # handles itself. `None` marks the root owner.
+        self._fov_root = None
 
         # Check if stack manager is enabled and if there are multiple slices
         # This criteria was confirmed by Lawrence Niu, a developer of ScanImage
@@ -689,7 +689,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         sliced._num_columns = column_end - column_start
         # Keep the handle owner alive and mark this object as a borrower so __del__ does not close the
         # shared file handles. The owner is always the originally constructed extractor.
-        sliced._fov_parent = self._fov_parent if self._fov_parent is not None else self
+        sliced._fov_root = self._fov_root if self._fov_root is not None else self
         return sliced
 
     def get_image_shape(self) -> tuple[int, int]:
@@ -1077,8 +1077,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
     def __del__(self):
         """Close file handles when the extractor is garbage collected."""
         # Field-of-view views returned by `slice_field_of_view` share the owner's handles and must not
-        # close them; only the owning extractor (`_fov_parent is None`) closes.
-        if getattr(self, "_fov_parent", None) is not None:
+        # close them; only the owning extractor (`_fov_root is None`) closes.
+        if getattr(self, "_fov_root", None) is not None:
             return
         if hasattr(self, "_tiff_readers"):
             for handle in self._tiff_readers:
