@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from hdmf.testing import TestCase
 from natsort import natsorted
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_allclose, assert_array_equal
 from tifffile import tifffile
 
 from roiextractors import (
@@ -510,14 +510,29 @@ class TestBrukerTiffImagingExtractorMultiSequenceBOT:
         # within-burst frame rate (no single global rate exists across the gaps)
         assert extractor.get_sampling_frequency() == pytest.approx(15.02, rel=1e-3)
 
-        # true timeline: regular within each burst, real inter-burst gaps preserved
+        # true timeline: regular within each burst (~0.0666 s steps), real inter-burst gaps preserved
         assert extractor.has_time_vector()
         timestamps = extractor.get_timestamps()
-        assert len(timestamps) == 15
-        assert timestamps[0] == pytest.approx(0.0, abs=1e-6)
-        assert timestamps[1] - timestamps[0] == pytest.approx(0.0666, rel=1e-2)  # within burst
-        assert timestamps[5] - timestamps[4] == pytest.approx(10.34, rel=1e-2)  # burst 1 -> 2
-        assert timestamps[10] - timestamps[9] == pytest.approx(10.13, rel=1e-2)  # burst 2 -> 3
+        expected_timestamps = np.array(
+            [
+                0.0,
+                0.066564,
+                0.133127,
+                0.199691,
+                0.266255,  # burst 1
+                10.606227,
+                10.67279,
+                10.739354,
+                10.805918,
+                10.872482,  # burst 2
+                21.002329,
+                21.068893,
+                21.135456,
+                21.20202,
+                21.268584,  # burst 3
+            ]
+        )
+        assert_allclose(timestamps, expected_timestamps, atol=1e-6)
 
 
 class TestBrukerTiffImagingExtractorMultiSequenceTimedElement:
@@ -539,14 +554,23 @@ class TestBrukerTiffImagingExtractorMultiSequenceTimedElement:
         assert extractor.is_volumetric is False
         assert extractor.get_sampling_frequency() == pytest.approx(15.11, rel=1e-3)
 
+        # regular within each cycle (~0.0662 s steps); the cycles are irregularly spaced (real gaps)
         assert extractor.has_time_vector()
         timestamps = extractor.get_timestamps()
-        assert len(timestamps) == 9
-        assert timestamps[0] == pytest.approx(0.0, abs=1e-6)
-        assert timestamps[1] - timestamps[0] == pytest.approx(0.0662, rel=1e-2)  # within cycle
-        # the cycles are irregularly spaced in this recording (real, not uniform)
-        assert timestamps[3] - timestamps[2] == pytest.approx(25.72, rel=1e-2)  # cycle 0 -> 1
-        assert timestamps[6] - timestamps[5] == pytest.approx(7.70, rel=1e-2)  # cycle 1 -> 2
+        expected_timestamps = np.array(
+            [
+                0.0,
+                0.066181,
+                0.132361,  # cycle 1
+                25.851706,
+                25.917887,
+                25.984068,  # cycle 2
+                33.683408,
+                33.749589,
+                33.815769,  # cycle 3
+            ]
+        )
+        assert_allclose(timestamps, expected_timestamps, atol=1e-6)
 
 
 @pytest.mark.skip(reason="No dual-channel volumetric Bruker test data available")
