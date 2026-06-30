@@ -311,6 +311,39 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         }
         return [channel_number_to_name[number] for number in sorted(channel_number_to_name)]
 
+    def _get_ifds_per_file(self) -> list[int]:
+        """Return per-file IFD counts derived from the Bruker XML.
+
+        The base-class default opens every TIFF file at construction to count its pages.
+        On formats like Bruker (one single-page TIFF per frame, tens to hundreds of
+        thousands of files per recording) this dominates init and can take minutes.
+
+        This override reads counts directly from the Bruker configuration XML: each
+        ``<File>`` element has a ``page`` attribute giving the IFD index (1-based)
+        within its multi-page TIFF, and the count for a file is the maximum ``page``
+        value across the elements referencing that filename. No per-file TIFF opens.
+        """
+        page_count_by_filename: dict[str, int] = {}
+        for file_elem in self._xml_root.iter("File"):
+            filename = file_elem.attrib.get("filename")
+            if filename is None:
+                continue
+            page = int(file_elem.attrib.get("page", "1"))
+            current = page_count_by_filename.get(filename, 0)
+            if page > current:
+                page_count_by_filename[filename] = page
+
+        ifds_per_file: list[int] = []
+        for path in self._file_paths:
+            count = page_count_by_filename.get(path.name)
+            if count is None:
+                raise ValueError(
+                    f"Bruker XML has no <File> entry referencing '{path.name}'. "
+                    "Cannot determine IFD count without opening the file."
+                )
+            ifds_per_file.append(count)
+        return ifds_per_file
+
     def get_native_timestamps(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """Extract per-sample timestamps from Frame relativeTime attributes in the Bruker XML.
 
