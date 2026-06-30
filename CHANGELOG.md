@@ -1,4 +1,4 @@
-# v0.8.1 (Upcoming)
+# v0.9.0 (June 30th, 2026)
 
 ### Features
 * `ScanImageImagingExtractor` now overrides `slice_field_of_view` with a memory-efficient implementation that crops each page as it is read, so the full uncropped page is never assembled in memory. The returned object is a `ScanImageImagingExtractor` (format methods stay available), shares the original's file handles and frame-to-IFD mapping without reopening files, and composes with repeated slicing and `slice_samples`. [PR #599](https://github.com/catalystneuro/roiextractors/pull/599)
