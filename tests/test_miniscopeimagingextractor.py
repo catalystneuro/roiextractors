@@ -85,10 +85,6 @@ class TestMiniscopeImagingExtractor:
         assert self.extractor.get_image_shape()[0] == self.image_shape[0]
         assert self.extractor.get_image_shape()[1] == self.image_shape[1]
 
-    def test_miniscopeextractor_channel_names(self):
-        """Test that the extractor returns the correct channel names."""
-        assert self.extractor.get_channel_names() == ["OpticalChannel"]
-
     def test_miniscopeextractor_sampling_frequency(self):
         """Test that the extractor returns the correct sampling frequency."""
         assert isinstance(self.extractor.get_sampling_frequency(), float)
@@ -183,9 +179,6 @@ class TestMiniscopeMultiRecordingImagingExtractor:
 
     def test_multi_recording_extractor_image_shape(self):
         assert self.multi_recording_extractor.get_image_shape() == self.image_shape
-
-    def test_multi_recording_extractor_channel_names(self):
-        assert self.multi_recording_extractor.get_channel_names() == ["OpticalChannel"]
 
     def test_multi_recording_extractor_sampling_frequency(self):
         # Sampling frequency is now calculated from timeStamps.csv, so it may differ slightly from configured value

@@ -91,9 +91,6 @@ class TestBrukerTiffExtractorSinglePlaneCase(TestCase):
     def test_brukertiffextractor_sampling_frequency(self):
         self.assertEqual(self.extractor.get_sampling_frequency(), 29.873732099062256)
 
-    def test_brukertiffextractor_channel_names(self):
-        self.assertEqual(self.extractor.get_channel_names(), ["Ch2"])
-
     def test_brukertiffextractor_dtype(self):
         self.assertEqual(self.extractor.get_dtype(), np.uint16)
 
@@ -145,9 +142,6 @@ class TestBrukerTiffExtractorDualPlaneCase(TestCase):
 
     def test_brukertiffextractor_sampling_frequency(self):
         self.assertEqual(self.extractor.get_sampling_frequency(), 20.629515014336377)
-
-    def test_brukertiffextractor_channel_names(self):
-        self.assertEqual(self.extractor.get_channel_names(), ["Ch2"])
 
     def test_brukertiffextractor_dtype(self):
         self.assertEqual(self.extractor.get_dtype(), np.uint16)
@@ -223,9 +217,6 @@ class TestBrukerTiffExtractorDualColorCase(TestCase):
 
     def test_brukertiffextractor_image_size(self):
         self.assertEqual(self.extractor.get_image_shape(), (512, 512))
-
-    def test_brukertiffextractor_channel_names(self):
-        self.assertEqual(self.extractor.get_channel_names(), ["Ch1"])
 
     def test_brukertiffextractor_dtype(self):
         self.assertEqual(self.extractor.get_dtype(), np.uint16)
@@ -316,6 +307,33 @@ class TestBrukerTiffImagingExtractorSinglePlane:
         expected_frequency = 1.0 / np.mean(np.diff(expected_timestamps))
         assert extractor.get_sampling_frequency() == pytest.approx(expected_frequency, rel=1e-4)
 
+    def test_init_opens_only_the_shape_probe_tiff(self):
+        """Construction must not open every TIFF just to count pages.
+
+        The point of the Bruker ``_get_ifds_per_file()`` override is to read per-file page
+        counts from the configuration XML instead of opening each file. The base class still
+        opens exactly one file to probe frame shape and dtype, so a full construction must open
+        ``TiffFile`` exactly once regardless of file count.
+
+        ``num_samples`` and pixel data are identical whether the counts come from the XML or
+        from opening every file, so the test measures the file opens directly. ``tifffile.TiffFile``
+        is the call that opens a TIFF on disk. ``patch("tifffile.TiffFile", ...)`` swaps it for a
+        spy for the duration of the ``with`` block and restores the original on exit; the spy
+        intercepts every call the extractor makes to it. ``wraps=tifffile.TiffFile`` makes the spy
+        forward each call to the real opener and return its real result, so the shape/dtype probe
+        still gets a genuine file handle while the spy records the call. ``call_count`` is then the
+        number of files opened during construction, which must be exactly one.
+
+        This stub has 10 files; without the override, init would open 11 (one probe plus one per
+        file to count pages). Pinning the count to one catches a regression back to per-file opens.
+        """
+        from unittest.mock import patch
+
+        with patch("tifffile.TiffFile", wraps=tifffile.TiffFile) as mock_tiff_file:
+            BrukerTiffImagingExtractor(folder_path=self.folder_path)
+
+        assert mock_tiff_file.call_count == 1
+
 
 class TestBrukerTiffImagingExtractorVolumetric:
     """Test BrukerTiffImagingExtractor with volumetric, single-channel data.
@@ -372,6 +390,9 @@ class TestBrukerTiffImagingExtractorDualChannel:
     """Test BrukerTiffImagingExtractor with single-plane, dual-channel data.
 
     Uses the TSeries-20240527-001 stub: 5 timepoints, 2 channels, 1 plane, 64x64 frames.
+    Channel names ("Green", "Red") are user-set fluorophore labels from the Bruker
+    configuration XML, distinct from the generic Ch1/Ch2 in OME-XML and in the file
+    naming convention.
     """
 
     folder_path = BRUKER_STUB_PATH / "TSeries-20240527-001"
@@ -381,7 +402,7 @@ class TestBrukerTiffImagingExtractorDualChannel:
 
         Stub: TSeries-20240527-001
         - Samples (T): 5
-        - Channels (C): 2 (Ch1, Ch2)
+        - Channels (C): 2 (Green, Red)
         - Depth planes (Z): 1
         - Frame shape: 64 x 64
         - Files: 10 .ome.tif (5 timepoints x 2 channels)
@@ -389,23 +410,27 @@ class TestBrukerTiffImagingExtractorDualChannel:
         with pytest.raises(ValueError, match="channel_name must be specified"):
             BrukerTiffImagingExtractor(folder_path=self.folder_path)
 
-        ext_ch0 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch1")
-        assert ext_ch0.get_image_shape() == (64, 64)
-        assert ext_ch0.get_num_samples() == 5
-        assert ext_ch0.get_dtype() == np.uint16
-        assert ext_ch0.is_volumetric is False
+        ext_green = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Green")
+        assert ext_green.get_image_shape() == (64, 64)
+        assert ext_green.get_num_samples() == 5
+        assert ext_green.get_dtype() == np.uint16
+        assert ext_green.is_volumetric is False
 
-        ext_ch1 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
-        assert ext_ch1.get_num_samples() == 5
+        ext_red = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Red")
+        assert ext_red.get_num_samples() == 5
 
-        # Verify data values match the raw TIFF files per channel
-        ch1_files = sorted(self.folder_path.glob("*_Ch1_*.ome.tif"))
-        ch2_files = sorted(self.folder_path.glob("*_Ch2_*.ome.tif"))
-        expected_ch0 = np.stack([tifffile.imread(f) for f in ch1_files])
-        expected_ch1 = np.stack([tifffile.imread(f) for f in ch2_files])
-        assert_array_equal(ext_ch0.get_series(), expected_ch0)
-        assert_array_equal(ext_ch1.get_series(), expected_ch1)
-        assert not np.array_equal(expected_ch0, expected_ch1)
+        # Verify data values match the raw TIFF files per channel. The user-set labels do
+        # NOT match the generic Ch1/Ch2 file naming: in this recording channel 1 (the
+        # *_Ch1_* files) is "Red" and channel 2 (the *_Ch2_* files) is "Green". The
+        # extractor must map each label to its real files (alphabetical name order would
+        # swap them).
+        ch1_files = sorted(self.folder_path.glob("*_Ch1_*.ome.tif"))  # channel 1 = Red
+        ch2_files = sorted(self.folder_path.glob("*_Ch2_*.ome.tif"))  # channel 2 = Green
+        expected_red = np.stack([tifffile.imread(f) for f in ch1_files])
+        expected_green = np.stack([tifffile.imread(f) for f in ch2_files])
+        assert_array_equal(ext_green.get_series(), expected_green)
+        assert_array_equal(ext_red.get_series(), expected_red)
+        assert not np.array_equal(expected_green, expected_red)
 
     def test_invalid_channel_raises(self):
         with pytest.raises(ValueError, match="Channel '5' not found.*Available channels"):
@@ -418,7 +443,7 @@ class TestBrukerTiffImagingExtractorDualChannel:
         recomputed from sampling_frequency). The sampling frequency is derived from
         these timestamps.
         """
-        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch1")
+        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Green")
 
         # Hardcoded relativeTime values extracted from the stub's Bruker XML
         expected_timestamps = np.array([0.0, 0.00474538, 0.00949076, 0.01423614, 0.01898152])
@@ -426,6 +451,43 @@ class TestBrukerTiffImagingExtractorDualChannel:
         np.testing.assert_allclose(extractor.get_timestamps(), expected_timestamps, atol=1e-6)
         expected_frequency = 1.0 / np.mean(np.diff(expected_timestamps))
         assert extractor.get_sampling_frequency() == pytest.approx(expected_frequency, rel=1e-4)
+
+
+class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion:
+    """Test BrukerTiffImagingExtractor on PV 5.7+ BinaryOnly OME-XML without the companion sidecar.
+
+    A dual-channel recording where each ``.ome.tif``'s embedded OME-XML is only a
+    ``<BinaryOnly MetadataFile="...companion.ome" .../>`` stub rather than a full ``<Pixels>``
+    block, and the companion sidecar is absent. With no ``<Pixels>`` available anywhere, the
+    extractor must read all structural metadata from the Bruker configuration XML; this is
+    the case that fails if anything still depends on OME-XML.
+    """
+
+    folder_path = BRUKER_STUB_PATH / "NCCR62_2023_07_06_IntoTheVoid_t_series_Dual_color-000"
+
+    def test_construct_and_select_channels(self):
+        """Both channels must be selectable and return distinct data."""
+        with pytest.raises(ValueError, match="channel_name must be specified"):
+            BrukerTiffImagingExtractor(folder_path=self.folder_path)
+
+        ext_ch1 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch1")
+        assert ext_ch1.get_num_samples() == 10
+        assert ext_ch1.get_image_shape() == (512, 512)
+        assert ext_ch1.get_dtype() == np.uint16
+        assert ext_ch1.is_volumetric is False
+
+        ext_ch2 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
+        assert ext_ch2.get_num_samples() == 10
+
+        # Each channel must return exactly the frames from its own file, in order. Here each
+        # channel is stored as a single multi-page file (page = timepoint), so the extractor
+        # must map Ch1/Ch2 to the correct *_Ch1_*/*_Ch2_* files rather than mixing pages
+        # across them. A single imread returns the full (num_samples, height, width) stack.
+        expected_ch1 = tifffile.imread(next(self.folder_path.glob("*_Ch1_*.ome.tif")))
+        expected_ch2 = tifffile.imread(next(self.folder_path.glob("*_Ch2_*.ome.tif")))
+        assert_array_equal(ext_ch1.get_series(), expected_ch1)
+        assert_array_equal(ext_ch2.get_series(), expected_ch2)
+        assert not np.array_equal(expected_ch1, expected_ch2)
 
 
 @pytest.mark.skip(reason="No dual-channel volumetric Bruker test data available")
