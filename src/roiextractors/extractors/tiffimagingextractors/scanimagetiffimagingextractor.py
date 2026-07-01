@@ -7,8 +7,10 @@ ScanImageLegacyImagingExtractor
 """
 
 import copy
+import math
 import warnings
 from pathlib import Path
+from typing import Literal
 from warnings import warn
 
 import numpy as np
@@ -1087,6 +1089,545 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 except Exception as e:
                     warnings.warn(f"Error closing TIFF file handle {handle} with error: {e}", UserWarning)
                     pass
+
+
+class ScanImageMultiROIImagingExtractor(ScanImageImagingExtractor):
+    """Extractor for a single ROI from a ScanImage multi-ROI (mROI / mesoscope) TIFF file.
+
+    In multi-ROI acquisitions, ScanImage scans several rectangular fields of view and packs them
+    into a single image per channel/slice, stacked vertically along the slow-scan axis with dead
+    "fly-to" rows between consecutive ROIs. This extractor exposes a single ROI as a regular planar
+    imaging series by cropping the relevant rows out of each page. Instantiate one extractor per
+    ROI, selecting it by its position (`roi_index`) in the stacked page, counted from the top.
+
+    This subclass reuses all of :class:`ScanImageImagingExtractor`'s file discovery, channel
+    selection, and frame-to-IFD mapping; it only adds ROI geometry parsing, then narrows the base
+    class's field-of-view crop window to the ROI's rows so each page is cropped as it is read.
+
+    Notes
+    -----
+    This version supports planar, equal-width multi-ROI data only. Volumetric multi-ROI data
+    (per-plane scanfields) and ROIs with differing widths raise ``NotImplementedError``.
+
+    ROI names are not necessarily unique or ordered, so ROIs are selected by integer index rather
+    than by name. Use :meth:`get_num_rois` and :meth:`get_roi_names` to inspect the available ROIs
+    before constructing the extractor.
+    """
+
+    extractor_name = "ScanImageMultiROIImagingExtractor"
+
+    def __init__(
+        self,
+        file_path: PathType | None = None,
+        channel_name: str | None = None,
+        file_paths: list[PathType] | None = None,
+        roi_index: int | None = None,
+        roi_name: str | None = None,
+        roi_uuid: str | None = None,
+        gap_inference: Literal["geometric", "timing"] = "geometric",
+        on_gap_mismatch: Literal["raise", "warn"] = "raise",
+    ):
+        """Initialize the ScanImageMultiROIImagingExtractor.
+
+        The ROI to extract is selected by exactly one of `roi_index`, `roi_name`, or `roi_uuid`.
+        If none is given, the first ROI (index 0) is used. Use `get_num_rois`, `get_roi_names`, and
+        `get_roi_uuids` to inspect the available ROIs first.
+
+        Parameters
+        ----------
+        file_path : PathType, optional
+            Path to the ScanImage TIFF file. If part of a multi-file series, this should be the
+            first file. Either `file_path` or `file_paths` must be provided.
+        channel_name : str, optional
+            Name of the channel to extract. Required only when the file holds multiple channels.
+        file_paths : list of PathType, optional
+            Explicit list of files in temporal order, overriding automatic file detection.
+        roi_index : int, optional
+            Zero-based index of the ROI to extract, counted from the top of the stacked page.
+            Mutually exclusive with `roi_name` and `roi_uuid`. Defaults to 0 when no selector is given.
+        roi_name : str, optional
+            Name of the ROI to extract (the ScanImage ``Roi.name``). Mutually exclusive with
+            `roi_index` and `roi_uuid`. ROI names are not guaranteed to be unique; an ambiguous name
+            raises a ``ValueError``.
+        roi_uuid : str, optional
+            Unique identifier of the ROI to extract (the ScanImage ``Roi.roiUuid`` hex string,
+            matched case-insensitively). Mutually exclusive with `roi_index` and `roi_name`.
+        gap_inference : {"geometric", "timing"}, optional
+            Method used to infer the dead "fly-to" rows between ROIs. Defaults to ``"geometric"``.
+            See :meth:`_infer_inter_roi_gap` for details; both methods are computed and compared.
+        on_gap_mismatch : {"raise", "warn"}, optional
+            What to do when the geometric and timing gap estimates disagree. ``"raise"`` (default)
+            raises a ``ValueError``; ``"warn"`` emits a warning and proceeds with ``gap_inference``.
+
+        Raises
+        ------
+        ValueError
+            If the file is not a multi-ROI acquisition; if more than one ROI selector is given; if
+            the selected `roi_index`/`roi_name`/`roi_uuid` is out of range, not found, or ambiguous;
+            or if the gap inference methods disagree while `on_gap_mismatch="raise"`.
+        NotImplementedError
+            If the data is volumetric or the ROIs do not all share the same width.
+        """
+        # Validate mROI suitability up front by reading only the first file's metadata, so that
+        # unsupported inputs fail with a clear message before the base class runs its
+        # volumetric-oriented validation (which would otherwise raise a misleading slice_sample error).
+        first_file = file_paths[0] if file_paths is not None else file_path
+        if first_file is None:
+            raise ValueError("file_path or file_paths must be provided")
+        tifffile = get_package(package_name="tifffile")
+        with tifffile.TiffReader(Path(first_file)) as tiff_reader:
+            scanimage_metadata = tiff_reader.scanimage_metadata
+        frame_data = scanimage_metadata["FrameData"]
+        if not frame_data.get("SI.hRoiManager.mroiEnable", 0):
+            raise ValueError(
+                "This file is not a multi-ROI (mroiEnable) ScanImage acquisition. "
+                "Use ScanImageImagingExtractor instead."
+            )
+        # Volumetric detection mirrors the base class criterion (stack enabled with >1 slice).
+        stack_enabled = frame_data.get("SI.hStackManager.enable", False)
+        num_slices = frame_data.get("SI.hStackManager.numSlices", 1)
+        if stack_enabled and num_slices > 1:
+            raise NotImplementedError(
+                "Volumetric multi-ROI data is not yet supported by ScanImageMultiROIImagingExtractor."
+            )
+
+        super().__init__(file_path=file_path, channel_name=channel_name, file_paths=file_paths)
+
+        # After super().__init__, _num_rows/_num_columns describe the full stacked page (all ROIs).
+        self._page_num_rows = self._num_rows
+        self._page_num_columns = self._num_columns
+
+        scanfields = self._get_imaging_scanfields(self._general_metadata)
+        roi_widths = [scanfield["pixelResolutionXY"][0] for scanfield in scanfields]
+        roi_heights = [scanfield["pixelResolutionXY"][1] for scanfield in scanfields]
+
+        if len(set(roi_widths)) != 1:
+            raise NotImplementedError(
+                f"ROIs have differing widths ({roi_widths}); only equal-width multi-ROI data is supported."
+            )
+
+        self._num_rois = len(scanfields)
+
+        # Resolve whichever selector was given (index, name, or uuid) to a single ROI index.
+        rois = self._get_roi_list(self._general_metadata)
+        roi_index = self._resolve_roi_index(rois, roi_index=roi_index, roi_name=roi_name, roi_uuid=roi_uuid)
+
+        gap = self._infer_inter_roi_gap(
+            page_height=self._page_num_rows,
+            roi_heights=roi_heights,
+            line_period=self._metadata.get("SI.hRoiManager.linePeriod"),
+            flyto_time=self._metadata.get("SI.hScan2D.flytoTimePerScanfield"),
+            method=gap_inference,
+            on_mismatch=on_gap_mismatch,
+        )
+        self._inter_roi_gap = gap
+
+        # Row span of the selected ROI in the stacked page: preceding ROIs plus the gaps before it.
+        self._roi_row_start = sum(roi_heights[:roi_index]) + roi_index * gap
+        self._roi_row_end = self._roi_row_start + roi_heights[roi_index]
+
+        # Present this single ROI as the frame by replacing the page dimensions with the ROI's, and
+        # narrow the base class's field-of-view crop window to the ROI's rows. `get_series` slices
+        # `_row_slice`/`_column_slice` out of every page, so the ROI is cropped page-by-page without
+        # ever materializing the full stacked page. Columns span the full page width (equal-width ROIs).
+        self._num_rows = roi_heights[roi_index]
+        self._num_columns = roi_widths[roi_index]
+        self._row_slice = slice(self._roi_row_start, self._roi_row_end)
+        self._column_slice = slice(0, self._num_columns)
+
+        # Expose the selected ROI's identity and reference-space placement for downstream use.
+        selected_scanfield = scanfields[roi_index]
+        self.roi_index = roi_index
+        self.roi_name = rois[roi_index].get("name")
+        self.roi_uuid = rois[roi_index].get("roiUuid")
+        self.roi_center_xy = selected_scanfield.get("centerXY")
+        self.roi_size_xy = selected_scanfield.get("sizeXY")
+        self.roi_affine = selected_scanfield.get("affine")
+        # Physical z-plane(s) of this ROI: a scalar for a planar field, one value per plane for a
+        # (future) volumetric z-stack. Exposed so downstream can attach depth to the plane axis.
+        self.roi_zs = rois[roi_index].get("zs")
+        # Per-field timing offset inputs: the field is scanned `roi_row_start` rows into each frame,
+        # and `line_period` is ScanImage's dwell time per scanned row (from metadata).
+        self.roi_row_start = self._roi_row_start
+        self.line_period = self._metadata.get("SI.hRoiManager.linePeriod")
+
+    def get_field_time_offset(self) -> float:
+        """Get the sub-frame acquisition delay of this ROI's field within each frame.
+
+        In a multi-ROI acquisition the scanner sweeps the stacked ROIs top to bottom, so a field
+        beginning at row ``roi_row_start`` is reached ``line_period * roi_row_start`` seconds into
+        every frame (``line_period`` is ScanImage's per-row dwell time). The offset is therefore a
+        constant per field: 0.0 for the topmost field, larger for fields further down the page.
+
+        Returns
+        -------
+        float
+            The within-frame offset in seconds.
+
+        Raises
+        ------
+        ValueError
+            If ``line_period`` is unavailable in the metadata, so the offset cannot be computed.
+            This fails loudly rather than returning an uncomputable result, so a caller requesting
+            the offset is never silently handed nothing.
+        """
+        if self.line_period is None:
+            raise ValueError(
+                "Cannot compute the per-field time offset: 'line_period' "
+                "(SI.hRoiManager.linePeriod) is unavailable in the ScanImage metadata."
+            )
+        return float(self.line_period * self.roi_row_start)
+
+    def get_timestamps(
+        self,
+        start_sample: int | None = None,
+        end_sample: int | None = None,
+        correct_field_offset: bool = False,
+    ) -> np.ndarray:
+        """Get frame timestamps, optionally corrected for this field's within-frame scan offset.
+
+        Extends :meth:`ImagingExtractor.get_timestamps`. The base timeline is the resolved per-frame
+        timestamps (user-set via :meth:`set_times`, else native, else reconstructed from the sampling
+        frequency); these are treated as frame timestamps and returned unchanged by default. When
+        ``correct_field_offset`` is True, the field's within-frame offset (see
+        :meth:`get_field_time_offset`) is added, giving the time at which this field is actually
+        scanned rather than the time the frame begins.
+
+        Parameters
+        ----------
+        start_sample : int, optional
+            The starting sample index. If None, starts from the beginning.
+        end_sample : int, optional
+            The ending sample index. If None, goes to the end.
+        correct_field_offset : bool, optional
+            Whether to add the within-frame field offset to the frame timestamps. Defaults to False
+            (frame timestamps as-is).
+
+        Returns
+        -------
+        numpy.ndarray
+            The frame timestamps in seconds, plus the per-field offset when requested.
+
+        Raises
+        ------
+        ValueError
+            If ``correct_field_offset`` is True but the offset cannot be computed (no
+            ``line_period`` in the metadata; see :meth:`get_field_time_offset`). The correction was
+            explicitly requested, so this fails loudly rather than silently returning uncorrected
+            timestamps. Pass ``correct_field_offset=False`` to get the uncorrected frame timestamps.
+        """
+        base_timestamps = super().get_timestamps(start_sample=start_sample, end_sample=end_sample)
+        if not correct_field_offset:
+            return base_timestamps
+        return base_timestamps + self.get_field_time_offset()
+
+    @staticmethod
+    def _get_roi_list(scanimage_metadata: dict) -> list:
+        """Return the *enabled* imaging ROIs as a list, normalizing the single-ROI dict case.
+
+        Disabled ROIs (``enable`` falsy) are excluded: ScanImage does not scan them, so they are
+        absent from the stacked page and must not contribute to ROI counting, ordering, or row-span
+        computation. Including them would both miscount ROIs and shift every row span. ROIs missing
+        the ``enable`` key are treated as enabled.
+
+        Parameters
+        ----------
+        scanimage_metadata : dict
+            The tifffile ``scanimage_metadata`` dict (containing a ``RoiGroups`` key).
+
+        Returns
+        -------
+        list
+            List of enabled ROI dicts in stacking order.
+        """
+        rois = scanimage_metadata["RoiGroups"]["imagingRoiGroup"]["rois"]
+        rois = [rois] if isinstance(rois, dict) else rois
+        return [roi for roi in rois if roi.get("enable", True)]
+
+    @classmethod
+    def _get_imaging_scanfields(cls, scanimage_metadata: dict) -> list:
+        """Return the planar scanfield dict for each imaging ROI.
+
+        Parameters
+        ----------
+        scanimage_metadata : dict
+            The tifffile ``scanimage_metadata`` dict.
+
+        Returns
+        -------
+        list
+            List of scanfield dicts, one per ROI, in stacking order.
+
+        Raises
+        ------
+        NotImplementedError
+            If any ROI carries per-plane scanfields (i.e. volumetric multi-ROI data).
+        """
+        scanfields = []
+        for roi in cls._get_roi_list(scanimage_metadata):
+            scanfield = roi["scanfields"]
+            if isinstance(scanfield, list):
+                raise NotImplementedError("Volumetric multi-ROI data (per-plane scanfields) is not yet supported.")
+            scanfields.append(scanfield)
+        return scanfields
+
+    @staticmethod
+    def _resolve_roi_index(
+        rois: list,
+        roi_index: int | None = None,
+        roi_name: str | None = None,
+        roi_uuid: str | None = None,
+    ) -> int:
+        """Resolve a single ROI index from at most one of index, name, or uuid.
+
+        Parameters
+        ----------
+        rois : list
+            List of ROI dicts in stacking order (from :meth:`_get_roi_list`).
+        roi_index : int, optional
+            Zero-based ROI index. Used (defaulting to 0) when no other selector is given.
+        roi_name : str, optional
+            ROI name to match. Names are not guaranteed unique.
+        roi_uuid : str, optional
+            ROI ``roiUuid`` to match, compared case-insensitively.
+
+        Returns
+        -------
+        int
+            The resolved zero-based ROI index.
+
+        Raises
+        ------
+        ValueError
+            If more than one selector is given, or the selector is out of range, not found, or
+            (for `roi_name`) matches more than one ROI.
+        """
+        # Enforce that the selectors are mutually exclusive.
+        selectors_given = sum(selector is not None for selector in (roi_index, roi_name, roi_uuid))
+        if selectors_given > 1:
+            raise ValueError("Specify at most one of 'roi_index', 'roi_name', or 'roi_uuid'.")
+
+        num_rois = len(rois)
+
+        if roi_name is not None:
+            matching_indices = [index for index, roi in enumerate(rois) if roi.get("name") == roi_name]
+            if not matching_indices:
+                available_names = [roi.get("name") for roi in rois]
+                raise ValueError(f"No ROI named {roi_name!r}. Available names: {available_names}.")
+            if len(matching_indices) > 1:
+                raise ValueError(
+                    f"ROI name {roi_name!r} is ambiguous: it matches ROI indices {matching_indices}. "
+                    f"Select by 'roi_index' or 'roi_uuid' instead."
+                )
+            return matching_indices[0]
+
+        if roi_uuid is not None:
+            target_uuid = roi_uuid.upper()
+            matching_indices = [
+                index
+                for index, roi in enumerate(rois)
+                if roi.get("roiUuid") is not None and roi["roiUuid"].upper() == target_uuid
+            ]
+            if not matching_indices:
+                available_uuids = [roi.get("roiUuid") for roi in rois]
+                raise ValueError(f"No ROI with roiUuid {roi_uuid!r}. Available roiUuids: {available_uuids}.")
+            if len(matching_indices) > 1:
+                raise ValueError(f"roiUuid {roi_uuid!r} is ambiguous: it matches ROI indices {matching_indices}.")
+            return matching_indices[0]
+
+        # No name/uuid given: fall back to the index (defaulting to the first ROI).
+        resolved_index = 0 if roi_index is None else roi_index
+        if not (0 <= resolved_index < num_rois):
+            raise ValueError(f"roi_index ({resolved_index}) must be between 0 and {num_rois - 1}.")
+        return resolved_index
+
+    @staticmethod
+    def _even_ceil(value: float) -> int:
+        """Round a value up to the nearest even integer.
+
+        Parameters
+        ----------
+        value : float
+            The value to round.
+
+        Returns
+        -------
+        int
+            The smallest even integer greater than or equal to ``value``.
+        """
+        return math.ceil(value / 2) * 2
+
+    @staticmethod
+    def _infer_inter_roi_gap(
+        page_height: int,
+        roi_heights: list[int],
+        line_period: float | None = None,
+        flyto_time: float | None = None,
+        method: Literal["geometric", "timing"] = "geometric",
+        on_mismatch: Literal["raise", "warn"] = "raise",
+    ) -> int:
+        """Infer the number of dead "fly-to" rows between vertically-stacked mROI fields.
+
+        In multi-ROI (mesoscope) acquisitions, ScanImage packs several ROIs into a single image,
+        stacked vertically along the slow-scan axis, with a fixed number of dead rows between
+        consecutive ROIs while the scanner flies to the next field. This computes that gap.
+
+        Two independent methods are available and are always cross-checked when both are computable:
+
+        - ``"geometric"`` (default, authoritative): the gap is the leftover page rows not accounted
+          for by the ROIs, divided over the inter-ROI boundaries:
+          ``(page_height - sum(roi_heights)) / (num_rois - 1)``. This is authoritative because it is
+          derived from the actual stored array dimensions, which is what cropping must follow.
+        - ``"timing"``: the gap is the fly-to duration in units of line periods,
+          ``flyto_time / line_period``, rounded **up to the nearest even integer**. The even-ceil step
+          is essential: a resonant bidirectional scanner can only insert an even number of lines, so a
+          naive ``int()``/``round()`` undercounts (e.g. 7.2 lines must round up to 8, not down to 7).
+
+        Both values are computed when the necessary inputs are available and cross-checked against
+        each other. When they disagree, the behavior is controlled by ``on_mismatch``: either a
+        ``ValueError`` is raised (the default, so surprising files fail loudly rather than being
+        silently mis-cropped) or a warning is emitted and the value selected by ``method`` is used.
+        The value selected by ``method`` is returned (falling back to the other method if the
+        requested one is not computable).
+
+        Parameters
+        ----------
+        page_height : int
+            Total number of rows in the stored image (the IFD page), spanning all ROIs and their gaps.
+        roi_heights : list of int
+            Pixel height of each ROI, in stacking order (from ``scanfields.pixelResolutionXY[1]``).
+        line_period : float, optional
+            Duration of a single scan line in seconds (``SI.hRoiManager.linePeriod``). Required for
+            the timing method.
+        flyto_time : float, optional
+            Fly-to time between scanfields in seconds (``SI.hScan2D.flytoTimePerScanfield``). Required
+            for the timing method.
+        method : {"geometric", "timing"}, optional
+            Which inference to return. Defaults to ``"geometric"``.
+        on_mismatch : {"raise", "warn"}, optional
+            What to do when the geometric and timing methods are both computable but disagree.
+            ``"raise"`` (default) raises a ``ValueError``; ``"warn"`` emits a ``UserWarning`` and
+            proceeds with the value selected by ``method``. Has no effect when only one method is
+            computable.
+
+        Returns
+        -------
+        int
+            The number of dead rows between consecutive ROIs (0 when there is a single ROI).
+
+        Raises
+        ------
+        ValueError
+            If the requested method (and its fallback) cannot be computed, if the geometric residual
+            is not evenly divisible across the inter-ROI boundaries, or if the two methods disagree
+            while ``on_mismatch="raise"``.
+        """
+        num_rois = len(roi_heights)
+        if num_rois <= 1:
+            return 0
+
+        # Geometric inference: leftover rows spread evenly over the (num_rois - 1) inter-ROI boundaries.
+        geometric_gap = None
+        residual_rows = page_height - sum(roi_heights)
+        if residual_rows >= 0 and residual_rows % (num_rois - 1) == 0:
+            geometric_gap = residual_rows // (num_rois - 1)
+
+        # Timing inference: fly-to lines rounded up to an even count (resonant bidirectional scanning).
+        timing_gap = None
+        if line_period and flyto_time is not None:
+            timing_gap = ScanImageMultiROIImagingExtractor._even_ceil(flyto_time / line_period)
+
+        # Cross-check: the two independent methods should agree. Raise or warn on disagreement.
+        if geometric_gap is not None and timing_gap is not None and geometric_gap != timing_gap:
+            mismatch_message = (
+                f"Inter-ROI gap inference methods disagree: geometric={geometric_gap} rows, "
+                f"timing={timing_gap} rows. This may indicate an unusual acquisition."
+            )
+            if on_mismatch == "raise":
+                raise ValueError(
+                    f"{mismatch_message} Inspect the data, then pass on_mismatch='warn' together with "
+                    f"the method you trust to proceed."
+                )
+            warnings.warn(f"{mismatch_message} Using the '{method}' value.", UserWarning)
+
+        chosen_gap = geometric_gap if method == "geometric" else timing_gap
+        # Fall back to the other method if the requested one could not be computed.
+        if chosen_gap is None:
+            chosen_gap = timing_gap if method == "geometric" else geometric_gap
+
+        if chosen_gap is None:
+            raise ValueError(
+                "Could not infer the inter-ROI gap. The geometric method requires a page height that "
+                "leaves a residual evenly divisible across ROI boundaries, and the timing method "
+                "requires both 'line_period' and 'flyto_time'."
+            )
+
+        return int(chosen_gap)
+
+    @staticmethod
+    def get_num_rois(file_path: PathType) -> int:
+        """Get the number of imaging ROIs in a ScanImage multi-ROI TIFF file.
+
+        Parameters
+        ----------
+        file_path : PathType
+            Path to the ScanImage TIFF file.
+
+        Returns
+        -------
+        int
+            Number of imaging ROIs.
+        """
+        tifffile = get_package(package_name="tifffile")
+        with tifffile.TiffReader(file_path) as tiff_reader:
+            scanimage_metadata = tiff_reader.scanimage_metadata
+        return len(ScanImageMultiROIImagingExtractor._get_roi_list(scanimage_metadata))
+
+    @staticmethod
+    def get_roi_names(file_path: PathType) -> list:
+        """Get the imaging ROI names in a ScanImage multi-ROI TIFF file.
+
+        The returned order matches the `roi_index` used to construct the extractor. Note that names
+        are not guaranteed to be unique or ordered.
+
+        Parameters
+        ----------
+        file_path : PathType
+            Path to the ScanImage TIFF file.
+
+        Returns
+        -------
+        list
+            List of ROI names in stacking order.
+        """
+        tifffile = get_package(package_name="tifffile")
+        with tifffile.TiffReader(file_path) as tiff_reader:
+            scanimage_metadata = tiff_reader.scanimage_metadata
+        rois = ScanImageMultiROIImagingExtractor._get_roi_list(scanimage_metadata)
+        return [roi.get("name") for roi in rois]
+
+    @staticmethod
+    def get_roi_uuids(file_path: PathType) -> list:
+        """Get the imaging ROI UUIDs in a ScanImage multi-ROI TIFF file.
+
+        The returned order matches the `roi_index` used to construct the extractor. UUIDs uniquely
+        identify each ROI and are a robust selector when names are duplicated.
+
+        Parameters
+        ----------
+        file_path : PathType
+            Path to the ScanImage TIFF file.
+
+        Returns
+        -------
+        list
+            List of ROI ``roiUuid`` strings in stacking order.
+        """
+        tifffile = get_package(package_name="tifffile")
+        with tifffile.TiffReader(file_path) as tiff_reader:
+            scanimage_metadata = tiff_reader.scanimage_metadata
+        rois = ScanImageMultiROIImagingExtractor._get_roi_list(scanimage_metadata)
+        return [roi.get("roiUuid") for roi in rois]
 
 
 class ScanImageLegacyImagingExtractor(ImagingExtractor):
