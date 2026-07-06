@@ -8,7 +8,6 @@ NumpySegmentationExtractor
     A Segmentation extractor specified by image masks and traces .npy files.
 """
 
-import warnings
 from pathlib import Path
 
 import numpy as np
@@ -373,44 +372,6 @@ class NumpySegmentationExtractor(SegmentationExtractor):
             The dimensions of the image (num_rois, num_rows, num_columns).
         """
         return list(self._roi_masks.field_of_view_shape)
-
-    def get_accepted_list(self) -> list:
-        """Get a list of accepted ROI ids.
-
-        Returns
-        -------
-        accepted_list: list
-            List of accepted ROI ids.
-        """
-        warnings.warn(
-            "get_accepted_list is deprecated and will be removed in May 2026. "
-            "Use get_property('is_accepted', ids) instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if "is_accepted" not in self.get_property_keys():
-            return list(self.get_roi_ids())
-        is_accepted = self.get_property("is_accepted", self.get_roi_ids())
-        return [roi_id for roi_id, accepted in zip(self.get_roi_ids(), is_accepted) if accepted]
-
-    def get_rejected_list(self) -> list:
-        """Get a list of rejected ROI ids.
-
-        Returns
-        -------
-        rejected_list: list
-            List of rejected ROI ids.
-        """
-        warnings.warn(
-            "get_rejected_list is deprecated and will be removed in May 2026. "
-            "Use get_property('is_rejected', ids) instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if "is_rejected" not in self.get_property_keys():
-            return []
-        is_rejected = self.get_property("is_rejected", self.get_roi_ids())
-        return [roi_id for roi_id, rejected in zip(self.get_roi_ids(), is_rejected) if rejected]
 
     @property
     def roi_locations(self):
