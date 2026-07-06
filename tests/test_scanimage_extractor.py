@@ -2043,3 +2043,73 @@ class TestGetOriginalFrameIndices:
         np.testing.assert_array_equal(
             frame_indices, expected_indices, "Frame indices should match manually calculated expected values"
         )
+
+
+class TestScanImageFieldOfViewSlicing:
+    """Test the memory-efficient ``slice_field_of_view`` override on ScanImageImagingExtractor."""
+
+    PLANAR_FILE = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
+    VOLUMETRIC_FILE = (
+        SCANIMAGE_PATH / "volumetric_single_channel_single_file_no_flyback" / "vol_no_flyback_00001_00001.tif"
+    )
+
+    def test_returns_scanimage_extractor_type(self):
+        """The sliced view is a ScanImageImagingExtractor, not the generic wrapper, so format methods remain."""
+        extractor = ScanImageImagingExtractor(file_path=str(self.PLANAR_FILE))
+        sliced = extractor.slice_field_of_view(row_start=10, row_end=40, column_start=5, column_end=25)
+        assert isinstance(sliced, ScanImageImagingExtractor)
+        assert sliced.get_image_shape() == (30, 20)
+        assert sliced.get_num_samples() == extractor.get_num_samples()
+
+    def test_crop_matches_full_then_index(self):
+        """A cropped read equals reading the full series and indexing the same window."""
+        extractor = ScanImageImagingExtractor(file_path=str(self.PLANAR_FILE))
+        full = extractor.get_series()
+        sliced = extractor.slice_field_of_view(row_start=10, row_end=40, column_start=5, column_end=25)
+        assert_array_equal(sliced.get_series(), full[:, 10:40, 5:25])
+
+    def test_composition_is_relative(self):
+        """Slicing an already-sliced extractor narrows the window, with indices relative to the current frame."""
+        extractor = ScanImageImagingExtractor(file_path=str(self.PLANAR_FILE))
+        full = extractor.get_series()
+        once = extractor.slice_field_of_view(row_start=10, row_end=40, column_start=5, column_end=25)
+        twice = once.slice_field_of_view(row_start=5, row_end=15, column_start=2, column_end=12)
+        assert twice.get_image_shape() == (10, 10)
+        assert_array_equal(twice.get_series(), full[:, 15:25, 7:17])
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            dict(row_start=-1, row_end=5),  # negative start
+            dict(row_start=5, row_end=5),  # empty window
+            dict(row_end=10**6),  # out of range
+        ],
+    )
+    def test_invalid_bounds_raise(self, kwargs):
+        """Out-of-range or empty windows raise ValueError."""
+        extractor = ScanImageImagingExtractor(file_path=str(self.PLANAR_FILE))
+        with pytest.raises(ValueError):
+            extractor.slice_field_of_view(**kwargs)
+
+    def test_volumetric_crops_each_plane(self):
+        """For volumetric data the same row/column window is applied to every plane."""
+        extractor = ScanImageImagingExtractor(file_path=str(self.VOLUMETRIC_FILE))
+        assert extractor.is_volumetric
+        full = extractor.get_series()
+        sliced = extractor.slice_field_of_view(row_start=4, row_end=16, column_start=2, column_end=14)
+        assert sliced.is_volumetric
+        assert sliced.get_num_planes() == extractor.get_num_planes()
+        assert sliced.get_volume_shape() == (12, 12, extractor.get_num_planes())
+        assert_array_equal(sliced.get_series(), full[:, 4:16, 2:14, :])
+
+    def test_sliced_view_outlives_owner(self):
+        """A view shares the owner's file handles; dropping the owner must not close them."""
+        import gc
+
+        extractor = ScanImageImagingExtractor(file_path=str(self.PLANAR_FILE))
+        expected = extractor.get_series()[:, 0:20, :]
+        sliced = extractor.slice_field_of_view(row_start=0, row_end=20)
+        del extractor
+        gc.collect()
+        # Would raise if the shared handles had been closed when the owner was collected.
+        assert_array_equal(sliced.get_series(), expected)

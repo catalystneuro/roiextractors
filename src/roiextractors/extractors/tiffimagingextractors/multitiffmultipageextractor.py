@@ -201,15 +201,11 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         self._dtype = first_ifd.dtype
         first_tiff.close()
 
-        # Count IFDs per file by opening each TIFF briefly. Files are closed before
-        # we leave this loop so no handles persist; the counts feed into the mapping
-        # table built below.
-        ifds_per_file = []
-        for file_path in self._file_paths:
-            if not file_path.exists():
-                raise FileNotFoundError(f"TIFF file not found: {file_path}")
-            with self._tifffile.TiffFile(file_path) as tif:
-                ifds_per_file.append(len(tif.pages))
+        ifds_per_file = self._get_ifds_per_file()
+        if len(ifds_per_file) != len(self._file_paths):
+            raise ValueError(
+                f"_get_ifds_per_file() returned {len(ifds_per_file)} entries for {len(self._file_paths)} files."
+            )
         total_ifds = sum(ifds_per_file)
 
         ifds_per_cycle = num_channels * num_planes
@@ -507,6 +503,26 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
     ) -> np.ndarray | None:
         """No native timestamps for native this extractor."""
         return None
+
+    def _get_ifds_per_file(self) -> list[int]:
+        """Return the number of IFDs (pages) in each file in ``self._file_paths``.
+
+        The default implementation opens every file with ``tifffile.TiffFile`` to
+        count its pages. This is linear in the number of files and, on recordings
+        with tens or hundreds of thousands of single-page files (Bruker T-series,
+        large ScanImage runs), it dominates ``__init__``.
+
+        Subclasses with access to a faster source of truth (e.g. a vendor XML
+        that already records pages-per-file, like Bruker) should override this method to skip
+        the per-file opens entirely.
+        """
+        ifds_per_file = []
+        for file_path in self._file_paths:
+            if not file_path.exists():
+                raise FileNotFoundError(f"TIFF file not found: {file_path}")
+            with self._tifffile.TiffFile(file_path) as tif:
+                ifds_per_file.append(len(tif.pages))
+        return ifds_per_file
 
     def _get_channel_names(self) -> list[str]:
         """Return valid channel names for this extractor.

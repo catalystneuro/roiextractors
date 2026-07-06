@@ -50,6 +50,58 @@ def calculate_regular_series_rate(series: ArrayLike, tolerance_decimals: int = 6
     return rate
 
 
+def calculate_segmented_series_rate(
+    series: ArrayLike, tolerance_decimals: int = 6, gap_factor: float = 5.0
+) -> tuple[float | None, int]:
+    """Estimate a within-segment rate for a timeline made of regular segments separated by gaps.
+
+    Some recordings are not uniformly sampled: they are acquired in regularly-sampled segments
+    (e.g. Bruker burst/cycle recordings) separated by large, irregular gaps, so no single rate
+    describes the whole series. This splits the timeline wherever an interval exceeds
+    ``gap_factor`` times the median interval, computes each segment's rate with
+    :func:`calculate_regular_series_rate`, and returns their mean together with the segment count.
+
+    A series with no large gaps yields one segment, so the returned rate is exactly
+    ``calculate_regular_series_rate(series)`` and the count is 1; this makes the function a
+    drop-in superset of the regular case.
+
+    Parameters
+    ----------
+    series : array-like
+        Array of timestamps or time points.
+    tolerance_decimals : int, default: 6
+        Passed through to :func:`calculate_regular_series_rate` for the within-segment check.
+    gap_factor : float, default: 5.0
+        An interval larger than ``gap_factor`` times the median interval starts a new segment.
+
+    Returns
+    -------
+    tuple[float | None, int]
+        The within-segment rate (mean across segments), or None if it cannot be determined,
+        and the number of segments found.
+    """
+    series = np.asarray(series, dtype=float)
+    if series.size < 2:
+        return None, 1
+    intervals = np.diff(series)
+    median_interval = np.median(intervals)
+    if median_interval <= 0:
+        return calculate_regular_series_rate(series, tolerance_decimals=tolerance_decimals), 1
+
+    gap_indices = np.flatnonzero(intervals > gap_factor * median_interval)
+    segment_bounds = np.concatenate(([0], gap_indices + 1, [series.size]))
+    num_segments = len(segment_bounds) - 1
+
+    segment_rates = []
+    for start, stop in zip(segment_bounds[:-1], segment_bounds[1:]):
+        rate = calculate_regular_series_rate(series[start:stop], tolerance_decimals=tolerance_decimals)
+        if rate is not None:
+            segment_rates.append(rate)
+    if not segment_rates:
+        return None, num_segments
+    return float(np.mean(segment_rates)), num_segments
+
+
 def raise_multi_channel_or_depth_not_implemented(extractor_name: str):
     """Raise a NotImplementedError for an extractor that does not support multiple channels or depth (z-axis)."""
     raise NotImplementedError(

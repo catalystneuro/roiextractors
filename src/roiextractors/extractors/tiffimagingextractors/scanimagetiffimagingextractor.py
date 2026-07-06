@@ -6,6 +6,7 @@ ScanImageLegacyImagingExtractor
     Specialized extractor for reading TIFF files produced via ScanImage.
 """
 
+import copy
 import warnings
 from pathlib import Path
 from warnings import warn
@@ -150,6 +151,17 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         self._num_rows, self._num_columns = tiff_reader.pages[0].shape
         self._dtype = tiff_reader.pages[0].dtype
+
+        # Field-of-view crop window into each raw page. Defaults to the whole page; `slice_field_of_view`
+        # narrows it so `get_series` crops each page before storing it (the output is allocated at the
+        # cropped size, so the full page is never assembled in memory). The invariant is that `_num_rows`
+        # and `_num_columns` always equal the window's height and width.
+        self._row_slice = slice(0, self._num_rows)
+        self._column_slice = slice(0, self._num_columns)
+        # Set on the copies returned by `slice_field_of_view` to the root extractor that owns the
+        # (shared) file handles, so that a derived view keeps the owner alive and does not close the
+        # handles itself. `None` marks the root owner.
+        self._fov_root = None
 
         # Check if stack manager is enabled and if there are multiple slices
         # This criteria was confirmed by Lawrence Niu, a developer of ScanImage
@@ -600,13 +612,85 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
                 tiff_reader = self._tiff_readers[file_index]
                 image_file_directory = tiff_reader.pages[ifd_index]
-                samples[return_index, :, :, depth_position] = image_file_directory.asarray()
+                # Crop the field-of-view window out of each page before storing. With the default
+                # full-page window this is a no-op view; a narrowed window keeps only the wanted rows
+                # and columns, so the discarded region is never written into `samples`.
+                samples[return_index, :, :, depth_position] = image_file_directory.asarray()[
+                    self._row_slice, self._column_slice
+                ]
 
         # Squeeze the depth dimension if not volumetric
         if not self.is_volumetric:
             samples = samples.squeeze(axis=3)
 
         return samples
+
+    def slice_field_of_view(
+        self,
+        row_start: int | None = None,
+        row_end: int | None = None,
+        column_start: int | None = None,
+        column_end: int | None = None,
+    ) -> "ScanImageImagingExtractor":
+        """Return a spatially cropped view of this extractor as a new ScanImageImagingExtractor.
+
+        Overrides :meth:`ImagingExtractor.slice_field_of_view` with a memory-efficient implementation.
+        The generic base wrapper calls ``get_series`` over the full range and materializes the whole
+        uncropped page before discarding the unwanted rows. ScanImage reads page by page, so it can
+        instead carry a crop window and slice each page as it is read: the returned extractor allocates
+        its output at the cropped size and never assembles the full page in memory.
+
+        The crop composes: slicing an already-sliced extractor narrows the existing window, with the
+        given indices interpreted relative to the current (already-cropped) frame.
+
+        Parameters
+        ----------
+        row_start : int, optional
+            Starting row index (inclusive). Default is 0.
+        row_end : int, optional
+            Ending row index (exclusive). Default is the full current height.
+        column_start : int, optional
+            Starting column index (inclusive). Default is 0.
+        column_end : int, optional
+            Ending column index (exclusive). Default is the full current width.
+
+        Returns
+        -------
+        ScanImageImagingExtractor
+            A new extractor exposing only the requested field of view. It shares this extractor's open
+            file handles and frame-to-IFD mapping (no file is reopened and no metadata is re-parsed),
+            and holds a reference to this extractor so the shared handles stay open for its lifetime.
+        """
+        row_start = 0 if row_start is None else row_start
+        row_end = self._num_rows if row_end is None else row_end
+        column_start = 0 if column_start is None else column_start
+        column_end = self._num_columns if column_end is None else column_end
+
+        if not (0 <= row_start < row_end <= self._num_rows):
+            raise ValueError(
+                f"Invalid row range: require 0 <= row_start ({row_start}) < row_end ({row_end}) "
+                f"<= current height ({self._num_rows})."
+            )
+        if not (0 <= column_start < column_end <= self._num_columns):
+            raise ValueError(
+                f"Invalid column range: require 0 <= column_start ({column_start}) < column_end "
+                f"({column_end}) <= current width ({self._num_columns})."
+            )
+
+        # Translate the requested range (relative to the current window) into absolute page coordinates,
+        # so repeated slicing composes correctly.
+        absolute_row_start = self._row_slice.start + row_start
+        absolute_column_start = self._column_slice.start + column_start
+
+        sliced = copy.copy(self)
+        sliced._row_slice = slice(absolute_row_start, absolute_row_start + (row_end - row_start))
+        sliced._column_slice = slice(absolute_column_start, absolute_column_start + (column_end - column_start))
+        sliced._num_rows = row_end - row_start
+        sliced._num_columns = column_end - column_start
+        # Keep the handle owner alive and mark this object as a borrower so __del__ does not close the
+        # shared file handles. The owner is always the originally constructed extractor.
+        sliced._fov_root = self._fov_root if self._fov_root is not None else self
+        return sliced
 
     def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
@@ -992,6 +1076,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
     def __del__(self):
         """Close file handles when the extractor is garbage collected."""
+        # Field-of-view views returned by `slice_field_of_view` share the owner's handles and must not
+        # close them; only the owning extractor (`_fov_root is None`) closes.
+        if getattr(self, "_fov_root", None) is not None:
+            return
         if hasattr(self, "_tiff_readers"):
             for handle in self._tiff_readers:
                 try:

@@ -26,6 +26,7 @@ from .multitiffmultipageextractor import MultiTIFFMultiPageExtractor
 from ...extraction_tools import (
     PathType,
     calculate_regular_series_rate,
+    calculate_segmented_series_rate,
     get_package,
 )
 from ...imagingextractor import ImagingExtractor
@@ -190,8 +191,12 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         # Pre-set _num_planes so get_native_timestamps() can be called before init.
         # MultiTIFFMultiPageExtractor.__init__() will set it again to the same value.
         self._num_planes = num_planes
+        # Derive the rate from the true per-frame timeline. Burst/cycle recordings (e.g. Brightness
+        # Over Time) are not uniformly sampled: their timeline is regular within each burst but has
+        # large gaps between bursts, so calculate_segmented_series_rate splits at those gaps and
+        # reports the within-burst rate. Uniformly-sampled recordings come back as a single segment.
         timestamps = self.get_native_timestamps()
-        sampling_frequency = calculate_regular_series_rate(timestamps)
+        sampling_frequency, _ = calculate_segmented_series_rate(timestamps)
         if sampling_frequency is None:
             raise ValueError("Could not determine sampling frequency from Bruker configuration XML.")
 
@@ -299,20 +304,70 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         }
         return [channel_number_to_name[number] for number in sorted(channel_number_to_name)]
 
+    def _get_ifds_per_file(self) -> list[int]:
+        """Return per-file IFD counts derived from the Bruker XML.
+
+        The base-class default opens every TIFF file at construction to count its pages.
+        On formats like Bruker (one single-page TIFF per frame, tens to hundreds of
+        thousands of files per recording) this dominates init and can take minutes.
+
+        This override reads counts directly from the Bruker configuration XML: each
+        ``<File>`` element has a ``page`` attribute giving the IFD index (1-based)
+        within its multi-page TIFF, and the count for a file is the maximum ``page``
+        value across the elements referencing that filename. No per-file TIFF opens.
+        """
+        page_count_by_filename: dict[str, int] = {}
+        for file_elem in self._xml_root.iter("File"):
+            filename = file_elem.attrib.get("filename")
+            if filename is None:
+                continue
+            page = int(file_elem.attrib.get("page", "1"))
+            current = page_count_by_filename.get(filename, 0)
+            if page > current:
+                page_count_by_filename[filename] = page
+
+        ifds_per_file: list[int] = []
+        for path in self._file_paths:
+            count = page_count_by_filename.get(path.name)
+            if count is None:
+                raise ValueError(
+                    f"Bruker XML has no <File> entry referencing '{path.name}'. "
+                    "Cannot determine IFD count without opening the file."
+                )
+            ifds_per_file.append(count)
+        return ifds_per_file
+
     def get_native_timestamps(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """Extract per-sample timestamps from Frame relativeTime attributes in the Bruker XML.
 
         For volumetric data, frames alternate between planes; every num_planes-th timestamp
         corresponds to one volume (sample).
         """
-        frame_elements = self._xml_root.xpath(".//Frame")
+        sequences = self._xml_root.findall("Sequence")
+        # `relativeTime` resets to 0 at the start of each <Sequence> only for burst/cycle
+        # recordings (Brightness Over Time, multi-cycle timed series). Volumetric recordings
+        # keep a continuous `relativeTime` across their per-volume sequences, and single-sequence
+        # recordings have nothing to offset. Detect the reset case and, only then, offset each
+        # burst by its real start (from `absoluteTime`) to recover a monotonic global timeline.
+        resets = len(sequences) > 1 and float(sequences[1].findall("Frame")[0].attrib["relativeTime"]) == 0.0
         try:
-            all_relative_times = np.array([float(frame.attrib["relativeTime"]) for frame in frame_elements])
+            if resets:
+                seq0_start = float(sequences[0].findall("Frame")[0].attrib["absoluteTime"])
+                all_times = []
+                for sequence in sequences:
+                    frames = sequence.findall("Frame")
+                    offset = float(frames[0].attrib["absoluteTime"]) - seq0_start
+                    all_times.extend(float(frame.attrib["relativeTime"]) + offset for frame in frames)
+                all_times = np.array(all_times)
+            else:
+                all_times = np.array(
+                    [float(frame.attrib["relativeTime"]) for frame in self._xml_root.xpath(".//Frame")]
+                )
         except KeyError:
-            raise ValueError("One or more Frame elements are missing the 'relativeTime' attribute.")
-        if len(all_relative_times) == 0:
+            raise ValueError("One or more Frame elements are missing the 'relativeTime'/'absoluteTime' attribute.")
+        if len(all_times) == 0:
             raise ValueError("No Frame elements found in the Bruker configuration XML.")
-        timestamps = all_relative_times[:: self._num_planes]
+        timestamps = all_times[:: self._num_planes]
         start_sample = start_sample or 0
         end_sample = end_sample or len(timestamps)
         return timestamps[start_sample:end_sample]
