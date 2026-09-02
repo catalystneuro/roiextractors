@@ -3,6 +3,7 @@
 ### Features
 
 ### Fixes
+* Use zarr spellings that are valid in both zarr-python v2 and v3 so that `roiextractors` can be imported and the Minian data read when zarr 3 is installed. [PR #608](https://github.com/catalystneuro/roiextractors/pull/608)
 
 ### Deprecations And Removals
 
