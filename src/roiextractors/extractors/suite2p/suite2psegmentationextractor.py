@@ -6,7 +6,6 @@ Suite2pSegmentationExtractor
     A segmentation extractor for Suite2p.
 """
 
-import warnings
 from pathlib import Path
 from warnings import warn
 
@@ -255,42 +254,6 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             Number of samples in the recording.
         """
         return self._num_frames
-
-    def get_accepted_list(self) -> list:
-        """Get a list of accepted ROI ids.
-
-        Returns
-        -------
-        accepted_list: list
-            List of accepted ROI ids.
-        """
-        warnings.warn(
-            "get_accepted_list is deprecated and will be removed in May 2026. "
-            "Use get_property('iscell', ids) instead to access Suite2p's native classification.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if self.iscell is None:
-            return list(self.get_roi_ids())
-        return [roi_id for roi_id, is_cell in zip(self.get_roi_ids(), self.iscell[:, 0]) if is_cell]
-
-    def get_rejected_list(self) -> list:
-        """Get a list of rejected ROI ids.
-
-        Returns
-        -------
-        rejected_list: list
-            List of rejected ROI ids.
-        """
-        warnings.warn(
-            "get_rejected_list is deprecated and will be removed in May 2026. "
-            "Use get_property('iscell', ids) instead to access Suite2p's native classification.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if self.iscell is None:
-            return []
-        return [roi_id for roi_id, is_cell in zip(self.get_roi_ids(), self.iscell[:, 0]) if not is_cell]
 
     def _correlation_image_read(self) -> np.ndarray | None:
         """Read correlation image from ops (settings) dict.

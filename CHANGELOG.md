@@ -1,4 +1,14 @@
-# v0.8.1 (Upcoming)
+# v0.9.1 (Upcoming)
+
+### Features
+
+### Fixes
+
+### Deprecations And Removals
+
+### Improvements
+
+# v0.9.0 (June 30th, 2026)
 
 ### Features
 * `ScanImageImagingExtractor` now overrides `slice_field_of_view` with a memory-efficient implementation that crops each page as it is read, so the full uncropped page is never assembled in memory. The returned object is a `ScanImageImagingExtractor` (format methods stay available), shares the original's file handles and frame-to-IFD mapping without reopening files, and composes with repeated slicing and `slice_samples`. [PR #599](https://github.com/catalystneuro/roiextractors/pull/599)
@@ -24,6 +34,8 @@
 * `OMETiffImagingExtractor` now treats `TimeIncrement="0"` on the OME `Pixels` element as "no value" rather than computing a divide-by-zero sampling frequency. [PR #579](https://github.com/catalystneuro/roiextractors/pull/579)
 
 ### Deprecations And Removals
+* Removed deprecated `get_accepted_list` and `get_rejected_list` from segmentation extractors. Use `get_property()` instead to access format-specific acceptance data. `ExtractSegmentationExtractor` retains its own implementations because they were never deprecated and compute the lists dynamically from the spatial masks. [PR #581](https://github.com/catalystneuro/roiextractors/pull/581)
+* Removed the deprecated `make_nwb_metadata` method from `NwbImagingExtractor`. [PR #581](https://github.com/catalystneuro/roiextractors/pull/581)
 * Renamed `VolumetricImagingExtractor` to `PlanarStackImagingExtractor` (and `DepthSliceVolumetricImagingExtractor` to `DepthSlicePlanarStackImagingExtractor`). The old name implied this was the canonical base class for volumetric imaging, but it is actually a composition utility that stacks per-plane extractors. Native volumetric extractors should inherit from `ImagingExtractor` directly with `is_volumetric = True`. The old names remain as deprecated subclasses that emit a `FutureWarning` and will be removed in or after November 2026. [PR #590](https://github.com/catalystneuro/roiextractors/pull/590)
 * Removed `get_channel_names` from all extractors where it was deprecated for May 2026: `SampleSlicedImagingExtractor`, `_FieldOfViewSlicedImagingExtractor`, `MultiImagingExtractor`, `VolumetricImagingExtractor`, `SegmentationExtractor` (base and slice), and the concrete extractors `Hdf5ImagingExtractor`, `NumpyImagingExtractor`, `SbxImagingExtractor`, `NwbImagingExtractor`, `InscopixImagingExtractor`, `FemtonicsImagingExtractor`, `MiniscopeImagingExtractor`, `ThorTiffImagingExtractor`, `MultiTIFFMultiPageExtractor`, `ScanImageImagingExtractor` (and the legacy `ScanImageTiffImagingExtractor`), `MicroManagerTiffImagingExtractor` (and its private base), and `BrukerTiffImagingExtractor` (and its private base). The October 2026 deprecations on `TiffImagingExtractor` and `MemmapImagingExtractor` remain in place. [PR #580](https://github.com/catalystneuro/roiextractors/pull/580)
 * Deprecated `BrukerTiffSinglePlaneImagingExtractor` and `BrukerTiffMultiPlaneImagingExtractor` (will be removed in or after October 2026). Use `BrukerTiffImagingExtractor` instead. [PR #567](https://github.com/catalystneuro/roiextractors/pull/567)
