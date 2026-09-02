@@ -9,7 +9,6 @@ MicroManagerTiffImagingExtractor
 import json
 import logging
 import re
-import warnings
 from collections import Counter
 from itertools import islice
 from pathlib import Path
@@ -175,15 +174,6 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
     def get_num_samples(self) -> int:
         return self._num_samples
 
-    def get_channel_names(self) -> list:
-        """Return the channel names (deprecated)."""
-        warnings.warn(
-            "get_channel_names is deprecated and will be removed in May 2026 or after.",
-            category=FutureWarning,
-            stacklevel=2,
-        )
-        return self._channel_names
-
     def get_dtype(self) -> np.dtype:
         return self._dtype
 
@@ -236,15 +226,6 @@ class _MicroManagerTiffImagingExtractor(ImagingExtractor):
 
     def get_sampling_frequency(self):
         raise NotImplementedError(self.SAMPLING_FREQ_ERROR.format(self.extractor_name))
-
-    def get_channel_names(self) -> list:
-        """Return the channel names (deprecated)."""
-        warnings.warn(
-            "get_channel_names is deprecated and will be removed in May 2026 or after.",
-            category=FutureWarning,
-            stacklevel=2,
-        )
-        raise NotImplementedError(self.CHANNEL_NAMES_ERROR.format(self.extractor_name))
 
     def get_dtype(self):
         return self._dtype

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "roiextractors"
-version = "0.8.1"
+version = "0.9.1"
 description = "Python module for extracting optical physiology ROIs and traces for various file types and formats"
 readme = "README.md"
 license = { file = "LICENSE.txt" }
@@ -111,12 +111,18 @@ known-first-party = ["roiextractors"]
 [tool.codespell]
 skip = '.git*,*.pdf,*.css,*.svg'
 check-hidden = true
-ignore-words-list = 'assertin,tye'
+# assertin: unittest method name
+# tye: common variable name in codebase
+# thet: OME-XML attribute Plane/@TheT (timepoint index)
+ignore-words-list = 'assertin,tye,thet'
 
 [dependency-groups]
 test = [
     "pytest",
     "pytest-cov",
+    # Decoding an LZW compressed TIFF needs imagecodecs, which tifffile does not install by default.
+    # Kept out of the `full` extra so users are not made to carry it; see MultiTIFFMultiPageExtractor.
+    "tifffile[codecs]",
     "parameterized==0.8.1",
     "spikeinterface>=0.100.7",
     "pytest-xdist",

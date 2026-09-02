@@ -36,6 +36,7 @@ MultiTIFFMultiPageExtractor
 """
 
 from .brukertiffimagingextractor import (
+    BrukerTiffImagingExtractor,
     BrukerTiffMultiPlaneImagingExtractor,
     BrukerTiffSinglePlaneImagingExtractor,
 )
@@ -46,4 +47,5 @@ from .scanimagetiffimagingextractor import (
 )
 from .thortiffimagingextractor import ThorTiffImagingExtractor
 from .multitiffmultipageextractor import MultiTIFFMultiPageExtractor
+from .ometiffimagingextractor import OMETiffImagingExtractor
 from .tiffimagingextractor import TiffImagingExtractor

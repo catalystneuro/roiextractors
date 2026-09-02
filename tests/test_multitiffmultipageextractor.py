@@ -1,5 +1,7 @@
 """Tests for the MultiTIFFMultiPageExtractor organized by test cases."""
 
+import re
+
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
@@ -109,7 +111,6 @@ class TestSingleChannelPlanar:
         assert extractor.get_num_planes() == self.num_planes
         assert extractor.get_dtype() == np.uint16
         assert extractor.is_volumetric == False
-        assert extractor.get_channel_names() == [str(i) for i in range(self.num_channels)]
         assert extractor.get_native_timestamps() is None
 
     def test_get_series(self, tiff_file_paths, test_data_array):
@@ -168,7 +169,6 @@ class TestSingleChannelVolumetric:
         assert extractor.get_num_planes() == self.num_planes
         assert extractor.get_dtype() == np.uint16
         assert extractor.is_volumetric == True
-        assert extractor.get_channel_names() == [str(i) for i in range(self.num_channels)]
         assert extractor.get_native_timestamps() is None
 
     def test_get_series(self, tiff_file_paths, test_data_array):
@@ -249,7 +249,6 @@ class TestMultiChannelPlanar:
         assert extractor.get_num_planes() == self.num_planes
         assert extractor.get_dtype() == np.uint16
         assert extractor.is_volumetric == False
-        assert extractor.get_channel_names() == [str(i) for i in range(self.num_channels)]
         assert extractor.get_native_timestamps() is None
 
     def test_get_series_channel_0(self, tiff_file_paths, test_data_array):
@@ -327,7 +326,6 @@ class TestMultiChannelVolumetric:
         assert extractor.get_num_planes() == self.num_planes
         assert extractor.get_dtype() == np.uint16
         assert extractor.is_volumetric == True
-        assert extractor.get_channel_names() == [str(i) for i in range(self.num_channels)]
         assert extractor.get_native_timestamps() is None
 
     def test_get_series_channel_0(self, tiff_file_paths, test_data_array):
@@ -532,8 +530,8 @@ def test_channel_name_validation_error_handling(tmp_path):
             channel_name=None,
         )
 
-    # Test that invalid channel_name format raises ValueError
-    with pytest.raises(ValueError, match="Invalid channel name format.*Expected numeric format"):
+    # Test that invalid channel_name raises ValueError with available names
+    with pytest.raises(ValueError, match="Channel 'invalid_name' not found.*Available channels"):
         MultiTIFFMultiPageExtractor(
             file_paths=[empty_file_path],
             sampling_frequency=30.0,
@@ -543,7 +541,7 @@ def test_channel_name_validation_error_handling(tmp_path):
         )
 
     # Test that channel_name out of range raises ValueError
-    with pytest.raises(ValueError, match="channel_index 2 is out of range \\(0 to 1\\)"):
+    with pytest.raises(ValueError, match="Channel '2' not found.*Available channels"):
         MultiTIFFMultiPageExtractor(
             file_paths=[empty_file_path],
             sampling_frequency=30.0,
@@ -728,3 +726,71 @@ def test_comparison_with_scanimage_volumetric_multi_channel():
         atol=1e-8,
         err_msg="Complete series do not match between ScanImage and MultiTIFF extractors",
     )
+
+
+def test_frame_to_ifd_table_on_long_planar_t_series():
+    """Regression: ``_create_frame_to_ifd_table`` on a long planar T-series.
+
+    Models a long single-plane two-photon T-series, single channel, ~470k
+    single-page .ome.tif frames (one .ome.tif per timepoint, no Z-stack).
+    A recording at this scale failed at construction with ``OverflowError``
+    before the structured-array index fields in the mapping table were
+    widened from ``uint16`` to ``uint32``. ~4 hours of acquisition at a
+    ~30 Hz frame rate.
+
+    The test calls ``_create_frame_to_ifd_table`` directly as a
+    ``@staticmethod`` rather than constructing a full extractor over real
+    TIFF files. The reasons:
+
+    - A fixture with hundreds of thousands of files is impractical to host
+      alongside the rest of the gin test data, and the file-count alone
+      strains the test infrastructure regardless of per-file size.
+    - Mocking ``tifffile.TiffFile`` to fake N file handles is brittle and
+      tests the mock, not the code path that actually overflowed.
+    - The bug was entirely contained in ``_create_frame_to_ifd_table``: a
+      structured-array dtype declaration plus a few matching ``np.full`` /
+      ``np.arange`` calls. Calling the function directly with a realistic
+      ``ifds_per_file`` list exercises exactly the code that broke, with no
+      file I/O, no mocking, and a wall-clock cost of milliseconds.
+    """
+    num_timepoints = 470_904
+    ifds_per_file = [1] * num_timepoints
+
+    table = MultiTIFFMultiPageExtractor._create_frame_to_ifd_table(
+        dimension_order="CZT",
+        num_channels=1,
+        num_planes=1,
+        ifds_per_file=ifds_per_file,
+    )
+
+    assert table.shape == (num_timepoints,)
+    assert table["file_index"].max() == num_timepoints - 1
+    assert table["time_index"].max() == num_timepoints - 1
+
+
+def test_missing_codec_raises_at_construction(tmp_path, monkeypatch):
+    """A TIFF whose compression tifffile cannot decode fails at construction, not mid-read."""
+    import tifffile
+
+    file_path = tmp_path / "lzw_compressed.tif"
+    with tifffile.TiffWriter(file_path) as writer:
+        writer.write(np.zeros((3, 4), dtype=np.uint16), compression="LZW")
+
+    # To test that in an environment where imagecodecs is not available the read fails,
+    # we monkeypatch tifffile.TIFF.DECOMPRESSORS to hold only the entry for uncompressed data
+    no_compression = tifffile.COMPRESSION.NONE
+    no_compression_decoder = tifffile.TIFF.DECOMPRESSORS[no_compression]
+    decompressors = {no_compression: no_compression_decoder}
+    monkeypatch.setattr(tifffile.TIFF, "DECOMPRESSORS", decompressors)
+    # After this, tifffile has no decompressor for LZW and loading the compressed
+    # TIFF fails with the expected error
+
+    expected_message = (
+        "This TIFF is LZW compressed and decoding it requires the 'imagecodecs' package, "
+        "which tifffile does not install by default. The file is not corrupt, this is a missing optional "
+        "dependency. Install it with:\n\n"
+        '    pip install "tifffile[codecs]"\n\n'
+        f"File: {file_path}"
+    )
+    with pytest.raises(ValueError, match=re.escape(expected_message)):
+        MultiTIFFMultiPageExtractor(file_paths=[file_path], sampling_frequency=30.0)

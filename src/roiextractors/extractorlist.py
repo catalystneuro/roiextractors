@@ -18,11 +18,13 @@ from .extractors.tiffimagingextractors import (
     TiffImagingExtractor,
     ScanImageLegacyImagingExtractor,
     ScanImageImagingExtractor,
+    BrukerTiffImagingExtractor,
     BrukerTiffMultiPlaneImagingExtractor,
     BrukerTiffSinglePlaneImagingExtractor,
     MicroManagerTiffImagingExtractor,
     ThorTiffImagingExtractor,
     MultiTIFFMultiPageExtractor,
+    OMETiffImagingExtractor,
 )
 from .extractors.sbximagingextractor import SbxImagingExtractor
 from .extractors.inscopixextractors import InscopixImagingExtractor
@@ -33,6 +35,7 @@ from .extractors.minian import MinianSegmentationExtractor
 from .extractors.miniscopeimagingextractor import MiniscopeImagingExtractor, MiniscopeMultiRecordingImagingExtractor
 from .multisegmentationextractor import MultiSegmentationExtractor
 from .multiimagingextractor import MultiImagingExtractor
+from .planarstackimagingextractor import PlanarStackImagingExtractor
 from .volumetricimagingextractor import VolumetricImagingExtractor
 
 imaging_extractor_full_list = [
@@ -42,18 +45,20 @@ imaging_extractor_full_list = [
     TiffImagingExtractor,
     ScanImageLegacyImagingExtractor,
     ScanImageImagingExtractor,
+    BrukerTiffImagingExtractor,
     BrukerTiffMultiPlaneImagingExtractor,
     BrukerTiffSinglePlaneImagingExtractor,
     MicroManagerTiffImagingExtractor,
     ThorTiffImagingExtractor,
     MultiTIFFMultiPageExtractor,
+    OMETiffImagingExtractor,
     MiniscopeImagingExtractor,
     MiniscopeMultiRecordingImagingExtractor,
     NwbImagingExtractor,
     SbxImagingExtractor,
     NumpyMemmapImagingExtractor,
     MemmapImagingExtractor,
-    VolumetricImagingExtractor,
+    PlanarStackImagingExtractor,
     InscopixImagingExtractor,
 ]
 

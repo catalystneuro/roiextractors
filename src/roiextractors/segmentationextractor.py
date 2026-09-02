@@ -215,48 +215,6 @@ class SegmentationExtractor(ABC):
         self._roi_masks: _ROIMasks | None = None
         self._properties: dict[str, _PropertyInfo] = {}
 
-    def get_accepted_list(self) -> list:
-        """Get a list of accepted ROI ids.
-
-        .. deprecated::
-            `get_accepted_list` is deprecated and will be removed in May 2026.
-            Use `get_property()` instead to access format-specific acceptance data.
-
-        Returns
-        -------
-        accepted_list: list
-            List of accepted ROI ids.
-        """
-        warnings.warn(
-            "get_accepted_list is deprecated and will be removed in May 2026. "
-            "Use get_property() instead to access format-specific acceptance data.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        # Default: all ROIs accepted
-        return list(self.get_roi_ids())
-
-    def get_rejected_list(self) -> list:
-        """Get a list of rejected ROI ids.
-
-        .. deprecated::
-            `get_rejected_list` is deprecated and will be removed in May 2026.
-            Use `get_property()` instead to access format-specific acceptance data.
-
-        Returns
-        -------
-        rejected_list: list
-            List of rejected ROI ids.
-        """
-        warnings.warn(
-            "get_rejected_list is deprecated and will be removed in May 2026. "
-            "Use get_property() instead to access format-specific acceptance data.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        # Default: no ROIs rejected
-        return []
-
     @abstractmethod
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
@@ -729,21 +687,6 @@ class SegmentationExtractor(ABC):
 
         return 0
 
-    def get_channel_names(self) -> list[str]:
-        """Get names of channels in the pipeline.
-
-        Returns
-        -------
-        _channel_names: list
-            names of channels (str)
-        """
-        warnings.warn(
-            "get_channel_names is deprecated and will be removed in May 2026 or after.",
-            category=FutureWarning,
-            stacklevel=2,
-        )
-        return self._channel_names
-
     def get_num_channels(self) -> int:
         """Get number of channels in the pipeline.
 
@@ -1090,14 +1033,6 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
 
     def get_sampling_frequency(self) -> float:
         return self._parent_segmentation.get_sampling_frequency()
-
-    def get_channel_names(self) -> list[str]:
-        warnings.warn(
-            "get_channel_names is deprecated and will be removed in May 2026 or after.",
-            category=FutureWarning,
-            stacklevel=2,
-        )
-        return self._parent_segmentation.get_channel_names()
 
     def get_num_channels(self) -> int:
         return self._parent_segmentation.get_num_channels()

@@ -2,7 +2,6 @@
 
 import platform
 import sys
-import warnings
 from datetime import datetime
 from typing import Any
 
@@ -61,16 +60,6 @@ class InscopixImagingExtractor(ImagingExtractor):
 
     def get_sampling_frequency(self) -> float:
         return 1 / self.movie.timing.period.secs_float
-
-    def get_channel_names(self) -> list[str]:
-        """Return the channel names (deprecated)."""
-        warnings.warn(
-            "get_channel_names is deprecated and will be removed in May 2026 or after.",
-            category=FutureWarning,
-            stacklevel=2,
-        )
-        warnings.warn("isx only supports single channel videos.")
-        return ["channel_0"]
 
     def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         start_sample = start_sample or 0

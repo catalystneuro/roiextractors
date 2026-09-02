@@ -467,8 +467,6 @@ def check_segmentations_equal(
 
     check_segmentations_images(segmentation_extractor1, segmentation_extractor2)
 
-    assert_array_equal(segmentation_extractor1.get_accepted_list(), segmentation_extractor2.get_accepted_list())
-    assert_array_equal(segmentation_extractor1.get_rejected_list(), segmentation_extractor2.get_rejected_list())
     assert_array_equal(segmentation_extractor1.get_roi_ids(), segmentation_extractor2.get_roi_ids())
     assert_array_equal(segmentation_extractor1.get_traces(), segmentation_extractor2.get_traces())
 
@@ -502,14 +500,7 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
     """Check that the return types of the segmentation extractor are correct."""
     assert isinstance(seg.get_num_rois(), int)
     assert isinstance(seg.get_num_samples(), int)
-    assert isinstance(seg.get_num_channels(), int)
     assert isinstance(seg.get_sampling_frequency(), (NoneType, floattype))
-    _assert_iterable_complete(
-        seg.get_channel_names(),
-        dtypes=list,
-        element_dtypes=str,
-        shape_max=(seg.get_num_channels(),),
-    )
     _assert_iterable_complete(seg.get_image_size(), dtypes=Iterable, element_dtypes=inttype, shape=(2,))
     _assert_iterable_complete(
         seg.get_roi_image_masks(roi_ids=seg.get_roi_ids()[:1]),
@@ -536,16 +527,6 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
             element_dtypes=floattype,
             shape_max=(*seg.get_image_size(),),
         )
-    _assert_iterable_complete(
-        seg.get_accepted_list(),
-        dtypes=(list, NoneType),
-        shape_max=(seg.get_num_rois(),),
-    )
-    _assert_iterable_complete(
-        seg.get_rejected_list(),
-        dtypes=(list, NoneType),
-        shape_max=(seg.get_num_rois(),),
-    )
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message="get_roi_locations", category=FutureWarning)
         _assert_iterable_complete(
@@ -587,12 +568,6 @@ def check_imaging_return_types(img_ex: ImagingExtractor):
     """Check that the return types of the imaging extractor are correct."""
     assert isinstance(img_ex.get_num_samples(), inttype)
     assert isinstance(img_ex.get_sampling_frequency(), floattype)
-    _assert_iterable_complete(
-        iterable=img_ex.get_channel_names(),
-        dtypes=(list, NoneType),
-        element_dtypes=str,
-        shape_max=(1,),
-    )
     _assert_iterable_complete(iterable=img_ex.get_image_size(), dtypes=Iterable, element_dtypes=inttype, shape=(2,))
 
     # This needs a method for getting frame shape not image size. It only works for n_channel==1

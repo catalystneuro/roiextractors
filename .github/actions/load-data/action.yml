@@ -13,28 +13,31 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Get ophys_testing_data current head hash
+    - name: Install and configure AWS CLI
+      shell: bash
+      run: |
+        pip install awscli
+        aws configure set aws_access_key_id "${{ inputs.aws-access-key-id }}"
+        aws configure set aws_secret_access_key "${{ inputs.aws-secret-access-key }}"
+
+    - name: Compute cache key from S3 listing
       id: ophys
       shell: bash
       run: |
-        HASH=$(git ls-remote https://gin.g-node.org/CatalystNeuro/ophys_testing_data.git HEAD | cut -f1)
-        echo "HASH_OPHYS_DATASET=$HASH" >> $GITHUB_OUTPUT
+        # Hash the listing of every object under the dataset prefix on S3.
+        # Any file added, removed, or re-uploaded changes the listing and
+        # therefore the cache key, so CI picks up data updates automatically
+        # without contacting gin.
+        LIST_HASH=$(aws s3 ls --recursive "s3://${{ inputs.s3-gin-bucket }}//ophys_testing_data/" | sha256sum | cut -d' ' -f1)
+        echo "DATASET_VERSION=$LIST_HASH" >> $GITHUB_OUTPUT
 
     - name: Cache ophys dataset
       uses: actions/cache@v4
       id: cache-ophys-datasets
       with:
         path: ./ophys_testing_data
-        key: ophys-datasets-${{ steps.ophys.outputs.HASH_OPHYS_DATASET }}
+        key: ophys-datasets-${{ steps.ophys.outputs.DATASET_VERSION }}
         enableCrossOsArchive: true
-
-    - if: ${{ steps.cache-ophys-datasets.outputs.cache-hit != 'true' }}
-      name: Install and configure AWS CLI
-      shell: bash
-      run: |
-        pip install awscli
-        aws configure set aws_access_key_id "${{ inputs.aws-access-key-id }}"
-        aws configure set aws_secret_access_key "${{ inputs.aws-secret-access-key }}"
 
     - if: ${{ steps.cache-ophys-datasets.outputs.cache-hit != 'true' }}
       name: Download ophys dataset from S3
