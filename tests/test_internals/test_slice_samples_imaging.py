@@ -67,3 +67,36 @@ def test_has_time_vector_inherits_from_parent():
     sample_sliced_imaging_with_times = imaging_extractor.slice_samples(start_sample=2, end_sample=7)
     assert sample_sliced_imaging_with_times.has_time_vector() == imaging_extractor.has_time_vector()
     assert sample_sliced_imaging_with_times.has_time_vector()
+
+
+def test_get_series_default_start_default_end():
+    """Both args default. Regression for #585: must return only the slice's range."""
+    imaging = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)
+    sliced = imaging.slice_samples(start_sample=2, end_sample=6)
+
+    series = sliced.get_series()
+    assert series.shape == (4, 5, 4)
+    assert_array_equal(series, imaging.get_series()[2:6])
+
+    # Default and explicit-equivalent paths agree.
+    assert_array_equal(sliced.get_series(), sliced.get_series(start_sample=0, end_sample=4))
+
+
+def test_get_series_explicit_start_default_end():
+    """Explicit start, default end. Upper bound must clamp to the slice's own end."""
+    imaging = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)
+    sliced = imaging.slice_samples(start_sample=2, end_sample=6)
+
+    series = sliced.get_series(start_sample=1)
+    assert series.shape == (3, 5, 4)
+    assert_array_equal(series, imaging.get_series()[3:6])
+
+
+def test_get_series_default_start_explicit_end():
+    """Default start, explicit end. Lower bound must respect the slice's own start."""
+    imaging = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)
+    sliced = imaging.slice_samples(start_sample=2, end_sample=6)
+
+    series = sliced.get_series(end_sample=3)
+    assert series.shape == (3, 5, 4)
+    assert_array_equal(series, imaging.get_series()[2:5])
