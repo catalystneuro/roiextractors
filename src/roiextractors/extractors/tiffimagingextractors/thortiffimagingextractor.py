@@ -56,11 +56,7 @@ class ThorTiffImagingExtractor(OMETiffImagingExtractor):
         # Build channel names from Wavelengths. ThorImage uses these as the user-facing
         # channel identifiers (e.g. "ChanA", "ChanB"); they're stored before super().__init__()
         # because the base class calls self._get_channel_names() during init for validation.
-        self._thor_channel_names = [
-            wavelength.get("name")
-            for wavelength in self._experiment_xml_root.findall("Wavelengths/Wavelength")
-            if wavelength.get("name") is not None
-        ]
+        self._thor_channel_names = _get_channel_names_from_experiment_xml(self._experiment_xml_root)
 
         super().__init__(
             file_path=file_path,
@@ -76,6 +72,33 @@ class ThorTiffImagingExtractor(OMETiffImagingExtractor):
             return self._thor_channel_names
         return super()._get_channel_names()
 
+    @staticmethod
+    def get_available_channel_names(file_path: PathType) -> list[str]:
+        """Return the available channel names without constructing an extractor.
+
+        The names come from ``Experiment.xml`` rather than from the OME-XML the base class reads,
+        because ThorImageLS OME-XML carries no ``Channel/@Name`` attributes and the base class
+        falls back to numeric stand-ins ("0", "1") that the constructor does not accept.
+
+        Parameters
+        ----------
+        file_path : PathType
+            Path to one of the TIFF files in the dataset folder.
+
+        Returns
+        -------
+        list[str]
+            The channel names as ThorImage writes them, e.g. ``["ChanA", "ChanB"]``.
+        """
+        experiment_xml_path = Path(file_path).parent / "Experiment.xml"
+        if not experiment_xml_path.is_file():
+            raise FileNotFoundError(f"Experiment.xml file not found in '{experiment_xml_path.parent}'.")
+
+        channel_names = _get_channel_names_from_experiment_xml(ET.parse(experiment_xml_path).getroot())
+        if channel_names:
+            return channel_names
+        return OMETiffImagingExtractor.get_available_channel_names(file_path=file_path)
+
     def _get_session_start_time(self) -> datetime:
         """Return the acquisition start time as a tz-aware UTC ``datetime``.
 
@@ -85,6 +108,22 @@ class ThorTiffImagingExtractor(OMETiffImagingExtractor):
         if date_element is None or date_element.get("uTime") is None:
             raise ValueError("Could not find 'Date' element with uTime attribute in Experiment.xml.")
         return datetime.fromtimestamp(int(date_element.get("uTime")), tz=timezone.utc)
+
+
+def _get_channel_names_from_experiment_xml(root: ET.Element) -> list[str]:
+    """Return the channel names named in the ``Wavelengths`` block of a parsed ``Experiment.xml``.
+
+    Shared by the constructor and by ``get_available_channel_names`` so that discovery and
+    validation cannot disagree about what a Thor channel is called.
+
+    The block also carries a ``ChannelEnable Set`` attribute whose encoding across ThorImageLS
+    versions is not established, so the names are taken as written rather than filtered by it.
+    """
+    return [
+        wavelength.get("name")
+        for wavelength in root.findall("Wavelengths/Wavelength")
+        if wavelength.get("name") is not None
+    ]
 
 
 def _xml_element_to_dict(elem: ET.Element) -> dict:
