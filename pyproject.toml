@@ -120,6 +120,9 @@ ignore-words-list = 'assertin,tye,thet'
 test = [
     "pytest",
     "pytest-cov",
+    # Decoding an LZW compressed TIFF needs imagecodecs, which tifffile does not install by default.
+    # Kept out of the `full` extra so users are not made to carry it; see MultiTIFFMultiPageExtractor.
+    "tifffile[codecs]",
     "parameterized==0.8.1",
     "spikeinterface>=0.100.7",
     "pytest-xdist",
