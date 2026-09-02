@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+import numpy as np
 import pytest
 import tifffile
 from numpy.testing import assert_array_equal
@@ -40,11 +41,6 @@ class TestThorTiffImagingExtractor:
         """Test the sampling frequency property."""
         assert self.extractor.get_sampling_frequency() is not None
         assert isinstance(self.extractor.get_sampling_frequency(), float)
-
-    def test_thor_tiff_extractor_channel_names(self):
-        """Test the channel names property."""
-        assert self.extractor.get_channel_names() is not None
-        assert isinstance(self.extractor.get_channel_names(), list)
 
     def test_thor_tiff_extractor_dtype(self):
         """Test the data type property."""
@@ -91,20 +87,59 @@ class TestThorTiffImagingExtractor:
         for i, sample_index in enumerate(sample_indices):
             assert_array_equal(frames[i], self.test_data[sample_index])
 
-    def test_experiment_xml(self):
-        """Test parsing of Experiment.xml."""
-        # Test that sampling frequency was extracted from Experiment.xml
-        assert self.extractor.get_sampling_frequency() is not None
+    def test_session_start_time(self):
+        """Test that the acquisition start time is parsed from Experiment.xml."""
+        expected = datetime(2023, 10, 18, 17, 39, 19, tzinfo=timezone.utc)
+        assert self.extractor._get_session_start_time() == expected
 
-        # Test that channel names were extracted from Experiment.xml
-        assert len(self.extractor.get_channel_names()) > 0
 
-        date_value = self.extractor._experiment_xml_dict["ThorImageExperiment"]["Date"]
+VOLUMETRIC_DIR = OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "multi_channel_multi_plane" / "lzw_compressed"
 
-        unix_timestamp = int(date_value["@uTime"])
-        assert unix_timestamp == 1697650759
-        datetime_utc = datetime.fromtimestamp(unix_timestamp, tz=timezone.utc)
 
-        # Assert that the date extracted from Experiment.xml matches the expected datetime
-        expected_datetime = datetime(2023, 10, 18, 17, 39, 19, tzinfo=timezone.utc)
-        assert datetime_utc == expected_datetime
+class TestThorTiffImagingExtractorVolumetric:
+    """Test ThorTiffImagingExtractor on a two-channel, three-plane acquisition."""
+
+    num_samples = 3
+    num_planes = 3
+    image_shape = (128, 128)
+
+    @classmethod
+    def setup_class(cls):
+        """Set up the test."""
+        cls.file_path = VOLUMETRIC_DIR / "ChanA_0001_0001_0001_0001.tif"
+        if not cls.file_path.exists():
+            pytest.skip(f"Test file {cls.file_path} not found. Skipping tests.")
+
+        cls.extractor = ThorTiffImagingExtractor(file_path=cls.file_path, channel_name="ChanA")
+
+    def test_volumetric_shape(self):
+        """The depth planes are reported as a fourth dimension."""
+        assert self.extractor.is_volumetric
+        assert self.extractor.get_num_planes() == self.num_planes
+        assert self.extractor.get_num_samples() == self.num_samples
+        assert self.extractor.get_sample_shape() == (*self.image_shape, self.num_planes)
+
+        series = self.extractor.get_series()
+        assert series.shape == (self.num_samples, *self.image_shape, self.num_planes)
+
+    def test_sample_and_plane_are_not_transposed(self):
+        """Each (sample, plane) position holds the file named for that plane and timepoint.
+
+        ThorImage names the files ``ChanA_0001_0001_<plane>_<timepoint>.tif``, so the mapping is
+        checked against the files themselves. Shapes alone would pass even if the two were swapped.
+
+        The pages are read one at a time because ``tifffile.imread`` on the first file of the
+        acquisition returns the whole assembled OME series, not that file's single page.
+        """
+        series = self.extractor.get_series()
+        for sample_index in range(self.num_samples):
+            for plane_index in range(self.num_planes):
+                file_path = VOLUMETRIC_DIR / f"ChanA_0001_0001_000{plane_index + 1}_000{sample_index + 1}.tif"
+                with tifffile.TiffFile(file_path) as tiff_file:
+                    expected = tiff_file.pages[0].asarray()
+                assert_array_equal(series[sample_index, :, :, plane_index], expected)
+
+    def test_channels_hold_different_data(self):
+        """Selecting the other channel reads other pages."""
+        other = ThorTiffImagingExtractor(file_path=self.file_path, channel_name="ChanB")
+        assert not np.array_equal(self.extractor.get_series(), other.get_series())

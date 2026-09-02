@@ -35,6 +35,7 @@ from .extractors.minian import MinianSegmentationExtractor
 from .extractors.miniscopeimagingextractor import MiniscopeImagingExtractor, MiniscopeMultiRecordingImagingExtractor
 from .multisegmentationextractor import MultiSegmentationExtractor
 from .multiimagingextractor import MultiImagingExtractor
+from .planarstackimagingextractor import PlanarStackImagingExtractor
 from .volumetricimagingextractor import VolumetricImagingExtractor
 
 imaging_extractor_full_list = [
@@ -57,7 +58,7 @@ imaging_extractor_full_list = [
     SbxImagingExtractor,
     NumpyMemmapImagingExtractor,
     MemmapImagingExtractor,
-    VolumetricImagingExtractor,
+    PlanarStackImagingExtractor,
     InscopixImagingExtractor,
 ]
 

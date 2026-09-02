@@ -6,7 +6,12 @@ from tempfile import mkdtemp
 import numpy as np
 from parameterized import param, parameterized
 
-from roiextractors.extraction_tools import VideoStructure, read_numpy_memmap_video
+from roiextractors.extraction_tools import (
+    VideoStructure,
+    calculate_regular_series_rate,
+    calculate_segmented_series_rate,
+    read_numpy_memmap_video,
+)
 
 
 class TestVideoStructureClass(unittest.TestCase):
@@ -188,6 +193,35 @@ class TestReadNumpyMemmapVideo(unittest.TestCase):
         # Test canonical form
         canonical_video = video_structure.transform_video_to_canonical_form(memmap_video)
         assert canonical_video.shape == (self.num_frames, num_rows, num_columns, num_channels)
+
+
+class TestCalculateSegmentedSeriesRate(unittest.TestCase):
+    def test_regular_series_is_single_segment_matching_regular_rate(self):
+        """No gaps: rate equals calculate_regular_series_rate and the segment count is 1."""
+        series = np.arange(10) * 0.5  # 2 Hz, perfectly regular
+        rate, num_segments = calculate_segmented_series_rate(series)
+        assert num_segments == 1
+        assert rate == calculate_regular_series_rate(series)
+        np.testing.assert_allclose(rate, 2.0)
+
+    def test_fewer_than_two_points_returns_none(self):
+        assert calculate_segmented_series_rate(np.array([])) == (None, 1)
+        assert calculate_segmented_series_rate(np.array([3.0])) == (None, 1)
+
+    def test_two_segments_separated_by_a_gap(self):
+        """A large gap splits the series; the within-segment rate ignores the gap."""
+        first = np.arange(5) * 0.1  # 0.0..0.4 at 10 Hz
+        second = 100.0 + np.arange(5) * 0.1  # same 10 Hz after a ~100 s gap
+        rate, num_segments = calculate_segmented_series_rate(np.concatenate([first, second]))
+        assert num_segments == 2
+        np.testing.assert_allclose(rate, 10.0)
+
+    def test_three_segments_average_within_segment_rate(self):
+        """Burst-like timeline (three regular segments): rate is the within-segment mean."""
+        bursts = [base + np.arange(5) * 0.0666 for base in (0.0, 11.0, 21.0)]
+        rate, num_segments = calculate_segmented_series_rate(np.concatenate(bursts))
+        assert num_segments == 3
+        np.testing.assert_allclose(rate, 1.0 / 0.0666, rtol=1e-3)
 
 
 if __name__ == "__main__":
