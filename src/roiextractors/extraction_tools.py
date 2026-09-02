@@ -242,7 +242,7 @@ class VideoStructure:
             If the video is not in a format that can be transformed.
         """
         canonical_shape = (self.frame_axis, self.rows_axis, self.columns_axis, self.channels_axis)
-        if isinstance(video, (h5py.Dataset, zarr.core.Array)):
+        if isinstance(video, (h5py.Dataset, zarr.Array)):
             re_mapped_video = lazy_ops.DatasetView(video).lazy_transpose(canonical_shape)
         elif isinstance(video, np.ndarray):
             re_mapped_video = video.transpose(canonical_shape)
