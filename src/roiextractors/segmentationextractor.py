@@ -215,48 +215,6 @@ class SegmentationExtractor(ABC):
         self._roi_masks: _ROIMasks | None = None
         self._properties: dict[str, _PropertyInfo] = {}
 
-    def get_accepted_list(self) -> list:
-        """Get a list of accepted ROI ids.
-
-        .. deprecated::
-            `get_accepted_list` is deprecated and will be removed in May 2026.
-            Use `get_property()` instead to access format-specific acceptance data.
-
-        Returns
-        -------
-        accepted_list: list
-            List of accepted ROI ids.
-        """
-        warnings.warn(
-            "get_accepted_list is deprecated and will be removed in May 2026. "
-            "Use get_property() instead to access format-specific acceptance data.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        # Default: all ROIs accepted
-        return list(self.get_roi_ids())
-
-    def get_rejected_list(self) -> list:
-        """Get a list of rejected ROI ids.
-
-        .. deprecated::
-            `get_rejected_list` is deprecated and will be removed in May 2026.
-            Use `get_property()` instead to access format-specific acceptance data.
-
-        Returns
-        -------
-        rejected_list: list
-            List of rejected ROI ids.
-        """
-        warnings.warn(
-            "get_rejected_list is deprecated and will be removed in May 2026. "
-            "Use get_property() instead to access format-specific acceptance data.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        # Default: no ROIs rejected
-        return []
-
     @abstractmethod
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
