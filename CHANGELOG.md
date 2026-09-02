@@ -7,6 +7,7 @@
 ### Deprecations And Removals
 
 ### Improvements
+* The `Suite2pSegmentationExtractor` warnings for multiple channels or planes now list the available names and the one being loaded instead of pointing at `get_available_channels` / `get_available_planes`. [PR #607](https://github.com/catalystneuro/roiextractors/pull/607)
 
 # v0.9.0 (June 30th, 2026)
 
