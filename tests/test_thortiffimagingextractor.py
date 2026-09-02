@@ -92,6 +92,15 @@ class TestThorTiffImagingExtractor:
         expected = datetime(2023, 10, 18, 17, 39, 19, tzinfo=timezone.utc)
         assert self.extractor._get_session_start_time() == expected
 
+    def test_get_available_channel_names(self):
+        """Every name discovery returns can be passed back as `channel_name`."""
+        channel_names = ThorTiffImagingExtractor.get_available_channel_names(file_path=FILE_PATH)
+        assert channel_names == ["ChanA"]
+
+        for channel_name in channel_names:
+            extractor = ThorTiffImagingExtractor(file_path=FILE_PATH, channel_name=channel_name)
+            assert extractor._get_channel_names() == channel_names
+
 
 VOLUMETRIC_DIR = OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "multi_channel_multi_plane" / "lzw_compressed"
 
@@ -143,3 +152,12 @@ class TestThorTiffImagingExtractorVolumetric:
         """Selecting the other channel reads other pages."""
         other = ThorTiffImagingExtractor(file_path=self.file_path, channel_name="ChanB")
         assert not np.array_equal(self.extractor.get_series(), other.get_series())
+
+    def test_get_available_channel_names(self):
+        """Every name discovery returns can be passed back as `channel_name`."""
+        channel_names = ThorTiffImagingExtractor.get_available_channel_names(file_path=self.file_path)
+        assert channel_names == ["ChanA", "ChanB"]
+
+        for channel_name in channel_names:
+            extractor = ThorTiffImagingExtractor(file_path=self.file_path, channel_name=channel_name)
+            assert extractor._get_channel_names() == channel_names
