@@ -10,6 +10,7 @@
 ### Deprecations And Removals
 
 ### Improvements
+* `BrukerTiffImagingExtractor` now reads the Prairie View version from the configuration XML (`PVScan/@version`) and warns when the detected version is below 5.5 (the earliest version with test coverage), or when the version string is missing or unparsable. Pre-5.1 data is still rejected via the file-shape check (plain `.tif` with no `.ome.tif`). [PR #577](https://github.com/catalystneuro/roiextractors/pull/577)
 * The `Suite2pSegmentationExtractor` warnings for multiple channels or planes now list the available names and the one being loaded instead of pointing at `get_available_channels` / `get_available_planes`. [PR #607](https://github.com/catalystneuro/roiextractors/pull/607)
 * `MultiTiffMultiPageExtractor` and the extractors built on it now raise at construction when the TIFF compression needs `imagecodecs`, with a message that names the compression and the install command, instead of failing mid-read from inside `tifffile`. [PR #609](https://github.com/catalystneuro/roiextractors/pull/609)
 
