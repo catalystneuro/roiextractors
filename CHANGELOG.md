@@ -3,6 +3,7 @@
 ### Features
 
 ### Fixes
+* `ThorTiffImagingExtractor.get_available_channel_names` now reads the `Wavelengths` block of `Experiment.xml` instead of falling back to the numeric names of the OME-XML, so the names it returns are the ones the constructor accepts. [PR #610](https://github.com/catalystneuro/roiextractors/pull/610)
 
 ### Deprecations And Removals
 
