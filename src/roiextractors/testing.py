@@ -8,7 +8,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from numpy.typing import DTypeLike
 
-from roiextractors import GaussianNoiseImagingExtractor, NumpySegmentationExtractor
+from roiextractors import NumpySegmentationExtractor, PoissonNoiseImagingExtractor
 
 from .imagingextractor import ImagingExtractor
 from .segmentationextractor import SegmentationExtractor
@@ -24,7 +24,7 @@ def generate_dummy_video(
     """Generate a dummy video of a given size and dtype.
 
     .. deprecated::
-        ``generate_dummy_video`` is deprecated and will be removed in or after September 2026.
+        ``generate_dummy_video`` is deprecated and will be removed in or after March 2027.
         Use ``GaussianNoiseImagingExtractor`` or ``PoissonNoiseImagingExtractor`` instead.
 
     Parameters
@@ -44,7 +44,7 @@ def generate_dummy_video(
         A dummy video of the given size and dtype.
     """
     warnings.warn(
-        "generate_dummy_video is deprecated and will be removed in or after September 2026. "
+        "generate_dummy_video is deprecated and will be removed in or after March 2027. "
         "Use GaussianNoiseImagingExtractor or PoissonNoiseImagingExtractor instead.",
         FutureWarning,
         stacklevel=2,
@@ -61,12 +61,17 @@ def generate_dummy_video(
     return video
 
 
-class MockImagingExtractor(GaussianNoiseImagingExtractor):
+class MockImagingExtractor(PoissonNoiseImagingExtractor):
     """A mock imaging extractor for use in tests.
 
-    Generates Gaussian noise data and supports optional synthetic timestamps and a
-    configurable dtype, making it suitable for testing code paths that depend on
-    those properties.
+    Stands in for a raw acquisition file, so it generates Poisson noise (photon counts, which are
+    non-negative integers) rather than Gaussian noise, and defaults to ``uint16`` the way real
+    cameras and digitizers do. On top of the base generator it adds optional synthetic timestamps
+    and a configurable dtype, for testing code paths that depend on those.
+
+    Use ``GaussianNoiseImagingExtractor`` directly when the data being imitated is float and can go
+    negative, such as a background-subtracted movie, or when a test needs a known mean and standard
+    deviation.
 
     Parameters
     ----------
@@ -77,22 +82,23 @@ class MockImagingExtractor(GaussianNoiseImagingExtractor):
     num_columns : int, default 10
         Number of columns in each sample.
     num_planes : int or None, default None
-        Number of depth planes. When not None the extractor is volumetric.
+        Number of depth planes. The extractor is volumetric only when this is greater than 1, which
+        matches the rule the concrete extractors use; a single plane is planar.
     sampling_frequency : float, default 30.0
         Sampling frequency in Hz.
     seed : int, default 0
         Random seed for reproducibility.
-    noise_mean : float, default 0.0
-        Mean of the Gaussian noise distribution.
-    noise_std : float, default 1.0
-        Standard deviation of the Gaussian noise distribution.
+    baseline : float, default 100.0
+        Mean photon count per pixel (the lambda of the Poisson distribution).
     native_timestamps : "evenly_spaced" | "unevenly_spaced" | None, default None
         Controls whether the extractor returns native timestamps.
         None: no native timestamps (returns None).
         "evenly_spaced": evenly spaced timestamps based on sampling_frequency.
         "unevenly_spaced": timestamps with small random jitter around the regular spacing.
-    dtype : DTypeLike, default np.float32
-        The dtype of the data returned by ``get_series``.
+    dtype : DTypeLike, default "uint16"
+        The dtype of the data returned by ``get_series``. Defaults to ``uint16`` because that is what
+        scientific cameras and PMT digitizers write. Poisson counts are non-negative and centred on
+        ``baseline``, so the cast is lossless for any integer dtype wide enough to hold them.
     """
 
     def __init__(
@@ -104,10 +110,9 @@ class MockImagingExtractor(GaussianNoiseImagingExtractor):
         num_planes: int | None = None,
         sampling_frequency: float = 30.0,
         seed: int = 0,
-        noise_mean: float = 0.0,
-        noise_std: float = 1.0,
+        baseline: float = 100.0,
         native_timestamps: Literal["evenly_spaced", "unevenly_spaced"] | None = None,
-        dtype: DTypeLike = np.float32,
+        dtype: DTypeLike = "uint16",
     ):
         super().__init__(
             num_samples=num_samples,
@@ -116,8 +121,7 @@ class MockImagingExtractor(GaussianNoiseImagingExtractor):
             num_planes=num_planes,
             sampling_frequency=sampling_frequency,
             seed=seed,
-            noise_mean=noise_mean,
-            noise_std=noise_std,
+            baseline=baseline,
         )
         self._dtype = np.dtype(dtype)
 
@@ -161,7 +165,7 @@ def generate_dummy_imaging_extractor(
     num_rows: int = 10,
     num_columns: int = 10,
     sampling_frequency: float = 30.0,
-    dtype: DTypeLike = np.float32,
+    dtype: DTypeLike = "uint16",
     seed: int = 0,
     num_samples: int | None = 30,
     has_native_timestamps: bool = False,
@@ -170,8 +174,8 @@ def generate_dummy_imaging_extractor(
 ):
     """Generate a dummy imaging extractor for testing.
 
-    The imaging extractor is built using a `MockImagingExtractor` which generates
-    Gaussian noise on-the-fly.
+    The imaging extractor is built using a `MockImagingExtractor`, which generates Poisson noise
+    (photon counts) on-the-fly.
 
     Parameters
     ----------
@@ -182,7 +186,7 @@ def generate_dummy_imaging_extractor(
     sampling_frequency : float, optional
         sampling frequency of the video, by default 30.
     dtype : DTypeLike, optional
-        dtype of the returned data, by default np.float32.
+        dtype of the returned data, by default "uint16".
     seed : int, default 0
         seed for the random number generator, by default 0.
     num_samples : int, default 30
@@ -195,16 +199,17 @@ def generate_dummy_imaging_extractor(
         "evenly_spaced": evenly spaced timestamps based on sampling_frequency.
         "unevenly_spaced": timestamps with small random jitter around the regular spacing.
     num_planes : int, optional
-        number of depth planes for volumetric data. If None, creates 2D data.
+        number of depth planes. Values greater than 1 give a volumetric extractor; None or 1 give a
+        planar one, matching the rule the concrete extractors use.
 
     Returns
     -------
     ImagingExtractor
-        An imaging extractor with random Gaussian noise data.
+        An imaging extractor with random Poisson noise data.
     """
     if has_native_timestamps:
         warnings.warn(
-            "has_native_timestamps is deprecated and will be removed in or after September 2026. "
+            "has_native_timestamps is deprecated and will be removed in or after March 2027. "
             'Use native_timestamps="evenly_spaced" instead.',
             FutureWarning,
             stacklevel=2,
