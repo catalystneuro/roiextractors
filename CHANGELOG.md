@@ -8,6 +8,7 @@
 ### Deprecations And Removals
 
 ### Improvements
+* `MultiTiffMultiPageExtractor` and the extractors built on it now raise at construction when the TIFF compression needs `imagecodecs`, with a message that names the compression and the install command, instead of failing mid-read from inside `tifffile`. [PR #609](https://github.com/catalystneuro/roiextractors/pull/609)
 
 # v0.9.0 (June 30th, 2026)
 

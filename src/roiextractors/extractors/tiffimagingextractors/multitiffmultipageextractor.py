@@ -199,7 +199,18 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         first_ifd = first_tiff.pages[0]
         self._num_rows, self._num_columns = first_ifd.shape
         self._dtype = first_ifd.dtype
+        compression = first_ifd.compression
         first_tiff.close()
+
+        # Fail here instead of on the first read, where the error arrives from deep inside tifffile
+        if compression not in self._tifffile.TIFF.DECOMPRESSORS:
+            raise ValueError(
+                f"This TIFF is {compression.name} compressed and decoding it requires the 'imagecodecs' package, "
+                f"which tifffile does not install by default. The file is not corrupt, this is a missing optional "
+                f"dependency. Install it with:\n\n"
+                f'    pip install "tifffile[codecs]"\n\n'
+                f"File: {first_path}"
+            )
 
         ifds_per_file = self._get_ifds_per_file()
         if len(ifds_per_file) != len(self._file_paths):
