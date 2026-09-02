@@ -93,8 +93,8 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             if len(channel_names) > 1:
                 # For backward compatibility maybe it is better to warn first
                 warn(
-                    "More than one channel is detected! Please specify which channel you wish to load with the `channel_name` argument. "
-                    "To see what channels are available, call `Suite2pSegmentationExtractor.get_available_channels(folder_path=...)`.",
+                    f"More than one channel is detected: {channel_names}. Using '{channel_names[0]}'. "
+                    "Please specify which channel you wish to load with the `channel_name` argument.",
                     UserWarning,
                 )
             channel_name = channel_names[0]
@@ -111,8 +111,8 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             if len(plane_names) > 1:
                 # For backward compatibility maybe it is better to warn first
                 warn(
-                    "More than one plane is detected! Please specify which plane you wish to load with the `plane_name` argument. "
-                    "To see what planes are available, call `Suite2pSegmentationExtractor.get_available_planes(folder_path=...)`.",
+                    f"More than one plane is detected: {plane_names}. Using '{plane_names[0]}'. "
+                    "Please specify which plane you wish to load with the `plane_name` argument.",
                     UserWarning,
                 )
             plane_name = plane_names[0]
