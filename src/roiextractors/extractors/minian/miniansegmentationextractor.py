@@ -222,7 +222,8 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             warnings.warn(f"Group '{zarr_group}' not found in the Zarr store.", UserWarning)
             return None
         else:
-            return zarr.open(str(self.folder_path) + f"/{zarr_group}", "r")
+            # `mode` is keyword-only in zarr v3
+            return zarr.open(str(self.folder_path) + f"/{zarr_group}", mode="r")
 
     def _read_roi_image_mask_from_zarr(self):
         """Read the image masks from the zarr output.
@@ -303,7 +304,8 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         """
         csv_file = self._timestamps_path
         df = pd.read_csv(csv_file)
-        frame_indexes = self._read_zarr_group("/C.zarr/frame")
+        # Read the indexes out before `isin`: a zarr v3 array is not list-like, so pandas rejects it
+        frame_indexes = self._read_zarr_group("/C.zarr/frame")[:]
         filtered_df = df[df["Frame Number"].isin(frame_indexes)]
 
         native_timestamps = filtered_df["Time Stamp (ms)"].to_numpy() * 1e-3
@@ -397,7 +399,8 @@ class MinianSegmentationExtractor(SegmentationExtractor):
         if dataset is None or "unit_id" not in dataset:
             warnings.warn("No ROI ids found in A.zarr dataset. A range of indexes will be used as ROI ids", UserWarning)
             return super().get_roi_ids()  # Fallback to default implementation
-        return list(dataset["unit_id"])
+        # Read the array out first: iterating a zarr v3 array yields 0-d ndarrays, not scalars
+        return list(dataset["unit_id"][:])
 
     def get_images_dict(self) -> dict:
         """Get images as a dictionary with key as the name of the ROIResponseSeries.

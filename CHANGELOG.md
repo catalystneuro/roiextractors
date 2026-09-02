@@ -3,11 +3,14 @@
 ### Features
 
 ### Fixes
+* Use zarr spellings that are valid in both zarr-python v2 and v3 so that `roiextractors` can be imported and the Minian data read when zarr 3 is installed. [PR #608](https://github.com/catalystneuro/roiextractors/pull/608)
+* Fixed `SampleSlicedImagingExtractor.get_series()` not clamping `end_sample=None` to the slice's own bound. Calling `extractor.slice_samples(a, b).get_series()` (no args) used to return more samples than the slice should contain because `end_sample=None` was passed straight through to the parent. The default for both `start_sample` and `end_sample` is now resolved to the slice's bounds before the parent call. Resolves [#585](https://github.com/catalystneuro/roiextractors/issues/585).
 * `ThorTiffImagingExtractor.get_available_channel_names` now reads the `Wavelengths` block of `Experiment.xml` instead of falling back to the numeric names of the OME-XML, so the names it returns are the ones the constructor accepts. [PR #610](https://github.com/catalystneuro/roiextractors/pull/610)
 
 ### Deprecations And Removals
 
 ### Improvements
+* The `Suite2pSegmentationExtractor` warnings for multiple channels or planes now list the available names and the one being loaded instead of pointing at `get_available_channels` / `get_available_planes`. [PR #607](https://github.com/catalystneuro/roiextractors/pull/607)
 * `MultiTiffMultiPageExtractor` and the extractors built on it now raise at construction when the TIFF compression needs `imagecodecs`, with a message that names the compression and the install command, instead of failing mid-read from inside `tifffile`. [PR #609](https://github.com/catalystneuro/roiextractors/pull/609)
 
 # v0.9.0 (June 30th, 2026)
