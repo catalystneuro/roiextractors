@@ -1,7 +1,7 @@
 # v0.9.1 (Upcoming)
 
 ### Features
-* Added `MockImagingExtractor` (public), a `PoissonNoiseImagingExtractor` with `native_timestamps` and `dtype` support for testing. Poisson noise is photon counts, so the data is non-negative integers and the default dtype stays `uint16` as it was. `generate_dummy_imaging_extractor()` now builds on it and generates lazily instead of materialising a `NumpyImagingExtractor`, which also removes the per-instance method patching the volumetric and native-timestamp paths used to need. [PR #562](https://github.com/catalystneuro/roiextractors/pull/562)
+* Added `MockImagingExtractor` in `roiextractors.testing`, a `PoissonNoiseImagingExtractor` with `native_timestamps` and `dtype` support for testing. It is not exported from the top-level namespace, since it exists to serve the dummy generators rather than as user-facing API. Poisson noise is photon counts, so the data is non-negative integers and the default dtype stays `uint16` as it was. `generate_dummy_imaging_extractor()` now builds on it and generates lazily instead of materialising a `NumpyImagingExtractor`, which also removes the per-instance method patching the volumetric and native-timestamp paths used to need. [PR #562](https://github.com/catalystneuro/roiextractors/pull/562)
 
 ### Fixes
 * Use zarr spellings that are valid in both zarr-python v2 and v3 so that `roiextractors` can be imported and the Minian data read when zarr 3 is installed. [PR #608](https://github.com/catalystneuro/roiextractors/pull/608)
