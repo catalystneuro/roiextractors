@@ -687,25 +687,6 @@ class SegmentationExtractor(ABC):
 
         return 0
 
-    def get_num_channels(self) -> int:
-        """Get number of channels in the pipeline.
-
-        Returns
-        -------
-        num_of_channels: int
-            number of channels
-
-        Deprecated
-        ----------
-        This method will be removed on or after September 2026.
-        """
-        warnings.warn(
-            "get_num_channels is deprecated and will be removed on or after September 2026.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return len(self._channel_names)
-
     def get_num_planes(self) -> int:
         """Get the default number of planes of imaging for the segmentation extractor.
 
@@ -1033,9 +1014,6 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
 
     def get_sampling_frequency(self) -> float:
         return self._parent_segmentation.get_sampling_frequency()
-
-    def get_num_channels(self) -> int:
-        return self._parent_segmentation.get_num_channels()
 
     def get_num_planes(self) -> int:
         return self._parent_segmentation.get_num_planes()
