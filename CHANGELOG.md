@@ -22,6 +22,7 @@
 * The `Suite2pSegmentationExtractor` warnings for multiple channels or planes now list the available names and the one being loaded instead of pointing at `get_available_channels` / `get_available_planes`. [PR #607](https://github.com/catalystneuro/roiextractors/pull/607)
 * `MultiTiffMultiPageExtractor` and the extractors built on it now raise at construction when the TIFF compression needs `imagecodecs`, with a message that names the compression and the install command, instead of failing mid-read from inside `tifffile`. [PR #609](https://github.com/catalystneuro/roiextractors/pull/609)
 * Replaced the `lazy_ops` dependency with `lazyslice`, its maintained successor from the same authors, with the same `DatasetView` and `lazy_transpose` API and support for zarr 3. [PR #615](https://github.com/catalystneuro/roiextractors/pull/615)
+* Removed the `zarr<3` and `numcodecs<0.16.0` pins, which silently downgraded zarr to 2.18.7 when `roiextractors` was installed next to zarr 3. Resolves [#384](https://github.com/catalystneuro/roiextractors/issues/384)
 
 # v0.9.0 (June 30th, 2026)
 

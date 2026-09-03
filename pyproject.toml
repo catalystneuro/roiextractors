@@ -42,8 +42,8 @@ dependencies = [
   "PyYAML",
   "lxml",
   "packaging",
-  "zarr>=2,<3",
-  "numcodecs<0.16.0",
+  "zarr>=2",
+  "numcodecs",
 ]
 
 [project.optional-dependencies]
