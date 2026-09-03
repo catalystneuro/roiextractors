@@ -1,6 +1,7 @@
 # v0.9.1 (Upcoming)
 
 ### Features
+* Added `MockImagingExtractor` in `roiextractors.testing`, a `PoissonNoiseImagingExtractor` with `native_timestamps` and `dtype` support for testing. It is not exported from the top-level namespace, since it exists to serve the dummy generators rather than as user-facing API. Poisson noise is photon counts, so the data is non-negative integers and the default dtype stays `uint16` as it was. `generate_dummy_imaging_extractor()` now builds on it and generates lazily instead of materialising a `NumpyImagingExtractor`, which also removes the per-instance method patching the volumetric and native-timestamp paths used to need. [PR #562](https://github.com/catalystneuro/roiextractors/pull/562)
 
 ### Fixes
 * Use zarr spellings that are valid in both zarr-python v2 and v3 so that `roiextractors` can be imported and the Minian data read when zarr 3 is installed. [PR #608](https://github.com/catalystneuro/roiextractors/pull/608)
@@ -8,6 +9,8 @@
 * `ThorTiffImagingExtractor.get_available_channel_names` now reads the `Wavelengths` block of `Experiment.xml` instead of falling back to the numeric names of the OME-XML, so the names it returns are the ones the constructor accepts. [PR #610](https://github.com/catalystneuro/roiextractors/pull/610)
 
 ### Deprecations And Removals
+* Deprecated `generate_dummy_video()` (will be removed in or after March 2027). Use `GaussianNoiseImagingExtractor` or `PoissonNoiseImagingExtractor` instead. [PR #562](https://github.com/catalystneuro/roiextractors/pull/562)
+* Deprecated `has_native_timestamps` parameter in `generate_dummy_imaging_extractor()` (will be removed in or after March 2027). Use `native_timestamps="evenly_spaced"` instead. [PR #562](https://github.com/catalystneuro/roiextractors/pull/562)
 
 ### Improvements
 * `BrukerTiffImagingExtractor` now reads the Prairie View version from the configuration XML (`PVScan/@version`) and warns when the detected version is below 5.5 (the earliest version with test coverage), or when the version string is missing or unparsable. Pre-5.1 data is still rejected via the file-shape check (plain `.tif` with no `.ome.tif`). [PR #577](https://github.com/catalystneuro/roiextractors/pull/577)

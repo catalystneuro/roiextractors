@@ -5,8 +5,7 @@ from pynwb.ophys import TwoPhotonSeries
 from pynwb.testing.mock.file import mock_NWBFile
 from pynwb.testing.mock.ophys import mock_ImagingPlane
 
-from roiextractors import NwbImagingExtractor
-from roiextractors.testing import generate_dummy_video
+from roiextractors import NwbImagingExtractor, PoissonNoiseImagingExtractor
 
 
 @pytest.fixture(scope="module")
@@ -23,10 +22,11 @@ def nwb_planar_file(tmp_path_factory):
     nwbfile = mock_NWBFile()
 
     # Generate planar data: (time, rows, cols)
-    video_shape = (num_samples, rows, columns)
-
     dtype = "uint16"
-    video = generate_dummy_video(size=video_shape, dtype=dtype)
+    video = PoissonNoiseImagingExtractor(
+        num_samples=num_samples, num_rows=rows, num_columns=columns, sampling_frequency=sampling_frequency
+    ).get_series()
+    video = video.astype(dtype)
 
     imaging_plane = mock_ImagingPlane(nwbfile=nwbfile)
 
@@ -111,10 +111,15 @@ def nwb_volumetric_file(tmp_path_factory):
     nwbfile = mock_NWBFile()
 
     # Generate volumetric data: (time, rows, cols, planes)
-    video_shape = (num_samples, rows, columns, num_planes)
-
     dtype = "uint16"
-    video = generate_dummy_video(size=video_shape, dtype=dtype)
+    video = PoissonNoiseImagingExtractor(
+        num_samples=num_samples,
+        num_rows=rows,
+        num_columns=columns,
+        num_planes=num_planes,
+        sampling_frequency=sampling_frequency,
+    ).get_series()
+    video = video.astype(dtype)
 
     imaging_plane = mock_ImagingPlane(nwbfile=nwbfile)
 

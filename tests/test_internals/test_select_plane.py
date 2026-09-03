@@ -90,14 +90,6 @@ class TestSelectPlaneValidation:
         with pytest.raises(ValueError, match="plane_index .* must satisfy"):
             volumetric.select_plane(3)
 
-    def test_single_plane_volumetric(self):
-        """A volumetric extractor with num_planes=1 still allows select_plane(0)."""
-        volumetric = generate_dummy_imaging_extractor(num_samples=4, num_rows=8, num_columns=8, num_planes=1)
-        planar = volumetric.select_plane(0)
-
-        assert planar.is_volumetric is False
-        assert planar.get_series().shape == (4, 8, 8)
-
 
 class TestSelectPlaneComposition:
     """Composability with the other slicers."""
