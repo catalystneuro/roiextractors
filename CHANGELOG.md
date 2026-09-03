@@ -10,6 +10,8 @@
 * `ThorTiffImagingExtractor.get_available_channel_names` now reads the `Wavelengths` block of `Experiment.xml` instead of falling back to the numeric names of the OME-XML, so the names it returns are the ones the constructor accepts. [PR #610](https://github.com/catalystneuro/roiextractors/pull/610)
 
 ### Deprecations And Removals
+* Removed `check_get_frames_args()` from `extraction_tools`, deprecated for removal on or after June 2026. It decorated a `get_frames` method that no longer exists and had no callers anywhere.
+* Removed `SegmentationExtractor.get_num_channels()` and its slice passthrough, deprecated for removal on or after September 2026.
 * Removed `MultiSegmentationExtractor`. It could not be instantiated, since `SegmentationExtractor.get_native_timestamps` is abstract and the class never implemented it, so nothing that touched it had ever run. It flattened several per-plane segmentations into one list of ROI ids with a `(plane_index, roi_id)` lookup, which is none of the three aggregations that are actually wanted (appending ROI populations over the same field of view, stacking 2D masks into 3D, or concatenating traces over time). Resolves [#588](https://github.com/catalystneuro/roiextractors/issues/588)
 * Deprecated `generate_dummy_video()` (will be removed in or after March 2027). Use `GaussianNoiseImagingExtractor` or `PoissonNoiseImagingExtractor` instead. [PR #562](https://github.com/catalystneuro/roiextractors/pull/562)
 * Deprecated `has_native_timestamps` parameter in `generate_dummy_imaging_extractor()` (will be removed in or after March 2027). Use `native_timestamps="evenly_spaced"` instead. [PR #562](https://github.com/catalystneuro/roiextractors/pull/562)
