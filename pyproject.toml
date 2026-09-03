@@ -124,7 +124,6 @@ test = [
     # Kept out of the `full` extra so users are not made to carry it; see MultiTIFFMultiPageExtractor.
     "tifffile[codecs]",
     "parameterized==0.8.1",
-    "spikeinterface>=0.100.7",
     "pytest-xdist",
     "pytest-memray; sys_platform != 'win32'",
 ]
