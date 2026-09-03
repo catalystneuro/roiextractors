@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Iterable
 
 import numpy as np
-from lazy_ops import DatasetView
+from lazyslice import DatasetView
 from pynwb import NWBHDF5IO
 from pynwb.ophys import OnePhotonSeries, TwoPhotonSeries
 

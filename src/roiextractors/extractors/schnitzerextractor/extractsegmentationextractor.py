@@ -15,7 +15,7 @@ from pathlib import Path
 
 import h5py
 import numpy as np
-from lazy_ops import DatasetView
+from lazyslice import DatasetView
 from packaging import version
 
 from ...extraction_tools import PathType

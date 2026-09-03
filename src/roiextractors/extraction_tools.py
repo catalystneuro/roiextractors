@@ -14,7 +14,7 @@ from platform import python_version
 from types import ModuleType
 
 import h5py
-import lazy_ops
+import lazyslice
 import numpy as np
 import zarr
 from numpy.typing import ArrayLike, DTypeLike
@@ -242,7 +242,7 @@ class VideoStructure:
         """
         canonical_shape = (self.frame_axis, self.rows_axis, self.columns_axis, self.channels_axis)
         if isinstance(video, (h5py.Dataset, zarr.Array)):
-            re_mapped_video = lazy_ops.DatasetView(video).lazy_transpose(canonical_shape)
+            re_mapped_video = lazyslice.DatasetView(video).lazy_transpose(canonical_shape)
         elif isinstance(video, np.ndarray):
             re_mapped_video = video.transpose(canonical_shape)
         else:

@@ -11,7 +11,7 @@ from warnings import warn
 
 import h5py
 import numpy as np
-from lazy_ops import DatasetView
+from lazyslice import DatasetView
 from numpy.typing import ArrayLike
 
 from ...extraction_tools import PathType
