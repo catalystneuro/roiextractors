@@ -33,7 +33,6 @@ from .extractors.memmapextractors import NumpyMemmapImagingExtractor
 from .extractors.memmapextractors import MemmapImagingExtractor
 from .extractors.minian import MinianSegmentationExtractor
 from .extractors.miniscopeimagingextractor import MiniscopeImagingExtractor, MiniscopeMultiRecordingImagingExtractor
-from .multisegmentationextractor import MultiSegmentationExtractor
 from .multiimagingextractor import MultiImagingExtractor
 from .planarstackimagingextractor import PlanarStackImagingExtractor
 from .volumetricimagingextractor import VolumetricImagingExtractor
