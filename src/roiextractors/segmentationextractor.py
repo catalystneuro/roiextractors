@@ -711,7 +711,7 @@ class SegmentationExtractor(ABC):
 
         Notes
         -----
-        Defaults to 1 for all but the MultiSegmentationExtractor.
+        Defaults to 1.
 
         Returns
         -------
