@@ -33,7 +33,7 @@ requires-python = ">=3.10"
 
 dependencies = [
   "h5py>=2.10.0",
-  "pynwb>=2.0.1",
+  "pynwb>=3.0.0",
   "tqdm>=4.48.2",
   "lazyslice>=0.3.0",
   "dill>=0.3.2",
@@ -125,6 +125,8 @@ test = [
     "parameterized==0.8.1",
     "pytest-xdist",
     "pytest-memray; sys_platform != 'win32'",
+    # Needed to write the Zarr-backed NWB fixtures the NWB extractor tests read back.
+    "hdmf-zarr",
 ]
 docs = [
     "Jinja2",

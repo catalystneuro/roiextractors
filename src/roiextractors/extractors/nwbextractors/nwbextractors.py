@@ -14,7 +14,7 @@ from typing import Iterable
 
 import numpy as np
 from lazyslice import DatasetView
-from pynwb import NWBHDF5IO
+from pynwb import read_nwb
 from pynwb.ophys import OnePhotonSeries, TwoPhotonSeries
 
 from ...extraction_tools import (
@@ -53,8 +53,8 @@ class NwbImagingExtractor(ImagingExtractor):
         ImagingExtractor.__init__(self)
         self._path = file_path
 
-        self.io = NWBHDF5IO(str(self._path), "r")
-        self.nwbfile = self.io.read()
+        self.nwbfile = read_nwb(str(self._path))
+        self.io = self.nwbfile.read_io
         if optical_series_name is not None:
             self._optical_series_name = optical_series_name
         else:
@@ -206,12 +206,12 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         """
         super().__init__()
         file_path = Path(file_path)
-        if not file_path.is_file():
+        if not file_path.exists():
             raise Exception("file does not exist")
         self.file_path = file_path
         self._roi_locs = None
-        self._io = NWBHDF5IO(str(file_path), mode="r")
-        self.nwbfile = self._io.read()
+        self.nwbfile = read_nwb(str(file_path))
+        self._io = self.nwbfile.read_io
 
         assert "ophys" in self.nwbfile.processing, "Ophys processing module is not in nwbfile."
         ophys = self.nwbfile.processing.get("ophys")
@@ -220,6 +220,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         fluorescence = None
         df_over_f = None
         collected_responses: list[tuple[str, DatasetView]] = []
+        self._roi_response_series = None
         if "Fluorescence" in ophys.data_interfaces:
             fluorescence = ophys.data_interfaces["Fluorescence"]
         if "DfOverF" in ophys.data_interfaces:
@@ -230,10 +231,13 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             trace_name_segext = "RoiResponseSeries" if trace_name in ["raw", "dff"] else trace_name.capitalize()
             container = df_over_f if trace_name == "dff" else fluorescence
             if container is not None and trace_name_segext in container.roi_response_series:
-                dataset_view = DatasetView(container.roi_response_series[trace_name_segext].data)
+                roi_response_series = container.roi_response_series[trace_name_segext]
+                dataset_view = DatasetView(roi_response_series.data)
                 collected_responses.append((trace_name, dataset_view))
+                if self._roi_response_series is None:
+                    self._roi_response_series = roi_response_series
                 if self._sampling_frequency is None:
-                    self._sampling_frequency = container.roi_response_series[trace_name_segext].rate
+                    self._sampling_frequency = roi_response_series.rate
         if not collected_responses:
             raise Exception(
                 "could not find any of 'RoiResponseSeries'/'Dff'/'Neuropil'/ 'Background'/'Deconvolved'"
@@ -261,7 +265,7 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             self._roi_masks = _ROIMasks(
                 data=image_masks_data,
                 mask_tpe="nwb-image_mask",
-                field_of_view_shape=self.get_frame_shape(),
+                field_of_view_shape=image_masks_data.shape[:-1],
                 roi_id_map=roi_id_map,
             )
 
@@ -386,7 +390,11 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
     ) -> np.ndarray | None:
-        # NWB files may have timestamps but need to check the specific implementation
-        # For now, return None to use calculated timestamps based on sampling frequency
-        # TODO: check if the RoiResponseSeries has timestamps
-        return None
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = self.get_num_samples()
+
+        # NWB's get_timestamps() handles explicit timestamps, starting_time and rate-based calculations
+        timestamps = self._roi_response_series.get_timestamps()
+        return timestamps[start_sample:end_sample]
