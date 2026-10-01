@@ -1,4 +1,14 @@
-# v0.9.1 (Upcoming)
+# v0.10.1 (Upcoming)
+
+### Features
+
+### Fixes
+
+### Deprecations And Removals
+
+### Improvements
+
+# v0.10.0 (September 9th, 2026)
 
 ### Features
 * Added `MockImagingExtractor` in `roiextractors.testing`, a `PoissonNoiseImagingExtractor` with `native_timestamps` and `dtype` support for testing. It is not exported from the top-level namespace, since it exists to serve the dummy generators rather than as user-facing API. Poisson noise is photon counts, so the data is non-negative integers and the default dtype stays `uint16` as it was. `generate_dummy_imaging_extractor()` now builds on it and generates lazily instead of materialising a `NumpyImagingExtractor`, which also removes the per-instance method patching the volumetric and native-timestamp paths used to need. [PR #562](https://github.com/catalystneuro/roiextractors/pull/562)
