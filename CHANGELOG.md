@@ -7,6 +7,7 @@
 ### Deprecations And Removals
 
 ### Improvements
+* Added support for Python 3.14. The `isx` dependency of the `full` extra is skipped on 3.14 because `isx` does not support it yet, so the Inscopix extractors are unavailable there. Resolves [#622](https://github.com/catalystneuro/roiextractors/issues/622)
 
 # v0.10.0 (September 9th, 2026)
 
