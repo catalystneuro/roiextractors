@@ -24,6 +24,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Operating System :: POSIX :: Linux",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: MacOS",
@@ -53,7 +55,7 @@ full = [
     "opencv-python-headless>=4.8.1.78,<4.13; platform_system == 'Darwin' and platform_machine == 'x86_64'",
     "opencv-python-headless>=4.8.1.78; platform_system != 'Darwin' or platform_machine != 'x86_64'",
     "natsort>=8.3.1",
-    "isx>=2.0; sys_platform != 'darwin' or platform_machine != 'arm64'"
+    "isx>=2.0; python_version < '3.14' and (sys_platform != 'darwin' or platform_machine != 'arm64')"
 ]
 
 [project.urls]
