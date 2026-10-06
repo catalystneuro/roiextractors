@@ -9,17 +9,50 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
+    load_python_and_os_versions:
+        runs-on: ubuntu-latest
+        outputs:
+            ALL_PYTHON_VERSIONS: ${{ steps.load_python_versions.outputs.python_versions }}
+            ALL_OS_VERSIONS: ${{ steps.load_os_versions.outputs.os_versions }}
+        steps:
+            - uses: actions/checkout@v6
+            - id: load_python_versions
+              run: |
+                MINIMUM=$(cat ./.github/workflows/min_python_version.txt)
+                MAXIMUM=$(cat ./.github/workflows/max_python_version.txt)
+                echo "python_versions=[\"$MINIMUM\", \"$MAXIMUM\"]" >> "$GITHUB_OUTPUT"
+            - id: load_os_versions
+              run: echo "os_versions=$(cat ./.github/workflows/all_os_versions.txt)" >> "$GITHUB_OUTPUT"
+
     run-tests:
+        needs: load_python_and_os_versions
         uses: ./.github/workflows/run-tests.yml
         secrets:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
             AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
             S3_GIN_BUCKET: ${{ secrets.S3_GIN_BUCKET }}
+        with:
+            python-versions: ${{ needs.load_python_and_os_versions.outputs.ALL_PYTHON_VERSIONS }}
+            os-versions: ${{ needs.load_python_and_os_versions.outputs.ALL_OS_VERSIONS }}
 
     dev-tests:
+        needs: load_python_and_os_versions
         uses: ./.github/workflows/dev-testing.yaml
         secrets:
             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
             AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
             S3_GIN_BUCKET: ${{ secrets.S3_GIN_BUCKET }}
+        with:
+            python-versions: ${{ needs.load_python_and_os_versions.outputs.ALL_PYTHON_VERSIONS }}
+
+    check-final-status:
+        name: All tests passing
+        if: always()
+        needs: [run-tests]
+        runs-on: ubuntu-latest
+        steps:
+            - name: Decide whether all jobs succeeded or at least one failed
+              uses: re-actors/alls-green@release/v1
+              with:
+                  jobs: ${{ toJSON(needs) }}

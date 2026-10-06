@@ -7,6 +7,7 @@
 ### Deprecations And Removals
 
 ### Improvements
+* The Python and OS versions tested in CI are now read from `min_python_version.txt`, `max_python_version.txt` and `all_os_versions.txt` in `.github/workflows`, and pull requests gain an `All tests passing` job that aggregates the test matrix, so that changing the tested versions no longer requires changing the required checks in the branch protection. [PR #625](https://github.com/catalystneuro/roiextractors/pull/625)
 
 # v0.10.0 (September 9th, 2026)
 
