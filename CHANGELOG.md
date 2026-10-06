@@ -8,6 +8,7 @@
 
 ### Improvements
 * Added support for Python 3.14. The `isx` dependency of the `full` extra is skipped on 3.14 because `isx` does not support it yet, so the Inscopix extractors are unavailable there. Resolves [#622](https://github.com/catalystneuro/roiextractors/issues/622)
+* The Python and OS versions tested in CI are now read from `min_python_version.txt`, `max_python_version.txt` and `all_os_versions.txt` in `.github/workflows`, and pull requests gain an `All tests passing` job that aggregates the test matrix, so that changing the tested versions no longer requires changing the required checks in the branch protection. [PR #625](https://github.com/catalystneuro/roiextractors/pull/625)
 
 # v0.10.0 (September 9th, 2026)
 
