@@ -5,6 +5,7 @@
 ### Fixes
 
 ### Deprecations And Removals
+* Dropped support for Python 3.10, which `neuroconv` no longer supports. The minimum supported version is now Python 3.11. [PR #627](https://github.com/catalystneuro/roiextractors/pull/627)
 
 ### Improvements
 * Added support for Python 3.14. The `isx` dependency of the `full` extra is skipped on 3.14 because `isx` does not support it yet, so the Inscopix extractors are unavailable there. Resolves [#622](https://github.com/catalystneuro/roiextractors/issues/622)
