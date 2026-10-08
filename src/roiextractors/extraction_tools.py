@@ -9,13 +9,12 @@ VideoStructure
 import importlib.util
 import sys
 from dataclasses import dataclass
-from functools import wraps
 from pathlib import Path
 from platform import python_version
 from types import ModuleType
 
 import h5py
-import lazy_ops
+import lazyslice
 import numpy as np
 import zarr
 from numpy.typing import ArrayLike, DTypeLike
@@ -242,8 +241,8 @@ class VideoStructure:
             If the video is not in a format that can be transformed.
         """
         canonical_shape = (self.frame_axis, self.rows_axis, self.columns_axis, self.channels_axis)
-        if isinstance(video, (h5py.Dataset, zarr.core.Array)):
-            re_mapped_video = lazy_ops.DatasetView(video).lazy_transpose(canonical_shape)
+        if isinstance(video, (h5py.Dataset, zarr.Array)):
+            re_mapped_video = lazyslice.DatasetView(video).lazy_transpose(canonical_shape)
         elif isinstance(video, np.ndarray):
             re_mapped_video = video.transpose(canonical_shape)
         else:
@@ -364,59 +363,6 @@ def _image_mask_extractor(pixel_mask, _roi_ids, image_shape) -> np.ndarray:
         for y, x, wt in pixel_mask[rois]:
             image_mask[int(y), int(x), no] = wt
     return image_mask
-
-
-def check_get_frames_args(func):
-    """Check the arguments of the get_frames function.
-
-    This decorator allows the get_frames function to be queried with either
-    an integer, slice or an array and handles a common return. [I think that np.take can be used instead of this]
-
-    Parameters
-    ----------
-    func: function
-        The get_frames function.
-
-    Returns
-    -------
-    corrected_args: function
-        The get_frames function with corrected arguments.
-
-    Raises
-    ------
-    AssertionError
-        If 'frame_idxs' exceed the number of frames.
-
-    Deprecated
-    ----------
-    This function will be removed on or after June 2026.
-    The get_frames method it decorates has been removed.
-    """
-    import warnings
-
-    warnings.warn(
-        "check_get_frames_args() is deprecated and will be removed on or after June 2026. "
-        "The get_frames method has been removed.",
-        FutureWarning,
-        stacklevel=2,
-    )
-
-    @wraps(func)
-    def corrected_args(imaging, frame_idxs, channel=0):
-        channel = int(channel)
-        if isinstance(frame_idxs, (int, np.integer)):
-            frame_idxs = [frame_idxs]
-        if not isinstance(frame_idxs, slice):
-            frame_idxs = np.array(frame_idxs)
-            assert np.all(frame_idxs < imaging.get_num_samples()), "'frame_idxs' exceed number of frames"
-        get_frames_correct_arg = func(imaging, frame_idxs, channel)
-
-        if not isinstance(frame_idxs, slice) and len(frame_idxs) == 1:
-            return get_frames_correct_arg[0]
-        else:
-            return get_frames_correct_arg
-
-    return corrected_args
 
 
 def _cast_start_end_frame(start_frame, end_frame):

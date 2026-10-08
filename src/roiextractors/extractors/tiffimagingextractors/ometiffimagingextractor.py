@@ -222,9 +222,7 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
             ome_root = ET.fromstring(ome_xml_string.encode("utf-8"))
         except ValueError:
             ome_root = ET.fromstring(ome_xml_string)
-        pixels_element = ome_root.find(".//{*}Pixels")
-        if pixels_element is None:
-            raise ValueError(f"No Pixels element found in OME-XML metadata of {file_path}")
+        pixels_element = OMETiffImagingExtractor._resolve_pixels_element(ome_root=ome_root, file_path=file_path)
 
         ome_dimension_order = pixels_element.get("DimensionOrder")
         if ome_dimension_order is None:
@@ -281,6 +279,99 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         if channel_names is not None:
             result["channel_names"] = channel_names
         return result
+
+    @staticmethod
+    def _resolve_pixels_element(ome_root: ET.Element, file_path: Path) -> ET.Element:
+        """Return the Pixels element describing ``file_path``, following a companion file if needed.
+
+        OME-TIFF stores its metadata one of two ways. Either every file embeds the full OME-XML,
+        including the ``Pixels`` block, or a file carries only a ``BinaryOnly`` pointer and the real
+        ``Pixels`` block lives in a single ``*.companion.ome`` sidecar beside the data. The second
+        form exists so that a dataset spanning many files does not repeat its metadata in each one.
+
+        Parameters
+        ----------
+        ome_root : xml.etree.ElementTree.Element
+            The root of the OME-XML found in the TIFF file.
+        file_path : PathType
+            Path to the OME-TIFF file the XML came from. Used to locate the companion file, which
+            is written beside the data, and to pick the right image when the companion holds more
+            than one.
+
+        Returns
+        -------
+        xml.etree.ElementTree.Element
+            The Pixels element.
+        """
+        pixels_element = ome_root.find(".//{*}Pixels")
+        if pixels_element is not None:
+            return pixels_element
+
+        binary_only_element = ome_root.find(".//{*}BinaryOnly")
+        if binary_only_element is None:
+            raise ValueError(f"No Pixels element found in OME-XML metadata of {file_path}")
+
+        metadata_file_name = binary_only_element.get("MetadataFile")
+        if metadata_file_name is None:
+            raise ValueError(
+                f"The OME-XML of {file_path} carries a BinaryOnly element with no MetadataFile "
+                "attribute, so the companion file holding the Pixels metadata cannot be located."
+            )
+
+        companion_file_path = Path(file_path).parent / metadata_file_name
+        if not companion_file_path.is_file():
+            raise FileNotFoundError(
+                f"The OME-XML of {file_path} points to the companion metadata file "
+                f"'{metadata_file_name}', which was not found at '{companion_file_path}'. "
+                "Companion files should be moved to the same folder for this to work."
+            )
+
+        companion_root = ET.parse(companion_file_path).getroot()
+        return OMETiffImagingExtractor._select_pixels_element_for_file(
+            companion_root=companion_root, file_path=Path(file_path), companion_file_path=companion_file_path
+        )
+
+    @staticmethod
+    def _select_pixels_element_for_file(
+        companion_root: ET.Element, file_path: Path, companion_file_path: Path
+    ) -> ET.Element:
+        """Return the Pixels element in a companion file that describes ``file_path``.
+
+        A companion file can describe several images, so the right one is the image whose TiffData
+        elements reference this file by name.
+
+        Parameters
+        ----------
+        companion_root : xml.etree.ElementTree.Element
+            The root of the OME-XML in the companion file.
+        file_path : Path
+            The OME-TIFF file being opened.
+        companion_file_path : Path
+            The companion file, named in error messages.
+
+        Returns
+        -------
+        xml.etree.ElementTree.Element
+            The Pixels element.
+        """
+        pixels_elements = companion_root.findall(".//{*}Pixels")
+        if not pixels_elements:
+            raise ValueError(f"No Pixels element found in the companion metadata file {companion_file_path}")
+        if len(pixels_elements) == 1:
+            return pixels_elements[0]
+
+        for pixels_element in pixels_elements:
+            referenced_names = {
+                uuid_element.get("FileName") for uuid_element in pixels_element.findall(".//{*}TiffData/{*}UUID")
+            }
+            if file_path.name in referenced_names:
+                return pixels_element
+
+        raise ValueError(
+            f"The companion metadata file {companion_file_path} describes {len(pixels_elements)} images "
+            f"and none of them references '{file_path.name}', so the image this file belongs to "
+            "cannot be determined."
+        )
 
     @staticmethod
     def _parse_file_paths_from_ome_metadata(pixels_element: ET.Element, source_file_path: Path) -> dict[Path, dict]:

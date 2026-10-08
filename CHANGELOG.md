@@ -1,12 +1,45 @@
-# v0.9.1 (Upcoming)
+# v0.10.1 (Upcoming)
 
 ### Features
 
 ### Fixes
 
 ### Deprecations And Removals
+* Dropped support for Python 3.10, which `neuroconv` no longer supports. The minimum supported version is now Python 3.11. [PR #627](https://github.com/catalystneuro/roiextractors/pull/627)
 
 ### Improvements
+* Added support for Python 3.14. The `isx` dependency of the `full` extra is skipped on 3.14 because `isx` does not support it yet, so the Inscopix extractors are unavailable there. Resolves [#622](https://github.com/catalystneuro/roiextractors/issues/622)
+* The Python and OS versions tested in CI are now read from `min_python_version.txt`, `max_python_version.txt` and `all_os_versions.txt` in `.github/workflows`, and pull requests gain an `All tests passing` job that aggregates the test matrix, so that changing the tested versions no longer requires changing the required checks in the branch protection. [PR #625](https://github.com/catalystneuro/roiextractors/pull/625)
+* Pull requests from forks, which do not receive the AWS secrets, now restore the most recent cached `ophys_testing_data` from the base branch in the `load-data` action instead of failing on the S3 listing. [PR #626](https://github.com/catalystneuro/roiextractors/pull/626)
+
+# v0.10.0 (September 9th, 2026)
+
+### Features
+* Added `MockImagingExtractor` in `roiextractors.testing`, a `PoissonNoiseImagingExtractor` with `native_timestamps` and `dtype` support for testing. It is not exported from the top-level namespace, since it exists to serve the dummy generators rather than as user-facing API. Poisson noise is photon counts, so the data is non-negative integers and the default dtype stays `uint16` as it was. `generate_dummy_imaging_extractor()` now builds on it and generates lazily instead of materialising a `NumpyImagingExtractor`, which also removes the per-instance method patching the volumetric and native-timestamp paths used to need. [PR #562](https://github.com/catalystneuro/roiextractors/pull/562)
+* `NwbImagingExtractor` and `NwbSegmentationExtractor` now read Zarr-backed NWB files, opening through `pynwb.read_nwb` instead of `NWBHDF5IO`, which raises the `pynwb` floor to 3.0.0 and needs `hdmf-zarr` installed to read a Zarr store. [PR #618](https://github.com/catalystneuro/roiextractors/pull/618)
+
+### Fixes
+* Fixed `NwbSegmentationExtractor` raising `AttributeError: 'NoneType' object has no attribute 'field_of_view_shape'` for every file, from passing `self.get_frame_shape()` as the `field_of_view_shape` of the `_ROIMasks` it was building. [PR #618](https://github.com/catalystneuro/roiextractors/pull/618)
+* `NwbSegmentationExtractor.get_native_timestamps()` now returns the timestamps of the `RoiResponseSeries` instead of `None`. [PR #618](https://github.com/catalystneuro/roiextractors/pull/618)
+* `OMETiffImagingExtractor` now reads datasets whose OME-XML is a `BinaryOnly` pointer to a `*.companion.ome` sidecar instead of an embedded `Pixels` block. This is the packaging OME-TIFF writers use for datasets that span many files, so that the metadata is stored once rather than repeated in every file, and opening one of them previously raised `No Pixels element found in OME-XML metadata`. When the companion describes several images, the one whose `TiffData` elements name the file being opened is used. Resolves [#595](https://github.com/catalystneuro/roiextractors/issues/595)
+* Use zarr spellings that are valid in both zarr-python v2 and v3 so that `roiextractors` can be imported and the Minian data read when zarr 3 is installed. [PR #608](https://github.com/catalystneuro/roiextractors/pull/608)
+* Fixed `SampleSlicedImagingExtractor.get_series()` not clamping `end_sample=None` to the slice's own bound. Calling `extractor.slice_samples(a, b).get_series()` (no args) used to return more samples than the slice should contain because `end_sample=None` was passed straight through to the parent. The default for both `start_sample` and `end_sample` is now resolved to the slice's bounds before the parent call. Resolves [#585](https://github.com/catalystneuro/roiextractors/issues/585).
+* `ThorTiffImagingExtractor.get_available_channel_names` now reads the `Wavelengths` block of `Experiment.xml` instead of falling back to the numeric names of the OME-XML, so the names it returns are the ones the constructor accepts. [PR #610](https://github.com/catalystneuro/roiextractors/pull/610)
+
+### Deprecations And Removals
+* Removed `check_get_frames_args()` from `extraction_tools`, deprecated for removal on or after June 2026. It decorated a `get_frames` method that no longer exists and had no callers anywhere.
+* Removed `SegmentationExtractor.get_num_channels()` and its slice passthrough, deprecated for removal on or after September 2026.
+* Removed `toy_example()` and the `roiextractors.example_datasets` package. It raised `TypeError: Cannot interpret '300.0' as a data type` on its third statement, from `np.zeros(num_rois, num_frames)` passing the sample count where numpy expects a dtype, and there are three more failures behind that one. It has not run since August 2022, when a refactor rewrote `np.zeros((len(sort.get_unit_ids()), rec.get_num_frames()))` into `np.zeros(num_of_units, num_frames)` and `enumerate` into `range`. [PR #349](https://github.com/catalystneuro/roiextractors/pull/349) then carried those lines forward when it swapped `spikeextractors` for `spikeinterface`. Nothing in the library or the test suite called it, so there was no working behaviour to deprecate. Its only remaining effect was to make `spikeinterface` a test dependency for the one `generate_sorting` call in its body, which holds the test environment to `zarr<3` and `numcodecs<0.16.0`. Use `generate_dummy_imaging_extractor()` and `generate_dummy_segmentation_extractor()` from `roiextractors.testing` instead.
+* Removed `MultiSegmentationExtractor`. It could not be instantiated, since `SegmentationExtractor.get_native_timestamps` is abstract and the class never implemented it, so nothing that touched it had ever run. It flattened several per-plane segmentations into one list of ROI ids with a `(plane_index, roi_id)` lookup, which is none of the three aggregations that are actually wanted (appending ROI populations over the same field of view, stacking 2D masks into 3D, or concatenating traces over time). Resolves [#588](https://github.com/catalystneuro/roiextractors/issues/588)
+* Deprecated `generate_dummy_video()` (will be removed in or after March 2027). Use `GaussianNoiseImagingExtractor` or `PoissonNoiseImagingExtractor` instead. [PR #562](https://github.com/catalystneuro/roiextractors/pull/562)
+* Deprecated `has_native_timestamps` parameter in `generate_dummy_imaging_extractor()` (will be removed in or after March 2027). Use `native_timestamps="evenly_spaced"` instead. [PR #562](https://github.com/catalystneuro/roiextractors/pull/562)
+
+### Improvements
+* `BrukerTiffImagingExtractor` now reads the Prairie View version from the configuration XML (`PVScan/@version`) and warns when the detected version is below 5.5 (the earliest version with test coverage), or when the version string is missing or unparsable. Pre-5.1 data is still rejected via the file-shape check (plain `.tif` with no `.ome.tif`). [PR #577](https://github.com/catalystneuro/roiextractors/pull/577)
+* The `Suite2pSegmentationExtractor` warnings for multiple channels or planes now list the available names and the one being loaded instead of pointing at `get_available_channels` / `get_available_planes`. [PR #607](https://github.com/catalystneuro/roiextractors/pull/607)
+* `MultiTiffMultiPageExtractor` and the extractors built on it now raise at construction when the TIFF compression needs `imagecodecs`, with a message that names the compression and the install command, instead of failing mid-read from inside `tifffile`. [PR #609](https://github.com/catalystneuro/roiextractors/pull/609)
+* Replaced the `lazy_ops` dependency with `lazyslice`, its maintained successor from the same authors, with the same `DatasetView` and `lazy_transpose` API and support for zarr 3. [PR #615](https://github.com/catalystneuro/roiextractors/pull/615)
+* Removed the `zarr<3` and `numcodecs<0.16.0` pins, which silently downgraded zarr to 2.18.7 when `roiextractors` was installed next to zarr 3, and dropped `numcodecs` as a direct dependency since nothing here imports it. Resolves [#384](https://github.com/catalystneuro/roiextractors/issues/384)
 
 # v0.9.0 (June 30th, 2026)
 

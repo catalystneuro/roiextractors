@@ -1,5 +1,7 @@
 """Tests for the MultiTIFFMultiPageExtractor organized by test cases."""
 
+import re
+
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
@@ -764,3 +766,31 @@ def test_frame_to_ifd_table_on_long_planar_t_series():
     assert table.shape == (num_timepoints,)
     assert table["file_index"].max() == num_timepoints - 1
     assert table["time_index"].max() == num_timepoints - 1
+
+
+def test_missing_codec_raises_at_construction(tmp_path, monkeypatch):
+    """A TIFF whose compression tifffile cannot decode fails at construction, not mid-read."""
+    import tifffile
+
+    file_path = tmp_path / "lzw_compressed.tif"
+    with tifffile.TiffWriter(file_path) as writer:
+        writer.write(np.zeros((3, 4), dtype=np.uint16), compression="LZW")
+
+    # To test that in an environment where imagecodecs is not available the read fails,
+    # we monkeypatch tifffile.TIFF.DECOMPRESSORS to hold only the entry for uncompressed data
+    no_compression = tifffile.COMPRESSION.NONE
+    no_compression_decoder = tifffile.TIFF.DECOMPRESSORS[no_compression]
+    decompressors = {no_compression: no_compression_decoder}
+    monkeypatch.setattr(tifffile.TIFF, "DECOMPRESSORS", decompressors)
+    # After this, tifffile has no decompressor for LZW and loading the compressed
+    # TIFF fails with the expected error
+
+    expected_message = (
+        "This TIFF is LZW compressed and decoding it requires the 'imagecodecs' package, "
+        "which tifffile does not install by default. The file is not corrupt, this is a missing optional "
+        "dependency. Install it with:\n\n"
+        '    pip install "tifffile[codecs]"\n\n'
+        f"File: {file_path}"
+    )
+    with pytest.raises(ValueError, match=re.escape(expected_message)):
+        MultiTIFFMultiPageExtractor(file_paths=[file_path], sampling_frequency=30.0)

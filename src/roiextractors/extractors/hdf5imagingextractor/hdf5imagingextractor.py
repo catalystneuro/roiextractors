@@ -11,7 +11,7 @@ from warnings import warn
 
 import h5py
 import numpy as np
-from lazy_ops import DatasetView
+from lazyslice import DatasetView
 from numpy.typing import ArrayLike
 
 from ...extraction_tools import PathType
@@ -60,27 +60,28 @@ class Hdf5ImagingExtractor(ImagingExtractor):
 
         self._file = h5py.File(file_path, "r")
         if mov_field in self._file.keys():
-            self._video = DatasetView(self._file[self._mov_field])
+            dataset = self._file[self._mov_field]
+            self._video = DatasetView(dataset)
             if sampling_frequency is None:
-                assert "fr" in self._video.attrs, (
+                assert "fr" in dataset.attrs, (
                     "Sampling frequency is unavailable as a dataset attribute! "
                     "Please set the keyword argument 'sampling_frequency'"
                 )
-                self._sampling_frequency = float(self._video.attrs["fr"])
+                self._sampling_frequency = float(dataset.attrs["fr"])
             else:
                 self._sampling_frequency = sampling_frequency
         else:
             raise Exception(f"{file_path} does not contain the 'mov' dataset")
 
         if start_time is None:
-            if "start_time" in self._video.attrs.keys():
-                self._start_time = self._video.attrs["start_time"]
+            if "start_time" in dataset.attrs.keys():
+                self._start_time = dataset.attrs["start_time"]
         else:
             self._start_time = start_time
 
         if metadata is None:
-            if "metadata" in self._video.attrs:
-                self.metadata = self._video.attrs["metadata"]
+            if "metadata" in dataset.attrs:
+                self.metadata = dataset.attrs["metadata"]
         else:
             self.metadata = metadata
 

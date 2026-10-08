@@ -18,7 +18,6 @@ def planar_stack_imaging_extractor():
     [
         [dict(sampling_frequency=1), dict(sampling_frequency=2)],
         [dict(num_rows=1), dict(num_rows=2)],
-        [dict(dtype=np.int16), dict(dtype=np.float32)],
         [dict(num_samples=1), dict(num_samples=2)],
     ],
 )

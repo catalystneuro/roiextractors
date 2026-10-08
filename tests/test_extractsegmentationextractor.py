@@ -1,7 +1,7 @@
 import h5py
 import numpy as np
 from hdmf.testing import TestCase
-from lazy_ops import DatasetView
+from lazyslice import DatasetView
 from numpy.testing import assert_array_equal
 from parameterized import param, parameterized
 

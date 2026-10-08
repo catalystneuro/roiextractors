@@ -57,12 +57,12 @@ class TestSuite2pSegmentationExtractor(TestCase):
         )
 
     def test_multi_channel_warns(self):
-        exc_msg = "More than one channel is detected! Please specify which channel you wish to load with the `channel_name` argument. To see what channels are available, call `Suite2pSegmentationExtractor.get_available_channels(folder_path=...)`."
+        exc_msg = f"More than one channel is detected: {self.channel_names}. Using '{self.channel_names[0]}'. Please specify which channel you wish to load with the `channel_name` argument."
         with self.assertWarnsWith(warn_type=UserWarning, exc_msg=exc_msg):
             Suite2pSegmentationExtractor(folder_path=self.folder_path)
 
     def test_multi_plane_warns(self):
-        exc_msg = "More than one plane is detected! Please specify which plane you wish to load with the `plane_name` argument. To see what planes are available, call `Suite2pSegmentationExtractor.get_available_planes(folder_path=...)`."
+        exc_msg = f"More than one plane is detected: {self.plane_names}. Using '{self.plane_names[0]}'. Please specify which plane you wish to load with the `plane_name` argument."
         with self.assertWarnsWith(warn_type=UserWarning, exc_msg=exc_msg):
             Suite2pSegmentationExtractor(folder_path=self.folder_path, channel_name="chan2")
 

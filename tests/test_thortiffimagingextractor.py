@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+import numpy as np
 import pytest
 import tifffile
 from numpy.testing import assert_array_equal
@@ -90,3 +91,73 @@ class TestThorTiffImagingExtractor:
         """Test that the acquisition start time is parsed from Experiment.xml."""
         expected = datetime(2023, 10, 18, 17, 39, 19, tzinfo=timezone.utc)
         assert self.extractor._get_session_start_time() == expected
+
+    def test_get_available_channel_names(self):
+        """Every name discovery returns can be passed back as `channel_name`."""
+        channel_names = ThorTiffImagingExtractor.get_available_channel_names(file_path=FILE_PATH)
+        assert channel_names == ["ChanA"]
+
+        for channel_name in channel_names:
+            extractor = ThorTiffImagingExtractor(file_path=FILE_PATH, channel_name=channel_name)
+            assert extractor._get_channel_names() == channel_names
+
+
+VOLUMETRIC_DIR = OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "multi_channel_multi_plane" / "lzw_compressed"
+
+
+class TestThorTiffImagingExtractorVolumetric:
+    """Test ThorTiffImagingExtractor on a two-channel, three-plane acquisition."""
+
+    num_samples = 3
+    num_planes = 3
+    image_shape = (128, 128)
+
+    @classmethod
+    def setup_class(cls):
+        """Set up the test."""
+        cls.file_path = VOLUMETRIC_DIR / "ChanA_0001_0001_0001_0001.tif"
+        if not cls.file_path.exists():
+            pytest.skip(f"Test file {cls.file_path} not found. Skipping tests.")
+
+        cls.extractor = ThorTiffImagingExtractor(file_path=cls.file_path, channel_name="ChanA")
+
+    def test_volumetric_shape(self):
+        """The depth planes are reported as a fourth dimension."""
+        assert self.extractor.is_volumetric
+        assert self.extractor.get_num_planes() == self.num_planes
+        assert self.extractor.get_num_samples() == self.num_samples
+        assert self.extractor.get_sample_shape() == (*self.image_shape, self.num_planes)
+
+        series = self.extractor.get_series()
+        assert series.shape == (self.num_samples, *self.image_shape, self.num_planes)
+
+    def test_sample_and_plane_are_not_transposed(self):
+        """Each (sample, plane) position holds the file named for that plane and timepoint.
+
+        ThorImage names the files ``ChanA_0001_0001_<plane>_<timepoint>.tif``, so the mapping is
+        checked against the files themselves. Shapes alone would pass even if the two were swapped.
+
+        The pages are read one at a time because ``tifffile.imread`` on the first file of the
+        acquisition returns the whole assembled OME series, not that file's single page.
+        """
+        series = self.extractor.get_series()
+        for sample_index in range(self.num_samples):
+            for plane_index in range(self.num_planes):
+                file_path = VOLUMETRIC_DIR / f"ChanA_0001_0001_000{plane_index + 1}_000{sample_index + 1}.tif"
+                with tifffile.TiffFile(file_path) as tiff_file:
+                    expected = tiff_file.pages[0].asarray()
+                assert_array_equal(series[sample_index, :, :, plane_index], expected)
+
+    def test_channels_hold_different_data(self):
+        """Selecting the other channel reads other pages."""
+        other = ThorTiffImagingExtractor(file_path=self.file_path, channel_name="ChanB")
+        assert not np.array_equal(self.extractor.get_series(), other.get_series())
+
+    def test_get_available_channel_names(self):
+        """Every name discovery returns can be passed back as `channel_name`."""
+        channel_names = ThorTiffImagingExtractor.get_available_channel_names(file_path=self.file_path)
+        assert channel_names == ["ChanA", "ChanB"]
+
+        for channel_name in channel_names:
+            extractor = ThorTiffImagingExtractor(file_path=self.file_path, channel_name=channel_name)
+            assert extractor._get_channel_names() == channel_names

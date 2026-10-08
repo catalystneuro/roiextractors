@@ -8,7 +8,7 @@ CnmfeSegmentationExtractor
 
 import h5py
 import numpy as np
-from lazy_ops import DatasetView
+from lazyslice import DatasetView
 
 from ...extraction_tools import PathType
 from ...segmentationextractor import (

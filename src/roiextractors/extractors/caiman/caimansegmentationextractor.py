@@ -361,14 +361,14 @@ class CaimanSegmentationExtractor(SegmentationExtractor):
 
         Returns
         -------
-        lazy_ops.DatasetView or None
+        lazyslice.DatasetView or None
             The traces specified by the field, or None if not available.
         """
-        lazy_ops = get_package(package_name="lazy_ops")
+        lazyslice = get_package(package_name="lazyslice")
 
         # Check if field exists and is not scalar
         if field in self._estimates and not self._is_scalar_dataset(self._estimates[field]):
-            return lazy_ops.DatasetView(self._estimates[field]).lazy_transpose()
+            return lazyslice.DatasetView(self._estimates[field]).lazy_transpose()
 
         return None
 

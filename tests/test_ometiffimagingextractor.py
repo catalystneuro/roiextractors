@@ -1,5 +1,8 @@
 """Tests for the OMETiffImagingExtractor using real OME-TIFF test data."""
 
+import re
+import shutil
+
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
@@ -128,6 +131,53 @@ class TestOMETiffImagingExtractor:
             for z in range(5):
                 page_index = t * 5 + z
                 assert_array_equal(extractor_data[t, :, :, z], all_pages[page_index])
+
+    def test_binary_only_companion_file(self):
+        """Test a dataset whose Pixels metadata lives in a `*.companion.ome` sidecar.
+
+        File: volumetric_single_channel_multifile_companion/multifile-Z1.ome.tiff
+        Each TIFF carries only a `BinaryOnly` pointer to `multifile.companion.ome`, which holds the
+        single Pixels block describing all five files.
+        - Samples (T): 1
+        - Channels (C): 1
+        - Depth planes (Z): 5, one per file
+        - Frame shape: 24 x 18
+        - Volumetric: True
+        """
+        folder_path = OME_TIFF_PATH / "volumetric_single_channel_multifile_companion"
+        file_path = folder_path / "multifile-Z1.ome.tiff"
+
+        extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0)
+
+        assert extractor.get_num_samples() == 1
+        assert extractor.get_image_shape() == (24, 18)
+        assert extractor.get_num_planes() == 5
+        assert extractor.is_volumetric is True
+
+        # Each plane must come from the file the companion names for that Z index
+        extractor_data = extractor.get_series()
+        for plane_index in range(5):
+            plane_file_path = folder_path / f"multifile-Z{plane_index + 1}.ome.tiff"
+            with TiffFile(plane_file_path) as tiff:
+                expected = tiff.pages[0].asarray()
+            assert_array_equal(extractor_data[0, :, :, plane_index], expected)
+
+    def test_missing_companion_file_raises(self, tmp_path):
+        """A BinaryOnly file whose companion is absent should say so, not fail on missing Pixels."""
+        folder_path = OME_TIFF_PATH / "volumetric_single_channel_multifile_companion"
+        for source_path in folder_path.glob("*.ome.tiff"):
+            shutil.copy(source_path, tmp_path / source_path.name)
+
+        file_path = tmp_path / "multifile-Z1.ome.tiff"
+        companion_file_path = tmp_path / "multifile.companion.ome"
+        expected_message = (
+            f"The OME-XML of {file_path} points to the companion metadata file "
+            f"'multifile.companion.ome', which was not found at '{companion_file_path}'. "
+            "Companion files should be moved to the same folder for this to work."
+        )
+
+        with pytest.raises(FileNotFoundError, match=re.escape(expected_message)):
+            OMETiffImagingExtractor(file_path, sampling_frequency=1.0)
 
     def test_multi_channel_multi_plane_single_file(self):
         """Test with multi-channel, volumetric time series data in a single file.

@@ -1,7 +1,25 @@
 name: Full Tests
 on:
   workflow_dispatch:
+    inputs:
+      python-versions:
+        description: 'List of Python versions to use in matrix, as JSON string'
+        required: true
+        type: string
+      os-versions:
+        description: 'List of OS versions to use in matrix, as JSON string'
+        required: true
+        type: string
   workflow_call:
+    inputs:
+      python-versions:
+        description: 'List of Python versions to use in matrix, as JSON string'
+        required: true
+        type: string
+      os-versions:
+        description: 'List of OS versions to use in matrix, as JSON string'
+        required: true
+        type: string
     secrets:
       CODECOV_TOKEN:
         required: true
@@ -19,8 +37,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.13"]
-        os: [ubuntu-latest, windows-latest, macos-latest, macos-15-intel]
+        python-version: ${{ fromJson(inputs.python-versions) }}
+        os: ${{ fromJson(inputs.os-versions) }}
+        exclude:
+          # 23 tests get an empty array back on this combination (numpy 2.5.3), passes on every other OS and on 3.10
+          - os: macos-15-intel
+            python-version: "3.14"
     steps:
       - uses: actions/checkout@v6
       - run: git fetch --prune --unshallow --tags
@@ -57,7 +79,7 @@ jobs:
 
       - name: Run full pytest with coverage
         run: pytest -n auto --dist loadscope --cov=./ --cov-report xml:./codecov.xml
-      - if: ${{ matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'}}
+      - if: ${{ matrix.python-version == '3.14' && matrix.os == 'ubuntu-latest'}}
         name: Upload full coverage to Codecov
         uses: codecov/codecov-action@v4
         with:

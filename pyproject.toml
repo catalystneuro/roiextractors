@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "roiextractors"
-version = "0.9.1"
+version = "0.10.1"
 description = "Python module for extracting optical physiology ROIs and traces for various file types and formats"
 readme = "README.md"
 license = { file = "LICENSE.txt" }
@@ -21,29 +21,29 @@ authors = [
 keywords = ["ROI", "extraction", "optical physiology"]
 classifiers = [
     "Intended Audience :: Science/Research",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Operating System :: POSIX :: Linux",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: MacOS",
     "License :: OSI Approved :: BSD License",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 dependencies = [
   "h5py>=2.10.0",
-  "pynwb>=2.0.1",
+  "pynwb>=3.0.0",
   "tqdm>=4.48.2",
-  "lazy_ops>=0.2.0",
+  "lazyslice>=0.3.0",
   "dill>=0.3.2",
   "scipy>=1.5.2",
   "psutil>=5.8.0",
   "PyYAML",
   "lxml",
   "packaging",
-  "zarr>=2,<3",
-  "numcodecs<0.16.0",
+  "zarr>=2",
 ]
 
 [project.optional-dependencies]
@@ -54,7 +54,7 @@ full = [
     "opencv-python-headless>=4.8.1.78,<4.13; platform_system == 'Darwin' and platform_machine == 'x86_64'",
     "opencv-python-headless>=4.8.1.78; platform_system != 'Darwin' or platform_machine != 'x86_64'",
     "natsort>=8.3.1",
-    "isx>=2.0; sys_platform != 'darwin' or platform_machine != 'arm64'"
+    "isx>=2.0; python_version < '3.14' and (sys_platform != 'darwin' or platform_machine != 'arm64')"
 ]
 
 [project.urls]
@@ -120,10 +120,14 @@ ignore-words-list = 'assertin,tye,thet'
 test = [
     "pytest",
     "pytest-cov",
+    # Decoding an LZW compressed TIFF needs imagecodecs, which tifffile does not install by default.
+    # Kept out of the `full` extra so users are not made to carry it; see MultiTIFFMultiPageExtractor.
+    "tifffile[codecs]",
     "parameterized==0.8.1",
-    "spikeinterface>=0.100.7",
     "pytest-xdist",
     "pytest-memray; sys_platform != 'win32'",
+    # Needed to write the Zarr-backed NWB fixtures the NWB extractor tests read back.
+    "hdmf-zarr",
 ]
 docs = [
     "Jinja2",
