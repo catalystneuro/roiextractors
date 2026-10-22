@@ -55,6 +55,18 @@ class TestImagingExtractor(TestCase):
         result = extractor.time_to_sample_indices(np.array([0.0, 0.1, 0.2]))
         np.testing.assert_array_equal(result, np.array([0, 1, 2]))
 
+    def test_time_to_sample_indices_with_set_times_and_native_timestamps(self):
+        """Times set with set_times should take precedence over native timestamps and survive the call."""
+        extractor = generate_dummy_imaging_extractor(
+            num_samples=3, num_rows=2, num_columns=2, sampling_frequency=10.0, native_timestamps="evenly_spaced"
+        )
+        set_times = np.array([100.0, 100.1, 100.2])
+        extractor.set_times(set_times)
+
+        result = extractor.time_to_sample_indices(np.array([100.0, 100.1, 100.2]))
+        np.testing.assert_array_equal(result, np.array([0, 1, 2]))
+        np.testing.assert_array_equal(extractor.get_timestamps(), set_times)
+
 
 if __name__ == "__main__":
     unittest.main()
