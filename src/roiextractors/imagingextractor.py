@@ -308,7 +308,7 @@ class ImagingExtractor(ABC):
 
         # Fallback to calculated timestamps from sampling frequency
         sample_indices = np.arange(start_sample, end_sample)
-        return sample_indices / self.get_sampling_frequency()
+        return self._get_t_start() + sample_indices / self.get_sampling_frequency()
 
     def time_to_sample_indices(self, times: float | ArrayLike) -> float | np.ndarray:
         """Convert user-inputted times (in seconds) to sample indices.
@@ -329,7 +329,7 @@ class ImagingExtractor(ABC):
         if self._times is not None:
             return (np.searchsorted(self._times, times, side="right") - 1).astype("int64")
         else:
-            return np.round(times * self.get_sampling_frequency()).astype("int64")
+            return np.round((times - self._get_t_start()) * self.get_sampling_frequency()).astype("int64")
 
     def set_times(self, times: ArrayLike) -> None:
         """Set the recording times (in seconds) for each frame.
@@ -370,6 +370,20 @@ class ImagingExtractor(ABC):
             True if ``get_native_timestamps()`` returns timestamps, otherwise False.
         """
         return False
+
+    def _get_t_start(self) -> float:
+        """Return the start time, in seconds, of timestamps computed from the sampling frequency.
+
+        Without a time vector, ``get_timestamps()`` returns ``t_start + sample_index / sampling_frequency``. The
+        default returns 0.0, and an extractor whose format records a start time without per-sample timestamps
+        overrides it, like the ``starting_time`` of an NWB series.
+
+        Returns
+        -------
+        t_start: float
+            The start time in seconds.
+        """
+        return 0.0
 
     def has_time_vector(self) -> bool:
         """Detect if the timestamps of the ImagingExtractor are a vector or computed from the sampling frequency.
@@ -625,6 +639,10 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
     def _has_native_timestamps(self) -> bool:
         return self._parent_imaging._has_native_timestamps()
 
+    def _get_t_start(self) -> float:
+        parent = self._parent_imaging
+        return parent._get_t_start() + self._start_sample / parent.get_sampling_frequency()
+
 
 class _FieldOfViewSlicedImagingExtractor(ImagingExtractor):
     """Class to get a lazy field of view slice.
@@ -824,3 +842,6 @@ class _FieldOfViewSlicedImagingExtractor(ImagingExtractor):
 
     def _has_native_timestamps(self) -> bool:
         return self._parent_imaging._has_native_timestamps()
+
+    def _get_t_start(self) -> float:
+        return self._parent_imaging._get_t_start()

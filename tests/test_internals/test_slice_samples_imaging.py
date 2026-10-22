@@ -77,6 +77,19 @@ def test_has_time_vector_after_set_times_on_slice():
     assert sample_sliced_imaging.has_time_vector()
 
 
+def test_timestamps_of_a_slice_continue_from_the_parent():
+    """A slice of an extractor without a time vector continues the timestamps of its parent."""
+    imaging_extractor = generate_dummy_imaging_extractor(
+        num_samples=10, num_rows=5, num_columns=4, sampling_frequency=10.0
+    )
+    imaging_extractor._get_t_start = lambda: 5.0
+    sample_sliced_imaging = imaging_extractor.slice_samples(start_sample=2, end_sample=7)
+
+    np.testing.assert_array_almost_equal(
+        sample_sliced_imaging.get_timestamps(), imaging_extractor.get_timestamps()[2:7]
+    )
+
+
 def test_get_series_default_start_default_end():
     """Both args default. Regression for #585: must return only the slice's range."""
     imaging = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)

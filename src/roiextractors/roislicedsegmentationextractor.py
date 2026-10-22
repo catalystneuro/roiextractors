@@ -132,6 +132,9 @@ class _RoiSlicedSegmentationExtractor(SegmentationExtractor):
     def _has_native_timestamps(self) -> bool:
         return self._parent_segmentation._has_native_timestamps()
 
+    def _get_t_start(self) -> float:
+        return self._parent_segmentation._get_t_start()
+
     def get_images_dict(self) -> dict:
         return self._parent_segmentation.get_images_dict()
 

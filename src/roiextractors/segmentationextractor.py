@@ -731,6 +731,20 @@ class SegmentationExtractor(ABC):
         """
         return False
 
+    def _get_t_start(self) -> float:
+        """Return the start time, in seconds, of timestamps computed from the sampling frequency.
+
+        Without a time vector, ``get_timestamps()`` returns ``t_start + sample_index / sampling_frequency``. The
+        default returns 0.0, and an extractor whose format records a start time without per-sample timestamps
+        overrides it, like the ``starting_time`` of an NWB series.
+
+        Returns
+        -------
+        t_start: float
+            The start time in seconds.
+        """
+        return 0.0
+
     def has_time_vector(self) -> bool:
         """Detect if the timestamps of the SegmentationExtractor are a vector or computed from the sampling frequency.
 
@@ -777,7 +791,7 @@ class SegmentationExtractor(ABC):
 
         # Fallback to calculated timestamps from sampling frequency
         sample_indices = np.arange(start_sample, end_sample)
-        return sample_indices / self.get_sampling_frequency()
+        return self._get_t_start() + sample_indices / self.get_sampling_frequency()
 
     def time_to_sample_indices(self, times: float | ArrayLike) -> np.ndarray:
         """Convert user-inputted times (in seconds) to sample indices.
@@ -798,7 +812,7 @@ class SegmentationExtractor(ABC):
         if self._times is not None:
             return (np.searchsorted(self._times, times, side="right") - 1).astype("int64")
         else:
-            return np.round(times * self.get_sampling_frequency()).astype("int64")
+            return np.round((times - self._get_t_start()) * self.get_sampling_frequency()).astype("int64")
 
     def set_property(self, key: str, values: ArrayLike, ids: ArrayLike, *, description: str = ""):
         """Set property values for ROIs.
@@ -995,6 +1009,10 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
 
     def _has_native_timestamps(self) -> bool:
         return self._parent_segmentation._has_native_timestamps()
+
+    def _get_t_start(self) -> float:
+        parent = self._parent_segmentation
+        return parent._get_t_start() + self._start_sample / parent.get_sampling_frequency()
 
     def get_frame_shape(self) -> tuple[int, int]:
         return tuple(self._parent_segmentation.get_frame_shape())

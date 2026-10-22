@@ -217,6 +217,14 @@ class TestRoiSelectionTimestamps:
         assert selected.has_time_vector()
         assert_array_equal(selected.get_timestamps(), times)
 
+    def test_t_start_from_parent(self):
+        """Test that timestamps computed from the sampling frequency start where the parent's do."""
+        segmentation = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
+        segmentation._get_t_start = lambda: 5.0
+        selected = segmentation.select_rois(segmentation.get_roi_ids()[:2])
+
+        assert_array_equal(selected.get_timestamps(), segmentation.get_timestamps())
+
     def test_sampling_frequency_preserved(self):
         """Test that sampling frequency is preserved."""
         segmentation = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10, sampling_frequency=20.0)
