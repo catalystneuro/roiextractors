@@ -1,11 +1,10 @@
 """End-to-end tests for ``ScanImageMultiROIImagingExtractor`` against real planar mROI fixtures.
 
-These tests exercise the full construction and cropping path against any ScanImage multi-ROI
-(mesoscope) TIFF dropped under ``tests/fixtures/``. They carry no hard-coded ground truth: every
+These tests exercise the full construction and cropping path against the planar multi-ROI
+(mesoscope) fixture in the gin ``ophys_testing_data``. They carry no hard-coded ground truth: every
 expectation is derived from each file's own ScanImage metadata, and the assertions check structural
 invariants and relationships (e.g. cropped data matches the raw page rows, duplicate ROI names are
-rejected when used as a selector). Any planar, equal-width multi-ROI file of the same structure is
-discovered automatically and run through the same checks.
+rejected when used as a selector).
 """
 
 import functools
@@ -23,7 +22,9 @@ from roiextractors.extractors.tiffimagingextractors.scanimagetiff_utils import (
     read_scanimage_metadata,
 )
 
-FIXTURES_DIR = Path(__file__).parent / "fixtures"
+from .setup_paths import OPHYS_DATA_PATH
+
+FIXTURES_DIR = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage" / "multi_roi" / "planar_single_channel"
 
 
 @functools.lru_cache(maxsize=None)
@@ -42,29 +43,6 @@ def _raw_stack(path_str: str) -> np.ndarray:
     """The full uncropped page stack read directly with tifffile, for crop comparisons (cached)."""
     with TiffReader(path_str) as reader:
         return np.stack([page.asarray() for page in reader.pages])
-
-
-def _is_planar_mroi(path_str: str) -> bool:
-    """Whether a file is a planar, equal-width multi-ROI ScanImage acquisition."""
-    try:
-        metadata = read_scanimage_metadata(path_str)
-    except Exception:
-        return False
-    frame_data = metadata["scan_image_non_varying_frame_metadata"]
-    if not frame_data.get("SI.hRoiManager.mroiEnable", 0):
-        return False
-    # Volumetric data (stack enabled with more than one slice) is out of scope.
-    if frame_data.get("SI.hStackManager.enable", False) and frame_data.get("SI.hStackManager.numSlices", 1) > 1:
-        return False
-    try:
-        # `_get_imaging_scanfields` raises NotImplementedError on per-plane (volumetric) scanfields.
-        scanfields = ScanImageMultiROIImagingExtractor._get_imaging_scanfields(
-            metadata["scan_image_roi_group_metadata"]
-        )
-    except (KeyError, TypeError, NotImplementedError):
-        return False
-    widths = {scanfield["pixelResolutionXY"][0] for scanfield in scanfields}
-    return len(widths) == 1
 
 
 @functools.lru_cache(maxsize=None)
@@ -106,13 +84,7 @@ def _make_extractor(path: Path, **kwargs) -> ScanImageMultiROIImagingExtractor:
 
 # --- Fixture discovery and parametrization -----------------------------------------------------
 
-PLANAR_MROI_FILES = [
-    path
-    for path in sorted(FIXTURES_DIR.glob("*.tif")) + sorted(FIXTURES_DIR.glob("*.tiff"))
-    if _is_planar_mroi(str(path))
-]
-
-pytestmark = pytest.mark.skipif(not PLANAR_MROI_FILES, reason=f"No planar multi-ROI fixture found in {FIXTURES_DIR}")
+PLANAR_MROI_FILES = [FIXTURES_DIR / "scanimage_planar_multiroi.tif"]
 
 FILE_PARAMS = [pytest.param(path, id=path.name) for path in PLANAR_MROI_FILES]
 FILE_ROI_PARAMS = [
