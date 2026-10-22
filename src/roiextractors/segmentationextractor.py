@@ -219,7 +219,11 @@ class SegmentationExtractor(ABC):
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
     ) -> np.ndarray | None:
-        """Get the original timestamps from the data source.
+        """Retrieve the timestamps that the format records for this extractor.
+
+        Read them from the file when called, instead of loading them at construction. An extractor whose
+        format records timestamps overrides this method to return them, and also overrides
+        ``_has_native_timestamps()`` to return True. Otherwise it returns None.
 
         Parameters
         ----------
