@@ -3,6 +3,7 @@
 ### Features
 
 ### Fixes
+* `time_to_sample_indices()` on `ImagingExtractor` and `SegmentationExtractor` no longer replaces the times set with `set_times()`. It stored the native timestamps in the cache on every call, so on an extractor whose format records timestamps `get_timestamps()` returned the native timestamps afterwards instead of the set ones.
 * `has_time_vector()` now returns `True` whenever the timestamps are a vector with one time per sample, set with `set_times()` or recorded by the format, including before they are read and on slices.
 
 ### Deprecations And Removals
@@ -12,6 +13,7 @@
 * Added support for Python 3.14. The `isx` dependency of the `full` extra is skipped on 3.14 because `isx` does not support it yet, so the Inscopix extractors are unavailable there. Resolves [#622](https://github.com/catalystneuro/roiextractors/issues/622)
 * The Python and OS versions tested in CI are now read from `min_python_version.txt`, `max_python_version.txt` and `all_os_versions.txt` in `.github/workflows`, and pull requests gain an `All tests passing` job that aggregates the test matrix, so that changing the tested versions no longer requires changing the required checks in the branch protection. [PR #625](https://github.com/catalystneuro/roiextractors/pull/625)
 * Pull requests from forks, which do not receive the AWS secrets, now restore the most recent cached `ophys_testing_data` from the base branch in the `load-data` action instead of failing on the S3 listing. [PR #626](https://github.com/catalystneuro/roiextractors/pull/626)
+* Fixed the timestamp priority diagram in `design_decisions.rst` and the `get_native_timestamps()` docstrings to match how `get_timestamps()` resolves timestamps. [PR #631](https://github.com/catalystneuro/roiextractors/pull/631)
 
 # v0.10.0 (September 9th, 2026)
 
