@@ -219,7 +219,10 @@ class SegmentationExtractor(ABC):
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
     ) -> np.ndarray | None:
-        """Get the original timestamps from the data source.
+        """Retrieve the timestamps that the format records for this extractor.
+
+        Read them from the file when called, instead of loading them at construction. An extractor whose
+        format records timestamps overrides this method to return them. Otherwise it returns None.
 
         Parameters
         ----------
@@ -708,10 +711,6 @@ class SegmentationExtractor(ABC):
         ----------
         times: array-like
             The times in seconds for each frame
-
-        Notes
-        -----
-        Operates on _times attribute of the SegmentationExtractor object.
         """
         assert len(times) == self.get_num_samples(), "'times' should have the same length of the number of samples!"
         self._times = np.array(times, dtype=np.float64)
@@ -946,12 +945,13 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
 
         # The _times attribute of the sliced extractor acts like a view to the parent's _times,
         # which is memory efficient. However, it maintains copy semantics which are safer for the following reasons:
-        # Currently, there are only two ways of setting the _times:
+        # Currently, there are only three ways of setting the _times:
         #
         # 1. set_times() method - always overwrites the entire _times array
         # 2. get_timestamps() method - in some cases will cache get_native_timestamps() output
+        # 3. time_to_sample_indices() method - in some cases will cache get_native_timestamps() output
         #
-        # Both methods overwrite the entire _times array of the instance, preventing aliasing
+        # All three methods overwrite the entire _times array of the instance, preventing aliasing
         # problems where the _times reference of a slice extractor could be modified by the parent
         # or vice versa. See issue 498 for more details about this design.
         if getattr(self._parent_segmentation, "_times") is not None:

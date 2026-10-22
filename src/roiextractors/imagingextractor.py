@@ -254,10 +254,10 @@ class ImagingExtractor(ABC):
         self, start_sample: int | None = None, end_sample: int | None = None
     ) -> np.ndarray | None:
         """
-        Retrieve the original unaltered timestamps for the data in this interface.
+        Retrieve the timestamps that the format records for this extractor.
 
-        This function should retrieve the data on-demand by re-initializing the IO.
-        Can be overridden to return None if the extractor does not have native timestamps.
+        Read them from the file when called, instead of loading them at construction. An extractor whose
+        format records timestamps overrides this method to return them. Otherwise it returns None.
 
         Parameters
         ----------
