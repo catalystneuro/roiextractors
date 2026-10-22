@@ -3,6 +3,7 @@
 ### Features
 
 ### Fixes
+* `has_time_vector()` on `ImagingExtractor` and `SegmentationExtractor` now returns `True` when times were set with `set_times()` or the format records timestamps, so reading the timestamps no longer changes the answer. It answers without reading the timestamps. The extractors returned by `slice_samples()`, `slice_field_of_view()`, `select_plane()` and `select_rois()` no longer ask their parent for `has_time_vector()`, so they report the times set on them. The `has_time_vector()` overrides in `MinianSegmentationExtractor` and `MiniscopeImagingExtractor` are removed because the base method gives the same answer.
 
 ### Deprecations And Removals
 * Dropped support for Python 3.10, which `neuroconv` no longer supports. The minimum supported version is now Python 3.11. [PR #627](https://github.com/catalystneuro/roiextractors/pull/627)

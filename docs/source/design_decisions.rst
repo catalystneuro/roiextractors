@@ -24,13 +24,12 @@ timestamp API must satisfy three constraints:
    can only be reconstructed from the sampling rate. The API should let NeuroConv detect this
    case without allocating a full ``np.arange(n) / sampling_frequency`` array.
 
-These three constraints create a tension. A single method like ``has_time_vector()`` that only
-checks whether ``_times`` has been cached cannot distinguish between "no timestamps were set"
-and "native timestamps exist but have not been loaded yet." Eagerly loading native timestamps at
-initialization would resolve this ambiguity, but it would increase the memory footprint of every
-extractor regardless of whether those timestamps are ever needed. To address this, the current
-solution separates the question of *provenance* (does the source format have timestamps?) from the act
-of *materializing* them.
+These three constraints create a tension. Constraint 2 requires knowing whether the format has
+timestamps, and constraint 3 requires knowing it without building an array. Eagerly loading
+native timestamps at initialization would answer the question, but it would increase the memory
+footprint of every extractor regardless of whether those timestamps are ever needed. To address
+this, the current solution separates the question of *provenance* (does the source format have
+timestamps?) from the act of *materializing* them.
 
 Separation of ``get_native_timestamps`` and ``get_timestamps``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -48,28 +47,32 @@ To satisfy these constraints, the timestamp API separates concerns into distinct
   raising an exception lets NeuroConv distinguish "no native timestamps" from "timestamps
   exist but failed to load". This addresses constraint 2.
 
-With this separation, downstream code can resolve all three constraints through a simple
-priority chain:
+``get_timestamps()`` resolves which times to return through a priority chain:
 
 .. code-block:: text
 
-  What timing information is available?
+  Which times does get_timestamps() return?
       |
-      |-- has_time_vector()?
+      |-- Were times set with set_times()?
       |       |
       |       yes --> user-set timestamps (constraint 1: respect user intentions)
       |
-      |-- get_native_timestamps() is not None?
+      |-- Does the format record a timestamp for every sample?
       |       |
       |       yes --> hardware timestamps from the source format (constraint 2: faithful to source)
       |
-      '-- sampling rate only (constraint 3: no unnecessary allocation)
+      '-- timestamps computed from the sampling rate
 
-``has_time_vector()`` is a cheap check (it tests whether ``_times`` has been cached).
-``get_native_timestamps()`` is only called when the first check fails, and it returns ``None``
-immediately for formats without hardware timestamps, so no array is allocated in that case.
-When native timestamps do exist, loading them is unavoidable: any consumer that needs to decide
-between writing a rate or a full timestamp array must inspect the actual values.
+A consumer such as NeuroConv first asks ``has_time_vector()``. If it is ``True``, the times are a
+vector and the consumer reads them with ``get_timestamps()``. If it is ``False``, they are
+computed from the sampling rate, and the consumer can write the rate without allocating any
+array (constraint 3).
+
+``has_time_vector()`` answers without reading any timestamps: each extractor states whether its
+format records them, and some can only tell from the file, the way ``OMETiffImagingExtractor``
+parses the OME-XML to see whether every timepoint has a ``DeltaT``. This is the separation of
+provenance from materializing that the constraints call for, so reading the timestamps never
+changes the answer.
 
 .. note::
 

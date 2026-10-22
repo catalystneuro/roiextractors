@@ -23,6 +23,15 @@ class TestImagingExtractor(TestCase):
     def test_has_time_vector_false(self):
         self.assertFalse(self.imaging_extractor.has_time_vector())
 
+    def test_has_time_vector_with_native_timestamps(self):
+        """An extractor whose format records timestamps has a time vector before and after reading them."""
+        extractor = generate_dummy_imaging_extractor(
+            num_samples=3, num_rows=2, num_columns=2, sampling_frequency=10.0, native_timestamps="evenly_spaced"
+        )
+        self.assertTrue(extractor.has_time_vector())
+        extractor.get_timestamps()
+        self.assertTrue(extractor.has_time_vector())
+
     def test_time_to_sample_indices_with_sampling_frequency(self):
         """Round-trip: get_timestamps -> time_to_sample_indices should recover original indices."""
         sample_indices = np.array([0, 1, 2])

@@ -302,6 +302,7 @@ class TestBrukerTiffImagingExtractorSinglePlane:
                 0.30126802,
             ]
         )
+        assert extractor._has_native_timestamps()
         assert_array_equal(extractor.get_timestamps(), extractor.get_native_timestamps())
         np.testing.assert_allclose(extractor.get_timestamps(), expected_timestamps, atol=1e-6)
         expected_frequency = 1.0 / np.mean(np.diff(expected_timestamps))
@@ -380,6 +381,7 @@ class TestBrukerTiffImagingExtractorVolumetric:
 
         # Hardcoded relativeTime values extracted from the stub's Bruker XML (every 2nd, one per volume)
         expected_timestamps = np.array([0.0, 0.09694847, 0.19389695, 0.29084542, 0.3877939])
+        assert extractor._has_native_timestamps()
         assert_array_equal(extractor.get_timestamps(), extractor.get_native_timestamps())
         np.testing.assert_allclose(extractor.get_timestamps(), expected_timestamps, atol=1e-6)
         expected_frequency = 1.0 / np.mean(np.diff(expected_timestamps))
@@ -447,6 +449,7 @@ class TestBrukerTiffImagingExtractorDualChannel:
 
         # Hardcoded relativeTime values extracted from the stub's Bruker XML
         expected_timestamps = np.array([0.0, 0.00474538, 0.00949076, 0.01423614, 0.01898152])
+        assert extractor._has_native_timestamps()
         assert_array_equal(extractor.get_timestamps(), extractor.get_native_timestamps())
         np.testing.assert_allclose(extractor.get_timestamps(), expected_timestamps, atol=1e-6)
         expected_frequency = 1.0 / np.mean(np.diff(expected_timestamps))

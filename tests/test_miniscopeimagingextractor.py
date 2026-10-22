@@ -129,6 +129,7 @@ class TestMiniscopeImagingExtractor:
 
     def test_miniscopeextractor_timestamps(self):
         """Test that the extractor can retrieve native timestamps."""
+        assert self.extractor._has_native_timestamps()
         timestamps = self.extractor.get_native_timestamps()
         assert isinstance(timestamps, np.ndarray)
         assert len(timestamps) == self.num_samples
@@ -204,6 +205,7 @@ class TestMiniscopeMultiRecordingImagingExtractor:
             assert_array_equal(sub_extractor.get_series(), self.video[video_range])
 
     def test_multi_recording_extractor_timestamps(self):
+        assert self.multi_recording_extractor._has_native_timestamps()
         timestamps = self.multi_recording_extractor.get_native_timestamps()
         assert isinstance(timestamps, np.ndarray)
         assert len(timestamps) == self.num_samples

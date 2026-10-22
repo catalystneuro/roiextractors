@@ -356,15 +356,31 @@ class ImagingExtractor(ABC):
 
         self._times = np.array(times).astype("float64", copy=False)
 
+    def _has_native_timestamps(self) -> bool:
+        """Report whether the format records timestamps for this extractor.
+
+        ``has_time_vector()`` uses this method to answer without reading the timestamps. The default returns False,
+        and an extractor whose ``get_native_timestamps()`` returns timestamps overrides it to return True. It is a
+        method because some formats can only tell from the file, for example by parsing its metadata, and those
+        can cache the answer.
+
+        Returns
+        -------
+        has_native_timestamps: bool
+            True if ``get_native_timestamps()`` returns timestamps, otherwise False.
+        """
+        return False
+
     def has_time_vector(self) -> bool:
-        """Detect if the ImagingExtractor has a time vector set or not.
+        """Detect if the timestamps of the ImagingExtractor are explicit or computed from the sampling frequency.
 
         Returns
         -------
         has_times: bool
-            True if the ImagingExtractor has a time vector set, otherwise False.
+            True if times were set with ``set_times()`` or the format records timestamps, otherwise False.
+            Reading the timestamps does not change the answer.
         """
-        return self._times is not None
+        return self._times is not None or self._has_native_timestamps()
 
     def copy_times(self, extractor) -> None:
         """Copy times from another extractor.
@@ -605,9 +621,8 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         # Get timestamps from parent for our specific range
         return self._parent_imaging.get_native_timestamps(start_sample=actual_start, end_sample=actual_end)
 
-    def has_time_vector(self) -> bool:
-        # Override to check parent imaging for time vector
-        return self._parent_imaging.has_time_vector()
+    def _has_native_timestamps(self) -> bool:
+        return self._parent_imaging._has_native_timestamps()
 
 
 class _FieldOfViewSlicedImagingExtractor(ImagingExtractor):
@@ -806,12 +821,5 @@ class _FieldOfViewSlicedImagingExtractor(ImagingExtractor):
         """
         return self._parent_imaging.get_native_timestamps(start_sample=start_sample, end_sample=end_sample)
 
-    def has_time_vector(self) -> bool:
-        """Check if parent has time vector.
-
-        Returns
-        -------
-        has_times: bool
-            True if the parent ImagingExtractor has a time vector set.
-        """
-        return self._parent_imaging.has_time_vector()
+    def _has_native_timestamps(self) -> bool:
+        return self._parent_imaging._has_native_timestamps()

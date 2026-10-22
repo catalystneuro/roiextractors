@@ -179,6 +179,12 @@ class NwbImagingExtractor(ImagingExtractor):
         timestamps = self.photon_series.get_timestamps()
         return timestamps[start_sample:end_sample]
 
+    def _has_native_timestamps(self) -> bool:
+        # `get_native_timestamps()` builds the times from `starting_time` and `rate` when the series stores none,
+        # so that `starting_time` is not lost. TODO: remove that once extractors have a start time, and answer
+        # here with whether the series stores timestamps.
+        return True
+
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
 
@@ -398,3 +404,9 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         # NWB's get_timestamps() handles explicit timestamps, starting_time and rate-based calculations
         timestamps = self._roi_response_series.get_timestamps()
         return timestamps[start_sample:end_sample]
+
+    def _has_native_timestamps(self) -> bool:
+        # `get_native_timestamps()` builds the times from `starting_time` and `rate` when the series stores none,
+        # so that `starting_time` is not lost. TODO: remove that once extractors have a start time, and answer
+        # here with whether the series stores timestamps.
+        return True

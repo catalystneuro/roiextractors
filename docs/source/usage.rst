@@ -19,7 +19,7 @@ Features
 - ``seg_obj.get_timestamps(start_sample=None, end_sample=None)``: Timestamps in seconds (always available, see :doc:`timestamps`).
 - ``seg_obj.get_native_timestamps(start_sample=None, end_sample=None)``: Format-native hardware timestamps, or ``None`` if unavailable.
 - ``seg_obj.set_times(times)``: Override timestamps with custom timing.
-- ``seg_obj.has_time_vector()``: Whether custom times have been set.
+- ``seg_obj.has_time_vector()``: Whether the timestamps were set with ``set_times()`` or recorded by the format, instead of computed from the sampling frequency.
 
 SegmentationExtractor object creation
 --------------------------------------

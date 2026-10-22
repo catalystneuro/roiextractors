@@ -104,6 +104,7 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
             num_channels=metadata["num_channels"],
             num_planes=metadata["num_planes"],
         )
+        self._ome_has_native_timestamps = None
 
     def _get_channel_names(self) -> list[str]:
         """Return channel names from OME-XML Channel/@Name attributes when available."""
@@ -173,6 +174,12 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
             return None
 
         return timestamps[start_sample:end_sample]
+
+    def _has_native_timestamps(self) -> bool:
+        # Only parsing the OME-XML tells whether every timepoint has a DeltaT, so the answer is cached
+        if self._ome_has_native_timestamps is None:
+            self._ome_has_native_timestamps = self.get_native_timestamps() is not None
+        return self._ome_has_native_timestamps
 
     @staticmethod
     def _parse_ome_metadata(file_path: PathType) -> dict:

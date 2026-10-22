@@ -158,6 +158,9 @@ class PlanarStackImagingExtractor(ImagingExtractor):
         # Delegate to the first imaging extractor
         return self._imaging_extractors[0].get_native_timestamps(start_sample, end_sample)
 
+    def _has_native_timestamps(self) -> bool:
+        return self._imaging_extractors[0]._has_native_timestamps()
+
 
 class DepthSlicePlanarStackImagingExtractor(PlanarStackImagingExtractor):
     """Class to get a lazy depth slice.

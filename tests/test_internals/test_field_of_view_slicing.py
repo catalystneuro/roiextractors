@@ -95,6 +95,16 @@ class TestFieldOfViewSlicing2D:
         assert fov_sliced.has_time_vector()
         assert_array_equal(fov_sliced.get_timestamps(), times)
 
+    def test_set_times_on_slice(self):
+        """Test that times set on the slice itself are reported by the slice."""
+        imaging = generate_dummy_imaging_extractor(num_samples=10, num_rows=100, num_columns=80)
+        fov_sliced = imaging.slice_field_of_view(row_start=20, row_end=60, column_start=10, column_end=50)
+        times = np.arange(10) + 5.5
+        fov_sliced.set_times(times)
+
+        assert fov_sliced.has_time_vector()
+        assert_array_equal(fov_sliced.get_timestamps(), times)
+
     def test_native_timestamps_preservation(self):
         """Test that native timestamps are delegated to parent."""
         # Test with extractor that has native timestamps

@@ -187,6 +187,7 @@ class TestNwbVolumetricImagingExtractor:
         starting_time = nwb_volumetric_file["starting_time"]
 
         # Test full timestamps
+        assert nwb_imaging_extractor._has_native_timestamps()
         timestamps = nwb_imaging_extractor.get_native_timestamps()
         assert timestamps is not None
         assert len(timestamps) == num_samples
@@ -275,6 +276,7 @@ class TestNwbSegmentationExtractor:
         num_samples = nwb_segmentation_file["num_samples"]
         sampling_frequency = nwb_segmentation_file["sampling_frequency"]
 
+        assert extractor._has_native_timestamps()
         timestamps = extractor.get_native_timestamps()
         expected_timestamps = np.arange(num_samples) / sampling_frequency
         assert timestamps is not None
