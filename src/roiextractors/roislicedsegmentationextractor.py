@@ -129,8 +129,8 @@ class _RoiSlicedSegmentationExtractor(SegmentationExtractor):
     ) -> np.ndarray | None:
         return self._parent_segmentation.get_native_timestamps(start_sample=start_sample, end_sample=end_sample)
 
-    def has_time_vector(self) -> bool:
-        return self._parent_segmentation.has_time_vector()
+    def _has_native_timestamps(self) -> bool:
+        return self._parent_segmentation._has_native_timestamps()
 
     def get_images_dict(self) -> dict:
         return self._parent_segmentation.get_images_dict()

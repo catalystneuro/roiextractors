@@ -257,7 +257,8 @@ class ImagingExtractor(ABC):
         Retrieve the timestamps that the format records for this extractor.
 
         Read them from the file when called, instead of loading them at construction. An extractor whose
-        format records timestamps overrides this method to return them. Otherwise it returns None.
+        format records timestamps overrides this method to return them, and also overrides
+        ``_has_native_timestamps()`` to return True. Otherwise it returns None.
 
         Parameters
         ----------
@@ -300,8 +301,8 @@ class ImagingExtractor(ABC):
             return self._times[start_sample:end_sample]
 
         # See if native timetstamps are available from the format
-        native_timestamps = self.get_native_timestamps()
-        if native_timestamps is not None:
+        if self._has_native_timestamps():
+            native_timestamps = self.get_native_timestamps()
             self._times = native_timestamps  # Cache the native timestamps
             return native_timestamps[start_sample:end_sample]
 
@@ -323,10 +324,8 @@ class ImagingExtractor(ABC):
             The corresponding sample indices.
         """
         # Ensure native timestamps are cached if available
-        if self._times is None:
-            native_timestamps = self.get_native_timestamps()
-            if native_timestamps is not None:
-                self._times = native_timestamps  # Cache the native timestamps
+        if self._times is None and self._has_native_timestamps():
+            self._times = self.get_native_timestamps()  # Cache the native timestamps
         if self._times is not None:
             return (np.searchsorted(self._times, times, side="right") - 1).astype("int64")
         else:
@@ -357,15 +356,32 @@ class ImagingExtractor(ABC):
 
         self._times = np.array(times).astype("float64", copy=False)
 
+    def _has_native_timestamps(self) -> bool:
+        """Report whether the format records timestamps for this extractor.
+
+        The base class reads the native timestamps only when this method returns True, so ``has_time_vector()``
+        answers without reading them. The default returns False, and an extractor whose ``get_native_timestamps()``
+        returns timestamps overrides it to return True. It is a method because some formats can only tell from the
+        file, for example by parsing its metadata, and those can cache the answer.
+
+        Returns
+        -------
+        has_native_timestamps: bool
+            True if ``get_native_timestamps()`` returns timestamps, otherwise False.
+        """
+        return False
+
     def has_time_vector(self) -> bool:
-        """Detect if the ImagingExtractor has a time vector set or not.
+        """Detect if the timestamps of the ImagingExtractor are a vector or computed from the sampling frequency.
 
         Returns
         -------
         has_times: bool
-            True if the ImagingExtractor has a time vector set, otherwise False.
+            True if the timestamps are a vector with one time per sample, False if they are computed from the
+            sampling frequency.
+            Reading the timestamps does not change the answer.
         """
-        return self._times is not None
+        return self._times is not None or self._has_native_timestamps()
 
     def copy_times(self, extractor) -> None:
         """Copy times from another extractor.
@@ -606,9 +622,8 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         # Get timestamps from parent for our specific range
         return self._parent_imaging.get_native_timestamps(start_sample=actual_start, end_sample=actual_end)
 
-    def has_time_vector(self) -> bool:
-        # Override to check parent imaging for time vector
-        return self._parent_imaging.has_time_vector()
+    def _has_native_timestamps(self) -> bool:
+        return self._parent_imaging._has_native_timestamps()
 
 
 class _FieldOfViewSlicedImagingExtractor(ImagingExtractor):
@@ -807,12 +822,5 @@ class _FieldOfViewSlicedImagingExtractor(ImagingExtractor):
         """
         return self._parent_imaging.get_native_timestamps(start_sample=start_sample, end_sample=end_sample)
 
-    def has_time_vector(self) -> bool:
-        """Check if parent has time vector.
-
-        Returns
-        -------
-        has_times: bool
-            True if the parent ImagingExtractor has a time vector set.
-        """
-        return self._parent_imaging.has_time_vector()
+    def _has_native_timestamps(self) -> bool:
+        return self._parent_imaging._has_native_timestamps()

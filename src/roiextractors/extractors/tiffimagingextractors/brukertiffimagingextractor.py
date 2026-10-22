@@ -390,6 +390,9 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         end_sample = end_sample or len(timestamps)
         return timestamps[start_sample:end_sample]
 
+    def _has_native_timestamps(self) -> bool:
+        return True
+
     def _parse_bruker_xml_metadata(self) -> dict[str, str | list[dict[str, str]]]:
         """Parse PVStateValue elements from the Bruker configuration XML into a dictionary.
 

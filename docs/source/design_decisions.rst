@@ -63,10 +63,16 @@ To satisfy these constraints, the timestamp API separates concerns into distinct
       |
       '-- timestamps computed from the sampling rate
 
-A consumer such as NeuroConv decides between writing a rate and writing timestamps by asking
-``has_time_vector()`` and then ``get_native_timestamps()``. The latter returns ``None``
-immediately for formats without hardware timestamps, so when both checks fail the consumer can
-write the rate without allocating any array (constraint 3).
+A consumer such as NeuroConv first asks ``has_time_vector()``. If it is ``True``, the times are a
+vector and the consumer reads them with ``get_timestamps()``. If it is ``False``, they are
+computed from the sampling rate, and the consumer can write the rate without allocating any
+array (constraint 3).
+
+``has_time_vector()`` answers without reading any timestamps: each extractor states whether its
+format records them, and some can only tell from the file, the way ``OMETiffImagingExtractor``
+parses the OME-XML to see whether every timepoint has a ``DeltaT``. This is the separation of
+provenance from materializing that the constraints call for, so reading the timestamps never
+changes the answer.
 
 .. note::
 

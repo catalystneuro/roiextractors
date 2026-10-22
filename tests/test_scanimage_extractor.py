@@ -1235,6 +1235,7 @@ class TestTimestampExtraction:
 
         extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
         extractor_ch2 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
+        assert extractor_ch1.has_time_vector()
 
         # Get timestamps for each channel
         timestamps_ch1 = extractor_ch1.get_times()

@@ -125,12 +125,5 @@ class _SinglePlaneImagingExtractor(ImagingExtractor):
         """
         return self._parent_imaging.get_native_timestamps(start_sample=start_sample, end_sample=end_sample)
 
-    def has_time_vector(self) -> bool:
-        """Check if parent has a time vector set.
-
-        Returns
-        -------
-        has_times: bool
-            True if the parent ImagingExtractor has a time vector set.
-        """
-        return self._parent_imaging.has_time_vector()
+    def _has_native_timestamps(self) -> bool:
+        return self._parent_imaging._has_native_timestamps()

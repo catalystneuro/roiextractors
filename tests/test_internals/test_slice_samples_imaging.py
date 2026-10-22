@@ -53,7 +53,7 @@ def test_get_dtype():
 
 
 def test_has_time_vector_inherits_from_parent():
-    """Test that sliced extractor's has_time_vector delegates to parent."""
+    """Test that a slice inherits the time vector of its parent."""
     imaging_extractor = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)
 
     # Parent without time vector
@@ -67,6 +67,14 @@ def test_has_time_vector_inherits_from_parent():
     sample_sliced_imaging_with_times = imaging_extractor.slice_samples(start_sample=2, end_sample=7)
     assert sample_sliced_imaging_with_times.has_time_vector() == imaging_extractor.has_time_vector()
     assert sample_sliced_imaging_with_times.has_time_vector()
+
+
+def test_has_time_vector_after_set_times_on_slice():
+    """Times set on the slice itself make it report a time vector."""
+    imaging_extractor = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)
+    sample_sliced_imaging = imaging_extractor.slice_samples(start_sample=2, end_sample=7)
+    sample_sliced_imaging.set_times(times=np.arange(5) + 5.5)
+    assert sample_sliced_imaging.has_time_vector()
 
 
 def test_get_series_default_start_default_end():

@@ -147,6 +147,15 @@ class TestSelectPlaneTimestamps:
         assert planar.has_time_vector()
         assert_array_equal(planar.get_timestamps(), times)
 
+    def test_set_times_on_plane(self):
+        volumetric = generate_dummy_imaging_extractor(num_samples=10, num_rows=20, num_columns=15, num_planes=4)
+        planar = volumetric.select_plane(2)
+        times = np.arange(10) + 5.5
+        planar.set_times(times)
+
+        assert planar.has_time_vector()
+        assert_array_equal(planar.get_timestamps(), times)
+
     def test_native_timestamps_delegate_to_parent(self):
         volumetric = generate_dummy_imaging_extractor(
             num_samples=10, num_rows=20, num_columns=15, num_planes=4, has_native_timestamps=True

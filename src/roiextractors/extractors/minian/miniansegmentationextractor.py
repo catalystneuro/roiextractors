@@ -318,6 +318,9 @@ class MinianSegmentationExtractor(SegmentationExtractor):
 
         return native_timestamps[start_sample:end_sample]
 
+    def _has_native_timestamps(self) -> bool:
+        return True
+
     def sample_indices_to_time(self, sample_indices: float | np.ndarray) -> float | np.ndarray:
         """Convert user-inputted sample indices to times with units of seconds.
 
@@ -347,11 +350,6 @@ class MinianSegmentationExtractor(SegmentationExtractor):
             self._times = self.get_native_timestamps()
 
         return self._times[sample_indices]
-
-    def has_time_vector(self) -> bool:
-        if self._times is None:
-            self._times = self.get_native_timestamps()
-        return True  # The MinianSegmentationExtractor always has a time vector from the timestamps CSV.
 
     def get_frame_shape(self) -> tuple[int, int]:
         """Get the frame shape (height, width) from the zarr dataset.

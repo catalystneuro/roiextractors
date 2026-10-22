@@ -207,6 +207,16 @@ class TestRoiSelectionTimestamps:
         assert selected.has_time_vector()
         assert_array_equal(selected.get_timestamps(), times)
 
+    def test_set_times_on_selection(self):
+        """Test that times set on the selection itself are reported by the selection."""
+        segmentation = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
+        selected = segmentation.select_rois(segmentation.get_roi_ids()[:2])
+        times = np.arange(10) + 5.5
+        selected.set_times(times)
+
+        assert selected.has_time_vector()
+        assert_array_equal(selected.get_timestamps(), times)
+
     def test_sampling_frequency_preserved(self):
         """Test that sampling frequency is preserved."""
         segmentation = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10, sampling_frequency=20.0)

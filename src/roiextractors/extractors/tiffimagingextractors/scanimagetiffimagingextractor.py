@@ -905,6 +905,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
             end_sample = len(timestamps)
         return timestamps[start_sample:end_sample]
 
+    def _has_native_timestamps(self) -> bool:
+        return True
+
     @staticmethod
     def extract_timestamp_from_page(page) -> float:
         """

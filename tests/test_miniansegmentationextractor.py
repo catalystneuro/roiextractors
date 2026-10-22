@@ -178,6 +178,7 @@ def test_maximum_projection_image(extractor, maximum_projection_image):
 def test_get_native_timestamps(extractor, expected_properties):
     """Test that timestamps are correctly read from CSV file."""
     # Get timestamps using the extractor
+    assert extractor._has_native_timestamps()
     timestamps = extractor.get_native_timestamps()
 
     # First timestamp should match the expected value

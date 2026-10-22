@@ -629,24 +629,8 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
 
         return native_timestamps[start_sample:end_sample]
 
-    def has_time_vector(self) -> bool:
-        """Detect if the ImagingExtractor has a time vector set or not.
-
-        Notes
-        -----
-        Miniscope recordings should always have native timestamps from timeStamps.csv.
-        This method overrides the parent implementation to ensure timestamps are properly
-        loaded and returned, as Miniscope data is fundamentally time-based with
-        hardware-generated timestamps that provide ground truth timing.
-
-        Returns
-        -------
-        has_times: bool
-            True if the ImagingExtractor has a time vector set, otherwise False.
-        """
-        if self._times is None:
-            self._times = self.get_native_timestamps()
-        return self._times is not None
+    def _has_native_timestamps(self) -> bool:
+        return self._timestamps_path is not None
 
     @staticmethod
     def _get_session_start_time(miniscope_folder_path) -> datetime | None:

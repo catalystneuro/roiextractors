@@ -159,6 +159,9 @@ class MockImagingExtractor(PoissonNoiseImagingExtractor):
             end_sample = self.get_num_samples()
         return self._native_timestamps[start_sample:end_sample]
 
+    def _has_native_timestamps(self) -> bool:
+        return self._native_timestamps is not None
+
 
 def generate_dummy_imaging_extractor(
     *,
@@ -251,6 +254,9 @@ class _DummySegmentationExtractor(NumpySegmentationExtractor):
         if end_sample is None:
             end_sample = self.get_num_samples()
         return self._native_timestamps[start_sample:end_sample]
+
+    def _has_native_timestamps(self) -> bool:
+        return self._native_timestamps is not None
 
 
 def generate_dummy_segmentation_extractor(

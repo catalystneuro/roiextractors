@@ -191,7 +191,7 @@ class TestSampleSlicedTimestampInheritance:
         assert sample_sliced_segmentation.get_sampling_frequency() == 30.0
 
     def test_has_time_vector_inherits_from_parent(self):
-        """Test that sliced extractor's has_time_vector delegates to parent."""
+        """Test that a slice inherits the time vector of its parent."""
 
         # Parent without time vector
         sample_sliced_segmentation = self.parent_extractor.slice_samples(
@@ -208,3 +208,11 @@ class TestSampleSlicedTimestampInheritance:
         )
         assert sample_sliced_segmentation_with_times.has_time_vector() == self.parent_extractor.has_time_vector()
         assert sample_sliced_segmentation_with_times.has_time_vector()
+
+    def test_has_time_vector_after_set_times_on_slice(self):
+        """Times set on the slice itself make it report a time vector."""
+        sample_sliced_segmentation = self.parent_extractor.slice_samples(
+            start_sample=self.start_sample, end_sample=self.end_sample
+        )
+        sample_sliced_segmentation.set_times(times=np.arange(5) + 5.5)
+        assert sample_sliced_segmentation.has_time_vector()

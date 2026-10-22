@@ -45,7 +45,7 @@ You can override the timestamps with ``set_times()``:
    custom_times = np.linspace(0, 10, extractor.get_num_samples())
    extractor.set_times(custom_times)
 
-   # Check if custom times have been set
+   # The timestamps are now a vector instead of computed from the sampling frequency
    extractor.has_time_vector()  # True
 
 ``set_times()`` validates that the length of the provided array matches ``get_num_samples()``.

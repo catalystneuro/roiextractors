@@ -293,6 +293,7 @@ class TestOMETiffImagingExtractor:
 
         extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0)
 
+        assert extractor._has_native_timestamps()
         timestamps = extractor.get_native_timestamps()
         assert timestamps is not None
         expected = np.array([0.0, 0.0651, 0.1337, 0.1982, 0.2671])
@@ -304,6 +305,7 @@ class TestOMETiffImagingExtractor:
 
         extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0)
 
+        assert not extractor._has_native_timestamps()
         assert extractor.get_native_timestamps() is None
 
     def test_channel_names_from_ome_xml(self):

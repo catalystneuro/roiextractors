@@ -222,7 +222,8 @@ class SegmentationExtractor(ABC):
         """Retrieve the timestamps that the format records for this extractor.
 
         Read them from the file when called, instead of loading them at construction. An extractor whose
-        format records timestamps overrides this method to return them. Otherwise it returns None.
+        format records timestamps overrides this method to return them, and also overrides
+        ``_has_native_timestamps()`` to return True. Otherwise it returns None.
 
         Parameters
         ----------
@@ -715,15 +716,32 @@ class SegmentationExtractor(ABC):
         assert len(times) == self.get_num_samples(), "'times' should have the same length of the number of samples!"
         self._times = np.array(times, dtype=np.float64)
 
+    def _has_native_timestamps(self) -> bool:
+        """Report whether the format records timestamps for this extractor.
+
+        The base class reads the native timestamps only when this method returns True, so ``has_time_vector()``
+        answers without reading them. The default returns False, and an extractor whose ``get_native_timestamps()``
+        returns timestamps overrides it to return True. It is a method because some formats can only tell from the
+        file, for example by parsing its metadata, and those can cache the answer.
+
+        Returns
+        -------
+        has_native_timestamps: bool
+            True if ``get_native_timestamps()`` returns timestamps, otherwise False.
+        """
+        return False
+
     def has_time_vector(self) -> bool:
-        """Detect if the SegmentationExtractor has a time vector set or not.
+        """Detect if the timestamps of the SegmentationExtractor are a vector or computed from the sampling frequency.
 
         Returns
         -------
         has_time_vector: bool
-            True if the SegmentationExtractor has a time vector set, otherwise False.
+            True if the timestamps are a vector with one time per sample, False if they are computed from the
+            sampling frequency.
+            Reading the timestamps does not change the answer.
         """
-        return self._times is not None
+        return self._times is not None or self._has_native_timestamps()
 
     def get_timestamps(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """
@@ -752,8 +770,8 @@ class SegmentationExtractor(ABC):
             return self._times[start_sample:end_sample]
 
         # See if native timetstamps are available from the format
-        native_timestamps = self.get_native_timestamps()
-        if native_timestamps is not None:
+        if self._has_native_timestamps():
+            native_timestamps = self.get_native_timestamps()
             self._times = native_timestamps  # Cache the native timestamps
             return native_timestamps[start_sample:end_sample]
 
@@ -775,10 +793,8 @@ class SegmentationExtractor(ABC):
             The corresponding sample indices.
         """
         # Ensure native timestamps are cached if available
-        if self._times is None:
-            native_timestamps = self.get_native_timestamps()
-            if native_timestamps is not None:
-                self._times = native_timestamps  # Cache the native timestamps
+        if self._times is None and self._has_native_timestamps():
+            self._times = self.get_native_timestamps()  # Cache the native timestamps
         if self._times is not None:
             return (np.searchsorted(self._times, times, side="right") - 1).astype("int64")
         else:
@@ -977,6 +993,9 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
 
         return self._parent_segmentation.get_native_timestamps(start_sample=parent_start, end_sample=parent_end)
 
+    def _has_native_timestamps(self) -> bool:
+        return self._parent_segmentation._has_native_timestamps()
+
     def get_frame_shape(self) -> tuple[int, int]:
         return tuple(self._parent_segmentation.get_frame_shape())
 
@@ -1018,7 +1037,3 @@ class SampleSlicedSegmentationExtractor(SegmentationExtractor):
 
     def get_num_planes(self) -> int:
         return self._parent_segmentation.get_num_planes()
-
-    def has_time_vector(self) -> bool:
-        # Override to check parent segmentation for time vector
-        return self._parent_segmentation.has_time_vector()
