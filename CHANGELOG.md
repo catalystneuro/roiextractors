@@ -3,6 +3,7 @@
 ### Features
 
 ### Fixes
+* `time_to_sample_indices()` on `ImagingExtractor` and `SegmentationExtractor` no longer replaces the times set with `set_times()`. It stored the native timestamps in the cache on every call, so on an extractor whose format records timestamps `get_timestamps()` returned the native timestamps afterwards instead of the set ones.
 
 ### Deprecations And Removals
 * Dropped support for Python 3.10, which `neuroconv` no longer supports. The minimum supported version is now Python 3.11. [PR #627](https://github.com/catalystneuro/roiextractors/pull/627)
