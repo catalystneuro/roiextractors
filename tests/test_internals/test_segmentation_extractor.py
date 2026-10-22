@@ -30,6 +30,17 @@ class TestSegmentationExtractor(TestCase):
         extractor.get_timestamps()
         self.assertTrue(extractor.has_time_vector())
 
+    def test_native_timestamps_read_only_when_has_native_timestamps(self):
+        """Native timestamps are ignored when the extractor does not report that its format has them."""
+        extractor = generate_dummy_segmentation_extractor(
+            num_samples=3, num_rows=2, num_columns=2, sampling_frequency=10.0
+        )
+        extractor.get_native_timestamps = lambda start_sample=None, end_sample=None: np.array([5.0, 5.1, 5.2])
+
+        self.assertFalse(extractor.has_time_vector())
+        np.testing.assert_array_equal(extractor.time_to_sample_indices(np.array([0.1])), np.array([1]))
+        np.testing.assert_array_equal(extractor.get_timestamps(), np.array([0.0, 0.1, 0.2]))
+
     def test_time_to_sample_indices_with_sampling_frequency(self):
         """Round-trip: get_timestamps -> time_to_sample_indices should recover original indices."""
         extractor = generate_dummy_segmentation_extractor(
@@ -63,6 +74,7 @@ class TestSegmentationExtractor(TestCase):
         )
         native_times = np.array([0.0, 0.1, 0.2])
         extractor.get_native_timestamps = lambda: native_times
+        extractor._has_native_timestamps = lambda: True
 
         # _times is None but native timestamps exist
         assert extractor._times is None

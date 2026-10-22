@@ -719,10 +719,10 @@ class SegmentationExtractor(ABC):
     def _has_native_timestamps(self) -> bool:
         """Report whether the format records timestamps for this extractor.
 
-        ``has_time_vector()`` uses this method to answer without reading the timestamps. The default returns False,
-        and an extractor whose ``get_native_timestamps()`` returns timestamps overrides it to return True. It is a
-        method because some formats can only tell from the file, for example by parsing its metadata, and those
-        can cache the answer.
+        The base class reads the native timestamps only when this method returns True, so ``has_time_vector()``
+        answers without reading them. The default returns False, and an extractor whose ``get_native_timestamps()``
+        returns timestamps overrides it to return True. It is a method because some formats can only tell from the
+        file, for example by parsing its metadata, and those can cache the answer.
 
         Returns
         -------
@@ -770,8 +770,8 @@ class SegmentationExtractor(ABC):
             return self._times[start_sample:end_sample]
 
         # See if native timetstamps are available from the format
-        native_timestamps = self.get_native_timestamps()
-        if native_timestamps is not None:
+        if self._has_native_timestamps():
+            native_timestamps = self.get_native_timestamps()
             self._times = native_timestamps  # Cache the native timestamps
             return native_timestamps[start_sample:end_sample]
 
@@ -793,10 +793,8 @@ class SegmentationExtractor(ABC):
             The corresponding sample indices.
         """
         # Ensure native timestamps are cached if available
-        if self._times is None:
-            native_timestamps = self.get_native_timestamps()
-            if native_timestamps is not None:
-                self._times = native_timestamps  # Cache the native timestamps
+        if self._times is None and self._has_native_timestamps():
+            self._times = self.get_native_timestamps()  # Cache the native timestamps
         if self._times is not None:
             return (np.searchsorted(self._times, times, side="right") - 1).astype("int64")
         else:
