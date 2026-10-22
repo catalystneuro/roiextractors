@@ -53,7 +53,7 @@ def test_get_dtype():
 
 
 def test_has_time_vector_inherits_from_parent():
-    """Test that sliced extractor's has_time_vector delegates to parent."""
+    """Test that a slice inherits the time vector of its parent."""
     imaging_extractor = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)
 
     # Parent without time vector

@@ -372,12 +372,13 @@ class ImagingExtractor(ABC):
         return False
 
     def has_time_vector(self) -> bool:
-        """Detect if the timestamps of the ImagingExtractor are explicit or computed from the sampling frequency.
+        """Detect if the timestamps of the ImagingExtractor are a vector or computed from the sampling frequency.
 
         Returns
         -------
         has_times: bool
-            True if times were set with ``set_times()`` or the format records timestamps, otherwise False.
+            True if the timestamps are a vector with one time per sample, False if they are computed from the
+            sampling frequency.
             Reading the timestamps does not change the answer.
         """
         return self._times is not None or self._has_native_timestamps()
