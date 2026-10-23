@@ -167,6 +167,8 @@ class MiniscopeImagingExtractor(MultiImagingExtractor):
                     f"Using user-provided sampling_frequency={sampling_frequency} Hz. "
                     f"Note: Miniscope recordings should always include timeStamps.csv."
                 )
+                # Without the file there are no native timestamps, and the times are computed from the rate
+                self._timestamps_path = None
         elif self._timestamps_path.exists():
             # Calculate from timestamps (preferred path)
             self._sampling_frequency = self._calculate_sampling_frequency_from_timestamps(

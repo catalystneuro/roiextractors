@@ -1,5 +1,6 @@
 import datetime
 import json
+import shutil
 from pathlib import Path
 
 import cv2
@@ -103,6 +104,18 @@ class TestMiniscopeImagingExtractor:
 
         with pytest.raises(FileNotFoundError, match="timeStamps.csv not found"):
             MiniscopeImagingExtractor(file_paths=[test_avi_file])
+
+    def test_missing_timestamps_with_sampling_frequency(self, tmp_path):
+        """With a sampling frequency and no timeStamps.csv, the timestamps are computed from the rate."""
+        test_avi_file = tmp_path / "0.avi"
+        shutil.copy(self.file_paths[0], test_avi_file)
+
+        with pytest.warns(UserWarning, match="timeStamps.csv not found"):
+            extractor = MiniscopeImagingExtractor(file_paths=[test_avi_file], sampling_frequency=30.0)
+
+        assert not extractor.has_time_vector()
+        expected_timestamps = np.arange(extractor.get_num_samples()) / 30.0
+        np.testing.assert_array_almost_equal(extractor.get_timestamps(), expected_timestamps)
 
     def test_miniscopeextractor_dtype(self):
         """Test that the extractor returns the correct data type."""
