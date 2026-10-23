@@ -121,6 +121,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         ... )
         """
         super().__init__()
+        self._native_timestamps = None
         self.file_path = file_paths[0] if file_paths is not None else file_path
         assert self.file_path is not None, "file_path or file_paths must be provided"
         self.file_path = Path(self.file_path)
@@ -846,6 +847,40 @@ class ScanImageImagingExtractor(ImagingExtractor):
         if self._times is not None:
             return self._times
 
+        # Cache the timestamps
+        self._times = self.get_native_timestamps()
+        return self._times
+
+    def get_native_timestamps(
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
+        """
+        Retrieve the original unaltered timestamps for the data in this interface.
+
+        Parameters
+        ----------
+        start_sample : int, optional
+            The starting sample index. If None, starts from the beginning.
+        end_sample : int, optional
+            The ending sample index. If None, goes to the end.
+
+        Returns
+        -------
+        timestamps: numpy.ndarray or None
+            The timestamps for the data stream, or None if native timestamps are not available.
+        """
+        # Reading the frame headers is slow, so the timestamps are kept after the first read
+        if self._native_timestamps is None:
+            self._native_timestamps = self._read_timestamps_from_frame_headers()
+        timestamps = self._native_timestamps
+        if start_sample is None:
+            start_sample = 0
+        if end_sample is None:
+            end_sample = len(timestamps)
+        return timestamps[start_sample:end_sample]
+
+    def _read_timestamps_from_frame_headers(self) -> np.ndarray:
+        """Read the timestamp of each sample from the ImageDescription of its TIFF page."""
         # Initialize array to store timestamps
         num_samples = self.get_num_samples()
         num_planes = self.get_num_planes()
@@ -876,34 +911,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 )
                 timestamps[sample_index] = sample_index / self._sampling_frequency
 
-        # Cache the timestamps
-        self._times = timestamps
         return timestamps
-
-    def get_native_timestamps(
-        self, start_sample: int | None = None, end_sample: int | None = None
-    ) -> np.ndarray | None:
-        """
-        Retrieve the original unaltered timestamps for the data in this interface.
-
-        Parameters
-        ----------
-        start_sample : int, optional
-            The starting sample index. If None, starts from the beginning.
-        end_sample : int, optional
-            The ending sample index. If None, goes to the end.
-
-        Returns
-        -------
-        timestamps: numpy.ndarray or None
-            The timestamps for the data stream, or None if native timestamps are not available.
-        """
-        timestamps = self.get_times()
-        if start_sample is None:
-            start_sample = 0
-        if end_sample is None:
-            end_sample = len(timestamps)
-        return timestamps[start_sample:end_sample]
 
     def _has_native_timestamps(self) -> bool:
         return True
