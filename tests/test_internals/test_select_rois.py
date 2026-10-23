@@ -221,6 +221,7 @@ class TestRoiSelectionTimestamps:
         """Test that timestamps computed from the sampling frequency start where the parent's do."""
         segmentation = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
         segmentation._get_native_t_start = lambda: 5.0
+        segmentation.shift_times(1.5)
         selected = segmentation.select_rois(segmentation.get_roi_ids()[:2])
 
         assert_array_equal(selected.get_timestamps(), segmentation.get_timestamps())

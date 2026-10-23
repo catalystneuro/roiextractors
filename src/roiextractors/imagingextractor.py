@@ -24,6 +24,7 @@ class ImagingExtractor(ABC):
         self._args = args
         self._kwargs = kwargs
         self._times = None
+        self._time_shift = 0.0
         self.name = self.__class__.__name__
         self.is_volumetric = False
 
@@ -298,17 +299,17 @@ class ImagingExtractor(ABC):
 
         # Return cached timestamps if available
         if self._times is not None:
-            return self._times[start_sample:end_sample]
+            return self._times[start_sample:end_sample] + self._time_shift
 
         # See if native timetstamps are available from the format
         if self._has_native_timestamps():
             native_timestamps = self.get_native_timestamps()
             self._times = native_timestamps  # Cache the native timestamps
-            return native_timestamps[start_sample:end_sample]
+            return native_timestamps[start_sample:end_sample] + self._time_shift
 
         # Fallback to calculated timestamps from sampling frequency
         sample_indices = np.arange(start_sample, end_sample)
-        return self._get_native_t_start() + sample_indices / self.get_sampling_frequency()
+        return self._get_native_t_start() + self._time_shift + sample_indices / self.get_sampling_frequency()
 
     def time_to_sample_indices(self, times: float | ArrayLike) -> float | np.ndarray:
         """Convert user-inputted times (in seconds) to sample indices.
@@ -327,9 +328,11 @@ class ImagingExtractor(ABC):
         if self._times is None and self._has_native_timestamps():
             self._times = self.get_native_timestamps()  # Cache the native timestamps
         if self._times is not None:
-            return (np.searchsorted(self._times, times, side="right") - 1).astype("int64")
+            unshifted_times = np.asarray(times) - self._time_shift
+            return (np.searchsorted(self._times, unshifted_times, side="right") - 1).astype("int64")
         else:
-            return np.round((times - self._get_native_t_start()) * self.get_sampling_frequency()).astype("int64")
+            start_time = self._get_native_t_start() + self._time_shift
+            return np.round((times - start_time) * self.get_sampling_frequency()).astype("int64")
 
     def set_times(self, times: ArrayLike) -> None:
         """Set the recording times (in seconds) for each frame.
@@ -355,6 +358,36 @@ class ImagingExtractor(ABC):
             )
 
         self._times = np.array(times).astype("float64", copy=False)
+        self._time_shift = 0.0
+
+    def shift_times(self, shift: float) -> None:
+        """Shift every timestamp of the extractor by a constant.
+
+        The shift is stored as a number and added when the timestamps are read, so no array is built or changed.
+        Shifts add up, and ``set_times()`` resets them.
+
+        Parameters
+        ----------
+        shift : float
+            The amount, in seconds, to add to every timestamp.
+        """
+        self._time_shift += float(shift)
+
+    def get_start_time(self) -> float:
+        """Return the time, in seconds, of the first sample.
+
+        Only the first timestamp is read, and the shift from ``shift_times()`` is included.
+
+        Returns
+        -------
+        start_time : float
+            The time of the first sample.
+        """
+        if self._times is not None:
+            return float(self._times[0]) + self._time_shift
+        if self._has_native_timestamps():
+            return float(self.get_native_timestamps(start_sample=0, end_sample=1)[0]) + self._time_shift
+        return self._get_native_t_start() + self._time_shift
 
     def _has_native_timestamps(self) -> bool:
         """Report whether the format records timestamps for this extractor.
@@ -562,6 +595,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         super().__init__()
         if getattr(self._parent_imaging, "_times") is not None:
             self._times = self._parent_imaging._times[start_sample:end_sample]
+        self._time_shift = self._parent_imaging._time_shift
 
         # Inherit volumetric properties from parent
         self.is_volumetric = self._parent_imaging.is_volumetric
@@ -718,6 +752,7 @@ class _FieldOfViewSlicedImagingExtractor(ImagingExtractor):
         # Copy time vector from parent if it exists
         if getattr(self._parent_imaging, "_times") is not None:
             self._times = self._parent_imaging._times
+        self._time_shift = self._parent_imaging._time_shift
 
         # Inherit volumetric properties from parent
         self.is_volumetric = self._parent_imaging.is_volumetric
