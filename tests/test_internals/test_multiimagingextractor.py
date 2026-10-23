@@ -163,3 +163,17 @@ def test_multi_imaging_extractor_different_sample_counts():
         axis=0,
     )
     assert_array_equal(test_series, expected_series)
+
+
+def test_multi_imaging_extractor_with_native_timestamps():
+    """Native timestamps of a child that have not been read yet are carried into the combined times."""
+    extractors = [
+        generate_dummy_imaging_extractor(num_samples=10, num_rows=3, num_columns=4, sampling_frequency=20.0),
+        generate_dummy_imaging_extractor(
+            num_samples=10, num_rows=3, num_columns=4, sampling_frequency=20.0, native_timestamps="unevenly_spaced"
+        ),
+    ]
+    multi_imaging_extractor = MultiImagingExtractor(imaging_extractors=extractors)
+
+    assert multi_imaging_extractor.has_time_vector()
+    assert_array_equal(multi_imaging_extractor.get_timestamps()[10:20], extractors[1].get_native_timestamps())

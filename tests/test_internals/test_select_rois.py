@@ -217,7 +217,7 @@ class TestRoiSelectionTimestamps:
         assert selected.has_time_vector()
         assert_array_equal(selected.get_timestamps(), times)
 
-    def test_t_start_from_parent(self):
+    def test_select_rois_timestamps_match_parent(self):
         """Test that timestamps computed from the sampling frequency start where the parent's do."""
         segmentation = generate_dummy_segmentation_extractor(num_rois=5, num_samples=10)
         segmentation._get_t_start = lambda: 5.0

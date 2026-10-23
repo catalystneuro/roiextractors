@@ -405,8 +405,8 @@ class ImagingExtractor(ABC):
         extractor
             The extractor from which the times will be copied.
         """
-        if extractor._times is not None:
-            self.set_times(deepcopy(extractor._times))
+        if extractor.has_time_vector():
+            self.set_times(deepcopy(extractor.get_timestamps()))
 
     def slice_samples(self, start_sample: int | None = None, end_sample: int | None = None):
         """Return a new ImagingExtractor ranging from the start_sample to the end_sample.

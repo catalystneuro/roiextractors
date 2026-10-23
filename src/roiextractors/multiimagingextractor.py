@@ -43,7 +43,7 @@ class MultiImagingExtractor(ImagingExtractor):
             self._end_frames.append(num_samples)
         self._num_samples = num_samples
 
-        if any((getattr(imaging_extractor, "_times") is not None for imaging_extractor in self._imaging_extractors)):
+        if any(imaging_extractor.has_time_vector() for imaging_extractor in self._imaging_extractors):
             times = self._get_times()
             self.set_times(times=times)
 
@@ -87,9 +87,9 @@ class MultiImagingExtractor(ImagingExtractor):
         times = self.get_timestamps(start_sample=start_sample, end_sample=end_sample)
 
         for extractor_index, extractor in enumerate(self._imaging_extractors):
-            if getattr(extractor, "_times") is not None:
+            if extractor.has_time_vector():
                 to_replace = [*range(self._start_frames[extractor_index], self._end_frames[extractor_index])]
-                times[to_replace] = extractor._times
+                times[to_replace] = extractor.get_timestamps()
 
         return times
 

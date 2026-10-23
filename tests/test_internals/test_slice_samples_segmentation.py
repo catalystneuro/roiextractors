@@ -217,7 +217,7 @@ class TestSampleSlicedTimestampInheritance:
         sample_sliced_segmentation.set_times(times=np.arange(5) + 5.5)
         assert sample_sliced_segmentation.has_time_vector()
 
-    def test_timestamps_of_a_slice_continue_from_the_parent(self):
+    def test_slice_samples_timestamps_match_parent(self):
         """A slice of an extractor without a time vector continues the timestamps of its parent."""
         self.parent_extractor._get_t_start = lambda: 5.0
         sample_sliced_segmentation = self.parent_extractor.slice_samples(

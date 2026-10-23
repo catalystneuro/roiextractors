@@ -94,7 +94,6 @@ class NwbImagingExtractor(ImagingExtractor):
         if hasattr(self.photon_series, "timestamps") and self.photon_series.timestamps:
             self._sampling_frequency = 1.0 / np.median(np.diff(self.photon_series.timestamps))
             self._imaging_start_time = self.photon_series.timestamps[0]
-            self.set_times(np.array(self.photon_series.timestamps))
         else:
             self._sampling_frequency = self.photon_series.rate
             self._imaging_start_time = self.photon_series.fields.get("starting_time", 0.0)

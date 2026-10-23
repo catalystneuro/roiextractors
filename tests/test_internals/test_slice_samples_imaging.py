@@ -77,7 +77,7 @@ def test_has_time_vector_after_set_times_on_slice():
     assert sample_sliced_imaging.has_time_vector()
 
 
-def test_timestamps_of_a_slice_continue_from_the_parent():
+def test_slice_samples_timestamps_match_parent():
     """A slice of an extractor without a time vector continues the timestamps of its parent."""
     imaging_extractor = generate_dummy_imaging_extractor(
         num_samples=10, num_rows=5, num_columns=4, sampling_frequency=10.0

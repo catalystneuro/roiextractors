@@ -105,6 +105,26 @@ class TestNwbImagingExtractor:
         expected_samples = video[sample_indices, ...]
         np.testing.assert_array_almost_equal(samples, expected_samples)
 
+    def test_series_timestamps_give_a_time_vector(self, tmp_path):
+        """A series that stores timestamps has a time vector, and `get_timestamps()` returns them."""
+        timestamps = np.array([0.5, 0.6, 0.8, 1.2])
+        nwbfile = mock_NWBFile()
+        imaging_plane = mock_ImagingPlane(nwbfile=nwbfile)
+        image_series = TwoPhotonSeries(
+            name="TwoPhotonSeries",
+            data=np.zeros((4, 3, 2), dtype="uint16"),
+            imaging_plane=imaging_plane,
+            timestamps=timestamps,
+            unit="normalized amplitude",
+        )
+        nwbfile.add_acquisition(image_series)
+        file_path = write_nwbfile(nwbfile, tmp_path, "test_nwb_imaging_series_timestamps", "hdf5")
+
+        extractor = NwbImagingExtractor(file_path=file_path)
+        assert extractor.has_time_vector()
+        np.testing.assert_array_equal(extractor.get_timestamps(), timestamps)
+        np.testing.assert_array_equal(extractor.get_native_timestamps(start_sample=1, end_sample=3), timestamps[1:3])
+
     def test_get_series(self, nwb_planar_file):
         nwb_imaging_extractor = NwbImagingExtractor(file_path=nwb_planar_file["file_path"])
         video = nwb_planar_file["video"]
@@ -181,41 +201,20 @@ class TestNwbVolumetricImagingExtractor:
         assert series.shape == expected_series.shape
         np.testing.assert_array_almost_equal(series, expected_series)
 
-    def test_get_native_timestamps(self, nwb_volumetric_file):
+    def test_series_starting_time_and_rate_give_computed_timestamps(self, nwb_volumetric_file):
+        """A series with a starting time and a rate has no time vector, and its timestamps start at the starting time."""
         nwb_imaging_extractor = NwbImagingExtractor(file_path=nwb_volumetric_file["file_path"])
         num_samples = nwb_volumetric_file["num_samples"]
         starting_time = nwb_volumetric_file["starting_time"]
         sampling_frequency = nwb_volumetric_file["sampling_frequency"]
 
-        # The series stores a starting_time and a rate, so it has no native timestamps
-        assert not nwb_imaging_extractor._has_native_timestamps()
-        assert nwb_imaging_extractor.get_native_timestamps() is None
         assert not nwb_imaging_extractor.has_time_vector()
+        assert nwb_imaging_extractor.get_native_timestamps() is None
 
-        # The timestamps computed from the rate start at the starting_time of the series
         expected_timestamps = starting_time + np.arange(num_samples) / sampling_frequency
         np.testing.assert_array_almost_equal(nwb_imaging_extractor.get_timestamps(), expected_timestamps)
-
-
-def test_nwb_imaging_extractor_native_timestamps(tmp_path):
-    """A photon series that stores timestamps returns them as native timestamps."""
-    timestamps = np.array([0.5, 0.6, 0.8, 1.2])
-    nwbfile = mock_NWBFile()
-    imaging_plane = mock_ImagingPlane(nwbfile=nwbfile)
-    image_series = TwoPhotonSeries(
-        name="TwoPhotonSeries",
-        data=np.zeros((4, 3, 2), dtype="uint16"),
-        imaging_plane=imaging_plane,
-        timestamps=timestamps,
-        unit="normalized amplitude",
-    )
-    nwbfile.add_acquisition(image_series)
-    file_path = write_nwbfile(nwbfile, tmp_path, "test_nwb_imaging_native_timestamps", "hdf5")
-
-    extractor = NwbImagingExtractor(file_path=file_path)
-    assert extractor._has_native_timestamps()
-    np.testing.assert_array_equal(extractor.get_native_timestamps(), timestamps)
-    np.testing.assert_array_equal(extractor.get_native_timestamps(start_sample=1, end_sample=3), timestamps[1:3])
+        sliced_timestamps = nwb_imaging_extractor.get_timestamps(start_sample=5, end_sample=10)
+        np.testing.assert_array_almost_equal(sliced_timestamps, expected_timestamps[5:10])
 
 
 @pytest.fixture(scope="module", params=["hdf5", "zarr"])
@@ -224,6 +223,7 @@ def nwb_segmentation_file(request, tmp_path_factory):
     tmp_path = tmp_path_factory.mktemp("nwb_segmentation")
 
     sampling_frequency = 30.0
+    starting_time = 5.0
     num_samples = 30
     num_rois = 4
 
@@ -245,6 +245,7 @@ def nwb_segmentation_file(request, tmp_path_factory):
         name="RoiResponseSeries",
         data=traces,
         plane_segmentation=plane_segmentation,
+        starting_time=starting_time,
         rate=sampling_frequency,
     )
     mock_Fluorescence(
@@ -264,6 +265,7 @@ def nwb_segmentation_file(request, tmp_path_factory):
         "image_masks": image_masks,
         "num_samples": num_samples,
         "num_rois": num_rois,
+        "starting_time": starting_time,
         "sampling_frequency": sampling_frequency,
     }
 
@@ -292,17 +294,39 @@ class TestNwbSegmentationExtractor:
         assert extractor.get_frame_shape() == image_masks.shape[:2]
         np.testing.assert_array_almost_equal(np.asarray(extractor.get_roi_image_masks()), image_masks)
 
-    def test_get_native_timestamps(self, nwb_segmentation_file):
+    def test_series_starting_time_and_rate_give_computed_timestamps(self, nwb_segmentation_file):
+        """A series with a starting time and a rate has no time vector, and its timestamps start at the starting time."""
         extractor = NwbSegmentationExtractor(file_path=nwb_segmentation_file["file_path"])
         num_samples = nwb_segmentation_file["num_samples"]
+        starting_time = nwb_segmentation_file["starting_time"]
         sampling_frequency = nwb_segmentation_file["sampling_frequency"]
 
-        # The series stores a rate, so it has no native timestamps
-        assert not extractor._has_native_timestamps()
-        assert extractor.get_native_timestamps() is None
         assert not extractor.has_time_vector()
+        assert extractor.get_native_timestamps() is None
 
-        expected_timestamps = np.arange(num_samples) / sampling_frequency
+        expected_timestamps = starting_time + np.arange(num_samples) / sampling_frequency
         np.testing.assert_array_almost_equal(extractor.get_timestamps(), expected_timestamps)
         sliced_timestamps = extractor.get_timestamps(start_sample=5, end_sample=10)
         np.testing.assert_array_almost_equal(sliced_timestamps, expected_timestamps[5:10])
+
+    def test_series_timestamps_give_a_time_vector(self, tmp_path):
+        """A series that stores timestamps has a time vector, and `get_timestamps()` returns them."""
+        timestamps = np.array([0.5, 0.6, 0.8, 1.2])
+        nwbfile = mock_NWBFile()
+        imaging_plane = mock_ImagingPlane(nwbfile=nwbfile)
+        plane_segmentation = mock_PlaneSegmentation(name="PlaneSegmentation", imaging_plane=imaging_plane, n_rois=2)
+        mock_ImageSegmentation(name="ImageSegmentation", plane_segmentations=[plane_segmentation], nwbfile=nwbfile)
+        roi_response_series = mock_RoiResponseSeries(
+            name="RoiResponseSeries",
+            data=np.zeros((4, 2)),
+            plane_segmentation=plane_segmentation,
+            timestamps=timestamps,
+            rate=None,
+        )
+        mock_Fluorescence(name="Fluorescence", roi_response_series=[roi_response_series], nwbfile=nwbfile)
+        file_path = write_nwbfile(nwbfile, tmp_path, "test_nwb_segmentation_series_timestamps", "hdf5")
+
+        extractor = NwbSegmentationExtractor(file_path=file_path)
+        assert extractor.has_time_vector()
+        np.testing.assert_array_equal(extractor.get_timestamps(), timestamps)
+        np.testing.assert_array_equal(extractor.get_native_timestamps(start_sample=1, end_sample=3), timestamps[1:3])
