@@ -46,7 +46,7 @@ class TestSegmentationExtractor(TestCase):
         extractor = generate_dummy_segmentation_extractor(
             num_samples=3, num_rows=2, num_columns=2, sampling_frequency=10.0
         )
-        extractor._get_t_start = lambda: 5.0
+        extractor._get_native_t_start = lambda: 5.0
 
         np.testing.assert_array_almost_equal(extractor.get_timestamps(), np.array([5.0, 5.1, 5.2]))
         np.testing.assert_array_equal(extractor.time_to_sample_indices(np.array([5.0, 5.1, 5.2])), np.array([0, 1, 2]))

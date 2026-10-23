@@ -108,7 +108,7 @@ class TestFieldOfViewSlicing2D:
     def test_slice_field_of_view_timestamps_match_parent(self):
         """Test that timestamps computed from the sampling frequency start where the parent's do."""
         imaging = generate_dummy_imaging_extractor(num_samples=10, num_rows=100, num_columns=80)
-        imaging._get_t_start = lambda: 5.0
+        imaging._get_native_t_start = lambda: 5.0
         fov_sliced = imaging.slice_field_of_view(row_start=20, row_end=60, column_start=10, column_end=50)
 
         assert_array_equal(fov_sliced.get_timestamps(), imaging.get_timestamps())

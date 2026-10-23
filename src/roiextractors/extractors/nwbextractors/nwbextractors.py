@@ -154,7 +154,7 @@ class NwbImagingExtractor(ImagingExtractor):
         """Retrieve the timestamps that the photon series stores.
 
         A series that stores only a ``starting_time`` and a ``rate`` has no native timestamps, and its start is
-        returned by ``_get_t_start()`` instead.
+        returned by ``_get_native_t_start()`` instead.
 
         Parameters
         ----------
@@ -182,7 +182,7 @@ class NwbImagingExtractor(ImagingExtractor):
     def _has_native_timestamps(self) -> bool:
         return self.photon_series.timestamps is not None
 
-    def _get_t_start(self) -> float:
+    def _get_native_t_start(self) -> float:
         return self._imaging_start_time
 
     def get_num_planes(self) -> int:
@@ -408,5 +408,5 @@ class NwbSegmentationExtractor(SegmentationExtractor):
     def _has_native_timestamps(self) -> bool:
         return self._roi_response_series.timestamps is not None
 
-    def _get_t_start(self) -> float:
+    def _get_native_t_start(self) -> float:
         return self._roi_response_series.starting_time

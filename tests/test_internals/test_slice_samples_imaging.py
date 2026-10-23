@@ -82,7 +82,7 @@ def test_slice_samples_timestamps_match_parent():
     imaging_extractor = generate_dummy_imaging_extractor(
         num_samples=10, num_rows=5, num_columns=4, sampling_frequency=10.0
     )
-    imaging_extractor._get_t_start = lambda: 5.0
+    imaging_extractor._get_native_t_start = lambda: 5.0
     sample_sliced_imaging = imaging_extractor.slice_samples(start_sample=2, end_sample=7)
 
     np.testing.assert_array_almost_equal(

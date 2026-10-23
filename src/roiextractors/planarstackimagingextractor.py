@@ -161,8 +161,8 @@ class PlanarStackImagingExtractor(ImagingExtractor):
     def _has_native_timestamps(self) -> bool:
         return self._imaging_extractors[0]._has_native_timestamps()
 
-    def _get_t_start(self) -> float:
-        return self._imaging_extractors[0]._get_t_start()
+    def _get_native_t_start(self) -> float:
+        return self._imaging_extractors[0]._get_native_t_start()
 
 
 class DepthSlicePlanarStackImagingExtractor(PlanarStackImagingExtractor):
