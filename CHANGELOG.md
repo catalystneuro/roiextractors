@@ -8,6 +8,7 @@
 * Timestamps computed from the sampling frequency now start at the start time the format records, like the `starting_time` of an NWB series, and slices continue them instead of restarting at 0. [PR #633](https://github.com/catalystneuro/roiextractors/pull/633)
 * `MultiImagingExtractor` and `copy_times()` now carry the native timestamps of an extractor even before they are read. [PR #633](https://github.com/catalystneuro/roiextractors/pull/633)
 * `MiniscopeImagingExtractor` built with a `sampling_frequency` and no `timeStamps.csv` now computes its timestamps from the rate instead of raising `FileNotFoundError` when they are read. [PR #636](https://github.com/catalystneuro/roiextractors/pull/636)
+* `ScanImageImagingExtractor.get_native_timestamps()` now returns the timestamps of the frame headers after `set_times()`, instead of the times that were set. [PR #635](https://github.com/catalystneuro/roiextractors/pull/635)
 
 ### Deprecations And Removals
 * Dropped support for Python 3.10, which `neuroconv` no longer supports. The minimum supported version is now Python 3.11. [PR #627](https://github.com/catalystneuro/roiextractors/pull/627)
