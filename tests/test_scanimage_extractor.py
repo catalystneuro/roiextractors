@@ -1300,6 +1300,17 @@ class TestTimestampExtraction:
         assert np.allclose(timestamps_ch1, expected_timestamps_ch1), "Channel 1 timestamps should match expected values"
         assert np.allclose(timestamps_ch2, expected_timestamps_ch2), "Channel 2 timestamps should match expected values"
 
+    def test_native_timestamps_ignore_set_times(self):
+        """get_native_timestamps returns the timestamps of the frame headers after set_times."""
+        file_path = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
+        extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
+        header_timestamps = extractor.get_native_timestamps()
+
+        extractor.set_times(header_timestamps + 100.0)
+
+        np.testing.assert_array_equal(extractor.get_native_timestamps(), header_timestamps)
+        np.testing.assert_array_equal(extractor.get_timestamps(), header_timestamps + 100.0)
+
     def test_get_times_volumetric_data(self):
         """Test get_times with volumetric data (with and without plane_index)
 
