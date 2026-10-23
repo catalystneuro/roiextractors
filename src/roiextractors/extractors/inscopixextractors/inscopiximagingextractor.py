@@ -242,12 +242,6 @@ class InscopixImagingExtractor(ImagingExtractor):
         except Exception:
             metadata["subject"] = {}
 
-        # Analysis info
-        try:
-            metadata["analysis"] = self._get_analysis_info()
-        except Exception:
-            metadata["analysis"] = {}
-
         # Session info
         try:
             metadata["session"] = self._get_session_info()
