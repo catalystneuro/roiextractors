@@ -91,10 +91,9 @@ def test_inscopiximagingextractor_movie_128x128x100_part1():
     assert len(probe_info) == 0
 
     metadata = extractor._get_metadata()
-    # Check that all expected keys are present
-    expected_keys = ["device", "subject", "analysis", "session", "probe", "session_start_time"]
-    for key in expected_keys:
-        assert key in metadata
+    # Check that exactly the expected keys are present
+    expected_keys = ["device", "subject", "session", "probe", "session_start_time"]
+    assert set(metadata) == set(expected_keys)
 
 
 def test_inscopiximagingextractor_movie_longer_than_3_min():
@@ -183,10 +182,9 @@ def test_inscopiximagingextractor_movie_longer_than_3_min():
     assert len(probe_info) == 0
 
     metadata = extractor._get_metadata()
-    # Check that all expected keys are present
-    expected_keys = ["device", "subject", "analysis", "session", "probe", "session_start_time"]
-    for key in expected_keys:
-        assert key in metadata
+    # Check that exactly the expected keys are present
+    expected_keys = ["device", "subject", "session", "probe", "session_start_time"]
+    assert set(metadata) == set(expected_keys)
 
 
 def test_inscopiximagingextractor_movie_u8():
@@ -258,10 +256,9 @@ def test_inscopiximagingextractor_movie_u8():
     assert len(probe_info) == 0
 
     metadata = extractor._get_metadata()
-    # Check that all expected keys are present
-    expected_keys = ["device", "subject", "analysis", "session", "probe", "session_start_time"]
-    for key in expected_keys:
-        assert key in metadata
+    # Check that exactly the expected keys are present
+    expected_keys = ["device", "subject", "session", "probe", "session_start_time"]
+    assert set(metadata) == set(expected_keys)
 
 
 def test_inscopiximagingextractor_multiplane_movie():
