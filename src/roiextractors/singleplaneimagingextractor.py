@@ -127,3 +127,6 @@ class _SinglePlaneImagingExtractor(ImagingExtractor):
 
     def _has_native_timestamps(self) -> bool:
         return self._parent_imaging._has_native_timestamps()
+
+    def _get_native_t_start(self) -> float:
+        return self._parent_imaging._get_native_t_start()

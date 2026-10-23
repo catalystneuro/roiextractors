@@ -25,8 +25,9 @@ exist before calling it. The source of those timestamps depends on the extractor
 - If the user has set custom timestamps via ``set_times()``, those take priority.
 - Otherwise, if the data format stores hardware timestamps (e.g., DAQ-recorded times), those
   are returned.
-- If neither exists, timestamps are reconstructed from the sampling frequency as
-  ``np.arange(start, end) / sampling_frequency``.
+- If neither exists, timestamps are reconstructed from the start time and the sampling frequency
+  as ``t_start + np.arange(start, end) / sampling_frequency``. The start time is the one the format
+  records, like the ``starting_time`` of an NWB series, or 0 if it records none.
 
 This means every extractor provides timestamps, regardless of whether the underlying
 format includes them.

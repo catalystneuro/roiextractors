@@ -94,7 +94,6 @@ class NwbImagingExtractor(ImagingExtractor):
         if hasattr(self.photon_series, "timestamps") and self.photon_series.timestamps:
             self._sampling_frequency = 1.0 / np.median(np.diff(self.photon_series.timestamps))
             self._imaging_start_time = self.photon_series.timestamps[0]
-            self.set_times(np.array(self.photon_series.timestamps))
         else:
             self._sampling_frequency = self.photon_series.rate
             self._imaging_start_time = self.photon_series.fields.get("starting_time", 0.0)
@@ -152,10 +151,10 @@ class NwbImagingExtractor(ImagingExtractor):
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
     ) -> np.ndarray | None:
-        """Retrieve the original unaltered timestamps for the data.
+        """Retrieve the timestamps that the photon series stores.
 
-        This method uses the NWB photon series get_timestamps() method, which properly handles
-        explicit timestamps, starting_time attribute, and rate-based calculations.
+        A series that stores only a ``starting_time`` and a ``rate`` has no native timestamps, and its start is
+        returned by ``_get_native_t_start()`` instead.
 
         Parameters
         ----------
@@ -166,24 +165,25 @@ class NwbImagingExtractor(ImagingExtractor):
 
         Returns
         -------
-        timestamps : numpy.ndarray
-            The timestamps for the data stream.
+        timestamps : numpy.ndarray or None
+            The timestamps for the data stream, or None if the series stores no timestamps.
         """
+        if self.photon_series.timestamps is None:
+            return None
+
         # Set defaults
         if start_sample is None:
             start_sample = 0
         if end_sample is None:
             end_sample = self.get_num_samples()
 
-        # Use NWB's native get_timestamps() method which handles timestamps, starting_time, and rate
-        timestamps = self.photon_series.get_timestamps()
-        return timestamps[start_sample:end_sample]
+        return np.asarray(self.photon_series.timestamps[start_sample:end_sample])
 
     def _has_native_timestamps(self) -> bool:
-        # `get_native_timestamps()` builds the times from `starting_time` and `rate` when the series stores none,
-        # so that `starting_time` is not lost. TODO: remove that once extractors have a start time, and answer
-        # here with whether the series stores timestamps.
-        return True
+        return self.photon_series.timestamps is not None
+
+    def _get_native_t_start(self) -> float:
+        return self._imaging_start_time
 
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
@@ -401,12 +401,12 @@ class NwbSegmentationExtractor(SegmentationExtractor):
         if end_sample is None:
             end_sample = self.get_num_samples()
 
-        # NWB's get_timestamps() handles explicit timestamps, starting_time and rate-based calculations
-        timestamps = self._roi_response_series.get_timestamps()
-        return timestamps[start_sample:end_sample]
+        if self._roi_response_series.timestamps is None:
+            return None
+        return np.asarray(self._roi_response_series.timestamps[start_sample:end_sample])
 
     def _has_native_timestamps(self) -> bool:
-        # `get_native_timestamps()` builds the times from `starting_time` and `rate` when the series stores none,
-        # so that `starting_time` is not lost. TODO: remove that once extractors have a start time, and answer
-        # here with whether the series stores timestamps.
-        return True
+        return self._roi_response_series.timestamps is not None
+
+    def _get_native_t_start(self) -> float:
+        return self._roi_response_series.starting_time

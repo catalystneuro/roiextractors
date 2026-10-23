@@ -5,6 +5,8 @@
 ### Fixes
 * `time_to_sample_indices()` on `ImagingExtractor` and `SegmentationExtractor` no longer replaces the times set with `set_times()`. It stored the native timestamps in the cache on every call, so on an extractor whose format records timestamps `get_timestamps()` returned the native timestamps afterwards instead of the set ones.
 * `has_time_vector()` now returns `True` whenever the timestamps are a vector with one time per sample, set with `set_times()` or recorded by the format, including before they are read and on slices. [PR #632](https://github.com/catalystneuro/roiextractors/pull/632)
+* Timestamps computed from the sampling frequency now start at the start time the format records, like the `starting_time` of an NWB series, and slices continue them instead of restarting at 0. [PR #633](https://github.com/catalystneuro/roiextractors/pull/633)
+* `MultiImagingExtractor` and `copy_times()` now carry the native timestamps of an extractor even before they are read. [PR #633](https://github.com/catalystneuro/roiextractors/pull/633)
 
 ### Deprecations And Removals
 * Dropped support for Python 3.10, which `neuroconv` no longer supports. The minimum supported version is now Python 3.11. [PR #627](https://github.com/catalystneuro/roiextractors/pull/627)

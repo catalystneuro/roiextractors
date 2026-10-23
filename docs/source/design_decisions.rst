@@ -61,12 +61,13 @@ To satisfy these constraints, the timestamp API separates concerns into distinct
       |       |
       |       yes --> hardware timestamps from the source format (constraint 2: faithful to source)
       |
-      '-- timestamps computed from the sampling rate
+      '-- timestamps computed from the start time and the sampling rate
 
 A consumer such as NeuroConv first asks ``has_time_vector()``. If it is ``True``, the times are a
 vector and the consumer reads them with ``get_timestamps()``. If it is ``False``, they are
-computed from the sampling rate, and the consumer can write the rate without allocating any
-array (constraint 3).
+computed from the start time and the sampling rate, and the consumer can write the start, the
+first value of ``get_timestamps(end_sample=1)``, and the rate without allocating the full array
+(constraint 3).
 
 ``has_time_vector()`` answers without reading any timestamps: each extractor states whether its
 format records them, and some can only tell from the file, the way ``OMETiffImagingExtractor``
