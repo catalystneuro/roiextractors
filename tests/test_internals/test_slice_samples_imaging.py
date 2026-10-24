@@ -90,6 +90,26 @@ def test_slice_samples_timestamps_match_parent():
     )
 
 
+def test_slice_samples_and_parent_shift_independently():
+    """A slice takes its parent's shift when it is created, and later shifts of one do not move the other."""
+    imaging_extractor = generate_dummy_imaging_extractor(
+        num_samples=10, num_rows=5, num_columns=4, sampling_frequency=10.0
+    )
+    imaging_extractor.shift_times(1.0)
+    sample_sliced_imaging = imaging_extractor.slice_samples(start_sample=2, end_sample=7)
+    np.testing.assert_array_almost_equal(
+        sample_sliced_imaging.get_timestamps(), imaging_extractor.get_timestamps()[2:7]
+    )
+
+    sliced_timestamps = sample_sliced_imaging.get_timestamps()
+    imaging_extractor.shift_times(5.0)
+    np.testing.assert_array_almost_equal(sample_sliced_imaging.get_timestamps(), sliced_timestamps)
+
+    parent_timestamps = imaging_extractor.get_timestamps()
+    sample_sliced_imaging.shift_times(3.0)
+    np.testing.assert_array_almost_equal(imaging_extractor.get_timestamps(), parent_timestamps)
+
+
 def test_get_series_default_start_default_end():
     """Both args default. Regression for #585: must return only the slice's range."""
     imaging = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)

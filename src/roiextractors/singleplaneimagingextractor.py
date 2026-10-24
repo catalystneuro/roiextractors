@@ -46,6 +46,7 @@ class _SinglePlaneImagingExtractor(ImagingExtractor):
         # to get_native_timestamps below. Per-plane timestamps would require an axis-aware time API.
         if getattr(self._parent_imaging, "_times") is not None:
             self._times = self._parent_imaging._times
+        self._time_shift = self._parent_imaging._time_shift
 
         self.is_volumetric = False
 
