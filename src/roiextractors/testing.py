@@ -538,14 +538,6 @@ def check_segmentation_return_types(seg: SegmentationExtractor):
             element_dtypes=floattype,
             shape_max=(*seg.get_image_size(),),
         )
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", message="get_roi_locations", category=FutureWarning)
-        _assert_iterable_complete(
-            seg.get_roi_locations(),
-            dtypes=(np.ndarray,),
-            shape=(2, seg.get_num_rois()),
-            element_dtypes=inttype,
-        )
     _assert_iterable_complete(
         seg.get_traces(),
         dtypes=(np.ndarray, NoneType),
