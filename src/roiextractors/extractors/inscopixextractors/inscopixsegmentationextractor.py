@@ -8,7 +8,7 @@ from typing import Any
 import numpy as np
 
 from ...extraction_tools import PathType
-from ...segmentationextractor import SegmentationExtractor, _ROIMasks
+from ...segmentationextractor import SegmentationExtractor, _ROIMasks, _RoiResponse
 
 
 class InscopixSegmentationExtractor(SegmentationExtractor):
@@ -73,6 +73,11 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
                 roi_id_map=roi_id_map,
             )
 
+        # Load all traces upfront and store them as (num_samples, num_rois)
+        if self.cell_set.num_cells > 0:
+            traces = np.stack([self.cell_set.get_cell_trace_data(i) for i in range(self.cell_set.num_cells)], axis=1)
+            self._roi_responses.append(_RoiResponse("raw", traces, list(self._roi_ids)))
+
         # Set cell_status as a property for ROI classification
         if self.cell_set.num_cells > 0:
             cell_status = np.array([self.cell_set.get_cell_status(i) for i in range(self.cell_set.num_cells)])
@@ -101,33 +106,6 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
                 # Swap dimensions to return (width, height)
                 return (shape[1], shape[0])
             raise ValueError("No ROIs found in the segmentation. Unable to determine image size.")
-
-    def get_traces(self, roi_ids=None, start_frame=None, end_frame=None, name="raw") -> np.ndarray:
-        """Get traces for the specified ROIs.
-
-        Parameters
-        ----------
-        roi_ids : list or None
-            List of ROI IDs (can be integers or string IDs)
-        start_frame : int or None
-            Start frame index
-        end_frame : int or None
-            End frame index
-        name : str
-            Name of the trace type
-
-        Returns
-        -------
-        np.ndarray
-            Traces for the specified ROIs
-        """
-        if roi_ids is None:
-            roi_indices = list(range(self.get_num_rois()))
-        else:
-            all_roi_ids = self.get_roi_ids()
-            roi_indices = [all_roi_ids.index(roi_id) for roi_id in roi_ids]
-
-        return np.vstack([self.cell_set.get_cell_trace_data(roi_idx)[start_frame:end_frame] for roi_idx in roi_indices])
 
     def get_num_samples(self) -> int:
         """Get the number of samples in the recording (duration of recording).
