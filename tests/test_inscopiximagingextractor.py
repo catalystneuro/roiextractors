@@ -1,5 +1,4 @@
 import platform
-import sys
 from datetime import datetime
 
 import numpy as np
@@ -9,18 +8,13 @@ from numpy import dtype
 from roiextractors import InscopixImagingExtractor
 from tests.setup_paths import OPHYS_DATA_PATH
 
-# Skip all tests in this file on macOS and Python 3.13
+# Skip all tests in this file on macOS
 pytest.importorskip("isx", reason="isx package is required for these tests.")
 pytestmark = pytest.mark.skipif(
     platform.system() == "Darwin" and platform.machine() == "arm64",
     reason="The isx package is currently not natively supported on macOS with Apple Silicon. "
     "Installation instructions can be found at: "
     "https://github.com/inscopix/pyisx?tab=readme-ov-file#install",
-)
-pytestmark = pytest.mark.skipif(
-    sys.version_info >= (3, 13),
-    reason="Tests are skipped on Python 3.13 because of incompatibility with the 'isx' module"
-    "See:https://github.com/inscopix/pyisx/issues",
 )
 
 

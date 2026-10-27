@@ -1,7 +1,6 @@
 """Inscopix Segmentation Extractor."""
 
 import platform
-import sys
 from datetime import datetime
 from typing import Any
 
@@ -26,13 +25,6 @@ class InscopixSegmentationExtractor(SegmentationExtractor):
         file_path: str or Path
             The location of the folder containing Inscopix *.mat output file.
         """
-        python_version = sys.version_info
-        if python_version >= (3, 13):
-            raise ImportError(
-                "The isx package only supports Python versions 3.9 to 3.13. "
-                f"Your Python version is {python_version.major}.{python_version.minor}. "
-                "See https://github.com/inscopix/pyisx for details."
-            )
         if platform.system() == "Darwin" and platform.machine() == "arm64":
             raise ImportError(
                 "The isx package is currently not natively supported on macOS with Apple Silicon. "
