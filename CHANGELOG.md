@@ -21,6 +21,7 @@
 * The Python and OS versions tested in CI are now read from `min_python_version.txt`, `max_python_version.txt` and `all_os_versions.txt` in `.github/workflows`, and pull requests gain an `All tests passing` job that aggregates the test matrix, so that changing the tested versions no longer requires changing the required checks in the branch protection. [PR #625](https://github.com/catalystneuro/roiextractors/pull/625)
 * Pull requests from forks, which do not receive the AWS secrets, now restore the most recent cached `ophys_testing_data` from the base branch in the `load-data` action instead of failing on the S3 listing. [PR #626](https://github.com/catalystneuro/roiextractors/pull/626)
 * Fixed the timestamp priority diagram in `design_decisions.rst` and the `get_native_timestamps()` docstrings to match how `get_timestamps()` resolves timestamps. [PR #631](https://github.com/catalystneuro/roiextractors/pull/631)
+* `SegmentationExtractor.get_traces()` now reads only the requested frames from the stored traces. It converted the whole stored array to numpy before slicing, so on extractors that keep their traces in HDF5 or Zarr every call read all of them.
 
 # v0.10.0 (September 9th, 2026)
 
