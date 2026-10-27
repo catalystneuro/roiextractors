@@ -564,8 +564,7 @@ class SegmentationExtractor(ABC):
                 f"Traces for {name} are registered in the trace dictionary but missing from the internal store."
             )
 
-        data = np.asarray(response.data)
-        sliced = data[start_frame:end_frame, :]
+        sliced = np.asarray(response.data[start_frame:end_frame, :])
 
         input_roi_ids = roi_ids
         if input_roi_ids is None:
