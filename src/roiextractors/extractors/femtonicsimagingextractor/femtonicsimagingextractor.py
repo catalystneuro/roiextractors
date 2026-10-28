@@ -511,7 +511,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
             return [k for k in f[session_name].keys() if k.startswith("MUnit_")]
 
     @staticmethod
-    def get_available_channels(file_path: PathType, session_name: str, munit_name: str) -> list[str]:
+    def get_available_channel_names(file_path: PathType, session_name: str, munit_name: str) -> list[str]:
         """
         Get available channels in the specified session/munit combination.
 
@@ -547,6 +547,25 @@ class FemtonicsImagingExtractor(ImagingExtractor):
                 name = decode_string(name_arr) or f"Channel_{i}"
                 channels.append(name)
             return channels
+
+    @staticmethod
+    def get_available_channels(file_path: PathType, session_name: str, munit_name: str) -> list[str]:
+        """
+        Get available channels in the specified session/munit combination.
+
+        .. deprecated::
+            `get_available_channels` is deprecated and will be removed in or after April 2027.
+            Use `get_available_channel_names` instead.
+        """
+        warn(
+            "get_available_channels is deprecated and will be removed in or after April 2027. "
+            "Use get_available_channel_names instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return FemtonicsImagingExtractor.get_available_channel_names(
+            file_path=file_path, session_name=session_name, munit_name=munit_name
+        )
 
     def get_dtype(self) -> np.dtype:
         """Get the data type of the samples."""

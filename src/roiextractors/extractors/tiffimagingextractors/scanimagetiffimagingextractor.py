@@ -773,7 +773,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         return self._num_planes
 
     @staticmethod
-    def get_available_channel_names(file_path: PathType) -> list:
+    def get_available_channel_names(file_path: PathType) -> list[str]:
         """Get the channel names available in a ScanImage TIFF file.
 
         This static method extracts the channel names from a ScanImage TIFF file

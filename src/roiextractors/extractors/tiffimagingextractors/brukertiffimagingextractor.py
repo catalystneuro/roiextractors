@@ -126,6 +126,16 @@ def _parse_xml(folder_path: PathType) -> etree.Element:
     return tree.getroot()
 
 
+def _get_channel_names_from_bruker_xml(xml_root: etree.Element) -> list[str]:
+    """Return the channel names of a parsed Bruker configuration XML, in acquisition order.
+
+    Shared by the constructor and by ``get_available_channel_names`` so that discovery and
+    validation cannot disagree about what a Bruker channel is called.
+    """
+    channel_number_to_name = {int(elem.attrib["channel"]): elem.attrib["channelName"] for elem in xml_root.iter("File")}
+    return [channel_number_to_name[number] for number in sorted(channel_number_to_name)]
+
+
 class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
     """An extractor for Bruker Prairie View OME-TIFF files.
 
@@ -317,10 +327,31 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         Sorting alphabetically would swap channels whenever the labels do not sort in
         acquisition order (e.g. channel 1 = "Red", channel 2 = "Green").
         """
-        channel_number_to_name = {
-            int(elem.attrib["channel"]): elem.attrib["channelName"] for elem in self._xml_root.iter("File")
-        }
-        return [channel_number_to_name[number] for number in sorted(channel_number_to_name)]
+        return _get_channel_names_from_bruker_xml(self._xml_root)
+
+    @staticmethod
+    def get_available_channel_names(folder_path: PathType) -> list[str]:
+        """Return the available channel names without constructing an extractor.
+
+        The names are the ``channelName`` attributes of the ``<File>`` elements in the Bruker
+        configuration XML, in acquisition order, which are the names the constructor accepts
+        as ``channel_name``.
+
+        Parameters
+        ----------
+        folder_path : PathType
+            Path to the folder containing Bruker .ome.tif files and the configuration XML.
+
+        Returns
+        -------
+        list[str]
+            The channel names in acquisition order, e.g. ``["Red", "Green"]``.
+        """
+        folder_path = Path(folder_path)
+        xml_file_path = folder_path / f"{folder_path.name}.xml"
+        if not xml_file_path.is_file():
+            raise FileNotFoundError(f"Bruker XML configuration file not found at '{xml_file_path}'.")
+        return _get_channel_names_from_bruker_xml(etree.parse(xml_file_path).getroot())
 
     def _get_ifds_per_file(self) -> list[int]:
         """Return per-file IFD counts derived from the Bruker XML.

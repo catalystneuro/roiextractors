@@ -41,7 +41,7 @@ def test_femtonicsimagingextractor_p29_mesc():
     assert available_munits == ["MUnit_0", "MUnit_1"]
 
     # Test available channels static method
-    available_channels = FemtonicsImagingExtractor.get_available_channels(
+    available_channels = FemtonicsImagingExtractor.get_available_channel_names(
         file_path, session_name="MSession_0", munit_name="MUnit_0"
     )
     assert available_channels == ["UG", "UR"]
@@ -216,6 +216,16 @@ def test_femtonicsimagingextractor_p29_mesc():
         FemtonicsImagingExtractor(file_path=file_path, session_name="MSession_0")
 
 
+def test_get_available_channels_is_deprecated():
+    """The old name still returns the channels, with a FutureWarning pointing to the new one."""
+    file_path = OPHYS_DATA_PATH / "imaging_datasets" / "Femtonics" / "moser_lab_mec" / "p29.mesc"
+    with pytest.warns(FutureWarning, match="Use get_available_channel_names instead"):
+        available_channels = FemtonicsImagingExtractor.get_available_channels(
+            file_path, session_name="MSession_0", munit_name="MUnit_0"
+        )
+    assert available_channels == ["UG", "UR"]
+
+
 def test_femtonicsimagingextractor_p30_mesc():
     """
     Test with Femtonics p30.mesc file.
@@ -248,7 +258,7 @@ def test_femtonicsimagingextractor_p30_mesc():
     assert available_munits == ["MUnit_0", "MUnit_1"]
 
     # Test available channels static method
-    available_channels = FemtonicsImagingExtractor.get_available_channels(
+    available_channels = FemtonicsImagingExtractor.get_available_channel_names(
         file_path, session_name="MSession_0", munit_name="MUnit_0"
     )
     assert available_channels == ["UG", "UR"]
