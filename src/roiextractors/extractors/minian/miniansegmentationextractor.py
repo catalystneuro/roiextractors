@@ -321,36 +321,6 @@ class MinianSegmentationExtractor(SegmentationExtractor):
     def _has_native_timestamps(self) -> bool:
         return True
 
-    def sample_indices_to_time(self, sample_indices: float | np.ndarray) -> float | np.ndarray:
-        """Convert user-inputted sample indices to times with units of seconds.
-
-        Parameters
-        ----------
-        sample_indices: int or array-like
-            The sample indices to be converted to times.
-
-        Returns
-        -------
-        times: float or array-like
-            The corresponding times in seconds.
-
-        Deprecated
-        ----------
-        This method will be removed on or after July 2026.
-        Use get_timestamps() instead.
-        """
-        warnings.warn(
-            "sample_indices_to_time() is deprecated and will be removed on or after July 2026. "
-            "Use get_timestamps() instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        # Default implementation
-        if self._times is None:
-            self._times = self.get_native_timestamps()
-
-        return self._times[sample_indices]
-
     def get_frame_shape(self) -> tuple[int, int]:
         """Get the frame shape (height, width) from the zarr dataset.
 
