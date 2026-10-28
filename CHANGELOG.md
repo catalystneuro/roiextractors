@@ -8,15 +8,24 @@
 * `has_time_vector()` now returns `True` whenever the timestamps are a vector with one time per sample, set with `set_times()` or recorded by the format, including before they are read and on slices. [PR #632](https://github.com/catalystneuro/roiextractors/pull/632)
 * Timestamps computed from the sampling frequency now start at the start time the format records, like the `starting_time` of an NWB series, and slices continue them instead of restarting at 0. [PR #633](https://github.com/catalystneuro/roiextractors/pull/633)
 * `MultiImagingExtractor` and `copy_times()` now carry the native timestamps of an extractor even before they are read. [PR #633](https://github.com/catalystneuro/roiextractors/pull/633)
+* `MiniscopeImagingExtractor` built with a `sampling_frequency` and no `timeStamps.csv` now computes its timestamps from the rate instead of raising `FileNotFoundError` when they are read. [PR #636](https://github.com/catalystneuro/roiextractors/pull/636)
+* `ScanImageImagingExtractor.get_native_timestamps()` now returns the timestamps of the frame headers after `set_times()`, instead of the times that were set. [PR #635](https://github.com/catalystneuro/roiextractors/pull/635)
+* `InscopixImagingExtractor._get_metadata()` no longer returns an `analysis` section. It called `_get_analysis_info()`, which only `InscopixSegmentationExtractor` defines, and swallowed the `AttributeError`, so the section was always an empty dict.
+* `InscopixSegmentationExtractor.get_traces_dict()` now returns the traces of the cell set under `raw` instead of `None` for every trace type, so neuroconv writes them. `get_traces()` now returns them as (samples, ROIs) like the other segmentation extractors, instead of (ROIs, samples).
+* `InscopixImagingExtractor` and `InscopixSegmentationExtractor` now work on Python 3.13. They raised `ImportError` on 3.13 and above, but `isx` supports 3.13 since version 2.1.0.
 
 ### Deprecations And Removals
 * Dropped support for Python 3.10, which `neuroconv` no longer supports. The minimum supported version is now Python 3.11. [PR #627](https://github.com/catalystneuro/roiextractors/pull/627)
+* Removed `sample_indices_to_time()` from `MinianSegmentationExtractor`, deprecated for removal on or after July 2026. Use `get_timestamps()` instead.
+* Removed `get_channel_names()` from `TiffImagingExtractor` and `MemmapImagingExtractor`, deprecated for removal in or after October 2026. They were the last extractors with it.
+* Removed `get_roi_locations()` from `SegmentationExtractor` and `NwbSegmentationExtractor`, deprecated for removal in or after September 2026. Use `get_property("roi_centroids", roi_ids)` instead.
 
 ### Improvements
 * Added support for Python 3.14. The `isx` dependency of the `full` extra is skipped on 3.14 because `isx` does not support it yet, so the Inscopix extractors are unavailable there. Resolves [#622](https://github.com/catalystneuro/roiextractors/issues/622)
 * The Python and OS versions tested in CI are now read from `min_python_version.txt`, `max_python_version.txt` and `all_os_versions.txt` in `.github/workflows`, and pull requests gain an `All tests passing` job that aggregates the test matrix, so that changing the tested versions no longer requires changing the required checks in the branch protection. [PR #625](https://github.com/catalystneuro/roiextractors/pull/625)
 * Pull requests from forks, which do not receive the AWS secrets, now restore the most recent cached `ophys_testing_data` from the base branch in the `load-data` action instead of failing on the S3 listing. [PR #626](https://github.com/catalystneuro/roiextractors/pull/626)
 * Fixed the timestamp priority diagram in `design_decisions.rst` and the `get_native_timestamps()` docstrings to match how `get_timestamps()` resolves timestamps. [PR #631](https://github.com/catalystneuro/roiextractors/pull/631)
+* `SegmentationExtractor.get_traces()` now reads only the requested frames from the stored traces. It converted the whole stored array to numpy before slicing, so on extractors that keep their traces in HDF5 or Zarr every call read all of them.
 
 # v0.10.0 (September 9th, 2026)
 

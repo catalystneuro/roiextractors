@@ -1,5 +1,4 @@
 import platform
-import sys
 from datetime import datetime
 
 import numpy as np
@@ -16,11 +15,6 @@ pytestmark = pytest.mark.skipif(
     reason="The isx package is currently not natively supported on macOS with Apple Silicon. "
     "Installation instructions can be found at: "
     "https://github.com/inscopix/pyisx?tab=readme-ov-file#install",
-)
-pytestmark = pytest.mark.skipif(
-    sys.version_info >= (3, 13),
-    reason="Tests are skipped on Python 3.13 because of incompatibility with the 'isx' module"
-    "See:https://github.com/inscopix/pyisx/issues",
 )
 
 
@@ -81,9 +75,10 @@ def test_inscopix_segmentation_extractor():
     np.testing.assert_allclose(extractor.get_sampling_frequency(), 9.9987)
 
     # Test trace extraction
-    assert extractor.get_traces().shape == (4, 5444)
-    assert extractor.get_traces(start_frame=10, end_frame=20).shape == (4, 10)
-    assert extractor.get_traces(start_frame=10, end_frame=20, roi_ids=["C1"]).shape == (1, 10)
+    assert extractor.get_traces().shape == (5444, 4)
+    assert extractor.get_traces(start_frame=10, end_frame=20).shape == (10, 4)
+    assert extractor.get_traces(start_frame=10, end_frame=20, roi_ids=["C1"]).shape == (10, 1)
+    assert extractor.get_traces_dict()["raw"].shape == (5444, 4)
 
     # Test session information
     session_info = extractor._get_session_info()
@@ -183,9 +178,10 @@ def test_inscopix_segmentation_extractor_part1():
     assert extractor._get_session_start_time() == datetime(1970, 1, 1, 0, 0, 0)
 
     # Test trace extraction
-    assert extractor.get_traces().shape == (6, 100)
-    assert extractor.get_traces(start_frame=10, end_frame=20).shape == (6, 10)
-    assert extractor.get_traces(start_frame=10, end_frame=20, roi_ids=["C1"]).shape == (1, 10)
+    assert extractor.get_traces().shape == (100, 6)
+    assert extractor.get_traces(start_frame=10, end_frame=20).shape == (10, 6)
+    assert extractor.get_traces(start_frame=10, end_frame=20, roi_ids=["C1"]).shape == (10, 1)
+    assert extractor.get_traces_dict()["raw"].shape == (100, 6)
 
     metadata = extractor._get_metadata()
     # Check that all expected keys are present
