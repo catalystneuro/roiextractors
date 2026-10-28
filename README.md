@@ -32,7 +32,6 @@ Features:
 
 * Reads data from 10+ popular optical imaging and segmentation data formats into a common API.
 * Extracts relevant metadata from each format.
-* Provides a handy set of methods to analyze data such as `get_roi_locations()`
 
 ## Installation
 

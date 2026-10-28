@@ -8,9 +8,7 @@ NwbSegmentationExtractor
     Extracts segmentation data from NWB files.
 """
 
-import warnings
 from pathlib import Path
-from typing import Iterable
 
 import numpy as np
 from lazyslice import DatasetView
@@ -340,38 +338,6 @@ class NwbSegmentationExtractor(SegmentationExtractor):
             )
 
         return images_dict
-
-    def get_roi_locations(self, roi_ids: Iterable[int] | None = None) -> np.ndarray:
-        """Return the locations of the Regions of Interest (ROIs).
-
-        .. deprecated::
-            `get_roi_locations` is deprecated and will be removed in or after September 2026.
-            Use `get_property("roi_centroids", roi_ids)` instead.
-
-        Parameters
-        ----------
-        roi_ids: array_like
-            A list or 1D array of ids of the ROIs. Length is the number of ROIs
-            requested.
-
-        Returns
-        -------
-        roi_locs: numpy.ndarray
-            2-D array: 2 X no_ROIs. The pixel ids (x,y) where the centroid of the ROI is.
-        """
-        warnings.warn(
-            "get_roi_locations is deprecated and will be removed in or after September 2026. "
-            "Use get_property('roi_centroids', roi_ids) instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        if self._roi_locs is None:
-            return
-        all_ids = self.get_roi_ids()
-        roi_idxs = slice(None) if roi_ids is None else [all_ids.index(i) for i in roi_ids]
-        # ROIExtractors uses height x width x (depth), but NWB uses width x height x depth
-        tranpose_image_convention = (1, 0) if len(self.get_image_shape()) == 2 else (1, 0, 2)
-        return np.array(self._roi_locs.data)[roi_idxs, tranpose_image_convention].T  # h5py fancy indexing is slow
 
     def get_frame_shape(self):
         """Get the shape of the video frame (num_rows, num_columns).

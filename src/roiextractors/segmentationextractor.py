@@ -10,7 +10,6 @@ SampleSlicedSegmentationExtractor
     Class to get a lazy sample slice.
 """
 
-import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Literal
@@ -261,40 +260,6 @@ class SegmentationExtractor(ABC):
         for trace in self.get_traces_dict().values():
             if trace is not None and len(trace.shape) > 0:
                 return trace.shape[0]
-
-    def get_roi_locations(self, roi_ids=None) -> np.ndarray:
-        """Get the locations of the Regions of Interest (ROIs).
-
-        .. deprecated::
-            `get_roi_locations` is deprecated and will be removed in or after September 2026.
-            Use `get_property("roi_centroids", roi_ids)` instead for centroid data
-            stored as a property.
-
-        Parameters
-        ----------
-        roi_ids: array_like
-            A list or 1D array of ids of the ROIs. Length is the number of ROIs requested.
-
-        Returns
-        -------
-        roi_locs: numpy.ndarray
-            2-D array: 2 X no_ROIs. The pixel ids (x,y) where the centroid of the ROI is.
-        """
-        warnings.warn(
-            "get_roi_locations is deprecated and will be removed in or after September 2026. "
-            "Use get_property('roi_centroids', roi_ids) instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        if roi_ids is None:
-            roi_ids = self.get_roi_ids()
-
-        roi_location = np.zeros([2, len(roi_ids)], dtype="int")
-        for roi_index, roi_id in enumerate(roi_ids):
-            image_mask = self.get_roi_image_masks(roi_ids=[roi_id])
-            temp = np.where(image_mask == np.amax(image_mask))
-            roi_location[:, roi_index] = np.array([np.median(temp[0]), np.median(temp[1])]).T
-        return roi_location
 
     def get_roi_ids(self) -> list:
         """Get the list of ROI ids.
