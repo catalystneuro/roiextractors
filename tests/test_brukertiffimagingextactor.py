@@ -438,6 +438,14 @@ class TestBrukerTiffImagingExtractorDualChannel:
         with pytest.raises(ValueError, match="Channel '5' not found.*Available channels"):
             BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="5")
 
+    def test_get_available_channel_names(self):
+        """Every name discovery returns, in acquisition order, can be passed back as `channel_name`."""
+        channel_names = BrukerTiffImagingExtractor.get_available_channel_names(folder_path=self.folder_path)
+        assert channel_names == ["Red", "Green"]
+
+        for channel_name in channel_names:
+            BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name=channel_name)
+
     def test_timestamps_and_sampling_frequency(self):
         """Timestamps are the relativeTime values from the Bruker configuration XML.
 

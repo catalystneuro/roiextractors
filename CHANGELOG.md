@@ -1,6 +1,7 @@
 # v0.10.1 (Upcoming)
 
 ### Features
+* Added `BrukerTiffImagingExtractor.get_available_channel_names()`, which returns the channel names of a Bruker folder in acquisition order without constructing an extractor. They are the names the constructor accepts as `channel_name`.
 
 ### Fixes
 * `time_to_sample_indices()` on `ImagingExtractor` and `SegmentationExtractor` no longer replaces the times set with `set_times()`. It stored the native timestamps in the cache on every call, so on an extractor whose format records timestamps `get_timestamps()` returned the native timestamps afterwards instead of the set ones.
@@ -17,6 +18,7 @@
 * Dropped support for Python 3.10, which `neuroconv` no longer supports. The minimum supported version is now Python 3.11. [PR #627](https://github.com/catalystneuro/roiextractors/pull/627)
 * Removed `sample_indices_to_time()` from `MinianSegmentationExtractor`, deprecated for removal on or after July 2026. Use `get_timestamps()` instead.
 * Removed `get_channel_names()` from `TiffImagingExtractor` and `MemmapImagingExtractor`, deprecated for removal in or after October 2026. They were the last extractors with it.
+* Deprecated `FemtonicsImagingExtractor.get_available_channels()` (will be removed in or after April 2027). Use `get_available_channel_names()` instead, the name the OME-TIFF, ScanImage, Thor and Bruker extractors use.
 
 ### Improvements
 * Added support for Python 3.14. The `isx` dependency of the `full` extra is skipped on 3.14 because `isx` does not support it yet, so the Inscopix extractors are unavailable there. Resolves [#622](https://github.com/catalystneuro/roiextractors/issues/622)
