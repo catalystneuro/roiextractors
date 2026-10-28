@@ -86,6 +86,7 @@ class _RoiSlicedSegmentationExtractor(SegmentationExtractor):
         # Copy parent's time settings if present
         if getattr(self._parent_segmentation, "_times", None) is not None:
             self._times = self._parent_segmentation._times
+        self._time_shift = self._parent_segmentation._time_shift
 
         # Inherit other attributes directly
         self._num_planes = self._parent_segmentation._num_planes

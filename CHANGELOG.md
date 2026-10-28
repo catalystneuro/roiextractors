@@ -1,6 +1,7 @@
 # v0.10.1 (Upcoming)
 
 ### Features
+* Added `shift_times()`, which moves every timestamp by a constant without building or changing an array, and `get_start_time()`, which returns the time of the first sample. [PR #634](https://github.com/catalystneuro/roiextractors/pull/634)
 
 ### Fixes
 * `time_to_sample_indices()` on `ImagingExtractor` and `SegmentationExtractor` no longer replaces the times set with `set_times()`. It stored the native timestamps in the cache on every call, so on an extractor whose format records timestamps `get_timestamps()` returned the native timestamps afterwards instead of the set ones.

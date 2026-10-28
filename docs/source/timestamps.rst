@@ -52,6 +52,23 @@ You can override the timestamps with ``set_times()``:
 ``set_times()`` validates that the length of the provided array matches ``get_num_samples()``.
 
 
+Shifting Timestamps
+-------------------
+
+To move every timestamp by a constant, for example to align the extractor with another clock, use
+``shift_times()``:
+
+.. code-block:: python
+
+   extractor.shift_times(2.5)  # every timestamp is now 2.5 s later
+
+   # The time of the first sample, shift included
+   extractor.get_start_time()
+
+The shift is stored as a number and added when the timestamps are read, so no array is built or
+changed. Shifts add up, and ``set_times()`` resets them: the times you set are the times you get back.
+
+
 .. seealso::
 
     To implement timestamps in a custom extractor, see :doc:`build_ie` or :doc:`build_re`.
