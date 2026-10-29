@@ -833,23 +833,16 @@ class ScanImageImagingExtractor(ImagingExtractor):
     def get_times(self) -> np.ndarray:
         """Get the timestamps for each frame.
 
-        Returns
-        -------
-        numpy.ndarray
-            Array of timestamps in seconds for each frame.
-
-        Notes
-        -----
-        This method extracts timestamps from the ScanImage TIFF file(s) for the selected channel.
-        It uses the mapping created during initialization to efficiently locate and extract
-        timestamps for each sample.
+        .. deprecated::
+            `get_times` is deprecated and will be removed in or after April 2027.
+            Use `get_timestamps` instead.
         """
-        if self._times is not None:
-            return self._times
-
-        # Cache the timestamps
-        self._times = self.get_native_timestamps()
-        return self._times
+        warn(
+            "get_times is deprecated and will be removed in or after April 2027. Use get_timestamps instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_timestamps()
 
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None

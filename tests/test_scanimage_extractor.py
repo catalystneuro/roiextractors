@@ -1238,8 +1238,8 @@ class TestTimestampExtraction:
         assert extractor_ch1.has_time_vector()
 
         # Get timestamps for each channel
-        timestamps_ch1 = extractor_ch1.get_times()
-        timestamps_ch2 = extractor_ch2.get_times()
+        timestamps_ch1 = extractor_ch1.get_timestamps()
+        timestamps_ch2 = extractor_ch2.get_timestamps()
 
         # Check basic properties
         assert (
@@ -1339,7 +1339,7 @@ class TestTimestampExtraction:
 
         # Create the extractor and get timestamps
         volumetric_extractor = ScanImageImagingExtractor(file_path=file_path)
-        volumetric_timestamps = volumetric_extractor.get_times()
+        volumetric_timestamps = volumetric_extractor.get_timestamps()
 
         # Basic validation
         num_samples = volumetric_extractor.get_num_samples()
@@ -1367,7 +1367,7 @@ class TestTimestampExtraction:
         plane_indices = [0, 4, 8]
         # Calculate expected timestamps for each plane first plane (0), middle plane (4), and last plane (8)
         for plane_idx in plane_indices:
-            plane_timestamps = ScanImageImagingExtractor(file_path=file_path, plane_index=plane_idx).get_times()
+            plane_timestamps = ScanImageImagingExtractor(file_path=file_path, plane_index=plane_idx).get_timestamps()
             assert len(plane_timestamps) == num_samples, "Number of timestamps should match number of samples"
 
             # For each plane, we need to select frames at positions: plane_index, plane_index + num_planes, ...
@@ -1417,7 +1417,7 @@ class TestTimestampExtraction:
 
         # Create the extractor and get timestamps
         volumetric_extractor = ScanImageImagingExtractor(file_path=file_path)
-        volumetric_timestamps = volumetric_extractor.get_times()
+        volumetric_timestamps = volumetric_extractor.get_timestamps()
 
         # Basic validation
         num_samples = volumetric_extractor.get_num_samples()
@@ -1460,8 +1460,8 @@ class TestTimestampExtraction:
         plane4_extractor = ScanImageImagingExtractor(file_path=file_path, plane_index=plane_index_4)
 
         # Get timestamps from plane extractors
-        plane0_timestamps = plane0_extractor.get_times()
-        plane4_timestamps = plane4_extractor.get_times()
+        plane0_timestamps = plane0_extractor.get_timestamps()
+        plane4_timestamps = plane4_extractor.get_timestamps()
 
         # Verify all extractors have the same number of samples and timestamps
         assert len(plane0_timestamps) == num_samples, "Plane 0 timestamps count should match number of samples"
@@ -1528,7 +1528,7 @@ class TestTimestampExtraction:
         )
 
         # Get timestamps from extractor
-        timestamps = extractor.get_times()
+        timestamps = extractor.get_timestamps()
 
         # Check that number of timestamps equals number of samples
         assert len(timestamps) == extractor.get_num_samples(), "Number of timestamps should match number of samples"
@@ -1587,8 +1587,8 @@ class TestTimestampExtraction:
         )
 
         # Get timestamps
-        timestamps_full = volumetric_extractor.get_times()
-        planarized_timestamps = planarized_extractor.get_times()
+        timestamps_full = volumetric_extractor.get_timestamps()
+        planarized_timestamps = planarized_extractor.get_timestamps()
 
         # Check that number of timestamps equals number of samples for each extractor
         assert len(timestamps_full) == volumetric_extractor.get_num_samples()
