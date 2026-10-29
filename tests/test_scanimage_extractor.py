@@ -1219,12 +1219,12 @@ class TestScanImageVolumetricPlaneSlicing:
 
 
 class TestTimestampExtraction:
-    """Test the get_times method for ScanImageImagingExtractor class."""
+    """Test the timestamps of the ScanImageImagingExtractor class."""
 
-    def test_get_times_planar_multichannel(self):
-        """Test the get_times method.
+    def test_native_timestamps_planar_multichannel(self):
+        """Test get_native_timestamps.
 
-        This test verifies that the get_times method correctly extracts timestamps
+        This test verifies that get_native_timestamps correctly extracts timestamps
         from ScanImage TIFF files for the selected channel.
 
         The test checks that for multi-channel data, the timestamps are correctly
@@ -1238,8 +1238,8 @@ class TestTimestampExtraction:
         assert extractor_ch1.has_time_vector()
 
         # Get timestamps for each channel
-        timestamps_ch1 = extractor_ch1.get_timestamps()
-        timestamps_ch2 = extractor_ch2.get_timestamps()
+        timestamps_ch1 = extractor_ch1.get_native_timestamps()
+        timestamps_ch2 = extractor_ch2.get_native_timestamps()
 
         # Check basic properties
         assert (
@@ -1311,8 +1311,8 @@ class TestTimestampExtraction:
 
         np.testing.assert_array_equal(sliced.get_timestamps(), header_timestamps[1:4])
 
-    def test_get_times_volumetric_data(self):
-        """Test get_times with volumetric data (with and without plane_index)
+    def test_native_timestamps_volumetric_data(self):
+        """Test get_native_timestamps with volumetric data (with and without plane_index)
 
         This test verifies that:
         1. For volumetric data:
@@ -1321,7 +1321,7 @@ class TestTimestampExtraction:
             - Timestamps match the expected values from the TIFF metadata
 
         2. For plane-sliced data:
-            - The get_times method works correctly when accessing a specific plane using plane_index
+            - get_native_timestamps works correctly when accessing a specific plane using plane_index
             - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
 
         File: vol_no_flyback_00001_00001.tif
@@ -1339,7 +1339,7 @@ class TestTimestampExtraction:
 
         # Create the extractor and get timestamps
         volumetric_extractor = ScanImageImagingExtractor(file_path=file_path)
-        volumetric_timestamps = volumetric_extractor.get_timestamps()
+        volumetric_timestamps = volumetric_extractor.get_native_timestamps()
 
         # Basic validation
         num_samples = volumetric_extractor.get_num_samples()
@@ -1367,7 +1367,9 @@ class TestTimestampExtraction:
         plane_indices = [0, 4, 8]
         # Calculate expected timestamps for each plane first plane (0), middle plane (4), and last plane (8)
         for plane_idx in plane_indices:
-            plane_timestamps = ScanImageImagingExtractor(file_path=file_path, plane_index=plane_idx).get_timestamps()
+            plane_timestamps = ScanImageImagingExtractor(
+                file_path=file_path, plane_index=plane_idx
+            ).get_native_timestamps()
             assert len(plane_timestamps) == num_samples, "Number of timestamps should match number of samples"
 
             # For each plane, we need to select frames at positions: plane_index, plane_index + num_planes, ...
@@ -1381,8 +1383,8 @@ class TestTimestampExtraction:
                 f"Timestamps for plane_index={plane_idx} should match expected values",
             )
 
-    def test_get_times_volumetric_with_flyback_frames(self):
-        """Test get_times with volumetric data with flyback frames (with and without plane_index)
+    def test_native_timestamps_volumetric_with_flyback_frames(self):
+        """Test get_native_timestamps with volumetric data with flyback frames (with and without plane_index)
 
         This test verifies that:
         1. For volumetric data with flyback frames:
@@ -1391,7 +1393,7 @@ class TestTimestampExtraction:
             - Timestamps match the expected values from the TIFF metadata
 
         2. For plane-sliced data with flyback frames:
-            - The get_times method works correctly when accessing a specific plane using plane_index
+            - get_native_timestamps works correctly when accessing a specific plane using plane_index
             - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
 
         File: vol_one_ch_single_files_00002_00001.tif
@@ -1417,7 +1419,7 @@ class TestTimestampExtraction:
 
         # Create the extractor and get timestamps
         volumetric_extractor = ScanImageImagingExtractor(file_path=file_path)
-        volumetric_timestamps = volumetric_extractor.get_timestamps()
+        volumetric_timestamps = volumetric_extractor.get_native_timestamps()
 
         # Basic validation
         num_samples = volumetric_extractor.get_num_samples()
@@ -1460,8 +1462,8 @@ class TestTimestampExtraction:
         plane4_extractor = ScanImageImagingExtractor(file_path=file_path, plane_index=plane_index_4)
 
         # Get timestamps from plane extractors
-        plane0_timestamps = plane0_extractor.get_timestamps()
-        plane4_timestamps = plane4_extractor.get_timestamps()
+        plane0_timestamps = plane0_extractor.get_native_timestamps()
+        plane4_timestamps = plane4_extractor.get_native_timestamps()
 
         # Verify all extractors have the same number of samples and timestamps
         assert len(plane0_timestamps) == num_samples, "Plane 0 timestamps count should match number of samples"
@@ -1492,8 +1494,8 @@ class TestTimestampExtraction:
             "Timestamps for plane_index=4 should match expected values",
         )
 
-    def test_get_times_multi_samples_per_slice_data(self):
-        """Test get_times with multiple samples per slice in volumetric data (with and without plane_index)
+    def test_native_timestamps_multi_samples_per_slice_data(self):
+        """Test get_native_timestamps with multiple samples per slice in volumetric data (with and without plane_index)
 
         This test verifies that:
         1. For volumetric data with multiple samples per slice:
@@ -1501,7 +1503,7 @@ class TestTimestampExtraction:
             - Timestamps match the expected values from the TIFF metadata
 
         2. For plane-sliced data with multiple samples per slice:
-            - The get_times method works correctly when using both slice_sample and plane_index
+            - get_native_timestamps works correctly when using both slice_sample and plane_index
             - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
 
         File: scanimage_20220923_noroi.tif
@@ -1528,7 +1530,7 @@ class TestTimestampExtraction:
         )
 
         # Get timestamps from extractor
-        timestamps = extractor.get_timestamps()
+        timestamps = extractor.get_native_timestamps()
 
         # Check that number of timestamps equals number of samples
         assert len(timestamps) == extractor.get_num_samples(), "Number of timestamps should match number of samples"
@@ -1567,7 +1569,7 @@ class TestTimestampExtraction:
         np.testing.assert_array_equal(
             timestamps,
             expected_timestamps,
-            "Timestamps from get_times should match expected values extracted from TIFF metadata",
+            "Timestamps from get_native_timestamps should match expected values extracted from TIFF metadata",
         )
 
         # Part 2: Test with plane_index
@@ -1587,8 +1589,8 @@ class TestTimestampExtraction:
         )
 
         # Get timestamps
-        timestamps_full = volumetric_extractor.get_timestamps()
-        planarized_timestamps = planarized_extractor.get_timestamps()
+        timestamps_full = volumetric_extractor.get_native_timestamps()
+        planarized_timestamps = planarized_extractor.get_native_timestamps()
 
         # Check that number of timestamps equals number of samples for each extractor
         assert len(timestamps_full) == volumetric_extractor.get_num_samples()
