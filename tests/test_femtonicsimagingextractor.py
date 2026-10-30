@@ -41,12 +41,6 @@ def test_femtonicsimagingextractor_p29_mesc():
     available_munits = FemtonicsImagingExtractor.get_available_munits(file_path, session_name="MSession_0")
     assert available_munits == ["MUnit_0", "MUnit_1"]
 
-    # Test available channels static method
-    available_channels = FemtonicsImagingExtractor.get_available_channel_names(
-        file_path, session_name="MSession_0", munit_name="MUnit_0"
-    )
-    assert available_channels == ["UG", "UR"]
-
     # Extractor with explicit session, munit and channel selection for the rest of the test
     extractor = FemtonicsImagingExtractor(
         file_path=file_path, session_name="MSession_0", munit_name="MUnit_0", channel_name="UG"
@@ -207,6 +201,7 @@ class TestFemtonicsImagingExtractorP29(ImagingExtractorTestMixin):
     num_samples = 5
     sample_shape = (512, 512)
     dtype = np.dtype("uint16")
+    channel_names = ["UG", "UR"]
 
 
 class TestFemtonicsImagingExtractorP30(ImagingExtractorTestMixin):
@@ -220,6 +215,7 @@ class TestFemtonicsImagingExtractorP30(ImagingExtractorTestMixin):
     num_samples = 5
     sample_shape = (512, 512)
     dtype = np.dtype("uint16")
+    channel_names = ["UG", "UR"]
 
 
 def test_get_available_channels_is_deprecated():
@@ -262,13 +258,6 @@ def test_femtonicsimagingextractor_p30_mesc():
     # Test available munits static method
     available_munits = FemtonicsImagingExtractor.get_available_munits(file_path, session_name="MSession_0")
     assert available_munits == ["MUnit_0", "MUnit_1"]
-
-    # Test available channels static method
-    available_channels = FemtonicsImagingExtractor.get_available_channel_names(
-        file_path, session_name="MSession_0", munit_name="MUnit_0"
-    )
-    assert available_channels == ["UG", "UR"]
-    assert len(available_channels) == 2
 
     # Extractor with explicit session, munit, and channel selection for the rest of the test
     extractor = FemtonicsImagingExtractor(

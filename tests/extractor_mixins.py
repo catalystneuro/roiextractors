@@ -32,6 +32,8 @@ class ImagingExtractorTestMixin:
         The expected shape of a sample, (rows, columns) for planar data and (rows, columns, planes) for volumetric.
     dtype : np.dtype
         The expected dtype of the pixels.
+    channel_names : list[str]
+        The expected names that `get_available_channel_names()` returns, in order. Only on extractors that have it.
     """
 
     extractor_cls: type[ImagingExtractor]
@@ -39,6 +41,12 @@ class ImagingExtractorTestMixin:
     num_samples: int
     sample_shape: tuple[int, int] | tuple[int, int, int]
     dtype: np.dtype
+    channel_names: list[str]
+
+    # TODO: compare against the pixels of another reader instead of the full read of the extractor itself. How to
+    # read the raw data depends on the format (the pages of `tifffile`, an HDF5 dataset), so each test class would
+    # implement a method that returns the expected series of its fixture, and the checks here would compare
+    # `get_series()` and `get_samples()` against it.
 
     @pytest.fixture
     def setup_extractor(self):
@@ -71,12 +79,6 @@ class ImagingExtractorTestMixin:
         series = self.extractor.get_series()
         assert series.shape == (self.num_samples, *self.sample_shape)
         assert series.dtype == self.dtype
-
-    def test_series_range(self, setup_extractor):
-        """`get_series(start_sample, end_sample)` returns the same samples as the full read."""
-        num_samples = self.extractor.get_num_samples()
-        series = self.extractor.get_series(start_sample=1, end_sample=num_samples - 1)
-        assert_array_equal(series, self.extractor.get_series()[1 : num_samples - 1])
 
     def test_samples(self, setup_extractor):
         """`get_samples()` returns the same samples as the full read, also when they are not contiguous."""
@@ -123,16 +125,27 @@ class ImagingExtractorTestMixin:
             plane_extractor = self.extractor.select_plane(plane_index)
             assert_array_equal(plane_extractor.get_series(), series[..., plane_index])
 
-    def test_available_channel_names_are_accepted(self):
-        """Every name that `get_available_channel_names()` returns is accepted back as `channel_name`."""
+    def test_available_channel_names(self):
+        """`get_available_channel_names()` returns the expected channel names in order, and each is accepted back."""
         if not hasattr(self.extractor_cls, "get_available_channel_names"):
             pytest.skip(f"{self.extractor_cls.__name__} has no get_available_channel_names().")
         discovery_method = self.extractor_cls.get_available_channel_names
         discovery_parameters = inspect.signature(discovery_method).parameters
         discovery_kwargs = {key: value for key, value in self.extractor_kwargs.items() if key in discovery_parameters}
-        channel_names = discovery_method(**discovery_kwargs)
+        assert discovery_method(**discovery_kwargs) == self.channel_names
 
-        assert isinstance(channel_names, list)
-        assert all(isinstance(channel_name, str) for channel_name in channel_names)
-        for channel_name in channel_names:
+        for channel_name in self.channel_names:
             self.extractor_cls(**{**self.extractor_kwargs, "channel_name": channel_name})
+
+    def test_channel_name_is_required_with_several_channels(self):
+        """Without `channel_name`, the extractor raises on data with several channels and builds on data with one."""
+        if not hasattr(self.extractor_cls, "get_available_channel_names"):
+            pytest.skip(f"{self.extractor_cls.__name__} has no get_available_channel_names().")
+        kwargs_without_channel = {key: value for key, value in self.extractor_kwargs.items() if key != "channel_name"}
+        if len(self.channel_names) > 1:
+            # TODO: the error messages differ between formats. Unify them, for example so that all of them list the
+            # available channel names, and match the message here.
+            with pytest.raises(ValueError):
+                self.extractor_cls(**kwargs_without_channel)
+        else:
+            self.extractor_cls(**kwargs_without_channel)

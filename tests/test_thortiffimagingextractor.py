@@ -23,6 +23,7 @@ class TestThorTiffImagingExtractor(ImagingExtractorTestMixin):
     num_samples = 3
     sample_shape = (512, 512)
     dtype = np.dtype("uint16")
+    channel_names = ["ChanA"]
 
     @classmethod
     def setup_class(cls):
@@ -48,6 +49,16 @@ class TestThorTiffImagingExtractor(ImagingExtractorTestMixin):
         # Compare with the entire test_data
         assert_array_equal(series, self.test_data)
 
+        # Test with start and end frame
+        start_sample = 0
+        end_sample = 2
+        series_slice = self.extractor.get_series(start_sample=start_sample, end_sample=end_sample)
+        assert series_slice.shape[0] == end_sample - start_sample  # Correct number of frames
+        assert series_slice.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
+
+        # Compare with the corresponding slice of test_data
+        assert_array_equal(series_slice, self.test_data[start_sample:end_sample])
+
     def test_session_start_time(self):
         """Test that the acquisition start time is parsed from Experiment.xml."""
         expected = datetime(2023, 10, 18, 17, 39, 19, tzinfo=timezone.utc)
@@ -56,7 +67,6 @@ class TestThorTiffImagingExtractor(ImagingExtractorTestMixin):
     def test_get_available_channel_names(self):
         """Every name discovery returns can be passed back as `channel_name`."""
         channel_names = ThorTiffImagingExtractor.get_available_channel_names(file_path=FILE_PATH)
-        assert channel_names == ["ChanA"]
 
         for channel_name in channel_names:
             extractor = ThorTiffImagingExtractor(file_path=FILE_PATH, channel_name=channel_name)
@@ -74,6 +84,7 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     num_samples = 3
     sample_shape = (128, 128, 3)
     dtype = np.dtype("uint16")
+    channel_names = ["ChanA", "ChanB"]
 
     @classmethod
     def setup_class(cls):
@@ -109,7 +120,6 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     def test_get_available_channel_names(self):
         """Every name discovery returns can be passed back as `channel_name`."""
         channel_names = ThorTiffImagingExtractor.get_available_channel_names(file_path=self.file_path)
-        assert channel_names == ["ChanA", "ChanB"]
 
         for channel_name in channel_names:
             extractor = ThorTiffImagingExtractor(file_path=self.file_path, channel_name=channel_name)

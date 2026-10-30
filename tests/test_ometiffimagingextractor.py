@@ -291,16 +291,6 @@ class TestOMETiffImagingExtractor:
         extractor = OMETiffImagingExtractor(ome_file, sampling_frequency=1.0, channel_name="Ch1")
         assert extractor.get_num_samples() == 5
 
-    def test_channel_names_numeric_fallback(self):
-        """Test that numeric string names are used when OME-XML has no Channel/@Name."""
-        file_path = OME_TIFF_PATH / "planar_multi_channel_single_file" / "multi-channel-time-series.ome.tiff"
-
-        names = OMETiffImagingExtractor.get_available_channel_names(file_path)
-        assert names == ["0", "1", "2"]
-
-        extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0, channel_name="0")
-        assert extractor.get_num_samples() == 7
-
     def test_invalid_channel_name_shows_available(self):
         """Test that error message shows available channel names."""
         bruker_path = OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif" / "TSeries-20240527-001"
@@ -323,6 +313,7 @@ class TestOMETiffImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin):
     num_samples = 5
     sample_shape = (64, 64)
     dtype = np.dtype("uint8")
+    channel_names = ["0"]
 
 
 class TestOMETiffImagingExtractorPlanarSingleChannelWithDeltaT(ImagingExtractorTestMixin):
@@ -334,6 +325,7 @@ class TestOMETiffImagingExtractorPlanarSingleChannelWithDeltaT(ImagingExtractorT
     num_samples = 5
     sample_shape = (64, 64)
     dtype = np.dtype("uint8")
+    channel_names = ["0"]
 
 
 class TestOMETiffImagingExtractorPlanarSingleChannelWithTimeIncrement(ImagingExtractorTestMixin):
@@ -344,6 +336,7 @@ class TestOMETiffImagingExtractorPlanarSingleChannelWithTimeIncrement(ImagingExt
     num_samples = 5
     sample_shape = (64, 64)
     dtype = np.dtype("uint8")
+    channel_names = ["0"]
 
 
 class TestOMETiffImagingExtractorPlanarMultiChannel(ImagingExtractorTestMixin):
@@ -356,6 +349,7 @@ class TestOMETiffImagingExtractorPlanarMultiChannel(ImagingExtractorTestMixin):
     num_samples = 7
     sample_shape = (64, 64)
     dtype = np.dtype("int8")
+    channel_names = ["0", "1", "2"]  # numeric, the OME-XML has no Channel/@Name
 
 
 class TestOMETiffImagingExtractorPlanarTwoChannelsMultiFile(ImagingExtractorTestMixin):
@@ -368,6 +362,7 @@ class TestOMETiffImagingExtractorPlanarTwoChannelsMultiFile(ImagingExtractorTest
     num_samples = 5
     sample_shape = (64, 64)
     dtype = np.dtype("uint8")
+    channel_names = ["0", "1"]
 
 
 class TestOMETiffImagingExtractorVolumetricSingleChannel(ImagingExtractorTestMixin):
@@ -378,6 +373,7 @@ class TestOMETiffImagingExtractorVolumetricSingleChannel(ImagingExtractorTestMix
     num_samples = 7
     sample_shape = (64, 64, 5)
     dtype = np.dtype("int8")
+    channel_names = ["0"]
 
 
 class TestOMETiffImagingExtractorVolumetricMultiChannel(ImagingExtractorTestMixin):
@@ -390,6 +386,7 @@ class TestOMETiffImagingExtractorVolumetricMultiChannel(ImagingExtractorTestMixi
     num_samples = 7
     sample_shape = (64, 64, 5)
     dtype = np.dtype("int8")
+    channel_names = ["0", "1", "2"]
 
 
 class TestOMETiffImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractorTestMixin):
@@ -402,3 +399,4 @@ class TestOMETiffImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractor
     num_samples = 3
     sample_shape = (64, 64, 10)
     dtype = np.dtype("uint8")
+    channel_names = ["0", "1"]

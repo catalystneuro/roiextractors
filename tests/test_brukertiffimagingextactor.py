@@ -260,6 +260,7 @@ class TestBrukerTiffImagingExtractorSinglePlane(ImagingExtractorTestMixin):
     num_samples = 10
     sample_shape = (64, 64)
     dtype = np.dtype("uint16")
+    channel_names = ["Ch2"]
 
     def test_single_plane_single_channel(self):
         """Test basic metadata and data access for single-plane, single-channel Bruker data.
@@ -348,6 +349,7 @@ class TestBrukerTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     num_samples = 5
     sample_shape = (64, 64, 2)
     dtype = np.dtype("uint16")
+    channel_names = ["Ch2"]
 
     def test_volumetric_single_channel(self):
         """Test metadata and data access for volumetric, single-channel Bruker data.
@@ -404,6 +406,7 @@ class TestBrukerTiffImagingExtractorDualChannel(ImagingExtractorTestMixin):
     num_samples = 5
     sample_shape = (64, 64)
     dtype = np.dtype("uint16")
+    channel_names = ["Red", "Green"]  # in acquisition order
 
     def test_dual_channel(self):
         """Test channel selection and data access for dual-channel Bruker data.
@@ -440,11 +443,6 @@ class TestBrukerTiffImagingExtractorDualChannel(ImagingExtractorTestMixin):
         with pytest.raises(ValueError, match="Channel '5' not found.*Available channels"):
             BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="5")
 
-    def test_get_available_channel_names(self):
-        """Discovery returns the channel names in acquisition order."""
-        channel_names = BrukerTiffImagingExtractor.get_available_channel_names(folder_path=self.folder_path)
-        assert channel_names == ["Red", "Green"]
-
     def test_timestamps_and_sampling_frequency(self):
         """Timestamps are the relativeTime values from the Bruker configuration XML.
 
@@ -479,6 +477,7 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion(ImagingExtractor
     num_samples = 10
     sample_shape = (512, 512)
     dtype = np.dtype("uint16")
+    channel_names = ["Ch1", "Ch2"]
 
     def test_construct_and_select_channels(self):
         """Both channels must be selectable and return distinct data."""
@@ -515,6 +514,7 @@ class TestBrukerTiffImagingExtractorMultiSequenceBOT(ImagingExtractorTestMixin):
     num_samples = 15  # 3 bursts x 5 frames, single channel
     sample_shape = (64, 64)
     dtype = np.dtype("uint16")
+    channel_names = ["Ch2"]
 
     def test_multisequence_within_burst_rate_and_gapped_timestamps(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
@@ -561,6 +561,7 @@ class TestBrukerTiffImagingExtractorMultiSequenceTimedElement(ImagingExtractorTe
     num_samples = 9  # 3 cycles x 3 frames, single channel
     sample_shape = (64, 64)
     dtype = np.dtype("uint16")
+    channel_names = ["Ch2"]
 
     def test_multisequence_timed_element_within_cycle_rate_and_gapped_timestamps(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)

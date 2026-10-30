@@ -1728,25 +1728,7 @@ def test_get_availale_channel_names():
 
     This test verifies that the static get_available_channel_names method correctly extracts
     channel names from ScanImage TIFF files without needing to create an extractor instance.
-
-    The test checks:
-    1. Single-channel file: Verifies correct channel name extraction
-    2. Multi-channel file: Verifies all channel names are correctly extracted
     """
-    # Test with single-channel file
-    single_channel_file = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
-    single_channel_names = ScanImageImagingExtractor.get_available_channel_names(single_channel_file)
-    assert isinstance(single_channel_names, list), "Channel names should be returned as a list"
-    assert len(single_channel_names) == 1, "Single channel file should have one channel"
-    assert single_channel_names[0] == "Channel 1", "Channel name should match expected value"
-
-    # Test with multi-channel file
-    multi_channel_file = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
-    multi_channel_names = ScanImageImagingExtractor.get_available_channel_names(multi_channel_file)
-    assert isinstance(multi_channel_names, list), "Channel names should be returned as a list"
-    assert len(multi_channel_names) == 2, "Multi-channel file should have two channels"
-    assert multi_channel_names == ["Channel 1", "Channel 2"]
-
     # Test with volumetric file (should still work even though extractor initialization would fail)
     volumetric_file = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
     volumetric_channel_names = ScanImageImagingExtractor.get_available_channel_names(volumetric_file)
@@ -2070,6 +2052,7 @@ class TestScanImageImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin
     num_samples = 3
     sample_shape = (1024, 1024)
     dtype = np.dtype("int16")
+    channel_names = ["Channel 1"]
 
 
 class TestScanImageImagingExtractorPlanarTwoChannels(ImagingExtractorTestMixin):
@@ -2081,6 +2064,7 @@ class TestScanImageImagingExtractorPlanarTwoChannels(ImagingExtractorTestMixin):
     num_samples = 1000
     sample_shape = (20, 20)
     dtype = np.dtype("int16")
+    channel_names = ["Channel 1", "Channel 2"]
 
 
 class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
@@ -2091,6 +2075,7 @@ class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
     num_samples = 30  # 10 samples in each of the 3 files
     sample_shape = (512, 512)
     dtype = np.dtype("int16")
+    channel_names = ["Channel 1", "Channel 2"]
 
 
 class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorTestMixin):
@@ -2101,6 +2086,7 @@ class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorT
     num_samples = 100  # 1600 pages / (9 planes + 7 flyback frames)
     sample_shape = (20, 20, 9)
     dtype = np.dtype("int16")
+    channel_names = ["Channel 1"]
 
 
 class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTestMixin):
@@ -2111,6 +2097,7 @@ class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTes
     num_samples = 10
     sample_shape = (20, 20, 9)
     dtype = np.dtype("int16")
+    channel_names = ["Channel 1"]
 
 
 class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin):
@@ -2121,6 +2108,7 @@ class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin
     num_samples = 100  # 10 files of 160 pages / (9 planes + 7 flyback frames)
     sample_shape = (20, 20, 9)
     dtype = np.dtype("int16")
+    channel_names = ["Channel 1"]
 
 
 class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMixin):
@@ -2132,6 +2120,7 @@ class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMix
     num_samples = 100  # 3200 pages / (2 channels * (9 planes + 7 flyback frames))
     sample_shape = (20, 20, 9)
     dtype = np.dtype("int16")
+    channel_names = ["Channel 1", "Channel 2"]
 
 
 class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractorTestMixin):
@@ -2143,6 +2132,7 @@ class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtract
     num_samples = 100  # 10 files of 320 pages / (2 channels * (9 planes + 7 flyback frames))
     sample_shape = (20, 20, 9)
     dtype = np.dtype("int16")
+    channel_names = ["Channel 1", "Channel 2"]
 
 
 class TestScanImageImagingExtractorSinglePlaneOfVolume(ImagingExtractorTestMixin):
@@ -2154,6 +2144,7 @@ class TestScanImageImagingExtractorSinglePlaneOfVolume(ImagingExtractorTestMixin
     num_samples = 100
     sample_shape = (20, 20)
     dtype = np.dtype("int16")
+    channel_names = ["Channel 1"]
 
 
 class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixin):
@@ -2164,6 +2155,7 @@ class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixi
     num_samples = 3  # 24 pages / (2 channels * 2 planes * 2 frames per slice)
     sample_shape = (256, 256, 2)
     dtype = np.dtype("int16")
+    channel_names = ["Channel 1", "Channel 4"]
 
 
 class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtractorTestMixin):
@@ -2176,3 +2168,4 @@ class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtrac
     num_samples = 6  # 3 samples for each of the 2 frames per slice
     sample_shape = (256, 256, 2)
     dtype = np.dtype("int16")
+    channel_names = ["Channel 1", "Channel 4"]
