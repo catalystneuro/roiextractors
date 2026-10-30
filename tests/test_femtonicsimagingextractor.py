@@ -5,6 +5,7 @@ import pytest
 
 from roiextractors.extractors.femtonicsimagingextractor import FemtonicsImagingExtractor
 
+from .extractor_mixins import ImagingExtractorTestMixin
 from .setup_paths import OPHYS_DATA_PATH
 
 
@@ -40,20 +41,10 @@ def test_femtonicsimagingextractor_p29_mesc():
     available_munits = FemtonicsImagingExtractor.get_available_munits(file_path, session_name="MSession_0")
     assert available_munits == ["MUnit_0", "MUnit_1"]
 
-    # Test available channels static method
-    available_channels = FemtonicsImagingExtractor.get_available_channel_names(
-        file_path, session_name="MSession_0", munit_name="MUnit_0"
-    )
-    assert available_channels == ["UG", "UR"]
-
     # Extractor with explicit session, munit and channel selection for the rest of the test
     extractor = FemtonicsImagingExtractor(
         file_path=file_path, session_name="MSession_0", munit_name="MUnit_0", channel_name="UG"
     )
-
-    # Basic properties
-    assert extractor.get_image_shape() == (512, 512)
-    assert extractor.get_num_samples() == 5
 
     # Test metadata claims
     assert extractor._get_image_shape_metadata() == (512, 512, 5)
@@ -171,27 +162,10 @@ def test_femtonicsimagingextractor_p29_mesc():
     assert metadata["frame_duration_ms"] == 32.29672617170252
     assert abs(metadata["sampling_frequency_hz"] - expected_freq) < 0.01
 
-    # Test data type
-    data_type = extractor.get_dtype()
-    assert isinstance(data_type, np.dtype)
-
-    # Test single frame using get_series
-    frame = extractor.get_series(start_sample=0, end_sample=1)
-    assert frame.shape == (1,) + extractor.get_image_shape()
-
-    # Test series - all 5 frames
-    series = extractor.get_series(start_sample=0, end_sample=5)
-    assert series.shape == (5,) + extractor.get_image_shape()
-
-    # Test partial series
-    partial_series = extractor.get_series(start_sample=1, end_sample=4)
-    assert partial_series.shape == (3,) + extractor.get_image_shape()
-
     # Test that different channels give same dimensions
     series_ug = extractor_ug.get_series(start_sample=0, end_sample=5)
     series_ur = extractor_ur.get_series(start_sample=0, end_sample=5)
     assert series_ug.shape == series_ur.shape
-    assert series_ug.shape == (5,) + extractor.get_image_shape()
 
     # Test invalid channel name
     with pytest.raises(ValueError, match="Channel 'InvalidChannel' not found"):
@@ -214,6 +188,36 @@ def test_femtonicsimagingextractor_p29_mesc():
     # Test that extractor throws error when multiple munits exist and none specified
     with pytest.raises(ValueError, match="Multiple MUnits found in"):
         FemtonicsImagingExtractor(file_path=file_path, session_name="MSession_0")
+
+
+class TestFemtonicsImagingExtractorP29(ImagingExtractorTestMixin):
+    extractor_cls = FemtonicsImagingExtractor
+    extractor_kwargs = dict(
+        file_path=OPHYS_DATA_PATH / "imaging_datasets" / "Femtonics" / "moser_lab_mec" / "p29.mesc",
+        session_name="MSession_0",
+        munit_name="MUnit_0",
+        channel_name="UG",
+    )
+    num_samples = 5
+    sample_shape = (512, 512)
+    dtype = np.dtype("uint16")
+    channel_names = ["UG", "UR"]
+    has_time_vector = False
+
+
+class TestFemtonicsImagingExtractorP30(ImagingExtractorTestMixin):
+    extractor_cls = FemtonicsImagingExtractor
+    extractor_kwargs = dict(
+        file_path=OPHYS_DATA_PATH / "imaging_datasets" / "Femtonics" / "moser_lab_mec" / "p30.mesc",
+        session_name="MSession_0",
+        munit_name="MUnit_0",
+        channel_name="UG",
+    )
+    num_samples = 5
+    sample_shape = (512, 512)
+    dtype = np.dtype("uint16")
+    channel_names = ["UG", "UR"]
+    has_time_vector = False
 
 
 def test_get_available_channels_is_deprecated():
@@ -257,20 +261,10 @@ def test_femtonicsimagingextractor_p30_mesc():
     available_munits = FemtonicsImagingExtractor.get_available_munits(file_path, session_name="MSession_0")
     assert available_munits == ["MUnit_0", "MUnit_1"]
 
-    # Test available channels static method
-    available_channels = FemtonicsImagingExtractor.get_available_channel_names(
-        file_path, session_name="MSession_0", munit_name="MUnit_0"
-    )
-    assert available_channels == ["UG", "UR"]
-    assert len(available_channels) == 2
-
     # Extractor with explicit session, munit, and channel selection for the rest of the test
     extractor = FemtonicsImagingExtractor(
         file_path=file_path, session_name="MSession_0", munit_name="MUnit_0", channel_name="UG"
     )
-
-    assert extractor.get_image_shape() == (512, 512)
-    assert extractor.get_num_samples() == 5
 
     # Test metadata claims
     assert extractor._get_image_shape_metadata() == (512, 512, 5)
@@ -388,26 +382,10 @@ def test_femtonicsimagingextractor_p30_mesc():
     assert metadata["frame_duration_ms"] == 32.29672617170252
     assert abs(metadata["sampling_frequency_hz"] - expected_freq) < 0.01
 
-    # Test data type
-    data_type = extractor.get_dtype()
-    assert isinstance(data_type, np.dtype)
-
-    frame = extractor.get_series(start_sample=0, end_sample=1)
-    assert frame.shape == (1,) + extractor.get_image_shape()
-
-    # Test series - all 5 frames
-    series = extractor.get_series(start_sample=0, end_sample=5)
-    assert series.shape == (5,) + extractor.get_image_shape()
-
-    # Test partial series
-    partial_series = extractor.get_series(start_sample=1, end_sample=4)
-    assert partial_series.shape == (3,) + extractor.get_image_shape()
-
     # Test that different channels give same dimensions
     series_ug = extractor_ug.get_series(start_sample=0, end_sample=5)
     series_ur = extractor_ur.get_series(start_sample=0, end_sample=5)
     assert series_ug.shape == series_ur.shape
-    assert series_ug.shape == (5,) + extractor.get_image_shape()
 
     # Test MUnit_1 to ensure both units work
     extractor_munit1 = FemtonicsImagingExtractor(

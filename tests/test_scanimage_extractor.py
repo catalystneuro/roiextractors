@@ -10,6 +10,7 @@ from roiextractors import (
     ScanImageImagingExtractor,
 )
 
+from .extractor_mixins import ImagingExtractorTestMixin
 from .setup_paths import OPHYS_DATA_PATH
 
 # Define the path to the ScanImage test files
@@ -43,9 +44,6 @@ class TestScanImageExtractor:
 
         extractor = ScanImageImagingExtractor(file_path=str(file_path))
 
-        assert extractor.is_volumetric == False
-        assert extractor.get_num_samples() == 3
-        assert extractor.get_image_shape() == (1024, 1024)
         assert extractor.get_sampling_frequency() == 15.2379
 
         samples_per_file = extractor.get_num_samples() / len(extractor.file_paths)
@@ -85,10 +83,7 @@ class TestScanImageExtractor:
         # Test with Channel 1
         extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
 
-        assert extractor_ch1.is_volumetric == False
         assert extractor_ch1.get_sampling_frequency() == 523.926
-        assert extractor_ch1.get_image_shape() == (20, 20)
-        assert extractor_ch1.get_num_samples() == 1000
 
         # Test with Channel 2
         extractor_ch2 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
@@ -105,9 +100,6 @@ class TestScanImageExtractor:
         # Verify that the extractor data has the correct shape
         # For planar data, shape should be (samples, height, width)
         expected_shape = (extractor_ch1.get_num_samples(), *extractor_ch1.get_image_shape())
-        assert (
-            extractor_data_ch1.shape == expected_shape
-        ), f"Channel 1: Expected shape {expected_shape}, got {extractor_data_ch1.shape}"
         assert (
             extractor_data_ch2.shape == expected_shape
         ), f"Channel 2: Expected shape {expected_shape}, got {extractor_data_ch2.shape}"
@@ -186,9 +178,6 @@ class TestScanImageExtractor:
 
         assert extracted_file_names == expected_files_names
 
-        assert extractor.is_volumetric == False
-        assert extractor.get_num_samples() == 10 * 3  # 10 samples per file
-        assert extractor.get_image_shape() == (512, 512)
         assert extractor.get_sampling_frequency() == 98.83842317607626
 
         samples_per_file = extractor.get_num_samples() / len(extractor.file_paths)
@@ -225,19 +214,10 @@ class TestScanImageExtractor:
 
         extractor = ScanImageImagingExtractor(file_path=file_path)
 
-        assert extractor.is_volumetric == True
-        assert extractor.get_num_samples() == 10
-        assert extractor.get_image_shape() == (20, 20)
         assert extractor.get_sampling_frequency() == 8.86703
-        assert extractor.get_num_planes() == 9
 
         # Get data from extractor
         extractor_data = extractor.get_series()
-
-        # Verify that the extractor data has the correct shape
-        # For volumetric data, shape should be (samples, height, width, planes)
-        expected_shape = (extractor.get_num_samples(), *extractor.get_image_shape(), extractor.get_num_planes())
-        assert extractor_data.shape == expected_shape, f"Expected shape {expected_shape}, got {extractor_data.shape}"
 
         # Read tiff data for comparison
         with TiffReader(file_path) as tiff_reader:
@@ -283,24 +263,15 @@ class TestScanImageVolumetricWithFlybackFrames:
 
         extractor = ScanImageImagingExtractor(file_path=file_path)
 
-        assert extractor.is_volumetric == True
         assert extractor.num_flyback_frames_per_channel == 7
         assert extractor.get_sampling_frequency() == 32.7454
-        assert extractor.get_image_shape() == (20, 20)
-        assert extractor.get_num_planes() == 9
 
         ifds = 1600
         total_frames_per_cycle = extractor.get_num_planes() + extractor.num_flyback_frames_per_channel
         num_acquisition_cycles = ifds // total_frames_per_cycle
-        assert extractor.get_num_samples() == num_acquisition_cycles
 
         # Get data from extractor
         extractor_data = extractor.get_series()
-
-        # Verify that the extractor data has the correct shape
-        # For volumetric data, shape should be (samples, height, width, planes)
-        expected_shape = (num_acquisition_cycles, *extractor.get_image_shape(), extractor.get_num_planes())
-        assert extractor_data.shape == expected_shape, f"Expected shape {expected_shape}, got {extractor_data.shape}"
 
         # Read tiff data for comparison
         with TiffReader(file_path) as tiff_reader:
@@ -340,24 +311,13 @@ class TestScanImageVolumetricWithFlybackFrames:
 
         extractor = ScanImageImagingExtractor(file_path=file_path)
 
-        assert extractor.is_volumetric == True
         assert extractor.num_flyback_frames_per_channel == 7
         assert extractor.get_sampling_frequency() == 32.7454
-        assert extractor.get_image_shape() == (20, 20)
-        assert extractor.get_num_planes() == 9
 
-        ifds = 160 * 10
         total_frames_per_cycle = extractor.get_num_planes() + extractor.num_flyback_frames_per_channel
-        num_acquisition_cycles = ifds // total_frames_per_cycle
-        assert extractor.get_num_samples() == num_acquisition_cycles
 
         # Get the entire series data from the extractor
         extractor_data = extractor.get_series()
-
-        # Verify that the extractor data has the correct shape
-        # For volumetric data, shape should be (samples, height, width, planes)
-        expected_shape = (extractor.get_num_samples(), *extractor.get_image_shape(), extractor.get_num_planes())
-        assert extractor_data.shape == expected_shape, f"Expected shape {expected_shape}, got {extractor_data.shape}"
 
         # For each sample volume in the extractor data
         for sample_index in range(extractor.get_num_samples()):
@@ -413,11 +373,8 @@ class TestScanImageVolumetricWithFlybackFrames:
         # Test with Channel 1
         extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
 
-        assert extractor_ch1.is_volumetric == True
         assert extractor_ch1.num_flyback_frames_per_channel == 7
         assert extractor_ch1.get_sampling_frequency() == 32.7454
-        assert extractor_ch1.get_image_shape() == (20, 20)
-        assert extractor_ch1.get_num_planes() == 9
 
         ifds = 3200
         num_channels = 2
@@ -425,7 +382,6 @@ class TestScanImageVolumetricWithFlybackFrames:
             extractor_ch1.get_num_planes() + extractor_ch1.num_flyback_frames_per_channel
         ) * num_channels
         num_acquisition_cycles = ifds // total_frames_per_cycle
-        assert extractor_ch1.get_num_samples() == num_acquisition_cycles
 
         # Test with Channel 2
         extractor_ch2 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
@@ -448,9 +404,6 @@ class TestScanImageVolumetricWithFlybackFrames:
             *extractor_ch1.get_image_shape(),
             extractor_ch1.get_num_planes(),
         )
-        assert (
-            extractor_data_ch1.shape == expected_shape
-        ), f"Channel 1: Expected shape {expected_shape}, got {extractor_data_ch1.shape}"
         assert (
             extractor_data_ch2.shape == expected_shape
         ), f"Channel 2: Expected shape {expected_shape}, got {extractor_data_ch2.shape}"
@@ -513,11 +466,8 @@ class TestScanImageVolumetricWithFlybackFrames:
         # Test with Channel 1
         extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
 
-        assert extractor_ch1.is_volumetric == True
         assert extractor_ch1.num_flyback_frames_per_channel == 7
         assert extractor_ch1.get_sampling_frequency() == 32.7454
-        assert extractor_ch1.get_image_shape() == (20, 20)
-        assert extractor_ch1.get_num_planes() == 9
 
         ifds = 320 * 10
         num_channels = 2
@@ -525,7 +475,6 @@ class TestScanImageVolumetricWithFlybackFrames:
             extractor_ch1.get_num_planes() + extractor_ch1.num_flyback_frames_per_channel
         ) * num_channels
         num_acquisition_cycles = ifds // total_frames_per_cycle
-        assert extractor_ch1.get_num_samples() == num_acquisition_cycles
 
         # Test with Channel 2
         extractor_ch2 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
@@ -548,9 +497,6 @@ class TestScanImageVolumetricWithFlybackFrames:
             *extractor_ch1.get_image_shape(),
             extractor_ch1.get_num_planes(),
         )
-        assert (
-            extractor_data_ch1.shape == expected_shape
-        ), f"Channel 1: Expected shape {expected_shape}, got {extractor_data_ch1.shape}"
         assert (
             extractor_data_ch2.shape == expected_shape
         ), f"Channel 2: Expected shape {expected_shape}, got {extractor_data_ch2.shape}"
@@ -1782,25 +1728,7 @@ def test_get_availale_channel_names():
 
     This test verifies that the static get_available_channel_names method correctly extracts
     channel names from ScanImage TIFF files without needing to create an extractor instance.
-
-    The test checks:
-    1. Single-channel file: Verifies correct channel name extraction
-    2. Multi-channel file: Verifies all channel names are correctly extracted
     """
-    # Test with single-channel file
-    single_channel_file = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
-    single_channel_names = ScanImageImagingExtractor.get_available_channel_names(single_channel_file)
-    assert isinstance(single_channel_names, list), "Channel names should be returned as a list"
-    assert len(single_channel_names) == 1, "Single channel file should have one channel"
-    assert single_channel_names[0] == "Channel 1", "Channel name should match expected value"
-
-    # Test with multi-channel file
-    multi_channel_file = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
-    multi_channel_names = ScanImageImagingExtractor.get_available_channel_names(multi_channel_file)
-    assert isinstance(multi_channel_names, list), "Channel names should be returned as a list"
-    assert len(multi_channel_names) == 2, "Multi-channel file should have two channels"
-    assert multi_channel_names == ["Channel 1", "Channel 2"]
-
     # Test with volumetric file (should still work even though extractor initialization would fail)
     volumetric_file = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
     volumetric_channel_names = ScanImageImagingExtractor.get_available_channel_names(volumetric_file)
@@ -2073,9 +2001,6 @@ class TestScanImageFieldOfViewSlicing:
     """Test the memory-efficient ``slice_field_of_view`` override on ScanImageImagingExtractor."""
 
     PLANAR_FILE = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
-    VOLUMETRIC_FILE = (
-        SCANIMAGE_PATH / "volumetric_single_channel_single_file_no_flyback" / "vol_no_flyback_00001_00001.tif"
-    )
 
     def test_returns_scanimage_extractor_type(self):
         """The sliced view is a ScanImageImagingExtractor, not the generic wrapper, so format methods remain."""
@@ -2084,13 +2009,6 @@ class TestScanImageFieldOfViewSlicing:
         assert isinstance(sliced, ScanImageImagingExtractor)
         assert sliced.get_image_shape() == (30, 20)
         assert sliced.get_num_samples() == extractor.get_num_samples()
-
-    def test_crop_matches_full_then_index(self):
-        """A cropped read equals reading the full series and indexing the same window."""
-        extractor = ScanImageImagingExtractor(file_path=str(self.PLANAR_FILE))
-        full = extractor.get_series()
-        sliced = extractor.slice_field_of_view(row_start=10, row_end=40, column_start=5, column_end=25)
-        assert_array_equal(sliced.get_series(), full[:, 10:40, 5:25])
 
     def test_composition_is_relative(self):
         """Slicing an already-sliced extractor narrows the window, with indices relative to the current frame."""
@@ -2115,17 +2033,6 @@ class TestScanImageFieldOfViewSlicing:
         with pytest.raises(ValueError):
             extractor.slice_field_of_view(**kwargs)
 
-    def test_volumetric_crops_each_plane(self):
-        """For volumetric data the same row/column window is applied to every plane."""
-        extractor = ScanImageImagingExtractor(file_path=str(self.VOLUMETRIC_FILE))
-        assert extractor.is_volumetric
-        full = extractor.get_series()
-        sliced = extractor.slice_field_of_view(row_start=4, row_end=16, column_start=2, column_end=14)
-        assert sliced.is_volumetric
-        assert sliced.get_num_planes() == extractor.get_num_planes()
-        assert sliced.get_volume_shape() == (12, 12, extractor.get_num_planes())
-        assert_array_equal(sliced.get_series(), full[:, 4:16, 2:14, :])
-
     def test_sliced_view_outlives_owner(self):
         """A view shares the owner's file handles; dropping the owner must not close them."""
         import gc
@@ -2137,3 +2044,139 @@ class TestScanImageFieldOfViewSlicing:
         gc.collect()
         # Would raise if the shared handles had been closed when the owner was collected.
         assert_array_equal(sliced.get_series(), expected)
+
+
+class TestScanImageImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(file_path=SCANIMAGE_PATH / "scanimage_20220801_single.tif")
+    num_samples = 3
+    sample_shape = (1024, 1024)
+    dtype = np.dtype("int16")
+    channel_names = ["Channel 1"]
+    has_time_vector = True
+
+
+class TestScanImageImagingExtractorPlanarTwoChannels(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "planar_two_channels_single_file" / "planar_two_ch_single_files_00001_00001.tif",
+        channel_name="Channel 1",
+    )
+    num_samples = 1000
+    sample_shape = (20, 20)
+    dtype = np.dtype("int16")
+    channel_names = ["Channel 1", "Channel 2"]
+    has_time_vector = True
+
+
+class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif", channel_name="Channel 1"
+    )
+    num_samples = 30  # 10 samples in each of the 3 files
+    sample_shape = (512, 512)
+    dtype = np.dtype("int16")
+    channel_names = ["Channel 1", "Channel 2"]
+    has_time_vector = True
+
+
+class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
+    )
+    num_samples = 100  # 1600 pages / (9 planes + 7 flyback frames)
+    sample_shape = (20, 20, 9)
+    dtype = np.dtype("int16")
+    channel_names = ["Channel 1"]
+    has_time_vector = True
+
+
+class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "volumetric_single_channel_single_file_no_flyback" / "vol_no_flyback_00001_00001.tif"
+    )
+    num_samples = 10
+    sample_shape = (20, 20, 9)
+    dtype = np.dtype("int16")
+    channel_names = ["Channel 1"]
+    has_time_vector = True
+
+
+class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "volumetric_single_channel_multi_file" / "vol_one_ch_multi_files_00001_00001.tif"
+    )
+    num_samples = 100  # 10 files of 160 pages / (9 planes + 7 flyback frames)
+    sample_shape = (20, 20, 9)
+    dtype = np.dtype("int16")
+    channel_names = ["Channel 1"]
+    has_time_vector = True
+
+
+class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "volumetric_two_channels_single_file" / "vol_two_ch_single_file_00001_00001.tif",
+        channel_name="Channel 1",
+    )
+    num_samples = 100  # 3200 pages / (2 channels * (9 planes + 7 flyback frames))
+    sample_shape = (20, 20, 9)
+    dtype = np.dtype("int16")
+    channel_names = ["Channel 1", "Channel 2"]
+    has_time_vector = True
+
+
+class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "volumetric_two_channels_multi_file" / "vol_two_ch_multi_files_00001_00001.tif",
+        channel_name="Channel 1",
+    )
+    num_samples = 100  # 10 files of 320 pages / (2 channels * (9 planes + 7 flyback frames))
+    sample_shape = (20, 20, 9)
+    dtype = np.dtype("int16")
+    channel_names = ["Channel 1", "Channel 2"]
+    has_time_vector = True
+
+
+class TestScanImageImagingExtractorSinglePlaneOfVolume(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif",
+        plane_index=0,
+    )
+    num_samples = 100
+    sample_shape = (20, 20)
+    dtype = np.dtype("int16")
+    channel_names = ["Channel 1"]
+    has_time_vector = True
+
+
+class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "scanimage_20220923_noroi.tif", channel_name="Channel 1", slice_sample=0
+    )
+    num_samples = 3  # 24 pages / (2 channels * 2 planes * 2 frames per slice)
+    sample_shape = (256, 256, 2)
+    dtype = np.dtype("int16")
+    channel_names = ["Channel 1", "Channel 4"]
+    has_time_vector = True
+
+
+class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "scanimage_20220923_noroi.tif",
+        channel_name="Channel 1",
+        interleave_slice_samples=True,
+    )
+    num_samples = 6  # 3 samples for each of the 2 frames per slice
+    sample_shape = (256, 256, 2)
+    dtype = np.dtype("int16")
+    channel_names = ["Channel 1", "Channel 4"]
+    has_time_vector = True

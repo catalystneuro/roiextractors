@@ -9,6 +9,7 @@ from numpy.testing import assert_array_equal
 from tifffile import TiffFile
 
 from roiextractors import OMETiffImagingExtractor
+from tests.extractor_mixins import ImagingExtractorTestMixin
 from tests.setup_paths import OPHYS_DATA_PATH
 
 OME_TIFF_PATH = OPHYS_DATA_PATH / "imaging_datasets" / "OME-TIFF"
@@ -32,11 +33,6 @@ class TestOMETiffImagingExtractor:
 
         extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0)
 
-        assert extractor.get_num_samples() == 5
-        assert extractor.get_image_shape() == (64, 64)
-        assert extractor.get_num_planes() == 1
-        assert extractor.is_volumetric is False
-
         with TiffFile(file_path) as tiff:
             tiff_data = np.stack([page.asarray() for page in tiff.pages])
 
@@ -56,11 +52,6 @@ class TestOMETiffImagingExtractor:
         file_path = OME_TIFF_PATH / "planar_multi_channel_single_file" / "multi-channel-time-series.ome.tiff"
 
         extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0, channel_name="0")
-
-        assert extractor.get_num_samples() == 7
-        assert extractor.get_image_shape() == (64, 64)
-        assert extractor.get_num_planes() == 1
-        assert extractor.is_volumetric is False
 
         # Dimension order is XYZCT, so pages cycle C first then T.
         # Channel 0 pages are at indices 0, 3, 6, 9, 12, 15, 18
@@ -84,11 +75,6 @@ class TestOMETiffImagingExtractor:
         file_path = OME_TIFF_PATH / "planar_two_channels_multi_file" / "tubhiswt_C0.ome.tif"
 
         extractor_ch0 = OMETiffImagingExtractor(file_path, sampling_frequency=1.0, channel_name="0")
-
-        assert extractor_ch0.get_num_samples() == 5
-        assert extractor_ch0.get_image_shape() == (64, 64)
-        assert extractor_ch0.get_num_planes() == 1
-        assert extractor_ch0.is_volumetric is False
 
         with TiffFile(file_path) as tiff:
             tiff_data_ch0 = np.stack([page.asarray() for page in tiff.pages])
@@ -115,11 +101,6 @@ class TestOMETiffImagingExtractor:
         file_path = OME_TIFF_PATH / "volumetric_single_channel_single_file" / "4D-series.ome.tiff"
 
         extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0)
-
-        assert extractor.get_num_samples() == 7
-        assert extractor.get_image_shape() == (64, 64)
-        assert extractor.get_num_planes() == 5
-        assert extractor.is_volumetric is True
 
         # Dimension order XYZCT, single channel: pages are Z0T0, Z1T0, ..., Z4T0, Z0T1, ...
         # Each volume is 5 consecutive pages
@@ -194,11 +175,6 @@ class TestOMETiffImagingExtractor:
 
         extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0, channel_name="0")
 
-        assert extractor.get_num_samples() == 7
-        assert extractor.get_image_shape() == (64, 64)
-        assert extractor.get_num_planes() == 5
-        assert extractor.is_volumetric is True
-
         # Dimension order XYZCT: pages cycle Z first, then C, then T
         # Channel 0 volumes: for each T, pages at Z*3+0 (channel 0 stride)
         with TiffFile(file_path) as tiff:
@@ -225,11 +201,6 @@ class TestOMETiffImagingExtractor:
         file_path = OME_TIFF_PATH / "volumetric_two_channels_multi_file" / "tubhiswt_C0_TP0.ome.tif"
 
         extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0, channel_name="0")
-
-        assert extractor.get_num_samples() == 3
-        assert extractor.get_image_shape() == (64, 64)
-        assert extractor.get_num_planes() == 10
-        assert extractor.is_volumetric is True
 
         # Each C0 file has 10 pages (Z-planes for one timepoint)
         for tp in range(3):
@@ -259,8 +230,6 @@ class TestOMETiffImagingExtractor:
         extractor = OMETiffImagingExtractor(file_path)
 
         assert extractor.get_sampling_frequency() == 10.0
-        assert extractor.get_num_samples() == 5
-        assert extractor.get_image_shape() == (64, 64)
 
     def test_sampling_frequency_required_when_no_time_increment(self):
         """Test that ValueError is raised when neither sampling_frequency nor TimeIncrement is available."""
@@ -299,15 +268,6 @@ class TestOMETiffImagingExtractor:
         expected = np.array([0.0, 0.0651, 0.1337, 0.1982, 0.2671])
         np.testing.assert_allclose(timestamps, expected)
 
-    def test_native_timestamps_none_when_no_delta_t(self):
-        """Test that get_native_timestamps returns None when Plane elements lack DeltaT."""
-        file_path = OME_TIFF_PATH / "planar_single_channel_single_file" / "00001_01.ome.tiff"
-
-        extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0)
-
-        assert not extractor._has_native_timestamps()
-        assert extractor.get_native_timestamps() is None
-
     def test_channel_names_from_ome_xml(self):
         """Test that real channel names from OME-XML Channel/@Name are used when present.
 
@@ -322,16 +282,6 @@ class TestOMETiffImagingExtractor:
         extractor = OMETiffImagingExtractor(ome_file, sampling_frequency=1.0, channel_name="Ch1")
         assert extractor.get_num_samples() == 5
 
-    def test_channel_names_numeric_fallback(self):
-        """Test that numeric string names are used when OME-XML has no Channel/@Name."""
-        file_path = OME_TIFF_PATH / "planar_multi_channel_single_file" / "multi-channel-time-series.ome.tiff"
-
-        names = OMETiffImagingExtractor.get_available_channel_names(file_path)
-        assert names == ["0", "1", "2"]
-
-        extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0, channel_name="0")
-        assert extractor.get_num_samples() == 7
-
     def test_invalid_channel_name_shows_available(self):
         """Test that error message shows available channel names."""
         bruker_path = OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif" / "TSeries-20240527-001"
@@ -344,3 +294,108 @@ class TestOMETiffImagingExtractor:
         """Test that a FileNotFoundError is raised for a nonexistent file."""
         with pytest.raises(FileNotFoundError):
             OMETiffImagingExtractor("/nonexistent/path.ome.tif", sampling_frequency=1.0)
+
+
+class TestOMETiffImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin):
+    extractor_cls = OMETiffImagingExtractor
+    extractor_kwargs = dict(
+        file_path=OME_TIFF_PATH / "planar_single_channel_single_file" / "00001_01.ome.tiff", sampling_frequency=1.0
+    )
+    num_samples = 5
+    sample_shape = (64, 64)
+    dtype = np.dtype("uint8")
+    channel_names = ["0"]
+    has_time_vector = False
+
+
+class TestOMETiffImagingExtractorPlanarSingleChannelWithDeltaT(ImagingExtractorTestMixin):
+    extractor_cls = OMETiffImagingExtractor
+    extractor_kwargs = dict(
+        file_path=OME_TIFF_PATH / "planar_single_channel_single_file_with_delta_t" / "00001_01.ome.tiff",
+        sampling_frequency=1.0,
+    )
+    num_samples = 5
+    sample_shape = (64, 64)
+    dtype = np.dtype("uint8")
+    channel_names = ["0"]
+    has_time_vector = True
+
+
+class TestOMETiffImagingExtractorPlanarSingleChannelWithTimeIncrement(ImagingExtractorTestMixin):
+    extractor_cls = OMETiffImagingExtractor
+    extractor_kwargs = dict(
+        file_path=OME_TIFF_PATH / "planar_single_channel_single_file_with_time_increment" / "00001_01.ome.tiff"
+    )
+    num_samples = 5
+    sample_shape = (64, 64)
+    dtype = np.dtype("uint8")
+    channel_names = ["0"]
+    has_time_vector = False
+
+
+class TestOMETiffImagingExtractorPlanarMultiChannel(ImagingExtractorTestMixin):
+    extractor_cls = OMETiffImagingExtractor
+    extractor_kwargs = dict(
+        file_path=OME_TIFF_PATH / "planar_multi_channel_single_file" / "multi-channel-time-series.ome.tiff",
+        sampling_frequency=1.0,
+        channel_name="0",
+    )
+    num_samples = 7
+    sample_shape = (64, 64)
+    dtype = np.dtype("int8")
+    channel_names = ["0", "1", "2"]  # numeric, the OME-XML has no Channel/@Name
+    has_time_vector = False
+
+
+class TestOMETiffImagingExtractorPlanarTwoChannelsMultiFile(ImagingExtractorTestMixin):
+    extractor_cls = OMETiffImagingExtractor
+    extractor_kwargs = dict(
+        file_path=OME_TIFF_PATH / "planar_two_channels_multi_file" / "tubhiswt_C0.ome.tif",
+        sampling_frequency=1.0,
+        channel_name="0",
+    )
+    num_samples = 5
+    sample_shape = (64, 64)
+    dtype = np.dtype("uint8")
+    channel_names = ["0", "1"]
+    has_time_vector = False
+
+
+class TestOMETiffImagingExtractorVolumetricSingleChannel(ImagingExtractorTestMixin):
+    extractor_cls = OMETiffImagingExtractor
+    extractor_kwargs = dict(
+        file_path=OME_TIFF_PATH / "volumetric_single_channel_single_file" / "4D-series.ome.tiff", sampling_frequency=1.0
+    )
+    num_samples = 7
+    sample_shape = (64, 64, 5)
+    dtype = np.dtype("int8")
+    channel_names = ["0"]
+    has_time_vector = False
+
+
+class TestOMETiffImagingExtractorVolumetricMultiChannel(ImagingExtractorTestMixin):
+    extractor_cls = OMETiffImagingExtractor
+    extractor_kwargs = dict(
+        file_path=OME_TIFF_PATH / "volumetric_multi_channel_single_file" / "multi-channel-4D-series.ome.tiff",
+        sampling_frequency=1.0,
+        channel_name="0",
+    )
+    num_samples = 7
+    sample_shape = (64, 64, 5)
+    dtype = np.dtype("int8")
+    channel_names = ["0", "1", "2"]
+    has_time_vector = False
+
+
+class TestOMETiffImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractorTestMixin):
+    extractor_cls = OMETiffImagingExtractor
+    extractor_kwargs = dict(
+        file_path=OME_TIFF_PATH / "volumetric_two_channels_multi_file" / "tubhiswt_C0_TP0.ome.tif",
+        sampling_frequency=1.0,
+        channel_name="0",
+    )
+    num_samples = 3
+    sample_shape = (64, 64, 10)
+    dtype = np.dtype("uint8")
+    channel_names = ["0", "1"]
+    has_time_vector = False
