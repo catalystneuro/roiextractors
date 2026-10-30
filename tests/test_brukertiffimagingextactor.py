@@ -261,6 +261,7 @@ class TestBrukerTiffImagingExtractorSinglePlane(ImagingExtractorTestMixin):
     sample_shape = (64, 64)
     dtype = np.dtype("uint16")
     channel_names = ["Ch2"]
+    has_time_vector = True
 
     def test_single_plane_single_channel(self):
         """Test basic metadata and data access for single-plane, single-channel Bruker data.
@@ -350,6 +351,7 @@ class TestBrukerTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     sample_shape = (64, 64, 2)
     dtype = np.dtype("uint16")
     channel_names = ["Ch2"]
+    has_time_vector = True
 
     def test_volumetric_single_channel(self):
         """Test metadata and data access for volumetric, single-channel Bruker data.
@@ -407,6 +409,7 @@ class TestBrukerTiffImagingExtractorDualChannel(ImagingExtractorTestMixin):
     sample_shape = (64, 64)
     dtype = np.dtype("uint16")
     channel_names = ["Red", "Green"]  # in acquisition order
+    has_time_vector = True
 
     def test_dual_channel(self):
         """Test channel selection and data access for dual-channel Bruker data.
@@ -478,6 +481,7 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion(ImagingExtractor
     sample_shape = (512, 512)
     dtype = np.dtype("uint16")
     channel_names = ["Ch1", "Ch2"]
+    has_time_vector = True
 
     def test_construct_and_select_channels(self):
         """Both channels must be selectable and return distinct data."""
@@ -515,6 +519,7 @@ class TestBrukerTiffImagingExtractorMultiSequenceBOT(ImagingExtractorTestMixin):
     sample_shape = (64, 64)
     dtype = np.dtype("uint16")
     channel_names = ["Ch2"]
+    has_time_vector = True
 
     def test_multisequence_within_burst_rate_and_gapped_timestamps(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
@@ -562,6 +567,7 @@ class TestBrukerTiffImagingExtractorMultiSequenceTimedElement(ImagingExtractorTe
     sample_shape = (64, 64)
     dtype = np.dtype("uint16")
     channel_names = ["Ch2"]
+    has_time_vector = True
 
     def test_multisequence_timed_element_within_cycle_rate_and_gapped_timestamps(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)

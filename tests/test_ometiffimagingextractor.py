@@ -268,15 +268,6 @@ class TestOMETiffImagingExtractor:
         expected = np.array([0.0, 0.0651, 0.1337, 0.1982, 0.2671])
         np.testing.assert_allclose(timestamps, expected)
 
-    def test_native_timestamps_none_when_no_delta_t(self):
-        """Test that get_native_timestamps returns None when Plane elements lack DeltaT."""
-        file_path = OME_TIFF_PATH / "planar_single_channel_single_file" / "00001_01.ome.tiff"
-
-        extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0)
-
-        assert not extractor._has_native_timestamps()
-        assert extractor.get_native_timestamps() is None
-
     def test_channel_names_from_ome_xml(self):
         """Test that real channel names from OME-XML Channel/@Name are used when present.
 
@@ -314,6 +305,7 @@ class TestOMETiffImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin):
     sample_shape = (64, 64)
     dtype = np.dtype("uint8")
     channel_names = ["0"]
+    has_time_vector = False
 
 
 class TestOMETiffImagingExtractorPlanarSingleChannelWithDeltaT(ImagingExtractorTestMixin):
@@ -326,6 +318,7 @@ class TestOMETiffImagingExtractorPlanarSingleChannelWithDeltaT(ImagingExtractorT
     sample_shape = (64, 64)
     dtype = np.dtype("uint8")
     channel_names = ["0"]
+    has_time_vector = True
 
 
 class TestOMETiffImagingExtractorPlanarSingleChannelWithTimeIncrement(ImagingExtractorTestMixin):
@@ -337,6 +330,7 @@ class TestOMETiffImagingExtractorPlanarSingleChannelWithTimeIncrement(ImagingExt
     sample_shape = (64, 64)
     dtype = np.dtype("uint8")
     channel_names = ["0"]
+    has_time_vector = False
 
 
 class TestOMETiffImagingExtractorPlanarMultiChannel(ImagingExtractorTestMixin):
@@ -350,6 +344,7 @@ class TestOMETiffImagingExtractorPlanarMultiChannel(ImagingExtractorTestMixin):
     sample_shape = (64, 64)
     dtype = np.dtype("int8")
     channel_names = ["0", "1", "2"]  # numeric, the OME-XML has no Channel/@Name
+    has_time_vector = False
 
 
 class TestOMETiffImagingExtractorPlanarTwoChannelsMultiFile(ImagingExtractorTestMixin):
@@ -363,6 +358,7 @@ class TestOMETiffImagingExtractorPlanarTwoChannelsMultiFile(ImagingExtractorTest
     sample_shape = (64, 64)
     dtype = np.dtype("uint8")
     channel_names = ["0", "1"]
+    has_time_vector = False
 
 
 class TestOMETiffImagingExtractorVolumetricSingleChannel(ImagingExtractorTestMixin):
@@ -374,6 +370,7 @@ class TestOMETiffImagingExtractorVolumetricSingleChannel(ImagingExtractorTestMix
     sample_shape = (64, 64, 5)
     dtype = np.dtype("int8")
     channel_names = ["0"]
+    has_time_vector = False
 
 
 class TestOMETiffImagingExtractorVolumetricMultiChannel(ImagingExtractorTestMixin):
@@ -387,6 +384,7 @@ class TestOMETiffImagingExtractorVolumetricMultiChannel(ImagingExtractorTestMixi
     sample_shape = (64, 64, 5)
     dtype = np.dtype("int8")
     channel_names = ["0", "1", "2"]
+    has_time_vector = False
 
 
 class TestOMETiffImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractorTestMixin):
@@ -400,3 +398,4 @@ class TestOMETiffImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractor
     sample_shape = (64, 64, 10)
     dtype = np.dtype("uint8")
     channel_names = ["0", "1"]
+    has_time_vector = False

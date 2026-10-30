@@ -2053,6 +2053,7 @@ class TestScanImageImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin
     sample_shape = (1024, 1024)
     dtype = np.dtype("int16")
     channel_names = ["Channel 1"]
+    has_time_vector = True
 
 
 class TestScanImageImagingExtractorPlanarTwoChannels(ImagingExtractorTestMixin):
@@ -2065,6 +2066,7 @@ class TestScanImageImagingExtractorPlanarTwoChannels(ImagingExtractorTestMixin):
     sample_shape = (20, 20)
     dtype = np.dtype("int16")
     channel_names = ["Channel 1", "Channel 2"]
+    has_time_vector = True
 
 
 class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
@@ -2076,6 +2078,7 @@ class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
     sample_shape = (512, 512)
     dtype = np.dtype("int16")
     channel_names = ["Channel 1", "Channel 2"]
+    has_time_vector = True
 
 
 class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorTestMixin):
@@ -2087,6 +2090,7 @@ class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorT
     sample_shape = (20, 20, 9)
     dtype = np.dtype("int16")
     channel_names = ["Channel 1"]
+    has_time_vector = True
 
 
 class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTestMixin):
@@ -2098,6 +2102,7 @@ class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTes
     sample_shape = (20, 20, 9)
     dtype = np.dtype("int16")
     channel_names = ["Channel 1"]
+    has_time_vector = True
 
 
 class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin):
@@ -2109,6 +2114,7 @@ class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin
     sample_shape = (20, 20, 9)
     dtype = np.dtype("int16")
     channel_names = ["Channel 1"]
+    has_time_vector = True
 
 
 class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMixin):
@@ -2121,6 +2127,7 @@ class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMix
     sample_shape = (20, 20, 9)
     dtype = np.dtype("int16")
     channel_names = ["Channel 1", "Channel 2"]
+    has_time_vector = True
 
 
 class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractorTestMixin):
@@ -2133,6 +2140,7 @@ class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtract
     sample_shape = (20, 20, 9)
     dtype = np.dtype("int16")
     channel_names = ["Channel 1", "Channel 2"]
+    has_time_vector = True
 
 
 class TestScanImageImagingExtractorSinglePlaneOfVolume(ImagingExtractorTestMixin):
@@ -2145,6 +2153,7 @@ class TestScanImageImagingExtractorSinglePlaneOfVolume(ImagingExtractorTestMixin
     sample_shape = (20, 20)
     dtype = np.dtype("int16")
     channel_names = ["Channel 1"]
+    has_time_vector = True
 
 
 class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixin):
@@ -2156,6 +2165,7 @@ class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixi
     sample_shape = (256, 256, 2)
     dtype = np.dtype("int16")
     channel_names = ["Channel 1", "Channel 4"]
+    has_time_vector = True
 
 
 class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtractorTestMixin):
@@ -2169,3 +2179,4 @@ class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtrac
     sample_shape = (256, 256, 2)
     dtype = np.dtype("int16")
     channel_names = ["Channel 1", "Channel 4"]
+    has_time_vector = True

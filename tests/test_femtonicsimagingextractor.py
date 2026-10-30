@@ -202,6 +202,7 @@ class TestFemtonicsImagingExtractorP29(ImagingExtractorTestMixin):
     sample_shape = (512, 512)
     dtype = np.dtype("uint16")
     channel_names = ["UG", "UR"]
+    has_time_vector = False
 
 
 class TestFemtonicsImagingExtractorP30(ImagingExtractorTestMixin):
@@ -216,6 +217,7 @@ class TestFemtonicsImagingExtractorP30(ImagingExtractorTestMixin):
     sample_shape = (512, 512)
     dtype = np.dtype("uint16")
     channel_names = ["UG", "UR"]
+    has_time_vector = False
 
 
 def test_get_available_channels_is_deprecated():

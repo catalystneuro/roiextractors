@@ -24,6 +24,7 @@ class TestThorTiffImagingExtractor(ImagingExtractorTestMixin):
     sample_shape = (512, 512)
     dtype = np.dtype("uint16")
     channel_names = ["ChanA"]
+    has_time_vector = False  # the OME-XML has a DeltaT for the first plane only
 
     @classmethod
     def setup_class(cls):
@@ -85,6 +86,7 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     sample_shape = (128, 128, 3)
     dtype = np.dtype("uint16")
     channel_names = ["ChanA", "ChanB"]
+    has_time_vector = False  # the OME-XML has a DeltaT for the first plane only
 
     @classmethod
     def setup_class(cls):

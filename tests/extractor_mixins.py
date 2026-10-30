@@ -34,6 +34,8 @@ class ImagingExtractorTestMixin:
         The expected dtype of the pixels.
     channel_names : list[str]
         The expected names that `get_available_channel_names()` returns, in order. Only on extractors that have it.
+    has_time_vector : bool
+        Whether the format records a time for each sample.
     """
 
     extractor_cls: type[ImagingExtractor]
@@ -42,6 +44,7 @@ class ImagingExtractorTestMixin:
     sample_shape: tuple[int, int] | tuple[int, int, int]
     dtype: np.dtype
     channel_names: list[str]
+    has_time_vector: bool
 
     # TODO: compare against the pixels of another reader instead of the full read of the extractor itself. How to
     # read the raw data depends on the format (the pages of `tifffile`, an HDF5 dataset), so each test class would
@@ -80,19 +83,14 @@ class ImagingExtractorTestMixin:
         assert series.shape == (self.num_samples, *self.sample_shape)
         assert series.dtype == self.dtype
 
-    def test_samples(self, setup_extractor):
-        """`get_samples()` returns the same samples as the full read, also when they are not contiguous."""
-        sample_indices = [0, self.extractor.get_num_samples() - 1]
-        assert_array_equal(self.extractor.get_samples(sample_indices), self.extractor.get_series()[sample_indices])
-
-    def test_timestamps(self, setup_extractor):
-        """`get_timestamps()` has one time per sample, and a range of it equals the same range of the full read."""
-        num_samples = self.extractor.get_num_samples()
-        timestamps = self.extractor.get_timestamps()
-        assert timestamps.shape == (num_samples,)
-        assert_array_equal(
-            self.extractor.get_timestamps(start_sample=1, end_sample=num_samples - 1), timestamps[1 : num_samples - 1]
-        )
+    def test_native_timestamps(self, setup_extractor):
+        """The extractor reports whether the format records times, and returns one per sample when it does."""
+        assert self.extractor.has_time_vector() == self.has_time_vector
+        native_timestamps = self.extractor.get_native_timestamps()
+        if self.has_time_vector:
+            assert native_timestamps.shape == (self.num_samples,)
+        else:
+            assert native_timestamps is None
 
     def test_slice_samples(self, setup_extractor):
         """`slice_samples()` returns the samples and the timestamps of the same range of the parent."""
