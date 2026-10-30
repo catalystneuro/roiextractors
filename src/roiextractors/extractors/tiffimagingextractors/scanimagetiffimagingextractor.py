@@ -484,6 +484,15 @@ class ScanImageImagingExtractor(ImagingExtractor):
             file_paths_found = [self.file_path]
             return file_paths_found
 
+        # TODO: find the files of a sequence by their frame headers instead of their names. The files of one
+        # acquisition share the `epoch` of their headers and continue each other's `frameNumbers`, so this would also
+        # find renamed files of a sequence and tell apart unrelated files that share a prefix. It needs to open every
+        # candidate file to read its header.
+
+        # A file whose name does not end in a file index, for example a renamed one, is not part of a sequence
+        if not file_stem[len(pattern_prefix) :].isdigit():
+            return [self.file_path]
+
         from natsort import natsorted
 
         glob_pattern = f"{pattern_prefix}*{extension}"

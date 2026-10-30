@@ -14,6 +14,7 @@
 * `InscopixSegmentationExtractor.get_traces_dict()` now returns the traces of the cell set under `raw` instead of `None` for every trace type, so neuroconv writes them. `get_traces()` now returns them as (samples, ROIs) like the other segmentation extractors, instead of (ROIs, samples).
 * `MicroManagerTiffImagingExtractor` now takes its sampling frequency from the median interval between the acquisition times of the frames, the `DeltaT` of the planes in the OME-XML. It read `PlaybackFPS` from `DisplaySettings.json`, the speed at which the viewer plays the frames back, which can differ from the acquisition rate. `DisplaySettings.json` is no longer required.
 * `InscopixImagingExtractor` and `InscopixSegmentationExtractor` now work on Python 3.13. They raised `ImportError` on 3.13 and above, but `isx` supports 3.13 since version 2.1.0.
+* `ScanImageImagingExtractor` built with a `file_path` whose name does not end in a file index, like a renamed file, now reads that file alone. When another file in the folder shared its prefix, it dropped the file as a non-sequence file and read the numbered files instead, or none.
 
 ### Deprecations And Removals
 * Dropped support for Python 3.10, which `neuroconv` no longer supports. The minimum supported version is now Python 3.11. [PR #627](https://github.com/catalystneuro/roiextractors/pull/627)
