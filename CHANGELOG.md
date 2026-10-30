@@ -29,6 +29,7 @@
 * Pull requests from forks, which do not receive the AWS secrets, now restore the most recent cached `ophys_testing_data` from the base branch in the `load-data` action instead of failing on the S3 listing. [PR #626](https://github.com/catalystneuro/roiextractors/pull/626)
 * Fixed the timestamp priority diagram in `design_decisions.rst` and the `get_native_timestamps()` docstrings to match how `get_timestamps()` resolves timestamps. [PR #631](https://github.com/catalystneuro/roiextractors/pull/631)
 * `SegmentationExtractor.get_traces()` now reads only the requested frames from the stored traces. It converted the whole stored array to numpy before slicing, so on extractors that keep their traces in HDF5 or Zarr every call read all of them.
+* Added `ImagingExtractorTestMixin` in `tests/extractor_mixins.py`, checks shared by the imaging extractor tests and modeled on the interface test mixins of neuroconv. A test class per fixture sets `extractor_cls` and `extractor_kwargs`, and the mixin checks that `get_series()`, `get_samples()`, the timestamps, `slice_samples()`, `slice_field_of_view()` and `select_plane()` agree with each other, and that every name `get_available_channel_names()` returns is accepted back as `channel_name`. The OME-TIFF, ScanImage, Bruker, Thor and Femtonics tests use it, and their tests that it covers are removed.
 
 # v0.10.0 (September 9th, 2026)
 
