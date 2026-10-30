@@ -7,6 +7,7 @@ from numpy.testing import assert_array_equal
 
 from roiextractors import ThorTiffImagingExtractor
 
+from .extractor_mixins import ImagingExtractorTestMixin
 from .setup_paths import OPHYS_DATA_PATH
 
 # Path to the test data
@@ -14,8 +15,11 @@ TEST_DIR = OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "single_chann
 FILE_PATH = TEST_DIR / "ChanA_001_001_001_001.tif"
 
 
-class TestThorTiffImagingExtractor:
+class TestThorTiffImagingExtractor(ImagingExtractorTestMixin):
     """Test ThorTiffImagingExtractor."""
+
+    extractor_cls = ThorTiffImagingExtractor
+    extractor_kwargs = dict(file_path=FILE_PATH)
 
     @classmethod
     def setup_class(cls):
@@ -56,37 +60,6 @@ class TestThorTiffImagingExtractor:
         # Compare with the entire test_data
         assert_array_equal(series, self.test_data)
 
-        # Test with start and end frame
-        start_sample = 0
-        end_sample = 2
-        series_slice = self.extractor.get_series(start_sample=start_sample, end_sample=end_sample)
-        assert series_slice.shape[0] == end_sample - start_sample  # Correct number of frames
-        assert series_slice.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
-
-        # Compare with the corresponding slice of test_data
-        assert_array_equal(series_slice, self.test_data[start_sample:end_sample])
-
-    def test_thor_tiff_extractor_get_samples(self):
-        """Test the get_samples method."""
-        sample_indices = [0, 1, 2]
-        frames = self.extractor.get_samples(sample_indices=sample_indices)
-        assert frames.shape[0] == len(sample_indices)  # Correct number of frames
-        assert frames.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
-
-        # Compare with frames extracted directly from the test_data
-        for i, frame_idx in enumerate(sample_indices):
-            assert_array_equal(frames[i], self.test_data[frame_idx])
-
-        # Test with non-consecutive frames
-        sample_indices = [0, 2]
-        frames = self.extractor.get_samples(sample_indices=sample_indices)
-        assert frames.shape[0] == len(sample_indices)  # Correct number of frames
-        assert frames.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
-
-        # Compare with frames extracted directly from the test_data
-        for i, sample_index in enumerate(sample_indices):
-            assert_array_equal(frames[i], self.test_data[sample_index])
-
     def test_session_start_time(self):
         """Test that the acquisition start time is parsed from Experiment.xml."""
         expected = datetime(2023, 10, 18, 17, 39, 19, tzinfo=timezone.utc)
@@ -105,9 +78,11 @@ class TestThorTiffImagingExtractor:
 VOLUMETRIC_DIR = OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "multi_channel_multi_plane" / "lzw_compressed"
 
 
-class TestThorTiffImagingExtractorVolumetric:
+class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     """Test ThorTiffImagingExtractor on a two-channel, three-plane acquisition."""
 
+    extractor_cls = ThorTiffImagingExtractor
+    extractor_kwargs = dict(file_path=VOLUMETRIC_DIR / "ChanA_0001_0001_0001_0001.tif", channel_name="ChanA")
     num_samples = 3
     num_planes = 3
     image_shape = (128, 128)

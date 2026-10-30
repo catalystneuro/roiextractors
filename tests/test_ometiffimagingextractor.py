@@ -9,6 +9,7 @@ from numpy.testing import assert_array_equal
 from tifffile import TiffFile
 
 from roiextractors import OMETiffImagingExtractor
+from tests.extractor_mixins import ImagingExtractorTestMixin
 from tests.setup_paths import OPHYS_DATA_PATH
 
 OME_TIFF_PATH = OPHYS_DATA_PATH / "imaging_datasets" / "OME-TIFF"
@@ -344,3 +345,68 @@ class TestOMETiffImagingExtractor:
         """Test that a FileNotFoundError is raised for a nonexistent file."""
         with pytest.raises(FileNotFoundError):
             OMETiffImagingExtractor("/nonexistent/path.ome.tif", sampling_frequency=1.0)
+
+
+class TestOMETiffImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin):
+    extractor_cls = OMETiffImagingExtractor
+    extractor_kwargs = dict(
+        file_path=OME_TIFF_PATH / "planar_single_channel_single_file" / "00001_01.ome.tiff", sampling_frequency=1.0
+    )
+
+
+class TestOMETiffImagingExtractorPlanarSingleChannelWithDeltaT(ImagingExtractorTestMixin):
+    extractor_cls = OMETiffImagingExtractor
+    extractor_kwargs = dict(
+        file_path=OME_TIFF_PATH / "planar_single_channel_single_file_with_delta_t" / "00001_01.ome.tiff",
+        sampling_frequency=1.0,
+    )
+
+
+class TestOMETiffImagingExtractorPlanarSingleChannelWithTimeIncrement(ImagingExtractorTestMixin):
+    extractor_cls = OMETiffImagingExtractor
+    extractor_kwargs = dict(
+        file_path=OME_TIFF_PATH / "planar_single_channel_single_file_with_time_increment" / "00001_01.ome.tiff"
+    )
+
+
+class TestOMETiffImagingExtractorPlanarMultiChannel(ImagingExtractorTestMixin):
+    extractor_cls = OMETiffImagingExtractor
+    extractor_kwargs = dict(
+        file_path=OME_TIFF_PATH / "planar_multi_channel_single_file" / "multi-channel-time-series.ome.tiff",
+        sampling_frequency=1.0,
+        channel_name="0",
+    )
+
+
+class TestOMETiffImagingExtractorPlanarTwoChannelsMultiFile(ImagingExtractorTestMixin):
+    extractor_cls = OMETiffImagingExtractor
+    extractor_kwargs = dict(
+        file_path=OME_TIFF_PATH / "planar_two_channels_multi_file" / "tubhiswt_C0.ome.tif",
+        sampling_frequency=1.0,
+        channel_name="0",
+    )
+
+
+class TestOMETiffImagingExtractorVolumetricSingleChannel(ImagingExtractorTestMixin):
+    extractor_cls = OMETiffImagingExtractor
+    extractor_kwargs = dict(
+        file_path=OME_TIFF_PATH / "volumetric_single_channel_single_file" / "4D-series.ome.tiff", sampling_frequency=1.0
+    )
+
+
+class TestOMETiffImagingExtractorVolumetricMultiChannel(ImagingExtractorTestMixin):
+    extractor_cls = OMETiffImagingExtractor
+    extractor_kwargs = dict(
+        file_path=OME_TIFF_PATH / "volumetric_multi_channel_single_file" / "multi-channel-4D-series.ome.tiff",
+        sampling_frequency=1.0,
+        channel_name="0",
+    )
+
+
+class TestOMETiffImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractorTestMixin):
+    extractor_cls = OMETiffImagingExtractor
+    extractor_kwargs = dict(
+        file_path=OME_TIFF_PATH / "volumetric_two_channels_multi_file" / "tubhiswt_C0_TP0.ome.tif",
+        sampling_frequency=1.0,
+        channel_name="0",
+    )

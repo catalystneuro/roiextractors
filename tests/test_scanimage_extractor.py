@@ -10,6 +10,7 @@ from roiextractors import (
     ScanImageImagingExtractor,
 )
 
+from .extractor_mixins import ImagingExtractorTestMixin
 from .setup_paths import OPHYS_DATA_PATH
 
 # Define the path to the ScanImage test files
@@ -2061,9 +2062,6 @@ class TestScanImageFieldOfViewSlicing:
     """Test the memory-efficient ``slice_field_of_view`` override on ScanImageImagingExtractor."""
 
     PLANAR_FILE = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
-    VOLUMETRIC_FILE = (
-        SCANIMAGE_PATH / "volumetric_single_channel_single_file_no_flyback" / "vol_no_flyback_00001_00001.tif"
-    )
 
     def test_returns_scanimage_extractor_type(self):
         """The sliced view is a ScanImageImagingExtractor, not the generic wrapper, so format methods remain."""
@@ -2072,13 +2070,6 @@ class TestScanImageFieldOfViewSlicing:
         assert isinstance(sliced, ScanImageImagingExtractor)
         assert sliced.get_image_shape() == (30, 20)
         assert sliced.get_num_samples() == extractor.get_num_samples()
-
-    def test_crop_matches_full_then_index(self):
-        """A cropped read equals reading the full series and indexing the same window."""
-        extractor = ScanImageImagingExtractor(file_path=str(self.PLANAR_FILE))
-        full = extractor.get_series()
-        sliced = extractor.slice_field_of_view(row_start=10, row_end=40, column_start=5, column_end=25)
-        assert_array_equal(sliced.get_series(), full[:, 10:40, 5:25])
 
     def test_composition_is_relative(self):
         """Slicing an already-sliced extractor narrows the window, with indices relative to the current frame."""
@@ -2103,17 +2094,6 @@ class TestScanImageFieldOfViewSlicing:
         with pytest.raises(ValueError):
             extractor.slice_field_of_view(**kwargs)
 
-    def test_volumetric_crops_each_plane(self):
-        """For volumetric data the same row/column window is applied to every plane."""
-        extractor = ScanImageImagingExtractor(file_path=str(self.VOLUMETRIC_FILE))
-        assert extractor.is_volumetric
-        full = extractor.get_series()
-        sliced = extractor.slice_field_of_view(row_start=4, row_end=16, column_start=2, column_end=14)
-        assert sliced.is_volumetric
-        assert sliced.get_num_planes() == extractor.get_num_planes()
-        assert sliced.get_volume_shape() == (12, 12, extractor.get_num_planes())
-        assert_array_equal(sliced.get_series(), full[:, 4:16, 2:14, :])
-
     def test_sliced_view_outlives_owner(self):
         """A view shares the owner's file handles; dropping the owner must not close them."""
         import gc
@@ -2125,3 +2105,84 @@ class TestScanImageFieldOfViewSlicing:
         gc.collect()
         # Would raise if the shared handles had been closed when the owner was collected.
         assert_array_equal(sliced.get_series(), expected)
+
+
+class TestScanImageImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(file_path=SCANIMAGE_PATH / "scanimage_20220801_single.tif")
+
+
+class TestScanImageImagingExtractorPlanarTwoChannels(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "planar_two_channels_single_file" / "planar_two_ch_single_files_00001_00001.tif",
+        channel_name="Channel 1",
+    )
+
+
+class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif", channel_name="Channel 1"
+    )
+
+
+class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
+    )
+
+
+class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "volumetric_single_channel_single_file_no_flyback" / "vol_no_flyback_00001_00001.tif"
+    )
+
+
+class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "volumetric_single_channel_multi_file" / "vol_one_ch_multi_files_00001_00001.tif"
+    )
+
+
+class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "volumetric_two_channels_single_file" / "vol_two_ch_single_file_00001_00001.tif",
+        channel_name="Channel 1",
+    )
+
+
+class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "volumetric_two_channels_multi_file" / "vol_two_ch_multi_files_00001_00001.tif",
+        channel_name="Channel 1",
+    )
+
+
+class TestScanImageImagingExtractorSinglePlaneOfVolume(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif",
+        plane_index=0,
+    )
+
+
+class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "scanimage_20220923_noroi.tif", channel_name="Channel 1", slice_sample=0
+    )
+
+
+class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_PATH / "scanimage_20220923_noroi.tif",
+        channel_name="Channel 1",
+        interleave_slice_samples=True,
+    )
