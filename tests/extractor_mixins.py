@@ -105,12 +105,28 @@ class ImagingExtractorTestMixin:
         )
 
     def test_slice_field_of_view(self, setup_extractor):
-        """`slice_field_of_view()` returns the same rows and columns of the full read, on every plane."""
-        num_rows, num_columns = self.extractor.get_image_shape()
+        """`slice_field_of_view()` returns the same rows and columns of the full read, on every plane.
+
+        The crop has different bounds and a different size on the rows and on the columns, so it catches an extractor
+        that swaps them: the pixels come from another region, and the shape it reports is transposed. With the same
+        bounds on both axes, a swap would select the same region of a square frame and pass. The crop asks for C, rows
+        [1, 4) and columns [4, 6), and an extractor that swaps the bounds returns S, rows [4, 6) and columns [1, 4),
+        shown on the top left corner of the frame:
+
+            column  0 1 2 3 4 5 6 7
+            row 0   . . . . . . . .
+                1   . . . . C C . .
+                2   . . . . C C . .
+                3   . . . . C C . .
+                4   . S S S . . . .
+                5   . S S S . . . .
+                6   . . . . . . . .
+        """
+        row_start, row_end, column_start, column_end = 1, 4, 4, 6
         sliced_extractor = self.extractor.slice_field_of_view(
-            row_start=1, row_end=num_rows - 1, column_start=1, column_end=num_columns - 1
+            row_start=row_start, row_end=row_end, column_start=column_start, column_end=column_end
         )
-        expected_series = self.extractor.get_series()[:, 1:-1, 1:-1]
+        expected_series = self.extractor.get_series()[:, row_start:row_end, column_start:column_end]
         assert sliced_extractor.get_sample_shape() == expected_series.shape[1:]
         assert_array_equal(sliced_extractor.get_series(), expected_series)
 
