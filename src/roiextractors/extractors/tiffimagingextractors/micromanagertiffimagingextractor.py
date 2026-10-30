@@ -6,7 +6,6 @@ MicroManagerTiffImagingExtractor
     A ImagingExtractor for TIFF files produced by Micro-Manager.
 """
 
-import json
 import logging
 import re
 from collections import Counter
@@ -17,6 +16,7 @@ from xml.etree import ElementTree
 
 import numpy as np
 
+from .ometiffimagingextractor import OMETiffImagingExtractor
 from ...extraction_tools import PathType, get_package
 from ...imagingextractor import ImagingExtractor
 from ...multiimagingextractor import MultiImagingExtractor
@@ -51,18 +51,13 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         Parameters
         ----------
         folder_path: PathType
-           The folder path that contains the multipage OME-TIF image files (.ome.tif files) and
-           the 'DisplaySettings' JSON file.
+           The folder path that contains the multipage OME-TIF image files (.ome.tif files).
         """
         self.tifffile = _get_tiff_reader()
         self.folder_path = Path(folder_path)
 
         self._ome_tif_files = list(self.folder_path.glob("*.ome.tif"))
         assert self._ome_tif_files, f"The TIF image files are missing from '{folder_path}'."
-
-        # load the 'DisplaySettings.json' file that contains the sampling frequency of images
-        settings = self._load_settings_json()
-        self._sampling_frequency = float(settings["PlaybackFPS"]["scalar"])
 
         first_tif = self.tifffile.TiffFile(self._ome_tif_files[0])
         # extract metadata from Micro-Manager
@@ -87,6 +82,17 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
         self._num_samples = int(pixels_element.attrib["SizeT"])
         self._dtype = np.dtype(pixels_element.attrib["Type"])
 
+        # the sampling frequency is the median interval between the acquisition times of the frames,
+        # which Micro-Manager copies from the 'ElapsedTime-ms' of each frame to the DeltaT of its Plane
+        plane_elements = pixels_element.findall(f"{{{schema_name}}}Plane")
+        time_by_frame = {
+            int(plane.attrib["TheT"]): float(plane.attrib["DeltaT"])
+            * OMETiffImagingExtractor._TIME_UNIT_TO_SECONDS[plane.attrib.get("DeltaTUnit", "s")]
+            for plane in plane_elements
+        }
+        times = np.array([time_by_frame[frame] for frame in sorted(time_by_frame)])
+        self._sampling_frequency = float(1.0 / np.median(np.diff(times)))
+
         # all the file names are repeated under the TiffData tag
         # the number of occurrences of each file path corresponds to the number of frames for a given TIF file
         tiff_data_elements = pixels_element.findall(f"{{{schema_name}}}TiffData")
@@ -104,23 +110,6 @@ class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
             extractor._image_size = (self._height, self._width)
             imaging_extractors.append(extractor)
         super().__init__(imaging_extractors=imaging_extractors)
-
-    def _load_settings_json(self) -> dict[str, dict[str, str]]:
-        """Load the 'DisplaySettings' JSON file.
-
-        Returns
-        -------
-        settings: Dict[str, Dict[str, str]]
-            The dictionary that contains the properties of Micro-Manager.
-        """
-        file_name = "DisplaySettings.json"
-        settings_json_file_path = self.folder_path / file_name
-        assert settings_json_file_path.exists(), f"The '{file_name}' file is not found at '{self.folder_path}'."
-
-        with open(settings_json_file_path, "r") as f:
-            settings = json.load(f)
-        assert "map" in settings, "The Micro-Manager property 'map' key is missing."
-        return settings["map"]
 
     def _get_ome_xml_root(self) -> ElementTree:
         """Parse the OME-XML configuration from string format into element tree and returns the root of this tree.

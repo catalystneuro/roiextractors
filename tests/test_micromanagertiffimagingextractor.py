@@ -53,12 +53,6 @@ class TestMicroManagerTiffExtractor(TestCase):
         with self.assertRaisesWith(AssertionError, exc_msg=exc_msg):
             MicroManagerTiffImagingExtractor(folder_path=folder_path)
 
-    def test_json_file_is_missing_assertion(self):
-        folder_path = self.test_dir
-        exc_msg = f"The 'DisplaySettings.json' file is not found at '{folder_path}'."
-        with self.assertRaisesWith(AssertionError, exc_msg=exc_msg):
-            MicroManagerTiffImagingExtractor(folder_path=folder_path)
-
     def test_list_of_missing_tif_files_assertion(self):
         shutil.copy(Path(self.folder_path) / "DisplaySettings.json", Path(self.test_dir) / "DisplaySettings.json")
         exc_msg = f"Some of the TIF image files at '{self.test_dir}' are missing. The list of files that are missing: {self.file_paths[1:]}"
@@ -72,7 +66,8 @@ class TestMicroManagerTiffExtractor(TestCase):
         self.assertEqual(self.extractor.get_num_samples(), 15)
 
     def test_micromanagertiffextractor_sampling_frequency(self):
-        self.assertEqual(self.extractor.get_sampling_frequency(), 20.0)
+        # the median interval between the DeltaT of the planes is 49.95 ms, while the PlaybackFPS of the viewer is 20
+        self.assertAlmostEqual(self.extractor.get_sampling_frequency(), 1 / 0.04995)
 
     def test_micromanagertiffextractor_dtype(self):
         self.assertEqual(self.extractor.get_dtype(), np.uint16)
