@@ -1741,6 +1741,18 @@ def test_non_integer_file_warning(tmp_path):
         assert all(Path(fp).name in source_files for fp in extractor.file_paths), "Unexpected files in extractor"
 
 
+def test_file_without_file_index_is_read_alone():
+    """A file whose name does not end in a file index, for example a renamed one, is read alone.
+
+    `scanimage_20220923_roi.tif` sits in the same folder and shares its prefix, so a search for the rest of the
+    sequence finds two files without a file index and would drop both, including the one passed.
+    """
+    file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
+    extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1", slice_sample=0)
+    assert extractor.file_paths == [file_path]
+    assert extractor.get_num_samples() == 3
+
+
 def test_get_frames_per_slice():
     """
     Test the static get_frames_per_slice method.

@@ -13,6 +13,7 @@
 * `InscopixImagingExtractor._get_metadata()` no longer returns an `analysis` section. It called `_get_analysis_info()`, which only `InscopixSegmentationExtractor` defines, and swallowed the `AttributeError`, so the section was always an empty dict.
 * `InscopixSegmentationExtractor.get_traces_dict()` now returns the traces of the cell set under `raw` instead of `None` for every trace type, so neuroconv writes them. `get_traces()` now returns them as (samples, ROIs) like the other segmentation extractors, instead of (ROIs, samples).
 * `InscopixImagingExtractor` and `InscopixSegmentationExtractor` now work on Python 3.13. They raised `ImportError` on 3.13 and above, but `isx` supports 3.13 since version 2.1.0.
+* `ScanImageImagingExtractor` built with a `file_path` whose name does not end in a file index, like a renamed file, now reads that file alone. When another file in the folder shared its prefix, it dropped the file as a non-sequence file and read the numbered files instead, or none.
 
 ### Deprecations And Removals
 * Dropped support for Python 3.10, which `neuroconv` no longer supports. The minimum supported version is now Python 3.11. [PR #627](https://github.com/catalystneuro/roiextractors/pull/627)
