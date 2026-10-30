@@ -52,10 +52,6 @@ def test_femtonicsimagingextractor_p29_mesc():
         file_path=file_path, session_name="MSession_0", munit_name="MUnit_0", channel_name="UG"
     )
 
-    # Basic properties
-    assert extractor.get_image_shape() == (512, 512)
-    assert extractor.get_num_samples() == 5
-
     # Test metadata claims
     assert extractor._get_image_shape_metadata() == (512, 512, 5)
 
@@ -176,7 +172,6 @@ def test_femtonicsimagingextractor_p29_mesc():
     series_ug = extractor_ug.get_series(start_sample=0, end_sample=5)
     series_ur = extractor_ur.get_series(start_sample=0, end_sample=5)
     assert series_ug.shape == series_ur.shape
-    assert series_ug.shape == (5,) + extractor.get_image_shape()
 
     # Test invalid channel name
     with pytest.raises(ValueError, match="Channel 'InvalidChannel' not found"):
@@ -209,6 +204,9 @@ class TestFemtonicsImagingExtractorP29(ImagingExtractorTestMixin):
         munit_name="MUnit_0",
         channel_name="UG",
     )
+    num_samples = 5
+    sample_shape = (512, 512)
+    dtype = np.dtype("uint16")
 
 
 class TestFemtonicsImagingExtractorP30(ImagingExtractorTestMixin):
@@ -219,6 +217,9 @@ class TestFemtonicsImagingExtractorP30(ImagingExtractorTestMixin):
         munit_name="MUnit_0",
         channel_name="UG",
     )
+    num_samples = 5
+    sample_shape = (512, 512)
+    dtype = np.dtype("uint16")
 
 
 def test_get_available_channels_is_deprecated():
@@ -273,9 +274,6 @@ def test_femtonicsimagingextractor_p30_mesc():
     extractor = FemtonicsImagingExtractor(
         file_path=file_path, session_name="MSession_0", munit_name="MUnit_0", channel_name="UG"
     )
-
-    assert extractor.get_image_shape() == (512, 512)
-    assert extractor.get_num_samples() == 5
 
     # Test metadata claims
     assert extractor._get_image_shape_metadata() == (512, 512, 5)
@@ -397,7 +395,6 @@ def test_femtonicsimagingextractor_p30_mesc():
     series_ug = extractor_ug.get_series(start_sample=0, end_sample=5)
     series_ur = extractor_ur.get_series(start_sample=0, end_sample=5)
     assert series_ug.shape == series_ur.shape
-    assert series_ug.shape == (5,) + extractor.get_image_shape()
 
     # Test MUnit_1 to ensure both units work
     extractor_munit1 = FemtonicsImagingExtractor(

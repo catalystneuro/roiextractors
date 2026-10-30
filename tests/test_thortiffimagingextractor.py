@@ -20,6 +20,9 @@ class TestThorTiffImagingExtractor(ImagingExtractorTestMixin):
 
     extractor_cls = ThorTiffImagingExtractor
     extractor_kwargs = dict(file_path=FILE_PATH)
+    num_samples = 3
+    sample_shape = (512, 512)
+    dtype = np.dtype("uint16")
 
     @classmethod
     def setup_class(cls):
@@ -33,29 +36,14 @@ class TestThorTiffImagingExtractor(ImagingExtractorTestMixin):
         # Load the test data for comparison
         cls.test_data = tifffile.imread(FILE_PATH)
 
-    def test_thor_tiff_extractor_frame_shape(self):
-        """Test the frame shape property."""
-        assert self.extractor.get_frame_shape() == (self.test_data.shape[1], self.test_data.shape[2])
-
-    def test_thor_tiff_extractor_num_samples(self):
-        """Test the number of samples property."""
-        assert self.extractor.get_num_samples() == self.test_data.shape[0]
-
     def test_thor_tiff_extractor_sampling_frequency(self):
         """Test the sampling frequency property."""
         assert self.extractor.get_sampling_frequency() is not None
         assert isinstance(self.extractor.get_sampling_frequency(), float)
 
-    def test_thor_tiff_extractor_dtype(self):
-        """Test the data type property."""
-        assert self.extractor.get_dtype() == self.test_data.dtype
-
     def test_thor_tiff_extractor_get_series(self):
         """Test the get_series method."""
         series = self.extractor.get_series()
-        assert series.shape[0] == self.test_data.shape[0]  # Same number of frames
-        assert series.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
-        assert series.dtype == self.test_data.dtype  # Same data type
 
         # Compare with the entire test_data
         assert_array_equal(series, self.test_data)
@@ -84,8 +72,8 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     extractor_cls = ThorTiffImagingExtractor
     extractor_kwargs = dict(file_path=VOLUMETRIC_DIR / "ChanA_0001_0001_0001_0001.tif", channel_name="ChanA")
     num_samples = 3
-    num_planes = 3
-    image_shape = (128, 128)
+    sample_shape = (128, 128, 3)
+    dtype = np.dtype("uint16")
 
     @classmethod
     def setup_class(cls):
@@ -95,16 +83,6 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
             pytest.skip(f"Test file {cls.file_path} not found. Skipping tests.")
 
         cls.extractor = ThorTiffImagingExtractor(file_path=cls.file_path, channel_name="ChanA")
-
-    def test_volumetric_shape(self):
-        """The depth planes are reported as a fourth dimension."""
-        assert self.extractor.is_volumetric
-        assert self.extractor.get_num_planes() == self.num_planes
-        assert self.extractor.get_num_samples() == self.num_samples
-        assert self.extractor.get_sample_shape() == (*self.image_shape, self.num_planes)
-
-        series = self.extractor.get_series()
-        assert series.shape == (self.num_samples, *self.image_shape, self.num_planes)
 
     def test_sample_and_plane_are_not_transposed(self):
         """Each (sample, plane) position holds the file named for that plane and timepoint.
@@ -117,7 +95,7 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
         """
         series = self.extractor.get_series()
         for sample_index in range(self.num_samples):
-            for plane_index in range(self.num_planes):
+            for plane_index in range(self.sample_shape[2]):
                 file_path = VOLUMETRIC_DIR / f"ChanA_0001_0001_000{plane_index + 1}_000{sample_index + 1}.tif"
                 with tifffile.TiffFile(file_path) as tiff_file:
                     expected = tiff_file.pages[0].asarray()

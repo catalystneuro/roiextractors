@@ -257,6 +257,9 @@ class TestBrukerTiffImagingExtractorSinglePlane(ImagingExtractorTestMixin):
     folder_path = BRUKER_STUB_PATH / "NCCR32_2023_02_20_Into_the_void_t_series_baseline-000"
     extractor_cls = BrukerTiffImagingExtractor
     extractor_kwargs = dict(folder_path=folder_path)
+    num_samples = 10
+    sample_shape = (64, 64)
+    dtype = np.dtype("uint16")
 
     def test_single_plane_single_channel(self):
         """Test basic metadata and data access for single-plane, single-channel Bruker data.
@@ -269,12 +272,6 @@ class TestBrukerTiffImagingExtractorSinglePlane(ImagingExtractorTestMixin):
         - Files: 10 .ome.tif
         """
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
-
-        assert extractor.get_image_shape() == (64, 64)
-        assert extractor.get_sample_shape() == (64, 64)
-        assert extractor.get_num_samples() == 10
-        assert extractor.get_dtype() == np.uint16
-        assert extractor.is_volumetric is False
 
         # Verify data values match the raw TIFF files
         file_paths = sorted(self.folder_path.glob("*.ome.tif"))
@@ -348,6 +345,9 @@ class TestBrukerTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     folder_path = BRUKER_STUB_PATH / "NCCR32_2022_11_03_IntoTheVoid_t_series-005"
     extractor_cls = BrukerTiffImagingExtractor
     extractor_kwargs = dict(folder_path=folder_path)
+    num_samples = 5
+    sample_shape = (64, 64, 2)
+    dtype = np.dtype("uint16")
 
     def test_volumetric_single_channel(self):
         """Test metadata and data access for volumetric, single-channel Bruker data.
@@ -361,11 +361,7 @@ class TestBrukerTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
         """
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
 
-        assert extractor.is_volumetric is True
-        assert extractor.get_num_samples() == 5
-        assert extractor.get_num_planes() == 2
         assert extractor.get_volume_shape() == (64, 64, 2)
-        assert extractor.get_sample_shape() == (64, 64, 2)
 
         # Verify data values: files are ordered (t0_z0, t0_z1, t1_z0, ...).
         # Reshape to (T, Z, H, W) then transpose to (T, H, W, Z) to match get_series().
@@ -405,6 +401,9 @@ class TestBrukerTiffImagingExtractorDualChannel(ImagingExtractorTestMixin):
     folder_path = BRUKER_STUB_PATH / "TSeries-20240527-001"
     extractor_cls = BrukerTiffImagingExtractor
     extractor_kwargs = dict(folder_path=folder_path, channel_name="Green")
+    num_samples = 5
+    sample_shape = (64, 64)
+    dtype = np.dtype("uint16")
 
     def test_dual_channel(self):
         """Test channel selection and data access for dual-channel Bruker data.
@@ -420,10 +419,6 @@ class TestBrukerTiffImagingExtractorDualChannel(ImagingExtractorTestMixin):
             BrukerTiffImagingExtractor(folder_path=self.folder_path)
 
         ext_green = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Green")
-        assert ext_green.get_image_shape() == (64, 64)
-        assert ext_green.get_num_samples() == 5
-        assert ext_green.get_dtype() == np.uint16
-        assert ext_green.is_volumetric is False
 
         ext_red = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Red")
         assert ext_red.get_num_samples() == 5
@@ -481,6 +476,9 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion(ImagingExtractor
     folder_path = BRUKER_STUB_PATH / "NCCR62_2023_07_06_IntoTheVoid_t_series_Dual_color-000"
     extractor_cls = BrukerTiffImagingExtractor
     extractor_kwargs = dict(folder_path=folder_path, channel_name="Ch1")
+    num_samples = 10
+    sample_shape = (512, 512)
+    dtype = np.dtype("uint16")
 
     def test_construct_and_select_channels(self):
         """Both channels must be selectable and return distinct data."""
@@ -488,10 +486,6 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion(ImagingExtractor
             BrukerTiffImagingExtractor(folder_path=self.folder_path)
 
         ext_ch1 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch1")
-        assert ext_ch1.get_num_samples() == 10
-        assert ext_ch1.get_image_shape() == (512, 512)
-        assert ext_ch1.get_dtype() == np.uint16
-        assert ext_ch1.is_volumetric is False
 
         ext_ch2 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
         assert ext_ch2.get_num_samples() == 10
@@ -518,13 +512,13 @@ class TestBrukerTiffImagingExtractorMultiSequenceBOT(ImagingExtractorTestMixin):
     folder_path = BRUKER_STUB_PATH / "TSeries-02022026-001_multisequence"
     extractor_cls = BrukerTiffImagingExtractor
     extractor_kwargs = dict(folder_path=folder_path, channel_name="Ch2")
+    num_samples = 15  # 3 bursts x 5 frames, single channel
+    sample_shape = (64, 64)
+    dtype = np.dtype("uint16")
 
     def test_multisequence_within_burst_rate_and_gapped_timestamps(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
 
-        assert extractor.get_num_samples() == 15  # 3 bursts x 5 frames, single channel
-        assert extractor.get_image_shape() == (64, 64)
-        assert extractor.is_volumetric is False
         # within-burst frame rate (no single global rate exists across the gaps)
         assert extractor.get_sampling_frequency() == pytest.approx(15.02, rel=1e-3)
 
@@ -564,13 +558,13 @@ class TestBrukerTiffImagingExtractorMultiSequenceTimedElement(ImagingExtractorTe
     folder_path = BRUKER_STUB_PATH / "TSeries-08162024-1918-002_multisequence"
     extractor_cls = BrukerTiffImagingExtractor
     extractor_kwargs = dict(folder_path=folder_path)
+    num_samples = 9  # 3 cycles x 3 frames, single channel
+    sample_shape = (64, 64)
+    dtype = np.dtype("uint16")
 
     def test_multisequence_timed_element_within_cycle_rate_and_gapped_timestamps(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
 
-        assert extractor.get_num_samples() == 9  # 3 cycles x 3 frames, single channel
-        assert extractor.get_image_shape() == (64, 64)
-        assert extractor.is_volumetric is False
         assert extractor.get_sampling_frequency() == pytest.approx(15.11, rel=1e-3)
 
         # regular within each cycle (~0.0662 s steps); the cycles are irregularly spaced (real gaps)

@@ -17,7 +17,8 @@ class ImagingExtractorTestMixin:
     """Checks that every imaging extractor must pass.
 
     The checks read a range that leaves out the first and the last sample, so the fixture needs at least three
-    samples.
+    samples. The expected values describe the file, so take them from its README or from another reader, never
+    from the extractor.
 
     Attributes
     ----------
@@ -25,10 +26,19 @@ class ImagingExtractorTestMixin:
         The extractor class, not an instance.
     extractor_kwargs : dict
         The keyword arguments of the constructor.
+    num_samples : int
+        The expected number of samples.
+    sample_shape : tuple[int, int] | tuple[int, int, int]
+        The expected shape of a sample, (rows, columns) for planar data and (rows, columns, planes) for volumetric.
+    dtype : np.dtype
+        The expected dtype of the pixels.
     """
 
     extractor_cls: type[ImagingExtractor]
     extractor_kwargs: dict
+    num_samples: int
+    sample_shape: tuple[int, int] | tuple[int, int, int]
+    dtype: np.dtype
 
     @pytest.fixture
     def setup_extractor(self):
@@ -36,12 +46,31 @@ class ImagingExtractorTestMixin:
         self.extractor = self.extractor_cls(**self.extractor_kwargs)
         return self.extractor
 
-    def test_series_shape_and_dtype(self, setup_extractor):
-        """`get_series()` has the shape (num_samples, *sample_shape) and the dtype that `get_dtype()` reports."""
-        series = self.extractor.get_series()
-        assert series.shape == (self.extractor.get_num_samples(), *self.extractor.get_sample_shape())
+    def test_num_samples(self, setup_extractor):
+        """`get_num_samples()` is the expected number of samples."""
+        assert self.extractor.get_num_samples() == self.num_samples
+
+    def test_sample_shape(self, setup_extractor):
+        """`get_sample_shape()`, `get_image_shape()`, `is_volumetric` and `get_num_planes()` agree with `sample_shape`."""
+        assert self.extractor.get_sample_shape() == self.sample_shape
+        assert self.extractor.get_image_shape() == self.sample_shape[:2]
+        is_volumetric = len(self.sample_shape) == 3
+        assert self.extractor.is_volumetric == is_volumetric
+        # Planar extractors disagree on get_num_planes(), some raise and some return 1
+        if is_volumetric:
+            assert self.extractor.get_num_planes() == self.sample_shape[2]
+
+    def test_dtype(self, setup_extractor):
+        """`get_dtype()` returns the expected dtype as a `np.dtype`."""
+        # Equality alone would pass for a scalar type or a string too
         assert isinstance(self.extractor.get_dtype(), np.dtype)
-        assert series.dtype == self.extractor.get_dtype()
+        assert self.extractor.get_dtype() == self.dtype
+
+    def test_series_shape_and_dtype(self, setup_extractor):
+        """`get_series()` has the expected shape and dtype."""
+        series = self.extractor.get_series()
+        assert series.shape == (self.num_samples, *self.sample_shape)
+        assert series.dtype == self.dtype
 
     def test_series_range(self, setup_extractor):
         """`get_series(start_sample, end_sample)` returns the same samples as the full read."""
