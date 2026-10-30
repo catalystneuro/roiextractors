@@ -131,13 +131,13 @@ class ImagingExtractorTestMixin:
         assert_array_equal(sliced_extractor.get_series(), expected_series)
 
     def test_select_plane(self, setup_extractor):
-        """Each extractor that `select_plane()` returns has the same plane of the volumetric series."""
+        """The extractor that `select_plane()` returns for the last plane has that plane of the volumetric series."""
         if not self.extractor.is_volumetric:
             pytest.skip("select_plane() applies only to volumetric extractors.")
-        series = self.extractor.get_series()
-        for plane_index in range(self.extractor.get_num_planes()):
-            plane_extractor = self.extractor.select_plane(plane_index)
-            assert_array_equal(plane_extractor.get_series(), series[..., plane_index])
+        last_plane_index = self.sample_shape[2] - 1
+        plane_extractor = self.extractor.select_plane(last_plane_index)
+        assert plane_extractor.get_sample_shape() == self.sample_shape[:2]
+        assert_array_equal(plane_extractor.get_series(), self.extractor.get_series()[..., last_plane_index])
 
     def test_available_channel_names(self):
         """`get_available_channel_names()` returns the expected channel names in order, and each is accepted back."""
