@@ -45,10 +45,7 @@ class ImagingExtractorTestMixin:
     channel_names: list[str]
     has_time_vector: bool
 
-    # TODO: compare against the pixels of another reader instead of the full read of the extractor itself. How to
-    # read the raw data depends on the format (the pages of `tifffile`, an HDF5 dataset), so each test class would
-    # implement a method that returns the expected series of its fixture, and the checks here would compare
-    # `get_series()` and `get_samples()` against it.
+    # TODO: implement `check_series()` in every test class, as the docstring of `test_get_series()` describes.
 
     @pytest.fixture
     def setup_extractor(self):
@@ -76,11 +73,27 @@ class ImagingExtractorTestMixin:
         assert isinstance(self.extractor.get_dtype(), np.dtype)
         assert self.extractor.get_dtype() == self.dtype
 
-    def test_series_shape_and_dtype(self, setup_extractor):
-        """`get_series()` has the expected shape and dtype."""
+    def test_get_series(self, setup_extractor):
+        """`get_series()` returns the data of the fixture.
+
+        It reads the data once, which is usually the slow part, and gathers here the checks that need it, so the
+        suite stays fast. The getter checks never read the data. Here the shape and the dtype of the returned array
+        are checked against the expected `num_samples`, `sample_shape` and `dtype`, and then the series goes to
+        `check_series()`, where each test class compares it with the same data read by another library.
+        """
         series = self.extractor.get_series()
         assert series.shape == (self.num_samples, *self.sample_shape)
         assert series.dtype == self.dtype
+        self.check_series(series)
+
+    def check_series(self, series):
+        """Check the series that `get_series()` returned, with the data read by another library.
+
+        Override it in a test class. How to read the raw data depends on the format (the pages of `tifffile`, an
+        HDF5 dataset), so each class decides what to compare: the full array, or chosen samples against chosen
+        pages. It can also check properties of the array specific to the format. It receives the series already
+        read, so the data is read once. The goal is that every test class implements it.
+        """
 
     def test_native_timestamps(self, setup_extractor):
         """The extractor reports whether the format records times, and returns one per sample when it does."""
