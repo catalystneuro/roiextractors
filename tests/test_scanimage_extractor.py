@@ -2051,11 +2051,11 @@ class TestScanImageFieldOfViewSlicing:
 class TestScanImageImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
     extractor_kwargs = dict(file_path=SCANIMAGE_PATH / "scanimage_20220801_single.tif")
-    num_samples = 3
-    sample_shape = (1024, 1024)
-    dtype = np.dtype("int16")
-    channel_names = ["Channel 1"]
-    has_time_vector = True
+    expected_num_samples = 3
+    expected_sample_shape = (1024, 1024)
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1"]
+    expected_has_time_vector = True
 
 
 class TestScanImageImagingExtractorPlanarTwoChannels(ImagingExtractorTestMixin):
@@ -2064,11 +2064,11 @@ class TestScanImageImagingExtractorPlanarTwoChannels(ImagingExtractorTestMixin):
         file_path=SCANIMAGE_PATH / "planar_two_channels_single_file" / "planar_two_ch_single_files_00001_00001.tif",
         channel_name="Channel 1",
     )
-    num_samples = 1000
-    sample_shape = (20, 20)
-    dtype = np.dtype("int16")
-    channel_names = ["Channel 1", "Channel 2"]
-    has_time_vector = True
+    expected_num_samples = 1000
+    expected_sample_shape = (20, 20)
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1", "Channel 2"]
+    expected_has_time_vector = True
 
 
 class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
@@ -2076,11 +2076,11 @@ class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
     extractor_kwargs = dict(
         file_path=SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif", channel_name="Channel 1"
     )
-    num_samples = 30  # 10 samples in each of the 3 files
-    sample_shape = (512, 512)
-    dtype = np.dtype("int16")
-    channel_names = ["Channel 1", "Channel 2"]
-    has_time_vector = True
+    expected_num_samples = 30  # 10 samples in each of the 3 files
+    expected_sample_shape = (512, 512)
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1", "Channel 2"]
+    expected_has_time_vector = True
 
 
 class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorTestMixin):
@@ -2088,11 +2088,11 @@ class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorT
     extractor_kwargs = dict(
         file_path=SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
     )
-    num_samples = 100  # 1600 pages / (9 planes + 7 flyback frames)
-    sample_shape = (20, 20, 9)
-    dtype = np.dtype("int16")
-    channel_names = ["Channel 1"]
-    has_time_vector = True
+    expected_num_samples = 100  # 1600 pages / (9 planes + 7 flyback frames)
+    expected_sample_shape = (20, 20, 9)
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1"]
+    expected_has_time_vector = True
 
 
 class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTestMixin):
@@ -2100,11 +2100,11 @@ class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTes
     extractor_kwargs = dict(
         file_path=SCANIMAGE_PATH / "volumetric_single_channel_single_file_no_flyback" / "vol_no_flyback_00001_00001.tif"
     )
-    num_samples = 10
-    sample_shape = (20, 20, 9)
-    dtype = np.dtype("int16")
-    channel_names = ["Channel 1"]
-    has_time_vector = True
+    expected_num_samples = 10
+    expected_sample_shape = (20, 20, 9)
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1"]
+    expected_has_time_vector = True
 
 
 class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin):
@@ -2112,11 +2112,11 @@ class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin
     extractor_kwargs = dict(
         file_path=SCANIMAGE_PATH / "volumetric_single_channel_multi_file" / "vol_one_ch_multi_files_00001_00001.tif"
     )
-    num_samples = 100  # 10 files of 160 pages / (9 planes + 7 flyback frames)
-    sample_shape = (20, 20, 9)
-    dtype = np.dtype("int16")
-    channel_names = ["Channel 1"]
-    has_time_vector = True
+    expected_num_samples = 100  # 10 files of 160 pages / (9 planes + 7 flyback frames)
+    expected_sample_shape = (20, 20, 9)
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1"]
+    expected_has_time_vector = True
 
 
 class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMixin):
@@ -2125,11 +2125,11 @@ class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMix
         file_path=SCANIMAGE_PATH / "volumetric_two_channels_single_file" / "vol_two_ch_single_file_00001_00001.tif",
         channel_name="Channel 1",
     )
-    num_samples = 100  # 3200 pages / (2 channels * (9 planes + 7 flyback frames))
-    sample_shape = (20, 20, 9)
-    dtype = np.dtype("int16")
-    channel_names = ["Channel 1", "Channel 2"]
-    has_time_vector = True
+    expected_num_samples = 100  # 3200 pages / (2 channels * (9 planes + 7 flyback frames))
+    expected_sample_shape = (20, 20, 9)
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1", "Channel 2"]
+    expected_has_time_vector = True
 
 
 class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractorTestMixin):
@@ -2138,11 +2138,11 @@ class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtract
         file_path=SCANIMAGE_PATH / "volumetric_two_channels_multi_file" / "vol_two_ch_multi_files_00001_00001.tif",
         channel_name="Channel 1",
     )
-    num_samples = 100  # 10 files of 320 pages / (2 channels * (9 planes + 7 flyback frames))
-    sample_shape = (20, 20, 9)
-    dtype = np.dtype("int16")
-    channel_names = ["Channel 1", "Channel 2"]
-    has_time_vector = True
+    expected_num_samples = 100  # 10 files of 320 pages / (2 channels * (9 planes + 7 flyback frames))
+    expected_sample_shape = (20, 20, 9)
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1", "Channel 2"]
+    expected_has_time_vector = True
 
 
 class TestScanImageImagingExtractorSinglePlaneOfVolume(ImagingExtractorTestMixin):
@@ -2151,11 +2151,11 @@ class TestScanImageImagingExtractorSinglePlaneOfVolume(ImagingExtractorTestMixin
         file_path=SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif",
         plane_index=0,
     )
-    num_samples = 100
-    sample_shape = (20, 20)
-    dtype = np.dtype("int16")
-    channel_names = ["Channel 1"]
-    has_time_vector = True
+    expected_num_samples = 100
+    expected_sample_shape = (20, 20)
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1"]
+    expected_has_time_vector = True
 
 
 class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixin):
@@ -2163,11 +2163,11 @@ class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixi
     extractor_kwargs = dict(
         file_path=SCANIMAGE_PATH / "scanimage_20220923_noroi.tif", channel_name="Channel 1", slice_sample=0
     )
-    num_samples = 3  # 24 pages / (2 channels * 2 planes * 2 frames per slice)
-    sample_shape = (256, 256, 2)
-    dtype = np.dtype("int16")
-    channel_names = ["Channel 1", "Channel 4"]
-    has_time_vector = True
+    expected_num_samples = 3  # 24 pages / (2 channels * 2 planes * 2 frames per slice)
+    expected_sample_shape = (256, 256, 2)
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1", "Channel 4"]
+    expected_has_time_vector = True
 
 
 class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtractorTestMixin):
@@ -2177,8 +2177,8 @@ class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtrac
         channel_name="Channel 1",
         interleave_slice_samples=True,
     )
-    num_samples = 6  # 3 samples for each of the 2 frames per slice
-    sample_shape = (256, 256, 2)
-    dtype = np.dtype("int16")
-    channel_names = ["Channel 1", "Channel 4"]
-    has_time_vector = True
+    expected_num_samples = 6  # 3 samples for each of the 2 frames per slice
+    expected_sample_shape = (256, 256, 2)
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1", "Channel 4"]
+    expected_has_time_vector = True

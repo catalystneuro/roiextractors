@@ -4,6 +4,7 @@
 * Added `BrukerTiffImagingExtractor.get_available_channel_names()`, which returns the channel names of a Bruker folder in acquisition order without constructing an extractor. They are the names the constructor accepts as `channel_name`.
 
 ### Fixes
+* `slice_samples()` on an imaging extractor now accepts a bound left out and defaults to the start or the end of the parent, as its docstring says, instead of raising `TypeError`. The count of samples was computed before the defaults were applied.
 * `time_to_sample_indices()` on `ImagingExtractor` and `SegmentationExtractor` no longer replaces the times set with `set_times()`. It stored the native timestamps in the cache on every call, so on an extractor whose format records timestamps `get_timestamps()` returned the native timestamps afterwards instead of the set ones.
 * `has_time_vector()` now returns `True` whenever the timestamps are a vector with one time per sample, set with `set_times()` or recorded by the format, including before they are read and on slices. [PR #632](https://github.com/catalystneuro/roiextractors/pull/632)
 * Timestamps computed from the sampling frequency now start at the start time the format records, like the `starting_time` of an NWB series, and slices continue them instead of restarting at 0. [PR #633](https://github.com/catalystneuro/roiextractors/pull/633)
@@ -32,6 +33,7 @@
 * `SegmentationExtractor.get_traces()` now reads only the requested frames from the stored traces. It converted the whole stored array to numpy before slicing, so on extractors that keep their traces in HDF5 or Zarr every call read all of them.
 * Added `ImagingExtractorTestMixin` in `tests/extractor_mixins.py`, checks shared by the imaging extractor tests and modeled on the interface test mixins of neuroconv. A test class per fixture sets `extractor_cls`, `extractor_kwargs` and the expected values of its file: `num_samples`, `sample_shape`, `dtype`, `has_time_vector`, and `channel_names` on extractors with `get_available_channel_names()`. The mixin checks the getters and `get_series()` against them, that `get_native_timestamps()` returns one time per sample when the format records them, that discovery returns the channel names in order and each is accepted as `channel_name`, that `channel_name` is required when there are several channels, and that `slice_field_of_view()` and `select_plane()` return the right part of the data. The OME-TIFF, ScanImage, Bruker, Thor and Femtonics tests use it, and their tests that it covers are removed. [PR #651](https://github.com/catalystneuro/roiextractors/pull/651)
 * Added `check_series()` to `ImagingExtractorTestMixin`, a hook that each test class overrides to check the series against the same data read by another library. `test_series_shape_and_dtype` is now `test_get_series`, which reads the data once and passes it to the hook.
+* `ImagingExtractorTestMixin` now checks `slice_samples()` on every fixture, with each bound left out once, a range read of the slice and its timestamps. The expected values of the test classes are now named with an `expected_` prefix, such as `expected_num_samples`.
 
 # v0.10.0 (September 9th, 2026)
 

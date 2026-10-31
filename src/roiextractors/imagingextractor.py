@@ -543,12 +543,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
             The right bound of the samples, exclusively, to subset.
             The default is end sample of the parent.
         """
-        self._parent_imaging = parent_imaging
-        self._start_sample = start_sample
-        self._end_sample = end_sample
-        self._num_samples = self._end_sample - self._start_sample
-
-        parent_size = self._parent_imaging.get_num_samples()
+        parent_size = parent_imaging.get_num_samples()
         if start_sample is None:
             start_sample = 0
         else:
@@ -558,6 +553,11 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         else:
             assert 0 < end_sample <= parent_size
         assert end_sample > start_sample, "'start_sample' must be smaller than 'end_sample'!"
+
+        self._parent_imaging = parent_imaging
+        self._start_sample = start_sample
+        self._end_sample = end_sample
+        self._num_samples = self._end_sample - self._start_sample
 
         super().__init__()
         if getattr(self._parent_imaging, "_times") is not None:
