@@ -22,6 +22,7 @@
 * Removed `get_channel_names()` from `TiffImagingExtractor` and `MemmapImagingExtractor`, deprecated for removal in or after October 2026. They were the last extractors with it.
 * Removed `get_roi_locations()` from `SegmentationExtractor` and `NwbSegmentationExtractor`, deprecated for removal in or after September 2026. Use `get_property("roi_centroids", roi_ids)` instead.
 * Deprecated `FemtonicsImagingExtractor.get_available_channels()` (will be removed in or after April 2027). Use `get_available_channel_names()` instead, the name the OME-TIFF, ScanImage, Thor and Bruker extractors use.
+* Deprecated `ScanImageImagingExtractor.get_times()` (will be removed in or after April 2027). Use `get_timestamps()` instead, which returns the same timestamps and is available on every extractor.
 
 ### Improvements
 * Added support for Python 3.14. The `isx` dependency of the `full` extra is skipped on 3.14 because `isx` does not support it yet, so the Inscopix extractors are unavailable there. Resolves [#622](https://github.com/catalystneuro/roiextractors/issues/622)
