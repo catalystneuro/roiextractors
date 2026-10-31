@@ -20,11 +20,11 @@ class TestThorTiffImagingExtractor(ImagingExtractorTestMixin):
 
     extractor_cls = ThorTiffImagingExtractor
     extractor_kwargs = dict(file_path=FILE_PATH)
-    num_samples = 3
-    sample_shape = (512, 512)
-    dtype = np.dtype("uint16")
-    channel_names = ["ChanA"]
-    has_time_vector = False  # the OME-XML has a DeltaT for the first plane only
+    expected_num_samples = 3
+    expected_sample_shape = (512, 512)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["ChanA"]
+    expected_has_time_vector = False  # the OME-XML has a DeltaT for the first plane only
 
     @classmethod
     def setup_class(cls):
@@ -82,11 +82,11 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
 
     extractor_cls = ThorTiffImagingExtractor
     extractor_kwargs = dict(file_path=VOLUMETRIC_DIR / "ChanA_0001_0001_0001_0001.tif", channel_name="ChanA")
-    num_samples = 3
-    sample_shape = (128, 128, 3)
-    dtype = np.dtype("uint16")
-    channel_names = ["ChanA", "ChanB"]
-    has_time_vector = False  # the OME-XML has a DeltaT for the first plane only
+    expected_num_samples = 3
+    expected_sample_shape = (128, 128, 3)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["ChanA", "ChanB"]
+    expected_has_time_vector = False  # the OME-XML has a DeltaT for the first plane only
 
     @classmethod
     def setup_class(cls):
@@ -107,8 +107,8 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
         acquisition returns the whole assembled OME series, not that file's single page.
         """
         series = self.extractor.get_series()
-        for sample_index in range(self.num_samples):
-            for plane_index in range(self.sample_shape[2]):
+        for sample_index in range(self.expected_num_samples):
+            for plane_index in range(self.expected_sample_shape[2]):
                 file_path = VOLUMETRIC_DIR / f"ChanA_0001_0001_000{plane_index + 1}_000{sample_index + 1}.tif"
                 with tifffile.TiffFile(file_path) as tiff_file:
                     expected = tiff_file.pages[0].asarray()

@@ -257,11 +257,11 @@ class TestBrukerTiffImagingExtractorSinglePlane(ImagingExtractorTestMixin):
     folder_path = BRUKER_STUB_PATH / "NCCR32_2023_02_20_Into_the_void_t_series_baseline-000"
     extractor_cls = BrukerTiffImagingExtractor
     extractor_kwargs = dict(folder_path=folder_path)
-    num_samples = 10
-    sample_shape = (64, 64)
-    dtype = np.dtype("uint16")
-    channel_names = ["Ch2"]
-    has_time_vector = True
+    expected_num_samples = 10
+    expected_sample_shape = (64, 64)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["Ch2"]
+    expected_has_time_vector = True
 
     def test_single_plane_single_channel(self):
         """Test basic metadata and data access for single-plane, single-channel Bruker data.
@@ -347,11 +347,11 @@ class TestBrukerTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     folder_path = BRUKER_STUB_PATH / "NCCR32_2022_11_03_IntoTheVoid_t_series-005"
     extractor_cls = BrukerTiffImagingExtractor
     extractor_kwargs = dict(folder_path=folder_path)
-    num_samples = 5
-    sample_shape = (64, 64, 2)
-    dtype = np.dtype("uint16")
-    channel_names = ["Ch2"]
-    has_time_vector = True
+    expected_num_samples = 5
+    expected_sample_shape = (64, 64, 2)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["Ch2"]
+    expected_has_time_vector = True
 
     def test_volumetric_single_channel(self):
         """Test metadata and data access for volumetric, single-channel Bruker data.
@@ -405,11 +405,11 @@ class TestBrukerTiffImagingExtractorDualChannel(ImagingExtractorTestMixin):
     folder_path = BRUKER_STUB_PATH / "TSeries-20240527-001"
     extractor_cls = BrukerTiffImagingExtractor
     extractor_kwargs = dict(folder_path=folder_path, channel_name="Green")
-    num_samples = 5
-    sample_shape = (64, 64)
-    dtype = np.dtype("uint16")
-    channel_names = ["Red", "Green"]  # in acquisition order
-    has_time_vector = True
+    expected_num_samples = 5
+    expected_sample_shape = (64, 64)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["Red", "Green"]  # in acquisition order
+    expected_has_time_vector = True
 
     def test_dual_channel(self):
         """Test channel selection and data access for dual-channel Bruker data.
@@ -477,11 +477,11 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion(ImagingExtractor
     folder_path = BRUKER_STUB_PATH / "NCCR62_2023_07_06_IntoTheVoid_t_series_Dual_color-000"
     extractor_cls = BrukerTiffImagingExtractor
     extractor_kwargs = dict(folder_path=folder_path, channel_name="Ch1")
-    num_samples = 10
-    sample_shape = (512, 512)
-    dtype = np.dtype("uint16")
-    channel_names = ["Ch1", "Ch2"]
-    has_time_vector = True
+    expected_num_samples = 10
+    expected_sample_shape = (512, 512)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["Ch1", "Ch2"]
+    expected_has_time_vector = True
 
     def test_construct_and_select_channels(self):
         """Both channels must be selectable and return distinct data."""
@@ -515,11 +515,11 @@ class TestBrukerTiffImagingExtractorMultiSequenceBOT(ImagingExtractorTestMixin):
     folder_path = BRUKER_STUB_PATH / "TSeries-02022026-001_multisequence"
     extractor_cls = BrukerTiffImagingExtractor
     extractor_kwargs = dict(folder_path=folder_path, channel_name="Ch2")
-    num_samples = 15  # 3 bursts x 5 frames, single channel
-    sample_shape = (64, 64)
-    dtype = np.dtype("uint16")
-    channel_names = ["Ch2"]
-    has_time_vector = True
+    expected_num_samples = 15  # 3 bursts x 5 frames, single channel
+    expected_sample_shape = (64, 64)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["Ch2"]
+    expected_has_time_vector = True
 
     def test_multisequence_within_burst_rate_and_gapped_timestamps(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
@@ -563,11 +563,11 @@ class TestBrukerTiffImagingExtractorMultiSequenceTimedElement(ImagingExtractorTe
     folder_path = BRUKER_STUB_PATH / "TSeries-08162024-1918-002_multisequence"
     extractor_cls = BrukerTiffImagingExtractor
     extractor_kwargs = dict(folder_path=folder_path)
-    num_samples = 9  # 3 cycles x 3 frames, single channel
-    sample_shape = (64, 64)
-    dtype = np.dtype("uint16")
-    channel_names = ["Ch2"]
-    has_time_vector = True
+    expected_num_samples = 9  # 3 cycles x 3 frames, single channel
+    expected_sample_shape = (64, 64)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["Ch2"]
+    expected_has_time_vector = True
 
     def test_multisequence_timed_element_within_cycle_rate_and_gapped_timestamps(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
