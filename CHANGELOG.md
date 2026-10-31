@@ -4,6 +4,7 @@
 * Added `BrukerTiffImagingExtractor.get_available_channel_names()`, which returns the channel names of a Bruker folder in acquisition order without constructing an extractor. They are the names the constructor accepts as `channel_name`.
 
 ### Fixes
+* `slice_samples()` on an imaging extractor now accepts a bound left out and defaults to the start or the end of the parent, as its docstring says, instead of raising `TypeError`. The count of samples was computed before the defaults were applied.
 * `time_to_sample_indices()` on `ImagingExtractor` and `SegmentationExtractor` no longer replaces the times set with `set_times()`. It stored the native timestamps in the cache on every call, so on an extractor whose format records timestamps `get_timestamps()` returned the native timestamps afterwards instead of the set ones.
 * `has_time_vector()` now returns `True` whenever the timestamps are a vector with one time per sample, set with `set_times()` or recorded by the format, including before they are read and on slices. [PR #632](https://github.com/catalystneuro/roiextractors/pull/632)
 * Timestamps computed from the sampling frequency now start at the start time the format records, like the `starting_time` of an NWB series, and slices continue them instead of restarting at 0. [PR #633](https://github.com/catalystneuro/roiextractors/pull/633)
