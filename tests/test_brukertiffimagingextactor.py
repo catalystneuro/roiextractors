@@ -421,9 +421,6 @@ class TestBrukerTiffImagingExtractorDualChannel(ImagingExtractorTestMixin):
         - Frame shape: 64 x 64
         - Files: 10 .ome.tif (5 timepoints x 2 channels)
         """
-        with pytest.raises(ValueError, match="channel_name must be specified"):
-            BrukerTiffImagingExtractor(folder_path=self.folder_path)
-
         ext_green = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Green")
 
         ext_red = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Red")
@@ -485,9 +482,6 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion(ImagingExtractor
 
     def test_construct_and_select_channels(self):
         """Both channels must be selectable and return distinct data."""
-        with pytest.raises(ValueError, match="channel_name must be specified"):
-            BrukerTiffImagingExtractor(folder_path=self.folder_path)
-
         ext_ch1 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch1")
 
         ext_ch2 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")

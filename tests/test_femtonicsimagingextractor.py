@@ -181,10 +181,6 @@ def test_femtonicsimagingextractor_p29_mesc():
     with pytest.raises(ValueError, match="MUnit 'InvalidMUnit' not found"):
         FemtonicsImagingExtractor(file_path=file_path, session_name="MSession_0", munit_name="InvalidMUnit")
 
-    # Test that extractor throws error when multiple channels exist and none specified
-    with pytest.raises(ValueError, match="Multiple channels found in"):
-        FemtonicsImagingExtractor(file_path=file_path, session_name="MSession_0", munit_name="MUnit_0")
-
     # Test that extractor throws error when multiple munits exist and none specified
     with pytest.raises(ValueError, match="Multiple MUnits found in"):
         FemtonicsImagingExtractor(file_path=file_path, session_name="MSession_0")
@@ -407,10 +403,6 @@ def test_femtonicsimagingextractor_p30_mesc():
     # Test invalid munit name
     with pytest.raises(ValueError, match="MUnit 'InvalidMUnit' not found"):
         FemtonicsImagingExtractor(file_path=file_path, session_name="MSession_0", munit_name="InvalidMUnit")
-
-    # Test that extractor throws error when multiple channels exist and none specified
-    with pytest.raises(ValueError, match="Multiple channels found in"):
-        FemtonicsImagingExtractor(file_path=file_path, session_name="MSession_0", munit_name="MUnit_0")
 
     # Test that extractor throws error when multiple munits exist and none specified
     with pytest.raises(ValueError, match="Multiple MUnits found in"):

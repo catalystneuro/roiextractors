@@ -222,8 +222,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
         if self._is_multi_channel_data and channel_name is None:
 
             error_msg = (
-                f"Multiple channels available in the data {self.channel_names}"
-                "Please specify a channel name to extract data from."
+                "channel_name must be specified for data with more than one channel. "
+                f"Available channels: {self.channel_names}"
             )
             raise ValueError(error_msg)
         elif self._is_multi_channel_data and channel_name is not None:

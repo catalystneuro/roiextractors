@@ -5,6 +5,7 @@ constructor, and adds the checks specific to the format as methods of the subcla
 """
 
 import inspect
+import re
 import warnings
 
 import numpy as np
@@ -229,9 +230,11 @@ class ImagingExtractorTestMixin:
             pytest.skip(f"{self.extractor_cls.__name__} has no get_available_channel_names().")
         kwargs_without_channel = {key: value for key, value in self.extractor_kwargs.items() if key != "channel_name"}
         if len(self.expected_channel_names) > 1:
-            # TODO: the error messages differ between formats. Unify them, for example so that all of them list the
-            # available channel names, and match the message here.
-            with pytest.raises(ValueError):
+            expected_message = (
+                "channel_name must be specified for data with more than one channel. "
+                f"Available channels: {self.expected_channel_names}"
+            )
+            with pytest.raises(ValueError, match=re.escape(expected_message)):
                 self.extractor_cls(**kwargs_without_channel)
         else:
             self.extractor_cls(**kwargs_without_channel)
