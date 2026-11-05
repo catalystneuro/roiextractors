@@ -164,12 +164,7 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             cell_ids = list(range(self.stat.size))
         self._roi_ids = list(cell_ids)
 
-        # rois segmented from the iamging acquired with second channel (red/anatomical) that match the first channel segmentation
-        redcell = self._load_npy(file_name="redcell.npy", mmap_mode="r")
-        if channel_name == "chan2" and redcell is not None:
-            self.iscell = redcell
-        else:
-            self.iscell = self._load_npy("iscell.npy", mmap_mode="r")
+        self.iscell = self._load_npy("iscell.npy", mmap_mode="r")
 
         # Set iscell as a property for ROI classification (first column is the binary classification)
         if self.iscell is not None:
@@ -178,6 +173,15 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
                 self.iscell[:, 0],
                 self._roi_ids,
                 description="Binary cell classification from Suite2p",
+            )
+
+        redcell = self._load_npy(file_name="redcell.npy", mmap_mode="r")
+        if redcell is not None:
+            self.set_property(
+                "redcell",
+                redcell[:, 0],
+                self._roi_ids,
+                description="Whether the ROI is bright in the second (anatomical) channel, from Suite2p",
             )
 
         # The name of the OpticalChannel object is "OpticalChannel" if there is only one channel, otherwise it is
