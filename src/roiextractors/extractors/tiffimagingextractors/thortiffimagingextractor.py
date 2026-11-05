@@ -4,6 +4,8 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
 
+import numpy as np
+
 from .ometiffimagingextractor import OMETiffImagingExtractor
 from ...extraction_tools import PathType
 
@@ -98,6 +100,44 @@ class ThorTiffImagingExtractor(OMETiffImagingExtractor):
         if channel_names:
             return channel_names
         return OMETiffImagingExtractor.get_available_channel_names(file_path=file_path)
+
+    def get_native_timestamps(
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
+        """Return the time of each sample from the ``DeltaT`` of its files in Z and T capture.
+
+        ThorImageLS writes the ``Plane DeltaT`` of an image only into that image's own file, so the
+        first file holds the time of the first sample only. In Z and T capture (``CaptureMode="0"``)
+        the time of a sample is read from the file of its first plane in the selected channel. In
+        streaming capture ``DeltaT`` is the time the software handled the frame, not the time of the
+        scan, so the base class behavior is kept.
+
+        Parameters
+        ----------
+        start_sample : int, optional
+            The first sample to return the time of.
+        end_sample : int, optional
+            The sample after the last one to return the time of.
+
+        Returns
+        -------
+        timestamps : numpy.ndarray or None
+            The times in seconds since the first sample, or None when a file has no ``DeltaT``.
+        """
+        capture_mode = self._experiment_xml_root.find("CaptureMode")
+        if capture_mode is None or capture_mode.get("mode") != "0":
+            return super().get_native_timestamps(start_sample=start_sample, end_sample=end_sample)
+
+        # The table holds the frames of the selected channel sorted by time, then depth
+        first_plane_rows = self._frames_to_ifd_table[self._frames_to_ifd_table["depth_index"] == 0]
+        timestamps = np.zeros(len(first_plane_rows), dtype="float64")
+        for sample_index, file_index in enumerate(first_plane_rows["file_index"]):
+            planes = self._parse_ome_native_timestamps(self._file_paths[file_index])
+            if planes is None or len(planes) != 1:
+                return None
+            timestamps[sample_index] = planes[0]["delta_t_seconds"]
+
+        return timestamps[start_sample:end_sample]
 
     def _get_session_start_time(self) -> datetime:
         """Return the acquisition start time as a tz-aware UTC ``datetime``.
