@@ -86,7 +86,7 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     expected_sample_shape = (128, 128, 3)
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["ChanA", "ChanB"]
-    expected_has_time_vector = False  # the OME-XML has a DeltaT for the first plane only
+    expected_has_time_vector = True  # Z and T capture, each file has the DeltaT of its own plane
 
     @classmethod
     def setup_class(cls):
@@ -118,6 +118,17 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
         """Selecting the other channel reads other pages."""
         other = ThorTiffImagingExtractor(file_path=self.file_path, channel_name="ChanB")
         assert not np.array_equal(self.extractor.get_series(), other.get_series())
+
+    def test_native_timestamps_come_from_the_first_plane_of_each_volume(self):
+        """Each sample's time is the `DeltaT` of its first plane, written in that plane's own file.
+
+        The values are the `Plane DeltaT` of `ChanA_0001_0001_0001_000<t>.tif`. They are about 1.97 s apart,
+        while `frameRate` in `Experiment.xml` is 60.087 Hz, because each plane averages 10 scans and the
+        stage moves between planes.
+        """
+        native_timestamps = self.extractor.get_native_timestamps()
+        expected_native_timestamps = np.array([0.0, 1.97315, 3.94218])
+        assert_array_equal(native_timestamps, expected_native_timestamps)
 
     def test_get_available_channel_names(self):
         """Every name discovery returns can be passed back as `channel_name`."""
