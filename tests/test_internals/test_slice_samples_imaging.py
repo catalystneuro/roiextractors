@@ -52,6 +52,13 @@ def test_get_dtype():
     assert sample_sliced_imaging.get_dtype() == imaging_extractor.get_dtype()
 
 
+def test_get_num_planes_raises_on_planar_data():
+    imaging_extractor = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)
+    sample_sliced_imaging = imaging_extractor.slice_samples(start_sample=2, end_sample=7)
+    with pytest.raises(ValueError, match="This extractor is not volumetric"):
+        sample_sliced_imaging.get_num_planes()
+
+
 def test_has_time_vector_inherits_from_parent():
     """Test that a slice inherits the time vector of its parent."""
     imaging_extractor = generate_dummy_imaging_extractor(num_samples=10, num_rows=5, num_columns=4)

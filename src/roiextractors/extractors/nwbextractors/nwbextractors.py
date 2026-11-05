@@ -9,6 +9,7 @@ NwbSegmentationExtractor
 """
 
 from pathlib import Path
+from warnings import warn
 
 import numpy as np
 from lazyslice import DatasetView
@@ -189,8 +190,16 @@ class NwbImagingExtractor(ImagingExtractor):
         Returns
         -------
         num_planes : int
-            The number of depth planes (1 for planar data).
+            The number of depth planes. For planar data, 1 with a FutureWarning, and a ValueError in or after
+            May 2027.
         """
+        if not self.is_volumetric:
+            warn(
+                "Calling get_num_planes on planar data is deprecated and will raise a ValueError in or after "
+                "May 2027. Check is_volumetric before calling it.",
+                FutureWarning,
+                stacklevel=2,
+            )
         return self._num_planes
 
 

@@ -118,11 +118,11 @@ class ImagingExtractor(ABC):
 
         Raises
         ------
-        NotImplementedError
+        ValueError
             If the extractor is not volumetric.
         """
         if not self.is_volumetric:
-            raise NotImplementedError(
+            raise ValueError(
                 "This extractor is not volumetric. "
                 "The get_num_planes method is only available for volumetric extractors."
             )
@@ -138,11 +138,13 @@ class ImagingExtractor(ABC):
 
         Raises
         ------
+        ValueError
+            If the extractor is not volumetric.
         NotImplementedError
-            If the extractor is not volumetric or does not implement get_num_planes method.
+            If the extractor does not implement get_num_planes method.
         """
         if not self.is_volumetric:
-            raise NotImplementedError(
+            raise ValueError(
                 "This extractor is not volumetric. "
                 "The get_volume_shape method is only available for volumetric extractors."
             )
@@ -610,11 +612,11 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
 
         Raises
         ------
-        NotImplementedError
+        ValueError
             If the parent extractor is not volumetric.
         """
         if not self.is_volumetric:
-            raise NotImplementedError(
+            raise ValueError(
                 "This extractor is not volumetric. "
                 "The get_num_planes method is only available for volumetric extractors."
             )
@@ -811,11 +813,11 @@ class _FieldOfViewSlicedImagingExtractor(ImagingExtractor):
 
         Raises
         ------
-        NotImplementedError
+        ValueError
             If the parent extractor is not volumetric.
         """
         if not self.is_volumetric:
-            raise NotImplementedError(
+            raise ValueError(
                 "This extractor is not volumetric. "
                 "The get_num_planes method is only available for volumetric extractors."
             )

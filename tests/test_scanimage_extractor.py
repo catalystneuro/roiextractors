@@ -977,11 +977,6 @@ class TestScanImageVolumetricPlaneSlicing:
         # Verify that the full extractor is volumetric
         assert extractor_full.is_volumetric == True, "Full extractor should be volumetric"
 
-        # Verify that the extractors with plane_index have num_planes=1
-        assert extractor_plane0.get_num_planes() == 1, "Extractor with plane_index should have num_planes=1"
-        assert extractor_plane4.get_num_planes() == 1, "Extractor with plane_index should have num_planes=1"
-        assert extractor_plane8.get_num_planes() == 1, "Extractor with plane_index should have num_planes=1"
-
         # Verify that the full extractor has num_planes=9
         assert extractor_full.get_num_planes() == 9, "Full extractor should have num_planes=9"
 
@@ -1102,13 +1097,6 @@ class TestScanImageVolumetricPlaneSlicing:
         # Verify that the regular extractors are volumetric
         assert extractor_slice_sample_0.is_volumetric == True, "Regular extractor should be volumetric"
         assert extractor_slice_sample_1.is_volumetric == True, "Regular extractor should be volumetric"
-
-        # Verify that the extractors with plane_index have num_planes=1
-        error_message = "Extractor with plane_index should have num_planes=1"
-        assert extractor_slice_sample_0_plane_0.get_num_planes() == 1, error_message
-        assert extractor_slice_sample_0_plane_1.get_num_planes() == 1, error_message
-        assert extractor_slice_sample_1_plane_0.get_num_planes() == 1, error_message
-        assert extractor_slice_sample_1_plane_1.get_num_planes() == 1, error_message
 
         # Verify that the regular extractors have num_planes=2
         assert extractor_slice_sample_0.get_num_planes() == 2, "Regular extractor should have num_planes=2"

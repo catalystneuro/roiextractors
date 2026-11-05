@@ -607,7 +607,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         samples_in_series = end_sample - start_sample
 
         # Preallocate output array as volumetric and squeeze if not volumetric before returning
-        num_rows, num_columns, num_planes = self.get_volume_shape()
+        num_rows, num_columns, num_planes = self._num_rows, self._num_columns, self._num_planes
         dtype = self.get_dtype()
         samples = np.empty((samples_in_series, num_rows, num_columns, num_planes), dtype=dtype)
 
@@ -746,6 +746,13 @@ class ScanImageImagingExtractor(ImagingExtractor):
         tuple
             Shape of a single volume (num_rows, num_columns, num_planes).
         """
+        if not self.is_volumetric:
+            warn(
+                "Calling get_volume_shape on planar data is deprecated and will raise a ValueError in or after "
+                "May 2027. Check is_volumetric before calling it.",
+                FutureWarning,
+                stacklevel=2,
+            )
         return (self._num_rows, self._num_columns, self._num_planes)
 
     def get_num_samples(self) -> int:
@@ -772,13 +779,20 @@ class ScanImageImagingExtractor(ImagingExtractor):
         """Get the number of depth planes.
 
         For volumetric data, this returns the number of Z-planes in each volume.
-        For planar data, this returns 1.
+        For planar data, this returns 1 with a FutureWarning, and will raise a ValueError in or after May 2027.
 
         Returns
         -------
         int
             Number of depth planes.
         """
+        if not self.is_volumetric:
+            warn(
+                "Calling get_num_planes on planar data is deprecated and will raise a ValueError in or after "
+                "May 2027. Check is_volumetric before calling it.",
+                FutureWarning,
+                stacklevel=2,
+            )
         return self._num_planes
 
     @staticmethod
@@ -885,7 +899,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         """Read the timestamp of each sample from the ImageDescription of its TIFF page."""
         # Initialize array to store timestamps
         num_samples = self.get_num_samples()
-        num_planes = self.get_num_planes()
+        num_planes = self._num_planes
         timestamps = np.zeros(num_samples, dtype=np.float64)
 
         # For each sample, extract its timestamp from the corresponding file and IFD
@@ -1059,7 +1073,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         >>> sync_indices = frame_indices // num_channels
         >>> aligned_timestamps = sync_timestamps[sync_indices]
         """
-        num_planes = self.get_num_planes()
+        num_planes = self._num_planes
         if plane_index is not None:
             assert plane_index < num_planes, f"Plane index {plane_index} exceeds number of planes {num_planes}."
         else:

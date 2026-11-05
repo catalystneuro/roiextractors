@@ -145,11 +145,11 @@ class TestVolumetricNoiseGenerator:
         assert data.shape == (10, num_rows, num_columns, num_planes)
 
     def test_non_volumetric_raises_get_num_planes(self):
-        """A non-volumetric extractor must raise NotImplementedError when
+        """A non-volumetric extractor must raise ValueError when
         get_num_planes is called, matching the base class contract."""
         ext = PoissonNoiseImagingExtractor(num_samples=10, num_rows=10, num_columns=10)
         assert not ext.is_volumetric
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(ValueError):
             ext.get_num_planes()
 
     def test_reproducibility(self, volumetric_ext):

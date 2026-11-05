@@ -134,6 +134,14 @@ class TestNwbImagingExtractor:
 
         np.testing.assert_array_almost_equal(series, expected_series)
 
+    def test_get_num_planes_on_planar_data_warns(self, nwb_planar_file):
+        nwb_imaging_extractor = NwbImagingExtractor(file_path=nwb_planar_file["file_path"])
+
+        with pytest.warns(FutureWarning, match="get_num_planes on planar data is deprecated"):
+            num_planes = nwb_imaging_extractor.get_num_planes()
+
+        assert num_planes == 1
+
 
 @pytest.fixture(scope="module", params=["hdf5", "zarr"])
 def nwb_volumetric_file(request, tmp_path_factory):
