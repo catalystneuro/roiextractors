@@ -25,6 +25,7 @@
 * Removed `get_roi_locations()` from `SegmentationExtractor` and `NwbSegmentationExtractor`, deprecated for removal in or after September 2026. Use `get_property("roi_centroids", roi_ids)` instead.
 * Deprecated `FemtonicsImagingExtractor.get_available_channels()` (will be removed in or after April 2027). Use `get_available_channel_names()` instead, the name the OME-TIFF, ScanImage, Thor and Bruker extractors use.
 * Deprecated `ScanImageImagingExtractor.get_times()` (will be removed in or after April 2027). Use `get_timestamps()` instead, which returns the same timestamps and is available on every extractor.
+* `get_num_planes()` and `get_volume_shape()` on planar data now raise `ValueError` instead of `NotImplementedError`, like `select_plane()`. A planar series has no plane axis. `ScanImageImagingExtractor`, `NwbImagingExtractor` and `MultiTIFFMultiPageExtractor`, with the OME-TIFF, Thor and Bruker extractors built on it, returned 1 plane on planar data instead, and `ScanImageImagingExtractor.get_volume_shape()` returned (rows, columns, 1). They now emit a `FutureWarning` and will raise `ValueError` in or after May 2027. Check `is_volumetric` before calling them.
 
 ### Improvements
 * Added support for Python 3.14. The `isx` dependency of the `full` extra is skipped on 3.14 because `isx` does not support it yet, so the Inscopix extractors are unavailable there. Resolves [#622](https://github.com/catalystneuro/roiextractors/issues/622)

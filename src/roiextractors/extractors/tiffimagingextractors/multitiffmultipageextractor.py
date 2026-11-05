@@ -263,6 +263,13 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
     def get_num_planes(self) -> int:
         """Get the number of depth planes."""
+        if not self.is_volumetric:
+            warnings.warn(
+                "Calling get_num_planes on planar data is deprecated and will raise a ValueError in or after "
+                "May 2027. Check is_volumetric before calling it.",
+                FutureWarning,
+                stacklevel=2,
+            )
         return self._num_planes
 
     @staticmethod
@@ -378,7 +385,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
         # Always preallocate output array as volumetric
         num_rows, num_columns = self.get_frame_shape()
-        num_planes = self.get_num_planes()
+        num_planes = self._num_planes
         dtype = self.get_dtype()
         samples = np.empty((samples_in_series, num_rows, num_columns, num_planes), dtype=dtype)
 

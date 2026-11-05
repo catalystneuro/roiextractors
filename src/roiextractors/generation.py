@@ -116,7 +116,7 @@ class PoissonNoiseImagingExtractor(ImagingExtractor):
 
     def get_num_planes(self) -> int:
         if not self.is_volumetric:
-            raise NotImplementedError(
+            raise ValueError(
                 "This extractor is not volumetric. "
                 "The get_num_planes method is only available for volumetric extractors."
             )
@@ -238,7 +238,7 @@ class GaussianNoiseImagingExtractor(ImagingExtractor):
 
     def get_num_planes(self) -> int:
         if not self.is_volumetric:
-            raise NotImplementedError(
+            raise ValueError(
                 "This extractor is not volumetric. "
                 "The get_num_planes method is only available for volumetric extractors."
             )

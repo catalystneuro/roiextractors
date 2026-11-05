@@ -108,7 +108,6 @@ class TestSingleChannelPlanar:
         assert extractor.get_frame_shape() == self.expected_shape
         assert extractor.get_sample_shape() == self.expected_shape
         assert extractor.get_sampling_frequency() == self.sampling_frequency
-        assert extractor.get_num_planes() == self.num_planes
         assert extractor.get_dtype() == np.uint16
         assert extractor.is_volumetric == False
         assert extractor.get_native_timestamps() is None
@@ -246,7 +245,6 @@ class TestMultiChannelPlanar:
         assert extractor.get_frame_shape() == self.expected_shape
         assert extractor.get_sample_shape() == self.expected_shape
         assert extractor.get_sampling_frequency() == self.sampling_frequency
-        assert extractor.get_num_planes() == self.num_planes
         assert extractor.get_dtype() == np.uint16
         assert extractor.is_volumetric == False
         assert extractor.get_native_timestamps() is None

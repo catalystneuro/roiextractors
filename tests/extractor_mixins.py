@@ -5,6 +5,7 @@ constructor, and adds the checks specific to the format as methods of the subcla
 """
 
 import inspect
+import warnings
 
 import numpy as np
 import pytest
@@ -68,11 +69,18 @@ class ImagingExtractorTestMixin:
         assert sample_shape == self.expected_sample_shape
         assert image_shape == expected_image_shape
         assert is_volumetric == expected_is_volumetric
-        # Planar extractors disagree on get_num_planes(), some raise and some return 1
         if expected_is_volumetric:
             num_planes = self.extractor.get_num_planes()
             expected_num_planes = self.expected_sample_shape[2]
             assert num_planes == expected_num_planes
+        else:
+            # The extractors that returned 1 plane on planar data warn until they raise, in or after May 2027
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", FutureWarning)
+                with pytest.raises((ValueError, FutureWarning)):
+                    self.extractor.get_num_planes()
+                with pytest.raises((ValueError, FutureWarning)):
+                    self.extractor.get_volume_shape()
 
     def test_dtype(self, setup_extractor):
         """`get_dtype()` returns the expected dtype as a `np.dtype`."""
@@ -189,7 +197,9 @@ class ImagingExtractorTestMixin:
     def test_select_plane(self, setup_extractor):
         """The extractor that `select_plane()` returns for the last plane has that plane of the volumetric series."""
         if not self.extractor.is_volumetric:
-            pytest.skip("select_plane() applies only to volumetric extractors.")
+            with pytest.raises(ValueError):
+                self.extractor.select_plane(0)
+            return
         last_plane_index = self.expected_sample_shape[2] - 1
         plane_extractor = self.extractor.select_plane(last_plane_index)
         plane_sample_shape = plane_extractor.get_sample_shape()
