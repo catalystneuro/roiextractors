@@ -38,6 +38,7 @@
 * Added `check_series()` to `ImagingExtractorTestMixin`, a hook that each test class overrides to check the series against the same data read by another library. `test_series_shape_and_dtype` is now `test_get_series`, which reads the data once and passes it to the hook.
 * `ImagingExtractorTestMixin` now checks `slice_samples()` on every fixture, with each bound left out once, a range read of the slice and its timestamps. The expected values of the test classes are now named with an `expected_` prefix, such as `expected_num_samples`.
 * The error raised when `channel_name` is missing on data with more than one channel now has the same message in the OME-TIFF, Thor, Bruker, ScanImage and Femtonics extractors, and it lists the available channel names. The OME-TIFF, Thor and Bruker extractors did not list them. `ImagingExtractorTestMixin` now checks the message.
+* Added tests for two new Thor fixtures in `ophys_testing_data`: planar streaming with frame averaging and streaming with fast z. Their test classes are the first to implement `check_series()`, which compares each plane with the page of its file read with `tifffile`.
 
 # v0.10.0 (September 9th, 2026)
 

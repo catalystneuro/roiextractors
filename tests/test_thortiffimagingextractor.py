@@ -137,3 +137,60 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
         for channel_name in channel_names:
             extractor = ThorTiffImagingExtractor(file_path=self.file_path, channel_name=channel_name)
             assert extractor._get_channel_names() == channel_names
+
+
+STREAMING_AVERAGING_DIR = (
+    OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "single_channel_single_plane" / "streaming_frame_averaging"
+)
+
+
+class TestThorTiffImagingExtractorStreamingFrameAveraging(ImagingExtractorTestMixin):
+    """Test ThorTiffImagingExtractor on planar streaming that saves the mean of every nine scans."""
+
+    extractor_cls = ThorTiffImagingExtractor
+    extractor_kwargs = dict(file_path=STREAMING_AVERAGING_DIR / "ChanA_001_001_001_001.tif")
+    expected_num_samples = 3
+    expected_sample_shape = (256, 384)  # 256 lines of 384 pixels each
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["ChanA"]
+    expected_has_time_vector = False  # streaming capture, where DeltaT is not the time of the scan
+
+    def check_series(self, series):
+        """Each sample is the page of the file named for its timepoint."""
+        for sample_index in range(self.expected_num_samples):
+            file_path = STREAMING_AVERAGING_DIR / f"ChanA_001_001_001_{sample_index + 1:03d}.tif"
+            with tifffile.TiffFile(file_path) as tiff_file:
+                expected_sample = tiff_file.pages[0].asarray()
+            sample = series[sample_index]
+            assert_array_equal(sample, expected_sample)
+
+
+FAST_Z_STREAMING_DIR = (
+    OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "single_channel_multi_plane" / "fast_z_streaming"
+)
+
+
+class TestThorTiffImagingExtractorFastZStreaming(ImagingExtractorTestMixin):
+    """Test ThorTiffImagingExtractor on streaming with fast z, seven planes per volume and unsaved flyback frames."""
+
+    extractor_cls = ThorTiffImagingExtractor
+    extractor_kwargs = dict(file_path=FAST_Z_STREAMING_DIR / "ChanB_0001_0001_0001_0001.tif")
+    expected_num_samples = 3
+    expected_sample_shape = (256, 256, 7)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["ChanB"]
+    expected_has_time_vector = False  # streaming capture, where DeltaT is not the time of the scan
+
+    def check_series(self, series):
+        """Each (sample, plane) position holds the page of the file named for that plane and volume.
+
+        ThorImage names the files ``ChanB_0001_0001_<plane>_<volume>.tif``. The flyback frames are not saved, so
+        the plane indices run from 1 to 7 in every volume.
+        """
+        for sample_index in range(self.expected_num_samples):
+            for plane_index in range(self.expected_sample_shape[2]):
+                file_path = FAST_Z_STREAMING_DIR / f"ChanB_0001_0001_{plane_index + 1:04d}_{sample_index + 1:04d}.tif"
+                with tifffile.TiffFile(file_path) as tiff_file:
+                    expected_plane = tiff_file.pages[0].asarray()
+                plane = series[sample_index, :, :, plane_index]
+                assert_array_equal(plane, expected_plane)
