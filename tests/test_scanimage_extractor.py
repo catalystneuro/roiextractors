@@ -44,7 +44,8 @@ class TestScanImageExtractor:
 
         extractor = ScanImageImagingExtractor(file_path=str(file_path))
 
-        assert extractor.get_sampling_frequency() == 15.2379
+        # Each saved frame is the mean of 8 scanned frames (`logAverageFactor`) at 15.2379 Hz (`scanFrameRate`)
+        assert extractor.get_sampling_frequency() == 15.2379 / 8
 
         samples_per_file = extractor.get_num_samples() / len(extractor.file_paths)
         start_sample = 0

@@ -203,7 +203,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 self._frames_per_volume_with_flyback - self._frames_per_volume_per_channel
             )
         else:
-            self._sampling_frequency = self._metadata["SI.hRoiManager.scanFrameRate"]
+            # ScanImage saves one frame per `logAverageFactor` scanned frames, their mean
+            scan_frame_rate = self._metadata["SI.hRoiManager.scanFrameRate"]
+            self._sampling_frequency = scan_frame_rate / self._metadata["SI.hScan2D.logAverageFactor"]
             self._num_planes = 1
             self._frames_per_slice = 1
             self.num_flyback_frames_per_channel = 0
