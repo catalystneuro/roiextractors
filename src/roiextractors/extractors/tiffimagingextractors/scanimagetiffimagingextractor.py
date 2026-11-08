@@ -701,6 +701,40 @@ class ScanImageImagingExtractor(ImagingExtractor):
         sliced._fov_root = self._fov_root if self._fov_root is not None else self
         return sliced
 
+    def select_plane(self, plane_index: int) -> "ScanImageImagingExtractor":
+        """Return a planar view of one depth plane as a new ScanImageImagingExtractor.
+
+        Overrides :meth:`ImagingExtractor.select_plane`. The generic wrapper reads every plane of a sample to keep
+        one, and returns the timestamps of the volume, which ScanImage records at its last plane. This view reads
+        only the pages of the selected plane, and its timestamps are those of its own frames. Times set with
+        ``set_times()`` on the volume are not carried over.
+
+        Parameters
+        ----------
+        plane_index : int
+            The depth plane to select. Must satisfy ``0 <= plane_index < num_planes``.
+
+        Returns
+        -------
+        ScanImageImagingExtractor
+            A planar extractor for the selected plane. It shares the open file handles of this extractor.
+        """
+        if not self.is_volumetric:
+            raise ValueError("select_plane is only valid for volumetric extractors.")
+        num_planes = self._num_planes
+        if not 0 <= plane_index < num_planes:
+            raise ValueError(f"plane_index ({plane_index}) must satisfy 0 <= plane_index < num_planes ({num_planes}).")
+
+        plane = copy.copy(self)
+        depth_mask = self._frames_to_ifd_table["depth_index"] == plane_index
+        plane._frames_to_ifd_table = self._frames_to_ifd_table[depth_mask]
+        plane.is_volumetric = False
+        plane._num_planes = 1
+        plane._times = None
+        plane._native_timestamps = None
+        plane._fov_root = self._fov_root if self._fov_root is not None else self
+        return plane
+
     def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
 
