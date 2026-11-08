@@ -154,6 +154,11 @@ class TestThorTiffImagingExtractorStreamingFrameAveraging(ImagingExtractorTestMi
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["ChanA"]
     expected_has_time_vector = False  # streaming capture, where DeltaT is not the time of the scan
+    expected_sampling_frequency = 90.037 / 9  # frameRate / averageNum, each saved frame is the mean of 9 scans
+
+    def test_sampling_frequency(self, setup_extractor):
+        """The rate is the scan rate divided by the scans averaged into each saved frame."""
+        assert self.extractor.get_sampling_frequency() == pytest.approx(self.expected_sampling_frequency)
 
     def check_series(self, series):
         """Each sample is the page of the file named for its timepoint."""
@@ -180,6 +185,11 @@ class TestThorTiffImagingExtractorFastZStreaming(ImagingExtractorTestMixin):
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["ChanB"]
     expected_has_time_vector = False  # streaming capture, where DeltaT is not the time of the scan
+    expected_sampling_frequency = 58.32 / (7 + 2)  # frameRate / (steps + flybackFrames), 7 planes and 2 flyback scans
+
+    def test_sampling_frequency(self, setup_extractor):
+        """The rate is the scan rate divided by the scans of each volume, its planes plus the flyback frames."""
+        assert self.extractor.get_sampling_frequency() == pytest.approx(self.expected_sampling_frequency)
 
     def check_series(self, series):
         """Each (sample, plane) position holds the page of the file named for that plane and volume.
