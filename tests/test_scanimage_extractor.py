@@ -2062,7 +2062,8 @@ class TestScanImageImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin
     expected_sample_shape = (1024, 1024)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1"]
-    expected_has_time_vector = True
+    # frameTimestamps_sec of pages 0 to 2
+    expected_native_timestamps = [0.45951611, 0.98468446, 1.50985974]
     expected_sampling_frequency = 15.2379 / 8  # scanFrameRate / logAverageFactor, each frame is the mean of 8 scans
 
 
@@ -2076,7 +2077,8 @@ class TestScanImageImagingExtractorPlanarTwoChannels(ImagingExtractorTestMixin):
     expected_sample_shape = (20, 20)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1", "Channel 2"]
-    expected_has_time_vector = True
+    # frameTimestamps_sec of pages 0, 2 and 4, the frames of Channel 1
+    expected_native_timestamps = [0.0, 0.001908475, 0.003816975]
     expected_sampling_frequency = 523.926  # scanFrameRate
 
 
@@ -2089,7 +2091,8 @@ class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
     expected_sample_shape = (512, 512)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1", "Channel 2"]
-    expected_has_time_vector = True
+    # frameTimestamps_sec of pages 0, 2 and 4 of the first file, the frames of Channel 1
+    expected_native_timestamps = [0.0, 0.01011751, 0.02023502]
     expected_sampling_frequency = 98.83842317607626  # scanFrameRate
 
 
@@ -2102,7 +2105,9 @@ class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorT
     expected_sample_shape = (20, 20, 9)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1"]
-    expected_has_time_vector = True
+    # frameTimestamps_sec of page 16 * sample + 8, as ScanImage gives a volume the time of its last plane. Each volume
+    # has 9 planes and 7 flyback frames
+    expected_native_timestamps = [0.01526797, 0.04580384, 0.07633974]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
 
     def test_select_plane_timestamps(self, setup_extractor):
@@ -2124,7 +2129,8 @@ class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTes
     expected_sample_shape = (20, 20, 9)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1"]
-    expected_has_time_vector = True
+    # frameTimestamps_sec of page 9 * sample + 8, as ScanImage gives a volume the time of its last plane, of 9
+    expected_native_timestamps = [0.015268365, 0.03244526, 0.049622125]
     expected_sampling_frequency = 8.86703  # scanVolumeRate
 
 
@@ -2137,7 +2143,9 @@ class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin
     expected_sample_shape = (20, 20, 9)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1"]
-    expected_has_time_vector = True
+    # frameTimestamps_sec of page 16 * sample + 8 of the first file, as ScanImage gives a volume the time of its last
+    # plane. Each volume has 9 planes and 7 flyback frames
+    expected_native_timestamps = [0.015267965, 0.045803895, 0.076339795]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
 
 
@@ -2151,7 +2159,9 @@ class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMix
     expected_sample_shape = (20, 20, 9)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1", "Channel 2"]
-    expected_has_time_vector = True
+    # frameTimestamps_sec of page 2 * (16 * sample + 8), the frames of Channel 1, as ScanImage gives a volume the time
+    # of its last plane
+    expected_native_timestamps = [0.015267895, 0.045803725, 0.07633955]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
 
 
@@ -2165,7 +2175,9 @@ class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtract
     expected_sample_shape = (20, 20, 9)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1", "Channel 2"]
-    expected_has_time_vector = True
+    # frameTimestamps_sec of page 2 * (16 * sample + 8) of the first file, the frames of Channel 1, as ScanImage
+    # gives a volume the time of its last plane
+    expected_native_timestamps = [0.015267895, 0.045803655, 0.076339445]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
 
 
@@ -2179,7 +2191,8 @@ class TestScanImageImagingExtractorSinglePlaneOfVolume(ImagingExtractorTestMixin
     expected_sample_shape = (20, 20)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1"]
-    expected_has_time_vector = True
+    # frameTimestamps_sec of page 16 * sample, the frames of plane 0
+    expected_native_timestamps = [0.0, 0.03053587, 0.061071805]
     expected_sampling_frequency = 32.7454  # scanVolumeRate, a plane is sampled once per volume
 
 
@@ -2192,7 +2205,9 @@ class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixi
     expected_sample_shape = (256, 256, 2)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1", "Channel 4"]
-    expected_has_time_vector = True
+    # frameTimestamps_sec of page 8 * sample + 4: Channel 1, the first of the 2 frames of each slice, and the last of
+    # the 2 planes, as ScanImage gives a volume the time of its last plane
+    expected_native_timestamps = [0.83110185, 1.7825946, 3.69864715]
     expected_sampling_frequency = 14.5517  # scanVolumeRate
 
 
@@ -2207,6 +2222,9 @@ class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtrac
     expected_sample_shape = (256, 256, 2)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1", "Channel 4"]
-    expected_has_time_vector = True
+    # frameTimestamps_sec of page 8 * volume + 4 + 2 * frame of the slice: Channel 1 and the last of the 2 planes,
+    # as ScanImage gives a volume the time of its last plane. The first samples are frame 0 and frame 1 of
+    # volume 0, then frame 0 of volume 1
+    expected_native_timestamps = [0.83110185, 0.8482798, 1.7825946]
     # scanVolumeRate, best effort: the interleaved samples are unevenly spaced, so no single rate describes them
     expected_sampling_frequency = 14.5517

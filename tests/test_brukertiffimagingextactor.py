@@ -261,7 +261,8 @@ class TestBrukerTiffImagingExtractorSinglePlane(ImagingExtractorTestMixin):
     expected_sample_shape = (64, 64)
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["Ch2"]
-    expected_has_time_vector = True
+    # relativeTime of the first frames in the XML
+    expected_native_timestamps = [0.0, 0.033474224, 0.066948448]
     expected_sampling_frequency = 1 / 0.033474224  # the interval between frames in the relativeTime of the XML
 
     def test_single_plane_single_channel(self):
@@ -352,7 +353,9 @@ class TestBrukerTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     expected_sample_shape = (64, 64, 2)
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["Ch2"]
-    expected_has_time_vector = True
+    # relativeTime of the first Frame of each Sequence in the XML, a Sequence per volume and a Frame per plane, as
+    # Bruker gives a volume the time of its first plane
+    expected_native_timestamps = [0.0, 0.096948474, 0.193896948]
     expected_sampling_frequency = 1 / 0.096948474  # the interval between volumes in the relativeTime of the XML
 
     def test_volumetric_single_channel(self):
@@ -420,7 +423,8 @@ class TestBrukerTiffImagingExtractorDualChannel(ImagingExtractorTestMixin):
     expected_sample_shape = (64, 64)
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["Red", "Green"]  # in acquisition order
-    expected_has_time_vector = True
+    # relativeTime of the first frames in the XML
+    expected_native_timestamps = [0.0, 0.00474538, 0.00949076]
     expected_sampling_frequency = 1 / 0.00474538  # the interval between frames in the relativeTime of the XML
 
     def test_dual_channel(self):
@@ -486,7 +490,8 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion(ImagingExtractor
     expected_sample_shape = (512, 512)
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["Ch1", "Ch2"]
-    expected_has_time_vector = True
+    # relativeTime of the first frames in the XML
+    expected_native_timestamps = [0.0, 0.033474355, 0.06694871]
     expected_sampling_frequency = 1 / 0.033474355  # the interval between frames in the relativeTime of the XML
 
     def test_construct_and_select_channels(self):
@@ -522,7 +527,9 @@ class TestBrukerTiffImagingExtractorMultiSequenceBOT(ImagingExtractorTestMixin):
     expected_sample_shape = (64, 64)
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["Ch2"]
-    expected_has_time_vector = True
+    # absoluteTime of the first frames in the XML minus that of the first frame, as relativeTime restarts in each
+    # Sequence
+    expected_native_timestamps = [0.0, 0.066563728, 0.133127456]
     # The mean of the rate within each of the 3 bursts, from the relativeTime of the XML, since gaps separate them
     expected_sampling_frequency = np.mean([1 / 0.066563728, 1 / 0.066563811, 1 / 0.06656377])
 
@@ -572,7 +579,9 @@ class TestBrukerTiffImagingExtractorMultiSequenceTimedElement(ImagingExtractorTe
     expected_sample_shape = (64, 64)
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["Ch2"]
-    expected_has_time_vector = True
+    # absoluteTime of the first frames in the XML minus that of the first frame, as relativeTime restarts in each
+    # Sequence
+    expected_native_timestamps = [0.0, 0.066180591, 0.132361182]
     # The mean of the rate within each of the 3 cycles, from the relativeTime of the XML, since gaps separate them
     expected_sampling_frequency = np.mean([1 / 0.066180591, 1 / 0.066180671, 1 / 0.066180745])
 

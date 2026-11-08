@@ -24,7 +24,7 @@ class TestThorTiffImagingExtractor(ImagingExtractorTestMixin):
     expected_sample_shape = (512, 512)
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["ChanA"]
-    expected_has_time_vector = False  # the OME-XML has a DeltaT for the first plane only
+    expected_native_timestamps = None  # the OME-XML has a DeltaT for the first plane only
     expected_sampling_frequency = 13.967  # frameRate, streaming capture without averaging
 
     @classmethod
@@ -87,7 +87,10 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     expected_sample_shape = (128, 128, 3)
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["ChanA", "ChanB"]
-    expected_has_time_vector = True  # Z and T capture, each file has the DeltaT of its own plane
+    # Z and T capture: the DeltaT in the OME-XML of ChanA_0001_0001_0001_<sample + 1>.tif, as Thor gives a volume
+    # the time of its first plane. They are about 1.97 s apart while frameRate is 60.087 Hz, because each plane
+    # averages 10 scans and the stage moves between planes
+    expected_native_timestamps = [0.0, 1.97315, 3.94218]
 
     @pytest.mark.skip(reason="The rate of Z and T capture is parked until the policy for data without a set rate")
     def test_sampling_frequency(self, setup_extractor):
@@ -124,17 +127,6 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
         other = ThorTiffImagingExtractor(file_path=self.file_path, channel_name="ChanB")
         assert not np.array_equal(self.extractor.get_series(), other.get_series())
 
-    def test_native_timestamps_come_from_the_first_plane_of_each_volume(self):
-        """Each sample's time is the `DeltaT` of its first plane, written in that plane's own file.
-
-        The values are the `Plane DeltaT` of `ChanA_0001_0001_0001_000<t>.tif`. They are about 1.97 s apart,
-        while `frameRate` in `Experiment.xml` is 60.087 Hz, because each plane averages 10 scans and the
-        stage moves between planes.
-        """
-        native_timestamps = self.extractor.get_native_timestamps()
-        expected_native_timestamps = np.array([0.0, 1.97315, 3.94218])
-        assert_array_equal(native_timestamps, expected_native_timestamps)
-
     def test_select_plane_timestamps(self):
         """Each plane has the timestamps of its own frames, the `DeltaT` of `ChanA_0001_0001_000<plane>_000<t>.tif`."""
         first_plane_timestamps = self.extractor.select_plane(0).get_timestamps()
@@ -167,7 +159,7 @@ class TestThorTiffImagingExtractorStreamingFrameAveraging(ImagingExtractorTestMi
     expected_sample_shape = (256, 384)  # 256 lines of 384 pixels each
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["ChanA"]
-    expected_has_time_vector = False  # streaming capture, where DeltaT is not the time of the scan
+    expected_native_timestamps = None  # streaming capture, where DeltaT is not the time of the scan
     expected_sampling_frequency = 90.037 / 9  # frameRate / averageNum, each saved frame is the mean of 9 scans
 
     def check_series(self, series):
@@ -194,7 +186,7 @@ class TestThorTiffImagingExtractorFastZStreaming(ImagingExtractorTestMixin):
     expected_sample_shape = (256, 256, 7)
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["ChanB"]
-    expected_has_time_vector = False  # streaming capture, where DeltaT is not the time of the scan
+    expected_native_timestamps = None  # streaming capture, where DeltaT is not the time of the scan
     expected_sampling_frequency = 58.32 / (7 + 2)  # frameRate / (steps + flybackFrames), 7 planes and 2 flyback scans
 
     def check_series(self, series):

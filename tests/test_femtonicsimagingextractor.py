@@ -192,7 +192,7 @@ class TestFemtonicsImagingExtractorP29(ImagingExtractorTestMixin):
     expected_sample_shape = (512, 512)
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["UG", "UR"]
-    expected_has_time_vector = False
+    expected_native_timestamps = None
     expected_sampling_frequency = 1000 / 32.29672617170252  # 1000 / the frame duration in ms of the MUnit
 
 
@@ -208,7 +208,7 @@ class TestFemtonicsImagingExtractorP30(ImagingExtractorTestMixin):
     expected_sample_shape = (512, 512)
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["UG", "UR"]
-    expected_has_time_vector = False
+    expected_native_timestamps = None
     expected_sampling_frequency = 1000 / 32.29672617170252  # 1000 / the frame duration in ms of the MUnit
 
 

@@ -305,7 +305,7 @@ class TestOMETiffImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin):
     expected_sample_shape = (64, 64)
     expected_dtype = np.dtype("uint8")
     expected_channel_names = ["0"]
-    expected_has_time_vector = False
+    expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
 
 
@@ -319,7 +319,8 @@ class TestOMETiffImagingExtractorPlanarSingleChannelWithDeltaT(ImagingExtractorT
     expected_sample_shape = (64, 64)
     expected_dtype = np.dtype("uint8")
     expected_channel_names = ["0"]
-    expected_has_time_vector = True
+    # DeltaT of the first planes in the OME-XML
+    expected_native_timestamps = [0.0, 0.0651, 0.1337]
     expected_sampling_frequency = 1.0  # passed to the constructor
 
 
@@ -332,7 +333,7 @@ class TestOMETiffImagingExtractorPlanarSingleChannelWithTimeIncrement(ImagingExt
     expected_sample_shape = (64, 64)
     expected_dtype = np.dtype("uint8")
     expected_channel_names = ["0"]
-    expected_has_time_vector = False
+    expected_native_timestamps = None
     expected_sampling_frequency = 1 / 0.1  # 1 / TimeIncrement, 0.1 s in the OME-XML
 
 
@@ -347,7 +348,7 @@ class TestOMETiffImagingExtractorPlanarMultiChannel(ImagingExtractorTestMixin):
     expected_sample_shape = (64, 64)
     expected_dtype = np.dtype("int8")
     expected_channel_names = ["0", "1", "2"]  # numeric, the OME-XML has no Channel/@Name
-    expected_has_time_vector = False
+    expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
 
 
@@ -362,7 +363,7 @@ class TestOMETiffImagingExtractorPlanarTwoChannelsMultiFile(ImagingExtractorTest
     expected_sample_shape = (64, 64)
     expected_dtype = np.dtype("uint8")
     expected_channel_names = ["0", "1"]
-    expected_has_time_vector = False
+    expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
 
 
@@ -375,7 +376,7 @@ class TestOMETiffImagingExtractorVolumetricSingleChannel(ImagingExtractorTestMix
     expected_sample_shape = (64, 64, 5)
     expected_dtype = np.dtype("int8")
     expected_channel_names = ["0"]
-    expected_has_time_vector = False
+    expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
 
 
@@ -390,7 +391,7 @@ class TestOMETiffImagingExtractorVolumetricMultiChannel(ImagingExtractorTestMixi
     expected_sample_shape = (64, 64, 5)
     expected_dtype = np.dtype("int8")
     expected_channel_names = ["0", "1", "2"]
-    expected_has_time_vector = False
+    expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
 
 
@@ -405,5 +406,5 @@ class TestOMETiffImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractor
     expected_sample_shape = (64, 64, 10)
     expected_dtype = np.dtype("uint8")
     expected_channel_names = ["0", "1"]
-    expected_has_time_vector = False
+    expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
