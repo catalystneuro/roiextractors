@@ -519,7 +519,10 @@ def test_channel_name_validation_error_handling(tmp_path):
     empty_file_path = tmp_path / "nonexistent.tif"
 
     # Test that missing channel_name when num_channels > 1 raises ValueError
-    with pytest.raises(ValueError, match="channel_name must be specified when num_channels > 1"):
+    expected_message = (
+        "channel_name must be specified for data with more than one channel. Available channels: ['0', '1']"
+    )
+    with pytest.raises(ValueError, match=re.escape(expected_message)):
         MultiTIFFMultiPageExtractor(
             file_paths=[empty_file_path],
             sampling_frequency=30.0,
