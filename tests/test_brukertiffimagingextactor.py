@@ -394,6 +394,15 @@ class TestBrukerTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
         expected_frequency = 1.0 / np.mean(np.diff(expected_timestamps))
         assert extractor.get_sampling_frequency() == pytest.approx(expected_frequency, rel=1e-4)
 
+    def test_select_plane_timestamps(self, setup_extractor):
+        """Each plane has the timestamps of its own frames, the `relativeTime` of its frames in the Bruker XML."""
+        first_plane_timestamps = self.extractor.select_plane(0).get_timestamps()
+        last_plane_timestamps = self.extractor.select_plane(1).get_timestamps()
+        expected_first_plane_timestamps = [0.0, 0.096948474, 0.193896948, 0.290845422, 0.387793896]
+        expected_last_plane_timestamps = [0.048474237, 0.145422711, 0.242371185, 0.339319659, 0.436268133]
+        assert_array_equal(first_plane_timestamps, expected_first_plane_timestamps)
+        assert_array_equal(last_plane_timestamps, expected_last_plane_timestamps)
+
 
 class TestBrukerTiffImagingExtractorDualChannel(ImagingExtractorTestMixin):
     """Test BrukerTiffImagingExtractor with single-plane, dual-channel data.

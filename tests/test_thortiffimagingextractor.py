@@ -135,6 +135,15 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
         expected_native_timestamps = np.array([0.0, 1.97315, 3.94218])
         assert_array_equal(native_timestamps, expected_native_timestamps)
 
+    def test_select_plane_timestamps(self):
+        """Each plane has the timestamps of its own frames, the `DeltaT` of `ChanA_0001_0001_000<plane>_000<t>.tif`."""
+        first_plane_timestamps = self.extractor.select_plane(0).get_timestamps()
+        last_plane_timestamps = self.extractor.select_plane(2).get_timestamps()
+        expected_first_plane_timestamps = [0.0, 1.97315, 3.94218]
+        expected_last_plane_timestamps = [0.777047, 2.74819, 4.72219]
+        assert_array_equal(first_plane_timestamps, expected_first_plane_timestamps)
+        assert_array_equal(last_plane_timestamps, expected_last_plane_timestamps)
+
     def test_get_available_channel_names(self):
         """Every name discovery returns can be passed back as `channel_name`."""
         channel_names = ThorTiffImagingExtractor.get_available_channel_names(file_path=self.file_path)

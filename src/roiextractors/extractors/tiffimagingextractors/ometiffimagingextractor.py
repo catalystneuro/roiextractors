@@ -146,12 +146,16 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         if all_planes is None:
             return None
 
+        # The first frame of each sample is that of its first plane, or of the selected plane in a view from
+        # `select_plane()`, and its depth gives the time of the sample
+        depth_index = self._frames_to_ifd_table[0]["depth_index"]
+
         # Filter planes to get one timestamp per timepoint
         timepoint_to_delta_t: dict[int, float] = {}
         for plane in all_planes:
             if self._num_channels > 1 and plane["the_c"] != self._channel_index:
                 continue
-            if self.is_volumetric and plane["the_z"] != 0:
+            if plane["the_z"] != depth_index:
                 continue
             timepoint_to_delta_t[plane["the_t"]] = plane["delta_t_seconds"]
 
