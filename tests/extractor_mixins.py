@@ -196,7 +196,7 @@ class ImagingExtractorTestMixin:
         assert_array_equal(sliced_series, expected_series)
 
     def test_select_plane(self, setup_extractor):
-        """The extractor that `select_plane()` returns for the last plane has that plane of the volumetric series."""
+        """`select_plane()` returns the last plane of the volumetric series and raises for -1 and `num_planes`."""
         if not self.extractor.is_volumetric:
             with pytest.raises(ValueError):
                 self.extractor.select_plane(0)
@@ -210,6 +210,16 @@ class ImagingExtractorTestMixin:
         expected_plane_series = full_series[..., last_plane_index]
         assert plane_sample_shape == expected_plane_sample_shape
         assert_array_equal(plane_series, expected_plane_series)
+
+        expected_num_planes = self.expected_sample_shape[2]
+        below_range_message = f"plane_index (-1) must satisfy 0 <= plane_index < num_planes ({expected_num_planes})."
+        with pytest.raises(ValueError, match=re.escape(below_range_message)):
+            self.extractor.select_plane(-1)
+        above_range_message = (
+            f"plane_index ({expected_num_planes}) must satisfy 0 <= plane_index < num_planes ({expected_num_planes})."
+        )
+        with pytest.raises(ValueError, match=re.escape(above_range_message)):
+            self.extractor.select_plane(expected_num_planes)
 
     def test_available_channel_names(self):
         """`get_available_channel_names()` returns the expected channel names in order, and each is accepted back."""
