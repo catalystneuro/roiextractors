@@ -68,7 +68,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             Number of channels in the data. Default is 1 (single channel).
         channel_name : str, optional
             Name of the channel to extract (e.g., "0", "1"). Only required when
-            num_channels > 1. For single-channel data, this parameter is ignored.
+            num_channels > 1. When given, it must be one of the available channel names.
             Default is None.
         num_planes : int, optional
             Number of depth planes (Z-slices) per volume. Default is 1 (planar data).
@@ -171,8 +171,9 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         self._dimension_order = dimension_order
         self._num_channels = num_channels
 
-        # Handle channel selection
-        if num_channels > 1:
+        # Handle channel selection. The channel names are looked up only when a name is given, to validate it even on
+        # single-channel data, or when there are several channels. Single-channel data without a name skips the lookup.
+        if num_channels > 1 or channel_name is not None:
             available_names = self._get_channel_names()
             if channel_name is None:
                 raise ValueError(

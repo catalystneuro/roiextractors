@@ -29,7 +29,7 @@ class ThorTiffImagingExtractor(OMETiffImagingExtractor):
     channel_name : str or None, optional
         For multi-channel data, the name of the channel to read (e.g. ``"ChanA"``).
         Channel names follow ThorImage's convention as configured in the acquisition.
-        Required when more than one channel is present and ignored otherwise.
+        Required when more than one channel is present.
     """
 
     extractor_name = "ThorTiffImaging"
