@@ -55,6 +55,19 @@ class ThorTiffImagingExtractor(OMETiffImagingExtractor):
             raise ValueError("Could not find 'LSM' element with frameRate attribute in Experiment.xml.")
         sampling_frequency = float(lsm.get("frameRate"))
 
+        # `frameRate` is the scan rate. In streaming capture each saved sample takes several scans: a volume
+        # takes its planes plus the flyback frames, which TIFF output does not save, and fast z turns averaging
+        # off. Otherwise a saved frame is the mean of `averageNum` scans when averaging is on.
+        capture_mode = self._experiment_xml_root.find("CaptureMode")
+        streaming = self._experiment_xml_root.find("Streaming")
+        if capture_mode is not None and capture_mode.get("mode") == "1" and streaming is not None:
+            if streaming.get("zFastEnable") == "1":
+                num_planes = int(self._experiment_xml_root.find("ZStage").get("steps"))
+                flyback_frames = int(streaming.get("flybackFrames"))
+                sampling_frequency /= num_planes + flyback_frames
+            elif lsm.get("averageMode") == "1":
+                sampling_frequency /= int(lsm.get("averageNum"))
+
         # Build channel names from Wavelengths. ThorImage uses these as the user-facing
         # channel identifiers (e.g. "ChanA", "ChanB"); they're stored before super().__init__()
         # because the base class calls self._get_channel_names() during init for validation.
