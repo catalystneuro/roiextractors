@@ -35,8 +35,11 @@ class ImagingExtractorTestMixin:
         The expected dtype of the pixels.
     expected_channel_names : list[str]
         The expected names that `get_available_channel_names()` returns, in order. Only on extractors that have it.
-    expected_has_time_vector : bool
-        Whether the format records a time for each sample.
+    expected_native_timestamps : list[float] | None
+        The first times in seconds that `get_native_timestamps()` returns, read from the file with the header field
+        in a comment, or `None` when the format records no time for each sample. Three samples are enough to catch a
+        wrong start, step or unit. On volumetric data a format gives each sample the time of one of its planes, so the
+        comment names the plane.
     expected_sampling_frequency : float
         The expected rate of the samples in Hz, along the first axis of `get_series()`, so the volume rate on
         volumetric data.
@@ -48,7 +51,7 @@ class ImagingExtractorTestMixin:
     expected_sample_shape: tuple[int, int] | tuple[int, int, int]
     expected_dtype: np.dtype
     expected_channel_names: list[str]
-    expected_has_time_vector: bool
+    expected_native_timestamps: list[float] | None
     expected_sampling_frequency: float
 
     # TODO: implement `check_series()` in every test class, as the docstring of `test_get_series()` describes.
@@ -124,15 +127,61 @@ class ImagingExtractorTestMixin:
         """
 
     def test_native_timestamps(self, setup_extractor):
-        """The extractor reports whether the format records times, and returns one per sample when it does."""
+        """The native timestamps are one per sample and start with `expected_native_timestamps`, or are `None`.
+
+        A range of the timestamps is the same range of the full read, for the native timestamps and for
+        `get_timestamps()`, which computes them from the rate when the format records none.
+        """
+        # Asked before the timestamps are read, as the extractor must answer without reading them
         has_time_vector = self.extractor.has_time_vector()
         native_timestamps = self.extractor.get_native_timestamps()
-        assert has_time_vector == self.expected_has_time_vector
-        if self.expected_has_time_vector:
+        timestamps = self.extractor.get_timestamps()
+        start_sample, end_sample = 1, 3
+        if self.expected_native_timestamps is None:
+            assert not has_time_vector
+            assert native_timestamps is None
+        else:
+            assert has_time_vector
             expected_shape = (self.expected_num_samples,)
             assert native_timestamps.shape == expected_shape
+            # Without times set, `get_timestamps()` returns the native timestamps
+            assert_array_equal(timestamps, native_timestamps)
+
+            num_expected_samples = len(self.expected_native_timestamps)
+            first_native_timestamps = native_timestamps[:num_expected_samples]
+            assert_allclose(first_native_timestamps, self.expected_native_timestamps)
+
+            range_native_timestamps = self.extractor.get_native_timestamps(
+                start_sample=start_sample, end_sample=end_sample
+            )
+            assert_array_equal(range_native_timestamps, native_timestamps[start_sample:end_sample])
+
+        range_timestamps = self.extractor.get_timestamps(start_sample=start_sample, end_sample=end_sample)
+        assert_array_equal(range_timestamps, timestamps[start_sample:end_sample])
+
+    def test_set_times(self, setup_extractor):
+        """Times set with `set_times()` replace the native ones in `get_timestamps()`, not in `get_native_timestamps()`.
+
+        The set times must survive a lookup with `time_to_sample_indices()` and carry over to a slice.
+        """
+        native_timestamps = self.extractor.get_native_timestamps()
+        # Far from the times of any file, so a native time returned by mistake cannot match
+        set_timestamps = 100.0 + 0.5 * np.arange(self.expected_num_samples)
+        self.extractor.set_times(set_timestamps)
+        assert self.extractor.has_time_vector()
+        assert_array_equal(self.extractor.get_timestamps(), set_timestamps)
+        native_timestamps_after_set_times = self.extractor.get_native_timestamps()
+        if native_timestamps is None:
+            assert native_timestamps_after_set_times is None
         else:
-            assert native_timestamps is None
+            assert_array_equal(native_timestamps_after_set_times, native_timestamps)
+
+        # The lookup once cached the native timestamps over the set ones
+        self.extractor.time_to_sample_indices(set_timestamps[1])
+        assert_array_equal(self.extractor.get_timestamps(), set_timestamps)
+
+        slice_extractor = self.extractor.slice_samples(start_sample=1, end_sample=3)
+        assert_array_equal(slice_extractor.get_timestamps(), set_timestamps[1:3])
 
     def test_slice_samples(self, setup_extractor):
         """`slice_samples()` returns the samples and the timestamps of the same range of the parent.
