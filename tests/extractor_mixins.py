@@ -238,3 +238,14 @@ class ImagingExtractorTestMixin:
                 self.extractor_cls(**kwargs_without_channel)
         else:
             self.extractor_cls(**kwargs_without_channel)
+
+    def test_wrong_channel_name_raises(self):
+        """A `channel_name` that is not an available channel raises, also on data with one channel."""
+        if not hasattr(self.extractor_cls, "get_available_channel_names"):
+            pytest.skip(f"{self.extractor_cls.__name__} has no get_available_channel_names().")
+        wrong_channel_name = "not_a_channel"
+        expected_message = (
+            f"Channel '{wrong_channel_name}' not found. Available channels: {self.expected_channel_names}"
+        )
+        with pytest.raises(ValueError, match=re.escape(expected_message)):
+            self.extractor_cls(**{**self.extractor_kwargs, "channel_name": wrong_channel_name})

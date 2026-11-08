@@ -226,12 +226,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 f"Available channels: {self.channel_names}"
             )
             raise ValueError(error_msg)
-        elif self._is_multi_channel_data and channel_name is not None:
+        elif channel_name is not None:
             if channel_name not in self.channel_names:
-                error_msg = (
-                    f"Channel name ({channel_name}) not found in available channels ({self.channel_names}). "
-                    "Please specify a valid channel name."
-                )
+                error_msg = f"Channel '{channel_name}' not found. Available channels: {self.channel_names}"
                 raise ValueError(error_msg)
 
             self.channel_name = channel_name

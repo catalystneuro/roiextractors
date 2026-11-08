@@ -439,10 +439,6 @@ class TestBrukerTiffImagingExtractorDualChannel(ImagingExtractorTestMixin):
         assert_array_equal(ext_red.get_series(), expected_red)
         assert not np.array_equal(expected_green, expected_red)
 
-    def test_invalid_channel_raises(self):
-        with pytest.raises(ValueError, match="Channel '5' not found.*Available channels"):
-            BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="5")
-
     def test_timestamps_and_sampling_frequency(self):
         """Timestamps are the relativeTime values from the Bruker configuration XML.
 

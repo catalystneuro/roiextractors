@@ -147,10 +147,7 @@ class FemtonicsImagingExtractor(ImagingExtractor):
             self._selected_channel_name = available_channels[0]
         else:
             if self._channel_name not in available_channels:
-                raise ValueError(
-                    f"Channel '{self._channel_name}' not found in {self._selected_session_name}/{self._selected_munit_name}. "
-                    f"Available: {available_channels}"
-                )
+                raise ValueError(f"Channel '{self._channel_name}' not found. Available channels: {available_channels}")
             self._selected_channel_name = self._channel_name
 
     def _setup_video_data(self):

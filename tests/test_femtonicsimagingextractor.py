@@ -167,12 +167,6 @@ def test_femtonicsimagingextractor_p29_mesc():
     series_ur = extractor_ur.get_series(start_sample=0, end_sample=5)
     assert series_ug.shape == series_ur.shape
 
-    # Test invalid channel name
-    with pytest.raises(ValueError, match="Channel 'InvalidChannel' not found"):
-        FemtonicsImagingExtractor(
-            file_path=file_path, session_name="MSession_0", munit_name="MUnit_0", channel_name="InvalidChannel"
-        )
-
     # Test invalid session name
     with pytest.raises(ValueError, match="Session 'InvalidSession' not found"):
         FemtonicsImagingExtractor(file_path=file_path, session_name="InvalidSession")
@@ -389,12 +383,6 @@ def test_femtonicsimagingextractor_p30_mesc():
     )
     assert extractor_munit1.get_image_shape() == (512, 512)
     assert extractor_munit1.get_num_samples() == 5
-
-    # Test invalid channel name
-    with pytest.raises(ValueError, match="Channel 'InvalidChannel' not found"):
-        FemtonicsImagingExtractor(
-            file_path=file_path, session_name="MSession_0", munit_name="MUnit_0", channel_name="InvalidChannel"
-        )
 
     # Test invalid session name
     with pytest.raises(ValueError, match="Session 'InvalidSession' not found"):
