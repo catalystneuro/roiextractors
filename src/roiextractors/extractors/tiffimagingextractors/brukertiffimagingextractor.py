@@ -216,14 +216,12 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
                 stacklevel=2,
             )
 
-        # Pre-set _num_planes so get_native_timestamps() can be called before init.
-        # MultiTIFFMultiPageExtractor.__init__() will set it again to the same value.
-        self._num_planes = num_planes
         # Derive the rate from the true per-frame timeline. Burst/cycle recordings (e.g. Brightness
         # Over Time) are not uniformly sampled: their timeline is regular within each burst but has
         # large gaps between bursts, so calculate_segmented_series_rate splits at those gaps and
         # reports the within-burst rate. Uniformly-sampled recordings come back as a single segment.
-        timestamps = self.get_native_timestamps()
+        # The time of a volume is that of its first plane.
+        timestamps = self._read_frame_times()[::num_planes]
         sampling_frequency, _ = calculate_segmented_series_rate(timestamps)
         if sampling_frequency is None:
             raise ValueError("Could not determine sampling frequency from Bruker configuration XML.")
@@ -389,9 +387,22 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
     def get_native_timestamps(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """Extract per-sample timestamps from Frame relativeTime attributes in the Bruker XML.
 
-        For volumetric data, frames alternate between planes; every num_planes-th timestamp
-        corresponds to one volume (sample).
+        For volumetric data, frames alternate between planes; the time of a volume (sample) is that of
+        its first plane, and a view from ``select_plane()`` has the times of the frames of its plane.
         """
+        frame_times = self._read_frame_times()
+        # The table holds the frames sorted by time, then depth, so the first frame of each sample is that of its
+        # first plane, or of the selected plane in a view from `select_plane()`
+        sample_rows = self._frames_to_ifd_table[:: self._num_planes]
+        num_planes = self._determine_num_planes()
+        frame_indices = sample_rows["time_index"].astype("int64") * num_planes + sample_rows["depth_index"]
+        timestamps = frame_times[frame_indices]
+        start_sample = start_sample or 0
+        end_sample = end_sample or len(timestamps)
+        return timestamps[start_sample:end_sample]
+
+    def _read_frame_times(self) -> np.ndarray:
+        """Read the time of every Frame in the Bruker XML, in acquisition order."""
         sequences = self._xml_root.findall("Sequence")
         # `relativeTime` resets to 0 at the start of each <Sequence> only for burst/cycle
         # recordings (Brightness Over Time, multi-cycle timed series). Volumetric recordings
@@ -416,10 +427,7 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
             raise ValueError("One or more Frame elements are missing the 'relativeTime'/'absoluteTime' attribute.")
         if len(all_times) == 0:
             raise ValueError("No Frame elements found in the Bruker configuration XML.")
-        timestamps = all_times[:: self._num_planes]
-        start_sample = start_sample or 0
-        end_sample = end_sample or len(timestamps)
-        return timestamps[start_sample:end_sample]
+        return all_times
 
     def _has_native_timestamps(self) -> bool:
         return True

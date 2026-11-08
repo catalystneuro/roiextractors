@@ -141,10 +141,11 @@ class ThorTiffImagingExtractor(OMETiffImagingExtractor):
         if capture_mode is None or capture_mode.get("mode") != "0":
             return super().get_native_timestamps(start_sample=start_sample, end_sample=end_sample)
 
-        # The table holds the frames of the selected channel sorted by time, then depth
-        first_plane_rows = self._frames_to_ifd_table[self._frames_to_ifd_table["depth_index"] == 0]
-        timestamps = np.zeros(len(first_plane_rows), dtype="float64")
-        for sample_index, file_index in enumerate(first_plane_rows["file_index"]):
+        # The table holds the frames of the selected channel sorted by time, then depth, so the first frame of each
+        # sample is that of its first plane, or of the selected plane in a view from `select_plane()`
+        sample_rows = self._frames_to_ifd_table[:: self._num_planes]
+        timestamps = np.zeros(len(sample_rows), dtype="float64")
+        for sample_index, file_index in enumerate(sample_rows["file_index"]):
             planes = self._parse_ome_native_timestamps(self._file_paths[file_index])
             if planes is None or len(planes) != 1:
                 return None
