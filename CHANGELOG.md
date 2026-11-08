@@ -45,6 +45,7 @@
 * The error raised when `channel_name` is missing on data with more than one channel now has the same message in the OME-TIFF, Thor, Bruker, ScanImage and Femtonics extractors, and it lists the available channel names. The OME-TIFF, Thor and Bruker extractors did not list them. `ImagingExtractorTestMixin` now checks the message.
 * Added tests for two new Thor fixtures in `ophys_testing_data`: planar streaming with frame averaging and streaming with fast z. Their test classes are the first to implement `check_series()`, which compares each plane with the page of its file read with `tifffile`.
 * `ImagingExtractorTestMixin` now checks that `select_plane()` raises `ValueError` for a `plane_index` out of range, -1 or the number of planes, on every volumetric fixture.
+* `ImagingExtractorTestMixin` now checks `get_sampling_frequency()` against `expected_sampling_frequency`, the rate of the samples taken from the file, on every fixture. The Thor Z and T fixture is skipped, since it still reports the scan rate.
 * `ScanImageImagingExtractor` now raises `NotImplementedError` on files from ScanImage 2026 or later. ScanImage 2026 added frame selection, which saves only some of the scanned frames, and replaced frame averaging with exponential smoothing. We have no 2026 file to learn which header fields record these settings, so the extractor could report a wrong rate without an error.
 
 # v0.10.0 (September 9th, 2026)

@@ -262,6 +262,7 @@ class TestBrukerTiffImagingExtractorSinglePlane(ImagingExtractorTestMixin):
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["Ch2"]
     expected_has_time_vector = True
+    expected_sampling_frequency = 1 / 0.033474224  # the interval between frames in the relativeTime of the XML
 
     def test_single_plane_single_channel(self):
         """Test basic metadata and data access for single-plane, single-channel Bruker data.
@@ -352,6 +353,7 @@ class TestBrukerTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["Ch2"]
     expected_has_time_vector = True
+    expected_sampling_frequency = 1 / 0.096948474  # the interval between volumes in the relativeTime of the XML
 
     def test_volumetric_single_channel(self):
         """Test metadata and data access for volumetric, single-channel Bruker data.
@@ -419,6 +421,7 @@ class TestBrukerTiffImagingExtractorDualChannel(ImagingExtractorTestMixin):
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["Red", "Green"]  # in acquisition order
     expected_has_time_vector = True
+    expected_sampling_frequency = 1 / 0.00474538  # the interval between frames in the relativeTime of the XML
 
     def test_dual_channel(self):
         """Test channel selection and data access for dual-channel Bruker data.
@@ -484,6 +487,7 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion(ImagingExtractor
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["Ch1", "Ch2"]
     expected_has_time_vector = True
+    expected_sampling_frequency = 1 / 0.033474355  # the interval between frames in the relativeTime of the XML
 
     def test_construct_and_select_channels(self):
         """Both channels must be selectable and return distinct data."""
@@ -519,6 +523,8 @@ class TestBrukerTiffImagingExtractorMultiSequenceBOT(ImagingExtractorTestMixin):
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["Ch2"]
     expected_has_time_vector = True
+    # The mean of the rate within each of the 3 bursts, from the relativeTime of the XML, since gaps separate them
+    expected_sampling_frequency = np.mean([1 / 0.066563728, 1 / 0.066563811, 1 / 0.06656377])
 
     def test_multisequence_within_burst_rate_and_gapped_timestamps(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
@@ -567,6 +573,8 @@ class TestBrukerTiffImagingExtractorMultiSequenceTimedElement(ImagingExtractorTe
     expected_dtype = np.dtype("uint16")
     expected_channel_names = ["Ch2"]
     expected_has_time_vector = True
+    # The mean of the rate within each of the 3 cycles, from the relativeTime of the XML, since gaps separate them
+    expected_sampling_frequency = np.mean([1 / 0.066180591, 1 / 0.066180671, 1 / 0.066180745])
 
     def test_multisequence_timed_element_within_cycle_rate_and_gapped_timestamps(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)

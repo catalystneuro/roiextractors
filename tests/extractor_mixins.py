@@ -37,6 +37,9 @@ class ImagingExtractorTestMixin:
         The expected names that `get_available_channel_names()` returns, in order. Only on extractors that have it.
     expected_has_time_vector : bool
         Whether the format records a time for each sample.
+    expected_sampling_frequency : float
+        The expected rate of the samples in Hz, along the first axis of `get_series()`, so the volume rate on
+        volumetric data.
     """
 
     extractor_cls: type[ImagingExtractor]
@@ -46,6 +49,7 @@ class ImagingExtractorTestMixin:
     expected_dtype: np.dtype
     expected_channel_names: list[str]
     expected_has_time_vector: bool
+    expected_sampling_frequency: float
 
     # TODO: implement `check_series()` in every test class, as the docstring of `test_get_series()` describes.
 
@@ -89,6 +93,12 @@ class ImagingExtractorTestMixin:
         # Equality alone would pass for a scalar type or a string too
         assert isinstance(dtype, np.dtype)
         assert dtype == self.expected_dtype
+
+    def test_sampling_frequency(self, setup_extractor):
+        """`get_sampling_frequency()` is the expected rate of the samples."""
+        sampling_frequency = self.extractor.get_sampling_frequency()
+        # A rate taken from timestamps can differ from the value of the file in the last digits
+        assert sampling_frequency == pytest.approx(self.expected_sampling_frequency)
 
     def test_get_series(self, setup_extractor):
         """`get_series()` returns the data of the fixture.

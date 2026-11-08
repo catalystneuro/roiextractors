@@ -2063,6 +2063,7 @@ class TestScanImageImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1"]
     expected_has_time_vector = True
+    expected_sampling_frequency = 15.2379 / 8  # scanFrameRate / logAverageFactor, each frame is the mean of 8 scans
 
 
 class TestScanImageImagingExtractorPlanarTwoChannels(ImagingExtractorTestMixin):
@@ -2076,6 +2077,7 @@ class TestScanImageImagingExtractorPlanarTwoChannels(ImagingExtractorTestMixin):
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1", "Channel 2"]
     expected_has_time_vector = True
+    expected_sampling_frequency = 523.926  # scanFrameRate
 
 
 class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
@@ -2088,6 +2090,7 @@ class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1", "Channel 2"]
     expected_has_time_vector = True
+    expected_sampling_frequency = 98.83842317607626  # scanFrameRate
 
 
 class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorTestMixin):
@@ -2100,6 +2103,7 @@ class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorT
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1"]
     expected_has_time_vector = True
+    expected_sampling_frequency = 32.7454  # scanVolumeRate
 
     def test_select_plane_timestamps(self, setup_extractor):
         """Each plane has the timestamps of its own frames, the `frameTimestamps_sec` of its pages."""
@@ -2121,6 +2125,7 @@ class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTes
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1"]
     expected_has_time_vector = True
+    expected_sampling_frequency = 8.86703  # scanVolumeRate
 
 
 class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin):
@@ -2133,6 +2138,7 @@ class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1"]
     expected_has_time_vector = True
+    expected_sampling_frequency = 32.7454  # scanVolumeRate
 
 
 class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMixin):
@@ -2146,6 +2152,7 @@ class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMix
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1", "Channel 2"]
     expected_has_time_vector = True
+    expected_sampling_frequency = 32.7454  # scanVolumeRate
 
 
 class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractorTestMixin):
@@ -2159,6 +2166,7 @@ class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtract
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1", "Channel 2"]
     expected_has_time_vector = True
+    expected_sampling_frequency = 32.7454  # scanVolumeRate
 
 
 class TestScanImageImagingExtractorSinglePlaneOfVolume(ImagingExtractorTestMixin):
@@ -2172,6 +2180,7 @@ class TestScanImageImagingExtractorSinglePlaneOfVolume(ImagingExtractorTestMixin
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1"]
     expected_has_time_vector = True
+    expected_sampling_frequency = 32.7454  # scanVolumeRate, a plane is sampled once per volume
 
 
 class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixin):
@@ -2184,6 +2193,7 @@ class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixi
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1", "Channel 4"]
     expected_has_time_vector = True
+    expected_sampling_frequency = 14.5517  # scanVolumeRate
 
 
 class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtractorTestMixin):
@@ -2198,3 +2208,5 @@ class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtrac
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1", "Channel 4"]
     expected_has_time_vector = True
+    # scanVolumeRate, best effort: the interleaved samples are unevenly spaced, so no single rate describes them
+    expected_sampling_frequency = 14.5517
