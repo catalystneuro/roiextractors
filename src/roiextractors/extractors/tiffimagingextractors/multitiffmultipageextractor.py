@@ -6,6 +6,7 @@ MultiTIFFMultiPageExtractor
     An extractor for handling multiple TIFF files, each with multiple pages, organized according to a specified dimension order.
 """
 
+import copy
 import glob
 import warnings
 from pathlib import Path
@@ -275,6 +276,39 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
                 stacklevel=2,
             )
         return self._num_planes
+
+    def select_plane(self, plane_index: int) -> "MultiTIFFMultiPageExtractor":
+        """Return a planar view of one depth plane as a new extractor of the same class.
+
+        Overrides :meth:`ImagingExtractor.select_plane`. The generic wrapper reads every plane of a sample to keep
+        one, and returns the timestamps of the volume, which these formats take from its first plane. This view
+        keeps only the frames of the selected plane, so it reads only those pages, and the formats that record a
+        time per frame give it the times of its own frames. Times set with ``set_times()`` on the volume are not
+        carried over.
+
+        Parameters
+        ----------
+        plane_index : int
+            The depth plane to select. Must satisfy ``0 <= plane_index < num_planes``.
+
+        Returns
+        -------
+        MultiTIFFMultiPageExtractor
+            A planar extractor of the same class for the selected plane.
+        """
+        if not self.is_volumetric:
+            raise ValueError("select_plane is only valid for volumetric extractors.")
+        num_planes = self._num_planes
+        if not 0 <= plane_index < num_planes:
+            raise ValueError(f"plane_index ({plane_index}) must satisfy 0 <= plane_index < num_planes ({num_planes}).")
+
+        plane = copy.copy(self)
+        depth_mask = self._frames_to_ifd_table["depth_index"] == plane_index
+        plane._frames_to_ifd_table = self._frames_to_ifd_table[depth_mask]
+        plane._num_planes = 1
+        plane.is_volumetric = False
+        plane._times = None
+        return plane
 
     @staticmethod
     def _create_frame_to_ifd_table(
