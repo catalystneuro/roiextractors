@@ -150,6 +150,17 @@ class ScanImageImagingExtractor(ImagingExtractor):
             raise ValueError("Invalid metadata: The metadata is either None or empty.")
         self._metadata = self._general_metadata["FrameData"]
 
+        # ScanImage 2026 can save only some of the scanned frames and smooth them instead of averaging, and without
+        # a 2026 file we do not know the header fields of these settings, so the rate could be wrong without an error.
+        # `SI.VERSION_MAJOR` is a string like '2016b' up to 2019b and an integer from 2020 on.
+        version_major = self._metadata.get("SI.VERSION_MAJOR")
+        if isinstance(version_major, int) and version_major >= 2026:
+            raise NotImplementedError(
+                f"ScanImage {version_major} files are not supported yet. ScanImage 2026 added frame selection, which "
+                "saves only some of the scanned frames, and replaced frame averaging with exponential smoothing. "
+                "Please open an issue with an example file at https://github.com/catalystneuro/roiextractors/issues"
+            )
+
         self._num_rows, self._num_columns = tiff_reader.pages[0].shape
         self._dtype = tiff_reader.pages[0].dtype
 

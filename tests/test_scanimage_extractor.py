@@ -1,3 +1,4 @@
+import re
 import shutil
 from pathlib import Path
 
@@ -22,6 +23,23 @@ def test_old_scan_image_version():
     file_path = SCANIMAGE_PATH / "sample_scanimage_version_3_8.tiff"
 
     with pytest.raises(ValueError):
+        ScanImageImagingExtractor(file_path=file_path)
+
+
+def test_scanimage_2026_raises(tmp_path):
+    """ScanImage 2026 files raise `NotImplementedError` until we have one to read their frame selection from."""
+    # No 2026 file exists on gin, so a 2022 file gets the version of 2026, a replacement of the same length
+    source_path = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
+    file_path = tmp_path / "scanimage_2026.tif"
+    file_bytes = source_path.read_bytes()
+    file_path.write_bytes(file_bytes.replace(b"SI.VERSION_MAJOR = 2022", b"SI.VERSION_MAJOR = 2026"))
+
+    expected_message = (
+        "ScanImage 2026 files are not supported yet. ScanImage 2026 added frame selection, which saves only some of "
+        "the scanned frames, and replaced frame averaging with exponential smoothing. Please open an issue with an "
+        "example file at https://github.com/catalystneuro/roiextractors/issues"
+    )
+    with pytest.raises(NotImplementedError, match=re.escape(expected_message)):
         ScanImageImagingExtractor(file_path=file_path)
 
 
