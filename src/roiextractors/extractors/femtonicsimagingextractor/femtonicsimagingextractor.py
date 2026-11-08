@@ -141,8 +141,8 @@ class FemtonicsImagingExtractor(ImagingExtractor):
         if self._channel_name is None:
             if len(available_channels) > 1:
                 raise ValueError(
-                    f"Multiple channels found in {self._selected_session_name}/{self._selected_munit_name}: {available_channels}. "
-                    "Please specify 'channel_name' to select one."
+                    "channel_name must be specified for data with more than one channel. "
+                    f"Available channels: {available_channels}"
                 )
             self._selected_channel_name = available_channels[0]
         else:

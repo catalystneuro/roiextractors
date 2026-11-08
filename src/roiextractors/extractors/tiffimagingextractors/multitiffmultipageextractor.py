@@ -173,9 +173,12 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
         # Handle channel selection
         if num_channels > 1:
-            if channel_name is None:
-                raise ValueError("channel_name must be specified when num_channels > 1")
             available_names = self._get_channel_names()
+            if channel_name is None:
+                raise ValueError(
+                    "channel_name must be specified for data with more than one channel. "
+                    f"Available channels: {available_names}"
+                )
             if channel_name not in available_names:
                 raise ValueError(f"Channel '{channel_name}' not found. Available channels: {available_names}")
             channel_index = available_names.index(channel_name)
