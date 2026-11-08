@@ -2083,6 +2083,15 @@ class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorT
     expected_channel_names = ["Channel 1"]
     expected_has_time_vector = True
 
+    def test_select_plane_timestamps(self, setup_extractor):
+        """Each plane has the timestamps of its own frames, the `frameTimestamps_sec` of its pages."""
+        first_plane_timestamps = self.extractor.select_plane(0).get_timestamps(end_sample=3)
+        last_plane_timestamps = self.extractor.select_plane(8).get_timestamps(end_sample=3)
+        expected_first_plane_timestamps = [0.0, 0.03053587, 0.061071805]
+        expected_last_plane_timestamps = [0.01526797, 0.04580384, 0.07633974]
+        assert_array_equal(first_plane_timestamps, expected_first_plane_timestamps)
+        assert_array_equal(last_plane_timestamps, expected_last_plane_timestamps)
+
 
 class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
