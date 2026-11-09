@@ -1844,6 +1844,7 @@ class TestScanImageImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin
     # frameTimestamps_sec of pages 0 to 2
     expected_native_timestamps = [0.45951611, 0.98468446, 1.50985974]
     expected_sampling_frequency = 15.2379 / 8  # scanFrameRate / logAverageFactor, each frame is the mean of 8 scans
+    expected_metadata = {}
 
     def check_series(self, series):
         """Sample `sample` is page `sample`: one channel and one plane, each page a saved frame."""
@@ -1866,6 +1867,7 @@ class TestScanImageImagingExtractorPlanarTwoChannels(ImagingExtractorTestMixin):
     # frameTimestamps_sec of pages 0, 2 and 4, the frames of Channel 1
     expected_native_timestamps = [0.0, 0.001908475, 0.003816975]
     expected_sampling_frequency = 523.926  # scanFrameRate
+    expected_metadata = {}
 
     def check_series(self, series):
         """Sample `sample` is page `2 * sample + channel`, the two channels saved in turn."""
@@ -1889,6 +1891,7 @@ class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
     # frameTimestamps_sec of pages 0, 2 and 4 of the first file, the frames of Channel 1
     expected_native_timestamps = [0.0, 0.01011751, 0.02023502]
     expected_sampling_frequency = 98.83842317607626  # scanFrameRate
+    expected_metadata = {}
 
     def check_series(self, series):
         """Sample `sample` is page `2 * sample + channel` across the 3 files, the two channels saved in turn."""
@@ -1925,6 +1928,7 @@ class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorT
         [0.01526797, 0.04580384, 0.07633974],
     ]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
+    expected_metadata = {}
 
     def test_num_flyback_frames_per_channel(self, setup_extractor):
         """`num_flyback_frames_per_channel` is the 7 of `SI.hFastZ.numDiscardFlybackFrames` in the header."""
@@ -1964,6 +1968,7 @@ class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTes
         [0.015268365, 0.03244526, 0.049622125],
     ]
     expected_sampling_frequency = 8.86703  # scanVolumeRate
+    expected_metadata = {}
 
     def check_series(self, series):
         """Plane `plane` of sample `sample` is page `9 * sample + plane`: 9 planes and no flyback frames per volume."""
@@ -2000,6 +2005,7 @@ class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin
         [0.015267965, 0.045803895, 0.076339795],
     ]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
+    expected_metadata = {}
 
     def test_num_flyback_frames_per_channel(self, setup_extractor):
         """`num_flyback_frames_per_channel` is the 7 of `SI.hFastZ.numDiscardFlybackFrames` in the header."""
@@ -2042,6 +2048,7 @@ class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMix
         [0.015267895, 0.045803725, 0.07633955],
     ]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
+    expected_metadata = {}
 
     def check_series(self, series):
         """Plane `plane` of sample `sample` is page `2 * (16 * sample + plane) + channel`.
@@ -2085,6 +2092,7 @@ class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtract
         [0.015267895, 0.045803655, 0.076339445],
     ]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
+    expected_metadata = {}
 
     def check_series(self, series):
         """Plane `plane` of sample `sample` is page `2 * (16 * sample + plane) + channel`, numbered across the 10 files.
@@ -2115,6 +2123,7 @@ class TestScanImageImagingExtractorSinglePlaneOfVolume(ImagingExtractorTestMixin
     # frameTimestamps_sec of page 16 * sample, the frames of plane 0
     expected_native_timestamps = [0.0, 0.03053587, 0.061071805]
     expected_sampling_frequency = 32.7454  # scanVolumeRate, a plane is sampled once per volume
+    expected_metadata = {}
 
     def check_series(self, series):
         """Sample `sample` is page `16 * sample`, plane 0 of a volume of 9 planes and 7 flyback frames."""
@@ -2144,6 +2153,7 @@ class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixi
         [0.83110185, 1.7825946, 3.69864715],
     ]
     expected_sampling_frequency = 14.5517  # scanVolumeRate
+    expected_metadata = {}
 
     def check_series(self, series):
         """Plane `plane` of sample `sample` is page `8 * sample + 4 * plane + channel`, the first frame of the plane.
@@ -2183,6 +2193,7 @@ class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtrac
     ]
     # scanVolumeRate, best effort: the interleaved samples are unevenly spaced, so no single rate describes them
     expected_sampling_frequency = 14.5517
+    expected_metadata = {}
 
     def check_series(self, series):
         """Plane `plane` of sample `sample` is page `8 * volume + 4 * plane + 2 * frame + channel`.
@@ -2217,6 +2228,7 @@ class TestScanImageImagingExtractorPlanarVersion2017b(ImagingExtractorTestMixin)
     # frameTimestamps_sec of pages 0 to 2
     expected_native_timestamps = [0.0, 0.033316935, 0.06663381]
     expected_sampling_frequency = 30.0321  # scanFrameRate, with logAverageFactor 1
+    expected_metadata = {}
 
     def check_series(self, series):
         """Sample `sample` is page `sample`: one channel and one plane."""
@@ -2243,6 +2255,7 @@ class TestScanImageImagingExtractorFastZOneFramePerVolumeVersion2019a(ImagingExt
     # frameTimestamps_sec of pages 0 to 2
     expected_native_timestamps = [0.0, 0.020170565, 0.040341]
     expected_sampling_frequency = 49.5783  # scanFrameRate, with logAverageFactor 1
+    expected_metadata = {}
 
     def check_series(self, series):
         """Sample `sample` is page `sample`: one channel and one plane."""
@@ -2276,6 +2289,7 @@ class TestScanImageImagingExtractorFastZVolumeVersion2016b(ImagingExtractorTestM
         [0.08579595, 0.188751],
     ]
     expected_sampling_frequency = 9.71251  # scanVolumeRate
+    expected_metadata = {}
 
     def check_series(self, series):
         """Plane `plane` of sample `sample` is page `6 * sample + plane`: one channel and 6 planes per volume."""

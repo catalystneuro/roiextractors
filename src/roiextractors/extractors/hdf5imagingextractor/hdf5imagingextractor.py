@@ -111,14 +111,11 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         self._file.close()
 
     @cached_property
-    def metadata(self) -> Metadata:
+    def _unified_metadata(self) -> Metadata:
         """The metadata of the recording, with the metadata of the file or of the constructor in `extra_metadata`.
 
-        Returns
-        -------
-        metadata : Metadata
-            The metadata of the recording. The `metadata` argument of the constructor, or else the `metadata`
-            attribute of the dataset, is under the `"hdf5_user_metadata"` key of `extra_metadata`.
+        The `metadata` argument of the constructor, or else the `metadata` attribute of the dataset, is under the
+        `"hdf5_user_metadata"` key of `extra_metadata`.
         """
         extra_metadata = {}
         if self._user_metadata is not None:

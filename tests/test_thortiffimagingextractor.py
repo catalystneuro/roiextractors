@@ -26,6 +26,7 @@ class TestThorTiffImagingExtractor(ImagingExtractorTestMixin):
     expected_channel_names = ["ChanA"]
     expected_native_timestamps = None  # the OME-XML has a DeltaT for the first plane only
     expected_sampling_frequency = 13.967  # frameRate, streaming capture without averaging
+    expected_metadata = {}
 
     def check_series(self, series):
         """Each sample is the page of the file named for its timepoint, `<channel>_001_001_001_<sample + 1>.tif`."""
@@ -87,6 +88,7 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
         [0.384067, 2.36012, 4.33632],
         [0.777047, 2.74819, 4.72219],
     ]
+    expected_metadata = {}
 
     def check_series(self, series):
         """Each plane of each sample is the page of `<channel>_0001_0001_<plane + 1>_<sample + 1>.tif`, in Z and T capture."""
@@ -144,6 +146,7 @@ class TestThorTiffImagingExtractorStreamingFrameAveraging(ImagingExtractorTestMi
     expected_channel_names = ["ChanA"]
     expected_native_timestamps = None  # streaming capture, where DeltaT is not the time of the scan
     expected_sampling_frequency = 90.037 / 9  # frameRate / averageNum, each saved frame is the mean of 9 scans
+    expected_metadata = {}
 
     def check_series(self, series):
         """Each sample is the page of the file named for its timepoint."""
@@ -172,6 +175,7 @@ class TestThorTiffImagingExtractorFastZStreaming(ImagingExtractorTestMixin):
     expected_channel_names = ["ChanB"]
     expected_native_timestamps = None  # streaming capture, where DeltaT is not the time of the scan
     expected_sampling_frequency = 58.32 / (7 + 2)  # frameRate / (steps + flybackFrames), 7 planes and 2 flyback scans
+    expected_metadata = {}
 
     def check_series(self, series):
         """Each (sample, plane) position holds the page of the file named for that plane and volume.

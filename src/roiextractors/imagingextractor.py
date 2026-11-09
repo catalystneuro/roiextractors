@@ -6,6 +6,7 @@ ImagingExtractor
     Abstract class that contains all the meta-data and input data from the imaging data.
 """
 
+import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from functools import cached_property
@@ -14,7 +15,7 @@ from math import prod
 import numpy as np
 from numpy.typing import ArrayLike
 
-from ._metadata import Metadata
+from ._metadata import Metadata, _get_cropped_metadata
 from .core_utils import _convert_bytes_to_str, _convert_seconds_to_str
 
 
@@ -192,15 +193,32 @@ class ImagingExtractor(ABC):
         """
         return self.get_series(start_sample=0, end_sample=2).dtype
 
-    @cached_property
+    @property
     def metadata(self) -> Metadata:
         """The metadata of the recording, with `None` in the fields the format does not record.
+
+        The metadata API is experimental and has not stabilized: its fields can change or be removed in any release,
+        and every read of `metadata` warns about it.
 
         Returns
         -------
         metadata : Metadata
-            The metadata of the recording. The base class returns an empty `Metadata()`, and each extractor fills
-            the fields its format records.
+            The metadata of the recording.
+        """
+        warnings.warn(
+            "The metadata API is experimental and has not stabilized: the fields of `metadata` can change or be "
+            "removed in any release.",
+            UserWarning,
+            stacklevel=2,
+        )
+        return self._unified_metadata
+
+    @cached_property
+    def _unified_metadata(self) -> Metadata:
+        """The metadata that `metadata` returns, which each extractor fills with the fields its format records.
+
+        The base class returns an empty `Metadata()`. Extractors override this instead of `metadata`, so the warning
+        of `metadata` stays in one place.
         """
         return Metadata()
 
@@ -617,9 +635,9 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         return self._parent_imaging.get_sampling_frequency()
 
     @property
-    def metadata(self) -> Metadata:
+    def _unified_metadata(self) -> Metadata:
         """The metadata of the parent."""
-        return self._parent_imaging.metadata
+        return self._parent_imaging._unified_metadata
 
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
@@ -822,10 +840,14 @@ class _FieldOfViewSlicedImagingExtractor(ImagingExtractor):
         """
         return self._parent_imaging.get_sampling_frequency()
 
-    @property
-    def metadata(self) -> Metadata:
-        """The metadata of the parent."""
-        return self._parent_imaging.metadata
+    @cached_property
+    def _unified_metadata(self) -> Metadata:
+        """The metadata of the parent, with the field of view of the crop."""
+        return _get_cropped_metadata(
+            self._parent_imaging._unified_metadata,
+            image_shape=self._parent_imaging.get_image_shape(),
+            cropped_image_shape=self._image_shape,
+        )
 
     def get_num_planes(self) -> int:
         """Get the number of depth planes.

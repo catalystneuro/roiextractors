@@ -17,6 +17,7 @@ from .scanimagetiff_utils import (
     _get_scanimage_reader,
     _read_image_descriptions,
 )
+from ..._metadata import _get_cropped_metadata, _get_plane_metadata
 from ...extraction_tools import PathType, get_package
 from ...imagingextractor import ImagingExtractor
 
@@ -727,6 +728,12 @@ class ScanImageImagingExtractor(ImagingExtractor):
         sliced._column_slice = slice(absolute_column_start, absolute_column_start + (column_end - column_start))
         sliced._num_rows = row_end - row_start
         sliced._num_columns = column_end - column_start
+        # The copy also has the metadata of the full field of view if it was read before
+        sliced._unified_metadata = _get_cropped_metadata(
+            self._unified_metadata,
+            image_shape=(self._num_rows, self._num_columns),
+            cropped_image_shape=(sliced._num_rows, sliced._num_columns),
+        )
         # Keep the handle owner alive and mark this object as a borrower so __del__ does not close the
         # shared file handles. The owner is always the originally constructed extractor.
         sliced._fov_root = self._fov_root if self._fov_root is not None else self
@@ -764,6 +771,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
         plane._times = None
         plane._native_timestamps = None
         plane._fov_root = self._fov_root if self._fov_root is not None else self
+        # The copy also has the metadata of the volume if it was read before
+        plane._unified_metadata = _get_plane_metadata(self._unified_metadata, plane_index=plane_index)
         return plane
 
     def get_image_shape(self) -> tuple[int, int]:
