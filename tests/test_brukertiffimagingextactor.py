@@ -370,6 +370,11 @@ class TestBrukerTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     # relativeTime of the first Frame of each Sequence in the XML, a Sequence per volume and a Frame per plane, as
     # Bruker gives a volume the time of its first plane
     expected_native_timestamps = [0.0, 0.096948474, 0.193896948]
+    # relativeTime of the Frame with index plane + 1 in the Sequence of each sample in the XML, a list per plane
+    expected_plane_native_timestamps = [
+        [0.0, 0.096948474, 0.193896948],
+        [0.048474237, 0.145422711, 0.242371185],
+    ]
     expected_sampling_frequency = 1 / 0.096948474  # the interval between volumes in the relativeTime of the XML
 
     def check_series(self, series):
@@ -396,15 +401,6 @@ class TestBrukerTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
         np.testing.assert_allclose(extractor.get_timestamps(), expected_timestamps, atol=1e-6)
         expected_frequency = 1.0 / np.mean(np.diff(expected_timestamps))
         assert extractor.get_sampling_frequency() == pytest.approx(expected_frequency, rel=1e-4)
-
-    def test_select_plane_timestamps(self, setup_extractor):
-        """Each plane has the timestamps of its own frames, the `relativeTime` of its frames in the Bruker XML."""
-        first_plane_timestamps = self.extractor.select_plane(0).get_timestamps()
-        last_plane_timestamps = self.extractor.select_plane(1).get_timestamps()
-        expected_first_plane_timestamps = [0.0, 0.096948474, 0.193896948, 0.290845422, 0.387793896]
-        expected_last_plane_timestamps = [0.048474237, 0.145422711, 0.242371185, 0.339319659, 0.436268133]
-        assert_array_equal(first_plane_timestamps, expected_first_plane_timestamps)
-        assert_array_equal(last_plane_timestamps, expected_last_plane_timestamps)
 
 
 class TestBrukerTiffImagingExtractorDualChannel(ImagingExtractorTestMixin):
