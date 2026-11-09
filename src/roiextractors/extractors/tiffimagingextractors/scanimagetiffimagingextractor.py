@@ -241,8 +241,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self.num_flyback_frames_per_channel = 0
 
         # This piece of the metadata is the indication that the channel is saved on the data
-        channels_available = self._metadata["SI.hChannels.channelSave"]
-        channels_available = [channels_available] if isinstance(channels_available, int) else channels_available
+        # ScanImage up to 2019b can write the channels as a column, [1;3], which is read as [[1], [3]]
+        channels_available = np.ravel(self._metadata["SI.hChannels.channelSave"]).tolist()
         self._num_channels = len(channels_available)
 
         # Determine their name and use matlab 1-indexing
@@ -908,9 +908,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
         if channel_availability is None:
             raise ValueError(f"Could not find any of {channel_availability_keys} in metadata.")
 
-        available_channels = non_varying_frame_metadata[channel_availability]
-        available_channels = [available_channels] if not isinstance(available_channels, list) else available_channels
-        channel_indices = np.array(available_channels) - 1  # Account for MATLAB indexing
+        # ScanImage up to 2019b can write the channels as a column, [1;3], which is read as [[1], [3]]
+        available_channels = np.ravel(non_varying_frame_metadata[channel_availability])
+        channel_indices = available_channels - 1  # Account for MATLAB indexing
         channel_names = non_varying_frame_metadata["SI.hChannels.channelName"]
         channel_names_available = [channel_names[i] for i in channel_indices]
 
