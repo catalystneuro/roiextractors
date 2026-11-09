@@ -32,11 +32,11 @@ class Metadata:
     # Acquisition timing
     acquisition_start_datetime: datetime | None = None  # the wall-clock time when the acquisition started
 
-    # Spatial calibration
-    # The spatial sizes list the depth first, then the rows, then the columns: (rows, columns) for planar data and
-    # (depths, rows, columns) for volumetric data
-    grid_spacing_um: list[float] | None = None  # the size of a pixel or a voxel
-    field_of_view_um: list[float] | None = None  # the size of the imaged area
+    # Spatial calibration, in the plane of the image: the height runs across the rows and the width across the columns
+    pixel_height_um: float | None = None  # the distance from one row to the next
+    pixel_width_um: float | None = None  # the distance from one column to the next
+    field_of_view_height_um: float | None = None  # the height of the imaged area, its rows times the pixel height
+    field_of_view_width_um: float | None = None  # the width of the imaged area, its columns times the pixel width
     # The position of each plane along z relative to the first plane, in the order of `select_plane()`. The first is 0
     # and the sign follows the z axis of the device that steps between planes. The absolute depth needs an anatomical
     # reference, such as the brain surface, which no microscope file records
@@ -132,8 +132,7 @@ class Metadata:
 def _get_plane_metadata(metadata: Metadata, plane_index: int) -> Metadata:
     """Return the metadata of one plane of a volume.
 
-    The plane keeps its own z offset, and the grid spacing and the field of view lose their depth, as the plane is
-    planar. Every other field is that of the volume.
+    The plane keeps its own z offset. Every other field is that of the volume.
 
     Parameters
     ----------
@@ -150,18 +149,7 @@ def _get_plane_metadata(metadata: Metadata, plane_index: int) -> Metadata:
     plane_z_offsets_um = metadata.plane_z_offsets_um
     if plane_z_offsets_um is not None:
         plane_z_offsets_um = [plane_z_offsets_um[plane_index]]
-    grid_spacing_um = metadata.grid_spacing_um
-    if grid_spacing_um is not None:
-        grid_spacing_um = grid_spacing_um[-2:]
-    field_of_view_um = metadata.field_of_view_um
-    if field_of_view_um is not None:
-        field_of_view_um = field_of_view_um[-2:]
-    return replace(
-        metadata,
-        plane_z_offsets_um=plane_z_offsets_um,
-        grid_spacing_um=grid_spacing_um,
-        field_of_view_um=field_of_view_um,
-    )
+    return replace(metadata, plane_z_offsets_um=plane_z_offsets_um)
 
 
 def _get_cropped_metadata(
@@ -186,11 +174,14 @@ def _get_cropped_metadata(
     cropped_metadata : Metadata
         The metadata of the crop.
     """
-    if metadata.field_of_view_um is None:
-        return metadata
     num_rows, num_columns = image_shape
     cropped_num_rows, cropped_num_columns = cropped_image_shape
-    *depth_um, height_um, width_um = metadata.field_of_view_um
-    cropped_height_um = height_um * cropped_num_rows / num_rows
-    cropped_width_um = width_um * cropped_num_columns / num_columns
-    return replace(metadata, field_of_view_um=[*depth_um, cropped_height_um, cropped_width_um])
+    field_of_view_height_um = metadata.field_of_view_height_um
+    if field_of_view_height_um is not None:
+        field_of_view_height_um = field_of_view_height_um * cropped_num_rows / num_rows
+    field_of_view_width_um = metadata.field_of_view_width_um
+    if field_of_view_width_um is not None:
+        field_of_view_width_um = field_of_view_width_um * cropped_num_columns / num_columns
+    return replace(
+        metadata, field_of_view_height_um=field_of_view_height_um, field_of_view_width_um=field_of_view_width_um
+    )

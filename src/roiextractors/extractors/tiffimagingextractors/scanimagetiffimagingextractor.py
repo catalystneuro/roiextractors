@@ -7,7 +7,10 @@ ScanImageLegacyImagingExtractor
 """
 
 import copy
+import re
 import warnings
+from datetime import datetime, timedelta
+from functools import cached_property
 from pathlib import Path
 from warnings import warn
 
@@ -17,7 +20,7 @@ from .scanimagetiff_utils import (
     _get_scanimage_reader,
     _read_image_descriptions,
 )
-from ..._metadata import _get_cropped_metadata, _get_plane_metadata
+from ..._metadata import Metadata, _get_cropped_metadata, _get_plane_metadata
 from ...extraction_tools import PathType, get_package
 from ...imagingextractor import ImagingExtractor
 
@@ -352,6 +355,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
             # Filter the frames_to_ifd_table to only include entries for the specified depth plane
             depth_mask = self._frames_to_ifd_table["depth_index"] == plane_index
             self._frames_to_ifd_table = self._frames_to_ifd_table[depth_mask]
+
+            # The metadata is read while the extractor is still the volume, and keeps the part of the plane
+            self._unified_metadata = _get_plane_metadata(self._unified_metadata, plane_index=plane_index)
 
             # Override the is_volumetric flag and num_planes
             self.is_volumetric = False
@@ -774,6 +780,73 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # The copy also has the metadata of the volume if it was read before
         plane._unified_metadata = _get_plane_metadata(self._unified_metadata, plane_index=plane_index)
         return plane
+
+    @cached_property
+    def _unified_metadata(self) -> Metadata:
+        """The metadata of the recording, read from the ScanImage header.
+
+        The field of view is the one ScanImage computes in micrometers, ``SI.hRoiManager.imagingFovUm``. Multi-ROI and
+        light beads recordings, whose pages are not one frame of the scan field, leave the pixel size and the field of
+        view empty. On volumetric data the z offset of each plane is its position in ``SI.hStackManager.zs`` minus that
+        of the first plane.
+        """
+        header = self._metadata
+
+        pixel_height_um = None
+        pixel_width_um = None
+        field_of_view_height_um = None
+        field_of_view_width_um = None
+        num_rows = header["SI.hRoiManager.linesPerFrame"]
+        num_columns = header["SI.hRoiManager.pixelsPerLine"]
+        page_shape = self._tiff_readers[0].pages[0].shape
+        # ScanImage before 2016 has no multi-ROI imaging and no `mroiEnable`
+        if not header.get("SI.hRoiManager.mroiEnable", False) and page_shape == (num_rows, num_columns):
+            # The corners are in (x, y) from the first pixel: the second is at the end of the first line, the columns,
+            # and the fourth at the start of the last line, the rows
+            corners_um = np.array(header["SI.hRoiManager.imagingFovUm"], dtype=float)
+            field_of_view_height_um = float(np.linalg.norm(corners_um[3] - corners_um[0]))
+            field_of_view_width_um = float(np.linalg.norm(corners_um[1] - corners_um[0]))
+            pixel_height_um = field_of_view_height_um / num_rows
+            pixel_width_um = field_of_view_width_um / num_columns
+
+        plane_z_offsets_um = None
+        frames_per_slice = None
+        if self.is_volumetric:
+            # From 2020 on, `zs` lists the position of a slice once for each of its frames
+            zs_um = np.ravel(header["SI.hStackManager.zs"]).astype(float)
+            plane_positions_um = zs_um.reshape(self._num_planes, -1)[:, 0]
+            plane_z_offsets_um = (plane_positions_um - plane_positions_um[0]).tolist()
+            frames_per_slice = self._frames_per_slice
+
+        # The epoch is the start of the acquisition, written as [year month day hour minute seconds], with commas
+        # in some versions
+        acquisition_start_datetime = None
+        first_description = _read_image_descriptions(self.file_paths[0], [0])[0]
+        epoch_match = re.search(r"^epoch = \[([^\]]*)\]", first_description or "", flags=re.MULTILINE)
+        if epoch_match is not None:
+            year, month, day, hour, minute, seconds = (
+                float(value) for value in re.split(r"[\s,]+", epoch_match.group(1).strip())
+            )
+            acquisition_start_datetime = datetime(int(year), int(month), int(day), int(hour), int(minute))
+            acquisition_start_datetime += timedelta(seconds=seconds)
+
+        # `SI.VERSION_UPDATE` was added in 2020
+        version_keys = ["SI.VERSION_MAJOR", "SI.VERSION_MINOR", "SI.VERSION_UPDATE"]
+        version = ".".join(str(header[key]) for key in version_keys if key in header)
+
+        return Metadata(
+            acquisition_start_datetime=acquisition_start_datetime,
+            pixel_height_um=pixel_height_um,
+            pixel_width_um=pixel_width_um,
+            field_of_view_height_um=field_of_view_height_um,
+            field_of_view_width_um=field_of_view_width_um,
+            plane_z_offsets_um=plane_z_offsets_um,
+            channel_name=self.channel_name,
+            scan_line_rate=1 / header["SI.hRoiManager.linePeriod"],
+            frames_per_slice=frames_per_slice,
+            acquisition_software_name="ScanImage",
+            acquisition_software_version=version,
+        )
 
     def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).

@@ -319,8 +319,7 @@ class ImagingExtractorTestMixin:
         """`metadata` has the fields of `expected_metadata`, and each view has the metadata of its part.
 
         A slice of samples has the metadata of the extractor. A crop from `slice_field_of_view()` has the width and the
-        height of its own rows and columns. A plane from `select_plane()` has its own z offset, and the grid spacing and
-        the field of view without their depth.
+        height of its own rows and columns. A plane from `select_plane()` has its own z offset.
         """
         # Read before the views are built, so a view that copies the extractor gets the metadata of the full
         # extractor and must replace it
@@ -337,12 +336,13 @@ class ImagingExtractorTestMixin:
             row_start=row_start, row_end=row_end, column_start=column_start, column_end=column_end
         )
         expected_cropped_metadata = dict(self.expected_metadata)
-        if "field_of_view_um" in self.expected_metadata:
-            num_rows, num_columns = self.expected_sample_shape[:2]
-            *depth_um, height_um, width_um = self.expected_metadata["field_of_view_um"]
-            cropped_height_um = height_um * (row_end - row_start) / num_rows
-            cropped_width_um = width_um * (column_end - column_start) / num_columns
-            expected_cropped_metadata["field_of_view_um"] = [*depth_um, cropped_height_um, cropped_width_um]
+        num_rows, num_columns = self.expected_sample_shape[:2]
+        if "field_of_view_height_um" in self.expected_metadata:
+            height_um = self.expected_metadata["field_of_view_height_um"]
+            expected_cropped_metadata["field_of_view_height_um"] = height_um * (row_end - row_start) / num_rows
+        if "field_of_view_width_um" in self.expected_metadata:
+            width_um = self.expected_metadata["field_of_view_width_um"]
+            expected_cropped_metadata["field_of_view_width_um"] = width_um * (column_end - column_start) / num_columns
         check_metadata(cropped_extractor.metadata, expected_cropped_metadata)
 
         if not self.extractor.is_volumetric:
@@ -354,9 +354,6 @@ class ImagingExtractorTestMixin:
             if "plane_z_offsets_um" in self.expected_metadata:
                 plane_z_offset_um = self.expected_metadata["plane_z_offsets_um"][plane_index]
                 expected_plane_metadata["plane_z_offsets_um"] = [plane_z_offset_um]
-            for field_name in ("grid_spacing_um", "field_of_view_um"):
-                if field_name in self.expected_metadata:
-                    expected_plane_metadata[field_name] = self.expected_metadata[field_name][-2:]
             check_metadata(plane_metadata, expected_plane_metadata)
 
     def test_available_channel_names(self):

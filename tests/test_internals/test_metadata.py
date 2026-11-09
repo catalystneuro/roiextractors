@@ -29,13 +29,13 @@ def test_views_have_the_metadata_of_their_part():
     """Each view has the metadata of its part of the parent.
 
     A slice of samples has the metadata of the parent, a crop the field of view of its rows and columns, and a plane
-    its own z offset, with the grid spacing and the field of view of a plane.
+    its own z offset.
     """
     volumetric = generate_dummy_imaging_extractor(num_samples=5, num_rows=4, num_columns=8, num_planes=3)
     # The mock records no metadata, so the fields are set here
     volumetric.metadata.microscope_name = "Microscope"
-    volumetric.metadata.grid_spacing_um = [5.0, 2.0, 1.0]
-    volumetric.metadata.field_of_view_um = [10.0, 8.0, 8.0]
+    volumetric.metadata.field_of_view_height_um = 8.0
+    volumetric.metadata.field_of_view_width_um = 8.0
     volumetric.metadata.plane_z_offsets_um = [0.0, 5.0, 10.0]
 
     sample_slice = volumetric.slice_samples(start_sample=1)
@@ -44,11 +44,9 @@ def test_views_have_the_metadata_of_their_part():
 
     assert sample_slice.metadata == volumetric.metadata
     # Two of the four rows and two of the eight columns
-    expected_cropped_metadata = replace(volumetric.metadata, field_of_view_um=[10.0, 4.0, 2.0])
+    expected_cropped_metadata = replace(volumetric.metadata, field_of_view_height_um=4.0, field_of_view_width_um=2.0)
     assert cropped_extractor.metadata == expected_cropped_metadata
-    expected_plane_metadata = replace(
-        volumetric.metadata, grid_spacing_um=[2.0, 1.0], field_of_view_um=[8.0, 8.0], plane_z_offsets_um=[5.0]
-    )
+    expected_plane_metadata = replace(volumetric.metadata, plane_z_offsets_um=[5.0])
     assert plane_extractor.metadata == expected_plane_metadata
 
 
