@@ -81,6 +81,12 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     # the time of its first plane. They are about 1.97 s apart while frameRate is 60.087 Hz, because each plane
     # averages 10 scans and the stage moves between planes
     expected_native_timestamps = [0.0, 1.97315, 3.94218]
+    # DeltaT in the OME-XML of ChanA_0001_0001_<plane + 1>_<sample + 1>.tif, a list per plane
+    expected_plane_native_timestamps = [
+        [0.0, 1.97315, 3.94218],
+        [0.384067, 2.36012, 4.33632],
+        [0.777047, 2.74819, 4.72219],
+    ]
 
     def check_series(self, series):
         """Each plane of each sample is the page of `<channel>_0001_0001_<plane + 1>_<sample + 1>.tif`, in Z and T capture."""
@@ -112,15 +118,6 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
         """Selecting the other channel reads other pages."""
         other = ThorTiffImagingExtractor(file_path=self.file_path, channel_name="ChanB")
         assert not np.array_equal(self.extractor.get_series(), other.get_series())
-
-    def test_select_plane_timestamps(self):
-        """Each plane has the timestamps of its own frames, the `DeltaT` of `ChanA_0001_0001_000<plane>_000<t>.tif`."""
-        first_plane_timestamps = self.extractor.select_plane(0).get_timestamps()
-        last_plane_timestamps = self.extractor.select_plane(2).get_timestamps()
-        expected_first_plane_timestamps = [0.0, 1.97315, 3.94218]
-        expected_last_plane_timestamps = [0.777047, 2.74819, 4.72219]
-        assert_array_equal(first_plane_timestamps, expected_first_plane_timestamps)
-        assert_array_equal(last_plane_timestamps, expected_last_plane_timestamps)
 
     def test_get_available_channel_names(self):
         """Every name discovery returns can be passed back as `channel_name`."""

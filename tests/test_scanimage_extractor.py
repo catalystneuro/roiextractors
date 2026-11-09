@@ -1912,6 +1912,18 @@ class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorT
     # frameTimestamps_sec of page 16 * sample + 8, as ScanImage gives a volume the time of its last plane. Each volume
     # has 9 planes and 7 flyback frames
     expected_native_timestamps = [0.01526797, 0.04580384, 0.07633974]
+    # frameTimestamps_sec of page 16 * sample + plane, a list per plane
+    expected_plane_native_timestamps = [
+        [0.0, 0.03053587, 0.061071805],
+        [0.001908475, 0.032444405, 0.062980275],
+        [0.00381701, 0.03435288, 0.06488878],
+        [0.00572548, 0.036261385, 0.066797255],
+        [0.007633985, 0.038169855, 0.068705755],
+        [0.009542455, 0.04007836, 0.07061426],
+        [0.011450995, 0.04198686, 0.07252273],
+        [0.01335943, 0.043895365, 0.07443127],
+        [0.01526797, 0.04580384, 0.07633974],
+    ]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
 
     def test_num_flyback_frames_per_channel(self, setup_extractor):
@@ -1927,15 +1939,6 @@ class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorT
         expected_series = read_scanimage_pages(file_paths, page_indices)
         assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
 
-    def test_select_plane_timestamps(self, setup_extractor):
-        """Each plane has the timestamps of its own frames, the `frameTimestamps_sec` of its pages."""
-        first_plane_timestamps = self.extractor.select_plane(0).get_timestamps(end_sample=3)
-        last_plane_timestamps = self.extractor.select_plane(8).get_timestamps(end_sample=3)
-        expected_first_plane_timestamps = [0.0, 0.03053587, 0.061071805]
-        expected_last_plane_timestamps = [0.01526797, 0.04580384, 0.07633974]
-        assert_array_equal(first_plane_timestamps, expected_first_plane_timestamps)
-        assert_array_equal(last_plane_timestamps, expected_last_plane_timestamps)
-
 
 class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
@@ -1948,6 +1951,18 @@ class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTes
     expected_channel_names = ["Channel 1"]
     # frameTimestamps_sec of page 9 * sample + 8, as ScanImage gives a volume the time of its last plane, of 9
     expected_native_timestamps = [0.015268365, 0.03244526, 0.049622125]
+    # frameTimestamps_sec of page 9 * sample + plane, a list per plane
+    expected_plane_native_timestamps = [
+        [0.0, 0.0171769, 0.034353795],
+        [0.001908535, 0.01908543, 0.036262325],
+        [0.0038171, 0.020993995, 0.03817089],
+        [0.0057256, 0.0229025, 0.040079425],
+        [0.0076342, 0.024811095, 0.04198799],
+        [0.0095427, 0.026719595, 0.04389649],
+        [0.0114513, 0.02862816, 0.045805055],
+        [0.0133598, 0.030536695, 0.04771359],
+        [0.015268365, 0.03244526, 0.049622125],
+    ]
     expected_sampling_frequency = 8.86703  # scanVolumeRate
 
     def check_series(self, series):
@@ -1972,6 +1987,18 @@ class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin
     # frameTimestamps_sec of page 16 * sample + 8 of the first file, as ScanImage gives a volume the time of its last
     # plane. Each volume has 9 planes and 7 flyback frames
     expected_native_timestamps = [0.015267965, 0.045803895, 0.076339795]
+    # frameTimestamps_sec of page 16 * sample + plane, numbered across the files, a list per plane
+    expected_plane_native_timestamps = [
+        [0.0, 0.0305359, 0.06107183],
+        [0.00190847, 0.032444405, 0.062980335],
+        [0.00381701, 0.034352905, 0.064888805],
+        [0.00572548, 0.03626138, 0.06679734],
+        [0.007633985, 0.038169915, 0.068705815],
+        [0.009542455, 0.040078385, 0.070614315],
+        [0.01145096, 0.04198689, 0.07252282],
+        [0.013359465, 0.04389536, 0.07443129],
+        [0.015267965, 0.045803895, 0.076339795],
+    ]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
 
     def test_num_flyback_frames_per_channel(self, setup_extractor):
@@ -2002,6 +2029,18 @@ class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMix
     # frameTimestamps_sec of page 2 * (16 * sample + 8), the frames of Channel 1, as ScanImage gives a volume the time
     # of its last plane
     expected_native_timestamps = [0.015267895, 0.045803725, 0.07633955]
+    # frameTimestamps_sec of page 2 * (16 * sample + plane) of Channel 1, a list per plane
+    expected_plane_native_timestamps = [
+        [0.0, 0.030535825, 0.06107162],
+        [0.00190847, 0.032444295, 0.062980125],
+        [0.003816975, 0.0343528, 0.06488863],
+        [0.005725445, 0.03626127, 0.0667971],
+        [0.007633945, 0.038169775, 0.0687056],
+        [0.00954245, 0.040078245, 0.070614075],
+        [0.01145092, 0.04198678, 0.072522575],
+        [0.013359425, 0.04389525, 0.07443105],
+        [0.015267895, 0.045803725, 0.07633955],
+    ]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
 
     def check_series(self, series):
@@ -2033,6 +2072,18 @@ class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtract
     # frameTimestamps_sec of page 2 * (16 * sample + 8) of the first file, the frames of Channel 1, as ScanImage
     # gives a volume the time of its last plane
     expected_native_timestamps = [0.015267895, 0.045803655, 0.076339445]
+    # frameTimestamps_sec of page 2 * (16 * sample + plane) of Channel 1, numbered across the files, a list per plane
+    expected_plane_native_timestamps = [
+        [0.0, 0.03053579, 0.06107155],
+        [0.001908505, 0.03244426, 0.06298005],
+        [0.003816975, 0.034352765, 0.06488852],
+        [0.00572548, 0.036261235, 0.066797025],
+        [0.00763395, 0.03816974, 0.06870553],
+        [0.009542455, 0.04007821, 0.070613965],
+        [0.011450925, 0.04198668, 0.0725225],
+        [0.013359425, 0.043895185, 0.07443094],
+        [0.015267895, 0.045803655, 0.076339445],
+    ]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
 
     def check_series(self, series):
@@ -2087,6 +2138,11 @@ class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixi
     # frameTimestamps_sec of page 8 * sample + 4: Channel 1, the first of the 2 frames of each slice, and the last of
     # the 2 planes, as ScanImage gives a volume the time of its last plane
     expected_native_timestamps = [0.83110185, 1.7825946, 3.69864715]
+    # frameTimestamps_sec of page 8 * sample + 4 * plane of Channel 1, the first frame of the plane, a list per plane
+    expected_plane_native_timestamps = [
+        [0.0, 1.3295183, 3.07464965],
+        [0.83110185, 1.7825946, 3.69864715],
+    ]
     expected_sampling_frequency = 14.5517  # scanVolumeRate
 
     def check_series(self, series):
@@ -2120,6 +2176,11 @@ class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtrac
     # as ScanImage gives a volume the time of its last plane. The first samples are frame 0 and frame 1 of
     # volume 0, then frame 0 of volume 1
     expected_native_timestamps = [0.83110185, 0.8482798, 1.7825946]
+    # frameTimestamps_sec of page 8 * (sample // 2) + 4 * plane + 2 * (sample % 2) of Channel 1, a list per plane
+    expected_plane_native_timestamps = [
+        [0.0, 0.0171776, 1.3295183],
+        [0.83110185, 0.8482798, 1.7825946],
+    ]
     # scanVolumeRate, best effort: the interleaved samples are unevenly spaced, so no single rate describes them
     expected_sampling_frequency = 14.5517
 

@@ -40,6 +40,11 @@ class ImagingExtractorTestMixin:
         in a comment, or `None` when the format records no time for each sample. Three samples are enough to catch a
         wrong start, step or unit. On volumetric data a format gives each sample the time of one of its planes, so the
         comment names the plane.
+    expected_plane_native_timestamps : list[list[float]]
+        On volumetric fixtures with `expected_native_timestamps`, the first times in seconds that
+        `select_plane(plane_index).get_native_timestamps()` returns, one list for each plane in the order of
+        `plane_index`, read from the file with the header field in a comment. Each plane has the times of its own
+        frames.
     expected_sampling_frequency : float
         The expected rate of the samples in Hz, along the first axis of `get_series()`, so the volume rate on
         volumetric data.
@@ -52,6 +57,7 @@ class ImagingExtractorTestMixin:
     expected_dtype: np.dtype
     expected_channel_names: list[str]
     expected_native_timestamps: list[float] | None
+    expected_plane_native_timestamps: list[list[float]]
     expected_sampling_frequency: float
 
     @pytest.fixture
@@ -259,7 +265,11 @@ class ImagingExtractorTestMixin:
         assert_array_equal(sliced_series, expected_series)
 
     def test_select_plane(self, setup_extractor):
-        """`select_plane()` returns the last plane of the volumetric series and raises for -1 and `num_planes`."""
+        """`select_plane()` returns the last plane of the volumetric series and raises for -1 and `num_planes`.
+
+        Each plane has the times of its own frames, which `expected_plane_native_timestamps` gives, or none when the
+        format records no time for each sample.
+        """
         if not self.extractor.is_volumetric:
             with pytest.raises(ValueError):
                 self.extractor.select_plane(0)
@@ -283,6 +293,19 @@ class ImagingExtractorTestMixin:
         )
         with pytest.raises(ValueError, match=re.escape(above_range_message)):
             self.extractor.select_plane(expected_num_planes)
+
+        # A format gives a volume the time of one of its planes, and each plane must have the times of its own frames
+        for plane_index in range(expected_num_planes):
+            plane_native_timestamps = self.extractor.select_plane(plane_index).get_native_timestamps()
+            if self.expected_native_timestamps is None:
+                assert plane_native_timestamps is None
+            else:
+                expected_shape = (self.expected_num_samples,)
+                assert plane_native_timestamps.shape == expected_shape
+                expected_plane_native_timestamps = self.expected_plane_native_timestamps[plane_index]
+                num_expected_samples = len(expected_plane_native_timestamps)
+                first_plane_native_timestamps = plane_native_timestamps[:num_expected_samples]
+                assert_allclose(first_plane_native_timestamps, expected_plane_native_timestamps)
 
     def test_available_channel_names(self):
         """`get_available_channel_names()` returns the expected channel names in order, and each is accepted back."""
