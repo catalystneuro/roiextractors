@@ -18,49 +18,6 @@ OME_TIFF_PATH = OPHYS_DATA_PATH / "imaging_datasets" / "OME-TIFF"
 class TestOMETiffImagingExtractor:
     """Test the OMETiffImagingExtractor with various OME-TIFF datasets."""
 
-    def test_single_channel_single_plane(self):
-        """Test with single-channel, planar time series data in a single file.
-
-        File: planar_single_channel_single_file/00001_01.ome.tiff
-        Source: MitoCheck, stubbed from 93 to 5 frames, cropped to 64x64.
-        - Samples (T): 5
-        - Channels (C): 1
-        - Depth planes (Z): 1
-        - Frame shape: 64 x 64
-        - Volumetric: False
-        """
-        file_path = OME_TIFF_PATH / "planar_single_channel_single_file" / "00001_01.ome.tiff"
-
-        extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0)
-
-        with TiffFile(file_path) as tiff:
-            tiff_data = np.stack([page.asarray() for page in tiff.pages])
-
-        assert_array_equal(extractor.get_series(), tiff_data)
-
-    def test_multi_channel_single_plane_single_file(self):
-        """Test with multi-channel, planar time series data in a single file.
-
-        File: planar_multi_channel_single_file/multi-channel-time-series.ome.tiff
-        Source: bioformats-artificial, cropped to 64x64.
-        - Samples (T): 7
-        - Channels (C): 3
-        - Depth planes (Z): 1
-        - Frame shape: 64 x 64
-        - Volumetric: False
-        """
-        file_path = OME_TIFF_PATH / "planar_multi_channel_single_file" / "multi-channel-time-series.ome.tiff"
-
-        extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0, channel_name="0")
-
-        # Dimension order is XYZCT, so pages cycle C first then T.
-        # Channel 0 pages are at indices 0, 3, 6, 9, 12, 15, 18
-        with TiffFile(file_path) as tiff:
-            all_pages = [page.asarray() for page in tiff.pages]
-        channel_0_pages = np.stack(all_pages[0::3])
-
-        assert_array_equal(extractor.get_series(), channel_0_pages)
-
     def test_multi_channel_single_plane_multi_file(self):
         """Test with multi-channel, planar time series data across multiple files.
 
@@ -86,32 +43,6 @@ class TestOMETiffImagingExtractor:
         with TiffFile(ch1_path) as tiff:
             tiff_data_ch1 = np.stack([page.asarray() for page in tiff.pages])
         assert_array_equal(extractor_ch1.get_series(), tiff_data_ch1)
-
-    def test_single_channel_multi_plane(self):
-        """Test with single-channel, volumetric time series data in a single file.
-
-        File: volumetric_single_channel_single_file/4D-series.ome.tiff
-        Source: bioformats-artificial, cropped to 64x64.
-        - Samples (T): 7
-        - Channels (C): 1
-        - Depth planes (Z): 5
-        - Frame shape: 64 x 64
-        - Volumetric: True
-        """
-        file_path = OME_TIFF_PATH / "volumetric_single_channel_single_file" / "4D-series.ome.tiff"
-
-        extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0)
-
-        # Dimension order XYZCT, single channel: pages are Z0T0, Z1T0, ..., Z4T0, Z0T1, ...
-        # Each volume is 5 consecutive pages
-        with TiffFile(file_path) as tiff:
-            all_pages = [page.asarray() for page in tiff.pages]
-
-        extractor_data = extractor.get_series()
-        for t in range(7):
-            for z in range(5):
-                page_index = t * 5 + z
-                assert_array_equal(extractor_data[t, :, :, z], all_pages[page_index])
 
     def test_binary_only_companion_file(self):
         """Test a dataset whose Pixels metadata lives in a `*.companion.ome` sidecar.
@@ -159,59 +90,6 @@ class TestOMETiffImagingExtractor:
 
         with pytest.raises(FileNotFoundError, match=re.escape(expected_message)):
             OMETiffImagingExtractor(file_path, sampling_frequency=1.0)
-
-    def test_multi_channel_multi_plane_single_file(self):
-        """Test with multi-channel, volumetric time series data in a single file.
-
-        File: volumetric_multi_channel_single_file/multi-channel-4D-series.ome.tiff
-        Source: bioformats-artificial, cropped to 64x64.
-        - Samples (T): 7
-        - Channels (C): 3
-        - Depth planes (Z): 5
-        - Frame shape: 64 x 64
-        - Volumetric: True
-        """
-        file_path = OME_TIFF_PATH / "volumetric_multi_channel_single_file" / "multi-channel-4D-series.ome.tiff"
-
-        extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0, channel_name="0")
-
-        # Dimension order XYZCT: pages cycle Z first, then C, then T
-        # Channel 0 volumes: for each T, pages at Z*3+0 (channel 0 stride)
-        with TiffFile(file_path) as tiff:
-            all_pages = [page.asarray() for page in tiff.pages]
-
-        extractor_data = extractor.get_series()
-        pages_per_volume = 5 * 3  # Z * C
-        for t in range(7):
-            for z in range(5):
-                page_index = t * pages_per_volume + z * 3 + 0  # channel 0
-                assert_array_equal(extractor_data[t, :, :, z], all_pages[page_index])
-
-    def test_multi_channel_multi_plane_multi_file(self):
-        """Test with multi-channel, volumetric time series data across many files.
-
-        Files: volumetric_two_channels_multi_file/tubhiswt_C{0,1}_TP{0,1,2}.ome.tif (6 files)
-        Source: tubhiswt-4D, stubbed from 43 to 3 timepoints, cropped to 64x64.
-        - Samples (T): 3
-        - Channels (C): 2
-        - Depth planes (Z): 10
-        - Frame shape: 64 x 64
-        - Volumetric: True
-        """
-        file_path = OME_TIFF_PATH / "volumetric_two_channels_multi_file" / "tubhiswt_C0_TP0.ome.tif"
-
-        extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0, channel_name="0")
-
-        # Each C0 file has 10 pages (Z-planes for one timepoint)
-        for tp in range(3):
-            tp_path = OME_TIFF_PATH / "volumetric_two_channels_multi_file" / f"tubhiswt_C0_TP{tp}.ome.tif"
-            with TiffFile(tp_path) as tiff:
-                tiff_data = np.stack([page.asarray() for page in tiff.pages])
-
-            extractor_volume = extractor.get_series(tp, tp + 1)
-            # extractor returns (1, Y, X, Z), tiff_data is (Z, Y, X)
-            extractor_planes = np.moveaxis(extractor_volume[0], -1, 0)
-            assert_array_equal(extractor_planes, tiff_data)
 
     def test_sampling_frequency_from_time_increment(self):
         """Test that sampling_frequency is derived from TimeIncrement when not provided.
@@ -296,6 +174,27 @@ class TestOMETiffImagingExtractor:
             OMETiffImagingExtractor("/nonexistent/path.ome.tif", sampling_frequency=1.0)
 
 
+def read_ome_series(file_path, channel_index):
+    """Read a channel with `tifffile` from the OME-XML, as (time, rows, columns) or (time, rows, columns, depth).
+
+    `tifffile` builds the array from the OME-XML, independently of the extractor, across files when the OME-XML names
+    several. `is_shaped=False` makes it read the OME-XML instead of the shape that `tifffile` itself wrote into the
+    stubs when they were made.
+    """
+    with TiffFile(file_path, is_shaped=False) as tiff_file:
+        series = tiff_file.series[0]
+        axes = series.axes
+        data = series.asarray()
+    assert set(axes) <= set("TCZYX"), f"Unexpected axes {axes}"
+    # Add the axes the OME-XML leaves out, then order them as time, channel, rows, columns, depth
+    missing_axes = "".join(axis for axis in "TCZ" if axis not in axes)
+    data = data.reshape(data.shape + (1,) * len(missing_axes))
+    axes += missing_axes
+    data = np.transpose(data, [axes.index(axis) for axis in "TCYXZ"])
+    channel_data = data[:, channel_index]
+    return channel_data[..., 0] if channel_data.shape[-1] == 1 else channel_data
+
+
 class TestOMETiffImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin):
     extractor_cls = OMETiffImagingExtractor
     extractor_kwargs = dict(
@@ -307,6 +206,13 @@ class TestOMETiffImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin):
     expected_channel_names = ["0"]
     expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
+
+    def check_series(self, series):
+        """The series is the channel of the array that `tifffile` builds from the OME-XML."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        channel_index = self.expected_channel_names.index(channel_name)
+        expected_series = read_ome_series(self.extractor_kwargs["file_path"], channel_index=channel_index)
+        assert_array_equal(series, expected_series)
 
 
 class TestOMETiffImagingExtractorPlanarSingleChannelWithDeltaT(ImagingExtractorTestMixin):
@@ -323,6 +229,13 @@ class TestOMETiffImagingExtractorPlanarSingleChannelWithDeltaT(ImagingExtractorT
     expected_native_timestamps = [0.0, 0.0651, 0.1337]
     expected_sampling_frequency = 1.0  # passed to the constructor
 
+    def check_series(self, series):
+        """The series is the channel of the array that `tifffile` builds from the OME-XML."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        channel_index = self.expected_channel_names.index(channel_name)
+        expected_series = read_ome_series(self.extractor_kwargs["file_path"], channel_index=channel_index)
+        assert_array_equal(series, expected_series)
+
 
 class TestOMETiffImagingExtractorPlanarSingleChannelWithTimeIncrement(ImagingExtractorTestMixin):
     extractor_cls = OMETiffImagingExtractor
@@ -335,6 +248,13 @@ class TestOMETiffImagingExtractorPlanarSingleChannelWithTimeIncrement(ImagingExt
     expected_channel_names = ["0"]
     expected_native_timestamps = None
     expected_sampling_frequency = 1 / 0.1  # 1 / TimeIncrement, 0.1 s in the OME-XML
+
+    def check_series(self, series):
+        """The series is the channel of the array that `tifffile` builds from the OME-XML."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        channel_index = self.expected_channel_names.index(channel_name)
+        expected_series = read_ome_series(self.extractor_kwargs["file_path"], channel_index=channel_index)
+        assert_array_equal(series, expected_series)
 
 
 class TestOMETiffImagingExtractorPlanarMultiChannel(ImagingExtractorTestMixin):
@@ -351,6 +271,13 @@ class TestOMETiffImagingExtractorPlanarMultiChannel(ImagingExtractorTestMixin):
     expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
 
+    def check_series(self, series):
+        """The series is the channel of the array that `tifffile` builds from the OME-XML."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        channel_index = self.expected_channel_names.index(channel_name)
+        expected_series = read_ome_series(self.extractor_kwargs["file_path"], channel_index=channel_index)
+        assert_array_equal(series, expected_series)
+
 
 class TestOMETiffImagingExtractorPlanarTwoChannelsMultiFile(ImagingExtractorTestMixin):
     extractor_cls = OMETiffImagingExtractor
@@ -366,6 +293,13 @@ class TestOMETiffImagingExtractorPlanarTwoChannelsMultiFile(ImagingExtractorTest
     expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
 
+    def check_series(self, series):
+        """The series is the channel of the array that `tifffile` builds from the OME-XML."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        channel_index = self.expected_channel_names.index(channel_name)
+        expected_series = read_ome_series(self.extractor_kwargs["file_path"], channel_index=channel_index)
+        assert_array_equal(series, expected_series)
+
 
 class TestOMETiffImagingExtractorVolumetricSingleChannel(ImagingExtractorTestMixin):
     extractor_cls = OMETiffImagingExtractor
@@ -378,6 +312,13 @@ class TestOMETiffImagingExtractorVolumetricSingleChannel(ImagingExtractorTestMix
     expected_channel_names = ["0"]
     expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
+
+    def check_series(self, series):
+        """The series is the channel of the array that `tifffile` builds from the OME-XML."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        channel_index = self.expected_channel_names.index(channel_name)
+        expected_series = read_ome_series(self.extractor_kwargs["file_path"], channel_index=channel_index)
+        assert_array_equal(series, expected_series)
 
 
 class TestOMETiffImagingExtractorVolumetricMultiChannel(ImagingExtractorTestMixin):
@@ -394,6 +335,13 @@ class TestOMETiffImagingExtractorVolumetricMultiChannel(ImagingExtractorTestMixi
     expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
 
+    def check_series(self, series):
+        """The series is the channel of the array that `tifffile` builds from the OME-XML."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        channel_index = self.expected_channel_names.index(channel_name)
+        expected_series = read_ome_series(self.extractor_kwargs["file_path"], channel_index=channel_index)
+        assert_array_equal(series, expected_series)
+
 
 class TestOMETiffImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractorTestMixin):
     extractor_cls = OMETiffImagingExtractor
@@ -408,3 +356,10 @@ class TestOMETiffImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractor
     expected_channel_names = ["0", "1"]
     expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
+
+    def check_series(self, series):
+        """The series is the channel of the array that `tifffile` builds from the OME-XML."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        channel_index = self.expected_channel_names.index(channel_name)
+        expected_series = read_ome_series(self.extractor_kwargs["file_path"], channel_index=channel_index)
+        assert_array_equal(series, expected_series)

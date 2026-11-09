@@ -1,6 +1,7 @@
 import shutil
 import tempfile
 from pathlib import Path
+from xml.etree import ElementTree
 
 import numpy as np
 import pytest
@@ -248,6 +249,29 @@ class TestBrukerTiffExtractorDualColorCase(TestCase):
 BRUKER_STUB_PATH = OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif"
 
 
+def read_bruker_frames(folder_path, channel_name):
+    """Read the frames of a channel with `tifffile`, a stack for each `Sequence` of the Bruker XML in order.
+
+    Each frame comes from the file and page that its `File` element names, independently of the extractor.
+    """
+    root = ElementTree.parse(folder_path / f"{folder_path.name}.xml").getroot()
+    sequences = []
+    for sequence in root.iter("Sequence"):
+        frames = []
+        for frame in sequence.findall("Frame"):
+            file_element = next(
+                file_element
+                for file_element in frame.findall("File")
+                if file_element.get("channelName") == channel_name
+            )
+            # `page` is 1-based and left out when each file holds a single frame
+            page_index = int(file_element.get("page", "1")) - 1
+            with tifffile.TiffFile(folder_path / file_element.get("filename")) as tiff_file:
+                frames.append(tiff_file.pages[page_index].asarray())
+        sequences.append(np.stack(frames))
+    return sequences
+
+
 class TestBrukerTiffImagingExtractorSinglePlane(ImagingExtractorTestMixin):
     """Test BrukerTiffImagingExtractor with single-plane, single-channel data.
 
@@ -265,22 +289,12 @@ class TestBrukerTiffImagingExtractorSinglePlane(ImagingExtractorTestMixin):
     expected_native_timestamps = [0.0, 0.033474224, 0.066948448]
     expected_sampling_frequency = 1 / 0.033474224  # the interval between frames in the relativeTime of the XML
 
-    def test_single_plane_single_channel(self):
-        """Test basic metadata and data access for single-plane, single-channel Bruker data.
-
-        Stub: NCCR32_2023_02_20_Into_the_void_t_series_baseline-000
-        - Samples (T): 10
-        - Channels (C): 1 (Ch2)
-        - Depth planes (Z): 1
-        - Frame shape: 64 x 64
-        - Files: 10 .ome.tif
-        """
-        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
-
-        # Verify data values match the raw TIFF files
-        file_paths = sorted(self.folder_path.glob("*.ome.tif"))
-        expected_data = np.stack([tifffile.imread(f) for f in file_paths], axis=0)
-        assert_array_equal(extractor.get_series(), expected_data)
+    def check_series(self, series):
+        """The samples are the frames of the channel in the order of the XML, one file for each frame."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        sequences = read_bruker_frames(self.folder_path, channel_name=channel_name)
+        expected_series = np.concatenate(sequences)
+        assert_array_equal(series, expected_series)
 
     def test_timestamps_and_sampling_frequency(self):
         """Timestamps are the relativeTime values from the Bruker configuration XML.
@@ -358,26 +372,12 @@ class TestBrukerTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     expected_native_timestamps = [0.0, 0.096948474, 0.193896948]
     expected_sampling_frequency = 1 / 0.096948474  # the interval between volumes in the relativeTime of the XML
 
-    def test_volumetric_single_channel(self):
-        """Test metadata and data access for volumetric, single-channel Bruker data.
-
-        Stub: NCCR32_2022_11_03_IntoTheVoid_t_series-005
-        - Samples (T): 5
-        - Channels (C): 1 (Ch2)
-        - Depth planes (Z): 2
-        - Frame shape: 64 x 64
-        - Files: 10 .ome.tif (5 cycles x 2 planes)
-        """
-        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
-
-        assert extractor.get_volume_shape() == (64, 64, 2)
-
-        # Verify data values: files are ordered (t0_z0, t0_z1, t1_z0, ...).
-        # Reshape to (T, Z, H, W) then transpose to (T, H, W, Z) to match get_series().
-        file_paths = sorted(self.folder_path.glob("*.ome.tif"))
-        all_frames = np.stack([tifffile.imread(f) for f in file_paths])
-        expected_data = all_frames.reshape(5, 2, 64, 64).transpose(0, 2, 3, 1)
-        assert_array_equal(extractor.get_series(), expected_data)
+    def check_series(self, series):
+        """Each `Sequence` of the XML is a sample and each of its frames a plane, one file for each frame."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        sequences = read_bruker_frames(self.folder_path, channel_name=channel_name)
+        expected_series = np.moveaxis(np.stack(sequences), 1, -1)
+        assert_array_equal(series, expected_series)
 
     def test_timestamps_and_sampling_frequency(self):
         """Timestamps are subsampled by num_planes to give one per volume.
@@ -426,6 +426,13 @@ class TestBrukerTiffImagingExtractorDualChannel(ImagingExtractorTestMixin):
     # relativeTime of the first frames in the XML
     expected_native_timestamps = [0.0, 0.00474538, 0.00949076]
     expected_sampling_frequency = 1 / 0.00474538  # the interval between frames in the relativeTime of the XML
+
+    def check_series(self, series):
+        """The samples are the frames of the channel in the order of the XML, one file for each frame."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        sequences = read_bruker_frames(self.folder_path, channel_name=channel_name)
+        expected_series = np.concatenate(sequences)
+        assert_array_equal(series, expected_series)
 
     def test_dual_channel(self):
         """Test channel selection and data access for dual-channel Bruker data.
@@ -494,6 +501,13 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion(ImagingExtractor
     expected_native_timestamps = [0.0, 0.033474355, 0.06694871]
     expected_sampling_frequency = 1 / 0.033474355  # the interval between frames in the relativeTime of the XML
 
+    def check_series(self, series):
+        """The samples are the frames of the channel in the order of the XML, pages of one file for each channel."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        sequences = read_bruker_frames(self.folder_path, channel_name=channel_name)
+        expected_series = np.concatenate(sequences)
+        assert_array_equal(series, expected_series)
+
     def test_construct_and_select_channels(self):
         """Both channels must be selectable and return distinct data."""
         ext_ch1 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch1")
@@ -532,6 +546,13 @@ class TestBrukerTiffImagingExtractorMultiSequenceBOT(ImagingExtractorTestMixin):
     expected_native_timestamps = [0.0, 0.066563728, 0.133127456]
     # The mean of the rate within each of the 3 bursts, from the relativeTime of the XML, since gaps separate them
     expected_sampling_frequency = np.mean([1 / 0.066563728, 1 / 0.066563811, 1 / 0.06656377])
+
+    def check_series(self, series):
+        """The samples are the frames of the channel in the order of the XML, the 3 bursts of 5 frames one after another."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        sequences = read_bruker_frames(self.folder_path, channel_name=channel_name)
+        expected_series = np.concatenate(sequences)
+        assert_array_equal(series, expected_series)
 
     def test_multisequence_within_burst_rate_and_gapped_timestamps(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
@@ -584,6 +605,13 @@ class TestBrukerTiffImagingExtractorMultiSequenceTimedElement(ImagingExtractorTe
     expected_native_timestamps = [0.0, 0.066180591, 0.132361182]
     # The mean of the rate within each of the 3 cycles, from the relativeTime of the XML, since gaps separate them
     expected_sampling_frequency = np.mean([1 / 0.066180591, 1 / 0.066180671, 1 / 0.066180745])
+
+    def check_series(self, series):
+        """The samples are the frames of the channel in the order of the XML, the 3 cycles of 3 frames one after another."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        sequences = read_bruker_frames(self.folder_path, channel_name=channel_name)
+        expected_series = np.concatenate(sequences)
+        assert_array_equal(series, expected_series)
 
     def test_multisequence_timed_element_within_cycle_rate_and_gapped_timestamps(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)

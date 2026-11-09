@@ -46,37 +46,6 @@ def test_scanimage_2026_raises(tmp_path):
 class TestScanImageExtractor:
     """Test the ScanImage extractor classes with various ScanImage files."""
 
-    def test_planar_single_channel_single_file(self):
-        """Test with planar (non-volumetric) single channel data.
-
-        File: scanimage_20220801_single.tif
-        Metadata:
-        - Volumetric: False (single plane)
-        - Channels: 1
-        - Frames: 3
-        - Frame rate: 15.2379 Hz
-        - Image shape: 1024 x 1024
-        """
-        # This is frame per slice 24 and should fail
-        file_path = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
-
-        extractor = ScanImageImagingExtractor(file_path=str(file_path))
-
-        # Each saved frame is the mean of 8 scanned frames (`logAverageFactor`) at 15.2379 Hz (`scanFrameRate`)
-        assert extractor.get_sampling_frequency() == 15.2379 / 8
-
-        samples_per_file = extractor.get_num_samples() / len(extractor.file_paths)
-        start_sample = 0
-        end_sample = samples_per_file
-        for file_path in extractor.file_paths:
-            with TiffReader(file_path) as tiff_reader:
-                data = tiff_reader.asarray()
-                extractor_samples = extractor.get_series(start_sample=start_sample, end_sample=end_sample)
-                assert_array_equal(data, extractor_samples)
-
-                start_sample += samples_per_file
-                end_sample += samples_per_file
-
     def test_planar_two_channels_single_file(self):
         """Test with planar (non-volumetric) two-channel data in a single file.
 
@@ -158,220 +127,9 @@ class TestScanImageExtractor:
                 f"Channel 2 data does not match tiff data",
             )
 
-    def test_planar_multi_channnel_multi_file(self):
-        """Test with multi-file planar data acquired in loop acquisition mode.
-
-        Files: scanimage_20240320_multifile_0000[1-3].tif
-        Metadata:
-        - Acquisition mode: loop (3 acquisitions per loop)
-        - Volumetric: False (1 slice)
-        - Channels: 2 (using "Channel 3")
-        - Frames per slice: 10
-        - Frame rate: 98.84 Hz
-        - Image shape: 512 x 512
-
-        This test verifies that the extractor correctly:
-        1. Detects and loads all 3 files in the series
-        2. Extracts the correct metadata (volumetric status, sampling frequency, etc.)
-        3. Retrieves the correct data from each file in the series
-
-        The test checks:
-        - File detection: Confirms all 3 files in the series are found
-        - File ordering: Verifies files are loaded in the correct sequence
-        - Metadata extraction: Validates volumetric status, frame count, dimensions, and sampling rate
-        - Data integrity: Ensures data from each file is correctly loaded and matches the original files
-        """
-
-        # First file of the series should be enough to initialize
-        file_path = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
-
-        extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
-        assert len(extractor.file_paths) == 3
-
-        expected_files_names = [
-            "scanimage_20240320_multifile_00001.tif",
-            "scanimage_20240320_multifile_00002.tif",
-            "scanimage_20240320_multifile_00003.tif",
-        ]
-        extracted_file_names = [Path(file_path).name for file_path in extractor.file_paths]
-
-        assert extracted_file_names == expected_files_names
-
-        assert extractor.get_sampling_frequency() == 98.83842317607626
-
-        samples_per_file = extractor.get_num_samples() / len(extractor.file_paths)
-        start_sample = 0
-        end_sample = samples_per_file
-        for file_path in extractor.file_paths:
-            with TiffReader(file_path) as tiff_reader:
-                data = tiff_reader.asarray()
-                channel_data = data[:, extractor._channel_index, ...]
-                extractor_samples = extractor.get_series(start_sample=start_sample, end_sample=end_sample)
-                assert_array_equal(channel_data, extractor_samples)
-
-                start_sample += samples_per_file
-                end_sample += samples_per_file
-
-    def test_volumetric_single_channel_single_file(self):
-        """Test with volumetric data in a single file.
-
-        File: vol_no_flyback_00001_00001.tif
-        Metadata:
-        - Acquisition state: grab
-        - Volumetric: True (9 slices per volume)
-        - Frame shape: 20 x 20
-        - Channels saved: 1 (single channel)
-        - Frames per slice: 1
-        - Frame rate: 79.8033 Hz
-        - Volume rate: 8.86703 Hz
-        - Number of volumes: 10
-        - Pages/IDFs: 90
-        """
-        file_path = (
-            SCANIMAGE_PATH / "volumetric_single_channel_single_file_no_flyback" / "vol_no_flyback_00001_00001.tif"
-        )
-
-        extractor = ScanImageImagingExtractor(file_path=file_path)
-
-        assert extractor.get_sampling_frequency() == 8.86703
-
-        # Get data from extractor
-        extractor_data = extractor.get_series()
-
-        # Read tiff data for comparison
-        with TiffReader(file_path) as tiff_reader:
-            tiff_data = tiff_reader.asarray()
-
-            # For each sample volume in the extractor data
-            for sample_index in range(extractor.get_num_samples()):
-                # Calculate the slice of frames for this sample
-                start_frame = sample_index * extractor.get_num_planes()
-                end_frame = start_frame + extractor.get_num_planes()
-                tiff_volume_frames = tiff_data[start_frame:end_frame]
-
-                # Reshape the extractor data to match the tiff data format for comparison
-                # extractor_data is (samples, height, width, planes)
-                # We need to compare with tiff_volume_frames which is (planes, height, width)
-                extractor_volume = np.moveaxis(extractor_data[sample_index], -1, 0)
-
-                # Compare the data
-                np.testing.assert_array_equal(
-                    extractor_volume,
-                    tiff_volume_frames,
-                    f"Sample {sample_index} volume does not match tiff data",
-                )
-
 
 class TestScanImageVolumetricWithFlybackFrames:
     """Test the ScanImage extractor classes with files that have flyback frames."""
-
-    def test_volumetric_single_channel_single_file(self):
-        """
-        First File: vol_one_ch_single_files_00002_00001.tif
-        Metadata:
-        - Acquisition mode: grab
-        - Volumetric: True (9 slices and 7 flyback frames)
-        - Frame shape: 20 x 20
-        - Channels: 1 (single channel)
-        - Frames per slice: 1
-        - Frame rate: 523.926 Hz
-        - Volume rate: 32.7454 Hz
-        - Pages/IDFs: 1600
-        """
-        file_path = SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
-
-        extractor = ScanImageImagingExtractor(file_path=file_path)
-
-        assert extractor.num_flyback_frames_per_channel == 7
-        assert extractor.get_sampling_frequency() == 32.7454
-
-        ifds = 1600
-        total_frames_per_cycle = extractor.get_num_planes() + extractor.num_flyback_frames_per_channel
-        num_acquisition_cycles = ifds // total_frames_per_cycle
-
-        # Get data from extractor
-        extractor_data = extractor.get_series()
-
-        # Read tiff data for comparison
-        with TiffReader(file_path) as tiff_reader:
-            tiff_data = tiff_reader.asarray()
-
-            # For each sample volume in the extractor data
-            for sample_index in range(num_acquisition_cycles):
-                # Calculate the slice of frames for this sample (excluding flyback frames)
-                start_frame = sample_index * total_frames_per_cycle
-                end_frame = start_frame + extractor.get_num_planes()
-                tiff_volume_frames = tiff_data[start_frame:end_frame]
-
-                # Reshape the extractor data to match the tiff data format for comparison
-                # extractor_data is (samples, height, width, planes)
-                # We need to compare with tiff_volume_frames which is (planes, height, width)
-                extractor_volume = np.moveaxis(extractor_data[sample_index], -1, 0)
-
-                # Compare the data
-                np.testing.assert_array_equal(
-                    extractor_volume, tiff_volume_frames, f"Sample {sample_index} volume does not match tiff data"
-                )
-
-    def test_volumetric_single_channel_multi_file(self):
-        """
-        First File: vol_one_ch_single_files_00002_00001.tif
-        Metadata:
-        - Acquisition mode: grab
-        - Volumetric: True (9 slices and 7 flyback frames)
-        - Frame shape: 20 x 20
-        - Channels: 1 (single channel)
-        - Frames per slice: 1
-        - Frame rate: 523.926 Hz
-        - Volume rate: 32.7454 Hz
-        - Pages/IDFs: 160 in each of the 10 files.
-        """
-        file_path = SCANIMAGE_PATH / "volumetric_single_channel_multi_file" / "vol_one_ch_multi_files_00001_00001.tif"
-
-        extractor = ScanImageImagingExtractor(file_path=file_path)
-
-        assert extractor.num_flyback_frames_per_channel == 7
-        assert extractor.get_sampling_frequency() == 32.7454
-
-        total_frames_per_cycle = extractor.get_num_planes() + extractor.num_flyback_frames_per_channel
-
-        # Get the entire series data from the extractor
-        extractor_data = extractor.get_series()
-
-        # For each sample volume in the extractor data
-        for sample_index in range(extractor.get_num_samples()):
-            # Determine which file contains this sample
-            frames_per_file = 160
-            frames_per_sample = total_frames_per_cycle
-            samples_per_file = frames_per_file // frames_per_sample
-            file_index = sample_index // samples_per_file
-
-            # Get the corresponding file path
-            current_file_path = extractor.file_paths[file_index]
-
-            # Calculate the relative sample index within this file
-            relative_sample_index = sample_index % samples_per_file
-
-            # Read tiff data for comparison
-            with TiffReader(current_file_path) as tiff_reader:
-                tiff_data = tiff_reader.asarray()
-
-                # Calculate the slice of frames for this sample (excluding flyback frames)
-                start_frame = relative_sample_index * total_frames_per_cycle
-                end_frame = start_frame + extractor.get_num_planes()
-                tiff_volume_frames = tiff_data[start_frame:end_frame]
-
-                # Reshape the extractor data to match the tiff data format for comparison
-                # extractor_data is (samples, height, width, planes)
-                # We need to compare with tiff_volume_frames which is (planes, height, width)
-                extractor_volume = np.moveaxis(extractor_data[sample_index], -1, 0)
-
-                # Compare the data
-                np.testing.assert_array_equal(
-                    extractor_volume,
-                    tiff_volume_frames,
-                    f"File {file_index}, sample {sample_index} volume does not match tiff data",
-                )
 
     def test_volumetric_two_channels_single_file(self):
         """
@@ -2055,6 +1813,27 @@ class TestScanImageFieldOfViewSlicing:
         assert_array_equal(sliced.get_series(), expected)
 
 
+def read_scanimage_pages(file_paths, page_indices):
+    """Read pages of a ScanImage acquisition with `tifffile`, numbered across its files in order.
+
+    The result has the shape of `page_indices`, which can be nested, followed by the shape of a page. The tests
+    compute the page of each sample and plane from the settings in the header, independently of the extractor.
+    """
+    page_indices = np.asarray(page_indices)
+    tiff_readers = [TiffReader(file_path) for file_path in file_paths]
+    try:
+        file_offsets = np.cumsum([0] + [len(tiff_reader.pages) for tiff_reader in tiff_readers])
+        pages = []
+        for page_index in page_indices.ravel():
+            file_index = np.searchsorted(file_offsets, page_index, side="right") - 1
+            page_index_in_file = page_index - file_offsets[file_index]
+            pages.append(tiff_readers[file_index].pages[page_index_in_file].asarray())
+    finally:
+        for tiff_reader in tiff_readers:
+            tiff_reader.close()
+    return np.stack(pages).reshape(*page_indices.shape, *pages[0].shape)
+
+
 class TestScanImageImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
     extractor_kwargs = dict(file_path=SCANIMAGE_PATH / "scanimage_20220801_single.tif")
@@ -2065,6 +1844,13 @@ class TestScanImageImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin
     # frameTimestamps_sec of pages 0 to 2
     expected_native_timestamps = [0.45951611, 0.98468446, 1.50985974]
     expected_sampling_frequency = 15.2379 / 8  # scanFrameRate / logAverageFactor, each frame is the mean of 8 scans
+
+    def check_series(self, series):
+        """Sample `sample` is page `sample`: one channel and one plane, each page a saved frame."""
+        file_paths = [SCANIMAGE_PATH / "scanimage_20220801_single.tif"]
+        page_indices = list(range(self.expected_num_samples))
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, expected_series)
 
 
 class TestScanImageImagingExtractorPlanarTwoChannels(ImagingExtractorTestMixin):
@@ -2081,6 +1867,15 @@ class TestScanImageImagingExtractorPlanarTwoChannels(ImagingExtractorTestMixin):
     expected_native_timestamps = [0.0, 0.001908475, 0.003816975]
     expected_sampling_frequency = 523.926  # scanFrameRate
 
+    def check_series(self, series):
+        """Sample `sample` is page `2 * sample + channel`, the two channels saved in turn."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        channel_index = self.expected_channel_names.index(channel_name)
+        file_paths = [SCANIMAGE_PATH / "planar_two_channels_single_file" / "planar_two_ch_single_files_00001_00001.tif"]
+        page_indices = [2 * sample + channel_index for sample in range(self.expected_num_samples)]
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, expected_series)
+
 
 class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
@@ -2094,6 +1889,15 @@ class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
     # frameTimestamps_sec of pages 0, 2 and 4 of the first file, the frames of Channel 1
     expected_native_timestamps = [0.0, 0.01011751, 0.02023502]
     expected_sampling_frequency = 98.83842317607626  # scanFrameRate
+
+    def check_series(self, series):
+        """Sample `sample` is page `2 * sample + channel` across the 3 files, the two channels saved in turn."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        channel_index = self.expected_channel_names.index(channel_name)
+        file_paths = sorted(SCANIMAGE_PATH.glob("scanimage_20240320_multifile_*.tif"))
+        page_indices = [2 * sample + channel_index for sample in range(self.expected_num_samples)]
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, expected_series)
 
 
 class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorTestMixin):
@@ -2109,6 +1913,19 @@ class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorT
     # has 9 planes and 7 flyback frames
     expected_native_timestamps = [0.01526797, 0.04580384, 0.07633974]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
+
+    def test_num_flyback_frames_per_channel(self, setup_extractor):
+        """`num_flyback_frames_per_channel` is the 7 of `SI.hFastZ.numDiscardFlybackFrames` in the header."""
+        assert self.extractor.num_flyback_frames_per_channel == 7
+
+    def check_series(self, series):
+        """Plane `plane` of sample `sample` is page `16 * sample + plane`: 9 planes and 7 flyback frames per volume."""
+        file_paths = [
+            SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
+        ]
+        page_indices = [[16 * sample + plane for plane in range(9)] for sample in range(self.expected_num_samples)]
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
 
     def test_select_plane_timestamps(self, setup_extractor):
         """Each plane has the timestamps of its own frames, the `frameTimestamps_sec` of its pages."""
@@ -2133,6 +1950,15 @@ class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTes
     expected_native_timestamps = [0.015268365, 0.03244526, 0.049622125]
     expected_sampling_frequency = 8.86703  # scanVolumeRate
 
+    def check_series(self, series):
+        """Plane `plane` of sample `sample` is page `9 * sample + plane`: 9 planes and no flyback frames per volume."""
+        file_paths = [
+            SCANIMAGE_PATH / "volumetric_single_channel_single_file_no_flyback" / "vol_no_flyback_00001_00001.tif"
+        ]
+        page_indices = [[9 * sample + plane for plane in range(9)] for sample in range(self.expected_num_samples)]
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
+
 
 class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
@@ -2147,6 +1973,20 @@ class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin
     # plane. Each volume has 9 planes and 7 flyback frames
     expected_native_timestamps = [0.015267965, 0.045803895, 0.076339795]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
+
+    def test_num_flyback_frames_per_channel(self, setup_extractor):
+        """`num_flyback_frames_per_channel` is the 7 of `SI.hFastZ.numDiscardFlybackFrames` in the header."""
+        assert self.extractor.num_flyback_frames_per_channel == 7
+
+    def check_series(self, series):
+        """Plane `plane` of sample `sample` is page `16 * sample + plane`, numbered across the 10 files.
+
+        Each volume has 9 planes and 7 flyback frames.
+        """
+        file_paths = sorted((SCANIMAGE_PATH / "volumetric_single_channel_multi_file").glob("*.tif"))
+        page_indices = [[16 * sample + plane for plane in range(9)] for sample in range(self.expected_num_samples)]
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
 
 
 class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMixin):
@@ -2164,6 +2004,21 @@ class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMix
     expected_native_timestamps = [0.015267895, 0.045803725, 0.07633955]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
 
+    def check_series(self, series):
+        """Plane `plane` of sample `sample` is page `2 * (16 * sample + plane) + channel`.
+
+        The two channels are saved in turn, and each volume has 9 planes and 7 flyback frames.
+        """
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        channel_index = self.expected_channel_names.index(channel_name)
+        file_paths = [SCANIMAGE_PATH / "volumetric_two_channels_single_file" / "vol_two_ch_single_file_00001_00001.tif"]
+        page_indices = [
+            [2 * (16 * sample + plane) + channel_index for plane in range(9)]
+            for sample in range(self.expected_num_samples)
+        ]
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
+
 
 class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
@@ -2180,6 +2035,21 @@ class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtract
     expected_native_timestamps = [0.015267895, 0.045803655, 0.076339445]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
 
+    def check_series(self, series):
+        """Plane `plane` of sample `sample` is page `2 * (16 * sample + plane) + channel`, numbered across the 10 files.
+
+        The two channels are saved in turn, and each volume has 9 planes and 7 flyback frames.
+        """
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        channel_index = self.expected_channel_names.index(channel_name)
+        file_paths = sorted((SCANIMAGE_PATH / "volumetric_two_channels_multi_file").glob("*.tif"))
+        page_indices = [
+            [2 * (16 * sample + plane) + channel_index for plane in range(9)]
+            for sample in range(self.expected_num_samples)
+        ]
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
+
 
 class TestScanImageImagingExtractorSinglePlaneOfVolume(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
@@ -2195,6 +2065,15 @@ class TestScanImageImagingExtractorSinglePlaneOfVolume(ImagingExtractorTestMixin
     expected_native_timestamps = [0.0, 0.03053587, 0.061071805]
     expected_sampling_frequency = 32.7454  # scanVolumeRate, a plane is sampled once per volume
 
+    def check_series(self, series):
+        """Sample `sample` is page `16 * sample`, plane 0 of a volume of 9 planes and 7 flyback frames."""
+        file_paths = [
+            SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
+        ]
+        page_indices = [16 * sample for sample in range(self.expected_num_samples)]
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, expected_series)
+
 
 class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
@@ -2209,6 +2088,21 @@ class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixi
     # the 2 planes, as ScanImage gives a volume the time of its last plane
     expected_native_timestamps = [0.83110185, 1.7825946, 3.69864715]
     expected_sampling_frequency = 14.5517  # scanVolumeRate
+
+    def check_series(self, series):
+        """Plane `plane` of sample `sample` is page `8 * sample + 4 * plane + channel`, the first frame of the plane.
+
+        The two channels are saved in turn, and each volume has 2 planes of 2 frames each.
+        """
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        channel_index = self.expected_channel_names.index(channel_name)
+        file_paths = [SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"]
+        page_indices = [
+            [8 * sample + 4 * plane + channel_index for plane in range(2)]
+            for sample in range(self.expected_num_samples)
+        ]
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
 
 
 class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtractorTestMixin):
@@ -2228,3 +2122,19 @@ class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtrac
     expected_native_timestamps = [0.83110185, 0.8482798, 1.7825946]
     # scanVolumeRate, best effort: the interleaved samples are unevenly spaced, so no single rate describes them
     expected_sampling_frequency = 14.5517
+
+    def check_series(self, series):
+        """Plane `plane` of sample `sample` is page `8 * volume + 4 * plane + 2 * frame + channel`.
+
+        The two channels are saved in turn, and the samples run over the 2 frames of each plane in turn, so
+        `volume = sample // 2` and `frame = sample % 2`.
+        """
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        channel_index = self.expected_channel_names.index(channel_name)
+        file_paths = [SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"]
+        page_indices = [
+            [8 * (sample // 2) + 4 * plane + 2 * (sample % 2) + channel_index for plane in range(2)]
+            for sample in range(self.expected_num_samples)
+        ]
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, np.moveaxis(expected_series, 1, -1))

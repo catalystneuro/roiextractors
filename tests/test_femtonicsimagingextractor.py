@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
 
+import h5py
 import numpy as np
 import pytest
+from numpy.testing import assert_array_equal
 
 from roiextractors.extractors.femtonicsimagingextractor import FemtonicsImagingExtractor
 
@@ -180,6 +182,23 @@ def test_femtonicsimagingextractor_p29_mesc():
         FemtonicsImagingExtractor(file_path=file_path, session_name="MSession_0")
 
 
+def read_femtonics_channel(file_path, session_name, munit_name, channel_name):
+    """Read the dataset of a channel with `h5py`, independently of the extractor.
+
+    The channel is the `Channel_<index>` whose `Channel_<index>_Name` attribute of the MUnit is `channel_name`.
+    """
+    with h5py.File(file_path, "r") as file:
+        munit = file[session_name][munit_name]
+        channel_index = 0
+        while f"Channel_{channel_index}" in munit:
+            # The names are stored as arrays of character codes ending in 0
+            name = "".join(chr(code) for code in munit.attrs[f"Channel_{channel_index}_Name"] if code != 0)
+            if name == channel_name:
+                return munit[f"Channel_{channel_index}"][:]
+            channel_index += 1
+    raise ValueError(f"No channel named {channel_name} in {file_path}")
+
+
 class TestFemtonicsImagingExtractorP29(ImagingExtractorTestMixin):
     extractor_cls = FemtonicsImagingExtractor
     extractor_kwargs = dict(
@@ -194,6 +213,11 @@ class TestFemtonicsImagingExtractorP29(ImagingExtractorTestMixin):
     expected_channel_names = ["UG", "UR"]
     expected_native_timestamps = None
     expected_sampling_frequency = 1000 / 32.29672617170252  # 1000 / the frame duration in ms of the MUnit
+
+    def check_series(self, series):
+        """The series is the dataset of the channel in MSession_0/MUnit_0, read with `h5py`."""
+        expected_series = read_femtonics_channel(**self.extractor_kwargs)
+        assert_array_equal(series, expected_series)
 
 
 class TestFemtonicsImagingExtractorP30(ImagingExtractorTestMixin):
@@ -210,6 +234,11 @@ class TestFemtonicsImagingExtractorP30(ImagingExtractorTestMixin):
     expected_channel_names = ["UG", "UR"]
     expected_native_timestamps = None
     expected_sampling_frequency = 1000 / 32.29672617170252  # 1000 / the frame duration in ms of the MUnit
+
+    def check_series(self, series):
+        """The series is the dataset of the channel in MSession_0/MUnit_0, read with `h5py`."""
+        expected_series = read_femtonics_channel(**self.extractor_kwargs)
+        assert_array_equal(series, expected_series)
 
 
 def test_get_available_channels_is_deprecated():
