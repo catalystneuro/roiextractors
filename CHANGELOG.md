@@ -2,6 +2,7 @@
 
 ### Features
 * Added `BrukerTiffImagingExtractor.get_available_channel_names()`, which returns the channel names of a Bruker folder in acquisition order without constructing an extractor. They are the names the constructor accepts as `channel_name`.
+* Imaging extractors now have a `metadata` attribute, a `Metadata` dataclass with NWB field names, which leaves as `None` the fields the format does not record and keeps the values specific to a format in `extra_metadata`. No extractor fills it yet, so it is empty except on `Hdf5ImagingExtractor`. The views from `slice_samples()`, `slice_field_of_view()` and `select_plane()` have the metadata of their parent. `ImagingExtractorTestMixin` now checks both.
 
 ### Fixes
 * `slice_samples()` on an imaging extractor now accepts a bound left out and defaults to the start or the end of the parent, as its docstring says, instead of raising `TypeError`. The count of samples was computed before the defaults were applied.
@@ -25,6 +26,7 @@
 * `select_plane()` on `MultiTIFFMultiPageExtractor`, and so on the OME-TIFF, Thor and Bruker extractors built on it, now returns an extractor of the same class that reads only the pages of the plane. On Thor Z and T capture and on Bruker, the plane has the timestamps of its own frames. It used the generic wrapper, which read every plane of a sample to keep one and gave every plane the timestamps of the volume, taken from its first plane, so on the Thor fixture plane 2 started at 0 s instead of 0.777 s. Times set with `set_times()` on the volume are not carried over to the plane.
 
 ### Deprecations And Removals
+* `Hdf5ImagingExtractor.metadata` is now the `Metadata` of the other imaging extractors. The dictionary it held, from the `metadata` argument or the `metadata` attribute of the dataset, is now in `metadata.extra_metadata["hdf5_user_metadata"]`.
 * Dropped support for Python 3.10, which `neuroconv` no longer supports. The minimum supported version is now Python 3.11. [PR #627](https://github.com/catalystneuro/roiextractors/pull/627)
 * Removed `sample_indices_to_time()` from `MinianSegmentationExtractor`, deprecated for removal on or after July 2026. Use `get_timestamps()` instead.
 * Removed `get_channel_names()` from `TiffImagingExtractor` and `MemmapImagingExtractor`, deprecated for removal in or after October 2026. They were the last extractors with it.

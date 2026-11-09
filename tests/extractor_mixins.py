@@ -13,6 +13,7 @@ import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 
 from roiextractors import ImagingExtractor
+from roiextractors._metadata import Metadata
 
 
 class ImagingExtractorTestMixin:
@@ -306,6 +307,22 @@ class ImagingExtractorTestMixin:
                 num_expected_samples = len(expected_plane_native_timestamps)
                 first_plane_native_timestamps = plane_native_timestamps[:num_expected_samples]
                 assert_allclose(first_plane_native_timestamps, expected_plane_native_timestamps)
+
+    def test_metadata(self, setup_extractor):
+        """`metadata` is a `Metadata`, and the views of the extractor have the same metadata.
+
+        The views are those of `slice_samples()`, `slice_field_of_view()` and `select_plane()`.
+        """
+        metadata = self.extractor.metadata
+        assert isinstance(metadata, Metadata)
+
+        sample_slice = self.extractor.slice_samples(start_sample=1)
+        assert sample_slice.metadata == metadata
+        field_of_view_slice = self.extractor.slice_field_of_view(row_end=2, column_end=2)
+        assert field_of_view_slice.metadata == metadata
+        if self.extractor.is_volumetric:
+            plane_extractor = self.extractor.select_plane(0)
+            assert plane_extractor.metadata == metadata
 
     def test_available_channel_names(self):
         """`get_available_channel_names()` returns the expected channel names in order, and each is accepted back."""

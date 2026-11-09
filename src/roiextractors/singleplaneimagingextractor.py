@@ -10,6 +10,7 @@ _SinglePlaneImagingExtractor
 import numpy as np
 from numpy.typing import ArrayLike
 
+from ._metadata import Metadata
 from .imagingextractor import ImagingExtractor
 
 
@@ -100,6 +101,11 @@ class _SinglePlaneImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self) -> float:
         """Get the sampling frequency (delegates to parent)."""
         return self._parent_imaging.get_sampling_frequency()
+
+    @property
+    def metadata(self) -> Metadata:
+        """The metadata of the parent."""
+        return self._parent_imaging.metadata
 
     def get_dtype(self) -> np.dtype:
         """Get the data type of the video (delegates to parent)."""
