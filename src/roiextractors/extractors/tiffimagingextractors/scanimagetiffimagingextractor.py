@@ -176,16 +176,38 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # handles itself. `None` marks the root owner.
         self._fov_root = None
 
-        # Check if stack manager is enabled and if there are multiple slices
-        # This criteria was confirmed by Lawrence Niu, a developer of ScanImage
-        # but we need to also check numSlices > 1 because some planar datasets
-        # have SI.hStackManager.enable = True but only one slice
-        stack_enabled = self._metadata["SI.hStackManager.enable"]
-        num_slices = self._metadata["SI.hStackManager.numSlices"]
-        self.is_volumetric = stack_enabled and num_slices > 1
+        if "SI.hStackManager.enable" in self._metadata:
+            # Check if stack manager is enabled and if there are multiple slices
+            # This criteria was confirmed by Lawrence Niu, a developer of ScanImage
+            # but we need to also check numSlices > 1 because some planar datasets
+            # have SI.hStackManager.enable = True but only one slice
+            stack_enabled = self._metadata["SI.hStackManager.enable"]
+            num_planes = self._metadata["SI.hStackManager.numSlices"]
+            self.is_volumetric = stack_enabled and num_planes > 1
+            if self.is_volumetric:
+                frames_per_volume_per_channel = self._metadata["SI.hStackManager.numFramesPerVolume"]
+                frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
+                num_flyback_frames_per_channel = frames_per_volume_with_flyback - frames_per_volume_per_channel
+        # Headers before 2019b have no `hStackManager.enable`, `stackMode` or frame counts of a volume in the stack
+        # manager. A fast z volume is described by `hFastZ` instead, and its frames per volume count the flyback frames.
+        # Its planes are not `numSlices` but those frames without the flyback ones: with arbitrary z positions, a 2019a
+        # recording at one depth has `numSlices` 10 and one frame per volume.
+        elif self._metadata["SI.hFastZ.enable"]:
+            discard_flyback_frames = self._metadata["SI.hFastZ.discardFlybackFrames"]
+            num_flyback_frames_per_channel = (
+                self._metadata["SI.hFastZ.numDiscardFlybackFrames"] if discard_flyback_frames else 0
+            )
+            num_planes = self._metadata["SI.hFastZ.numFramesPerVolume"] - num_flyback_frames_per_channel
+            self.is_volumetric = num_planes > 1
+        # Without fast z, more than one slice is a slow stack, where the motor moves between slices
+        else:
+            num_planes = self._metadata["SI.hStackManager.numSlices"]
+            num_flyback_frames_per_channel = 0
+            self.is_volumetric = num_planes > 1
+
         if self.is_volumetric:
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanVolumeRate"]
-            self._num_planes = self._metadata["SI.hStackManager.numSlices"]
+            self._num_planes = num_planes
 
             self._frames_per_slice = self._metadata["SI.hStackManager.framesPerSlice"]
 
@@ -208,12 +230,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 )
                 raise ValueError(error_msg)
 
-            self._frames_per_volume_per_channel = self._metadata["SI.hStackManager.numFramesPerVolume"]
-            self._frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
-
-            self.num_flyback_frames_per_channel = (
-                self._frames_per_volume_with_flyback - self._frames_per_volume_per_channel
-            )
+            self.num_flyback_frames_per_channel = num_flyback_frames_per_channel
         else:
             # ScanImage saves one frame per `logAverageFactor` scanned frames, their mean
             scan_frame_rate = self._metadata["SI.hRoiManager.scanFrameRate"]
@@ -476,7 +493,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # https://docs.scanimage.org/Basic+Features/Acquisitions.html
         acquisition_state = self._metadata["SI.acqState"]
         frames_per_file = self._metadata["SI.hScan2D.logFramesPerFile"]
-        stack_mode = self._metadata["SI.hStackManager.stackMode"]
+        # Headers before 2019b have no stackMode, and there a stack without fast z is a slow stack
+        fast_z_enabled = self._metadata["SI.hFastZ.enable"]
+        stack_mode = self._metadata.get("SI.hStackManager.stackMode", "fast" if fast_z_enabled else "slow")
         extension = self.file_path.suffix
         # This is the happy path that is well specified in the documentation
         if acquisition_state == "grab" and frames_per_file != float("inf"):
