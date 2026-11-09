@@ -15,6 +15,7 @@ import numpy as np
 
 from .scanimagetiff_utils import (
     _get_scanimage_reader,
+    _read_image_descriptions,
 )
 from ...extraction_tools import PathType, get_package
 from ...imagingextractor import ImagingExtractor
@@ -946,20 +947,22 @@ class ScanImageImagingExtractor(ImagingExtractor):
         num_planes = self._num_planes
         timestamps = np.zeros(num_samples, dtype=np.float64)
 
-        # For each sample, extract its timestamp from the corresponding file and IFD
-        for sample_index in range(num_samples):
+        # The last frame in each sample gives its timestamp
+        frame_indices = np.arange(num_samples) * num_planes + (num_planes - 1)
+        table_rows = self._frames_to_ifd_table[frame_indices]
 
-            # Get the last frame in this sample to get the timestamps
-            frame_index = sample_index * num_planes + (num_planes - 1)
-            table_row = self._frames_to_ifd_table[frame_index]
-            file_index = table_row["file_index"]
-            ifd_index = table_row["IFD_index"]
+        # Read the descriptions of those frames file by file, without building their pages with tifffile
+        descriptions = [None] * num_samples
+        for file_index, file_path in enumerate(self.file_paths):
+            sample_indices = np.flatnonzero(table_rows["file_index"] == file_index)
+            if sample_indices.size == 0:
+                continue
+            file_descriptions = _read_image_descriptions(file_path, table_rows["IFD_index"][sample_indices])
+            for sample_index, description in zip(sample_indices, file_descriptions):
+                descriptions[sample_index] = description
 
-            tiff_reader = self._tiff_readers[file_index]
-            image_file_directory = tiff_reader.pages[ifd_index]
-
-            # Extract timestamp using the static method
-            timestamp = self.extract_timestamp_from_page(image_file_directory)
+        for sample_index, description in enumerate(descriptions):
+            timestamp = self._extract_timestamp_from_description(description)
 
             if timestamp is not None:
                 timestamps[sample_index] = timestamp
@@ -995,6 +998,14 @@ class ScanImageImagingExtractor(ImagingExtractor):
             return None
 
         description = page.tags["ImageDescription"].value
+        return ScanImageImagingExtractor._extract_timestamp_from_description(description)
+
+    @staticmethod
+    def _extract_timestamp_from_description(description: str | None) -> float | None:
+        """Extract the `frameTimestamps_sec` of a frame header, or None if it has none."""
+        if description is None:
+            return None
+
         description_lines = description.split("\n")
 
         # Find the frameTimestamps_sec line
