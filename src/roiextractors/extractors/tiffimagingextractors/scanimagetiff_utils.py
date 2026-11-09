@@ -1,6 +1,9 @@
 """Utility functions for ScanImage TIFF Extractors."""
 
 import json
+import mmap
+import struct
+from typing import Sequence
 
 import numpy as np
 
@@ -12,6 +15,64 @@ def _get_scanimage_reader() -> type:
     return get_package(
         package_name="ScanImageTiffReader", installation_instructions="pip install scanimage-tiff-reader"
     ).ScanImageTiffReader
+
+
+def _read_image_descriptions(file_path: PathType, page_indices: Sequence[int]) -> list[str | None]:
+    """Read the `ImageDescription` tag of chosen pages of a ScanImage TIFF file.
+
+    ScanImage writes the header of each frame, with its timestamp, into the `ImageDescription` tag of its page.
+    Building a page with `tifffile` parses all of its tags, while this reads only the tag directory of each page and
+    its description. ScanImage files are little-endian BigTIFF, which `read_scanimage_metadata` requires, so only that
+    layout is read.
+
+    Parameters
+    ----------
+    file_path : PathType
+        Path to the TIFF file.
+    page_indices : Sequence[int]
+        Indices of the pages in the file, in any order.
+
+    Returns
+    -------
+    list[str | None]
+        The description of each page in the order of `page_indices`, or None for a page without one.
+    """
+    tag_size = 20
+    # Mapping the file reads only the bytes that are touched, without a system call for each read
+    with open(file_path, "rb") as file, mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ) as tiff_bytes:
+        if tiff_bytes[:4] != b"II\x2b\x00":
+            raise ValueError(f"{file_path} is not a little-endian BigTIFF file.")
+
+        # Follow the chain of tag directories to the offset of each page, up to the last page needed. A directory is
+        # the number of tags (8 bytes), the tags (20 bytes each) and the offset of the next directory (8 bytes)
+        page_offsets = [struct.unpack_from("<Q", tiff_bytes, 8)[0]]
+        last_page_index = max(page_indices)
+        while len(page_offsets) <= last_page_index:
+            page_offset = page_offsets[-1]
+            num_tags = struct.unpack_from("<Q", tiff_bytes, page_offset)[0]
+            next_page_offset = struct.unpack_from("<Q", tiff_bytes, page_offset + 8 + num_tags * tag_size)[0]
+            page_offsets.append(next_page_offset)
+
+        descriptions = []
+        for page_index in page_indices:
+            page_offset = page_offsets[page_index]
+            num_tags = struct.unpack_from("<Q", tiff_bytes, page_offset)[0]
+            description = None
+            for tag_index in range(num_tags):
+                # A tag is its code, its type, the number of values and the values or their offset (8 bytes)
+                tag_start = page_offset + 8 + tag_index * tag_size
+                code, _, count, value_offset = struct.unpack_from("<HHQQ", tiff_bytes, tag_start)
+                if code != 270:
+                    continue
+                # Values of up to 8 bytes are stored in the tag itself instead of at an offset
+                if count <= 8:
+                    value = tiff_bytes[tag_start + 12 : tag_start + 12 + count]
+                else:
+                    value = tiff_bytes[value_offset : value_offset + count]
+                description = value.rstrip(b"\x00").decode("utf-8", errors="replace")
+                break
+            descriptions.append(description)
+    return descriptions
 
 
 def extract_extra_metadata(
