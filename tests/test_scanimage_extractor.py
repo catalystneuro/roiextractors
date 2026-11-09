@@ -2285,6 +2285,81 @@ class TestScanImageImagingExtractorFastZVolumeVersion2016b(ImagingExtractorTestM
         assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
 
 
+class TestScanImageImagingExtractorPlanarChannelsOneAndThreeVersion53(ImagingExtractorTestMixin):
+    """A 5.3 file that saves channels 1 and 3, written as the column `channelSave = [1;3]`."""
+
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_FORMAT_3_PATH
+        / "planar"
+        / "channels_one_and_three_as_column_vector_linear_version_5_3"
+        / "planar_00001.tif",
+        channel_name="Channel 3",
+    )
+    expected_num_samples = 7  # 14 pages / 2 channels
+    expected_sample_shape = (64, 64)
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1", "Channel 3"]  # channelName at the indices of channelSave
+    # frameTimestamps_sec of pages 1, 3 and 5
+    expected_native_timestamps = [0.0, 0.118147, 0.236294]
+    expected_sampling_frequency = 8.46402  # scanFrameRate, with logAverageFactor 1
+
+    def check_series(self, series):
+        """Sample `sample` of Channel 3 is page `2 * sample + 1`: two channels and one plane."""
+        file_paths = [self.extractor_kwargs["file_path"]]
+        page_indices = [2 * sample + 1 for sample in range(self.expected_num_samples)]
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, expected_series)
+
+
+class TestScanImageImagingExtractorFastZFlybackTwoChannelsVersion2016b(ImagingExtractorTestMixin):
+    """A 2016b fast z volume with two channels, `channelSave = [1;2]`, and two flyback frames saved as pages."""
+
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_FORMAT_3_PATH
+        / "volumetric"
+        / "flyback_frames_two_channels_resonant_version_2016b"
+        / "volume_00001.tif",
+        channel_name="Channel 2",
+    )
+    expected_num_samples = 2  # hFastZ.numVolumes, 56 pages / (14 frames per volume * 2 channels)
+    # hFastZ.numFramesPerVolume 14 minus hFastZ.numDiscardFlybackFrames 2
+    expected_sample_shape = (64, 64, 12)
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1", "Channel 2"]
+    # frameTimestamps_sec of page 2 * (14 * sample + 11) + 1, as ScanImage gives a volume the time of its last plane
+    expected_native_timestamps = [0.12848931, 0.292021185]
+    # frameTimestamps_sec of page 2 * (14 * sample + plane) + 1, a list per plane
+    expected_plane_native_timestamps = [
+        [0.0, 0.16353181],
+        [0.01168081, 0.175212685],
+        [0.023361685, 0.18689356],
+        [0.0350425, 0.198574375],
+        [0.046723375, 0.21025525],
+        [0.058404185, 0.22193606],
+        [0.07008506, 0.233616935],
+        [0.081765875, 0.24529781],
+        [0.09344675, 0.256978625],
+        [0.10512756, 0.2686595],
+        [0.116808435, 0.28034031],
+        [0.12848931, 0.292021185],
+    ]
+    expected_sampling_frequency = 6.11546  # scanVolumeRate
+
+    def check_series(self, series):
+        """Plane `plane` of sample `sample` of Channel 2 is page `2 * (14 * sample + plane) + 1`.
+
+        Each volume has 14 frames of two channels, and its last two frames are the flyback frames.
+        """
+        file_paths = [self.extractor_kwargs["file_path"]]
+        page_indices = [
+            [2 * (14 * sample + plane) + 1 for plane in range(12)] for sample in range(self.expected_num_samples)
+        ]
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
+
+
 def test_slow_stack_version_2017b():
     """A 2017b stack without fast z has the planes of `numSlices`, 17, of 6 frames each in one volume of 102 pages."""
     file_path = (
