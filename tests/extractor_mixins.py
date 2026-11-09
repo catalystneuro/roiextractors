@@ -408,4 +408,8 @@ def check_metadata(metadata: Metadata, expected_metadata: dict):
     populated_metadata = metadata.to_populated_dict(include_extra=False)
     assert populated_metadata.keys() == expected_metadata.keys()
     for field_name, expected_value in expected_metadata.items():
-        assert populated_metadata[field_name] == pytest.approx(expected_value), field_name
+        value = populated_metadata[field_name]
+        if isinstance(expected_value, (float, int, list)):
+            assert value == pytest.approx(expected_value), field_name
+        else:
+            assert value == expected_value, field_name
