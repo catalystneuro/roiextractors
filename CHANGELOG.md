@@ -2,7 +2,7 @@
 
 ### Features
 * Added `BrukerTiffImagingExtractor.get_available_channel_names()`, which returns the channel names of a Bruker folder in acquisition order without constructing an extractor. They are the names the constructor accepts as `channel_name`.
-* Imaging extractors now have a `metadata` attribute, a `Metadata` dataclass with NWB field names, which leaves as `None` the fields the format does not record and keeps the values specific to a format in `extra_metadata`. No extractor fills it yet, so it is empty except on `Hdf5ImagingExtractor`. The views from `slice_samples()`, `slice_field_of_view()` and `select_plane()` have the metadata of their parent. `ImagingExtractorTestMixin` now checks both.
+* Imaging extractors now have a `metadata` attribute, a `Metadata` dataclass with NWB field names and the unit at the end of the name of each field that has one (`grid_spacing_um`), which leaves as `None` the fields the format does not record and keeps the values specific to a format in `extra_metadata`. No extractor fills it yet, so it is empty except on `Hdf5ImagingExtractor`. The views from `slice_samples()`, `slice_field_of_view()` and `select_plane()` have the metadata of their parent. `ImagingExtractorTestMixin` now checks both.
 
 ### Fixes
 * `slice_samples()` on an imaging extractor now accepts a bound left out and defaults to the start or the end of the parent, as its docstring says, instead of raising `TypeError`. The count of samples was computed before the defaults were applied.

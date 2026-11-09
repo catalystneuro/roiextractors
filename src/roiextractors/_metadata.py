@@ -19,7 +19,12 @@ class Metadata:
     with little renaming. Every field is optional: an extractor fills the fields its format records and leaves the
     others as `None`. Format-specific values that have no field go in `extra_metadata`.
 
-    Some fields are always `None` from an extractor because no format records them: `excitation_lambda`,
+    A field with a unit has the unit at the end of its name, in a size that keeps the values readable: `_um` for
+    micrometers, `_nm` for nanometers, `_mm` for millimeters, `_g` for grams, `_mW` for milliwatts and `_mW_per_mm2`
+    for milliwatts per square millimeter. Times are in seconds and rates in Hz, as in the rest of roiextractors, and
+    their names have no unit.
+
+    Some fields are always `None` from an extractor because no format records them: `excitation_lambda_nm`,
     `indicator`, `location`, `subject_genotype` and `subject_age`. The consumer supplies them.
     """
 
@@ -27,31 +32,29 @@ class Metadata:
     acquisition_datetime: datetime | None = None  # NWB `session_start_time`
 
     # Spatial calibration
-    grid_spacing: list[float] | None = None  # [x, y] or [x, y, z] in `grid_spacing_unit`
-    grid_spacing_unit: str = "micrometers"
-    field_of_view: list[float] | None = None  # [width, height] or [width, height, depth] in meters
-    origin_coords: list[float] | None = None
-    origin_coords_unit: str = "meters"
+    grid_spacing_um: list[float] | None = None  # [x, y] or [x, y, z]
+    field_of_view_um: list[float] | None = None  # [width, height] or [width, height, depth]
+    origin_coords_um: list[float] | None = None
     reference_frame: str | None = None
 
     # Imaging plane (NWB ImagingPlane)
     imaging_plane_name: str | None = None
     imaging_plane_description: str | None = None
-    excitation_lambda: float | None = None  # nm
+    excitation_lambda_nm: float | None = None
     indicator: str | None = None  # for example "GCaMP6s"
     location: str | None = None  # brain region, for example "V1"
 
     # Channel, the one the extractor reads
     channel_name: str | None = None
     channel_description: str | None = None
-    emission_lambda: float | None = None  # nm
+    emission_lambda_nm: float | None = None
 
     # Photon series (NWB OnePhotonSeries or TwoPhotonSeries)
     photon_series_type: str | None = None  # "OnePhotonSeries" or "TwoPhotonSeries"
     pmt_gain: float | None = None
     scan_line_rate: float | None = None  # Hz
     exposure_time: float | None = None  # seconds
-    power: float | None = None  # mW
+    power_mW: float | None = None
     binning: int | None = None
     frames_per_slice: int | None = None
 
@@ -65,17 +68,17 @@ class Metadata:
     device_software_version: str | None = None
 
     # One-photon miniscopes
-    microscope_focus: float | None = None  # micrometers
+    microscope_focus_um: float | None = None
     microscope_gain: float | None = None  # LED or camera gain, distinct from `pmt_gain`
-    led_power_excitation: float | None = None  # mW/mm^2
-    led_power_orange_green: float | None = None  # mW/mm^2
+    led_power_excitation_mW_per_mm2: float | None = None
+    led_power_orange_green_mW_per_mm2: float | None = None
 
     # Objective
     objective_magnification: float | None = None
     objective_numerical_aperture: float | None = None
     objective_immersion: str | None = None  # for example "Air", "Water", "Oil"
     objective_correction: str | None = None  # for example "Achromatic", "PlanFluor"
-    objective_working_distance: float | None = None  # mm
+    objective_working_distance_mm: float | None = None
 
     # Subject
     subject_id: str | None = None
@@ -84,7 +87,7 @@ class Metadata:
     subject_sex: str | None = None  # "M", "F", "U" or "O", as in NWB
     subject_age: str | None = None  # ISO 8601 duration, for example "P60D"
     subject_genotype: str | None = None
-    subject_weight: float | None = None  # grams
+    subject_weight_g: float | None = None
     subject_date_of_birth: datetime | None = None
     subject_description: str | None = None
 
@@ -97,7 +100,7 @@ class Metadata:
     extra_metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_populated_dict(self, *, include_extra: bool = True) -> dict[str, Any]:
-        """Return the fields that are set, skipping those left at their default.
+        """Return the fields that are not `None`.
 
         Parameters
         ----------
@@ -115,9 +118,6 @@ class Metadata:
                 continue
             value = getattr(self, metadata_field.name)
             if value is None:
-                continue
-            # The units default to a string
-            if metadata_field.default is not None and value == metadata_field.default:
                 continue
             populated_metadata[metadata_field.name] = value
         if include_extra and self.extra_metadata:
