@@ -2,6 +2,7 @@
 
 ### Features
 * Added `BrukerTiffImagingExtractor.get_available_channel_names()`, which returns the channel names of a Bruker folder in acquisition order without constructing an extractor. They are the names the constructor accepts as `channel_name`.
+* Imaging extractors now have a `metadata` attribute, a `Metadata` dataclass with NWB field names and the unit at the end of the name of each field that has one (`grid_spacing_um`), which leaves as `None` the fields the format does not record and keeps the values specific to a format in `extra_metadata`. No extractor fills it yet, so it is empty except on `Hdf5ImagingExtractor`. The views from `slice_samples()`, `slice_field_of_view()` and `select_plane()` have the metadata of their parent. `ImagingExtractorTestMixin` now checks both.
 
 ### Fixes
 * `slice_samples()` on an imaging extractor now accepts a bound left out and defaults to the start or the end of the parent, as its docstring says, instead of raising `TypeError`. The count of samples was computed before the defaults were applied.
@@ -26,6 +27,7 @@
 * `ScanImageImagingExtractor` now opens files from ScanImage versions before 2019b. It read `SI.hStackManager.enable`, a field these headers do not have, and raised `KeyError` on all of them. For these files a fast z volume now comes from the `hFastZ` fields, with the frames per volume without the flyback frames as its planes, since `numSlices` is not the number of planes when the z positions are arbitrary, and a stack without fast z comes from `numSlices`.
 
 ### Deprecations And Removals
+* `Hdf5ImagingExtractor.metadata` is now the `Metadata` of the other imaging extractors. The dictionary it held, from the `metadata` argument or the `metadata` attribute of the dataset, is now in `metadata.extra_metadata["hdf5_user_metadata"]`.
 * Dropped support for Python 3.10, which `neuroconv` no longer supports. The minimum supported version is now Python 3.11. [PR #627](https://github.com/catalystneuro/roiextractors/pull/627)
 * Removed `sample_indices_to_time()` from `MinianSegmentationExtractor`, deprecated for removal on or after July 2026. Use `get_timestamps()` instead.
 * Removed `get_channel_names()` from `TiffImagingExtractor` and `MemmapImagingExtractor`, deprecated for removal in or after October 2026. They were the last extractors with it.

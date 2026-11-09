@@ -8,11 +8,13 @@ ImagingExtractor
 
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from functools import cached_property
 from math import prod
 
 import numpy as np
 from numpy.typing import ArrayLike
 
+from ._metadata import Metadata
 from .core_utils import _convert_bytes_to_str, _convert_seconds_to_str
 
 
@@ -189,6 +191,18 @@ class ImagingExtractor(ABC):
             Data type of the video.
         """
         return self.get_series(start_sample=0, end_sample=2).dtype
+
+    @cached_property
+    def metadata(self) -> Metadata:
+        """The metadata of the recording, with `None` in the fields the format does not record.
+
+        Returns
+        -------
+        metadata : Metadata
+            The metadata of the recording. The base class returns an empty `Metadata()`, and each extractor fills
+            the fields its format records.
+        """
+        return Metadata()
 
     @abstractmethod
     def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
@@ -602,6 +616,11 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self) -> float:
         return self._parent_imaging.get_sampling_frequency()
 
+    @property
+    def metadata(self) -> Metadata:
+        """The metadata of the parent."""
+        return self._parent_imaging.metadata
+
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
 
@@ -802,6 +821,11 @@ class _FieldOfViewSlicedImagingExtractor(ImagingExtractor):
             Sampling frequency in Hz.
         """
         return self._parent_imaging.get_sampling_frequency()
+
+    @property
+    def metadata(self) -> Metadata:
+        """The metadata of the parent."""
+        return self._parent_imaging.metadata
 
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
