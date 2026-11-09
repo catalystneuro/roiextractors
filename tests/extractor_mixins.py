@@ -191,8 +191,8 @@ class ImagingExtractorTestMixin:
         self.extractor.time_to_sample_indices(set_timestamps[1])
         assert_array_equal(self.extractor.get_timestamps(), set_timestamps)
 
-        slice_extractor = self.extractor.slice_samples(start_sample=1, end_sample=3)
-        assert_array_equal(slice_extractor.get_timestamps(), set_timestamps[1:3])
+        slice_extractor = self.extractor.slice_samples(start_sample=1, end_sample=self.expected_num_samples)
+        assert_array_equal(slice_extractor.get_timestamps(), set_timestamps[1:])
 
     def test_slice_samples(self, setup_extractor):
         """`slice_samples()` returns the samples and the timestamps of the same range of the parent.

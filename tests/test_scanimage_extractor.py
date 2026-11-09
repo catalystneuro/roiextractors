@@ -2199,3 +2199,105 @@ class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtrac
         ]
         expected_series = read_scanimage_pages(file_paths, page_indices)
         assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
+
+
+# Headers before 2019b have no `hStackManager.enable`, so the extractor reads their stack settings from `hFastZ`
+SCANIMAGE_FORMAT_3_PATH = SCANIMAGE_PATH / "tiff_format_version_3"
+
+
+class TestScanImageImagingExtractorPlanarVersion2017b(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_FORMAT_3_PATH / "planar" / "single_channel_resonant_version_2017b" / "planar_00002.tif"
+    )
+    expected_num_samples = 10
+    expected_sample_shape = (64, 64)
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1"]
+    # frameTimestamps_sec of pages 0 to 2
+    expected_native_timestamps = [0.0, 0.033316935, 0.06663381]
+    expected_sampling_frequency = 30.0321  # scanFrameRate, with logAverageFactor 1
+
+    def check_series(self, series):
+        """Sample `sample` is page `sample`: one channel and one plane."""
+        file_paths = [self.extractor_kwargs["file_path"]]
+        page_indices = list(range(self.expected_num_samples))
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, expected_series)
+
+
+class TestScanImageImagingExtractorFastZOneFramePerVolumeVersion2019a(ImagingExtractorTestMixin):
+    """A planar recording with fast z enabled, at one arbitrary depth (`hFastZ.userZs` 170) and `numSlices` 10."""
+
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_FORMAT_3_PATH
+        / "planar"
+        / "fast_z_enabled_one_frame_per_volume_version_2019a"
+        / "planar_00001.tif"
+    )
+    expected_num_samples = 10
+    expected_sample_shape = (64, 64)  # hFastZ.numFramesPerVolume is 1
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1"]
+    # frameTimestamps_sec of pages 0 to 2
+    expected_native_timestamps = [0.0, 0.020170565, 0.040341]
+    expected_sampling_frequency = 49.5783  # scanFrameRate, with logAverageFactor 1
+
+    def check_series(self, series):
+        """Sample `sample` is page `sample`: one channel and one plane."""
+        file_paths = [self.extractor_kwargs["file_path"]]
+        page_indices = list(range(self.expected_num_samples))
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, expected_series)
+
+
+class TestScanImageImagingExtractorFastZVolumeVersion2016b(ImagingExtractorTestMixin):
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_FORMAT_3_PATH
+        / "volumetric"
+        / "single_channel_resonant_version_2016b"
+        / "volume_00001_00001.tif"
+    )
+    expected_num_samples = 2  # 12 pages / 6 planes
+    expected_sample_shape = (64, 64, 6)  # hFastZ.numFramesPerVolume, with no flyback frames
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1"]
+    # frameTimestamps_sec of page 6 * sample + 5, as ScanImage gives a volume the time of its last plane
+    expected_native_timestamps = [0.08579595, 0.188751]
+    # frameTimestamps_sec of page 6 * sample + plane, a list per plane
+    expected_plane_native_timestamps = [
+        [0.0, 0.1029551],
+        [0.0171592, 0.1201143],
+        [0.0343184, 0.13727345],
+        [0.05147755, 0.15443265],
+        [0.06863675, 0.17159185],
+        [0.08579595, 0.188751],
+    ]
+    expected_sampling_frequency = 9.71251  # scanVolumeRate
+
+    def check_series(self, series):
+        """Plane `plane` of sample `sample` is page `6 * sample + plane`: one channel and 6 planes per volume."""
+        file_paths = [self.extractor_kwargs["file_path"]]
+        page_indices = [[6 * sample + plane for plane in range(6)] for sample in range(self.expected_num_samples)]
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
+
+
+def test_slow_stack_version_2017b():
+    """A 2017b stack without fast z has the planes of `numSlices`, 17, of 6 frames each in one volume of 102 pages."""
+    file_path = (
+        SCANIMAGE_FORMAT_3_PATH
+        / "multiple_frames_per_slice"
+        / "frames_saved_resonant_version_2017b"
+        / "stack_00001.tif"
+    )
+    extractor = ScanImageImagingExtractor(file_path=file_path, slice_sample=0)
+    assert extractor.get_sample_shape() == (64, 64, 17)
+    assert extractor.get_num_samples() == 1
+    assert extractor.get_sampling_frequency() == 1.76659  # scanVolumeRate
+    # Plane `plane` is page `6 * plane`, the first of its 6 frames
+    page_indices = [[6 * plane for plane in range(17)]]
+    expected_series = read_scanimage_pages([file_path], page_indices)
+    assert_array_equal(extractor.get_series(), np.moveaxis(expected_series, 1, -1))
