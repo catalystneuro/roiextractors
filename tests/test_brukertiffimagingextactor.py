@@ -293,9 +293,10 @@ class TestBrukerTiffImagingExtractorSinglePlane(ImagingExtractorTestMixin):
     # PVStateShard, the state at the start of the recording
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2023, 2, 20, 15, 58, 25),  # date="2/20/2023 3:58:25 PM"
-        grid_spacing_um=[1.1078125, 1.1078125],  # micronsPerPixel YAxis and XAxis, as the rows run along Y
-        # micronsPerPixel YAxis times linesPerFrame and XAxis times pixelsPerLine
-        field_of_view_um=[1.1078125 * 64, 1.1078125 * 64],
+        pixel_height_um=1.1078125,  # micronsPerPixel YAxis, as the rows run along Y
+        pixel_width_um=1.1078125,  # micronsPerPixel XAxis
+        field_of_view_height_um=1.1078125 * 64,  # times linesPerFrame
+        field_of_view_width_um=1.1078125 * 64,  # times pixelsPerLine
         channel_name="Ch2",  # channelName of the File elements of the channel
         scan_line_rate=1 / 6.3129e-05,  # 1 / scanLinePeriod
         pmt_high_voltage_V=700.0,  # pmtGain IndexedValue 1, "PMT 2 HV (Green)", as the channel is Ch2
@@ -398,9 +399,10 @@ class TestBrukerTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     # PVStateShard, the state at the start of the recording
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2022, 11, 3, 11, 20, 34),  # date="11/3/2022 11:20:34 AM"
-        grid_spacing_um=[260.0, 1.1078125, 1.1078125],  # micronsPerPixel ZAxis, YAxis and XAxis
-        # the distance between the two planes, and micronsPerPixel times linesPerFrame and pixelsPerLine
-        field_of_view_um=[260.0, 1.1078125 * 64, 1.1078125 * 64],
+        pixel_height_um=1.1078125,  # micronsPerPixel YAxis, as the rows run along Y
+        pixel_width_um=1.1078125,  # micronsPerPixel XAxis
+        field_of_view_height_um=1.1078125 * 64,  # times linesPerFrame
+        field_of_view_width_um=1.1078125 * 64,  # times pixelsPerLine
         # positionCurrent ZAxis of zDevice 1, the Optotune ETL, in the frames of the first Sequence (-130 and 130),
         # minus that of the first plane
         plane_z_offsets_um=[0.0, 260.0],
@@ -464,10 +466,11 @@ class TestBrukerTiffImagingExtractorDualChannel(ImagingExtractorTestMixin):
     # PVStateShard, the state at the start of the recording
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2024, 5, 27, 19, 26, 53),  # date="5/27/2024 7:26:53 PM"
-        # micronsPerPixel YAxis and XAxis, as the rows run along Y and the pixels are not square here
-        grid_spacing_um=[1.12940008341084, 1.12455979733908],
-        # micronsPerPixel YAxis times linesPerFrame and XAxis times pixelsPerLine
-        field_of_view_um=[1.12940008341084 * 64, 1.12455979733908 * 64],
+        # The pixels are not square here
+        pixel_height_um=1.12940008341084,  # micronsPerPixel YAxis, as the rows run along Y
+        pixel_width_um=1.12455979733908,  # micronsPerPixel XAxis
+        field_of_view_height_um=1.12940008341084 * 64,  # times linesPerFrame
+        field_of_view_width_um=1.12455979733908 * 64,  # times pixelsPerLine
         excitation_wavelength_nm=920.0,  # laserWavelength, the only laser listed
         channel_name="Green",  # channelName of the File elements of the channel
         scan_line_rate=1 / 6.3156e-05,  # 1 / scanLinePeriod
@@ -557,9 +560,10 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion(ImagingExtractor
     # PVStateShard, the state at the start of the recording
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2023, 7, 6, 15, 13, 58),  # date="7/6/2023 3:13:58 PM"
-        grid_spacing_um=[1.1078125, 1.1078125],  # micronsPerPixel YAxis and XAxis, as the rows run along Y
-        # micronsPerPixel YAxis times linesPerFrame and XAxis times pixelsPerLine
-        field_of_view_um=[1.1078125 * 512, 1.1078125 * 512],
+        pixel_height_um=1.1078125,  # micronsPerPixel YAxis, as the rows run along Y
+        pixel_width_um=1.1078125,  # micronsPerPixel XAxis
+        field_of_view_height_um=1.1078125 * 512,  # times linesPerFrame
+        field_of_view_width_um=1.1078125 * 512,  # times pixelsPerLine
         channel_name="Ch1",  # channelName of the File elements of the channel
         scan_line_rate=1 / 6.3149e-05,  # 1 / scanLinePeriod
         pmt_high_voltage_V=750.0,  # pmtGain IndexedValue 0, "PMT 1 HV (Red)", as the channel is Ch1
@@ -620,12 +624,10 @@ class TestBrukerTiffImagingExtractorMultiSequenceBOT(ImagingExtractorTestMixin):
     # PVStateShard, the state at the start of the recording
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2026, 2, 16, 16, 2, 24),  # date="2/16/2026 4:02:24 PM"
-        grid_spacing_um=[
-            1.18257990213313,
-            1.18257990213313,
-        ],  # micronsPerPixel YAxis and XAxis, as the rows run along Y
-        # micronsPerPixel YAxis times linesPerFrame and XAxis times pixelsPerLine
-        field_of_view_um=[1.18257990213313 * 64, 1.18257990213313 * 64],
+        pixel_height_um=1.18257990213313,  # micronsPerPixel YAxis, as the rows run along Y
+        pixel_width_um=1.18257990213313,  # micronsPerPixel XAxis
+        field_of_view_height_um=1.18257990213313 * 64,  # times linesPerFrame
+        field_of_view_width_um=1.18257990213313 * 64,  # times pixelsPerLine
         excitation_wavelength_nm=940.0,  # laserWavelength, the only laser listed
         channel_name="Ch2",  # channelName of the File elements of the channel
         scan_line_rate=1 / 6.3124e-05,  # 1 / scanLinePeriod
@@ -700,12 +702,10 @@ class TestBrukerTiffImagingExtractorMultiSequenceTimedElement(ImagingExtractorTe
     # PVStateShard, the state at the start of the recording
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2024, 8, 16, 19, 19, 19),  # date="8/16/2024 7:19:19 PM"
-        grid_spacing_um=[
-            0.444333610689182,
-            0.444333610689182,
-        ],  # micronsPerPixel YAxis and XAxis, as the rows run along Y
-        # micronsPerPixel YAxis times linesPerFrame and XAxis times pixelsPerLine
-        field_of_view_um=[0.444333610689182 * 64, 0.444333610689182 * 64],
+        pixel_height_um=0.444333610689182,  # micronsPerPixel YAxis, as the rows run along Y
+        pixel_width_um=0.444333610689182,  # micronsPerPixel XAxis
+        field_of_view_height_um=0.444333610689182 * 64,  # times linesPerFrame
+        field_of_view_width_um=0.444333610689182 * 64,  # times pixelsPerLine
         excitation_wavelength_nm=930.0,  # laserWavelength, the only laser listed
         channel_name="Ch2",  # channelName of the File elements of the channel
         scan_line_rate=1 / 6.3144e-05,  # 1 / scanLinePeriod

@@ -1,5 +1,6 @@
 import re
 import shutil
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -1844,7 +1845,18 @@ class TestScanImageImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin
     # frameTimestamps_sec of pages 0 to 2
     expected_native_timestamps = [0.45951611, 0.98468446, 1.50985974]
     expected_sampling_frequency = 15.2379 / 8  # scanFrameRate / logAverageFactor, each frame is the mean of 8 scans
-    expected_metadata = {}
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2022, 8, 8, 16, 44, 29, 124000),  # epoch = [2022  8  8 16 44 29.124]
+        # imagingFovUm has its corners at ±135 µm in x and y, over linesPerFrame and pixelsPerLine 1024
+        pixel_height_um=270.0 / 1024,
+        pixel_width_um=270.0 / 1024,
+        field_of_view_height_um=270.0,
+        field_of_view_width_um=270.0,
+        channel_name="Channel 1",
+        scan_line_rate=1 / 6.31018e-05,  # 1 / linePeriod
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2022.0.0",  # VERSION_MAJOR, VERSION_MINOR and VERSION_UPDATE
+    )
 
     def check_series(self, series):
         """Sample `sample` is page `sample`: one channel and one plane, each page a saved frame."""
@@ -1867,7 +1879,18 @@ class TestScanImageImagingExtractorPlanarTwoChannels(ImagingExtractorTestMixin):
     # frameTimestamps_sec of pages 0, 2 and 4, the frames of Channel 1
     expected_native_timestamps = [0.0, 0.001908475, 0.003816975]
     expected_sampling_frequency = 523.926  # scanFrameRate
-    expected_metadata = {}
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2025, 4, 24, 16, 45, 17, 788000),  # epoch = [2025  4 24 16 45 17.788]
+        # imagingFovUm has its corners at ±8.4375 µm in x and y, over linesPerFrame and pixelsPerLine 20
+        pixel_height_um=16.875 / 20,
+        pixel_width_um=16.875 / 20,
+        field_of_view_height_um=16.875,
+        field_of_view_width_um=16.875,
+        channel_name="Channel 1",
+        scan_line_rate=1 / 4.14927e-05,  # 1 / linePeriod
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2021.0.0",  # VERSION_MAJOR, VERSION_MINOR and VERSION_UPDATE
+    )
 
     def check_series(self, series):
         """Sample `sample` is page `2 * sample + channel`, the two channels saved in turn."""
@@ -1891,7 +1914,18 @@ class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
     # frameTimestamps_sec of pages 0, 2 and 4 of the first file, the frames of Channel 1
     expected_native_timestamps = [0.0, 0.01011751, 0.02023502]
     expected_sampling_frequency = 98.83842317607626  # scanFrameRate
-    expected_metadata = {}
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2024, 3, 26, 15, 7, 53, 110000),  # epoch = [2024  3 26 15  7 53.110]
+        # imagingFovUm has its corners at ±135 µm in x and y, over linesPerFrame and pixelsPerLine 512
+        pixel_height_um=270.0 / 512,
+        pixel_width_um=270.0 / 512,
+        field_of_view_height_um=270.0,
+        field_of_view_width_um=270.0,
+        channel_name="Channel 1",
+        scan_line_rate=1 / 1.775004e-05,  # 1 / linePeriod
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2023.1.0",  # VERSION_MAJOR, VERSION_MINOR and VERSION_UPDATE
+    )
 
     def check_series(self, series):
         """Sample `sample` is page `2 * sample + channel` across the 3 files, the two channels saved in turn."""
@@ -1928,7 +1962,30 @@ class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorT
         [0.01526797, 0.04580384, 0.07633974],
     ]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
-    expected_metadata = {}
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2025, 4, 24, 16, 43, 17, 176000),  # epoch = [2025  4 24 16 43 17.176]
+        # imagingFovUm has its corners at ±8.4375 µm in x and y, over linesPerFrame and pixelsPerLine 20
+        pixel_height_um=16.875 / 20,
+        pixel_width_um=16.875 / 20,
+        field_of_view_height_um=16.875,
+        field_of_view_width_um=16.875,
+        plane_z_offsets_um=[
+            0.0,
+            2.0,
+            4.0,
+            6.0,
+            8.0,
+            10.0,
+            12.0,
+            14.0,
+            16.0,
+        ],  # zs = [92 94 ... 108], minus the first plane
+        channel_name="Channel 1",
+        scan_line_rate=1 / 4.14927e-05,  # 1 / linePeriod
+        frames_per_slice=1,  # framesPerSlice
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2021.0.0",  # VERSION_MAJOR, VERSION_MINOR and VERSION_UPDATE
+    )
 
     def test_num_flyback_frames_per_channel(self, setup_extractor):
         """`num_flyback_frames_per_channel` is the 7 of `SI.hFastZ.numDiscardFlybackFrames` in the header."""
@@ -1968,7 +2025,30 @@ class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTes
         [0.015268365, 0.03244526, 0.049622125],
     ]
     expected_sampling_frequency = 8.86703  # scanVolumeRate
-    expected_metadata = {}
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2025, 4, 30, 14, 51, 53, 601000),  # epoch = [2025  4 30 14 51 53.601]
+        # imagingFovUm has its corners at ±8.4375 µm in x and y, over linesPerFrame and pixelsPerLine 20
+        pixel_height_um=16.875 / 20,
+        pixel_width_um=16.875 / 20,
+        field_of_view_height_um=16.875,
+        field_of_view_width_um=16.875,
+        plane_z_offsets_um=[
+            0.0,
+            2.0,
+            4.0,
+            6.0,
+            8.0,
+            10.0,
+            12.0,
+            14.0,
+            16.0,
+        ],  # zs = [92 94 ... 108], minus the first plane
+        channel_name="Channel 1",
+        scan_line_rate=1 / 4.14927e-05,  # 1 / linePeriod
+        frames_per_slice=1,  # framesPerSlice
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2021.0.0",  # VERSION_MAJOR, VERSION_MINOR and VERSION_UPDATE
+    )
 
     def check_series(self, series):
         """Plane `plane` of sample `sample` is page `9 * sample + plane`: 9 planes and no flyback frames per volume."""
@@ -2005,7 +2085,30 @@ class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin
         [0.015267965, 0.045803895, 0.076339795],
     ]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
-    expected_metadata = {}
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2025, 4, 24, 16, 43, 57, 206000),  # epoch = [2025  4 24 16 43 57.206]
+        # imagingFovUm has its corners at ±8.4375 µm in x and y, over linesPerFrame and pixelsPerLine 20
+        pixel_height_um=16.875 / 20,
+        pixel_width_um=16.875 / 20,
+        field_of_view_height_um=16.875,
+        field_of_view_width_um=16.875,
+        plane_z_offsets_um=[
+            0.0,
+            2.0,
+            4.0,
+            6.0,
+            8.0,
+            10.0,
+            12.0,
+            14.0,
+            16.0,
+        ],  # zs = [92 94 ... 108], minus the first plane
+        channel_name="Channel 1",
+        scan_line_rate=1 / 4.14927e-05,  # 1 / linePeriod
+        frames_per_slice=1,  # framesPerSlice
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2021.0.0",  # VERSION_MAJOR, VERSION_MINOR and VERSION_UPDATE
+    )
 
     def test_num_flyback_frames_per_channel(self, setup_extractor):
         """`num_flyback_frames_per_channel` is the 7 of `SI.hFastZ.numDiscardFlybackFrames` in the header."""
@@ -2048,7 +2151,30 @@ class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMix
         [0.015267895, 0.045803725, 0.07633955],
     ]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
-    expected_metadata = {}
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2025, 4, 24, 16, 42, 7, 107000),  # epoch = [2025  4 24 16 42 7.107]
+        # imagingFovUm has its corners at ±8.4375 µm in x and y, over linesPerFrame and pixelsPerLine 20
+        pixel_height_um=16.875 / 20,
+        pixel_width_um=16.875 / 20,
+        field_of_view_height_um=16.875,
+        field_of_view_width_um=16.875,
+        plane_z_offsets_um=[
+            0.0,
+            2.0,
+            4.0,
+            6.0,
+            8.0,
+            10.0,
+            12.0,
+            14.0,
+            16.0,
+        ],  # zs = [92 94 ... 108], minus the first plane
+        channel_name="Channel 1",
+        scan_line_rate=1 / 4.14927e-05,  # 1 / linePeriod
+        frames_per_slice=1,  # framesPerSlice
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2021.0.0",  # VERSION_MAJOR, VERSION_MINOR and VERSION_UPDATE
+    )
 
     def check_series(self, series):
         """Plane `plane` of sample `sample` is page `2 * (16 * sample + plane) + channel`.
@@ -2092,7 +2218,30 @@ class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtract
         [0.015267895, 0.045803655, 0.076339445],
     ]
     expected_sampling_frequency = 32.7454  # scanVolumeRate
-    expected_metadata = {}
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2025, 4, 24, 16, 41, 20, 802000),  # epoch = [2025  4 24 16 41 20.802]
+        # imagingFovUm has its corners at ±8.4375 µm in x and y, over linesPerFrame and pixelsPerLine 20
+        pixel_height_um=16.875 / 20,
+        pixel_width_um=16.875 / 20,
+        field_of_view_height_um=16.875,
+        field_of_view_width_um=16.875,
+        plane_z_offsets_um=[
+            0.0,
+            2.0,
+            4.0,
+            6.0,
+            8.0,
+            10.0,
+            12.0,
+            14.0,
+            16.0,
+        ],  # zs = [92 94 ... 108], minus the first plane
+        channel_name="Channel 1",
+        scan_line_rate=1 / 4.14927e-05,  # 1 / linePeriod
+        frames_per_slice=1,  # framesPerSlice
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2021.0.0",  # VERSION_MAJOR, VERSION_MINOR and VERSION_UPDATE
+    )
 
     def check_series(self, series):
         """Plane `plane` of sample `sample` is page `2 * (16 * sample + plane) + channel`, numbered across the 10 files.
@@ -2123,7 +2272,20 @@ class TestScanImageImagingExtractorSinglePlaneOfVolume(ImagingExtractorTestMixin
     # frameTimestamps_sec of page 16 * sample, the frames of plane 0
     expected_native_timestamps = [0.0, 0.03053587, 0.061071805]
     expected_sampling_frequency = 32.7454  # scanVolumeRate, a plane is sampled once per volume
-    expected_metadata = {}
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2025, 4, 24, 16, 43, 17, 176000),  # epoch = [2025  4 24 16 43 17.176]
+        # imagingFovUm has its corners at ±8.4375 µm in x and y, over linesPerFrame and pixelsPerLine 20
+        pixel_height_um=16.875 / 20,
+        pixel_width_um=16.875 / 20,
+        field_of_view_height_um=16.875,
+        field_of_view_width_um=16.875,
+        plane_z_offsets_um=[0.0],  # the first plane of zs = [92 94 ... 108]
+        channel_name="Channel 1",
+        scan_line_rate=1 / 4.14927e-05,  # 1 / linePeriod
+        frames_per_slice=1,  # framesPerSlice
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2021.0.0",  # VERSION_MAJOR, VERSION_MINOR and VERSION_UPDATE
+    )
 
     def check_series(self, series):
         """Sample `sample` is page `16 * sample`, plane 0 of a volume of 9 planes and 7 flyback frames."""
@@ -2153,7 +2315,23 @@ class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixi
         [0.83110185, 1.7825946, 3.69864715],
     ]
     expected_sampling_frequency = 14.5517  # scanVolumeRate
-    expected_metadata = {}
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2023, 9, 22, 12, 46, 9, 383000),  # epoch = [2023  9 22 12 46 9.383]
+        # imagingFovUm has its corners at ±2151.11 µm in x and y, over linesPerFrame and pixelsPerLine 256
+        pixel_height_um=4302.22 / 256,
+        pixel_width_um=4302.22 / 256,
+        field_of_view_height_um=4302.22,
+        field_of_view_width_um=4302.22,
+        plane_z_offsets_um=[
+            0.0,
+            1.0,
+        ],  # zs = [-11179.5 -11179.5 -11178.5 -11178.5], a position for each of the 2 frames of a slice, minus the first plane
+        channel_name="Channel 1",
+        scan_line_rate=1 / 6.31623e-05,  # 1 / linePeriod
+        frames_per_slice=2,  # framesPerSlice
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2023.0.0",  # VERSION_MAJOR, VERSION_MINOR and VERSION_UPDATE
+    )
 
     def check_series(self, series):
         """Plane `plane` of sample `sample` is page `8 * sample + 4 * plane + channel`, the first frame of the plane.
@@ -2193,7 +2371,23 @@ class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtrac
     ]
     # scanVolumeRate, best effort: the interleaved samples are unevenly spaced, so no single rate describes them
     expected_sampling_frequency = 14.5517
-    expected_metadata = {}
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2023, 9, 22, 12, 46, 9, 383000),  # epoch = [2023  9 22 12 46 9.383]
+        # imagingFovUm has its corners at ±2151.11 µm in x and y, over linesPerFrame and pixelsPerLine 256
+        pixel_height_um=4302.22 / 256,
+        pixel_width_um=4302.22 / 256,
+        field_of_view_height_um=4302.22,
+        field_of_view_width_um=4302.22,
+        plane_z_offsets_um=[
+            0.0,
+            1.0,
+        ],  # zs = [-11179.5 -11179.5 -11178.5 -11178.5], a position for each of the 2 frames of a slice, minus the first plane
+        channel_name="Channel 1",
+        scan_line_rate=1 / 6.31623e-05,  # 1 / linePeriod
+        frames_per_slice=2,  # framesPerSlice
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2023.0.0",  # VERSION_MAJOR, VERSION_MINOR and VERSION_UPDATE
+    )
 
     def check_series(self, series):
         """Plane `plane` of sample `sample` is page `8 * volume + 4 * plane + 2 * frame + channel`.
@@ -2228,7 +2422,18 @@ class TestScanImageImagingExtractorPlanarVersion2017b(ImagingExtractorTestMixin)
     # frameTimestamps_sec of pages 0 to 2
     expected_native_timestamps = [0.0, 0.033316935, 0.06663381]
     expected_sampling_frequency = 30.0321  # scanFrameRate, with logAverageFactor 1
-    expected_metadata = {}
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2019, 4, 25, 15, 56, 55, 537000),  # epoch = [2019  4 25 15 56 55.537]
+        # imagingFovUm has its corners at ±311.342 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=622.684 / 64,
+        pixel_width_um=622.684 / 64,
+        field_of_view_height_um=622.684,
+        field_of_view_width_um=622.684,
+        channel_name="Channel 1",
+        scan_line_rate=1 / 6.30638e-05,  # 1 / linePeriod
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2017b.1",  # VERSION_MAJOR and VERSION_MINOR, as VERSION_UPDATE was added in 2020
+    )
 
     def check_series(self, series):
         """Sample `sample` is page `sample`: one channel and one plane."""
@@ -2255,7 +2460,18 @@ class TestScanImageImagingExtractorFastZOneFramePerVolumeVersion2019a(ImagingExt
     # frameTimestamps_sec of pages 0 to 2
     expected_native_timestamps = [0.0, 0.020170565, 0.040341]
     expected_sampling_frequency = 49.5783  # scanFrameRate, with logAverageFactor 1
-    expected_metadata = {}
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2021, 6, 23, 20, 35, 13, 509000),  # epoch = [2021  6 23 20 35 13.509]
+        # imagingFovUm has its corners at ±4.5 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=9.0 / 64,
+        pixel_width_um=9.0 / 64,
+        field_of_view_height_um=9.0,
+        field_of_view_width_um=9.0,
+        channel_name="Channel 1",
+        scan_line_rate=1 / 6.30316e-05,  # 1 / linePeriod
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2019a.1",  # VERSION_MAJOR and VERSION_MINOR, as VERSION_UPDATE was added in 2020
+    )
 
     def check_series(self, series):
         """Sample `sample` is page `sample`: one channel and one plane."""
@@ -2289,7 +2505,20 @@ class TestScanImageImagingExtractorFastZVolumeVersion2016b(ImagingExtractorTestM
         [0.08579595, 0.188751],
     ]
     expected_sampling_frequency = 9.71251  # scanVolumeRate
-    expected_metadata = {}
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2018, 12, 17, 14, 11, 16, 12000),  # epoch = [2018 12 17 14 11 16.012]
+        # imagingFovUm has its corners at ±10.9688 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=21.9376 / 64,
+        pixel_width_um=21.9376 / 64,
+        field_of_view_height_um=21.9376,
+        field_of_view_width_um=21.9376,
+        plane_z_offsets_um=[0.0, 3.0, 6.0, 9.0, 12.0, 15.0],  # zs = [42.5 45.5 ... 57.5], minus the first plane
+        channel_name="Channel 1",
+        scan_line_rate=1 / 6.30878e-05,  # 1 / linePeriod
+        frames_per_slice=1,  # framesPerSlice
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2016b.1",  # VERSION_MAJOR and VERSION_MINOR, as VERSION_UPDATE was added in 2020
+    )
 
     def check_series(self, series):
         """Plane `plane` of sample `sample` is page `6 * sample + plane`: one channel and 6 planes per volume."""
@@ -2317,6 +2546,19 @@ class TestScanImageImagingExtractorPlanarChannelsOneAndThreeVersion53(ImagingExt
     # frameTimestamps_sec of pages 1, 3 and 5
     expected_native_timestamps = [0.0, 0.118147, 0.236294]
     expected_sampling_frequency = 8.46402  # scanFrameRate, with logAverageFactor 1
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2020, 1, 27, 15, 25, 47, 67000),  # epoch = [2020,1,27,15,25,47.067]
+        # imagingFovUm has its corners at ±10.8491 µm in y, the rows, and ±21.6982 µm in x, the columns, over
+        # linesPerFrame and pixelsPerLine 64. The pixels are not square
+        pixel_height_um=21.6982 / 64,
+        pixel_width_um=43.3964 / 64,
+        field_of_view_height_um=21.6982,
+        field_of_view_width_um=43.3964,
+        channel_name="Channel 3",
+        scan_line_rate=1 / 0.0009152,  # 1 / linePeriod
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="5.3.0",  # VERSION_MAJOR and VERSION_MINOR
+    )
 
     def check_series(self, series):
         """Sample `sample` of Channel 3 is page `2 * sample + 1`: two channels and one plane."""
@@ -2360,6 +2602,33 @@ class TestScanImageImagingExtractorFastZFlybackTwoChannelsVersion2016b(ImagingEx
         [0.12848931, 0.292021185],
     ]
     expected_sampling_frequency = 6.11546  # scanVolumeRate
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2017, 7, 17, 13, 33, 44, 377000),  # epoch = [2017  7 17 13 33 44.377]
+        # imagingFovUm has its corners at ±27 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=54.0 / 64,
+        pixel_width_um=54.0 / 64,
+        field_of_view_height_um=54.0,
+        field_of_view_width_um=54.0,
+        plane_z_offsets_um=[
+            0.0,
+            4.0,
+            8.0,
+            12.0,
+            16.0,
+            20.0,
+            24.0,
+            28.0,
+            32.0,
+            36.0,
+            40.0,
+            44.0,
+        ],  # zs = [28 32 ... 72], minus the first plane
+        channel_name="Channel 2",
+        scan_line_rate=1 / 4.14163e-05,  # 1 / linePeriod
+        frames_per_slice=1,  # framesPerSlice
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2016b.0",  # VERSION_MAJOR and VERSION_MINOR, as VERSION_UPDATE was added in 2020
+    )
 
     def check_series(self, series):
         """Plane `plane` of sample `sample` of Channel 2 is page `2 * (14 * sample + plane) + 1`.

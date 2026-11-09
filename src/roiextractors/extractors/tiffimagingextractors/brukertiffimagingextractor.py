@@ -369,18 +369,15 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
 
         The values come from the state that Prairie View writes at the start of the recording, the first
         ``PVStateShard``. On volumetric data the z offset of each plane is the position of the z device that moves
-        between planes (``zDevice``) in the frames of the first volume, minus that of the first plane, and the depth of
-        the field of view is the distance between the first and the last plane.
+        between planes (``zDevice``) in the frames of the first volume, minus that of the first plane.
         """
         state = self._xml_root.find("PVStateShard")
 
-        microns_per_pixel_x = float(_read_state_value(state, "micronsPerPixel", index="XAxis"))
-        microns_per_pixel_y = float(_read_state_value(state, "micronsPerPixel", index="YAxis"))
-        num_columns = int(_read_state_value(state, "pixelsPerLine"))
-        num_rows = int(_read_state_value(state, "linesPerFrame"))
         # The rows run along the Y axis and the columns along the X axis
-        grid_spacing_um = [microns_per_pixel_y, microns_per_pixel_x]
-        field_of_view_um = [microns_per_pixel_y * num_rows, microns_per_pixel_x * num_columns]
+        pixel_height_um = float(_read_state_value(state, "micronsPerPixel", index="YAxis"))
+        pixel_width_um = float(_read_state_value(state, "micronsPerPixel", index="XAxis"))
+        num_rows = int(_read_state_value(state, "linesPerFrame"))
+        num_columns = int(_read_state_value(state, "pixelsPerLine"))
 
         plane_z_offsets_um = None
         z_device = _read_state_value(state, "zDevice")
@@ -394,8 +391,6 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
                 float(frame.find(z_device_path).attrib["value"]) for frame in first_sequence.iter("Frame")
             ]
             plane_z_offsets_um = [position - plane_positions_um[0] for position in plane_positions_um]
-            grid_spacing_um.insert(0, float(_read_state_value(state, "micronsPerPixel", index="ZAxis")))
-            field_of_view_um.insert(0, abs(plane_z_offsets_um[-1]))
 
         # Prairie View lists one high voltage for each PMT, and channel N reads PMT N
         channel_numbers = sorted({int(element.attrib["channel"]) for element in self._xml_root.iter("File")})
@@ -412,8 +407,10 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
 
         return Metadata(
             acquisition_start_datetime=datetime.strptime(self._xml_root.attrib["date"], "%m/%d/%Y %I:%M:%S %p"),
-            grid_spacing_um=grid_spacing_um,
-            field_of_view_um=field_of_view_um,
+            pixel_height_um=pixel_height_um,
+            pixel_width_um=pixel_width_um,
+            field_of_view_height_um=pixel_height_um * num_rows,
+            field_of_view_width_um=pixel_width_um * num_columns,
             plane_z_offsets_um=plane_z_offsets_um,
             excitation_wavelength_nm=excitation_wavelength_nm,
             channel_name=self._get_channel_names()[self._channel_index],
