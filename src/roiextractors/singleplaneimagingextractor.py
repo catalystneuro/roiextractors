@@ -7,10 +7,12 @@ _SinglePlaneImagingExtractor
     Use ``ImagingExtractor.select_plane(...)`` to construct one.
 """
 
+from functools import cached_property
+
 import numpy as np
 from numpy.typing import ArrayLike
 
-from ._metadata import Metadata
+from ._metadata import Metadata, _get_plane_metadata
 from .imagingextractor import ImagingExtractor
 
 
@@ -102,10 +104,10 @@ class _SinglePlaneImagingExtractor(ImagingExtractor):
         """Get the sampling frequency (delegates to parent)."""
         return self._parent_imaging.get_sampling_frequency()
 
-    @property
-    def metadata(self) -> Metadata:
-        """The metadata of the parent."""
-        return self._parent_imaging.metadata
+    @cached_property
+    def _unified_metadata(self) -> Metadata:
+        """The metadata of the parent, with the z offset of the selected plane."""
+        return _get_plane_metadata(self._parent_imaging._unified_metadata, plane_index=self._plane_index)
 
     def get_dtype(self) -> np.dtype:
         """Get the data type of the video (delegates to parent)."""

@@ -1,5 +1,6 @@
 import shutil
 import tempfile
+from datetime import datetime
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -288,6 +289,23 @@ class TestBrukerTiffImagingExtractorSinglePlane(ImagingExtractorTestMixin):
     # relativeTime of the first frames in the XML
     expected_native_timestamps = [0.0, 0.033474224, 0.066948448]
     expected_sampling_frequency = 1 / 0.033474224  # the interval between frames in the relativeTime of the XML
+    # From the XML: the attributes of its root, the SystemID of SystemIDs, and the PVStateValue elements of its first
+    # PVStateShard, the state at the start of the recording
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2023, 2, 20, 15, 58, 25),  # date="2/20/2023 3:58:25 PM"
+        grid_spacing_um=[1.1078125, 1.1078125],  # micronsPerPixel YAxis and XAxis, as the rows run along Y
+        # micronsPerPixel YAxis times linesPerFrame and XAxis times pixelsPerLine
+        field_of_view_um=[1.1078125 * 64, 1.1078125 * 64],
+        channel_name="Ch2",  # channelName of the File elements of the channel
+        scan_line_rate=1 / 6.3129e-05,  # 1 / scanLinePeriod
+        pmt_high_voltage_V=700.0,  # pmtGain IndexedValue 1, "PMT 2 HV (Green)", as the channel is Ch2
+        microscope_manufacturer="Bruker",
+        microscope_serial_number="E8D0-2F5E-B967-36D1-3CA0-8C25-681B-CEF3",  # SystemID
+        acquisition_software_name="Prairie View",
+        acquisition_software_version="5.6.64.400",  # version
+        objective_magnification=16.0,  # objectiveLensMag
+        objective_numerical_aperture=0.8,  # objectiveLensNA
+    )
 
     def check_series(self, series):
         """The samples are the frames of the channel in the order of the XML, one file for each frame."""
@@ -376,6 +394,26 @@ class TestBrukerTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
         [0.048474237, 0.145422711, 0.242371185],
     ]
     expected_sampling_frequency = 1 / 0.096948474  # the interval between volumes in the relativeTime of the XML
+    # From the XML: the attributes of its root, the SystemID of SystemIDs, and the PVStateValue elements of its first
+    # PVStateShard, the state at the start of the recording
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2022, 11, 3, 11, 20, 34),  # date="11/3/2022 11:20:34 AM"
+        grid_spacing_um=[260.0, 1.1078125, 1.1078125],  # micronsPerPixel ZAxis, YAxis and XAxis
+        # the distance between the two planes, and micronsPerPixel times linesPerFrame and pixelsPerLine
+        field_of_view_um=[260.0, 1.1078125 * 64, 1.1078125 * 64],
+        # positionCurrent ZAxis of zDevice 1, the Optotune ETL, in the frames of the first Sequence (-130 and 130),
+        # minus that of the first plane
+        plane_z_offsets_um=[0.0, 260.0],
+        channel_name="Ch2",  # channelName of the File elements of the channel
+        scan_line_rate=1 / 6.3123e-05,  # 1 / scanLinePeriod
+        pmt_high_voltage_V=700.0,  # pmtGain IndexedValue 1, "PMT 2 HV (Green)", as the channel is Ch2
+        microscope_manufacturer="Bruker",
+        microscope_serial_number="E8D0-2F5E-B967-36D1-3CA0-8C25-681B-CEF3",  # SystemID
+        acquisition_software_name="Prairie View",
+        acquisition_software_version="5.6.64.400",  # version
+        objective_magnification=16.0,  # objectiveLensMag
+        objective_numerical_aperture=0.8,  # objectiveLensNA
+    )
 
     def check_series(self, series):
         """Each `Sequence` of the XML is a sample and each of its frames a plane, one file for each frame."""
@@ -422,6 +460,25 @@ class TestBrukerTiffImagingExtractorDualChannel(ImagingExtractorTestMixin):
     # relativeTime of the first frames in the XML
     expected_native_timestamps = [0.0, 0.00474538, 0.00949076]
     expected_sampling_frequency = 1 / 0.00474538  # the interval between frames in the relativeTime of the XML
+    # From the XML: the attributes of its root, the SystemID of SystemIDs, and the PVStateValue elements of its first
+    # PVStateShard, the state at the start of the recording
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2024, 5, 27, 19, 26, 53),  # date="5/27/2024 7:26:53 PM"
+        # micronsPerPixel YAxis and XAxis, as the rows run along Y and the pixels are not square here
+        grid_spacing_um=[1.12940008341084, 1.12455979733908],
+        # micronsPerPixel YAxis times linesPerFrame and XAxis times pixelsPerLine
+        field_of_view_um=[1.12940008341084 * 64, 1.12455979733908 * 64],
+        excitation_wavelength_nm=920.0,  # laserWavelength, the only laser listed
+        channel_name="Green",  # channelName of the File elements of the channel
+        scan_line_rate=1 / 6.3156e-05,  # 1 / scanLinePeriod
+        pmt_high_voltage_V=800.0,  # pmtGain IndexedValue 1, "PMT 2 HV", as Green is channel 2
+        microscope_manufacturer="Bruker",
+        microscope_serial_number="7366-F15A-9AC1-CEE4-EB32-4B9C-653D-EC0A",  # SystemID
+        acquisition_software_name="Prairie View",
+        acquisition_software_version="5.5.64.600",  # version
+        objective_magnification=20.0,  # objectiveLensMag
+        objective_numerical_aperture=1.0,  # objectiveLensNA
+    )
 
     def check_series(self, series):
         """The samples are the frames of the channel in the order of the XML, one file for each frame."""
@@ -496,6 +553,23 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion(ImagingExtractor
     # relativeTime of the first frames in the XML
     expected_native_timestamps = [0.0, 0.033474355, 0.06694871]
     expected_sampling_frequency = 1 / 0.033474355  # the interval between frames in the relativeTime of the XML
+    # From the XML: the attributes of its root, the SystemID of SystemIDs, and the PVStateValue elements of its first
+    # PVStateShard, the state at the start of the recording
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2023, 7, 6, 15, 13, 58),  # date="7/6/2023 3:13:58 PM"
+        grid_spacing_um=[1.1078125, 1.1078125],  # micronsPerPixel YAxis and XAxis, as the rows run along Y
+        # micronsPerPixel YAxis times linesPerFrame and XAxis times pixelsPerLine
+        field_of_view_um=[1.1078125 * 512, 1.1078125 * 512],
+        channel_name="Ch1",  # channelName of the File elements of the channel
+        scan_line_rate=1 / 6.3149e-05,  # 1 / scanLinePeriod
+        pmt_high_voltage_V=750.0,  # pmtGain IndexedValue 0, "PMT 1 HV (Red)", as the channel is Ch1
+        microscope_manufacturer="Bruker",
+        microscope_serial_number="E8D0-2F5E-B967-36D1-3CA0-8C25-681B-CEF3",  # SystemID
+        acquisition_software_name="Prairie View",
+        acquisition_software_version="5.8.64.200",  # version
+        objective_magnification=16.0,  # objectiveLensMag
+        objective_numerical_aperture=0.8,  # objectiveLensNA
+    )
 
     def check_series(self, series):
         """The samples are the frames of the channel in the order of the XML, pages of one file for each channel."""
@@ -542,6 +616,27 @@ class TestBrukerTiffImagingExtractorMultiSequenceBOT(ImagingExtractorTestMixin):
     expected_native_timestamps = [0.0, 0.066563728, 0.133127456]
     # The mean of the rate within each of the 3 bursts, from the relativeTime of the XML, since gaps separate them
     expected_sampling_frequency = np.mean([1 / 0.066563728, 1 / 0.066563811, 1 / 0.06656377])
+    # From the XML: the attributes of its root, the SystemID of SystemIDs, and the PVStateValue elements of its first
+    # PVStateShard, the state at the start of the recording
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2026, 2, 16, 16, 2, 24),  # date="2/16/2026 4:02:24 PM"
+        grid_spacing_um=[
+            1.18257990213313,
+            1.18257990213313,
+        ],  # micronsPerPixel YAxis and XAxis, as the rows run along Y
+        # micronsPerPixel YAxis times linesPerFrame and XAxis times pixelsPerLine
+        field_of_view_um=[1.18257990213313 * 64, 1.18257990213313 * 64],
+        excitation_wavelength_nm=940.0,  # laserWavelength, the only laser listed
+        channel_name="Ch2",  # channelName of the File elements of the channel
+        scan_line_rate=1 / 6.3124e-05,  # 1 / scanLinePeriod
+        pmt_high_voltage_V=750.0,  # pmtGain IndexedValue 1, "PMT 2 HV", as the channel is Ch2
+        microscope_manufacturer="Bruker",
+        microscope_serial_number="D12C-D345-FC6C-772F-D3E4-867A-4405-27AE",  # SystemID
+        acquisition_software_name="Prairie View",
+        acquisition_software_version="5.8.64.800",  # version
+        objective_magnification=10.0,  # objectiveLensMag
+        objective_numerical_aperture=0.5,  # objectiveLensNA
+    )
 
     def check_series(self, series):
         """The samples are the frames of the channel in the order of the XML, the 3 bursts of 5 frames one after another."""
@@ -601,6 +696,27 @@ class TestBrukerTiffImagingExtractorMultiSequenceTimedElement(ImagingExtractorTe
     expected_native_timestamps = [0.0, 0.066180591, 0.132361182]
     # The mean of the rate within each of the 3 cycles, from the relativeTime of the XML, since gaps separate them
     expected_sampling_frequency = np.mean([1 / 0.066180591, 1 / 0.066180671, 1 / 0.066180745])
+    # From the XML: the attributes of its root, the SystemID of SystemIDs, and the PVStateValue elements of its first
+    # PVStateShard, the state at the start of the recording
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2024, 8, 16, 19, 19, 19),  # date="8/16/2024 7:19:19 PM"
+        grid_spacing_um=[
+            0.444333610689182,
+            0.444333610689182,
+        ],  # micronsPerPixel YAxis and XAxis, as the rows run along Y
+        # micronsPerPixel YAxis times linesPerFrame and XAxis times pixelsPerLine
+        field_of_view_um=[0.444333610689182 * 64, 0.444333610689182 * 64],
+        excitation_wavelength_nm=930.0,  # laserWavelength, the only laser listed
+        channel_name="Ch2",  # channelName of the File elements of the channel
+        scan_line_rate=1 / 6.3144e-05,  # 1 / scanLinePeriod
+        pmt_high_voltage_V=740.0,  # pmtGain IndexedValue 1, "PMT 2 HV", as the channel is Ch2
+        microscope_manufacturer="Bruker",
+        microscope_serial_number="D12C-D345-FC6C-772F-D3E4-867A-4405-27AE",  # SystemID
+        acquisition_software_name="Prairie View",
+        acquisition_software_version="5.8.64.700",  # version
+        objective_magnification=10.0,  # objectiveLensMag
+        objective_numerical_aperture=0.5,  # objectiveLensNA
+    )
 
     def check_series(self, series):
         """The samples are the frames of the channel in the order of the XML, the 3 cycles of 3 frames one after another."""

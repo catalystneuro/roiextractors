@@ -49,6 +49,10 @@ class ImagingExtractorTestMixin:
     expected_sampling_frequency : float
         The expected rate of the samples in Hz, along the first axis of `get_series()`, so the volume rate on
         volumetric data.
+    expected_metadata : dict
+        The fields of `metadata` that are set, as `metadata.to_populated_dict(include_extra=False)` returns them, read
+        from the file with the header field in a comment. Every fixture declares it, as an empty dict for a format
+        whose extractor fills no field yet.
     """
 
     extractor_cls: type[ImagingExtractor]
@@ -60,6 +64,7 @@ class ImagingExtractorTestMixin:
     expected_native_timestamps: list[float] | None
     expected_plane_native_timestamps: list[list[float]]
     expected_sampling_frequency: float
+    expected_metadata: dict
 
     @pytest.fixture
     def setup_extractor(self):
@@ -308,21 +313,51 @@ class ImagingExtractorTestMixin:
                 first_plane_native_timestamps = plane_native_timestamps[:num_expected_samples]
                 assert_allclose(first_plane_native_timestamps, expected_plane_native_timestamps)
 
+    # The warning that the metadata API is experimental is checked in `tests/test_internals/test_metadata.py`
+    @pytest.mark.filterwarnings("ignore:The metadata API is experimental:UserWarning")
     def test_metadata(self, setup_extractor):
-        """`metadata` is a `Metadata`, and the views of the extractor have the same metadata.
+        """`metadata` has the fields of `expected_metadata`, and each view has the metadata of its part.
 
-        The views are those of `slice_samples()`, `slice_field_of_view()` and `select_plane()`.
+        A slice of samples has the metadata of the extractor. A crop from `slice_field_of_view()` has the width and the
+        height of its own rows and columns. A plane from `select_plane()` has its own z offset, and the grid spacing and
+        the field of view without their depth.
         """
+        # Read before the views are built, so a view that copies the extractor gets the metadata of the full
+        # extractor and must replace it
         metadata = self.extractor.metadata
         assert isinstance(metadata, Metadata)
+        check_metadata(metadata, self.expected_metadata)
 
         sample_slice = self.extractor.slice_samples(start_sample=1)
         assert sample_slice.metadata == metadata
-        field_of_view_slice = self.extractor.slice_field_of_view(row_end=2, column_end=2)
-        assert field_of_view_slice.metadata == metadata
-        if self.extractor.is_volumetric:
-            plane_extractor = self.extractor.select_plane(0)
-            assert plane_extractor.metadata == metadata
+
+        # The crop of `test_slice_field_of_view`, with a different size on the rows and on the columns
+        row_start, row_end, column_start, column_end = 1, 4, 4, 6
+        cropped_extractor = self.extractor.slice_field_of_view(
+            row_start=row_start, row_end=row_end, column_start=column_start, column_end=column_end
+        )
+        expected_cropped_metadata = dict(self.expected_metadata)
+        if "field_of_view_um" in self.expected_metadata:
+            num_rows, num_columns = self.expected_sample_shape[:2]
+            *depth_um, height_um, width_um = self.expected_metadata["field_of_view_um"]
+            cropped_height_um = height_um * (row_end - row_start) / num_rows
+            cropped_width_um = width_um * (column_end - column_start) / num_columns
+            expected_cropped_metadata["field_of_view_um"] = [*depth_um, cropped_height_um, cropped_width_um]
+        check_metadata(cropped_extractor.metadata, expected_cropped_metadata)
+
+        if not self.extractor.is_volumetric:
+            return
+        num_planes = self.expected_sample_shape[2]
+        for plane_index in range(num_planes):
+            plane_metadata = self.extractor.select_plane(plane_index).metadata
+            expected_plane_metadata = dict(self.expected_metadata)
+            if "plane_z_offsets_um" in self.expected_metadata:
+                plane_z_offset_um = self.expected_metadata["plane_z_offsets_um"][plane_index]
+                expected_plane_metadata["plane_z_offsets_um"] = [plane_z_offset_um]
+            for field_name in ("grid_spacing_um", "field_of_view_um"):
+                if field_name in self.expected_metadata:
+                    expected_plane_metadata[field_name] = self.expected_metadata[field_name][-2:]
+            check_metadata(plane_metadata, expected_plane_metadata)
 
     def test_available_channel_names(self):
         """`get_available_channel_names()` returns the expected channel names in order, and each is accepted back."""
@@ -362,3 +397,19 @@ class ImagingExtractorTestMixin:
         )
         with pytest.raises(ValueError, match=re.escape(expected_message)):
             self.extractor_cls(**{**self.extractor_kwargs, "channel_name": wrong_channel_name})
+
+
+def check_metadata(metadata: Metadata, expected_metadata: dict):
+    """Check that the fields of `metadata` that are set are those of `expected_metadata`.
+
+    The numbers are compared approximately, as the sizes of a field of view are products of the pixel size and the
+    expected values are written with the digits of the file.
+    """
+    populated_metadata = metadata.to_populated_dict(include_extra=False)
+    assert populated_metadata.keys() == expected_metadata.keys()
+    for field_name, expected_value in expected_metadata.items():
+        value = populated_metadata[field_name]
+        if isinstance(expected_value, (float, int, list)):
+            assert value == pytest.approx(expected_value), field_name
+        else:
+            assert value == expected_value, field_name

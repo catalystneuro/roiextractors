@@ -206,6 +206,7 @@ class TestOMETiffImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin):
     expected_channel_names = ["0"]
     expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
+    expected_metadata = {}
 
     def check_series(self, series):
         """The series is the channel of the array that `tifffile` builds from the OME-XML."""
@@ -228,6 +229,7 @@ class TestOMETiffImagingExtractorPlanarSingleChannelWithDeltaT(ImagingExtractorT
     # DeltaT of the first planes in the OME-XML
     expected_native_timestamps = [0.0, 0.0651, 0.1337]
     expected_sampling_frequency = 1.0  # passed to the constructor
+    expected_metadata = {}
 
     def check_series(self, series):
         """The series is the channel of the array that `tifffile` builds from the OME-XML."""
@@ -248,6 +250,7 @@ class TestOMETiffImagingExtractorPlanarSingleChannelWithTimeIncrement(ImagingExt
     expected_channel_names = ["0"]
     expected_native_timestamps = None
     expected_sampling_frequency = 1 / 0.1  # 1 / TimeIncrement, 0.1 s in the OME-XML
+    expected_metadata = {}
 
     def check_series(self, series):
         """The series is the channel of the array that `tifffile` builds from the OME-XML."""
@@ -270,6 +273,7 @@ class TestOMETiffImagingExtractorPlanarMultiChannel(ImagingExtractorTestMixin):
     expected_channel_names = ["0", "1", "2"]  # numeric, the OME-XML has no Channel/@Name
     expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
+    expected_metadata = {}
 
     def check_series(self, series):
         """The series is the channel of the array that `tifffile` builds from the OME-XML."""
@@ -292,6 +296,7 @@ class TestOMETiffImagingExtractorPlanarTwoChannelsMultiFile(ImagingExtractorTest
     expected_channel_names = ["0", "1"]
     expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
+    expected_metadata = {}
 
     def check_series(self, series):
         """The series is the channel of the array that `tifffile` builds from the OME-XML."""
@@ -312,6 +317,7 @@ class TestOMETiffImagingExtractorVolumetricSingleChannel(ImagingExtractorTestMix
     expected_channel_names = ["0"]
     expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
+    expected_metadata = {}
 
     def check_series(self, series):
         """The series is the channel of the array that `tifffile` builds from the OME-XML."""
@@ -334,6 +340,7 @@ class TestOMETiffImagingExtractorVolumetricMultiChannel(ImagingExtractorTestMixi
     expected_channel_names = ["0", "1", "2"]
     expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
+    expected_metadata = {}
 
     def check_series(self, series):
         """The series is the channel of the array that `tifffile` builds from the OME-XML."""
@@ -356,6 +363,7 @@ class TestOMETiffImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractor
     expected_channel_names = ["0", "1"]
     expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
+    expected_metadata = {}
 
     def check_series(self, series):
         """The series is the channel of the array that `tifffile` builds from the OME-XML."""

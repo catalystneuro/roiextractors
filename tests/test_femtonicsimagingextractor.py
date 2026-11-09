@@ -213,6 +213,7 @@ class TestFemtonicsImagingExtractorP29(ImagingExtractorTestMixin):
     expected_channel_names = ["UG", "UR"]
     expected_native_timestamps = None
     expected_sampling_frequency = 1000 / 32.29672617170252  # 1000 / the frame duration in ms of the MUnit
+    expected_metadata = {}
 
     def check_series(self, series):
         """The series is the dataset of the channel in MSession_0/MUnit_0, read with `h5py`."""
@@ -234,6 +235,7 @@ class TestFemtonicsImagingExtractorP30(ImagingExtractorTestMixin):
     expected_channel_names = ["UG", "UR"]
     expected_native_timestamps = None
     expected_sampling_frequency = 1000 / 32.29672617170252  # 1000 / the frame duration in ms of the MUnit
+    expected_metadata = {}
 
     def check_series(self, series):
         """The series is the dataset of the channel in MSession_0/MUnit_0, read with `h5py`."""

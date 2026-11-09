@@ -14,6 +14,8 @@ import logging
 import re
 import warnings
 from collections import Counter
+from datetime import datetime
+from functools import cached_property
 from itertools import islice
 from pathlib import Path
 from types import ModuleType
@@ -23,6 +25,7 @@ import numpy as np
 from lxml import etree
 
 from .multitiffmultipageextractor import MultiTIFFMultiPageExtractor
+from ..._metadata import Metadata
 from ...extraction_tools import (
     PathType,
     calculate_regular_series_rate,
@@ -124,6 +127,15 @@ def _parse_xml(folder_path: PathType) -> etree.Element:
     assert xml_file_path.is_file(), f"The XML configuration file is not found at '{folder_path}'."
     tree = etree.parse(str(xml_file_path))
     return tree.getroot()
+
+
+def _read_state_value(state: etree.Element, key: str, index: str | None = None) -> str | None:
+    """Return the value of a ``PVStateValue`` of a ``PVStateShard``, or of one of its ``IndexedValue``, or None."""
+    path = f"PVStateValue[@key='{key}']"
+    if index is not None:
+        path += f"/IndexedValue[@index='{index}']"
+    element = state.find(path)
+    return None if element is None else element.attrib["value"]
 
 
 def _get_channel_names_from_bruker_xml(xml_root: etree.Element) -> list[str]:
@@ -350,6 +362,72 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         if not xml_file_path.is_file():
             raise FileNotFoundError(f"Bruker XML configuration file not found at '{xml_file_path}'.")
         return _get_channel_names_from_bruker_xml(etree.parse(xml_file_path).getroot())
+
+    @cached_property
+    def _unified_metadata(self) -> Metadata:
+        """The metadata of the recording, read from the Bruker configuration XML.
+
+        The values come from the state that Prairie View writes at the start of the recording, the first
+        ``PVStateShard``. On volumetric data the z offset of each plane is the position of the z device that moves
+        between planes (``zDevice``) in the frames of the first volume, minus that of the first plane, and the depth of
+        the field of view is the distance between the first and the last plane.
+        """
+        state = self._xml_root.find("PVStateShard")
+
+        microns_per_pixel_x = float(_read_state_value(state, "micronsPerPixel", index="XAxis"))
+        microns_per_pixel_y = float(_read_state_value(state, "micronsPerPixel", index="YAxis"))
+        num_columns = int(_read_state_value(state, "pixelsPerLine"))
+        num_rows = int(_read_state_value(state, "linesPerFrame"))
+        # The rows run along the Y axis and the columns along the X axis
+        grid_spacing_um = [microns_per_pixel_y, microns_per_pixel_x]
+        field_of_view_um = [microns_per_pixel_y * num_rows, microns_per_pixel_x * num_columns]
+
+        plane_z_offsets_um = None
+        z_device = _read_state_value(state, "zDevice")
+        if self.is_volumetric and z_device is not None:
+            first_sequence = next(self._xml_root.iter("Sequence"))
+            z_device_path = (
+                "PVStateShard/PVStateValue[@key='positionCurrent']/SubindexedValues[@index='ZAxis']"
+                f"/SubindexedValue[@subindex='{z_device}']"
+            )
+            plane_positions_um = [
+                float(frame.find(z_device_path).attrib["value"]) for frame in first_sequence.iter("Frame")
+            ]
+            plane_z_offsets_um = [position - plane_positions_um[0] for position in plane_positions_um]
+            grid_spacing_um.insert(0, float(_read_state_value(state, "micronsPerPixel", index="ZAxis")))
+            field_of_view_um.insert(0, abs(plane_z_offsets_um[-1]))
+
+        # Prairie View lists one high voltage for each PMT, and channel N reads PMT N
+        channel_numbers = sorted({int(element.attrib["channel"]) for element in self._xml_root.iter("File")})
+        channel_number = channel_numbers[self._channel_index]
+        pmt_high_voltage_V = _read_state_value(state, "pmtGain", index=str(channel_number - 1))
+
+        # With several lasers the XML does not say which one excites the channel, so only a single laser is kept
+        laser_wavelengths = state.findall("PVStateValue[@key='laserWavelength']/IndexedValue")
+        excitation_wavelength_nm = float(laser_wavelengths[0].attrib["value"]) if len(laser_wavelengths) == 1 else None
+
+        objective_magnification = _read_state_value(state, "objectiveLensMag")
+        objective_numerical_aperture = _read_state_value(state, "objectiveLensNA")
+        system_ids = self._xml_root.find("SystemIDs")
+
+        return Metadata(
+            acquisition_start_datetime=datetime.strptime(self._xml_root.attrib["date"], "%m/%d/%Y %I:%M:%S %p"),
+            grid_spacing_um=grid_spacing_um,
+            field_of_view_um=field_of_view_um,
+            plane_z_offsets_um=plane_z_offsets_um,
+            excitation_wavelength_nm=excitation_wavelength_nm,
+            channel_name=self._get_channel_names()[self._channel_index],
+            scan_line_rate=1 / float(_read_state_value(state, "scanLinePeriod")),
+            pmt_high_voltage_V=None if pmt_high_voltage_V is None else float(pmt_high_voltage_V),
+            microscope_manufacturer="Bruker",
+            microscope_serial_number=None if system_ids is None else system_ids.attrib.get("SystemID"),
+            acquisition_software_name="Prairie View",
+            acquisition_software_version=self._xml_root.attrib.get("version"),
+            objective_magnification=None if objective_magnification is None else float(objective_magnification),
+            objective_numerical_aperture=(
+                None if objective_numerical_aperture is None else float(objective_numerical_aperture)
+            ),
+        )
 
     def _get_ifds_per_file(self) -> list[int]:
         """Return per-file IFD counts derived from the Bruker XML.

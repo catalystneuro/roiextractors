@@ -14,6 +14,7 @@ from typing import Literal
 
 import numpy as np
 
+from ..._metadata import _get_plane_metadata
 from ...extraction_tools import PathType, get_package
 from ...imagingextractor import ImagingExtractor
 
@@ -308,6 +309,8 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         plane._num_planes = 1
         plane.is_volumetric = False
         plane._times = None
+        # The copy also has the metadata of the volume if it was read before
+        plane._unified_metadata = _get_plane_metadata(self._unified_metadata, plane_index=plane_index)
         return plane
 
     @staticmethod

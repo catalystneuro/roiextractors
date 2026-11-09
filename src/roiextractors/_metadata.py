@@ -6,7 +6,7 @@ Metadata
     The metadata of the recording that an imaging extractor reads, with NWB field names.
 """
 
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field, fields, replace
 from datetime import datetime
 from typing import Any
 
@@ -20,56 +20,63 @@ class Metadata:
     others as `None`. Format-specific values that have no field go in `extra_metadata`.
 
     A field with a unit has the unit at the end of its name, in a size that keeps the values readable: `_um` for
-    micrometers, `_nm` for nanometers, `_mm` for millimeters, `_g` for grams, `_mW` for milliwatts and `_mW_per_mm2`
-    for milliwatts per square millimeter. Times are in seconds and rates in Hz, as in the rest of roiextractors, and
-    their names have no unit.
+    micrometers, `_nm` for nanometers, `_mm` for millimeters, `_g` for grams, `_V` for volts, `_mW` for milliwatts and
+    `_mW_per_mm2` for milliwatts per square millimeter. Times are in seconds and rates in Hz, as in the rest of
+    roiextractors, and their names have no unit.
 
-    Some fields are always `None` from an extractor because no format records them: `excitation_lambda_nm`,
-    `indicator`, `location`, `subject_genotype` and `subject_age`. The consumer supplies them.
+    A field is here only when a format records it. Values that only the user knows, such as the indicator, the brain
+    region or the genotype of the subject, are left to the consumer, and a field for them is added when a format that
+    records them is read.
     """
 
     # Acquisition timing
-    acquisition_datetime: datetime | None = None  # NWB `session_start_time`
+    acquisition_start_datetime: datetime | None = None  # the wall-clock time when the acquisition started
 
     # Spatial calibration
-    grid_spacing_um: list[float] | None = None  # [x, y] or [x, y, z]
-    field_of_view_um: list[float] | None = None  # [width, height] or [width, height, depth]
+    # The spatial sizes list the depth first, then the rows, then the columns: (rows, columns) for planar data and
+    # (depths, rows, columns) for volumetric data
+    grid_spacing_um: list[float] | None = None  # the size of a pixel or a voxel
+    field_of_view_um: list[float] | None = None  # the size of the imaged area
+    # The position of each plane along z relative to the first plane, in the order of `select_plane()`. The first is 0
+    # and the sign follows the z axis of the device that steps between planes. The absolute depth needs an anatomical
+    # reference, such as the brain surface, which no microscope file records
+    plane_z_offsets_um: list[float] | None = None
     origin_coords_um: list[float] | None = None
     reference_frame: str | None = None
 
     # Imaging plane (NWB ImagingPlane)
     imaging_plane_name: str | None = None
     imaging_plane_description: str | None = None
-    excitation_lambda_nm: float | None = None
-    indicator: str | None = None  # for example "GCaMP6s"
-    location: str | None = None  # brain region, for example "V1"
+    excitation_wavelength_nm: float | None = None
 
     # Channel, the one the extractor reads
     channel_name: str | None = None
     channel_description: str | None = None
-    emission_lambda_nm: float | None = None
+    emission_wavelength_nm: float | None = None
 
-    # Photon series (NWB OnePhotonSeries or TwoPhotonSeries)
-    photon_series_type: str | None = None  # "OnePhotonSeries" or "TwoPhotonSeries"
-    pmt_gain: float | None = None
+    # Acquisition settings
+    excitation_mode: str | None = None  # "one-photon" or "two-photon"
+    pmt_high_voltage_V: float | None = None  # the voltage across the PMT of the channel, which sets its gain
     scan_line_rate: float | None = None  # Hz
     exposure_time: float | None = None  # seconds
-    power_mW: float | None = None
+    excitation_power_mW: float | None = None
     binning: int | None = None
     frames_per_slice: int | None = None
 
-    # Device (microscope)
-    device_name: str | None = None
-    device_manufacturer: str | None = None
-    device_model: str | None = None
-    device_serial_number: str | None = None
-    device_description: str | None = None
-    device_software_name: str | None = None  # for example "Prairie View", "ScanImage", "ThorImageLS"
-    device_software_version: str | None = None
+    # Microscope
+    microscope_name: str | None = None
+    microscope_manufacturer: str | None = None
+    microscope_model: str | None = None
+    microscope_serial_number: str | None = None
+    microscope_description: str | None = None
+
+    # Acquisition software
+    acquisition_software_name: str | None = None  # for example "Prairie View", "ScanImage", "ThorImageLS"
+    acquisition_software_version: str | None = None
 
     # One-photon miniscopes
     microscope_focus_um: float | None = None
-    microscope_gain: float | None = None  # LED or camera gain, distinct from `pmt_gain`
+    camera_gain: float | None = None  # the gain of the image sensor
     led_power_excitation_mW_per_mm2: float | None = None
     led_power_orange_green_mW_per_mm2: float | None = None
 
@@ -83,10 +90,7 @@ class Metadata:
     # Subject
     subject_id: str | None = None
     subject_species: str | None = None
-    subject_strain: str | None = None
     subject_sex: str | None = None  # "M", "F", "U" or "O", as in NWB
-    subject_age: str | None = None  # ISO 8601 duration, for example "P60D"
-    subject_genotype: str | None = None
     subject_weight_g: float | None = None
     subject_date_of_birth: datetime | None = None
     subject_description: str | None = None
@@ -123,3 +127,70 @@ class Metadata:
         if include_extra and self.extra_metadata:
             populated_metadata["extra_metadata"] = dict(self.extra_metadata)
         return populated_metadata
+
+
+def _get_plane_metadata(metadata: Metadata, plane_index: int) -> Metadata:
+    """Return the metadata of one plane of a volume.
+
+    The plane keeps its own z offset, and the grid spacing and the field of view lose their depth, as the plane is
+    planar. Every other field is that of the volume.
+
+    Parameters
+    ----------
+    metadata : Metadata
+        The metadata of the volume.
+    plane_index : int
+        The index of the plane, as in `select_plane()`.
+
+    Returns
+    -------
+    plane_metadata : Metadata
+        The metadata of the plane.
+    """
+    plane_z_offsets_um = metadata.plane_z_offsets_um
+    if plane_z_offsets_um is not None:
+        plane_z_offsets_um = [plane_z_offsets_um[plane_index]]
+    grid_spacing_um = metadata.grid_spacing_um
+    if grid_spacing_um is not None:
+        grid_spacing_um = grid_spacing_um[-2:]
+    field_of_view_um = metadata.field_of_view_um
+    if field_of_view_um is not None:
+        field_of_view_um = field_of_view_um[-2:]
+    return replace(
+        metadata,
+        plane_z_offsets_um=plane_z_offsets_um,
+        grid_spacing_um=grid_spacing_um,
+        field_of_view_um=field_of_view_um,
+    )
+
+
+def _get_cropped_metadata(
+    metadata: Metadata, image_shape: tuple[int, int], cropped_image_shape: tuple[int, int]
+) -> Metadata:
+    """Return the metadata of a crop of the field of view.
+
+    The width and the height of the field of view shrink with the columns and the rows of the crop. Every other field
+    is that of the full field of view.
+
+    Parameters
+    ----------
+    metadata : Metadata
+        The metadata of the full field of view.
+    image_shape : tuple[int, int]
+        The (rows, columns) of the full field of view.
+    cropped_image_shape : tuple[int, int]
+        The (rows, columns) of the crop.
+
+    Returns
+    -------
+    cropped_metadata : Metadata
+        The metadata of the crop.
+    """
+    if metadata.field_of_view_um is None:
+        return metadata
+    num_rows, num_columns = image_shape
+    cropped_num_rows, cropped_num_columns = cropped_image_shape
+    *depth_um, height_um, width_um = metadata.field_of_view_um
+    cropped_height_um = height_um * cropped_num_rows / num_rows
+    cropped_width_um = width_um * cropped_num_columns / num_columns
+    return replace(metadata, field_of_view_um=[*depth_um, cropped_height_um, cropped_width_um])
