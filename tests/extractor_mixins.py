@@ -54,8 +54,6 @@ class ImagingExtractorTestMixin:
     expected_native_timestamps: list[float] | None
     expected_sampling_frequency: float
 
-    # TODO: implement `check_series()` in every test class, as the docstring of `test_get_series()` describes.
-
     @pytest.fixture
     def setup_extractor(self):
         """Build a fresh extractor for each test."""
@@ -79,8 +77,10 @@ class ImagingExtractorTestMixin:
         assert is_volumetric == expected_is_volumetric
         if expected_is_volumetric:
             num_planes = self.extractor.get_num_planes()
+            volume_shape = self.extractor.get_volume_shape()
             expected_num_planes = self.expected_sample_shape[2]
             assert num_planes == expected_num_planes
+            assert volume_shape == self.expected_sample_shape
         else:
             # The extractors that returned 1 plane on planar data warn until they raise, in or after May 2027
             with warnings.catch_warnings():
@@ -120,11 +120,15 @@ class ImagingExtractorTestMixin:
     def check_series(self, series):
         """Check the series that `get_series()` returned, with the data read by another library.
 
-        Override it in a test class. How to read the raw data depends on the format (the pages of `tifffile`, an
-        HDF5 dataset), so each class decides what to compare: the full array, or chosen samples against chosen
-        pages. It can also check properties of the array specific to the format. It receives the series already
-        read, so the data is read once. The goal is that every test class implements it.
+        Every test class must override it, and the mixin raises `NotImplementedError` otherwise. How to read the raw
+        data depends on the format (the pages of `tifffile`, an HDF5 dataset), so each class decides what to compare:
+        the full array, or chosen samples against chosen pages. It can also check properties of the array specific to
+        the format. It receives the series already read, so the data is read once.
         """
+        raise NotImplementedError(
+            f"{type(self).__name__} must implement check_series() and compare the series with the data read by "
+            "another library"
+        )
 
     def test_native_timestamps(self, setup_extractor):
         """The native timestamps are one per sample and start with `expected_native_timestamps`, or are `None`.

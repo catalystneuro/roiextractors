@@ -27,6 +27,16 @@ class TestThorTiffImagingExtractor(ImagingExtractorTestMixin):
     expected_native_timestamps = None  # the OME-XML has a DeltaT for the first plane only
     expected_sampling_frequency = 13.967  # frameRate, streaming capture without averaging
 
+    def check_series(self, series):
+        """Each sample is the page of the file named for its timepoint, `<channel>_001_001_001_<sample + 1>.tif`."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        for sample_index in range(self.expected_num_samples):
+            file_path = TEST_DIR / f"{channel_name}_001_001_001_{sample_index + 1:03d}.tif"
+            with tifffile.TiffFile(file_path) as tiff_file:
+                expected_sample = tiff_file.pages[0].asarray()
+            sample = series[sample_index]
+            assert_array_equal(sample, expected_sample)
+
     @classmethod
     def setup_class(cls):
         """Set up the test."""
@@ -36,30 +46,10 @@ class TestThorTiffImagingExtractor(ImagingExtractorTestMixin):
         # Create the extractor
         cls.extractor = ThorTiffImagingExtractor(file_path=FILE_PATH)
 
-        # Load the test data for comparison
-        cls.test_data = tifffile.imread(FILE_PATH)
-
     def test_thor_tiff_extractor_sampling_frequency(self):
         """Test the sampling frequency property."""
         assert self.extractor.get_sampling_frequency() is not None
         assert isinstance(self.extractor.get_sampling_frequency(), float)
-
-    def test_thor_tiff_extractor_get_series(self):
-        """Test the get_series method."""
-        series = self.extractor.get_series()
-
-        # Compare with the entire test_data
-        assert_array_equal(series, self.test_data)
-
-        # Test with start and end frame
-        start_sample = 0
-        end_sample = 2
-        series_slice = self.extractor.get_series(start_sample=start_sample, end_sample=end_sample)
-        assert series_slice.shape[0] == end_sample - start_sample  # Correct number of frames
-        assert series_slice.shape[1:] == self.test_data.shape[1:]  # Same image dimensions
-
-        # Compare with the corresponding slice of test_data
-        assert_array_equal(series_slice, self.test_data[start_sample:end_sample])
 
     def test_session_start_time(self):
         """Test that the acquisition start time is parsed from Experiment.xml."""
@@ -92,6 +82,19 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     # averages 10 scans and the stage moves between planes
     expected_native_timestamps = [0.0, 1.97315, 3.94218]
 
+    def check_series(self, series):
+        """Each plane of each sample is the page of `<channel>_0001_0001_<plane + 1>_<sample + 1>.tif`, in Z and T capture."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        for sample_index in range(self.expected_num_samples):
+            for plane_index in range(self.expected_sample_shape[2]):
+                file_path = (
+                    VOLUMETRIC_DIR / f"{channel_name}_0001_0001_{plane_index + 1:04d}_{sample_index + 1:04d}.tif"
+                )
+                with tifffile.TiffFile(file_path) as tiff_file:
+                    expected_plane = tiff_file.pages[0].asarray()
+                plane = series[sample_index, :, :, plane_index]
+                assert_array_equal(plane, expected_plane)
+
     @pytest.mark.skip(reason="The rate of Z and T capture is parked until the policy for data without a set rate")
     def test_sampling_frequency(self, setup_extractor):
         """It reports `frameRate`, the scan rate, instead of the rate of the saved volumes."""
@@ -104,23 +107,6 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
             pytest.skip(f"Test file {cls.file_path} not found. Skipping tests.")
 
         cls.extractor = ThorTiffImagingExtractor(file_path=cls.file_path, channel_name="ChanA")
-
-    def test_sample_and_plane_are_not_transposed(self):
-        """Each (sample, plane) position holds the file named for that plane and timepoint.
-
-        ThorImage names the files ``ChanA_0001_0001_<plane>_<timepoint>.tif``, so the mapping is
-        checked against the files themselves. Shapes alone would pass even if the two were swapped.
-
-        The pages are read one at a time because ``tifffile.imread`` on the first file of the
-        acquisition returns the whole assembled OME series, not that file's single page.
-        """
-        series = self.extractor.get_series()
-        for sample_index in range(self.expected_num_samples):
-            for plane_index in range(self.expected_sample_shape[2]):
-                file_path = VOLUMETRIC_DIR / f"ChanA_0001_0001_000{plane_index + 1}_000{sample_index + 1}.tif"
-                with tifffile.TiffFile(file_path) as tiff_file:
-                    expected = tiff_file.pages[0].asarray()
-                assert_array_equal(series[sample_index, :, :, plane_index], expected)
 
     def test_channels_hold_different_data(self):
         """Selecting the other channel reads other pages."""
@@ -164,8 +150,9 @@ class TestThorTiffImagingExtractorStreamingFrameAveraging(ImagingExtractorTestMi
 
     def check_series(self, series):
         """Each sample is the page of the file named for its timepoint."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
         for sample_index in range(self.expected_num_samples):
-            file_path = STREAMING_AVERAGING_DIR / f"ChanA_001_001_001_{sample_index + 1:03d}.tif"
+            file_path = STREAMING_AVERAGING_DIR / f"{channel_name}_001_001_001_{sample_index + 1:03d}.tif"
             with tifffile.TiffFile(file_path) as tiff_file:
                 expected_sample = tiff_file.pages[0].asarray()
             sample = series[sample_index]
@@ -195,9 +182,12 @@ class TestThorTiffImagingExtractorFastZStreaming(ImagingExtractorTestMixin):
         ThorImage names the files ``ChanB_0001_0001_<plane>_<volume>.tif``. The flyback frames are not saved, so
         the plane indices run from 1 to 7 in every volume.
         """
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
         for sample_index in range(self.expected_num_samples):
             for plane_index in range(self.expected_sample_shape[2]):
-                file_path = FAST_Z_STREAMING_DIR / f"ChanB_0001_0001_{plane_index + 1:04d}_{sample_index + 1:04d}.tif"
+                file_path = (
+                    FAST_Z_STREAMING_DIR / f"{channel_name}_0001_0001_{plane_index + 1:04d}_{sample_index + 1:04d}.tif"
+                )
                 with tifffile.TiffFile(file_path) as tiff_file:
                     expected_plane = tiff_file.pages[0].asarray()
                 plane = series[sample_index, :, :, plane_index]
