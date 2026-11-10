@@ -7,7 +7,7 @@ from numpy.testing import assert_array_equal
 
 from roiextractors import ThorTiffImagingExtractor
 
-from .extractor_mixins import ImagingExtractorTestMixin
+from .extractor_mixins import ImagingExtractorTestMixin, check_metadata
 from .setup_paths import OPHYS_DATA_PATH
 
 # Path to the test data
@@ -27,11 +27,16 @@ class TestThorTiffImagingExtractor(ImagingExtractorTestMixin):
     expected_native_timestamps = None  # the OME-XML has a DeltaT for the first plane only
     expected_sampling_frequency = 13.967  # frameRate, streaming capture without averaging
     expected_metadata = {
-        "acquisition_start_datetime": datetime(2023, 10, 18, 17, 39, 20, 262000, tzinfo=timezone.utc),
+        "acquisition_start_datetime": datetime(2023, 10, 18, 17, 39, 19, tzinfo=timezone.utc),
         "pixel_height_um": 0.884,
         "pixel_width_um": 0.884,
-        "field_of_view_height_um": 452.608,
-        "field_of_view_width_um": 452.608,
+        "field_of_view_height_um": 452.7,
+        "field_of_view_width_um": 452.7,
+        "channel_name": "ChanA",
+        "acquisition_software_name": "ThorImageLS",
+        "acquisition_software_version": "5.0.2023.10041",
+        "objective_magnification": 16.0,
+        "session_id": "20231018-002",
     }
 
     def check_series(self, series):
@@ -95,11 +100,17 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
         [0.777047, 2.74819, 4.72219],
     ]
     expected_metadata = {
-        "acquisition_start_datetime": datetime(2019, 11, 21, 10, 15, 19, 551000, tzinfo=timezone.utc),
+        "acquisition_start_datetime": datetime(2019, 11, 21, 10, 15, 18, tzinfo=timezone.utc),
         "pixel_height_um": 0.593,
         "pixel_width_um": 0.593,
-        "field_of_view_height_um": 75.904,
-        "field_of_view_width_um": 75.904,
+        "field_of_view_height_um": 75.88,
+        "field_of_view_width_um": 75.88,
+        "plane_z_offsets_um": [0.0, 15.0, 30.0],
+        "channel_name": "ChanA",
+        "acquisition_software_name": "ThorImageLS",
+        "acquisition_software_version": "3.2.2018.4241",
+        "objective_magnification": 22.2222222222222,
+        "session_id": "Untitled_003",
     }
 
     def check_series(self, series):
@@ -132,6 +143,7 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
         """Selecting the other channel reads other pages."""
         other = ThorTiffImagingExtractor(file_path=self.file_path, channel_name="ChanB")
         assert not np.array_equal(self.extractor.get_series(), other.get_series())
+        check_metadata(other.metadata, {**self.expected_metadata, "channel_name": "ChanB"})
 
     def test_get_available_channel_names(self):
         """Every name discovery returns can be passed back as `channel_name`."""
@@ -159,11 +171,16 @@ class TestThorTiffImagingExtractorStreamingFrameAveraging(ImagingExtractorTestMi
     expected_native_timestamps = None  # streaming capture, where DeltaT is not the time of the scan
     expected_sampling_frequency = 90.037 / 9  # frameRate / averageNum, each saved frame is the mean of 9 scans
     expected_metadata = {
-        "acquisition_start_datetime": datetime(2025, 4, 14, 17, 7, 36, 300000, tzinfo=timezone.utc),
+        "acquisition_start_datetime": datetime(2025, 4, 14, 17, 7, 32, tzinfo=timezone.utc),
         "pixel_height_um": 0.304,
         "pixel_width_um": 0.304,
-        "field_of_view_height_um": 77.824,
-        "field_of_view_width_um": 116.736,
+        "field_of_view_height_um": 77.78,
+        "field_of_view_width_um": 116.67,
+        "channel_name": "ChanA",
+        "acquisition_software_name": "ThorImageLS",
+        "acquisition_software_version": "4.1.2021.9131",
+        "objective_magnification": 22.2222,
+        "session_id": "250414-MB010B-2xRSET-jGC8s-9AVG-Day1-F02_001",
     }
 
     def check_series(self, series):
@@ -194,11 +211,17 @@ class TestThorTiffImagingExtractorFastZStreaming(ImagingExtractorTestMixin):
     expected_native_timestamps = None  # streaming capture, where DeltaT is not the time of the scan
     expected_sampling_frequency = 58.32 / (7 + 2)  # frameRate / (steps + flybackFrames), 7 planes and 2 flyback scans
     expected_metadata = {
-        "acquisition_start_datetime": datetime(2018, 2, 16, 20, 40, 51, 722000, tzinfo=timezone.utc),
+        "acquisition_start_datetime": datetime(2018, 2, 16, 20, 40, 49, tzinfo=timezone.utc),
         "pixel_height_um": 0.476,
         "pixel_width_um": 0.476,
-        "field_of_view_height_um": 121.856,
-        "field_of_view_width_um": 121.856,
+        "field_of_view_height_um": 121.78,
+        "field_of_view_width_um": 121.78,
+        "plane_z_offsets_um": [0.0, 7.0, 14.0, 21.0, 28.0, 35.0, 42.0],
+        "channel_name": "ChanB",
+        "acquisition_software_name": "ThorImageLS",
+        "acquisition_software_version": "3.0.2016.10131",
+        "objective_magnification": 22.2,
+        "session_id": "2R60F02_Gcamp6s_after_control_LH_00001",
     }
 
     def check_series(self, series):
