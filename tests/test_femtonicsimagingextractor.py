@@ -213,7 +213,19 @@ class TestFemtonicsImagingExtractorP29(ImagingExtractorTestMixin):
     expected_channel_names = ["UG", "UR"]
     expected_native_timestamps = None
     expected_sampling_frequency = 1000 / 32.29672617170252  # 1000 / the frame duration in ms of the MUnit
-    expected_metadata = {}
+    expected_metadata = {
+        "acquisition_start_datetime": datetime(2017, 9, 29, 7, 53, 0, 903594, tzinfo=timezone.utc),
+        "pixel_height_um": 1.7821140546875,
+        "pixel_width_um": 1.7821140546875,
+        "field_of_view_height_um": 912.442396,
+        "field_of_view_width_um": 912.442396,
+        "channel_name": "UG",
+        "excitation_mode": "two-photon",
+        "microscope_manufacturer": "Femtonics",
+        "acquisition_software_name": "MESc",
+        "acquisition_software_version": "3.3",
+        "session_id": "66d53392-8f9a-4229-b661-1ea9b591521e",
+    }
 
     def check_series(self, series):
         """The series is the dataset of the channel in MSession_0/MUnit_0, read with `h5py`."""
@@ -235,7 +247,19 @@ class TestFemtonicsImagingExtractorP30(ImagingExtractorTestMixin):
     expected_channel_names = ["UG", "UR"]
     expected_native_timestamps = None
     expected_sampling_frequency = 1000 / 32.29672617170252  # 1000 / the frame duration in ms of the MUnit
-    expected_metadata = {}
+    expected_metadata = {
+        "acquisition_start_datetime": datetime(2017, 9, 30, 9, 36, 12, 98727, tzinfo=timezone.utc),
+        "pixel_height_um": 1.7821140546875,
+        "pixel_width_um": 1.7821140546875,
+        "field_of_view_height_um": 912.442396,
+        "field_of_view_width_um": 912.442396,
+        "channel_name": "UG",
+        "excitation_mode": "two-photon",
+        "microscope_manufacturer": "Femtonics",
+        "acquisition_software_name": "MESc",
+        "acquisition_software_version": "3.3",
+        "session_id": "071c1b91-a68a-46b3-8702-b619b1bdb49b",
+    }
 
     def check_series(self, series):
         """The series is the dataset of the channel in MSession_0/MUnit_0, read with `h5py`."""
