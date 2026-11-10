@@ -346,6 +346,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
             slice_sample_mask = channel_frames_to_ifd_table["slice_sample_index"] == self._slice_sample
             self._frames_to_ifd_table = channel_frames_to_ifd_table[slice_sample_mask]
 
+        self._metadata_parent = None
+        self._metadata_plane_index = None
+        self._metadata_num_planes = self._num_planes
+
         # Finally, if a planar extractor is requested, we filter the samples for that plane
         if self.is_volumetric and plane_index is not None:
             # Validate plane_index
@@ -356,8 +360,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             depth_mask = self._frames_to_ifd_table["depth_index"] == plane_index
             self._frames_to_ifd_table = self._frames_to_ifd_table[depth_mask]
 
-            # The metadata is read while the extractor is still the volume, and keeps the part of the plane
-            self._unified_metadata = _get_plane_metadata(self._unified_metadata, plane_index=plane_index)
+            self._metadata_plane_index = plane_index
 
             # Override the is_volumetric flag and num_planes
             self.is_volumetric = False
@@ -735,11 +738,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
         sliced._num_rows = row_end - row_start
         sliced._num_columns = column_end - column_start
         # The copy also has the metadata of the full field of view if it was read before
-        sliced._unified_metadata = _get_cropped_metadata(
-            self._unified_metadata,
-            image_shape=(self._num_rows, self._num_columns),
-            cropped_image_shape=(sliced._num_rows, sliced._num_columns),
-        )
+        sliced.__dict__.pop("_unified_metadata", None)
+        sliced._metadata_parent = self
+        sliced._metadata_plane_index = None
         # Keep the handle owner alive and mark this object as a borrower so __del__ does not close the
         # shared file handles. The owner is always the originally constructed extractor.
         sliced._fov_root = self._fov_root if self._fov_root is not None else self
@@ -778,7 +779,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
         plane._native_timestamps = None
         plane._fov_root = self._fov_root if self._fov_root is not None else self
         # The copy also has the metadata of the volume if it was read before
-        plane._unified_metadata = _get_plane_metadata(self._unified_metadata, plane_index=plane_index)
+        plane.__dict__.pop("_unified_metadata", None)
+        plane._metadata_parent = self
+        plane._metadata_plane_index = plane_index
         return plane
 
     @cached_property
@@ -790,6 +793,16 @@ class ScanImageImagingExtractor(ImagingExtractor):
         view empty. On volumetric data the z offset of each plane is its position in ``SI.hStackManager.zs`` minus that
         of the first plane.
         """
+        if self._metadata_parent is not None:
+            metadata = self._metadata_parent._unified_metadata
+            if self._metadata_plane_index is not None:
+                return _get_plane_metadata(metadata, plane_index=self._metadata_plane_index)
+            return _get_cropped_metadata(
+                metadata,
+                image_shape=self._metadata_parent.get_image_shape(),
+                cropped_image_shape=self.get_image_shape(),
+            )
+
         header = self._metadata
 
         pixel_height_um = None
@@ -811,10 +824,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         plane_z_offsets_um = None
         frames_per_slice = None
-        if self.is_volumetric:
+        if self._metadata_num_planes > 1:
             # From 2020 on, `zs` lists the position of a slice once for each of its frames
             zs_um = np.ravel(header["SI.hStackManager.zs"]).astype(float)
-            plane_positions_um = zs_um.reshape(self._num_planes, -1)[:, 0]
+            plane_positions_um = zs_um.reshape(self._metadata_num_planes, -1)[:, 0]
             plane_z_offsets_um = (plane_positions_um - plane_positions_um[0]).tolist()
             frames_per_slice = self._frames_per_slice
 
@@ -834,7 +847,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         version_keys = ["SI.VERSION_MAJOR", "SI.VERSION_MINOR", "SI.VERSION_UPDATE"]
         version = ".".join(str(header[key]) for key in version_keys if key in header)
 
-        return Metadata(
+        metadata = Metadata(
             acquisition_start_datetime=acquisition_start_datetime,
             pixel_height_um=pixel_height_um,
             pixel_width_um=pixel_width_um,
@@ -847,6 +860,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
             acquisition_software_name="ScanImage",
             acquisition_software_version=version,
         )
+        if self._metadata_plane_index is not None:
+            metadata = _get_plane_metadata(metadata, plane_index=self._metadata_plane_index)
+        return metadata
 
     def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).

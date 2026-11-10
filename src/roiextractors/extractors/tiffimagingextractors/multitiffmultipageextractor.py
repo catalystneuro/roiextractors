@@ -9,6 +9,7 @@ MultiTIFFMultiPageExtractor
 import copy
 import glob
 import warnings
+from functools import cached_property
 from pathlib import Path
 from typing import Literal
 
@@ -191,6 +192,8 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         self._channel_index = channel_index
         self._num_planes = num_planes
         self._sampling_frequency = sampling_frequency
+        self._metadata_parent = None
+        self._metadata_plane_index = None
 
         self._tifffile = get_package(package_name="tifffile")
 
@@ -310,8 +313,16 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         plane.is_volumetric = False
         plane._times = None
         # The copy also has the metadata of the volume if it was read before
-        plane._unified_metadata = _get_plane_metadata(self._unified_metadata, plane_index=plane_index)
+        plane.__dict__.pop("_unified_metadata", None)
+        plane._metadata_parent = self
+        plane._metadata_plane_index = plane_index
         return plane
+
+    @cached_property
+    def _unified_metadata(self):
+        if self._metadata_parent is None:
+            return super()._unified_metadata
+        return _get_plane_metadata(self._metadata_parent._unified_metadata, plane_index=self._metadata_plane_index)
 
     @staticmethod
     def _create_frame_to_ifd_table(

@@ -10,6 +10,7 @@
 * `InscopixImagingExtractor.metadata` now exposes the acquisition start, pixel size, field of view, exposure, camera gain, LED powers, microscope identity, acquisition software version, subject and session information recorded in the file.
 
 ### Fixes
+* ScanImage construction with `plane_index`, plane selection, and ScanImage field-of-view cropping now defer metadata computation until `metadata` is first read. This also applies to plane selection in Bruker, OME-TIFF and Thor. The result is cached, with the plane offsets and field of view of the selected view. [#680 (Lazy imaging metadata)](https://github.com/catalystneuro/roiextractors/pull/680)
 * `OMETiffImagingExtractor.metadata` now leaves channel fields unset when the selected channel has no `<Channel>` entry instead of raising `IndexError`. This fixes metadata access for the second channel of Thor recordings with incomplete channel metadata. [#678 (Thor metadata)](https://github.com/catalystneuro/roiextractors/pull/678)
 * `slice_samples()` on an imaging extractor now accepts a bound left out and defaults to the start or the end of the parent, as its docstring says, instead of raising `TypeError`. The count of samples was computed before the defaults were applied.
 * `time_to_sample_indices()` on `ImagingExtractor` and `SegmentationExtractor` no longer replaces the times set with `set_times()`. It stored the native timestamps in the cache on every call, so on an extractor whose format records timestamps `get_timestamps()` returned the native timestamps afterwards instead of the set ones.
