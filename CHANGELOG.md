@@ -1,6 +1,7 @@
 # v0.10.1 (Upcoming)
 
 ### Features
+* `FemtonicsImagingExtractor.metadata` now reads the acquisition start, pixel size, field of view, channel, acquisition software version and session information from the selected measurement unit and file attributes. [#679 (Femtonics metadata)](https://github.com/catalystneuro/roiextractors/pull/679)
 * `ThorTiffImagingExtractor.metadata` now combines the image metadata with the acquisition start, channel name, field of view, signed plane z offsets, objective magnification, acquisition software and session information from `Experiment.xml`. [#678 (Thor metadata)](https://github.com/catalystneuro/roiextractors/pull/678)
 * `OMETiffImagingExtractor.metadata` now reads acquisition dates, pixel sizes, field of view, channel names and wavelengths, exposure, the z offset of each plane, microscope and objective information, and experimenter names from the file or its companion metadata. Physical quantities are converted to the units of `Metadata`. `ThorTiffImagingExtractor` inherits the fields recorded in its image files. [#677 (OME-TIFF metadata)](https://github.com/catalystneuro/roiextractors/pull/677)
 * Added `BrukerTiffImagingExtractor.get_available_channel_names()`, which returns the channel names of a Bruker folder in acquisition order without constructing an extractor. They are the names the constructor accepts as `channel_name`.

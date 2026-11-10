@@ -2,6 +2,7 @@
 
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
+from functools import cached_property
 from pathlib import Path
 from typing import Any
 from warnings import warn
@@ -10,6 +11,7 @@ import h5py
 import numpy as np
 from lazyslice import DatasetView
 
+from ..._metadata import Metadata
 from ...extraction_tools import PathType
 from ...imagingextractor import ImagingExtractor
 
@@ -223,6 +225,38 @@ class FemtonicsImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self) -> float:
         """Get the sampling frequency in Hz."""
         return self._sampling_frequency
+
+    @cached_property
+    def _unified_metadata(self) -> Metadata:
+        attrs = self._file_handle[self._selected_session_name][self._selected_munit_name].attrs
+        length_to_um = {"m": 1e6, "mm": 1e3, "µm": 1.0, "μm": 1.0, "um": 1.0, "nm": 1e-3}
+        pixel_sizes = {}
+        for axis, field_name in (("X", "pixel_width_um"), ("Y", "pixel_height_um")):
+            scale = attrs.get(f"{axis}AxisConversionConversionLinearScale")
+            unit = self._decode_string(attrs.get(f"{axis}AxisConversionUnitName", []))
+            pixel_sizes[field_name] = (
+                abs(float(scale)) * length_to_um[unit] if scale is not None and unit in length_to_um else None
+            )
+        pixel_height_um = pixel_sizes["pixel_height_um"]
+        pixel_width_um = pixel_sizes["pixel_width_um"]
+        num_rows, num_columns = self.get_image_shape()
+        version = self._decode_string(attrs.get("CreatingMEScVersion", []))
+        session_description = self._decode_string(attrs.get("Comment", []))
+
+        return Metadata(
+            acquisition_start_datetime=self._get_session_start_time(),
+            pixel_height_um=pixel_height_um,
+            pixel_width_um=pixel_width_um,
+            field_of_view_height_um=None if pixel_height_um is None else pixel_height_um * num_rows,
+            field_of_view_width_um=None if pixel_width_um is None else pixel_width_um * num_columns,
+            channel_name=self._selected_channel_name,
+            excitation_mode="two-photon",
+            microscope_manufacturer="Femtonics",
+            acquisition_software_name="MESc",
+            acquisition_software_version=version.removeprefix("MESc ") or None,
+            session_id=self._get_session_uuid(),
+            session_description=session_description or None,
+        )
 
     def _get_metadata(self) -> dict[str, Any]:
         """
