@@ -2,11 +2,13 @@
 
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
+from functools import cached_property
 from pathlib import Path
 
 import numpy as np
 
 from .ometiffimagingextractor import OMETiffImagingExtractor
+from ..._metadata import Metadata
 from ...extraction_tools import PathType
 
 
@@ -80,6 +82,50 @@ class ThorTiffImagingExtractor(OMETiffImagingExtractor):
         )
 
         self._kwargs = {"file_path": str(file_path), "channel_name": channel_name}
+
+    @cached_property
+    def _unified_metadata(self) -> Metadata:
+        metadata = super()._unified_metadata
+        root = self._experiment_xml_root
+
+        date = root.find("Date")
+        if date is not None and date.get("uTime") is not None:
+            metadata.acquisition_start_datetime = self._get_session_start_time()
+        if self._thor_channel_names:
+            metadata.channel_name = self._thor_channel_names[self._channel_index]
+
+        for tag, attribute, field_name in (
+            ("LSM", "heightUM", "field_of_view_height_um"),
+            ("LSM", "widthUM", "field_of_view_width_um"),
+            ("Magnification", "mag", "objective_magnification"),
+        ):
+            element = root.find(tag)
+            if element is not None and element.get(attribute) is not None:
+                setattr(metadata, field_name, float(element.get(attribute)))
+
+        metadata.acquisition_software_name = "ThorImageLS"
+        for tag, attribute, field_name in (
+            ("Software", "version", "acquisition_software_version"),
+            ("Name", "name", "session_id"),
+            ("Comments", "text", "session_description"),
+        ):
+            element = root.find(tag)
+            if element is not None and element.get(attribute):
+                setattr(metadata, field_name, element.get(attribute))
+
+        z_stage = root.find("ZStage")
+        remote_focus = root.find("RemoteFocus")
+        if (
+            self.is_volumetric
+            and z_stage is not None
+            and z_stage.get("stepSizeUM") is not None
+            and z_stage.get("zFileEnable") != "1"
+            and (remote_focus is None or remote_focus.get("IsRemoteFocus") != "1")
+        ):
+            step_size_um = float(z_stage.get("stepSizeUM"))
+            metadata.plane_z_offsets_um = [plane_index * step_size_um for plane_index in range(self.get_num_planes())]
+
+        return metadata
 
     def _get_channel_names(self) -> list[str]:
         """Return Thor-specific channel names from Experiment.xml when available."""

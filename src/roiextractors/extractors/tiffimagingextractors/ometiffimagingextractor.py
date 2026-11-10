@@ -178,7 +178,7 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
             metadata.field_of_view_width_um = metadata.pixel_width_um * num_columns
 
         channels = pixels.findall("{*}Channel")
-        if channels:
+        if self._channel_index < len(channels):
             channel = channels[self._channel_index]
             metadata.channel_name = channel.get("Name") or None
             for attribute, field_name in (
