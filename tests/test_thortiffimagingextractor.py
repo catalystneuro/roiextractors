@@ -26,7 +26,13 @@ class TestThorTiffImagingExtractor(ImagingExtractorTestMixin):
     expected_channel_names = ["ChanA"]
     expected_native_timestamps = None  # the OME-XML has a DeltaT for the first plane only
     expected_sampling_frequency = 13.967  # frameRate, streaming capture without averaging
-    expected_metadata = {}
+    expected_metadata = {
+        "acquisition_start_datetime": datetime(2023, 10, 18, 17, 39, 20, 262000, tzinfo=timezone.utc),
+        "pixel_height_um": 0.884,
+        "pixel_width_um": 0.884,
+        "field_of_view_height_um": 452.608,
+        "field_of_view_width_um": 452.608,
+    }
 
     def check_series(self, series):
         """Each sample is the page of the file named for its timepoint, `<channel>_001_001_001_<sample + 1>.tif`."""
@@ -88,7 +94,13 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
         [0.384067, 2.36012, 4.33632],
         [0.777047, 2.74819, 4.72219],
     ]
-    expected_metadata = {}
+    expected_metadata = {
+        "acquisition_start_datetime": datetime(2019, 11, 21, 10, 15, 19, 551000, tzinfo=timezone.utc),
+        "pixel_height_um": 0.593,
+        "pixel_width_um": 0.593,
+        "field_of_view_height_um": 75.904,
+        "field_of_view_width_um": 75.904,
+    }
 
     def check_series(self, series):
         """Each plane of each sample is the page of `<channel>_0001_0001_<plane + 1>_<sample + 1>.tif`, in Z and T capture."""
@@ -146,7 +158,13 @@ class TestThorTiffImagingExtractorStreamingFrameAveraging(ImagingExtractorTestMi
     expected_channel_names = ["ChanA"]
     expected_native_timestamps = None  # streaming capture, where DeltaT is not the time of the scan
     expected_sampling_frequency = 90.037 / 9  # frameRate / averageNum, each saved frame is the mean of 9 scans
-    expected_metadata = {}
+    expected_metadata = {
+        "acquisition_start_datetime": datetime(2025, 4, 14, 17, 7, 36, 300000, tzinfo=timezone.utc),
+        "pixel_height_um": 0.304,
+        "pixel_width_um": 0.304,
+        "field_of_view_height_um": 77.824,
+        "field_of_view_width_um": 116.736,
+    }
 
     def check_series(self, series):
         """Each sample is the page of the file named for its timepoint."""
@@ -175,7 +193,13 @@ class TestThorTiffImagingExtractorFastZStreaming(ImagingExtractorTestMixin):
     expected_channel_names = ["ChanB"]
     expected_native_timestamps = None  # streaming capture, where DeltaT is not the time of the scan
     expected_sampling_frequency = 58.32 / (7 + 2)  # frameRate / (steps + flybackFrames), 7 planes and 2 flyback scans
-    expected_metadata = {}
+    expected_metadata = {
+        "acquisition_start_datetime": datetime(2018, 2, 16, 20, 40, 51, 722000, tzinfo=timezone.utc),
+        "pixel_height_um": 0.476,
+        "pixel_width_um": 0.476,
+        "field_of_view_height_um": 121.856,
+        "field_of_view_width_um": 121.856,
+    }
 
     def check_series(self, series):
         """Each (sample, plane) position holds the page of the file named for that plane and volume.

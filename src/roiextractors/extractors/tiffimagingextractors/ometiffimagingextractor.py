@@ -7,12 +7,15 @@ OMETiffImagingExtractor
     and delegating to MultiTIFFMultiPageExtractor.
 """
 
+from datetime import datetime
+from functools import cached_property
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
 import numpy as np
 
 from .multitiffmultipageextractor import MultiTIFFMultiPageExtractor
+from ..._metadata import Metadata
 from ...extraction_tools import PathType, get_package
 
 
@@ -74,6 +77,41 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         "d": 86400.0,
     }
 
+    _LENGTH_UNIT_TO_MICROMETERS = {
+        "Ym": 1e30,
+        "Zm": 1e27,
+        "Em": 1e24,
+        "Pm": 1e21,
+        "Tm": 1e18,
+        "Gm": 1e15,
+        "Mm": 1e12,
+        "km": 1e9,
+        "hm": 1e8,
+        "dam": 1e7,
+        "m": 1e6,
+        "dm": 1e5,
+        "cm": 1e4,
+        "mm": 1e3,
+        "µm": 1.0,
+        "nm": 1e-3,
+        "pm": 1e-6,
+        "fm": 1e-9,
+        "am": 1e-12,
+        "zm": 1e-15,
+        "ym": 1e-18,
+        "Å": 1e-4,
+        "thou": 25.4,
+        "li": 25400 / 12,
+        "in": 25400.0,
+        "ft": 304800.0,
+        "yd": 914400.0,
+        "mi": 1609344000.0,
+        "ua": 149597870700e6,
+        "ly": 9460730472580800e6,
+        "pc": 3.0856775814913673e22,
+        "pt": 25400 / 72,
+    }
+
     def __init__(
         self,
         file_path: PathType,
@@ -105,6 +143,111 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
             num_planes=metadata["num_planes"],
         )
         self._ome_has_native_timestamps = None
+
+    @cached_property
+    def _unified_metadata(self) -> Metadata:
+        tifffile = get_package(package_name="tifffile")
+        file_path = self._file_paths[0]
+        with tifffile.TiffFile(file_path) as tiff:
+            ome_xml_string = tiff.ome_metadata or tiff.pages[0].description
+        if ome_xml_string.lstrip().startswith("<!--"):
+            ome_xml_string = ome_xml_string.replace("<!--", "").replace("-->", "")
+        ome_root = ET.fromstring(ome_xml_string.encode("utf-8"))
+        pixels = ome_root.find(".//{*}Pixels")
+        if pixels is None:
+            companion_file_path = file_path.parent / ome_root.find("{*}BinaryOnly").attrib["MetadataFile"]
+            ome_root = ET.parse(companion_file_path).getroot()
+            pixels = self._select_pixels_element_for_file(ome_root, file_path, companion_file_path)
+        image = next(image for image in ome_root.findall("{*}Image") if image.find("{*}Pixels") is pixels)
+
+        acquisition_date = image.findtext("{*}AcquisitionDate") or image.findtext("{*}AcquiredDate")
+        acquisition_date = acquisition_date or image.get("AcquiredDate")
+        metadata = Metadata(
+            acquisition_start_datetime=datetime.fromisoformat(acquisition_date) if acquisition_date else None,
+        )
+
+        for attribute, field_name in (("PhysicalSizeY", "pixel_height_um"), ("PhysicalSizeX", "pixel_width_um")):
+            value = pixels.get(attribute)
+            factor = self._LENGTH_UNIT_TO_MICROMETERS.get(pixels.get(f"{attribute}Unit", "µm"))
+            if value is not None and factor is not None:
+                setattr(metadata, field_name, float(value) * factor)
+        num_rows, num_columns = self.get_image_shape()
+        if metadata.pixel_height_um is not None:
+            metadata.field_of_view_height_um = metadata.pixel_height_um * num_rows
+        if metadata.pixel_width_um is not None:
+            metadata.field_of_view_width_um = metadata.pixel_width_um * num_columns
+
+        channels = pixels.findall("{*}Channel")
+        if channels:
+            channel = channels[self._channel_index]
+            metadata.channel_name = channel.get("Name") or None
+            for attribute, field_name in (
+                ("ExcitationWavelength", "excitation_wavelength_nm"),
+                ("EmissionWavelength", "emission_wavelength_nm"),
+            ):
+                value = channel.get(attribute)
+                factor = self._LENGTH_UNIT_TO_MICROMETERS.get(channel.get(f"{attribute}Unit", "nm"))
+                if value is not None and factor is not None:
+                    setattr(metadata, field_name, float(value) * factor * 1000)
+
+        planes = [plane for plane in pixels.findall("{*}Plane") if int(plane.attrib["TheC"]) == self._channel_index]
+        exposure_times = [
+            float(plane.attrib["ExposureTime"]) * self._TIME_UNIT_TO_SECONDS[plane.get("ExposureTimeUnit", "s")]
+            for plane in planes
+            if "ExposureTime" in plane.attrib
+        ]
+        if exposure_times and np.allclose(exposure_times, exposure_times[0], rtol=1e-12, atol=0):
+            metadata.exposure_time = exposure_times[0]
+        if self.is_volumetric:
+            positions = {}
+            for plane in planes:
+                if int(plane.attrib["TheT"]) != 0 or "PositionZ" not in plane.attrib:
+                    continue
+                factor = self._LENGTH_UNIT_TO_MICROMETERS.get(plane.get("PositionZUnit", "reference frame"))
+                if factor is not None:
+                    positions[int(plane.attrib["TheZ"])] = float(plane.attrib["PositionZ"]) * factor
+            if set(positions) == set(range(self.get_num_planes())):
+                metadata.plane_z_offsets_um = [
+                    positions[index] - positions[0] for index in range(self.get_num_planes())
+                ]
+
+        instrument_ref = image.find("{*}InstrumentRef")
+        if instrument_ref is not None:
+            microscope = ome_root.find(f"{{*}}Instrument[@ID='{instrument_ref.attrib['ID']}']/{{*}}Microscope")
+            if microscope is not None:
+                metadata.microscope_manufacturer = microscope.get("Manufacturer") or None
+                metadata.microscope_model = microscope.get("Model") or None
+                metadata.microscope_serial_number = microscope.get("SerialNumber") or None
+
+        objective_settings = image.find("{*}ObjectiveSettings")
+        if objective_settings is not None:
+            objective = ome_root.find(f"{{*}}Instrument/{{*}}Objective[@ID='{objective_settings.attrib['ID']}']")
+            if objective is not None:
+                magnification = objective.get("CalibratedMagnification") or objective.get("NominalMagnification")
+                numerical_aperture = objective.get("LensNA")
+                metadata.objective_magnification = float(magnification) if magnification is not None else None
+                metadata.objective_numerical_aperture = (
+                    float(numerical_aperture) if numerical_aperture is not None else None
+                )
+                metadata.objective_immersion = objective.get("Immersion") or None
+                metadata.objective_correction = objective.get("Correction") or None
+                working_distance = objective.get("WorkingDistance")
+                factor = self._LENGTH_UNIT_TO_MICROMETERS.get(objective.get("WorkingDistanceUnit", "µm"))
+                if working_distance is not None and factor is not None:
+                    metadata.objective_working_distance_mm = float(working_distance) * factor / 1000
+
+        experimenter_ref = image.find("{*}ExperimenterRef")
+        if experimenter_ref is not None:
+            experimenter = ome_root.find(f"{{*}}Experimenter[@ID='{experimenter_ref.attrib['ID']}']")
+            if experimenter is not None:
+                name = " ".join(
+                    experimenter.attrib[part]
+                    for part in ("FirstName", "MiddleName", "LastName")
+                    if experimenter.get(part)
+                )
+                name = name or experimenter.get("UserName")
+                metadata.experimenter = [name] if name else None
+        return metadata
 
     def _get_channel_names(self) -> list[str]:
         """Return channel names from OME-XML Channel/@Name attributes when available."""
