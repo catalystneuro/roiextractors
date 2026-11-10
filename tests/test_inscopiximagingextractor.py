@@ -6,6 +6,7 @@ import pytest
 from numpy import dtype
 
 from roiextractors import InscopixImagingExtractor
+from tests.extractor_mixins import check_metadata
 from tests.setup_paths import OPHYS_DATA_PATH
 
 # Skip all tests in this file on macOS
@@ -41,6 +42,18 @@ def test_inscopiximagingextractor_movie_128x128x100_part1():
     """
     file_path = OPHYS_DATA_PATH / "imaging_datasets" / "inscopix" / "movie_128x128x100_part1.isxd"
     extractor = InscopixImagingExtractor(file_path=file_path)
+
+    expected_metadata = {
+        "acquisition_start_datetime": datetime(1970, 1, 1),
+        "pixel_height_um": 3.0,
+        "pixel_width_um": 3.0,
+        "field_of_view_height_um": 384.0,
+        "field_of_view_width_um": 384.0,
+        "excitation_mode": "one-photon",
+        "microscope_manufacturer": "Inscopix",
+    }
+    with pytest.warns(UserWarning, match="The metadata API is experimental"):
+        check_metadata(extractor.metadata, expected_metadata)
 
     # Basic video properties
     assert extractor.get_num_samples() == 100
@@ -118,6 +131,27 @@ def test_inscopiximagingextractor_movie_longer_than_3_min():
     """
     file_path = OPHYS_DATA_PATH / "imaging_datasets" / "inscopix" / "movie_longer_than_3_min.isxd"
     extractor = InscopixImagingExtractor(file_path=file_path)
+
+    expected_metadata = {
+        "acquisition_start_datetime": datetime(2019, 10, 7, 16, 22, 1, 524186),
+        "pixel_height_um": 72.0,
+        "pixel_width_um": 72.0,
+        "field_of_view_height_um": 2376.0,
+        "field_of_view_width_um": 2088.0,
+        "excitation_mode": "one-photon",
+        "microscope_manufacturer": "Inscopix",
+        "exposure_time": 0.02,
+        "camera_gain": 5.9,
+        "led_power_excitation_mW_per_mm2": 0.4,
+        "led_power_orange_green_mW_per_mm2": 0.2,
+        "microscope_name": "NVista3",
+        "microscope_serial_number": "FA-11092903",
+        "acquisition_software_version": "1.3.0",
+        "subject_sex": "M",
+        "session_id": "4D_SAAV_PFC_IM7_20191007",
+    }
+    with pytest.warns(UserWarning, match="The metadata API is experimental"):
+        check_metadata(extractor.metadata, expected_metadata)
 
     # Basic video properties
     assert extractor.get_num_samples() == 1248
@@ -204,6 +238,18 @@ def test_inscopiximagingextractor_movie_u8():
     file_path = OPHYS_DATA_PATH / "imaging_datasets" / "inscopix" / "movie_u8.isxd"
     extractor = InscopixImagingExtractor(file_path=file_path)
 
+    expected_metadata = {
+        "acquisition_start_datetime": datetime(1970, 1, 1),
+        "pixel_height_um": 3.0,
+        "pixel_width_um": 3.0,
+        "field_of_view_height_um": 9.0,
+        "field_of_view_width_um": 12.0,
+        "excitation_mode": "one-photon",
+        "microscope_manufacturer": "Inscopix",
+    }
+    with pytest.warns(UserWarning, match="The metadata API is experimental"):
+        check_metadata(extractor.metadata, expected_metadata)
+
     # Basic video properties
     assert extractor.get_num_samples() == 5
     assert extractor.get_image_shape() == (3, 4)
@@ -288,6 +334,25 @@ def test_inscopiximagingextractor_multiplane_movie():
     file_path = OPHYS_DATA_PATH / "imaging_datasets" / "inscopix" / "multiplane_movie.isxd"
     extractor = InscopixImagingExtractor(file_path=file_path)
 
+    expected_metadata = {
+        "acquisition_start_datetime": datetime(2022, 6, 15, 23, 41, 43, 403000),
+        "pixel_height_um": 24.0,
+        "pixel_width_um": 24.0,
+        "field_of_view_height_um": 2400.0,
+        "field_of_view_width_um": 3840.0,
+        "excitation_mode": "one-photon",
+        "microscope_manufacturer": "Inscopix",
+        "exposure_time": 0.143,
+        "camera_gain": 2.0,
+        "microscope_name": "Dual Color",
+        "microscope_serial_number": "11094108",
+        "acquisition_software_version": "1.9.0",
+        "subject_sex": "M",
+        "session_id": "Session 20220614-102826",
+    }
+    with pytest.warns(UserWarning, match="The metadata API is experimental"):
+        check_metadata(extractor.metadata, expected_metadata)
+
     # Basic video properties
     assert extractor.get_num_samples() == 30
     assert extractor.get_image_shape() == (100, 160)
@@ -365,6 +430,25 @@ def test_inscopiximagingextractor_dual_color_movie_with_dropped_frames():
     """
     file_path = OPHYS_DATA_PATH / "imaging_datasets" / "inscopix" / "dual_color_movie_with_dropped_frames.isxd"
     extractor = InscopixImagingExtractor(file_path=file_path)
+
+    expected_metadata = {
+        "acquisition_start_datetime": datetime(2020, 9, 17, 15, 47, 22, 847000),
+        "pixel_height_um": 3.0,
+        "pixel_width_um": 3.0,
+        "field_of_view_height_um": 864.0,
+        "field_of_view_width_um": 1440.0,
+        "excitation_mode": "one-photon",
+        "microscope_manufacturer": "Inscopix",
+        "exposure_time": 0.079,
+        "camera_gain": 2.0,
+        "microscope_name": "Dual Color",
+        "microscope_serial_number": "FA-1234567",
+        "acquisition_software_version": "1.5.0",
+        "subject_sex": "M",
+        "session_id": "Session 20200917-093000",
+    }
+    with pytest.warns(UserWarning, match="The metadata API is experimental"):
+        check_metadata(extractor.metadata, expected_metadata)
 
     # Basic video properties
     assert extractor.get_num_samples() == 25
