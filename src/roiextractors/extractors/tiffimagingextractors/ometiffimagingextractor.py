@@ -146,6 +146,8 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
 
     @cached_property
     def _unified_metadata(self) -> Metadata:
+        if self._metadata_parent is not None:
+            return super()._unified_metadata
         tifffile = get_package(package_name="tifffile")
         file_path = self._file_paths[0]
         with tifffile.TiffFile(file_path) as tiff:

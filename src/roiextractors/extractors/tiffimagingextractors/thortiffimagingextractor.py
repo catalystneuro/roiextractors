@@ -85,6 +85,8 @@ class ThorTiffImagingExtractor(OMETiffImagingExtractor):
 
     @cached_property
     def _unified_metadata(self) -> Metadata:
+        if self._metadata_parent is not None:
+            return super()._unified_metadata
         metadata = super()._unified_metadata
         root = self._experiment_xml_root
 
