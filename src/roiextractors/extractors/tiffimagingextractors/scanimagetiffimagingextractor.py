@@ -215,7 +215,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanVolumeRate"]
             self._num_planes = num_planes
 
-            self._frames_per_slice = self._metadata["SI.hStackManager.framesPerSlice"]
+            # ScanImage saves one frame per `logAverageFactor` scanned frames, their mean, so a slice of
+            # `framesPerSlice` scanned frames has `framesPerSlice / logAverageFactor` frames in the file
+            frames_per_slice_scanned = self._metadata["SI.hStackManager.framesPerSlice"]
+            self._frames_per_slice = frames_per_slice_scanned // self._metadata["SI.hScan2D.logAverageFactor"]
 
             if self._frames_per_slice == 1:
                 self._slice_sample = None
