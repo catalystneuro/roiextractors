@@ -11,7 +11,7 @@ from .extractor_mixins import ImagingExtractorTestMixin, check_metadata
 from .setup_paths import OPHYS_DATA_PATH
 
 # Path to the test data
-TEST_DIR = OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "single_channel_single_plane" / "20231018-002"
+TEST_DIR = OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "acquisition_setup" / "planar_single_channel"
 FILE_PATH = TEST_DIR / "ChanA_001_001_001_001.tif"
 
 
@@ -77,7 +77,13 @@ class TestThorTiffImagingExtractor(ImagingExtractorTestMixin):
             assert extractor._get_channel_names() == channel_names
 
 
-VOLUMETRIC_DIR = OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "multi_channel_multi_plane" / "lzw_compressed"
+VOLUMETRIC_DIR = (
+    OPHYS_DATA_PATH
+    / "imaging_datasets"
+    / "ThorlabsTiff"
+    / "binary_data_layout"
+    / "two_channels_three_planes_lzw_compressed"
+)
 
 
 class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
@@ -155,7 +161,7 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
 
 
 STREAMING_AVERAGING_DIR = (
-    OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "single_channel_single_plane" / "streaming_frame_averaging"
+    OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "time_structure" / "streaming_frame_averaging"
 )
 
 
@@ -194,9 +200,7 @@ class TestThorTiffImagingExtractorStreamingFrameAveraging(ImagingExtractorTestMi
             assert_array_equal(sample, expected_sample)
 
 
-FAST_Z_STREAMING_DIR = (
-    OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "single_channel_multi_plane" / "fast_z_streaming"
-)
+FAST_Z_STREAMING_DIR = OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "time_structure" / "fast_z_streaming"
 
 
 class TestThorTiffImagingExtractorFastZStreaming(ImagingExtractorTestMixin):
