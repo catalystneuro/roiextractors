@@ -194,10 +194,9 @@ def read_ome_series(file_path, channel_index):
     """Read a channel with `tifffile` from the OME-XML, as (time, rows, columns) or (time, rows, columns, depth).
 
     `tifffile` builds the array from the OME-XML, independently of the extractor, across files when the OME-XML names
-    several. `is_shaped=False` makes it read the OME-XML instead of the shape that `tifffile` itself wrote into the
-    stubs when they were made.
+    several.
     """
-    with TiffFile(file_path, is_shaped=False) as tiff_file:
+    with TiffFile(file_path) as tiff_file:
         series = tiff_file.series[0]
         axes = series.axes
         data = series.asarray()

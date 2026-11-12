@@ -509,11 +509,12 @@ class TestBrukerTiffImagingExtractorDualChannel(ImagingExtractorTestMixin):
         # NOT match the generic Ch1/Ch2 file naming: in this recording channel 1 (the
         # *_Ch1_* files) is "Red" and channel 2 (the *_Ch2_* files) is "Green". The
         # extractor must map each label to its real files (alphabetical name order would
-        # swap them).
+        # swap them). `is_ome=False` reads each file's own page instead of the series of all
+        # files that the OME-XML of the first file describes.
         ch1_files = sorted(self.folder_path.glob("*_Ch1_*.ome.tif"))  # channel 1 = Red
         ch2_files = sorted(self.folder_path.glob("*_Ch2_*.ome.tif"))  # channel 2 = Green
-        expected_red = np.stack([tifffile.imread(f) for f in ch1_files])
-        expected_green = np.stack([tifffile.imread(f) for f in ch2_files])
+        expected_red = np.stack([tifffile.imread(f, is_ome=False) for f in ch1_files])
+        expected_green = np.stack([tifffile.imread(f, is_ome=False) for f in ch2_files])
         assert_array_equal(ext_green.get_series(), expected_green)
         assert_array_equal(ext_red.get_series(), expected_red)
         assert not np.array_equal(expected_green, expected_red)
