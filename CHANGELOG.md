@@ -73,6 +73,7 @@
 * `ScanImageImagingExtractor` now reads its native timestamps several times faster. It built the whole TIFF page of each sample with `tifffile` to read the frame header, and now it reads only the `ImageDescription` tag of the page, where ScanImage writes the timestamp of the frame. On the test file with 100 volumes of 9 planes and 7 flyback frames, `get_native_timestamps()` takes 1.1 ms instead of 7.7 ms.
 * `ImagingExtractorTestMixin` now accepts fixtures with two samples. `test_set_times` checks the set times of a slice from the second sample to the last, instead of the second and third samples.
 * `ScanImageImagingExtractor` now raises `NotImplementedError` on files from ScanImage 2026 or later. ScanImage 2026 added frame selection, which saves only some of the scanned frames, and replaced frame averaging with exponential smoothing. We have no 2026 file to learn which header fields record these settings, so the extractor could report a wrong rate without an error.
+* The Inscopix imaging tests now use `ImagingExtractorTestMixin`, with a test class for each fixture that checks the series against the frames `isx` reads. The metadata is tested through `metadata` only, and the tests of the private getters that neuroconv reads are removed. The 3 by 4 pixel `movie_u8.isxd` stays a plain test, as its frames are smaller than the crop of the mixin. [#688 (Inscopix tests on the mixin)](https://github.com/catalystneuro/roiextractors/pull/688)
 
 # v0.10.0 (September 9th, 2026)
 
