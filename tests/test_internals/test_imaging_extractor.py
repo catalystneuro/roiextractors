@@ -59,6 +59,52 @@ class TestImagingExtractor(TestCase):
         np.testing.assert_array_almost_equal(extractor.get_timestamps(), np.array([5.0, 5.1, 5.2]))
         np.testing.assert_array_equal(extractor.time_to_sample_indices(np.array([5.0, 5.1, 5.2])), np.array([0, 1, 2]))
 
+    def test_shift_times_without_time_vector(self):
+        """A shift moves the timestamps computed from the sampling frequency, which stay without a time vector."""
+        extractor = generate_dummy_imaging_extractor(num_samples=3, num_rows=2, num_columns=2, sampling_frequency=10.0)
+        extractor.shift_times(2.5)
+
+        self.assertFalse(extractor.has_time_vector())
+        self.assertEqual(extractor.get_start_time(), 2.5)
+        np.testing.assert_array_almost_equal(extractor.get_timestamps(), np.array([2.5, 2.6, 2.7]))
+        np.testing.assert_array_equal(extractor.time_to_sample_indices(np.array([2.5, 2.6, 2.7])), np.array([0, 1, 2]))
+
+    def test_shift_times_with_set_times(self):
+        """A shift is added to the times given to set_times, and the stored array is not changed."""
+        extractor = generate_dummy_imaging_extractor(num_samples=3, num_rows=2, num_columns=2, sampling_frequency=10.0)
+        times = np.array([10.0, 10.5, 11.0])
+        extractor.set_times(times)
+        extractor.shift_times(2.0)
+
+        np.testing.assert_array_equal(extractor.get_timestamps(), times + 2.0)
+        np.testing.assert_array_equal(extractor._times, times)
+        self.assertEqual(extractor.get_start_time(), 12.0)
+        np.testing.assert_array_equal(extractor.time_to_sample_indices(np.array([12.2, 12.7])), np.array([0, 1]))
+
+    def test_shift_times_with_native_timestamps(self):
+        """A shift is added to the native timestamps when they are read."""
+        extractor = generate_dummy_imaging_extractor(
+            num_samples=3, num_rows=2, num_columns=2, sampling_frequency=10.0, native_timestamps="unevenly_spaced"
+        )
+        native_timestamps = extractor.get_native_timestamps()
+        extractor.shift_times(2.5)
+
+        np.testing.assert_array_equal(extractor.get_timestamps(), native_timestamps + 2.5)
+        np.testing.assert_array_equal(extractor.get_native_timestamps(), native_timestamps)
+        self.assertEqual(extractor.get_start_time(), native_timestamps[0] + 2.5)
+
+    def test_shifts_add_up_and_set_times_resets_them(self):
+        """Two shifts add, and the times given to set_times afterwards are the times returned."""
+        extractor = generate_dummy_imaging_extractor(num_samples=3, num_rows=2, num_columns=2, sampling_frequency=10.0)
+        extractor.shift_times(1.0)
+        extractor.shift_times(2.0)
+        self.assertEqual(extractor.get_start_time(), 3.0)
+
+        times = np.array([10.0, 10.5, 11.0])
+        extractor.set_times(times)
+        np.testing.assert_array_equal(extractor.get_timestamps(), times)
+        self.assertEqual(extractor.get_start_time(), 10.0)
+
     def test_time_to_sample_indices_with_sampling_frequency(self):
         """Round-trip: get_timestamps -> time_to_sample_indices should recover original indices."""
         sample_indices = np.array([0, 1, 2])

@@ -1,6 +1,7 @@
 # v0.10.1 (Upcoming)
 
 ### Features
+* Added `shift_times()`, which moves every timestamp by a constant without building or changing an array, and `get_start_time()`, which returns the time of the first sample. [PR #634](https://github.com/catalystneuro/roiextractors/pull/634)
 * `MicroManagerTiffImagingExtractor` now reads multiple channels, depth planes and positions from MMStack recordings and exposes their native timestamps and imaging metadata. [#681 (Micro-Manager MMStack reader)](https://github.com/catalystneuro/roiextractors/pull/681)
 * `FemtonicsImagingExtractor.metadata` now reads the acquisition start, pixel size, field of view, channel, acquisition software version and session information from the selected measurement unit and file attributes. [#679 (Femtonics metadata)](https://github.com/catalystneuro/roiextractors/pull/679)
 * `ThorTiffImagingExtractor.metadata` now combines the image metadata with the acquisition start, channel name, field of view, signed plane z offsets, objective magnification, acquisition software and session information from `Experiment.xml`. [#678 (Thor metadata)](https://github.com/catalystneuro/roiextractors/pull/678)
