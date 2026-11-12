@@ -361,45 +361,6 @@ class TestScanImageVolumetricWithFlybackFrames:
 class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
     """Test the ScanImage extractor classes with files that have multiple frames per slice."""
 
-    def test_volumetric_data_single_channel_single_file(self):
-        """Test with volumetric data that has multiple frames per slice.
-
-        File: slow_stack_frames_averaged_one_volume_version_2022_0/stack.tif
-        Metadata:
-        - Acquisition mode: grab
-        - Volumetric: True (20 slices)
-        - Channels: 1 (single channel)
-        - Frames per slice: 8
-        - Frame rate: 30.0141 Hz
-        - Volume rate: 0.187588 Hz
-        - Pages/IDFs: 20
-        - num_frames_per_volume: 160
-
-        This file does not have enough samples to do a full slice extraction. It has 20 slices
-        and 8 frames per slice but only 20 pages of data. This means that only data from the first three
-        depths are included. Skipping this test for now
-        """
-
-        return
-
-    def test_volumetric_data_single_channel_single_file_2(self):
-        """Test with a multi-volume ScanImage file with frames per slice > 1.
-
-        File: slow_stack_frames_averaged_two_volumes_version_2022_0/stack.tif
-        Metadata:
-        - Volumetric: True (multiple planes)
-        - Channels: 1 (single channel)
-        - Image shape: 64 x 64
-        - Frames per slice: 8
-        - num_ifds: 20
-        - num_slices: 10
-
-        This test does not have enough samples to do a full slice extraction. It has 20 slices
-        and 8 frames per slice but only 20 pages of data. This means that only data from the first three
-        depths are included. Skipping this test for now.
-        """
-        return
-
     def test_volumetric_data_multi_channel_single_file(self):
         """Test with volumetric data acquired in grab mode with multiple frames per depth.
 
@@ -2612,24 +2573,109 @@ class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtrac
         assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
 
 
-@pytest.mark.filterwarnings("ignore:The metadata API is experimental:UserWarning")
-def test_bounded_stack_planes_are_the_acquired_slices():
-    """A 2021.0 bounded stack acquires the 12 slices of `actualNumSlices`, of 10 frames each, while `numSlices` is 11."""
-    file_path = (
-        SCANIMAGE_FORMAT_4_PATH
+class TestScanImageImagingExtractorBoundedStackVersion2021(ImagingExtractorTestMixin):
+    """A 2021.0 bounded stack acquires the 12 slices of `actualNumSlices`, of 10 frames each, while `numSlices` is 11.
+
+    The stack is one volume, so the samples interleave its 10 frames per slice, as the mixin needs more than one sample.
+    """
+
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_FORMAT_4_PATH
         / "time_structure"
         / "slow_stack_frames_saved_galvo_galvo_bounded_stack_version_2021_0"
-        / "stack_00003.tif"
+        / "stack_00003.tif",
+        interleave_slice_samples=True,
     )
-    extractor = ScanImageImagingExtractor(file_path=file_path, slice_sample=0)
-    assert extractor.get_sample_shape() == (64, 64, 12)
-    assert extractor.get_num_samples() == 1
-    # Plane `plane` is page `10 * plane`, the first of its 10 frames
-    page_indices = [[10 * plane for plane in range(12)]]
-    expected_series = read_scanimage_pages([file_path], page_indices)
-    assert_array_equal(extractor.get_series(), np.moveaxis(expected_series, 1, -1))
-    # zs runs from 1.6 µm in steps of `stackZStepSize` 5 µm, a position for each of the 10 frames of a slice
-    assert extractor.metadata.plane_z_offsets_um == pytest.approx([5.0 * plane for plane in range(12)])
+    expected_num_samples = 10  # 120 pages / 12 planes, one sample for each of the 10 frames per slice
+    expected_sample_shape = (64, 64, 12)
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1"]
+    # frameTimestamps_sec of page 110 + sample: frame `sample` of the last of the 12 planes, as ScanImage gives a
+    # volume the time of its last plane. The frame times start again from 0 at each slice
+    expected_native_timestamps = [0.0, 0.938163, 1.876326]
+    # frameTimestamps_sec of page 10 * plane + sample, a list per plane
+    expected_plane_native_timestamps = [[0.0, 0.938163, 1.876326] for plane in range(12)]
+    # scanVolumeRate, best effort: the interleaved samples are frames of one volume, so no single rate describes them
+    expected_sampling_frequency = 0.00888261
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2023, 1, 25, 16, 41, 43, 359000),  # epoch = [2023,1,25,16,41,43.359]
+        # imagingFovUm has its corners at -79.133 and 68.5431 µm in x, -88.5698 and 59.1063 µm in y, over
+        # linesPerFrame and pixelsPerLine 64
+        pixel_height_um=147.6761 / 64,
+        pixel_width_um=147.6761 / 64,
+        field_of_view_height_um=147.6761,
+        field_of_view_width_um=147.6761,
+        # zs runs from 1.6 µm in steps of `stackZStepSize` 5 µm, a position for each of the 10 frames of a slice
+        plane_z_offsets_um=[5.0 * plane for plane in range(12)],
+        channel_name="Channel 1",
+        scan_line_rate=1 / 0.0018304,  # 1 / linePeriod
+        frames_per_slice=10,  # framesPerSlice
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2021.0.0",  # VERSION_MAJOR, VERSION_MINOR and VERSION_UPDATE
+    )
+
+    def check_series(self, series):
+        """Plane `plane` of sample `sample` is page `10 * plane + sample`: one volume of 12 planes of 10 frames."""
+        file_paths = [self.extractor_kwargs["file_path"]]
+        page_indices = [[10 * plane + sample for plane in range(12)] for sample in range(self.expected_num_samples)]
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
+
+
+class TestScanImageImagingExtractorAveragedStackVersion2022(ImagingExtractorTestMixin):
+    """A 2022.0 stack of two volumes of 10 slices that averages the 8 frames of each slice into one saved frame."""
+
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_FORMAT_4_PATH
+        / "time_structure"
+        / "slow_stack_frames_averaged_two_volumes_version_2022_0"
+        / "stack.tif"
+    )
+    expected_num_samples = 2  # 20 pages / 10 planes, one page per slice
+    expected_sample_shape = (64, 64, 10)
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1"]
+    # frameTimestamps_sec of page 10 * sample + 9, as ScanImage gives a volume the time of its last plane
+    expected_native_timestamps = [5.50996541, 10.8869159]
+    # frameTimestamps_sec of page 10 * sample + plane, a list per plane
+    expected_plane_native_timestamps = [
+        [0.23328839, 6.1025892],
+        [1.25116313, 6.62375852],
+        [1.80776582, 7.160587],
+        [2.32006298, 7.6904751],
+        [2.86493642, 8.21039241],
+        [3.39251932, 8.73574176],
+        [3.93576162, 9.26942721],
+        [4.4583038, 9.80753479],
+        [4.98766763, 10.35675628],
+        [5.50996541, 10.8869159],
+    ]
+    expected_sampling_frequency = 0.375176  # scanVolumeRate
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2022, 8, 8, 16, 56, 7, 329000),  # epoch = [2022  8  8 16 56 7.329]
+        # imagingFovUm has its corners at ±135 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=270 / 64,
+        pixel_width_um=270 / 64,
+        field_of_view_height_um=270,
+        field_of_view_width_um=270,
+        # zs = [742.467 ... 761.359 ... 912.489], a position for each of the 8 scanned frames of a slice, minus the
+        # first plane
+        plane_z_offsets_um=[0.0, 18.892, 37.783, 56.674, 75.565, 94.457, 113.348, 132.239, 151.13, 170.022],
+        channel_name="Channel 1",
+        scan_line_rate=1 / 6.31018e-05,  # 1 / linePeriod
+        frames_per_slice=1,  # framesPerSlice 8 over logAverageFactor 8, the frames of a slice in the file
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2022.0.0",  # VERSION_MAJOR, VERSION_MINOR and VERSION_UPDATE
+    )
+
+    def check_series(self, series):
+        """Plane `plane` of sample `sample` is page `10 * sample + plane`: one channel and 10 planes per volume."""
+        file_paths = [self.extractor_kwargs["file_path"]]
+        page_indices = [[10 * sample + plane for plane in range(10)] for sample in range(self.expected_num_samples)]
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
 
 
 # Headers before 2019b have no `hStackManager.enable`, so the extractor reads their stack settings from `hFastZ`
