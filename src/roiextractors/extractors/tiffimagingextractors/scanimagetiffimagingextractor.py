@@ -183,10 +183,12 @@ class ScanImageImagingExtractor(ImagingExtractor):
         if "SI.hStackManager.enable" in self._metadata:
             # Check if stack manager is enabled and if there are multiple slices
             # This criteria was confirmed by Lawrence Niu, a developer of ScanImage
-            # but we need to also check numSlices > 1 because some planar datasets
+            # but we need to also check the number of slices > 1 because some planar datasets
             # have SI.hStackManager.enable = True but only one slice
+            # `numSlices` is the setting and `actualNumSlices` the slices acquired. They differ in bounded stacks, where
+            # the slices follow from the start, end and step size: a 2021.0 stack has `numSlices` 11 and 12 slices.
             stack_enabled = self._metadata["SI.hStackManager.enable"]
-            num_planes = self._metadata["SI.hStackManager.numSlices"]
+            num_planes = self._metadata["SI.hStackManager.actualNumSlices"]
             self.is_volumetric = stack_enabled and num_planes > 1
             if self.is_volumetric:
                 frames_per_volume_per_channel = self._metadata["SI.hStackManager.numFramesPerVolume"]
