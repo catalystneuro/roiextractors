@@ -144,10 +144,7 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
         )
         self._ome_has_native_timestamps = None
 
-    @cached_property
-    def _unified_metadata(self) -> Metadata:
-        if self._metadata_parent is not None:
-            return super()._unified_metadata
+    def _get_ome_image_metadata(self):
         tifffile = get_package(package_name="tifffile")
         file_path = self._file_paths[0]
         with tifffile.TiffFile(file_path) as tiff:
@@ -160,6 +157,13 @@ class OMETiffImagingExtractor(MultiTIFFMultiPageExtractor):
             companion_file_path = file_path.parent / ome_root.find("{*}BinaryOnly").attrib["MetadataFile"]
             ome_root = ET.parse(companion_file_path).getroot()
             pixels = self._select_pixels_element_for_file(ome_root, file_path, companion_file_path)
+        return ome_root, pixels
+
+    @cached_property
+    def _unified_metadata(self) -> Metadata:
+        if self._metadata_parent is not None:
+            return super()._unified_metadata
+        ome_root, pixels = self._get_ome_image_metadata()
         image = next(image for image in ome_root.findall("{*}Image") if image.find("{*}Pixels") is pixels)
 
         acquisition_date = image.findtext("{*}AcquisitionDate") or image.findtext("{*}AcquiredDate")

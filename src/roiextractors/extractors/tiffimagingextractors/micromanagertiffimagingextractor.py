@@ -1,25 +1,17 @@
-"""A ImagingExtractor for TIFF files produced by Micro-Manager.
-
-Classes
--------
-MicroManagerTiffImagingExtractor
-    A ImagingExtractor for TIFF files produced by Micro-Manager.
-"""
+"""An ImagingExtractor for MMStack OME-TIFF files produced by Micro-Manager."""
 
 import logging
-import re
-from collections import Counter
-from itertools import islice
+import warnings
+from datetime import datetime
+from functools import cached_property
 from pathlib import Path
-from types import ModuleType
-from xml.etree import ElementTree
+from xml.etree import ElementTree as ET
 
 import numpy as np
 
 from .ometiffimagingextractor import OMETiffImagingExtractor
+from ..._metadata import Metadata
 from ...extraction_tools import PathType, get_package
-from ...imagingextractor import ImagingExtractor
-from ...multiimagingextractor import MultiImagingExtractor
 
 
 def filter_tiff_tag_warnings(record):
@@ -30,208 +22,206 @@ def filter_tiff_tag_warnings(record):
 logging.getLogger("tifffile.tifffile").addFilter(filter_tiff_tag_warnings)
 
 
-def _get_tiff_reader() -> ModuleType:
-    """Import the tifffile package and return the module."""
-    return get_package(package_name="tifffile", installation_instructions="pip install tifffile")
+class MicroManagerTiffImagingExtractor(OMETiffImagingExtractor):
+    """Read a selected position and channel from Micro-Manager MMStack OME-TIFF files.
 
-
-class MicroManagerTiffImagingExtractor(MultiImagingExtractor):
-    """Specialized extractor for reading TIFF files produced via Micro-Manager.
-
-    The image file stacks are saved into multipage TIF files in OME-TIFF format (.ome.tif files),
-    each of which are up to around 4GB in size.
-    The 'DisplaySettings' JSON file contains the properties of Micro-Manager.
+    Parameters
+    ----------
+    file_path : PathType, optional
+        One file in the recording. Related files are discovered from its OME-XML.
+    channel_name : str, optional
+        Channel to read. Required when the recording has several channels.
+    position_index : int, optional
+        Position to read, in the order of the OME-XML Image elements. Required when
+        the supplied file contains several positions. Otherwise the position is
+        selected from the supplied file's name.
+    sampling_frequency : float, optional
+        Sampling frequency in Hz. By default, the reciprocal of the median interval
+        between timestamps of the selected channel's first depth plane. Required
+        when fewer than two samples have timestamps.
+    folder_path : PathType, optional
+        Deprecated alias for a folder containing the MMStack files. Use file_path.
     """
 
     extractor_name = "MicroManagerTiffImaging"
 
-    def __init__(self, folder_path: PathType):
-        """Create a MicroManagerTiffImagingExtractor instance from a folder path that contains the image files.
+    def __init__(
+        self,
+        file_path: PathType | None = None,
+        channel_name: str | None = None,
+        *,
+        position_index: int | None = None,
+        sampling_frequency: float | None = None,
+        folder_path: PathType | None = None,
+    ):
+        file_path = self._resolve_file_path(file_path, folder_path)
+        tifffile = get_package(package_name="tifffile")
+        with tifffile.TiffFile(file_path) as tiff:
+            self.micromanager_metadata = tiff.micromanager_metadata
+            ome_root = ET.fromstring(tiff.ome_metadata)
+        binary_only = ome_root.find("{*}BinaryOnly")
+        if binary_only is not None:
+            master_path = file_path.parent / binary_only.attrib["MetadataFile"]
+            with tifffile.TiffFile(master_path) as tiff:
+                ome_root = ET.fromstring(tiff.ome_metadata)
 
-        Parameters
-        ----------
-        folder_path: PathType
-           The folder path that contains the multipage OME-TIF image files (.ome.tif files).
-        """
-        self.tifffile = _get_tiff_reader()
-        self.folder_path = Path(folder_path)
+        images = ome_root.findall("{*}Image")
+        if position_index is None and len(images) == 1:
+            position_index = 0
+        if position_index is None:
+            matching_positions = [
+                index
+                for index, image in enumerate(images)
+                if any(
+                    element.get("FileName") == file_path.name
+                    for element in image.findall("{*}Pixels/{*}TiffData/{*}UUID")
+                )
+            ]
+            if len(matching_positions) != 1:
+                raise ValueError("position_index must be specified when a file contains several positions.")
+            position_index = matching_positions[0]
+        if not 0 <= position_index < len(images):
+            raise ValueError(f"position_index must be between 0 and {len(images) - 1}.")
+        self._ome_root = ome_root
+        self._pixels_element = images[position_index].find("{*}Pixels")
 
-        self._ome_tif_files = list(self.folder_path.glob("*.ome.tif"))
-        assert self._ome_tif_files, f"The TIF image files are missing from '{folder_path}'."
+        super().__init__(file_path=file_path, sampling_frequency=1.0, channel_name=channel_name)
+        if sampling_frequency is None:
+            timestamps = self.get_native_timestamps()
+            if timestamps is None or len(timestamps) < 2:
+                raise ValueError("sampling_frequency must be provided when fewer than two samples have timestamps.")
+            sampling_frequency = float(1.0 / np.median(np.diff(timestamps)))
+        self._sampling_frequency = sampling_frequency
+        self.folder_path = file_path.parent
+        self._channel_names = list(self.micromanager_metadata["Summary"]["ChNames"])
+        self._kwargs = dict(
+            file_path=str(file_path),
+            channel_name=channel_name,
+            position_index=position_index,
+            sampling_frequency=sampling_frequency,
+        )
 
-        first_tif = self.tifffile.TiffFile(self._ome_tif_files[0])
-        # extract metadata from Micro-Manager
-        micromanager_metadata = first_tif.micromanager_metadata
-        assert "Summary" in micromanager_metadata, "The 'Summary' field is not found in Micro-Manager metadata."
-        self.micromanager_metadata = micromanager_metadata
-        self._width = self.micromanager_metadata["Summary"]["Width"]
-        self._height = self.micromanager_metadata["Summary"]["Height"]
-        self._num_channels = self.micromanager_metadata["Summary"]["Channels"]
-        if self._num_channels > 1:
-            raise NotImplementedError(
-                f"The {self.extractor_name}Extractor does not currently support multiple color channels."
+    @staticmethod
+    def _resolve_file_path(file_path, folder_path):
+        if folder_path is not None:
+            if file_path is not None:
+                raise ValueError("Pass either file_path or folder_path, not both.")
+            file_path = folder_path
+        if file_path is None:
+            raise ValueError("file_path must be provided.")
+        file_path = Path(file_path)
+        if folder_path is not None or file_path.is_dir():
+            warnings.warn(
+                "Passing a folder is deprecated and will be removed on or after May 2027. "
+                "Pass an MMStack file as file_path instead.",
+                FutureWarning,
+                stacklevel=3,
             )
-        self._channel_names = self.micromanager_metadata["Summary"]["ChNames"]
+            files = sorted(file_path.glob("*.ome.tif"))
+            assert files, f"The TIF image files are missing from '{file_path}'."
+            file_path = files[0]
+        return file_path
 
-        # extract metadata from OME-XML specification
-        self._ome_metadata = first_tif.ome_metadata
-        ome_metadata_root = self._get_ome_xml_root()
+    def _parse_ome_metadata(self, file_path):
+        pixels = self._pixels_element
+        file_positions = self._parse_file_paths_from_ome_metadata(pixels, file_path)
+        self._micromanager_file_paths = list(file_positions)
+        missing_files = [path.name for path in self._micromanager_file_paths if not path.is_file()]
+        assert not missing_files, (
+            f"Some of the TIF image files at '{file_path.parent}' are missing. "
+            f"The list of files that are missing: {missing_files}"
+        )
+        dimension_order = pixels.attrib["DimensionOrder"].replace("X", "").replace("Y", "")
+        sizes = {dimension: int(pixels.attrib[f"Size{dimension}"]) for dimension in "CZT"}
+        divisors = {}
+        divisor = 1
+        for dimension in dimension_order:
+            divisors[dimension] = divisor
+            divisor *= sizes[dimension]
+        mapping = []
+        for element in pixels.findall("{*}TiffData"):
+            uuid = element.find("{*}UUID")
+            path = file_path if uuid is None else file_path.parent / uuid.attrib["FileName"]
+            file_index = self._micromanager_file_paths.index(path)
+            first = sum(int(element.get(f"First{dimension}", "0")) * divisors[dimension] for dimension in "CZT")
+            for offset in range(int(element.get("PlaneCount", "1"))):
+                coordinates = {
+                    dimension: ((first + offset) // divisors[dimension]) % sizes[dimension] for dimension in "CZT"
+                }
+                mapping.append(
+                    (
+                        file_index,
+                        int(element.get("IFD", "0")) + offset,
+                        coordinates["C"],
+                        coordinates["Z"],
+                        coordinates["T"],
+                    )
+                )
+        self._micromanager_frame_mapping = np.array(
+            mapping,
+            dtype=[
+                (name, np.uint32) for name in ("file_index", "IFD_index", "channel_index", "depth_index", "time_index")
+            ],
+        )
+        physical_frames = self._micromanager_frame_mapping[["file_index", "IFD_index"]]
+        if len(np.unique(physical_frames)) != len(physical_frames):
+            raise ValueError("The OME-XML contains repeated TIFF page references for different frames.")
+        return dict(
+            file_paths=self._micromanager_file_paths,
+            dimension_order=dimension_order,
+            num_channels=sizes["C"],
+            num_planes=sizes["Z"],
+            channel_names=[channel.attrib["Name"] for channel in pixels.findall("{*}Channel")],
+        )
 
-        schema_name = re.findall(r"\{(.*)\}", ome_metadata_root.tag)[0]
-        pixels_element = ome_metadata_root.find(f"{{{schema_name}}}Image/{{{schema_name}}}Pixels")
-        self._num_samples = int(pixels_element.attrib["SizeT"])
-        self._dtype = np.dtype(pixels_element.attrib["Type"])
+    def _create_frame_to_ifd_table(self, dimension_order, num_channels, num_planes, ifds_per_file):
+        return self._micromanager_frame_mapping
 
-        # the sampling frequency is the median interval between the acquisition times of the frames,
-        # which Micro-Manager copies from the 'ElapsedTime-ms' of each frame to the DeltaT of its Plane
-        plane_elements = pixels_element.findall(f"{{{schema_name}}}Plane")
-        time_by_frame = {
-            int(plane.attrib["TheT"]): float(plane.attrib["DeltaT"])
-            * OMETiffImagingExtractor._TIME_UNIT_TO_SECONDS[plane.attrib.get("DeltaTUnit", "s")]
-            for plane in plane_elements
-        }
-        times = np.array([time_by_frame[frame] for frame in sorted(time_by_frame)])
-        self._sampling_frequency = float(1.0 / np.median(np.diff(times)))
-
-        # all the file names are repeated under the TiffData tag
-        # the number of occurrences of each file path corresponds to the number of frames for a given TIF file
-        tiff_data_elements = pixels_element.findall(f"{{{schema_name}}}TiffData")
-        file_names = [element[0].attrib["FileName"] for element in tiff_data_elements]
-
-        # count the number of occurrences of each file path and their names
-        file_counts = Counter(file_names)
-        self._check_missing_files_in_folder(expected_list_of_files=list(file_counts.keys()))
-        # Initialize the private imaging extractors with the number of frames for each file
-        imaging_extractors = []
-        for file_path, num_samples_per_file in file_counts.items():
-            extractor = _MicroManagerTiffImagingExtractor(self.folder_path / file_path)
-            extractor._dtype = self._dtype
-            extractor._num_samples = num_samples_per_file
-            extractor._image_size = (self._height, self._width)
-            imaging_extractors.append(extractor)
-        super().__init__(imaging_extractors=imaging_extractors)
-
-    def _get_ome_xml_root(self) -> ElementTree:
-        """Parse the OME-XML configuration from string format into element tree and returns the root of this tree.
-
-        Returns
-        -------
-        root: ElementTree
-            The root of the element tree that contains the OME-XML configuration.
-        """
-        ome_metadata_element = ElementTree.fromstring(self._ome_metadata)
-        tree = ElementTree.ElementTree(ome_metadata_element)
-        return tree.getroot()
-
-    def _check_missing_files_in_folder(self, expected_list_of_files):
-        """Check the presence of each TIF file that is expected to be found in the folder.
-
-        Parameters
-        ----------
-        expected_list_of_files: list
-            The list of file names that are expected to be found in the folder.
-
-        Raises
-        ------
-        AssertionError
-            Raises an error when the files are not found with the name of the missing files.
-        """
-        missing_files = [
-            file_name for file_name in expected_list_of_files if self.folder_path / file_name not in self._ome_tif_files
+    def _get_ifds_per_file(self):
+        return [
+            int(np.count_nonzero(self._micromanager_frame_mapping["file_index"] == index))
+            for index in range(len(self._file_paths))
         ]
-        assert (
-            not missing_files
-        ), f"Some of the TIF image files at '{self.folder_path}' are missing. The list of files that are missing: {missing_files}"
 
-    def _check_consistency_between_imaging_extractors(self):
-        """Override the parent class method as none of the properties that are checked are from the sub-imaging extractors."""
-        return True
+    def _get_ome_image_metadata(self):
+        return self._ome_root, self._pixels_element
 
-    def get_image_shape(self) -> tuple[int, int]:
-        """Get the shape of the video frame (num_rows, num_columns).
-
-        Returns
-        -------
-        image_shape: tuple
-            Shape of the video frame (num_rows, num_columns).
-        """
-        return self._height, self._width
-
-    def get_sampling_frequency(self) -> float:
-        return self._sampling_frequency
-
-    def get_num_samples(self) -> int:
-        return self._num_samples
-
-    def get_dtype(self) -> np.dtype:
-        return self._dtype
-
-
-class _MicroManagerTiffImagingExtractor(ImagingExtractor):
-    """Private imaging extractor for OME-TIF image format produced by Micro-Manager.
-
-    The private imaging extractor for OME-TIF image format produced by Micro-Manager,
-    which defines the get_video() method to return the requested frames from a given file.
-    This extractor is not meant to be used as a standalone ImagingExtractor.
-    """
-
-    extractor_name = "_MicroManagerTiffImaging"
-    mode = "file"
-
-    SAMPLING_FREQ_ERROR = "The {}Extractor does not support retrieving the imaging rate."
-    CHANNEL_NAMES_ERROR = "The {}Extractor does not support retrieving the name of the channels."
-    DATA_TYPE_ERROR = "The {}Extractor does not support retrieving the data type."
-
-    def __init__(self, file_path: PathType):
-        """Create a _MicroManagerTiffImagingExtractor instance from a TIFF image file (.ome.tif).
-
-        Parameters
-        ----------
-        file_path : PathType
-            The path to the TIF image file (.ome.tif)
-        """
-        self.tifffile = _get_tiff_reader()
-        self.file_path = file_path
-
-        super().__init__()
-
-        self.pages = self.tifffile.TiffFile(self.file_path).pages
-        self._dtype = None
-        self._num_samples = None
-        self._image_size = None
-
-    def get_num_samples(self):
-        return self._num_samples
-
-    def get_image_shape(self) -> tuple[int, int]:
-        """Get the shape of the video frame (num_rows, num_columns).
-
-        Returns
-        -------
-        image_shape: tuple
-            Shape of the video frame (num_rows, num_columns).
-        """
-        return self._image_size
-
-    def get_sampling_frequency(self):
-        raise NotImplementedError(self.SAMPLING_FREQ_ERROR.format(self.extractor_name))
-
-    def get_dtype(self):
-        return self._dtype
-
-    def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
-        if start_sample is not None and end_sample is not None and start_sample == end_sample:
-            return self.pages[start_sample].asarray()
-
-        end_sample = end_sample or self.get_num_samples()
-        start_sample = start_sample or 0
-        series = np.zeros(shape=(end_sample - start_sample, *self.get_sample_shape()), dtype=self.get_dtype())
-        for page_ind, page in enumerate(islice(self.pages, start_sample, end_sample)):
-            series[page_ind] = page.asarray()
-        return series
+    @cached_property
+    def _unified_metadata(self) -> Metadata:
+        if self._metadata_parent is not None:
+            return super()._unified_metadata
+        metadata = super()._unified_metadata
+        summary = self.micromanager_metadata["Summary"]
+        if summary.get("StartTime"):
+            date, time, offset = summary["StartTime"].split()
+            metadata.acquisition_start_datetime = datetime.fromisoformat(f"{date}T{time}{offset[:3]}:{offset[3:]}")
+        metadata.acquisition_software_name = "Micro-Manager"
+        metadata.acquisition_software_version = summary.get("MicroManagerVersion") or None
+        return metadata
 
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
     ) -> np.ndarray | None:
-        # MicroManager TIFF imaging data does not have native timestamps
-        return None
+        depth_index = self._frames_to_ifd_table[0]["depth_index"]
+        time_by_frame = {
+            int(plane.attrib["TheT"]): float(plane.attrib["DeltaT"])
+            * self._TIME_UNIT_TO_SECONDS[plane.get("DeltaTUnit", "s")]
+            for plane in self._pixels_element.findall("{*}Plane")
+            if int(plane.attrib["TheC"]) == self._channel_index
+            and int(plane.attrib["TheZ"]) == depth_index
+            and "DeltaT" in plane.attrib
+        }
+        time_indices = self._frames_to_ifd_table["time_index"][:: self._num_planes]
+        if any(time_index not in time_by_frame for time_index in time_indices):
+            return None
+        timestamps = np.array([time_by_frame[time_index] for time_index in time_indices])
+        return timestamps[start_sample:end_sample]
+
+    @staticmethod
+    def get_available_channel_names(
+        file_path: PathType | None = None, *, folder_path: PathType | None = None
+    ) -> list[str]:
+        file_path = MicroManagerTiffImagingExtractor._resolve_file_path(file_path, folder_path)
+        tifffile = get_package(package_name="tifffile")
+        with tifffile.TiffFile(file_path) as tiff:
+            return list(tiff.micromanager_metadata["Summary"]["ChNames"])

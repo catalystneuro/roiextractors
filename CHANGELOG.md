@@ -1,6 +1,7 @@
 # v0.10.1 (Upcoming)
 
 ### Features
+* `MicroManagerTiffImagingExtractor` now reads multiple channels, depth planes and positions from MMStack recordings and exposes their native timestamps and imaging metadata. [#681 (Micro-Manager MMStack reader)](https://github.com/catalystneuro/roiextractors/pull/681)
 * `FemtonicsImagingExtractor.metadata` now reads the acquisition start, pixel size, field of view, channel, acquisition software version and session information from the selected measurement unit and file attributes. [#679 (Femtonics metadata)](https://github.com/catalystneuro/roiextractors/pull/679)
 * `ThorTiffImagingExtractor.metadata` now combines the image metadata with the acquisition start, channel name, field of view, signed plane z offsets, objective magnification, acquisition software and session information from `Experiment.xml`. [#678 (Thor metadata)](https://github.com/catalystneuro/roiextractors/pull/678)
 * `OMETiffImagingExtractor.metadata` now reads acquisition dates, pixel sizes, field of view, channel names and wavelengths, exposure, the z offset of each plane, microscope and objective information, and experimenter names from the file or its companion metadata. Physical quantities are converted to the units of `Metadata`. `ThorTiffImagingExtractor` inherits the fields recorded in its image files. [#677 (OME-TIFF metadata)](https://github.com/catalystneuro/roiextractors/pull/677)
@@ -11,6 +12,7 @@
 * `InscopixImagingExtractor.metadata` now exposes the acquisition start, pixel size, field of view, exposure, camera gain, LED powers, microscope identity, acquisition software version, subject and session information recorded in the file.
 
 ### Fixes
+* `MicroManagerTiffImagingExtractor` now follows the explicit page coordinates and `PlaneCount` in the image metadata, so pages stored out of order and stopped acquisitions are read correctly. Repeated page references in damaged metadata now raise an error. [#681 (Micro-Manager MMStack reader)](https://github.com/catalystneuro/roiextractors/pull/681)
 * ScanImage construction with `plane_index`, plane selection, and ScanImage field-of-view cropping now defer metadata computation until `metadata` is first read. This also applies to plane selection in Bruker, OME-TIFF and Thor. The result is cached, with the plane offsets and field of view of the selected view. [#680 (Lazy imaging metadata)](https://github.com/catalystneuro/roiextractors/pull/680)
 * `OMETiffImagingExtractor.metadata` now leaves channel fields unset when the selected channel has no `<Channel>` entry instead of raising `IndexError`. This fixes metadata access for the second channel of Thor recordings with incomplete channel metadata. [#678 (Thor metadata)](https://github.com/catalystneuro/roiextractors/pull/678)
 * `slice_samples()` on an imaging extractor now accepts a bound left out and defaults to the start or the end of the parent, as its docstring says, instead of raising `TypeError`. The count of samples was computed before the defaults were applied.
@@ -36,6 +38,7 @@
 * `ScanImageImagingExtractor` and its `get_available_channel_names()` now open files with more than one channel from ScanImage versions up to 2019b, which can write the saved channels as a column, `channelSave = [1;3]`. They raised `TypeError`, as the column is read as `[[1], [3]]`.
 
 ### Deprecations And Removals
+* Passing a folder to `MicroManagerTiffImagingExtractor` is deprecated and will be removed on or after May 2027. Pass an MMStack file as `file_path` instead. The `folder_path` keyword remains available with a warning. [#681 (Micro-Manager MMStack reader)](https://github.com/catalystneuro/roiextractors/pull/681)
 * `Hdf5ImagingExtractor.metadata` is now the `Metadata` of the other imaging extractors. The dictionary it held, from the `metadata` argument or the `metadata` attribute of the dataset, is now in `metadata.extra_metadata["hdf5_user_metadata"]`.
 * Dropped support for Python 3.10, which `neuroconv` no longer supports. The minimum supported version is now Python 3.11. [PR #627](https://github.com/catalystneuro/roiextractors/pull/627)
 * Removed `sample_indices_to_time()` from `MinianSegmentationExtractor`, deprecated for removal on or after July 2026. Use `get_timestamps()` instead.
