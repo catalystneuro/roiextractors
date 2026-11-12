@@ -2,9 +2,13 @@
 
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
+from functools import cached_property
 from pathlib import Path
 
+import numpy as np
+
 from .ometiffimagingextractor import OMETiffImagingExtractor
+from ..._metadata import Metadata
 from ...extraction_tools import PathType
 
 
@@ -27,7 +31,7 @@ class ThorTiffImagingExtractor(OMETiffImagingExtractor):
     channel_name : str or None, optional
         For multi-channel data, the name of the channel to read (e.g. ``"ChanA"``).
         Channel names follow ThorImage's convention as configured in the acquisition.
-        Required when more than one channel is present and ignored otherwise.
+        Required when more than one channel is present.
     """
 
     extractor_name = "ThorTiffImaging"
@@ -53,6 +57,19 @@ class ThorTiffImagingExtractor(OMETiffImagingExtractor):
             raise ValueError("Could not find 'LSM' element with frameRate attribute in Experiment.xml.")
         sampling_frequency = float(lsm.get("frameRate"))
 
+        # `frameRate` is the scan rate. In streaming capture each saved sample takes several scans: a volume
+        # takes its planes plus the flyback frames, which TIFF output does not save, and fast z turns averaging
+        # off. Otherwise a saved frame is the mean of `averageNum` scans when averaging is on.
+        capture_mode = self._experiment_xml_root.find("CaptureMode")
+        streaming = self._experiment_xml_root.find("Streaming")
+        if capture_mode is not None and capture_mode.get("mode") == "1" and streaming is not None:
+            if streaming.get("zFastEnable") == "1":
+                num_planes = int(self._experiment_xml_root.find("ZStage").get("steps"))
+                flyback_frames = int(streaming.get("flybackFrames"))
+                sampling_frequency /= num_planes + flyback_frames
+            elif lsm.get("averageMode") == "1":
+                sampling_frequency /= int(lsm.get("averageNum"))
+
         # Build channel names from Wavelengths. ThorImage uses these as the user-facing
         # channel identifiers (e.g. "ChanA", "ChanB"); they're stored before super().__init__()
         # because the base class calls self._get_channel_names() during init for validation.
@@ -65,6 +82,52 @@ class ThorTiffImagingExtractor(OMETiffImagingExtractor):
         )
 
         self._kwargs = {"file_path": str(file_path), "channel_name": channel_name}
+
+    @cached_property
+    def _unified_metadata(self) -> Metadata:
+        if self._metadata_parent is not None:
+            return super()._unified_metadata
+        metadata = super()._unified_metadata
+        root = self._experiment_xml_root
+
+        date = root.find("Date")
+        if date is not None and date.get("uTime") is not None:
+            metadata.acquisition_start_datetime = self._get_session_start_time()
+        if self._thor_channel_names:
+            metadata.channel_name = self._thor_channel_names[self._channel_index]
+
+        for tag, attribute, field_name in (
+            ("LSM", "heightUM", "field_of_view_height_um"),
+            ("LSM", "widthUM", "field_of_view_width_um"),
+            ("Magnification", "mag", "objective_magnification"),
+        ):
+            element = root.find(tag)
+            if element is not None and element.get(attribute) is not None:
+                setattr(metadata, field_name, float(element.get(attribute)))
+
+        metadata.acquisition_software_name = "ThorImageLS"
+        for tag, attribute, field_name in (
+            ("Software", "version", "acquisition_software_version"),
+            ("Name", "name", "session_id"),
+            ("Comments", "text", "session_description"),
+        ):
+            element = root.find(tag)
+            if element is not None and element.get(attribute):
+                setattr(metadata, field_name, element.get(attribute))
+
+        z_stage = root.find("ZStage")
+        remote_focus = root.find("RemoteFocus")
+        if (
+            self.is_volumetric
+            and z_stage is not None
+            and z_stage.get("stepSizeUM") is not None
+            and z_stage.get("zFileEnable") != "1"
+            and (remote_focus is None or remote_focus.get("IsRemoteFocus") != "1")
+        ):
+            step_size_um = float(z_stage.get("stepSizeUM"))
+            metadata.plane_z_offsets_um = [plane_index * step_size_um for plane_index in range(self.get_num_planes())]
+
+        return metadata
 
     def _get_channel_names(self) -> list[str]:
         """Return Thor-specific channel names from Experiment.xml when available."""
@@ -98,6 +161,45 @@ class ThorTiffImagingExtractor(OMETiffImagingExtractor):
         if channel_names:
             return channel_names
         return OMETiffImagingExtractor.get_available_channel_names(file_path=file_path)
+
+    def get_native_timestamps(
+        self, start_sample: int | None = None, end_sample: int | None = None
+    ) -> np.ndarray | None:
+        """Return the time of each sample from the ``DeltaT`` of its files in Z and T capture.
+
+        ThorImageLS writes the ``Plane DeltaT`` of an image only into that image's own file, so the
+        first file holds the time of the first sample only. In Z and T capture (``CaptureMode="0"``)
+        the time of a sample is read from the file of its first plane in the selected channel. In
+        streaming capture ``DeltaT`` is the time the software handled the frame, not the time of the
+        scan, so the base class behavior is kept.
+
+        Parameters
+        ----------
+        start_sample : int, optional
+            The first sample to return the time of.
+        end_sample : int, optional
+            The sample after the last one to return the time of.
+
+        Returns
+        -------
+        timestamps : numpy.ndarray or None
+            The times in seconds since the first sample, or None when a file has no ``DeltaT``.
+        """
+        capture_mode = self._experiment_xml_root.find("CaptureMode")
+        if capture_mode is None or capture_mode.get("mode") != "0":
+            return super().get_native_timestamps(start_sample=start_sample, end_sample=end_sample)
+
+        # The table holds the frames of the selected channel sorted by time, then depth, so the first frame of each
+        # sample is that of its first plane, or of the selected plane in a view from `select_plane()`
+        sample_rows = self._frames_to_ifd_table[:: self._num_planes]
+        timestamps = np.zeros(len(sample_rows), dtype="float64")
+        for sample_index, file_index in enumerate(sample_rows["file_index"]):
+            planes = self._parse_ome_native_timestamps(self._file_paths[file_index])
+            if planes is None or len(planes) != 1:
+                return None
+            timestamps[sample_index] = planes[0]["delta_t_seconds"]
+
+        return timestamps[start_sample:end_sample]
 
     def _get_session_start_time(self) -> datetime:
         """Return the acquisition start time as a tz-aware UTC ``datetime``.

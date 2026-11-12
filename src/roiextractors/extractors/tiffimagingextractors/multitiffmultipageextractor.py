@@ -6,13 +6,16 @@ MultiTIFFMultiPageExtractor
     An extractor for handling multiple TIFF files, each with multiple pages, organized according to a specified dimension order.
 """
 
+import copy
 import glob
 import warnings
+from functools import cached_property
 from pathlib import Path
 from typing import Literal
 
 import numpy as np
 
+from ..._metadata import _get_plane_metadata
 from ...extraction_tools import PathType, get_package
 from ...imagingextractor import ImagingExtractor
 
@@ -68,7 +71,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             Number of channels in the data. Default is 1 (single channel).
         channel_name : str, optional
             Name of the channel to extract (e.g., "0", "1"). Only required when
-            num_channels > 1. For single-channel data, this parameter is ignored.
+            num_channels > 1. When given, it must be one of the available channel names.
             Default is None.
         num_planes : int, optional
             Number of depth planes (Z-slices) per volume. Default is 1 (planar data).
@@ -171,11 +174,15 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         self._dimension_order = dimension_order
         self._num_channels = num_channels
 
-        # Handle channel selection
-        if num_channels > 1:
-            if channel_name is None:
-                raise ValueError("channel_name must be specified when num_channels > 1")
+        # Handle channel selection. The channel names are looked up only when a name is given, to validate it even on
+        # single-channel data, or when there are several channels. Single-channel data without a name skips the lookup.
+        if num_channels > 1 or channel_name is not None:
             available_names = self._get_channel_names()
+            if channel_name is None:
+                raise ValueError(
+                    "channel_name must be specified for data with more than one channel. "
+                    f"Available channels: {available_names}"
+                )
             if channel_name not in available_names:
                 raise ValueError(f"Channel '{channel_name}' not found. Available channels: {available_names}")
             channel_index = available_names.index(channel_name)
@@ -185,6 +192,8 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         self._channel_index = channel_index
         self._num_planes = num_planes
         self._sampling_frequency = sampling_frequency
+        self._metadata_parent = None
+        self._metadata_plane_index = None
 
         self._tifffile = get_package(package_name="tifffile")
 
@@ -263,7 +272,57 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
     def get_num_planes(self) -> int:
         """Get the number of depth planes."""
+        if not self.is_volumetric:
+            warnings.warn(
+                "Calling get_num_planes on planar data is deprecated and will raise a ValueError in or after "
+                "May 2027. Check is_volumetric before calling it.",
+                FutureWarning,
+                stacklevel=2,
+            )
         return self._num_planes
+
+    def select_plane(self, plane_index: int) -> "MultiTIFFMultiPageExtractor":
+        """Return a planar view of one depth plane as a new extractor of the same class.
+
+        Overrides :meth:`ImagingExtractor.select_plane`. The generic wrapper reads every plane of a sample to keep
+        one, and returns the timestamps of the volume, which these formats take from its first plane. This view
+        keeps only the frames of the selected plane, so it reads only those pages, and the formats that record a
+        time per frame give it the times of its own frames. Times set with ``set_times()`` on the volume are not
+        carried over.
+
+        Parameters
+        ----------
+        plane_index : int
+            The depth plane to select. Must satisfy ``0 <= plane_index < num_planes``.
+
+        Returns
+        -------
+        MultiTIFFMultiPageExtractor
+            A planar extractor of the same class for the selected plane.
+        """
+        if not self.is_volumetric:
+            raise ValueError("select_plane is only valid for volumetric extractors.")
+        num_planes = self._num_planes
+        if not 0 <= plane_index < num_planes:
+            raise ValueError(f"plane_index ({plane_index}) must satisfy 0 <= plane_index < num_planes ({num_planes}).")
+
+        plane = copy.copy(self)
+        depth_mask = self._frames_to_ifd_table["depth_index"] == plane_index
+        plane._frames_to_ifd_table = self._frames_to_ifd_table[depth_mask]
+        plane._num_planes = 1
+        plane.is_volumetric = False
+        plane._times = None
+        # The copy also has the metadata of the volume if it was read before
+        plane.__dict__.pop("_unified_metadata", None)
+        plane._metadata_parent = self
+        plane._metadata_plane_index = plane_index
+        return plane
+
+    @cached_property
+    def _unified_metadata(self):
+        if self._metadata_parent is None:
+            return super()._unified_metadata
+        return _get_plane_metadata(self._metadata_parent._unified_metadata, plane_index=self._metadata_plane_index)
 
     @staticmethod
     def _create_frame_to_ifd_table(
@@ -378,7 +437,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
 
         # Always preallocate output array as volumetric
         num_rows, num_columns = self.get_frame_shape()
-        num_planes = self.get_num_planes()
+        num_planes = self._num_planes
         dtype = self.get_dtype()
         samples = np.empty((samples_in_series, num_rows, num_columns, num_planes), dtype=dtype)
 

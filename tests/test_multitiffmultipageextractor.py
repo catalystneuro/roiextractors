@@ -108,7 +108,6 @@ class TestSingleChannelPlanar:
         assert extractor.get_frame_shape() == self.expected_shape
         assert extractor.get_sample_shape() == self.expected_shape
         assert extractor.get_sampling_frequency() == self.sampling_frequency
-        assert extractor.get_num_planes() == self.num_planes
         assert extractor.get_dtype() == np.uint16
         assert extractor.is_volumetric == False
         assert extractor.get_native_timestamps() is None
@@ -246,7 +245,6 @@ class TestMultiChannelPlanar:
         assert extractor.get_frame_shape() == self.expected_shape
         assert extractor.get_sample_shape() == self.expected_shape
         assert extractor.get_sampling_frequency() == self.sampling_frequency
-        assert extractor.get_num_planes() == self.num_planes
         assert extractor.get_dtype() == np.uint16
         assert extractor.is_volumetric == False
         assert extractor.get_native_timestamps() is None
@@ -521,7 +519,10 @@ def test_channel_name_validation_error_handling(tmp_path):
     empty_file_path = tmp_path / "nonexistent.tif"
 
     # Test that missing channel_name when num_channels > 1 raises ValueError
-    with pytest.raises(ValueError, match="channel_name must be specified when num_channels > 1"):
+    expected_message = (
+        "channel_name must be specified for data with more than one channel. Available channels: ['0', '1']"
+    )
+    with pytest.raises(ValueError, match=re.escape(expected_message)):
         MultiTIFFMultiPageExtractor(
             file_paths=[empty_file_path],
             sampling_frequency=30.0,
@@ -623,11 +624,18 @@ def test_from_folder_no_files_found_error(tmp_path):
 def test_comparison_with_scanimage_planar_multi_channel():
     """Test comparison with ScanImageImagingExtractor for planar multi-channel data."""
     # Path to ScanImage multi-file data - explicit file paths for reproducibility
-    scanimage_folder_path = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
+    scanimage_folder_path = (
+        OPHYS_DATA_PATH
+        / "imaging_datasets"
+        / "ScanImage"
+        / "tiff_format_version_4"
+        / "time_structure"
+        / "planar_two_channels_loop_version_2023_1"
+    )
     file_paths = [
-        scanimage_folder_path / "scanimage_20240320_multifile_00001.tif",
-        scanimage_folder_path / "scanimage_20240320_multifile_00002.tif",
-        scanimage_folder_path / "scanimage_20240320_multifile_00003.tif",
+        scanimage_folder_path / "planar_00001.tif",
+        scanimage_folder_path / "planar_00002.tif",
+        scanimage_folder_path / "planar_00003.tif",
     ]
 
     # Use ScanImageImagingExtractor instead of deprecated extractor
@@ -677,7 +685,11 @@ def test_comparison_with_scanimage_volumetric_multi_channel():
     # Path to volumetric ScanImage data
     scanimage_folder_path = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
     volumetric_path = (
-        scanimage_folder_path / "volumetric_two_channels_single_file" / "vol_two_ch_single_file_00001_00001.tif"
+        scanimage_folder_path
+        / "tiff_format_version_4"
+        / "time_structure"
+        / "volumetric_flyback_frames_two_channels_version_2021_0"
+        / "volume_00001_00001.tif"
     )
 
     # Initialize ScanImage extractor for Channel 1 (index 0)

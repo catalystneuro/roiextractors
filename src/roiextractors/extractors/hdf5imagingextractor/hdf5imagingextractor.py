@@ -6,6 +6,7 @@ Hdf5ImagingExtractor
     An imaging extractor for HDF5.
 """
 
+from functools import cached_property
 from pathlib import Path
 from warnings import warn
 
@@ -14,6 +15,7 @@ import numpy as np
 from lazyslice import DatasetView
 from numpy.typing import ArrayLike
 
+from ..._metadata import Metadata
 from ...extraction_tools import PathType
 from ...imagingextractor import ImagingExtractor
 
@@ -79,11 +81,12 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         else:
             self._start_time = start_time
 
+        self._user_metadata = None
         if metadata is None:
             if "metadata" in dataset.attrs:
-                self.metadata = dataset.attrs["metadata"]
+                self._user_metadata = dataset.attrs["metadata"]
         else:
-            self.metadata = metadata
+            self._user_metadata = metadata
 
         # The test data has four dimensions and the first axis is channels
         self._num_channels, self._num_samples, self._num_rows, self._num_cols = self._video.shape
@@ -106,6 +109,18 @@ class Hdf5ImagingExtractor(ImagingExtractor):
     def __del__(self):
         """Close the HDF5 file."""
         self._file.close()
+
+    @cached_property
+    def _unified_metadata(self) -> Metadata:
+        """The metadata of the recording, with the metadata of the file or of the constructor in `extra_metadata`.
+
+        The `metadata` argument of the constructor, or else the `metadata` attribute of the dataset, is under the
+        `"hdf5_user_metadata"` key of `extra_metadata`.
+        """
+        extra_metadata = {}
+        if self._user_metadata is not None:
+            extra_metadata["hdf5_user_metadata"] = self._user_metadata
+        return Metadata(extra_metadata=extra_metadata)
 
     def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
         return self._video.lazy_slice[start_sample:end_sample, :, :, 0].dsetread()

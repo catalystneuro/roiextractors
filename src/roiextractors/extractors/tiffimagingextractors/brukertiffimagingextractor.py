@@ -14,6 +14,8 @@ import logging
 import re
 import warnings
 from collections import Counter
+from datetime import datetime
+from functools import cached_property
 from itertools import islice
 from pathlib import Path
 from types import ModuleType
@@ -23,6 +25,7 @@ import numpy as np
 from lxml import etree
 
 from .multitiffmultipageextractor import MultiTIFFMultiPageExtractor
+from ..._metadata import Metadata
 from ...extraction_tools import (
     PathType,
     calculate_regular_series_rate,
@@ -126,6 +129,25 @@ def _parse_xml(folder_path: PathType) -> etree.Element:
     return tree.getroot()
 
 
+def _read_state_value(state: etree.Element, key: str, index: str | None = None) -> str | None:
+    """Return the value of a ``PVStateValue`` of a ``PVStateShard``, or of one of its ``IndexedValue``, or None."""
+    path = f"PVStateValue[@key='{key}']"
+    if index is not None:
+        path += f"/IndexedValue[@index='{index}']"
+    element = state.find(path)
+    return None if element is None else element.attrib["value"]
+
+
+def _get_channel_names_from_bruker_xml(xml_root: etree.Element) -> list[str]:
+    """Return the channel names of a parsed Bruker configuration XML, in acquisition order.
+
+    Shared by the constructor and by ``get_available_channel_names`` so that discovery and
+    validation cannot disagree about what a Bruker channel is called.
+    """
+    channel_number_to_name = {int(elem.attrib["channel"]): elem.attrib["channelName"] for elem in xml_root.iter("File")}
+    return [channel_number_to_name[number] for number in sorted(channel_number_to_name)]
+
+
 class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
     """An extractor for Bruker Prairie View OME-TIFF files.
 
@@ -206,14 +228,12 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
                 stacklevel=2,
             )
 
-        # Pre-set _num_planes so get_native_timestamps() can be called before init.
-        # MultiTIFFMultiPageExtractor.__init__() will set it again to the same value.
-        self._num_planes = num_planes
         # Derive the rate from the true per-frame timeline. Burst/cycle recordings (e.g. Brightness
         # Over Time) are not uniformly sampled: their timeline is regular within each burst but has
         # large gaps between bursts, so calculate_segmented_series_rate splits at those gaps and
         # reports the within-burst rate. Uniformly-sampled recordings come back as a single segment.
-        timestamps = self.get_native_timestamps()
+        # The time of a volume is that of its first plane.
+        timestamps = self._read_frame_times()[::num_planes]
         sampling_frequency, _ = calculate_segmented_series_rate(timestamps)
         if sampling_frequency is None:
             raise ValueError("Could not determine sampling frequency from Bruker configuration XML.")
@@ -317,10 +337,96 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         Sorting alphabetically would swap channels whenever the labels do not sort in
         acquisition order (e.g. channel 1 = "Red", channel 2 = "Green").
         """
-        channel_number_to_name = {
-            int(elem.attrib["channel"]): elem.attrib["channelName"] for elem in self._xml_root.iter("File")
-        }
-        return [channel_number_to_name[number] for number in sorted(channel_number_to_name)]
+        return _get_channel_names_from_bruker_xml(self._xml_root)
+
+    @staticmethod
+    def get_available_channel_names(folder_path: PathType) -> list[str]:
+        """Return the available channel names without constructing an extractor.
+
+        The names are the ``channelName`` attributes of the ``<File>`` elements in the Bruker
+        configuration XML, in acquisition order, which are the names the constructor accepts
+        as ``channel_name``.
+
+        Parameters
+        ----------
+        folder_path : PathType
+            Path to the folder containing Bruker .ome.tif files and the configuration XML.
+
+        Returns
+        -------
+        list[str]
+            The channel names in acquisition order, e.g. ``["Red", "Green"]``.
+        """
+        folder_path = Path(folder_path)
+        xml_file_path = folder_path / f"{folder_path.name}.xml"
+        if not xml_file_path.is_file():
+            raise FileNotFoundError(f"Bruker XML configuration file not found at '{xml_file_path}'.")
+        return _get_channel_names_from_bruker_xml(etree.parse(xml_file_path).getroot())
+
+    @cached_property
+    def _unified_metadata(self) -> Metadata:
+        """The metadata of the recording, read from the Bruker configuration XML.
+
+        The values come from the state that Prairie View writes at the start of the recording, the first
+        ``PVStateShard``. On volumetric data the z offset of each plane is the position of the z device that moves
+        between planes (``zDevice``) in the frames of the first volume, minus that of the first plane.
+        """
+        if self._metadata_parent is not None:
+            return super()._unified_metadata
+        state = self._xml_root.find("PVStateShard")
+
+        # The rows run along the Y axis and the columns along the X axis
+        pixel_height_um = float(_read_state_value(state, "micronsPerPixel", index="YAxis"))
+        pixel_width_um = float(_read_state_value(state, "micronsPerPixel", index="XAxis"))
+        num_rows = int(_read_state_value(state, "linesPerFrame"))
+        num_columns = int(_read_state_value(state, "pixelsPerLine"))
+
+        plane_z_offsets_um = None
+        z_device = _read_state_value(state, "zDevice")
+        if self.is_volumetric and z_device is not None:
+            first_sequence = next(self._xml_root.iter("Sequence"))
+            z_device_path = (
+                "PVStateShard/PVStateValue[@key='positionCurrent']/SubindexedValues[@index='ZAxis']"
+                f"/SubindexedValue[@subindex='{z_device}']"
+            )
+            plane_positions_um = [
+                float(frame.find(z_device_path).attrib["value"]) for frame in first_sequence.iter("Frame")
+            ]
+            plane_z_offsets_um = [position - plane_positions_um[0] for position in plane_positions_um]
+
+        # Prairie View lists one high voltage for each PMT, and channel N reads PMT N
+        channel_numbers = sorted({int(element.attrib["channel"]) for element in self._xml_root.iter("File")})
+        channel_number = channel_numbers[self._channel_index]
+        pmt_high_voltage_V = _read_state_value(state, "pmtGain", index=str(channel_number - 1))
+
+        # With several lasers the XML does not say which one excites the channel, so only a single laser is kept
+        laser_wavelengths = state.findall("PVStateValue[@key='laserWavelength']/IndexedValue")
+        excitation_wavelength_nm = float(laser_wavelengths[0].attrib["value"]) if len(laser_wavelengths) == 1 else None
+
+        objective_magnification = _read_state_value(state, "objectiveLensMag")
+        objective_numerical_aperture = _read_state_value(state, "objectiveLensNA")
+        system_ids = self._xml_root.find("SystemIDs")
+
+        return Metadata(
+            acquisition_start_datetime=datetime.strptime(self._xml_root.attrib["date"], "%m/%d/%Y %I:%M:%S %p"),
+            pixel_height_um=pixel_height_um,
+            pixel_width_um=pixel_width_um,
+            field_of_view_height_um=pixel_height_um * num_rows,
+            field_of_view_width_um=pixel_width_um * num_columns,
+            plane_z_offsets_um=plane_z_offsets_um,
+            excitation_wavelength_nm=excitation_wavelength_nm,
+            channel_name=self._get_channel_names()[self._channel_index],
+            scan_line_rate=1 / float(_read_state_value(state, "scanLinePeriod")),
+            pmt_high_voltage_V=None if pmt_high_voltage_V is None else float(pmt_high_voltage_V),
+            microscope_manufacturer="Bruker",
+            microscope_serial_number=None if system_ids is None else system_ids.attrib.get("SystemID"),
+            acquisition_software_name="Prairie View",
+            acquisition_software_version=self._xml_root.attrib.get("version"),
+            objective_magnification=None if objective_magnification is None else float(objective_magnification),
+            objective_numerical_aperture=(
+                None if objective_numerical_aperture is None else float(objective_numerical_aperture)
+            ),
+        )
 
     def _get_ifds_per_file(self) -> list[int]:
         """Return per-file IFD counts derived from the Bruker XML.
@@ -358,9 +464,22 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
     def get_native_timestamps(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
         """Extract per-sample timestamps from Frame relativeTime attributes in the Bruker XML.
 
-        For volumetric data, frames alternate between planes; every num_planes-th timestamp
-        corresponds to one volume (sample).
+        For volumetric data, frames alternate between planes; the time of a volume (sample) is that of
+        its first plane, and a view from ``select_plane()`` has the times of the frames of its plane.
         """
+        frame_times = self._read_frame_times()
+        # The table holds the frames sorted by time, then depth, so the first frame of each sample is that of its
+        # first plane, or of the selected plane in a view from `select_plane()`
+        sample_rows = self._frames_to_ifd_table[:: self._num_planes]
+        num_planes = self._determine_num_planes()
+        frame_indices = sample_rows["time_index"].astype("int64") * num_planes + sample_rows["depth_index"]
+        timestamps = frame_times[frame_indices]
+        start_sample = start_sample or 0
+        end_sample = end_sample or len(timestamps)
+        return timestamps[start_sample:end_sample]
+
+    def _read_frame_times(self) -> np.ndarray:
+        """Read the time of every Frame in the Bruker XML, in acquisition order."""
         sequences = self._xml_root.findall("Sequence")
         # `relativeTime` resets to 0 at the start of each <Sequence> only for burst/cycle
         # recordings (Brightness Over Time, multi-cycle timed series). Volumetric recordings
@@ -385,10 +504,7 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
             raise ValueError("One or more Frame elements are missing the 'relativeTime'/'absoluteTime' attribute.")
         if len(all_times) == 0:
             raise ValueError("No Frame elements found in the Bruker configuration XML.")
-        timestamps = all_times[:: self._num_planes]
-        start_sample = start_sample or 0
-        end_sample = end_sample or len(timestamps)
-        return timestamps[start_sample:end_sample]
+        return all_times
 
     def _has_native_timestamps(self) -> bool:
         return True

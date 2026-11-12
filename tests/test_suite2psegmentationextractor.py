@@ -130,6 +130,28 @@ class TestSuite2pSegmentationExtractor(TestCase):
         images_dict = self.extractor.get_images_dict()
         assert_array_equal(images_dict["mean"], self.first_channel_mean_image)
 
+    def test_iscell_on_both_channels(self):
+        """Test that both channels read the iscell property from iscell.npy."""
+        expected_iscell = [1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0]
+        for channel_name in self.channel_names:
+            extractor = Suite2pSegmentationExtractor(
+                folder_path=self.folder_path, channel_name=channel_name, plane_name="plane0"
+            )
+            roi_ids = extractor.get_roi_ids()
+            iscell_property = extractor.get_property("iscell", roi_ids)
+            assert_array_equal(iscell_property, expected_iscell)
+
+    def test_redcell_on_both_channels(self):
+        """Test that both channels read the redcell property from redcell.npy."""
+        expected_redcell = [0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]
+        for channel_name in self.channel_names:
+            extractor = Suite2pSegmentationExtractor(
+                folder_path=self.folder_path, channel_name=channel_name, plane_name="plane0"
+            )
+            roi_ids = extractor.get_roi_ids()
+            redcell_property = extractor.get_property("redcell", roi_ids)
+            assert_array_equal(redcell_property, expected_redcell)
+
     def test_second_channel_mean_image(self):
         """Test that the mean image for the second channel is correctly loaded from the extractor."""
         extractor = Suite2pSegmentationExtractor(folder_path=self.folder_path, channel_name="chan2")

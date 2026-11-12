@@ -1,6 +1,8 @@
 import shutil
 import tempfile
+from datetime import datetime
 from pathlib import Path
+from xml.etree import ElementTree
 
 import numpy as np
 import pytest
@@ -15,6 +17,7 @@ from roiextractors import (
     BrukerTiffSinglePlaneImagingExtractor,
 )
 
+from .extractor_mixins import ImagingExtractorTestMixin
 from .setup_paths import OPHYS_DATA_PATH
 
 
@@ -247,36 +250,70 @@ class TestBrukerTiffExtractorDualColorCase(TestCase):
 BRUKER_STUB_PATH = OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif"
 
 
-class TestBrukerTiffImagingExtractorSinglePlane:
+def read_bruker_frames(folder_path, channel_name):
+    """Read the frames of a channel with `tifffile`, a stack for each `Sequence` of the Bruker XML in order.
+
+    Each frame comes from the file and page that its `File` element names, independently of the extractor.
+    """
+    root = ElementTree.parse(folder_path / f"{folder_path.name}.xml").getroot()
+    sequences = []
+    for sequence in root.iter("Sequence"):
+        frames = []
+        for frame in sequence.findall("Frame"):
+            file_element = next(
+                file_element
+                for file_element in frame.findall("File")
+                if file_element.get("channelName") == channel_name
+            )
+            # `page` is 1-based and left out when each file holds a single frame
+            page_index = int(file_element.get("page", "1")) - 1
+            with tifffile.TiffFile(folder_path / file_element.get("filename")) as tiff_file:
+                frames.append(tiff_file.pages[page_index].asarray())
+        sequences.append(np.stack(frames))
+    return sequences
+
+
+class TestBrukerTiffImagingExtractorSinglePlane(ImagingExtractorTestMixin):
     """Test BrukerTiffImagingExtractor with single-plane, single-channel data.
 
     Uses the NCCR32_2023 stub: 10 timepoints, 1 channel (Ch2), 1 plane, 64x64 frames.
     """
 
     folder_path = BRUKER_STUB_PATH / "NCCR32_2023_02_20_Into_the_void_t_series_baseline-000"
+    extractor_cls = BrukerTiffImagingExtractor
+    extractor_kwargs = dict(folder_path=folder_path)
+    expected_num_samples = 10
+    expected_sample_shape = (64, 64)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["Ch2"]
+    # relativeTime of the first frames in the XML
+    expected_native_timestamps = [0.0, 0.033474224, 0.066948448]
+    expected_sampling_frequency = 1 / 0.033474224  # the interval between frames in the relativeTime of the XML
+    # From the XML: the attributes of its root, the SystemID of SystemIDs, and the PVStateValue elements of its first
+    # PVStateShard, the state at the start of the recording
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2023, 2, 20, 15, 58, 25),  # date="2/20/2023 3:58:25 PM"
+        pixel_height_um=1.1078125,  # micronsPerPixel YAxis, as the rows run along Y
+        pixel_width_um=1.1078125,  # micronsPerPixel XAxis
+        field_of_view_height_um=1.1078125 * 64,  # times linesPerFrame
+        field_of_view_width_um=1.1078125 * 64,  # times pixelsPerLine
+        channel_name="Ch2",  # channelName of the File elements of the channel
+        scan_line_rate=1 / 6.3129e-05,  # 1 / scanLinePeriod
+        pmt_high_voltage_V=700.0,  # pmtGain IndexedValue 1, "PMT 2 HV (Green)", as the channel is Ch2
+        microscope_manufacturer="Bruker",
+        microscope_serial_number="E8D0-2F5E-B967-36D1-3CA0-8C25-681B-CEF3",  # SystemID
+        acquisition_software_name="Prairie View",
+        acquisition_software_version="5.6.64.400",  # version
+        objective_magnification=16.0,  # objectiveLensMag
+        objective_numerical_aperture=0.8,  # objectiveLensNA
+    )
 
-    def test_single_plane_single_channel(self):
-        """Test basic metadata and data access for single-plane, single-channel Bruker data.
-
-        Stub: NCCR32_2023_02_20_Into_the_void_t_series_baseline-000
-        - Samples (T): 10
-        - Channels (C): 1 (Ch2)
-        - Depth planes (Z): 1
-        - Frame shape: 64 x 64
-        - Files: 10 .ome.tif
-        """
-        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
-
-        assert extractor.get_image_shape() == (64, 64)
-        assert extractor.get_sample_shape() == (64, 64)
-        assert extractor.get_num_samples() == 10
-        assert extractor.get_dtype() == np.uint16
-        assert extractor.is_volumetric is False
-
-        # Verify data values match the raw TIFF files
-        file_paths = sorted(self.folder_path.glob("*.ome.tif"))
-        expected_data = np.stack([tifffile.imread(f) for f in file_paths], axis=0)
-        assert_array_equal(extractor.get_series(), expected_data)
+    def check_series(self, series):
+        """The samples are the frames of the channel in the order of the XML, one file for each frame."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        sequences = read_bruker_frames(self.folder_path, channel_name=channel_name)
+        expected_series = np.concatenate(sequences)
+        assert_array_equal(series, expected_series)
 
     def test_timestamps_and_sampling_frequency(self):
         """Timestamps are the relativeTime values from the Bruker configuration XML.
@@ -336,38 +373,56 @@ class TestBrukerTiffImagingExtractorSinglePlane:
         assert mock_tiff_file.call_count == 1
 
 
-class TestBrukerTiffImagingExtractorVolumetric:
+class TestBrukerTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
     """Test BrukerTiffImagingExtractor with volumetric, single-channel data.
 
     Uses the NCCR32_2022 stub: 5 timepoints, 1 channel (Ch2), 2 planes, 64x64 frames.
     """
 
     folder_path = BRUKER_STUB_PATH / "NCCR32_2022_11_03_IntoTheVoid_t_series-005"
+    extractor_cls = BrukerTiffImagingExtractor
+    extractor_kwargs = dict(folder_path=folder_path)
+    expected_num_samples = 5
+    expected_sample_shape = (64, 64, 2)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["Ch2"]
+    # relativeTime of the first Frame of each Sequence in the XML, a Sequence per volume and a Frame per plane, as
+    # Bruker gives a volume the time of its first plane
+    expected_native_timestamps = [0.0, 0.096948474, 0.193896948]
+    # relativeTime of the Frame with index plane + 1 in the Sequence of each sample in the XML, a list per plane
+    expected_plane_native_timestamps = [
+        [0.0, 0.096948474, 0.193896948],
+        [0.048474237, 0.145422711, 0.242371185],
+    ]
+    expected_sampling_frequency = 1 / 0.096948474  # the interval between volumes in the relativeTime of the XML
+    # From the XML: the attributes of its root, the SystemID of SystemIDs, and the PVStateValue elements of its first
+    # PVStateShard, the state at the start of the recording
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2022, 11, 3, 11, 20, 34),  # date="11/3/2022 11:20:34 AM"
+        pixel_height_um=1.1078125,  # micronsPerPixel YAxis, as the rows run along Y
+        pixel_width_um=1.1078125,  # micronsPerPixel XAxis
+        field_of_view_height_um=1.1078125 * 64,  # times linesPerFrame
+        field_of_view_width_um=1.1078125 * 64,  # times pixelsPerLine
+        # positionCurrent ZAxis of zDevice 1, the Optotune ETL, in the frames of the first Sequence (-130 and 130),
+        # minus that of the first plane
+        plane_z_offsets_um=[0.0, 260.0],
+        channel_name="Ch2",  # channelName of the File elements of the channel
+        scan_line_rate=1 / 6.3123e-05,  # 1 / scanLinePeriod
+        pmt_high_voltage_V=700.0,  # pmtGain IndexedValue 1, "PMT 2 HV (Green)", as the channel is Ch2
+        microscope_manufacturer="Bruker",
+        microscope_serial_number="E8D0-2F5E-B967-36D1-3CA0-8C25-681B-CEF3",  # SystemID
+        acquisition_software_name="Prairie View",
+        acquisition_software_version="5.6.64.400",  # version
+        objective_magnification=16.0,  # objectiveLensMag
+        objective_numerical_aperture=0.8,  # objectiveLensNA
+    )
 
-    def test_volumetric_single_channel(self):
-        """Test metadata and data access for volumetric, single-channel Bruker data.
-
-        Stub: NCCR32_2022_11_03_IntoTheVoid_t_series-005
-        - Samples (T): 5
-        - Channels (C): 1 (Ch2)
-        - Depth planes (Z): 2
-        - Frame shape: 64 x 64
-        - Files: 10 .ome.tif (5 cycles x 2 planes)
-        """
-        extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
-
-        assert extractor.is_volumetric is True
-        assert extractor.get_num_samples() == 5
-        assert extractor.get_num_planes() == 2
-        assert extractor.get_volume_shape() == (64, 64, 2)
-        assert extractor.get_sample_shape() == (64, 64, 2)
-
-        # Verify data values: files are ordered (t0_z0, t0_z1, t1_z0, ...).
-        # Reshape to (T, Z, H, W) then transpose to (T, H, W, Z) to match get_series().
-        file_paths = sorted(self.folder_path.glob("*.ome.tif"))
-        all_frames = np.stack([tifffile.imread(f) for f in file_paths])
-        expected_data = all_frames.reshape(5, 2, 64, 64).transpose(0, 2, 3, 1)
-        assert_array_equal(extractor.get_series(), expected_data)
+    def check_series(self, series):
+        """Each `Sequence` of the XML is a sample and each of its frames a plane, one file for each frame."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        sequences = read_bruker_frames(self.folder_path, channel_name=channel_name)
+        expected_series = np.moveaxis(np.stack(sequences), 1, -1)
+        assert_array_equal(series, expected_series)
 
     def test_timestamps_and_sampling_frequency(self):
         """Timestamps are subsampled by num_planes to give one per volume.
@@ -388,7 +443,7 @@ class TestBrukerTiffImagingExtractorVolumetric:
         assert extractor.get_sampling_frequency() == pytest.approx(expected_frequency, rel=1e-4)
 
 
-class TestBrukerTiffImagingExtractorDualChannel:
+class TestBrukerTiffImagingExtractorDualChannel(ImagingExtractorTestMixin):
     """Test BrukerTiffImagingExtractor with single-plane, dual-channel data.
 
     Uses the TSeries-20240527-001 stub: 5 timepoints, 2 channels, 1 plane, 64x64 frames.
@@ -398,6 +453,42 @@ class TestBrukerTiffImagingExtractorDualChannel:
     """
 
     folder_path = BRUKER_STUB_PATH / "TSeries-20240527-001"
+    extractor_cls = BrukerTiffImagingExtractor
+    extractor_kwargs = dict(folder_path=folder_path, channel_name="Green")
+    expected_num_samples = 5
+    expected_sample_shape = (64, 64)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["Red", "Green"]  # in acquisition order
+    # relativeTime of the first frames in the XML
+    expected_native_timestamps = [0.0, 0.00474538, 0.00949076]
+    expected_sampling_frequency = 1 / 0.00474538  # the interval between frames in the relativeTime of the XML
+    # From the XML: the attributes of its root, the SystemID of SystemIDs, and the PVStateValue elements of its first
+    # PVStateShard, the state at the start of the recording
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2024, 5, 27, 19, 26, 53),  # date="5/27/2024 7:26:53 PM"
+        # The pixels are not square here
+        pixel_height_um=1.12940008341084,  # micronsPerPixel YAxis, as the rows run along Y
+        pixel_width_um=1.12455979733908,  # micronsPerPixel XAxis
+        field_of_view_height_um=1.12940008341084 * 64,  # times linesPerFrame
+        field_of_view_width_um=1.12455979733908 * 64,  # times pixelsPerLine
+        excitation_wavelength_nm=920.0,  # laserWavelength, the only laser listed
+        channel_name="Green",  # channelName of the File elements of the channel
+        scan_line_rate=1 / 6.3156e-05,  # 1 / scanLinePeriod
+        pmt_high_voltage_V=800.0,  # pmtGain IndexedValue 1, "PMT 2 HV", as Green is channel 2
+        microscope_manufacturer="Bruker",
+        microscope_serial_number="7366-F15A-9AC1-CEE4-EB32-4B9C-653D-EC0A",  # SystemID
+        acquisition_software_name="Prairie View",
+        acquisition_software_version="5.5.64.600",  # version
+        objective_magnification=20.0,  # objectiveLensMag
+        objective_numerical_aperture=1.0,  # objectiveLensNA
+    )
+
+    def check_series(self, series):
+        """The samples are the frames of the channel in the order of the XML, one file for each frame."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        sequences = read_bruker_frames(self.folder_path, channel_name=channel_name)
+        expected_series = np.concatenate(sequences)
+        assert_array_equal(series, expected_series)
 
     def test_dual_channel(self):
         """Test channel selection and data access for dual-channel Bruker data.
@@ -409,14 +500,7 @@ class TestBrukerTiffImagingExtractorDualChannel:
         - Frame shape: 64 x 64
         - Files: 10 .ome.tif (5 timepoints x 2 channels)
         """
-        with pytest.raises(ValueError, match="channel_name must be specified"):
-            BrukerTiffImagingExtractor(folder_path=self.folder_path)
-
         ext_green = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Green")
-        assert ext_green.get_image_shape() == (64, 64)
-        assert ext_green.get_num_samples() == 5
-        assert ext_green.get_dtype() == np.uint16
-        assert ext_green.is_volumetric is False
 
         ext_red = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Red")
         assert ext_red.get_num_samples() == 5
@@ -425,18 +509,15 @@ class TestBrukerTiffImagingExtractorDualChannel:
         # NOT match the generic Ch1/Ch2 file naming: in this recording channel 1 (the
         # *_Ch1_* files) is "Red" and channel 2 (the *_Ch2_* files) is "Green". The
         # extractor must map each label to its real files (alphabetical name order would
-        # swap them).
+        # swap them). `is_ome=False` reads each file's own page instead of the series of all
+        # files that the OME-XML of the first file describes.
         ch1_files = sorted(self.folder_path.glob("*_Ch1_*.ome.tif"))  # channel 1 = Red
         ch2_files = sorted(self.folder_path.glob("*_Ch2_*.ome.tif"))  # channel 2 = Green
-        expected_red = np.stack([tifffile.imread(f) for f in ch1_files])
-        expected_green = np.stack([tifffile.imread(f) for f in ch2_files])
+        expected_red = np.stack([tifffile.imread(f, is_ome=False) for f in ch1_files])
+        expected_green = np.stack([tifffile.imread(f, is_ome=False) for f in ch2_files])
         assert_array_equal(ext_green.get_series(), expected_green)
         assert_array_equal(ext_red.get_series(), expected_red)
         assert not np.array_equal(expected_green, expected_red)
-
-    def test_invalid_channel_raises(self):
-        with pytest.raises(ValueError, match="Channel '5' not found.*Available channels"):
-            BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="5")
 
     def test_timestamps_and_sampling_frequency(self):
         """Timestamps are the relativeTime values from the Bruker configuration XML.
@@ -456,7 +537,7 @@ class TestBrukerTiffImagingExtractorDualChannel:
         assert extractor.get_sampling_frequency() == pytest.approx(expected_frequency, rel=1e-4)
 
 
-class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion:
+class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion(ImagingExtractorTestMixin):
     """Test BrukerTiffImagingExtractor on PV 5.7+ BinaryOnly OME-XML without the companion sidecar.
 
     A dual-channel recording where each ``.ome.tif``'s embedded OME-XML is only a
@@ -467,17 +548,44 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion:
     """
 
     folder_path = BRUKER_STUB_PATH / "NCCR62_2023_07_06_IntoTheVoid_t_series_Dual_color-000"
+    extractor_cls = BrukerTiffImagingExtractor
+    extractor_kwargs = dict(folder_path=folder_path, channel_name="Ch1")
+    expected_num_samples = 10
+    expected_sample_shape = (512, 512)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["Ch1", "Ch2"]
+    # relativeTime of the first frames in the XML
+    expected_native_timestamps = [0.0, 0.033474355, 0.06694871]
+    expected_sampling_frequency = 1 / 0.033474355  # the interval between frames in the relativeTime of the XML
+    # From the XML: the attributes of its root, the SystemID of SystemIDs, and the PVStateValue elements of its first
+    # PVStateShard, the state at the start of the recording
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2023, 7, 6, 15, 13, 58),  # date="7/6/2023 3:13:58 PM"
+        pixel_height_um=1.1078125,  # micronsPerPixel YAxis, as the rows run along Y
+        pixel_width_um=1.1078125,  # micronsPerPixel XAxis
+        field_of_view_height_um=1.1078125 * 512,  # times linesPerFrame
+        field_of_view_width_um=1.1078125 * 512,  # times pixelsPerLine
+        channel_name="Ch1",  # channelName of the File elements of the channel
+        scan_line_rate=1 / 6.3149e-05,  # 1 / scanLinePeriod
+        pmt_high_voltage_V=750.0,  # pmtGain IndexedValue 0, "PMT 1 HV (Red)", as the channel is Ch1
+        microscope_manufacturer="Bruker",
+        microscope_serial_number="E8D0-2F5E-B967-36D1-3CA0-8C25-681B-CEF3",  # SystemID
+        acquisition_software_name="Prairie View",
+        acquisition_software_version="5.8.64.200",  # version
+        objective_magnification=16.0,  # objectiveLensMag
+        objective_numerical_aperture=0.8,  # objectiveLensNA
+    )
+
+    def check_series(self, series):
+        """The samples are the frames of the channel in the order of the XML, pages of one file for each channel."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        sequences = read_bruker_frames(self.folder_path, channel_name=channel_name)
+        expected_series = np.concatenate(sequences)
+        assert_array_equal(series, expected_series)
 
     def test_construct_and_select_channels(self):
         """Both channels must be selectable and return distinct data."""
-        with pytest.raises(ValueError, match="channel_name must be specified"):
-            BrukerTiffImagingExtractor(folder_path=self.folder_path)
-
         ext_ch1 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch1")
-        assert ext_ch1.get_num_samples() == 10
-        assert ext_ch1.get_image_shape() == (512, 512)
-        assert ext_ch1.get_dtype() == np.uint16
-        assert ext_ch1.is_volumetric is False
 
         ext_ch2 = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
         assert ext_ch2.get_num_samples() == 10
@@ -493,7 +601,7 @@ class TestBrukerTiffImagingExtractorBinaryOnlyOMEXMLNoCompanion:
         assert not np.array_equal(expected_ch1, expected_ch2)
 
 
-class TestBrukerTiffImagingExtractorMultiSequenceBOT:
+class TestBrukerTiffImagingExtractorMultiSequenceBOT(ImagingExtractorTestMixin):
     """Multi-burst Brightness Over Time recording: relativeTime resets per <Sequence>.
 
     The recording is not uniformly sampled (real gaps between bursts), so the extractor must
@@ -502,13 +610,47 @@ class TestBrukerTiffImagingExtractorMultiSequenceBOT:
     """
 
     folder_path = BRUKER_STUB_PATH / "TSeries-02022026-001_multisequence"
+    extractor_cls = BrukerTiffImagingExtractor
+    extractor_kwargs = dict(folder_path=folder_path, channel_name="Ch2")
+    expected_num_samples = 15  # 3 bursts x 5 frames, single channel
+    expected_sample_shape = (64, 64)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["Ch2"]
+    # absoluteTime of the first frames in the XML minus that of the first frame, as relativeTime restarts in each
+    # Sequence
+    expected_native_timestamps = [0.0, 0.066563728, 0.133127456]
+    # The mean of the rate within each of the 3 bursts, from the relativeTime of the XML, since gaps separate them
+    expected_sampling_frequency = np.mean([1 / 0.066563728, 1 / 0.066563811, 1 / 0.06656377])
+    # From the XML: the attributes of its root, the SystemID of SystemIDs, and the PVStateValue elements of its first
+    # PVStateShard, the state at the start of the recording
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2026, 2, 16, 16, 2, 24),  # date="2/16/2026 4:02:24 PM"
+        pixel_height_um=1.18257990213313,  # micronsPerPixel YAxis, as the rows run along Y
+        pixel_width_um=1.18257990213313,  # micronsPerPixel XAxis
+        field_of_view_height_um=1.18257990213313 * 64,  # times linesPerFrame
+        field_of_view_width_um=1.18257990213313 * 64,  # times pixelsPerLine
+        excitation_wavelength_nm=940.0,  # laserWavelength, the only laser listed
+        channel_name="Ch2",  # channelName of the File elements of the channel
+        scan_line_rate=1 / 6.3124e-05,  # 1 / scanLinePeriod
+        pmt_high_voltage_V=750.0,  # pmtGain IndexedValue 1, "PMT 2 HV", as the channel is Ch2
+        microscope_manufacturer="Bruker",
+        microscope_serial_number="D12C-D345-FC6C-772F-D3E4-867A-4405-27AE",  # SystemID
+        acquisition_software_name="Prairie View",
+        acquisition_software_version="5.8.64.800",  # version
+        objective_magnification=10.0,  # objectiveLensMag
+        objective_numerical_aperture=0.5,  # objectiveLensNA
+    )
+
+    def check_series(self, series):
+        """The samples are the frames of the channel in the order of the XML, the 3 bursts of 5 frames one after another."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        sequences = read_bruker_frames(self.folder_path, channel_name=channel_name)
+        expected_series = np.concatenate(sequences)
+        assert_array_equal(series, expected_series)
 
     def test_multisequence_within_burst_rate_and_gapped_timestamps(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path, channel_name="Ch2")
 
-        assert extractor.get_num_samples() == 15  # 3 bursts x 5 frames, single channel
-        assert extractor.get_image_shape() == (64, 64)
-        assert extractor.is_volumetric is False
         # within-burst frame rate (no single global rate exists across the gaps)
         assert extractor.get_sampling_frequency() == pytest.approx(15.02, rel=1e-3)
 
@@ -537,7 +679,7 @@ class TestBrukerTiffImagingExtractorMultiSequenceBOT:
         assert_allclose(timestamps, expected_timestamps, atol=1e-6)
 
 
-class TestBrukerTiffImagingExtractorMultiSequenceTimedElement:
+class TestBrukerTiffImagingExtractorMultiSequenceTimedElement(ImagingExtractorTestMixin):
     """Multi-cycle Timed Element recording (non-BOT) that also resets relativeTime per <Sequence>.
 
     Confirms the multi-sequence sampling-frequency bug is not specific to Brightness Over Time.
@@ -546,13 +688,47 @@ class TestBrukerTiffImagingExtractorMultiSequenceTimedElement:
     """
 
     folder_path = BRUKER_STUB_PATH / "TSeries-08162024-1918-002_multisequence"
+    extractor_cls = BrukerTiffImagingExtractor
+    extractor_kwargs = dict(folder_path=folder_path)
+    expected_num_samples = 9  # 3 cycles x 3 frames, single channel
+    expected_sample_shape = (64, 64)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["Ch2"]
+    # absoluteTime of the first frames in the XML minus that of the first frame, as relativeTime restarts in each
+    # Sequence
+    expected_native_timestamps = [0.0, 0.066180591, 0.132361182]
+    # The mean of the rate within each of the 3 cycles, from the relativeTime of the XML, since gaps separate them
+    expected_sampling_frequency = np.mean([1 / 0.066180591, 1 / 0.066180671, 1 / 0.066180745])
+    # From the XML: the attributes of its root, the SystemID of SystemIDs, and the PVStateValue elements of its first
+    # PVStateShard, the state at the start of the recording
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2024, 8, 16, 19, 19, 19),  # date="8/16/2024 7:19:19 PM"
+        pixel_height_um=0.444333610689182,  # micronsPerPixel YAxis, as the rows run along Y
+        pixel_width_um=0.444333610689182,  # micronsPerPixel XAxis
+        field_of_view_height_um=0.444333610689182 * 64,  # times linesPerFrame
+        field_of_view_width_um=0.444333610689182 * 64,  # times pixelsPerLine
+        excitation_wavelength_nm=930.0,  # laserWavelength, the only laser listed
+        channel_name="Ch2",  # channelName of the File elements of the channel
+        scan_line_rate=1 / 6.3144e-05,  # 1 / scanLinePeriod
+        pmt_high_voltage_V=740.0,  # pmtGain IndexedValue 1, "PMT 2 HV", as the channel is Ch2
+        microscope_manufacturer="Bruker",
+        microscope_serial_number="D12C-D345-FC6C-772F-D3E4-867A-4405-27AE",  # SystemID
+        acquisition_software_name="Prairie View",
+        acquisition_software_version="5.8.64.700",  # version
+        objective_magnification=10.0,  # objectiveLensMag
+        objective_numerical_aperture=0.5,  # objectiveLensNA
+    )
+
+    def check_series(self, series):
+        """The samples are the frames of the channel in the order of the XML, the 3 cycles of 3 frames one after another."""
+        channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
+        sequences = read_bruker_frames(self.folder_path, channel_name=channel_name)
+        expected_series = np.concatenate(sequences)
+        assert_array_equal(series, expected_series)
 
     def test_multisequence_timed_element_within_cycle_rate_and_gapped_timestamps(self):
         extractor = BrukerTiffImagingExtractor(folder_path=self.folder_path)
 
-        assert extractor.get_num_samples() == 9  # 3 cycles x 3 frames, single channel
-        assert extractor.get_image_shape() == (64, 64)
-        assert extractor.is_volumetric is False
         assert extractor.get_sampling_frequency() == pytest.approx(15.11, rel=1e-3)
 
         # regular within each cycle (~0.0662 s steps); the cycles are irregularly spaced (real gaps)

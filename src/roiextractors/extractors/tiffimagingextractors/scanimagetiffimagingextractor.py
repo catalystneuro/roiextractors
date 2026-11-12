@@ -7,7 +7,10 @@ ScanImageLegacyImagingExtractor
 """
 
 import copy
+import re
 import warnings
+from datetime import datetime, timedelta
+from functools import cached_property
 from pathlib import Path
 from warnings import warn
 
@@ -15,7 +18,9 @@ import numpy as np
 
 from .scanimagetiff_utils import (
     _get_scanimage_reader,
+    _read_image_descriptions,
 )
+from ..._metadata import Metadata, _get_cropped_metadata, _get_plane_metadata
 from ...extraction_tools import PathType, get_package
 from ...imagingextractor import ImagingExtractor
 
@@ -150,6 +155,17 @@ class ScanImageImagingExtractor(ImagingExtractor):
             raise ValueError("Invalid metadata: The metadata is either None or empty.")
         self._metadata = self._general_metadata["FrameData"]
 
+        # ScanImage 2026 can save only some of the scanned frames and smooth them instead of averaging, and without
+        # a 2026 file we do not know the header fields of these settings, so the rate could be wrong without an error.
+        # `SI.VERSION_MAJOR` is a string like '2016b' up to 2019b and an integer from 2020 on.
+        version_major = self._metadata.get("SI.VERSION_MAJOR")
+        if isinstance(version_major, int) and version_major >= 2026:
+            raise NotImplementedError(
+                f"ScanImage {version_major} files are not supported yet. ScanImage 2026 added frame selection, which "
+                "saves only some of the scanned frames, and replaced frame averaging with exponential smoothing. "
+                "Please open an issue with an example file at https://github.com/catalystneuro/roiextractors/issues"
+            )
+
         self._num_rows, self._num_columns = tiff_reader.pages[0].shape
         self._dtype = tiff_reader.pages[0].dtype
 
@@ -164,16 +180,38 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # handles itself. `None` marks the root owner.
         self._fov_root = None
 
-        # Check if stack manager is enabled and if there are multiple slices
-        # This criteria was confirmed by Lawrence Niu, a developer of ScanImage
-        # but we need to also check numSlices > 1 because some planar datasets
-        # have SI.hStackManager.enable = True but only one slice
-        stack_enabled = self._metadata["SI.hStackManager.enable"]
-        num_slices = self._metadata["SI.hStackManager.numSlices"]
-        self.is_volumetric = stack_enabled and num_slices > 1
+        if "SI.hStackManager.enable" in self._metadata:
+            # Check if stack manager is enabled and if there are multiple slices
+            # This criteria was confirmed by Lawrence Niu, a developer of ScanImage
+            # but we need to also check numSlices > 1 because some planar datasets
+            # have SI.hStackManager.enable = True but only one slice
+            stack_enabled = self._metadata["SI.hStackManager.enable"]
+            num_planes = self._metadata["SI.hStackManager.numSlices"]
+            self.is_volumetric = stack_enabled and num_planes > 1
+            if self.is_volumetric:
+                frames_per_volume_per_channel = self._metadata["SI.hStackManager.numFramesPerVolume"]
+                frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
+                num_flyback_frames_per_channel = frames_per_volume_with_flyback - frames_per_volume_per_channel
+        # Headers before 2019b have no `hStackManager.enable`, `stackMode` or frame counts of a volume in the stack
+        # manager. A fast z volume is described by `hFastZ` instead, and its frames per volume count the flyback frames.
+        # Its planes are not `numSlices` but those frames without the flyback ones: with arbitrary z positions, a 2019a
+        # recording at one depth has `numSlices` 10 and one frame per volume.
+        elif self._metadata["SI.hFastZ.enable"]:
+            discard_flyback_frames = self._metadata["SI.hFastZ.discardFlybackFrames"]
+            num_flyback_frames_per_channel = (
+                self._metadata["SI.hFastZ.numDiscardFlybackFrames"] if discard_flyback_frames else 0
+            )
+            num_planes = self._metadata["SI.hFastZ.numFramesPerVolume"] - num_flyback_frames_per_channel
+            self.is_volumetric = num_planes > 1
+        # Without fast z, more than one slice is a slow stack, where the motor moves between slices
+        else:
+            num_planes = self._metadata["SI.hStackManager.numSlices"]
+            num_flyback_frames_per_channel = 0
+            self.is_volumetric = num_planes > 1
+
         if self.is_volumetric:
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanVolumeRate"]
-            self._num_planes = self._metadata["SI.hStackManager.numSlices"]
+            self._num_planes = num_planes
 
             self._frames_per_slice = self._metadata["SI.hStackManager.framesPerSlice"]
 
@@ -196,21 +234,18 @@ class ScanImageImagingExtractor(ImagingExtractor):
                 )
                 raise ValueError(error_msg)
 
-            self._frames_per_volume_per_channel = self._metadata["SI.hStackManager.numFramesPerVolume"]
-            self._frames_per_volume_with_flyback = self._metadata["SI.hStackManager.numFramesPerVolumeWithFlyback"]
-
-            self.num_flyback_frames_per_channel = (
-                self._frames_per_volume_with_flyback - self._frames_per_volume_per_channel
-            )
+            self.num_flyback_frames_per_channel = num_flyback_frames_per_channel
         else:
-            self._sampling_frequency = self._metadata["SI.hRoiManager.scanFrameRate"]
+            # ScanImage saves one frame per `logAverageFactor` scanned frames, their mean
+            scan_frame_rate = self._metadata["SI.hRoiManager.scanFrameRate"]
+            self._sampling_frequency = scan_frame_rate / self._metadata["SI.hScan2D.logAverageFactor"]
             self._num_planes = 1
             self._frames_per_slice = 1
             self.num_flyback_frames_per_channel = 0
 
         # This piece of the metadata is the indication that the channel is saved on the data
-        channels_available = self._metadata["SI.hChannels.channelSave"]
-        channels_available = [channels_available] if isinstance(channels_available, int) else channels_available
+        # ScanImage up to 2019b can write the channels as a column, [1;3], which is read as [[1], [3]]
+        channels_available = np.ravel(self._metadata["SI.hChannels.channelSave"]).tolist()
         self._num_channels = len(channels_available)
 
         # Determine their name and use matlab 1-indexing
@@ -222,16 +257,13 @@ class ScanImageImagingExtractor(ImagingExtractor):
         if self._is_multi_channel_data and channel_name is None:
 
             error_msg = (
-                f"Multiple channels available in the data {self.channel_names}"
-                "Please specify a channel name to extract data from."
+                "channel_name must be specified for data with more than one channel. "
+                f"Available channels: {self.channel_names}"
             )
             raise ValueError(error_msg)
-        elif self._is_multi_channel_data and channel_name is not None:
+        elif channel_name is not None:
             if channel_name not in self.channel_names:
-                error_msg = (
-                    f"Channel name ({channel_name}) not found in available channels ({self.channel_names}). "
-                    "Please specify a valid channel name."
-                )
+                error_msg = f"Channel '{channel_name}' not found. Available channels: {self.channel_names}"
                 raise ValueError(error_msg)
 
             self.channel_name = channel_name
@@ -314,6 +346,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
             slice_sample_mask = channel_frames_to_ifd_table["slice_sample_index"] == self._slice_sample
             self._frames_to_ifd_table = channel_frames_to_ifd_table[slice_sample_mask]
 
+        self._metadata_parent = None
+        self._metadata_plane_index = None
+        self._metadata_num_planes = self._num_planes
+
         # Finally, if a planar extractor is requested, we filter the samples for that plane
         if self.is_volumetric and plane_index is not None:
             # Validate plane_index
@@ -323,6 +359,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
             # Filter the frames_to_ifd_table to only include entries for the specified depth plane
             depth_mask = self._frames_to_ifd_table["depth_index"] == plane_index
             self._frames_to_ifd_table = self._frames_to_ifd_table[depth_mask]
+
+            self._metadata_plane_index = plane_index
 
             # Override the is_volumetric flag and num_planes
             self.is_volumetric = False
@@ -465,7 +503,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # https://docs.scanimage.org/Basic+Features/Acquisitions.html
         acquisition_state = self._metadata["SI.acqState"]
         frames_per_file = self._metadata["SI.hScan2D.logFramesPerFile"]
-        stack_mode = self._metadata["SI.hStackManager.stackMode"]
+        # Headers before 2019b have no stackMode, and there a stack without fast z is a slow stack
+        fast_z_enabled = self._metadata["SI.hFastZ.enable"]
+        stack_mode = self._metadata.get("SI.hStackManager.stackMode", "fast" if fast_z_enabled else "slow")
         extension = self.file_path.suffix
         # This is the happy path that is well specified in the documentation
         if acquisition_state == "grab" and frames_per_file != float("inf"):
@@ -483,6 +523,15 @@ class ScanImageImagingExtractor(ImagingExtractor):
         else:
             file_paths_found = [self.file_path]
             return file_paths_found
+
+        # TODO: find the files of a sequence by their frame headers instead of their names. The files of one
+        # acquisition share the `epoch` of their headers and continue each other's `frameNumbers`, so this would also
+        # find renamed files of a sequence and tell apart unrelated files that share a prefix. It needs to open every
+        # candidate file to read its header.
+
+        # A file whose name does not end in a file index, for example a renamed one, is not part of a sequence
+        if not file_stem[len(pattern_prefix) :].isdigit():
+            return [self.file_path]
 
         from natsort import natsorted
 
@@ -598,7 +647,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         samples_in_series = end_sample - start_sample
 
         # Preallocate output array as volumetric and squeeze if not volumetric before returning
-        num_rows, num_columns, num_planes = self.get_volume_shape()
+        num_rows, num_columns, num_planes = self._num_rows, self._num_columns, self._num_planes
         dtype = self.get_dtype()
         samples = np.empty((samples_in_series, num_rows, num_columns, num_planes), dtype=dtype)
 
@@ -688,10 +737,132 @@ class ScanImageImagingExtractor(ImagingExtractor):
         sliced._column_slice = slice(absolute_column_start, absolute_column_start + (column_end - column_start))
         sliced._num_rows = row_end - row_start
         sliced._num_columns = column_end - column_start
+        # The copy also has the metadata of the full field of view if it was read before
+        sliced.__dict__.pop("_unified_metadata", None)
+        sliced._metadata_parent = self
+        sliced._metadata_plane_index = None
         # Keep the handle owner alive and mark this object as a borrower so __del__ does not close the
         # shared file handles. The owner is always the originally constructed extractor.
         sliced._fov_root = self._fov_root if self._fov_root is not None else self
         return sliced
+
+    def select_plane(self, plane_index: int) -> "ScanImageImagingExtractor":
+        """Return a planar view of one depth plane as a new ScanImageImagingExtractor.
+
+        Overrides :meth:`ImagingExtractor.select_plane`. The generic wrapper reads every plane of a sample to keep
+        one, and returns the timestamps of the volume, which ScanImage records at its last plane. This view reads
+        only the pages of the selected plane, and its timestamps are those of its own frames. Times set with
+        ``set_times()`` on the volume are not carried over.
+
+        Parameters
+        ----------
+        plane_index : int
+            The depth plane to select. Must satisfy ``0 <= plane_index < num_planes``.
+
+        Returns
+        -------
+        ScanImageImagingExtractor
+            A planar extractor for the selected plane. It shares the open file handles of this extractor.
+        """
+        if not self.is_volumetric:
+            raise ValueError("select_plane is only valid for volumetric extractors.")
+        num_planes = self._num_planes
+        if not 0 <= plane_index < num_planes:
+            raise ValueError(f"plane_index ({plane_index}) must satisfy 0 <= plane_index < num_planes ({num_planes}).")
+
+        plane = copy.copy(self)
+        depth_mask = self._frames_to_ifd_table["depth_index"] == plane_index
+        plane._frames_to_ifd_table = self._frames_to_ifd_table[depth_mask]
+        plane.is_volumetric = False
+        plane._num_planes = 1
+        plane._times = None
+        plane._native_timestamps = None
+        plane._fov_root = self._fov_root if self._fov_root is not None else self
+        # The copy also has the metadata of the volume if it was read before
+        plane.__dict__.pop("_unified_metadata", None)
+        plane._metadata_parent = self
+        plane._metadata_plane_index = plane_index
+        return plane
+
+    @cached_property
+    def _unified_metadata(self) -> Metadata:
+        """The metadata of the recording, read from the ScanImage header.
+
+        The field of view is the one ScanImage computes in micrometers, ``SI.hRoiManager.imagingFovUm``. Multi-ROI and
+        light beads recordings, whose pages are not one frame of the scan field, leave the pixel size and the field of
+        view empty. On volumetric data the z offset of each plane is its position in ``SI.hStackManager.zs`` minus that
+        of the first plane.
+        """
+        if self._metadata_parent is not None:
+            metadata = self._metadata_parent._unified_metadata
+            if self._metadata_plane_index is not None:
+                return _get_plane_metadata(metadata, plane_index=self._metadata_plane_index)
+            return _get_cropped_metadata(
+                metadata,
+                image_shape=self._metadata_parent.get_image_shape(),
+                cropped_image_shape=self.get_image_shape(),
+            )
+
+        header = self._metadata
+
+        pixel_height_um = None
+        pixel_width_um = None
+        field_of_view_height_um = None
+        field_of_view_width_um = None
+        num_rows = header["SI.hRoiManager.linesPerFrame"]
+        num_columns = header["SI.hRoiManager.pixelsPerLine"]
+        page_shape = self._tiff_readers[0].pages[0].shape
+        # ScanImage before 2016 has no multi-ROI imaging and no `mroiEnable`
+        if not header.get("SI.hRoiManager.mroiEnable", False) and page_shape == (num_rows, num_columns):
+            # The corners are in (x, y) from the first pixel: the second is at the end of the first line, the columns,
+            # and the fourth at the start of the last line, the rows
+            corners_um = np.array(header["SI.hRoiManager.imagingFovUm"], dtype=float)
+            field_of_view_height_um = float(np.linalg.norm(corners_um[3] - corners_um[0]))
+            field_of_view_width_um = float(np.linalg.norm(corners_um[1] - corners_um[0]))
+            pixel_height_um = field_of_view_height_um / num_rows
+            pixel_width_um = field_of_view_width_um / num_columns
+
+        plane_z_offsets_um = None
+        frames_per_slice = None
+        if self._metadata_num_planes > 1:
+            # From 2020 on, `zs` lists the position of a slice once for each of its frames
+            zs_um = np.ravel(header["SI.hStackManager.zs"]).astype(float)
+            plane_positions_um = zs_um.reshape(self._metadata_num_planes, -1)[:, 0]
+            plane_z_offsets_um = (plane_positions_um - plane_positions_um[0]).tolist()
+            frames_per_slice = self._frames_per_slice
+
+        # The epoch is the start of the acquisition, written as [year month day hour minute seconds], with commas
+        # in some versions
+        acquisition_start_datetime = None
+        first_description = _read_image_descriptions(self.file_paths[0], [0])[0]
+        epoch_match = re.search(r"^epoch = \[([^\]]*)\]", first_description or "", flags=re.MULTILINE)
+        if epoch_match is not None:
+            year, month, day, hour, minute, seconds = (
+                float(value) for value in re.split(r"[\s,]+", epoch_match.group(1).strip())
+            )
+            acquisition_start_datetime = datetime(int(year), int(month), int(day), int(hour), int(minute))
+            acquisition_start_datetime += timedelta(seconds=seconds)
+
+        # `SI.VERSION_UPDATE` was added in 2020
+        version_keys = ["SI.VERSION_MAJOR", "SI.VERSION_MINOR", "SI.VERSION_UPDATE"]
+        version = ".".join(str(header[key]) for key in version_keys if key in header)
+
+        metadata = Metadata(
+            acquisition_start_datetime=acquisition_start_datetime,
+            pixel_height_um=pixel_height_um,
+            pixel_width_um=pixel_width_um,
+            field_of_view_height_um=field_of_view_height_um,
+            field_of_view_width_um=field_of_view_width_um,
+            plane_z_offsets_um=plane_z_offsets_um,
+            channel_name=self.channel_name,
+            scan_line_rate=1 / header["SI.hRoiManager.linePeriod"],
+            frames_per_slice=frames_per_slice,
+            acquisition_software_name="ScanImage",
+            acquisition_software_version=version,
+        )
+        if self._metadata_plane_index is not None:
+            metadata = _get_plane_metadata(metadata, plane_index=self._metadata_plane_index)
+        return metadata
 
     def get_image_shape(self) -> tuple[int, int]:
         """Get the shape of the video frame (num_rows, num_columns).
@@ -737,6 +908,13 @@ class ScanImageImagingExtractor(ImagingExtractor):
         tuple
             Shape of a single volume (num_rows, num_columns, num_planes).
         """
+        if not self.is_volumetric:
+            warn(
+                "Calling get_volume_shape on planar data is deprecated and will raise a ValueError in or after "
+                "May 2027. Check is_volumetric before calling it.",
+                FutureWarning,
+                stacklevel=2,
+            )
         return (self._num_rows, self._num_columns, self._num_planes)
 
     def get_num_samples(self) -> int:
@@ -763,17 +941,24 @@ class ScanImageImagingExtractor(ImagingExtractor):
         """Get the number of depth planes.
 
         For volumetric data, this returns the number of Z-planes in each volume.
-        For planar data, this returns 1.
+        For planar data, this returns 1 with a FutureWarning, and will raise a ValueError in or after May 2027.
 
         Returns
         -------
         int
             Number of depth planes.
         """
+        if not self.is_volumetric:
+            warn(
+                "Calling get_num_planes on planar data is deprecated and will raise a ValueError in or after "
+                "May 2027. Check is_volumetric before calling it.",
+                FutureWarning,
+                stacklevel=2,
+            )
         return self._num_planes
 
     @staticmethod
-    def get_available_channel_names(file_path: PathType) -> list:
+    def get_available_channel_names(file_path: PathType) -> list[str]:
         """Get the channel names available in a ScanImage TIFF file.
 
         This static method extracts the channel names from a ScanImage TIFF file
@@ -812,9 +997,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
         if channel_availability is None:
             raise ValueError(f"Could not find any of {channel_availability_keys} in metadata.")
 
-        available_channels = non_varying_frame_metadata[channel_availability]
-        available_channels = [available_channels] if not isinstance(available_channels, list) else available_channels
-        channel_indices = np.array(available_channels) - 1  # Account for MATLAB indexing
+        # ScanImage up to 2019b can write the channels as a column, [1;3], which is read as [[1], [3]]
+        available_channels = np.ravel(non_varying_frame_metadata[channel_availability])
+        channel_indices = available_channels - 1  # Account for MATLAB indexing
         channel_names = non_varying_frame_metadata["SI.hChannels.channelName"]
         channel_names_available = [channel_names[i] for i in channel_indices]
 
@@ -833,23 +1018,16 @@ class ScanImageImagingExtractor(ImagingExtractor):
     def get_times(self) -> np.ndarray:
         """Get the timestamps for each frame.
 
-        Returns
-        -------
-        numpy.ndarray
-            Array of timestamps in seconds for each frame.
-
-        Notes
-        -----
-        This method extracts timestamps from the ScanImage TIFF file(s) for the selected channel.
-        It uses the mapping created during initialization to efficiently locate and extract
-        timestamps for each sample.
+        .. deprecated::
+            `get_times` is deprecated and will be removed in or after April 2027.
+            Use `get_timestamps` instead.
         """
-        if self._times is not None:
-            return self._times
-
-        # Cache the timestamps
-        self._times = self.get_native_timestamps()
-        return self._times
+        warn(
+            "get_times is deprecated and will be removed in or after April 2027. Use get_timestamps instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.get_timestamps()
 
     def get_native_timestamps(
         self, start_sample: int | None = None, end_sample: int | None = None
@@ -883,23 +1061,25 @@ class ScanImageImagingExtractor(ImagingExtractor):
         """Read the timestamp of each sample from the ImageDescription of its TIFF page."""
         # Initialize array to store timestamps
         num_samples = self.get_num_samples()
-        num_planes = self.get_num_planes()
+        num_planes = self._num_planes
         timestamps = np.zeros(num_samples, dtype=np.float64)
 
-        # For each sample, extract its timestamp from the corresponding file and IFD
-        for sample_index in range(num_samples):
+        # The last frame in each sample gives its timestamp
+        frame_indices = np.arange(num_samples) * num_planes + (num_planes - 1)
+        table_rows = self._frames_to_ifd_table[frame_indices]
 
-            # Get the last frame in this sample to get the timestamps
-            frame_index = sample_index * num_planes + (num_planes - 1)
-            table_row = self._frames_to_ifd_table[frame_index]
-            file_index = table_row["file_index"]
-            ifd_index = table_row["IFD_index"]
+        # Read the descriptions of those frames file by file, without building their pages with tifffile
+        descriptions = [None] * num_samples
+        for file_index, file_path in enumerate(self.file_paths):
+            sample_indices = np.flatnonzero(table_rows["file_index"] == file_index)
+            if sample_indices.size == 0:
+                continue
+            file_descriptions = _read_image_descriptions(file_path, table_rows["IFD_index"][sample_indices])
+            for sample_index, description in zip(sample_indices, file_descriptions):
+                descriptions[sample_index] = description
 
-            tiff_reader = self._tiff_readers[file_index]
-            image_file_directory = tiff_reader.pages[ifd_index]
-
-            # Extract timestamp using the static method
-            timestamp = self.extract_timestamp_from_page(image_file_directory)
+        for sample_index, description in enumerate(descriptions):
+            timestamp = self._extract_timestamp_from_description(description)
 
             if timestamp is not None:
                 timestamps[sample_index] = timestamp
@@ -935,6 +1115,14 @@ class ScanImageImagingExtractor(ImagingExtractor):
             return None
 
         description = page.tags["ImageDescription"].value
+        return ScanImageImagingExtractor._extract_timestamp_from_description(description)
+
+    @staticmethod
+    def _extract_timestamp_from_description(description: str | None) -> float | None:
+        """Extract the `frameTimestamps_sec` of a frame header, or None if it has none."""
+        if description is None:
+            return None
+
         description_lines = description.split("\n")
 
         # Find the frameTimestamps_sec line
@@ -1057,7 +1245,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         >>> sync_indices = frame_indices // num_channels
         >>> aligned_timestamps = sync_timestamps[sync_indices]
         """
-        num_planes = self.get_num_planes()
+        num_planes = self._num_planes
         if plane_index is not None:
             assert plane_index < num_planes, f"Plane index {plane_index} exceeds number of planes {num_planes}."
         else:

@@ -6,13 +6,16 @@ ImagingExtractor
     Abstract class that contains all the meta-data and input data from the imaging data.
 """
 
+import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from functools import cached_property
 from math import prod
 
 import numpy as np
 from numpy.typing import ArrayLike
 
+from ._metadata import Metadata, _get_cropped_metadata
 from .core_utils import _convert_bytes_to_str, _convert_seconds_to_str
 
 
@@ -119,11 +122,11 @@ class ImagingExtractor(ABC):
 
         Raises
         ------
-        NotImplementedError
+        ValueError
             If the extractor is not volumetric.
         """
         if not self.is_volumetric:
-            raise NotImplementedError(
+            raise ValueError(
                 "This extractor is not volumetric. "
                 "The get_num_planes method is only available for volumetric extractors."
             )
@@ -139,11 +142,13 @@ class ImagingExtractor(ABC):
 
         Raises
         ------
+        ValueError
+            If the extractor is not volumetric.
         NotImplementedError
-            If the extractor is not volumetric or does not implement get_num_planes method.
+            If the extractor does not implement get_num_planes method.
         """
         if not self.is_volumetric:
-            raise NotImplementedError(
+            raise ValueError(
                 "This extractor is not volumetric. "
                 "The get_volume_shape method is only available for volumetric extractors."
             )
@@ -188,6 +193,35 @@ class ImagingExtractor(ABC):
             Data type of the video.
         """
         return self.get_series(start_sample=0, end_sample=2).dtype
+
+    @property
+    def metadata(self) -> Metadata:
+        """The metadata of the recording, with `None` in the fields the format does not record.
+
+        The metadata API is experimental and has not stabilized: its fields can change or be removed in any release,
+        and every read of `metadata` warns about it.
+
+        Returns
+        -------
+        metadata : Metadata
+            The metadata of the recording.
+        """
+        warnings.warn(
+            "The metadata API is experimental and has not stabilized: the fields of `metadata` can change or be "
+            "removed in any release.",
+            UserWarning,
+            stacklevel=2,
+        )
+        return self._unified_metadata
+
+    @cached_property
+    def _unified_metadata(self) -> Metadata:
+        """The metadata that `metadata` returns, which each extractor fills with the fields its format records.
+
+        The base class returns an empty `Metadata()`. Extractors override this instead of `metadata`, so the warning
+        of `metadata` stays in one place.
+        """
+        return Metadata()
 
     @abstractmethod
     def get_series(self, start_sample: int | None = None, end_sample: int | None = None) -> np.ndarray:
@@ -576,12 +610,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
             The right bound of the samples, exclusively, to subset.
             The default is end sample of the parent.
         """
-        self._parent_imaging = parent_imaging
-        self._start_sample = start_sample
-        self._end_sample = end_sample
-        self._num_samples = self._end_sample - self._start_sample
-
-        parent_size = self._parent_imaging.get_num_samples()
+        parent_size = parent_imaging.get_num_samples()
         if start_sample is None:
             start_sample = 0
         else:
@@ -591,6 +620,11 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         else:
             assert 0 < end_sample <= parent_size
         assert end_sample > start_sample, "'start_sample' must be smaller than 'end_sample'!"
+
+        self._parent_imaging = parent_imaging
+        self._start_sample = start_sample
+        self._end_sample = end_sample
+        self._num_samples = self._end_sample - self._start_sample
 
         super().__init__()
         if getattr(self._parent_imaging, "_times") is not None:
@@ -634,6 +668,11 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
     def get_sampling_frequency(self) -> float:
         return self._parent_imaging.get_sampling_frequency()
 
+    @property
+    def _unified_metadata(self) -> Metadata:
+        """The metadata of the parent."""
+        return self._parent_imaging._unified_metadata
+
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
 
@@ -644,11 +683,11 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
 
         Raises
         ------
-        NotImplementedError
+        ValueError
             If the parent extractor is not volumetric.
         """
         if not self.is_volumetric:
-            raise NotImplementedError(
+            raise ValueError(
                 "This extractor is not volumetric. "
                 "The get_num_planes method is only available for volumetric extractors."
             )
@@ -836,6 +875,15 @@ class _FieldOfViewSlicedImagingExtractor(ImagingExtractor):
         """
         return self._parent_imaging.get_sampling_frequency()
 
+    @cached_property
+    def _unified_metadata(self) -> Metadata:
+        """The metadata of the parent, with the field of view of the crop."""
+        return _get_cropped_metadata(
+            self._parent_imaging._unified_metadata,
+            image_shape=self._parent_imaging.get_image_shape(),
+            cropped_image_shape=self._image_shape,
+        )
+
     def get_num_planes(self) -> int:
         """Get the number of depth planes.
 
@@ -846,11 +894,11 @@ class _FieldOfViewSlicedImagingExtractor(ImagingExtractor):
 
         Raises
         ------
-        NotImplementedError
+        ValueError
             If the parent extractor is not volumetric.
         """
         if not self.is_volumetric:
-            raise NotImplementedError(
+            raise ValueError(
                 "This extractor is not volumetric. "
                 "The get_num_planes method is only available for volumetric extractors."
             )

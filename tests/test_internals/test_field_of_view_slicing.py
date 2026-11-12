@@ -17,6 +17,12 @@ class TestFieldOfViewSlicing2D:
         assert fov_sliced.get_num_samples() == 10
         assert not fov_sliced.is_volumetric
 
+    def test_get_num_planes_raises_on_planar_data(self):
+        imaging = generate_dummy_imaging_extractor(num_samples=10, num_rows=100, num_columns=80)
+        fov_sliced = imaging.slice_field_of_view(row_start=20, row_end=60, column_start=10, column_end=50)
+        with pytest.raises(ValueError, match="This extractor is not volumetric"):
+            fov_sliced.get_num_planes()
+
     def test_fov_slicing_with_defaults(self):
         """Test FOV slicing with default parameters (no slicing)."""
         imaging = generate_dummy_imaging_extractor(num_samples=10, num_rows=50, num_columns=60)
