@@ -2612,6 +2612,26 @@ class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtrac
         assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
 
 
+@pytest.mark.filterwarnings("ignore:The metadata API is experimental:UserWarning")
+def test_bounded_stack_planes_are_the_acquired_slices():
+    """A 2021.0 bounded stack acquires the 12 slices of `actualNumSlices`, of 10 frames each, while `numSlices` is 11."""
+    file_path = (
+        SCANIMAGE_FORMAT_4_PATH
+        / "time_structure"
+        / "slow_stack_frames_saved_galvo_galvo_bounded_stack_version_2021_0"
+        / "stack_00003.tif"
+    )
+    extractor = ScanImageImagingExtractor(file_path=file_path, slice_sample=0)
+    assert extractor.get_sample_shape() == (64, 64, 12)
+    assert extractor.get_num_samples() == 1
+    # Plane `plane` is page `10 * plane`, the first of its 10 frames
+    page_indices = [[10 * plane for plane in range(12)]]
+    expected_series = read_scanimage_pages([file_path], page_indices)
+    assert_array_equal(extractor.get_series(), np.moveaxis(expected_series, 1, -1))
+    # zs runs from 1.6 µm in steps of `stackZStepSize` 5 µm, a position for each of the 10 frames of a slice
+    assert extractor.metadata.plane_z_offsets_um == pytest.approx([5.0 * plane for plane in range(12)])
+
+
 # Headers before 2019b have no `hStackManager.enable`, so the extractor reads their stack settings from `hFastZ`
 SCANIMAGE_FORMAT_3_PATH = SCANIMAGE_PATH / "tiff_format_version_3"
 
