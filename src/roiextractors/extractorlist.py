@@ -35,7 +35,6 @@ from .extractors.minian import MinianSegmentationExtractor
 from .extractors.miniscopeimagingextractor import MiniscopeImagingExtractor, MiniscopeMultiRecordingImagingExtractor
 from .multiimagingextractor import MultiImagingExtractor
 from .planarstackimagingextractor import PlanarStackImagingExtractor
-from .volumetricimagingextractor import VolumetricImagingExtractor
 
 imaging_extractor_full_list = [
     FemtonicsImagingExtractor,
