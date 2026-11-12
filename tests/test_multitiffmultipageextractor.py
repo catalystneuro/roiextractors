@@ -624,11 +624,18 @@ def test_from_folder_no_files_found_error(tmp_path):
 def test_comparison_with_scanimage_planar_multi_channel():
     """Test comparison with ScanImageImagingExtractor for planar multi-channel data."""
     # Path to ScanImage multi-file data - explicit file paths for reproducibility
-    scanimage_folder_path = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
+    scanimage_folder_path = (
+        OPHYS_DATA_PATH
+        / "imaging_datasets"
+        / "ScanImage"
+        / "tiff_format_version_4"
+        / "time_structure"
+        / "planar_two_channels_loop_version_2023_1"
+    )
     file_paths = [
-        scanimage_folder_path / "scanimage_20240320_multifile_00001.tif",
-        scanimage_folder_path / "scanimage_20240320_multifile_00002.tif",
-        scanimage_folder_path / "scanimage_20240320_multifile_00003.tif",
+        scanimage_folder_path / "planar_00001.tif",
+        scanimage_folder_path / "planar_00002.tif",
+        scanimage_folder_path / "planar_00003.tif",
     ]
 
     # Use ScanImageImagingExtractor instead of deprecated extractor
@@ -678,7 +685,11 @@ def test_comparison_with_scanimage_volumetric_multi_channel():
     # Path to volumetric ScanImage data
     scanimage_folder_path = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
     volumetric_path = (
-        scanimage_folder_path / "volumetric_two_channels_single_file" / "vol_two_ch_single_file_00001_00001.tif"
+        scanimage_folder_path
+        / "tiff_format_version_4"
+        / "time_structure"
+        / "volumetric_flyback_frames_two_channels_version_2021_0"
+        / "volume_00001_00001.tif"
     )
 
     # Initialize ScanImage extractor for Channel 1 (index 0)
