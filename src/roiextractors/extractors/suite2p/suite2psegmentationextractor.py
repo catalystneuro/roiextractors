@@ -145,6 +145,23 @@ class Suite2pSegmentationExtractor(SegmentationExtractor):
             self._load_npy(file_name="spks.npy", mmap_mode="r", transpose=True) if channel_name == "chan1" else None
         )
 
+        # Suite2p saves the traces as (ROIs, frames), one row for each ROI of stat.npy and one column for each frame of
+        # ops.npy. A file with another shape, such as a second channel saved with no frames, would otherwise be read with
+        # the wrong samples or ROIs
+        expected_shape = (self.stat.size, self._num_frames)
+        trace_files = {
+            fluorescence_traces_file_name: raw_traces,
+            neuropil_traces_file_name: neuropil_traces,
+            "spks.npy": deconvolved_traces,
+        }
+        for file_name, traces in trace_files.items():
+            if traces is not None and traces.T.shape != expected_shape:
+                raise ValueError(
+                    f"{file_name} has shape {traces.T.shape}, but Suite2p saves the traces as (ROIs, frames), which "
+                    f"is {expected_shape} for the {self.stat.size} ROIs of stat.npy and the {self._num_frames} frames "
+                    f"of ops.npy."
+                )
+
         cell_ids = None
         if raw_traces is not None:
             cell_ids = list(range(raw_traces.shape[1]))
