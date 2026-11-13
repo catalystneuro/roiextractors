@@ -29,7 +29,7 @@ def test_get_scanimage_reader():
 @pytest.mark.parametrize(
     "filename, expected_key, expected_value",
     [
-        ("sample_scanimage_version_3_8.tiff", "state.software.version", "3.8"),
+        ("legacy/acquisition_setup/planar_single_channel_version_3_8/planar.tif", "state.software.version", "3.8"),
         (
             "tiff_format_version_4/time_structure/planar_frames_averaged_version_2022_0/planar.tif",
             "SI.VERSION_MAJOR",
@@ -268,7 +268,15 @@ def test_parse_metadata(filename, expected_metadata):
 
 
 def test_parse_metadata_v3_8():
-    file_path = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage" / "sample_scanimage_version_3_8.tiff"
+    file_path = (
+        OPHYS_DATA_PATH
+        / "imaging_datasets"
+        / "ScanImage"
+        / "legacy"
+        / "acquisition_setup"
+        / "planar_single_channel_version_3_8"
+        / "planar.tif"
+    )
     metadata = extract_extra_metadata(file_path)
     metadata = parse_metadata_v3_8(metadata)
     expected_metadata = {"sampling_frequency": 3.90625, "num_channels": 1, "num_planes": 1}
