@@ -1,5 +1,6 @@
 import re
 import shutil
+import textwrap
 from datetime import datetime
 
 import numpy as np
@@ -363,8 +364,16 @@ class TestScanImageMultiROIImagingExtractorErrors:
             "The gap between ROIs is 4 rows from the size of the page but 6 rows from SI.hScan2D.flytoTimePerScanfield "
             "and SI.hRoiManager.linePeriod."
         )
-        with pytest.raises(ValueError, match=re.escape(expected_message)):
-            ScanImageMultiROIImagingExtractor(file_path=file_path, roi_index=0)
+        with pytest.raises(ValueError, match=re.escape(expected_message)) as error:
+            ScanImageMultiROIImagingExtractor(file_path=file_path, roi_index=1)
+
+        # The script in the message reads the same pixels as the extractor does on the unchanged file
+        paragraphs = str(error.value).split("\n\n")
+        script = textwrap.dedent("\n\n".join(paragraphs[2:4]))
+        namespace = {}
+        exec(script, namespace)
+        expected_roi = ScanImageMultiROIImagingExtractor(file_path=self.FILE_PATH, roi_index=1)
+        assert_array_equal(namespace["roi"].get_series(), expected_roi.get_series())
 
     def test_volumetric_data_raises(self):
         file_path = (

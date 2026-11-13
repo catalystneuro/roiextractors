@@ -115,20 +115,36 @@ class ScanImageMultiROIImagingExtractor(ScanImageImagingExtractor):
             )
 
         page_num_rows = self._num_rows
-        gap = self._get_inter_roi_gap(
-            page_num_rows=page_num_rows,
-            roi_heights=roi_heights,
-            line_period=self._metadata["SI.hRoiManager.linePeriod"],
-            flyto_time=self._metadata["SI.hScan2D.flytoTimePerScanfield"],
-        )
+        gap = self._get_inter_roi_gap(page_num_rows=page_num_rows, roi_heights=roi_heights)
 
         # The ROI starts below the ROIs above it and the gap after each of them. The crop window of the base class
         # selects its rows, so `get_series` crops each page as it reads it.
         roi_row_start = sum(roi_heights[:roi_index]) + roi_index * gap
+        roi_row_end = roi_row_start + roi_heights[roi_index]
+
+        # The time the scanner takes to fly to the next ROI gives a second estimate of the gap: the fly-to time over
+        # the line period, rounded up to an even number of lines, as a resonant scanner scanning in both directions
+        # inserts lines in pairs. A file where the two disagree raises instead of being cropped by a guess.
+        flyto_time = self._metadata["SI.hScan2D.flytoTimePerScanfield"]
+        line_period = self._metadata["SI.hRoiManager.linePeriod"]
+        timing_gap = math.ceil(flyto_time / line_period / 2) * 2
+        if num_rois > 1 and gap != timing_gap:
+            channel_argument = f", channel_name={self.channel_name!r}" if self._num_channels > 1 else ""
+            raise ValueError(
+                f"The gap between ROIs is {gap} rows from the size of the page but {timing_gap} rows from "
+                "SI.hScan2D.flytoTimePerScanfield and SI.hRoiManager.linePeriod. Please open an issue with an example "
+                "file at https://github.com/catalystneuro/roiextractors/issues\n\n"
+                f"In the meantime, you can read ROI {roi_index} from the whole page, assuming the {gap}-row gap:\n\n"
+                "    from roiextractors import ScanImageImagingExtractor\n\n"
+                f"    extractor = ScanImageImagingExtractor(file_path={str(self.file_path)!r}{channel_argument})\n"
+                f"    roi = extractor.slice_field_of_view(row_start={roi_row_start}, row_end={roi_row_end})\n\n"
+                "Its timestamps are those of the page, without the time it takes to scan the rows above the ROI."
+            )
+
         self._roi_index = roi_index
         self._narrow_field_of_view(
             row_start=roi_row_start,
-            row_end=roi_row_start + roi_heights[roi_index],
+            row_end=roi_row_end,
             column_start=0,
             column_end=self._num_columns,
         )
@@ -142,13 +158,10 @@ class ScanImageMultiROIImagingExtractor(ScanImageImagingExtractor):
         return [roi for roi in rois if roi.get("enable", True)]
 
     @staticmethod
-    def _get_inter_roi_gap(page_num_rows: int, roi_heights: list[int], line_period: float, flyto_time: float) -> int:
+    def _get_inter_roi_gap(page_num_rows: int, roi_heights: list[int]) -> int:
         """Return the number of dead rows between consecutive ROIs on the page.
 
-        The gap is the rows of the page left over by the ROIs, spread evenly between them. The time the scanner takes
-        to fly to the next ROI gives a second estimate: ``flyto_time / line_period`` rounded up to an even number of
-        lines, as a resonant scanner scanning in both directions inserts lines in pairs. A file where the two disagree
-        raises instead of being cropped by a guess.
+        The gap is the rows of the page left over by the ROIs, spread evenly between them.
         """
         num_rois = len(roi_heights)
         if num_rois == 1:
@@ -160,16 +173,7 @@ class ScanImageMultiROIImagingExtractor(ScanImageImagingExtractor):
             raise ValueError(
                 f"The {page_num_rows} rows of the page do not fit ROIs of heights {roi_heights} separated by equal gaps."
             )
-        gap = residual_rows // num_gaps
-
-        timing_gap = math.ceil(flyto_time / line_period / 2) * 2
-        if gap != timing_gap:
-            raise ValueError(
-                f"The gap between ROIs is {gap} rows from the size of the page but {timing_gap} rows from "
-                "SI.hScan2D.flytoTimePerScanfield and SI.hRoiManager.linePeriod. Please open an issue with an example "
-                "file at https://github.com/catalystneuro/roiextractors/issues"
-            )
-        return gap
+        return residual_rows // num_gaps
 
     @staticmethod
     def get_available_rois(file_path: PathType) -> list[dict]:
