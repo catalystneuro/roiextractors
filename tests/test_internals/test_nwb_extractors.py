@@ -1,6 +1,7 @@
+import importlib.util
+
 import numpy as np
 import pytest
-from hdmf_zarr import NWBZarrIO
 from pynwb import NWBHDF5IO
 from pynwb.ophys import TwoPhotonSeries
 from pynwb.testing.mock.file import mock_NWBFile
@@ -18,7 +19,17 @@ from roiextractors import (
     PoissonNoiseImagingExtractor,
 )
 
+# hdmf_zarr installs only on Python 3.12 and newer, so Python 3.11 tests only the HDF5 backend
+if importlib.util.find_spec("hdmf_zarr") is not None:
+    from hdmf_zarr import NWBZarrIO
+else:
+    NWBZarrIO = None
+
 BACKEND_IO_CLASSES = {"hdf5": NWBHDF5IO, "zarr": NWBZarrIO}
+BACKENDS = [
+    "hdf5",
+    pytest.param("zarr", marks=pytest.mark.skipif(NWBZarrIO is None, reason="hdmf_zarr needs Python 3.12 or newer")),
+]
 
 
 def write_nwbfile(nwbfile, folder_path, stem, backend):
@@ -30,7 +41,7 @@ def write_nwbfile(nwbfile, folder_path, stem, backend):
     return file_path
 
 
-@pytest.fixture(scope="module", params=["hdf5", "zarr"])
+@pytest.fixture(scope="module", params=BACKENDS)
 def nwb_planar_file(request, tmp_path_factory):
     """Create a planar (2D) NWB file for testing."""
     tmp_path = tmp_path_factory.mktemp("nwb_planar")
@@ -143,7 +154,7 @@ class TestNwbImagingExtractor:
         assert num_planes == 1
 
 
-@pytest.fixture(scope="module", params=["hdf5", "zarr"])
+@pytest.fixture(scope="module", params=BACKENDS)
 def nwb_volumetric_file(request, tmp_path_factory):
     """Create a volumetric (3D) NWB file for testing."""
     tmp_path = tmp_path_factory.mktemp("nwb_volumetric")
@@ -225,7 +236,7 @@ class TestNwbVolumetricImagingExtractor:
         np.testing.assert_array_almost_equal(sliced_timestamps, expected_timestamps[5:10])
 
 
-@pytest.fixture(scope="module", params=["hdf5", "zarr"])
+@pytest.fixture(scope="module", params=BACKENDS)
 def nwb_segmentation_file(request, tmp_path_factory):
     """Create a segmentation NWB file for testing."""
     tmp_path = tmp_path_factory.mktemp("nwb_segmentation")
