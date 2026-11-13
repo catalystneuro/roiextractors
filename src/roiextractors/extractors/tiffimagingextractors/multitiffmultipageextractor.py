@@ -221,6 +221,8 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
                 f"File: {first_path}"
             )
 
+        # Files whose frames are laid end to end after a single IFD, filled by _get_ifds_per_file()
+        self._contiguous_file_indices = set()
         ifds_per_file = self._get_ifds_per_file()
         if len(ifds_per_file) != len(self._file_paths):
             raise ValueError(
@@ -453,6 +455,7 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         # of multi-page files.
         current_file_index = None
         tiff_handle = None
+        contiguous_frames = None
         for return_index, sample_index in enumerate(range(start_sample, end_sample)):
             for depth_position in range(num_planes):
                 frame_index = sample_index * num_planes + depth_position
@@ -462,11 +465,21 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
                 if file_index != current_file_index:
                     if tiff_handle is not None:
                         tiff_handle.close()
-                    tiff_handle = self._tifffile.TiffFile(self._file_paths[file_index])
+                        tiff_handle = None
+                    contiguous_frames = None
+                    file_path = self._file_paths[file_index]
+                    if file_index in self._contiguous_file_indices:
+                        frames = self._tifffile.memmap(file_path, mode="r")
+                        contiguous_frames = frames.reshape(-1, num_rows, num_columns)
+                    else:
+                        tiff_handle = self._tifffile.TiffFile(file_path)
                     current_file_index = file_index
 
-                image_file_directory = tiff_handle.pages[table_row["IFD_index"]]
-                samples[return_index, :, :, depth_position] = image_file_directory.asarray()
+                if contiguous_frames is not None:
+                    frame = contiguous_frames[table_row["IFD_index"]]
+                else:
+                    frame = tiff_handle.pages[table_row["IFD_index"]].asarray()
+                samples[return_index, :, :, depth_position] = frame
 
         # Explicit close: tifffile holds internal references so refcount-based
         # cleanup won't promptly free the handle when it goes out of scope.
@@ -589,11 +602,20 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
         the per-file opens entirely.
         """
         ifds_per_file = []
-        for file_path in self._file_paths:
+        for file_index, file_path in enumerate(self._file_paths):
             if not file_path.exists():
                 raise FileNotFoundError(f"TIFF file not found: {file_path}")
             with self._tifffile.TiffFile(file_path) as tif:
-                ifds_per_file.append(len(tif.pages))
+                num_ifds = len(tif.pages)
+                # ImageJ, for stacks over 4 GB, and tifffile with truncate=True write one IFD followed by the
+                # pixels of every other frame, so the frames are counted from the series instead of the pages
+                if num_ifds == 1 and (tif.is_imagej or tif.is_shaped):
+                    series = tif.series[0]
+                    num_frames = series.size // tif.pages[0].size
+                    if series.dataoffset is not None and num_frames > 1:
+                        self._contiguous_file_indices.add(file_index)
+                        num_ifds = num_frames
+                ifds_per_file.append(num_ifds)
         return ifds_per_file
 
     def _get_channel_names(self) -> list[str]:

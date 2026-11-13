@@ -481,6 +481,25 @@ def test_warning_for_indivisible_ifds(tmp_path):
     assert extractor.get_num_samples() == 1
 
 
+def test_single_ifd_imagej_stack(tmp_path):
+    """A stack with one IFD and the pixels of every other frame after it is read with all its frames.
+
+    ImageJ writes stacks over 4 GB this way, and tifffile writes the same layout with `truncate=True`. Counting the
+    pages of such a file finds one frame.
+    """
+    import tifffile
+
+    file_path = tmp_path / "single_ifd.tif"
+    data = np.arange(10 * 8 * 6, dtype=np.uint16).reshape(10, 8, 6)
+    tifffile.imwrite(file_path, data, imagej=True, truncate=True)
+
+    extractor = MultiTIFFMultiPageExtractor(file_paths=[file_path], sampling_frequency=1.0)
+
+    assert extractor.get_num_samples() == 10
+    np.testing.assert_array_equal(extractor.get_series(), data)
+    np.testing.assert_array_equal(extractor.get_series(start_sample=3, end_sample=7), data[3:7])
+
+
 def test_invalid_num_channels_error_handling(tmp_path):
     """Test error handling for invalid num_channels."""
     # Use non-existent file since validation happens before file opening
