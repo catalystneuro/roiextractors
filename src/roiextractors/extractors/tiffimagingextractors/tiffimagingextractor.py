@@ -76,11 +76,6 @@ class TiffImagingExtractor(ImagingExtractor):
         else:
             raise_multi_channel_or_depth_not_implemented(extractor_name=self.extractor_name)
 
-        self._kwargs = {
-            "file_path": str(Path(file_path).absolute()),
-            "sampling_frequency": sampling_frequency,
-        }
-
     def get_series(self, start_sample=None, end_sample=None) -> np.ndarray:
         return self._video[start_sample:end_sample, ...]
 

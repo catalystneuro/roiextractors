@@ -53,19 +53,11 @@ class NumpyImagingExtractor(ImagingExtractor):
                 assert timeseries.suffix == ".npy", "'timeseries' file is not a numpy file (.npy)"
                 self.is_dumpable = True
                 self._video = np.load(timeseries, mmap_mode="r")
-                self._kwargs = {
-                    "timeseries": str(Path(timeseries).absolute()),
-                    "sampling_frequency": sampling_frequency,
-                }
             else:
                 raise ValueError("'timeseries' is does not exist")
         elif isinstance(timeseries, np.ndarray):
             self.is_dumpable = False
             self._video = timeseries
-            self._kwargs = {
-                "timeseries": timeseries,
-                "sampling_frequency": sampling_frequency,
-            }
         else:
             raise TypeError("'timeseries' can be a str or a numpy array")
 

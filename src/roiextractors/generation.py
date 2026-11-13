@@ -85,6 +85,7 @@ class PoissonNoiseImagingExtractor(ImagingExtractor):
         self._num_samples = num_samples
         self._sampling_frequency = float(sampling_frequency)
         self._seed = int(seed) if seed is not None else int(np.random.default_rng().integers(0, 2**31))
+        self._init_kwargs["seed"] = self._seed  # so a rebuilt extractor generates the same values
         self._baseline = baseline
 
         if num_planes is not None and num_planes > 1:
@@ -202,6 +203,7 @@ class GaussianNoiseImagingExtractor(ImagingExtractor):
         self._num_samples = num_samples
         self._sampling_frequency = float(sampling_frequency)
         self._seed = int(seed) if seed is not None else int(np.random.default_rng().integers(0, 2**31))
+        self._init_kwargs["seed"] = self._seed  # so a rebuilt extractor generates the same values
         self._noise_mean = noise_mean
         self._noise_std = noise_std
 
