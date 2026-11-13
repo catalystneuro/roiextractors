@@ -116,9 +116,7 @@ class SbxImagingExtractor(ImagingExtractor):
             info["fold_lines"] = 0
             info["fov_repeats"] = 1
 
-        info["frame_rate"] = int(
-            info["resfreq"] / info["config"]["lines"] * (2 - info["scanmode"]) * info["fov_repeats"]
-        )
+        info["frame_rate"] = info["resfreq"] / info["config"]["lines"] * (2 - info["scanmode"]) * info["fov_repeats"]
         # SIMA:
         info["nsamples"] = int(info["sz"][1]) * int(info["recordsPerBuffer"]) * int(info["nChan"] * 2)
         # SIMA:
