@@ -738,6 +738,11 @@ class ScanImageImagingExtractor(ImagingExtractor):
         absolute_column_start = self._column_slice.start + column_start
 
         sliced = copy.copy(self)
+        sliced._view_of = (
+            self,
+            "slice_field_of_view",
+            dict(row_start=row_start, row_end=row_end, column_start=column_start, column_end=column_end),
+        )
         sliced._row_slice = slice(absolute_row_start, absolute_row_start + (row_end - row_start))
         sliced._column_slice = slice(absolute_column_start, absolute_column_start + (column_end - column_start))
         sliced._num_rows = row_end - row_start
@@ -776,11 +781,13 @@ class ScanImageImagingExtractor(ImagingExtractor):
             raise ValueError(f"plane_index ({plane_index}) must satisfy 0 <= plane_index < num_planes ({num_planes}).")
 
         plane = copy.copy(self)
+        plane._view_of = (self, "select_plane", dict(plane_index=plane_index))
         depth_mask = self._frames_to_ifd_table["depth_index"] == plane_index
         plane._frames_to_ifd_table = self._frames_to_ifd_table[depth_mask]
         plane.is_volumetric = False
         plane._num_planes = 1
         plane._times = None
+        plane._native_timestamps_cache = None
         plane._native_timestamps = None
         plane._fov_root = self._fov_root if self._fov_root is not None else self
         # The copy also has the metadata of the volume if it was read before

@@ -307,11 +307,13 @@ class MultiTIFFMultiPageExtractor(ImagingExtractor):
             raise ValueError(f"plane_index ({plane_index}) must satisfy 0 <= plane_index < num_planes ({num_planes}).")
 
         plane = copy.copy(self)
+        plane._view_of = (self, "select_plane", dict(plane_index=plane_index))
         depth_mask = self._frames_to_ifd_table["depth_index"] == plane_index
         plane._frames_to_ifd_table = self._frames_to_ifd_table[depth_mask]
         plane._num_planes = 1
         plane.is_volumetric = False
         plane._times = None
+        plane._native_timestamps_cache = None
         # The copy also has the metadata of the volume if it was read before
         plane.__dict__.pop("_unified_metadata", None)
         plane._metadata_parent = self

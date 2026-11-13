@@ -94,12 +94,6 @@ class MicroManagerTiffImagingExtractor(OMETiffImagingExtractor):
         self._sampling_frequency = sampling_frequency
         self.folder_path = file_path.parent
         self._channel_names = list(self.micromanager_metadata["Summary"]["ChNames"])
-        self._kwargs = dict(
-            file_path=str(file_path),
-            channel_name=channel_name,
-            position_index=position_index,
-            sampling_frequency=sampling_frequency,
-        )
 
     @staticmethod
     def _resolve_file_path(file_path, folder_path):

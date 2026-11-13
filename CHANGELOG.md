@@ -1,6 +1,7 @@
 # v0.10.1 (Upcoming)
 
 ### Features
+* `ImagingExtractor` now records the arguments it was constructed with and pickles as that construction plus the times set or shifted afterwards instead of as its instance dict. Any extractor, including slices and `MultiImagingExtractor`, can then be rebuilt in another process without copying its data or its file handles, which is what neuroconv's parallel Zarr writer needs. [PR #689](https://github.com/catalystneuro/roiextractors/pull/689)
 * Added `shift_times()`, which moves every timestamp by a constant without building or changing an array, and `get_start_time()`, which returns the time of the first sample. [PR #634](https://github.com/catalystneuro/roiextractors/pull/634)
 * `MicroManagerTiffImagingExtractor` now reads multiple channels, depth planes and positions from MMStack recordings and exposes their native timestamps and imaging metadata. [#681 (Micro-Manager MMStack reader)](https://github.com/catalystneuro/roiextractors/pull/681)
 * `FemtonicsImagingExtractor.metadata` now reads the acquisition start, pixel size, field of view, channel, acquisition software version and session information from the selected measurement unit and file attributes. [#679 (Femtonics metadata)](https://github.com/catalystneuro/roiextractors/pull/679)

@@ -81,8 +81,6 @@ class ThorTiffImagingExtractor(OMETiffImagingExtractor):
             channel_name=channel_name,
         )
 
-        self._kwargs = {"file_path": str(file_path), "channel_name": channel_name}
-
     @cached_property
     def _unified_metadata(self) -> Metadata:
         if self._metadata_parent is not None:

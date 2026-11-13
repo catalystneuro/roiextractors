@@ -99,13 +99,6 @@ class Hdf5ImagingExtractor(ImagingExtractor):
         else:
             self._channel_names = [f"channel_{ch}" for ch in range(self._num_channels)]
 
-        self._kwargs = {
-            "file_path": str(Path(file_path).absolute()),
-            "mov_field": mov_field,
-            "sampling_frequency": sampling_frequency,
-            "channel_names": channel_names,
-        }
-
     def __del__(self):
         """Close the HDF5 file."""
         self._file.close()

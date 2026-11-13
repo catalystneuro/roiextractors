@@ -109,10 +109,6 @@ class NwbImagingExtractor(ImagingExtractor):
                 }
                 for _, row in df_epochs.iterrows()
             }
-        self._kwargs = {
-            "file_path": str(Path(file_path).absolute()),
-            "optical_series_name": optical_series_name,
-        }
 
     def __del__(self):
         """Close the NWB file."""
