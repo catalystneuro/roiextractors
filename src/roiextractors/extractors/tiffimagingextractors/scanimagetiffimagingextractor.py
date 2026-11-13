@@ -721,6 +721,32 @@ class ScanImageImagingExtractor(ImagingExtractor):
         column_start = 0 if column_start is None else column_start
         column_end = self._num_columns if column_end is None else column_end
 
+        sliced = copy.copy(self)
+        # Keep the handle owner alive and mark this object as a borrower so __del__ does not close the
+        # shared file handles, also when the range below is invalid. The owner is always the originally
+        # constructed extractor.
+        sliced._fov_root = self._fov_root if self._fov_root is not None else self
+        sliced._view_of = (
+            self,
+            "slice_field_of_view",
+            dict(row_start=row_start, row_end=row_end, column_start=column_start, column_end=column_end),
+        )
+        sliced._narrow_field_of_view(
+            row_start=row_start, row_end=row_end, column_start=column_start, column_end=column_end
+        )
+        # The copy also has the metadata of the full field of view if it was read before
+        sliced.__dict__.pop("_unified_metadata", None)
+        sliced._metadata_parent = self
+        sliced._metadata_plane_index = None
+        return sliced
+
+    def _narrow_field_of_view(self, row_start: int, row_end: int, column_start: int, column_end: int) -> None:
+        """Narrow the crop window in place to the given rows and columns.
+
+        The bounds are relative to the current window, so narrowing an already narrowed extractor composes. The
+        window and the image shape are set together, as the readers rely on `_num_rows` and `_num_columns` being
+        the height and the width of the window.
+        """
         if not (0 <= row_start < row_end <= self._num_rows):
             raise ValueError(
                 f"Invalid row range: require 0 <= row_start ({row_start}) < row_end ({row_end}) "
@@ -736,25 +762,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # so repeated slicing composes correctly.
         absolute_row_start = self._row_slice.start + row_start
         absolute_column_start = self._column_slice.start + column_start
-
-        sliced = copy.copy(self)
-        sliced._view_of = (
-            self,
-            "slice_field_of_view",
-            dict(row_start=row_start, row_end=row_end, column_start=column_start, column_end=column_end),
-        )
-        sliced._row_slice = slice(absolute_row_start, absolute_row_start + (row_end - row_start))
-        sliced._column_slice = slice(absolute_column_start, absolute_column_start + (column_end - column_start))
-        sliced._num_rows = row_end - row_start
-        sliced._num_columns = column_end - column_start
-        # The copy also has the metadata of the full field of view if it was read before
-        sliced.__dict__.pop("_unified_metadata", None)
-        sliced._metadata_parent = self
-        sliced._metadata_plane_index = None
-        # Keep the handle owner alive and mark this object as a borrower so __del__ does not close the
-        # shared file handles. The owner is always the originally constructed extractor.
-        sliced._fov_root = self._fov_root if self._fov_root is not None else self
-        return sliced
+        self._row_slice = slice(absolute_row_start, absolute_row_start + (row_end - row_start))
+        self._column_slice = slice(absolute_column_start, absolute_column_start + (column_end - column_start))
+        self._num_rows = row_end - row_start
+        self._num_columns = column_end - column_start
 
     def select_plane(self, plane_index: int) -> "ScanImageImagingExtractor":
         """Return a planar view of one depth plane as a new ScanImageImagingExtractor.
