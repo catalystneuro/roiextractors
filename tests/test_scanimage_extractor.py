@@ -1934,11 +1934,11 @@ class TestScanImageImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin
     expected_sampling_frequency = 15.2379 / 8  # scanFrameRate / logAverageFactor, each frame is the mean of 8 scans
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2022, 8, 8, 16, 44, 29, 124000),  # epoch = [2022  8  8 16 44 29.124]
-        # imagingFovUm has its corners at ±135 µm in x and y, over linesPerFrame and pixelsPerLine 64
-        pixel_height_um=270.0 / 64,
-        pixel_width_um=270.0 / 64,
-        field_of_view_height_um=270.0,
-        field_of_view_width_um=270.0,
+        # imagingFovUm has its corners at -135 and -118.125 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=16.875 / 64,
+        pixel_width_um=16.875 / 64,
+        field_of_view_height_um=16.875,
+        field_of_view_width_um=16.875,
         channel_name="Channel 1",
         scan_line_rate=1 / 6.31018e-05,  # 1 / linePeriod
         acquisition_software_name="ScanImage",
@@ -2017,11 +2017,11 @@ class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
     expected_sampling_frequency = 98.83842317607626  # scanFrameRate
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2024, 3, 26, 15, 7, 53, 110000),  # epoch = [2024  3 26 15  7 53.110]
-        # imagingFovUm has its corners at ±135 µm in x and y, over linesPerFrame and pixelsPerLine 64
-        pixel_height_um=270.0 / 64,
-        pixel_width_um=270.0 / 64,
-        field_of_view_height_um=270.0,
-        field_of_view_width_um=270.0,
+        # imagingFovUm has its corners at -135 and -101.25 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=33.75 / 64,
+        pixel_width_um=33.75 / 64,
+        field_of_view_height_um=33.75,
+        field_of_view_width_um=33.75,
         channel_name="Channel 1",
         scan_line_rate=1 / 1.775004e-05,  # 1 / linePeriod
         acquisition_software_name="ScanImage",
@@ -2471,11 +2471,11 @@ class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixi
     expected_sampling_frequency = 14.5517  # scanVolumeRate
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2023, 9, 22, 12, 46, 9, 383000),  # epoch = [2023  9 22 12 46 9.383]
-        # imagingFovUm has its corners at ±2151.11 µm in x and y, over linesPerFrame and pixelsPerLine 64
-        pixel_height_um=4302.22 / 64,
-        pixel_width_um=4302.22 / 64,
-        field_of_view_height_um=4302.22,
-        field_of_view_width_um=4302.22,
+        # imagingFovUm has its corners at -2151.11 and -1075.555 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=1075.555 / 64,
+        pixel_width_um=1075.555 / 64,
+        field_of_view_height_um=1075.555,
+        field_of_view_width_um=1075.555,
         plane_z_offsets_um=[
             0.0,
             1.0,
@@ -2535,11 +2535,11 @@ class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtrac
     expected_sampling_frequency = 14.5517
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2023, 9, 22, 12, 46, 9, 383000),  # epoch = [2023  9 22 12 46 9.383]
-        # imagingFovUm has its corners at ±2151.11 µm in x and y, over linesPerFrame and pixelsPerLine 64
-        pixel_height_um=4302.22 / 64,
-        pixel_width_um=4302.22 / 64,
-        field_of_view_height_um=4302.22,
-        field_of_view_width_um=4302.22,
+        # imagingFovUm has its corners at -2151.11 and -1075.555 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=1075.555 / 64,
+        pixel_width_um=1075.555 / 64,
+        field_of_view_height_um=1075.555,
+        field_of_view_width_um=1075.555,
         plane_z_offsets_um=[
             0.0,
             1.0,
@@ -2600,12 +2600,12 @@ class TestScanImageImagingExtractorBoundedStackVersion2021(ImagingExtractorTestM
     expected_sampling_frequency = 0.00888261
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2023, 1, 25, 16, 41, 43, 359000),  # epoch = [2023,1,25,16,41,43.359]
-        # imagingFovUm has its corners at -79.133 and 68.5431 µm in x, -88.5698 and 59.1063 µm in y, over
-        # linesPerFrame and pixelsPerLine 64
-        pixel_height_um=147.6761 / 64,
-        pixel_width_um=147.6761 / 64,
-        field_of_view_height_um=147.6761,
-        field_of_view_width_um=147.6761,
+        # imagingFovUm has its corners at -79.133 and -60.6734875 µm in x, -88.5698 and -70.1102875 µm in y,
+        # over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=18.4595125 / 64,
+        pixel_width_um=18.4595125 / 64,
+        field_of_view_height_um=18.4595125,
+        field_of_view_width_um=18.4595125,
         # zs runs from 1.6 µm in steps of `stackZStepSize` 5 µm, a position for each of the 10 frames of a slice
         plane_z_offsets_um=[5.0 * plane for plane in range(12)],
         channel_name="Channel 1",
@@ -2655,11 +2655,11 @@ class TestScanImageImagingExtractorAveragedStackVersion2022(ImagingExtractorTest
     expected_sampling_frequency = 0.375176  # scanVolumeRate
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2022, 8, 8, 16, 56, 7, 329000),  # epoch = [2022  8  8 16 56 7.329]
-        # imagingFovUm has its corners at ±135 µm in x and y, over linesPerFrame and pixelsPerLine 64
-        pixel_height_um=270 / 64,
-        pixel_width_um=270 / 64,
-        field_of_view_height_um=270,
-        field_of_view_width_um=270,
+        # imagingFovUm has its corners at -135 and -101.25 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=33.75 / 64,
+        pixel_width_um=33.75 / 64,
+        field_of_view_height_um=33.75,
+        field_of_view_width_um=33.75,
         # zs = [742.467 ... 761.359 ... 912.489], a position for each of the 8 scanned frames of a slice, minus the
         # first plane
         plane_z_offsets_um=[0.0, 18.892, 37.783, 56.674, 75.565, 94.457, 113.348, 132.239, 151.13, 170.022],
@@ -2699,11 +2699,11 @@ class TestScanImageImagingExtractorPlanarVersion2017b(ImagingExtractorTestMixin)
     expected_sampling_frequency = 30.0321  # scanFrameRate, with logAverageFactor 1
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2019, 4, 25, 15, 56, 55, 537000),  # epoch = [2019  4 25 15 56 55.537]
-        # imagingFovUm has its corners at ±311.342 µm in x and y, over linesPerFrame and pixelsPerLine 64
-        pixel_height_um=622.684 / 64,
-        pixel_width_um=622.684 / 64,
-        field_of_view_height_um=622.684,
-        field_of_view_width_um=622.684,
+        # imagingFovUm has its corners at -311.342 and -233.5065 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=77.8355 / 64,
+        pixel_width_um=77.8355 / 64,
+        field_of_view_height_um=77.8355,
+        field_of_view_width_um=77.8355,
         channel_name="Channel 1",
         scan_line_rate=1 / 6.30638e-05,  # 1 / linePeriod
         acquisition_software_name="ScanImage",
@@ -2737,11 +2737,11 @@ class TestScanImageImagingExtractorFastZOneFramePerVolumeVersion2019a(ImagingExt
     expected_sampling_frequency = 49.5783  # scanFrameRate, with logAverageFactor 1
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2021, 6, 23, 20, 35, 13, 509000),  # epoch = [2021  6 23 20 35 13.509]
-        # imagingFovUm has its corners at ±4.5 µm in x and y, over linesPerFrame and pixelsPerLine 64
-        pixel_height_um=9.0 / 64,
-        pixel_width_um=9.0 / 64,
-        field_of_view_height_um=9.0,
-        field_of_view_width_um=9.0,
+        # imagingFovUm has its corners at -4.5 and -2.25 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=2.25 / 64,
+        pixel_width_um=2.25 / 64,
+        field_of_view_height_um=2.25,
+        field_of_view_width_um=2.25,
         channel_name="Channel 1",
         scan_line_rate=1 / 6.30316e-05,  # 1 / linePeriod
         acquisition_software_name="ScanImage",
@@ -2782,11 +2782,11 @@ class TestScanImageImagingExtractorFastZVolumeVersion2016b(ImagingExtractorTestM
     expected_sampling_frequency = 9.71251  # scanVolumeRate
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2018, 12, 17, 14, 11, 16, 12000),  # epoch = [2018 12 17 14 11 16.012]
-        # imagingFovUm has its corners at ±10.9688 µm in x and y, over linesPerFrame and pixelsPerLine 64
-        pixel_height_um=21.9376 / 64,
-        pixel_width_um=21.9376 / 64,
-        field_of_view_height_um=21.9376,
-        field_of_view_width_um=21.9376,
+        # imagingFovUm has its corners at -10.9688 and -5.4844 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=5.4844 / 64,
+        pixel_width_um=5.4844 / 64,
+        field_of_view_height_um=5.4844,
+        field_of_view_width_um=5.4844,
         plane_z_offsets_um=[0.0, 3.0, 6.0, 9.0, 12.0, 15.0],  # zs = [42.5 45.5 ... 57.5], minus the first plane
         channel_name="Channel 1",
         scan_line_rate=1 / 6.30878e-05,  # 1 / linePeriod
@@ -2823,12 +2823,12 @@ class TestScanImageImagingExtractorPlanarChannelsOneAndThreeVersion53(ImagingExt
     expected_sampling_frequency = 8.46402  # scanFrameRate, with logAverageFactor 1
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2020, 1, 27, 15, 25, 47, 67000),  # epoch = [2020,1,27,15,25,47.067]
-        # imagingFovUm has its corners at ±10.8491 µm in y, the rows, and ±21.6982 µm in x, the columns, over
-        # linesPerFrame and pixelsPerLine 64. The pixels are not square
-        pixel_height_um=21.6982 / 64,
-        pixel_width_um=43.3964 / 64,
-        field_of_view_height_um=21.6982,
-        field_of_view_width_um=43.3964,
+        # imagingFovUm has its corners at -21.6982 and -10.8491 µm in x, -10.8491 and 0 µm in y,
+        # over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=10.8491 / 64,
+        pixel_width_um=10.8491 / 64,
+        field_of_view_height_um=10.8491,
+        field_of_view_width_um=10.8491,
         channel_name="Channel 3",
         scan_line_rate=1 / 0.0009152,  # 1 / linePeriod
         acquisition_software_name="ScanImage",
@@ -2879,11 +2879,11 @@ class TestScanImageImagingExtractorFastZFlybackTwoChannelsVersion2016b(ImagingEx
     expected_sampling_frequency = 6.11546  # scanVolumeRate
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2017, 7, 17, 13, 33, 44, 377000),  # epoch = [2017  7 17 13 33 44.377]
-        # imagingFovUm has its corners at ±27 µm in x and y, over linesPerFrame and pixelsPerLine 64
-        pixel_height_um=54.0 / 64,
-        pixel_width_um=54.0 / 64,
-        field_of_view_height_um=54.0,
-        field_of_view_width_um=54.0,
+        # imagingFovUm has its corners at -27 and -13.5 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=13.5 / 64,
+        pixel_width_um=13.5 / 64,
+        field_of_view_height_um=13.5,
+        field_of_view_width_um=13.5,
         plane_z_offsets_um=[
             0.0,
             4.0,
