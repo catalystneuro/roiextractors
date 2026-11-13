@@ -22,7 +22,7 @@ SCANIMAGE_FORMAT_4_PATH = SCANIMAGE_PATH / "tiff_format_version_4"
 
 def test_old_scan_image_version():
     """Test that an error informative error is raised when using an old ScanImage version."""
-    file_path = SCANIMAGE_PATH / "sample_scanimage_version_3_8.tiff"
+    file_path = SCANIMAGE_PATH / "legacy" / "acquisition_setup" / "planar_single_channel_version_3_8" / "planar.tif"
 
     with pytest.raises(ValueError):
         ScanImageImagingExtractor(file_path=file_path)
