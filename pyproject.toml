@@ -127,7 +127,8 @@ test = [
     "pytest-xdist",
     "pytest-memray; sys_platform != 'win32'",
     # Needed to write the Zarr-backed NWB fixtures the NWB extractor tests read back.
-    "hdmf-zarr",
+    # 0.14.0, the first zarr 3 release, needs Python 3.12, so Python 3.11 tests only HDF5 NWB files.
+    "hdmf-zarr>=0.14; python_version >= '3.12'",
 ]
 docs = [
     "Jinja2",
