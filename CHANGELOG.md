@@ -1,3 +1,13 @@
+# v0.11.1 (Upcoming)
+
+### Features
+
+### Fixes
+
+### Deprecations And Removals
+
+### Improvements
+
 # v0.11.0 (November 14th, 2026)
 
 ### Features
