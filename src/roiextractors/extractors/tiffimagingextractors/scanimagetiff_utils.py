@@ -2,6 +2,7 @@
 
 import json
 import mmap
+import re
 import struct
 from typing import Sequence
 
@@ -73,6 +74,112 @@ def _read_image_descriptions(file_path: PathType, page_indices: Sequence[int]) -
                 break
             descriptions.append(description)
     return descriptions
+
+
+def _parse_matlab_value(text: str):
+    """Parse a value of a ScanImage 3.x or 4.x header: a quoted string, a logical, a vector or a number.
+
+    Numbers can have leading zeros (`0064`) and be `Inf` or `NaN`, and vectors can be separated by spaces, commas or
+    semicolons (`[1;3]`). Anything else, such as a cell array, is kept as the text.
+    """
+    if len(text) >= 2 and text[0] == text[-1] == "'":
+        return text[1:-1].replace("''", "'")
+    if text in ("true", "false"):
+        return text == "true"
+    if text.startswith("[") and text.endswith("]"):
+        return [_parse_matlab_value(value) for value in re.split(r"[\s,;]+", text[1:-1]) if value]
+    try:
+        return float(text)
+    except ValueError:
+        return text
+
+
+def _parse_legacy_header(description: str | None) -> dict | None:
+    """Parse the settings that ScanImage 3.x and 4.x write as text in the `ImageDescription` of a page.
+
+    ScanImage 3.x writes `state.*` lines on the first page, separated by carriage returns, and 4.x writes
+    `scanimage.SI4.*` lines on every page, separated by line feeds. Each line is `key=value` with a MATLAB value.
+
+    Returns
+    -------
+    dict | None
+        The values by key, or None when the description has no such lines.
+    """
+    if description is None:
+        return None
+    header = {}
+    for line in re.split(r"[\r\n]+", description):
+        match = re.match(r"\s*((?:state|scanimage\.SI4)\.[\w.]+)\s*=\s*(.*?)\s*$", line)
+        if match is not None:
+            header[match.group(1)] = _parse_matlab_value(match.group(2))
+    return header or None
+
+
+def _read_legacy_header(file_path: PathType) -> dict | None:
+    """Read the settings of a ScanImage 3.x or 4.x file from its first page, or None for a later version."""
+    tifffile = get_package(package_name="tifffile")
+    with tifffile.TiffFile(file_path) as tiff:
+        return _parse_legacy_header(tiff.pages[0].description)
+
+
+def _translate_legacy_header(header: dict) -> dict:
+    """Return the values of a ScanImage 3.x or 4.x header under the keys of the header from 2016 on.
+
+    `ScanImageImagingExtractor` reads the layout of a recording from these keys: the saved channels, the slices of a
+    stack, the frames scanned at each slice and how many scanned frames are averaged into one saved frame, and the
+    frame and volume rates. The old headers name no channels, so the channels get the names that ScanImage gives them
+    from 2016 on.
+
+    Settings without an example file raise `NotImplementedError`: 4.x stacks and fast z, 3.x headers without a frame
+    rate, and 3.x time series that average frames without saying how many.
+    """
+    issue_message = "Please open an issue with an example file at https://github.com/catalystneuro/roiextractors/issues"
+    is_version_3 = any(key.startswith("state.") for key in header)
+    if is_version_3:
+        if "state.acq.frameRate" not in header:
+            raise NotImplementedError(
+                f"This ScanImage header has no frame rate (state.acq.frameRate), so the timing cannot be read. "
+                f"{issue_message}"
+            )
+        frame_rate = header["state.acq.frameRate"]
+        saved_channels = [number for number in range(1, 5) if header.get(f"state.acq.savingChannel{number}") == 1]
+        num_slices = int(header["state.acq.numberOfZSlices"])
+        averaging = bool(header.get("state.acq.averaging", 0))
+        if num_slices > 1:
+            # A stack scans `numberOfFrames` frames at each slice and, with averaging on, saves their mean
+            frames_per_slice = int(header["state.acq.numberOfFrames"])
+            average_factor = frames_per_slice if averaging else 1
+        else:
+            # A time series saves the mean of each `numAvgFramesSave` scanned frames, which 3.6 does not write
+            frames_per_slice = 1
+            if "state.acq.numAvgFramesSave" in header:
+                average_factor = int(header["state.acq.numAvgFramesSave"])
+            elif averaging:
+                raise NotImplementedError(
+                    "This ScanImage time series averages frames (state.acq.averaging=1) but does not write how many "
+                    f"(state.acq.numAvgFramesSave). {issue_message}"
+                )
+            else:
+                average_factor = 1
+    else:
+        if bool(header["scanimage.SI4.fastZEnable"]) or header["scanimage.SI4.stackNumSlices"] > 1:
+            raise NotImplementedError(f"Stacks recorded with ScanImage 4 are not supported yet. {issue_message}")
+        frame_rate = header["scanimage.SI4.scanFrameRate"]
+        saved_channels = [int(number) for number in np.ravel(header["scanimage.SI4.channelsSave"])]
+        num_slices = 1
+        frames_per_slice = 1
+        average_factor = int(header["scanimage.SI4.acqNumAveragedFrames"])
+
+    return {
+        "SI.hFastZ.enable": False,
+        "SI.hStackManager.numSlices": num_slices,
+        "SI.hStackManager.framesPerSlice": frames_per_slice,
+        "SI.hScan2D.logAverageFactor": average_factor,
+        "SI.hRoiManager.scanFrameRate": frame_rate,
+        "SI.hRoiManager.scanVolumeRate": frame_rate / (num_slices * frames_per_slice),
+        "SI.hChannels.channelSave": saved_channels,
+        "SI.hChannels.channelName": [f"Channel {number}" for number in range(1, 5)],
+    }
 
 
 def extract_extra_metadata(

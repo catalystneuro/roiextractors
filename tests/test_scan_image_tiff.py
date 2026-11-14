@@ -83,5 +83,12 @@ class TestScanImageTiffExtractor(TestCase):
         assert self.imaging_extractor.get_image_shape() == (256, 256)
 
 
+def test_scan_image_legacy_deprecation():
+    """`ScanImageLegacyImagingExtractor` warns that it is deprecated and points to `ScanImageImagingExtractor`."""
+    file_path = OPHYS_DATA_PATH / "imaging_datasets" / "Tif" / "sample_scanimage.tiff"
+    with pytest.warns(FutureWarning, match="ScanImageLegacyImagingExtractor is deprecated"):
+        ScanImageLegacyImagingExtractor(file_path=file_path, sampling_frequency=30.0)
+
+
 if __name__ == "__main__":
     unittest.main()
