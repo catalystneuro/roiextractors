@@ -481,6 +481,25 @@ def test_warning_for_indivisible_ifds(tmp_path):
     assert extractor.get_num_samples() == 1
 
 
+def test_single_ifd_imagej_stack(tmp_path):
+    """A stack with one IFD and the pixels of every other frame after it is read with all its frames.
+
+    ImageJ writes stacks over 4 GB this way, and tifffile writes the same layout with `truncate=True`. Counting the
+    pages of such a file finds one frame.
+    """
+    import tifffile
+
+    file_path = tmp_path / "single_ifd.tif"
+    data = np.arange(10 * 8 * 6, dtype=np.uint16).reshape(10, 8, 6)
+    tifffile.imwrite(file_path, data, imagej=True, truncate=True)
+
+    extractor = MultiTIFFMultiPageExtractor(file_paths=[file_path], sampling_frequency=1.0)
+
+    assert extractor.get_num_samples() == 10
+    np.testing.assert_array_equal(extractor.get_series(), data)
+    np.testing.assert_array_equal(extractor.get_series(start_sample=3, end_sample=7), data[3:7])
+
+
 def test_invalid_num_channels_error_handling(tmp_path):
     """Test error handling for invalid num_channels."""
     # Use non-existent file since validation happens before file opening
@@ -624,11 +643,18 @@ def test_from_folder_no_files_found_error(tmp_path):
 def test_comparison_with_scanimage_planar_multi_channel():
     """Test comparison with ScanImageImagingExtractor for planar multi-channel data."""
     # Path to ScanImage multi-file data - explicit file paths for reproducibility
-    scanimage_folder_path = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
+    scanimage_folder_path = (
+        OPHYS_DATA_PATH
+        / "imaging_datasets"
+        / "ScanImage"
+        / "tiff_format_version_4"
+        / "time_structure"
+        / "planar_two_channels_loop_version_2023_1"
+    )
     file_paths = [
-        scanimage_folder_path / "scanimage_20240320_multifile_00001.tif",
-        scanimage_folder_path / "scanimage_20240320_multifile_00002.tif",
-        scanimage_folder_path / "scanimage_20240320_multifile_00003.tif",
+        scanimage_folder_path / "planar_00001.tif",
+        scanimage_folder_path / "planar_00002.tif",
+        scanimage_folder_path / "planar_00003.tif",
     ]
 
     # Use ScanImageImagingExtractor instead of deprecated extractor
@@ -678,7 +704,11 @@ def test_comparison_with_scanimage_volumetric_multi_channel():
     # Path to volumetric ScanImage data
     scanimage_folder_path = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
     volumetric_path = (
-        scanimage_folder_path / "volumetric_two_channels_single_file" / "vol_two_ch_single_file_00001_00001.tif"
+        scanimage_folder_path
+        / "tiff_format_version_4"
+        / "time_structure"
+        / "volumetric_flyback_frames_two_channels_version_2021_0"
+        / "volume_00001_00001.tif"
     )
 
     # Initialize ScanImage extractor for Channel 1 (index 0)

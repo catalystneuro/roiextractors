@@ -18,7 +18,10 @@ import numpy as np
 
 from .scanimagetiff_utils import (
     _get_scanimage_reader,
+    _parse_legacy_header,
     _read_image_descriptions,
+    _read_legacy_header,
+    _translate_legacy_header,
 )
 from ..._metadata import Metadata, _get_cropped_metadata, _get_plane_metadata
 from ...extraction_tools import PathType, get_package
@@ -146,14 +149,20 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         self._general_metadata = tiff_reader.scanimage_metadata
         non_valid_metadata = self._general_metadata is None or len(self._general_metadata) == 0
-        if non_valid_metadata:
+        # ScanImage 3.x and 4.x write their settings as text in the description of the first page, which tifffile
+        # does not parse, and the extractor reads them under the keys of the later header
+        self._legacy_header = _parse_legacy_header(tiff_reader.pages[0].description) if non_valid_metadata else None
+        if self._legacy_header is not None:
+            self._metadata = _translate_legacy_header(self._legacy_header)
+        elif non_valid_metadata:
             error_msg = (
                 f"Invalid metadata for file with name {file_path.name}. \n"
                 "The metadata is either None or empty which probably indicates that the tiff file "
                 "Is not a ScanImage file or it could be an older version."
             )
             raise ValueError("Invalid metadata: The metadata is either None or empty.")
-        self._metadata = self._general_metadata["FrameData"]
+        else:
+            self._metadata = self._general_metadata["FrameData"]
 
         # ScanImage 2026 can save only some of the scanned frames and smooth them instead of averaging, and without
         # a 2026 file we do not know the header fields of these settings, so the rate could be wrong without an error.
@@ -183,10 +192,12 @@ class ScanImageImagingExtractor(ImagingExtractor):
         if "SI.hStackManager.enable" in self._metadata:
             # Check if stack manager is enabled and if there are multiple slices
             # This criteria was confirmed by Lawrence Niu, a developer of ScanImage
-            # but we need to also check numSlices > 1 because some planar datasets
+            # but we need to also check the number of slices > 1 because some planar datasets
             # have SI.hStackManager.enable = True but only one slice
+            # `numSlices` is the setting and `actualNumSlices` the slices acquired. They differ in bounded stacks, where
+            # the slices follow from the start, end and step size: a 2021.0 stack has `numSlices` 11 and 12 slices.
             stack_enabled = self._metadata["SI.hStackManager.enable"]
-            num_planes = self._metadata["SI.hStackManager.numSlices"]
+            num_planes = self._metadata["SI.hStackManager.actualNumSlices"]
             self.is_volumetric = stack_enabled and num_planes > 1
             if self.is_volumetric:
                 frames_per_volume_per_channel = self._metadata["SI.hStackManager.numFramesPerVolume"]
@@ -213,7 +224,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
             self._sampling_frequency = self._metadata["SI.hRoiManager.scanVolumeRate"]
             self._num_planes = num_planes
 
-            self._frames_per_slice = self._metadata["SI.hStackManager.framesPerSlice"]
+            # ScanImage saves one frame per `logAverageFactor` scanned frames, their mean, so a slice of
+            # `framesPerSlice` scanned frames has `framesPerSlice / logAverageFactor` frames in the file
+            frames_per_slice_scanned = self._metadata["SI.hStackManager.framesPerSlice"]
+            self._frames_per_slice = frames_per_slice_scanned // self._metadata["SI.hScan2D.logAverageFactor"]
 
             if self._frames_per_slice == 1:
                 self._slice_sample = None
@@ -346,6 +360,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
             slice_sample_mask = channel_frames_to_ifd_table["slice_sample_index"] == self._slice_sample
             self._frames_to_ifd_table = channel_frames_to_ifd_table[slice_sample_mask]
 
+        self._metadata_parent = None
+        self._metadata_plane_index = None
+        self._metadata_num_planes = self._num_planes
+
         # Finally, if a planar extractor is requested, we filter the samples for that plane
         if self.is_volumetric and plane_index is not None:
             # Validate plane_index
@@ -356,8 +374,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
             depth_mask = self._frames_to_ifd_table["depth_index"] == plane_index
             self._frames_to_ifd_table = self._frames_to_ifd_table[depth_mask]
 
-            # The metadata is read while the extractor is still the volume, and keeps the part of the plane
-            self._unified_metadata = _get_plane_metadata(self._unified_metadata, plane_index=plane_index)
+            self._metadata_plane_index = plane_index
 
             # Override the is_volumetric flag and num_planes
             self.is_volumetric = False
@@ -493,6 +510,11 @@ class ScanImageImagingExtractor(ImagingExtractor):
         list[PathType]
             list of paths to all files in the series, sorted naturally (e.g., file_1, file_2, file_10)
         """
+        # ScanImage 3.x saves each acquisition to its own file, and 4.x series are not discovered: `file_paths` lists
+        # their files
+        if self._legacy_header is not None:
+            return [self.file_path]
+
         # Parse the file name to extract base name, acquisition number, and file index
         file_stem = self.file_path.stem
 
@@ -713,6 +735,32 @@ class ScanImageImagingExtractor(ImagingExtractor):
         column_start = 0 if column_start is None else column_start
         column_end = self._num_columns if column_end is None else column_end
 
+        sliced = copy.copy(self)
+        # Keep the handle owner alive and mark this object as a borrower so __del__ does not close the
+        # shared file handles, also when the range below is invalid. The owner is always the originally
+        # constructed extractor.
+        sliced._fov_root = self._fov_root if self._fov_root is not None else self
+        sliced._view_of = (
+            self,
+            "slice_field_of_view",
+            dict(row_start=row_start, row_end=row_end, column_start=column_start, column_end=column_end),
+        )
+        sliced._narrow_field_of_view(
+            row_start=row_start, row_end=row_end, column_start=column_start, column_end=column_end
+        )
+        # The copy also has the metadata of the full field of view if it was read before
+        sliced.__dict__.pop("_unified_metadata", None)
+        sliced._metadata_parent = self
+        sliced._metadata_plane_index = None
+        return sliced
+
+    def _narrow_field_of_view(self, row_start: int, row_end: int, column_start: int, column_end: int) -> None:
+        """Narrow the crop window in place to the given rows and columns.
+
+        The bounds are relative to the current window, so narrowing an already narrowed extractor composes. The
+        window and the image shape are set together, as the readers rely on `_num_rows` and `_num_columns` being
+        the height and the width of the window.
+        """
         if not (0 <= row_start < row_end <= self._num_rows):
             raise ValueError(
                 f"Invalid row range: require 0 <= row_start ({row_start}) < row_end ({row_end}) "
@@ -728,22 +776,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
         # so repeated slicing composes correctly.
         absolute_row_start = self._row_slice.start + row_start
         absolute_column_start = self._column_slice.start + column_start
-
-        sliced = copy.copy(self)
-        sliced._row_slice = slice(absolute_row_start, absolute_row_start + (row_end - row_start))
-        sliced._column_slice = slice(absolute_column_start, absolute_column_start + (column_end - column_start))
-        sliced._num_rows = row_end - row_start
-        sliced._num_columns = column_end - column_start
-        # The copy also has the metadata of the full field of view if it was read before
-        sliced._unified_metadata = _get_cropped_metadata(
-            self._unified_metadata,
-            image_shape=(self._num_rows, self._num_columns),
-            cropped_image_shape=(sliced._num_rows, sliced._num_columns),
-        )
-        # Keep the handle owner alive and mark this object as a borrower so __del__ does not close the
-        # shared file handles. The owner is always the originally constructed extractor.
-        sliced._fov_root = self._fov_root if self._fov_root is not None else self
-        return sliced
+        self._row_slice = slice(absolute_row_start, absolute_row_start + (row_end - row_start))
+        self._column_slice = slice(absolute_column_start, absolute_column_start + (column_end - column_start))
+        self._num_rows = row_end - row_start
+        self._num_columns = column_end - column_start
 
     def select_plane(self, plane_index: int) -> "ScanImageImagingExtractor":
         """Return a planar view of one depth plane as a new ScanImageImagingExtractor.
@@ -770,15 +806,19 @@ class ScanImageImagingExtractor(ImagingExtractor):
             raise ValueError(f"plane_index ({plane_index}) must satisfy 0 <= plane_index < num_planes ({num_planes}).")
 
         plane = copy.copy(self)
+        plane._view_of = (self, "select_plane", dict(plane_index=plane_index))
         depth_mask = self._frames_to_ifd_table["depth_index"] == plane_index
         plane._frames_to_ifd_table = self._frames_to_ifd_table[depth_mask]
         plane.is_volumetric = False
         plane._num_planes = 1
         plane._times = None
+        plane._native_timestamps_cache = None
         plane._native_timestamps = None
         plane._fov_root = self._fov_root if self._fov_root is not None else self
         # The copy also has the metadata of the volume if it was read before
-        plane._unified_metadata = _get_plane_metadata(self._unified_metadata, plane_index=plane_index)
+        plane.__dict__.pop("_unified_metadata", None)
+        plane._metadata_parent = self
+        plane._metadata_plane_index = plane_index
         return plane
 
     @cached_property
@@ -790,6 +830,22 @@ class ScanImageImagingExtractor(ImagingExtractor):
         view empty. On volumetric data the z offset of each plane is its position in ``SI.hStackManager.zs`` minus that
         of the first plane.
         """
+        if self._metadata_parent is not None:
+            metadata = self._metadata_parent._unified_metadata
+            if self._metadata_plane_index is not None:
+                return _get_plane_metadata(metadata, plane_index=self._metadata_plane_index)
+            return _get_cropped_metadata(
+                metadata,
+                image_shape=self._metadata_parent.get_image_shape(),
+                cropped_image_shape=self.get_image_shape(),
+            )
+
+        if self._legacy_header is not None:
+            metadata = self._read_legacy_metadata()
+            if self._metadata_plane_index is not None:
+                metadata = _get_plane_metadata(metadata, plane_index=self._metadata_plane_index)
+            return metadata
+
         header = self._metadata
 
         pixel_height_um = None
@@ -811,10 +867,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
 
         plane_z_offsets_um = None
         frames_per_slice = None
-        if self.is_volumetric:
+        if self._metadata_num_planes > 1:
             # From 2020 on, `zs` lists the position of a slice once for each of its frames
             zs_um = np.ravel(header["SI.hStackManager.zs"]).astype(float)
-            plane_positions_um = zs_um.reshape(self._num_planes, -1)[:, 0]
+            plane_positions_um = zs_um.reshape(self._metadata_num_planes, -1)[:, 0]
             plane_z_offsets_um = (plane_positions_um - plane_positions_um[0]).tolist()
             frames_per_slice = self._frames_per_slice
 
@@ -834,7 +890,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         version_keys = ["SI.VERSION_MAJOR", "SI.VERSION_MINOR", "SI.VERSION_UPDATE"]
         version = ".".join(str(header[key]) for key in version_keys if key in header)
 
-        return Metadata(
+        metadata = Metadata(
             acquisition_start_datetime=acquisition_start_datetime,
             pixel_height_um=pixel_height_um,
             pixel_width_um=pixel_width_um,
@@ -846,6 +902,59 @@ class ScanImageImagingExtractor(ImagingExtractor):
             frames_per_slice=frames_per_slice,
             acquisition_software_name="ScanImage",
             acquisition_software_version=version,
+        )
+        if self._metadata_plane_index is not None:
+            metadata = _get_plane_metadata(metadata, plane_index=self._metadata_plane_index)
+        return metadata
+
+    def _read_legacy_metadata(self) -> Metadata:
+        """Read the metadata of a ScanImage 3.x or 4.x recording from the text header of its first page.
+
+        The header records the zoom but no pixel size, so the pixel size and the field of view stay empty. The start
+        is the time of the trigger, written month first in 3.x and day first in 4.x. The zoom and the position of the
+        motorized stage, which no field describes, go in `extra_metadata`.
+        """
+        header = self._legacy_header
+        if any(key.startswith("state.") for key in header):
+            version = f"{header['state.software.version']:g}"
+            start_text = header.get("state.internal.triggerTimeString", "")
+            start_format = "%m/%d/%Y %H:%M:%S.%f"
+            scan_line_rate = 1000 / header["state.acq.msPerLine"]
+            z_step_um = header["state.acq.zStepSize"]
+            zoom_factor = header["state.acq.zoomFactor"]
+            stage_position_um = [header[f"state.motor.abs{axis}Position"] for axis in ("X", "Y", "Z")]
+        else:
+            version_parts = [header["scanimage.SI4.versionMajor"], header["scanimage.SI4.versionMinor"]]
+            version = ".".join(f"{part:g}" if isinstance(part, float) else part for part in version_parts)
+            start_text = header.get("scanimage.SI4.triggerClockTimeFirst", "")
+            start_format = "%d-%m-%Y %H:%M:%S.%f"
+            scan_line_rate = 1 / header["scanimage.SI4.scanLinePeriod"]
+            z_step_um = None
+            zoom_factor = header["scanimage.SI4.scanZoomFactor"]
+            # Without a motorized stage, `motorPosition` is empty
+            stage_position_um = header["scanimage.SI4.motorPosition"] or None
+
+        extra_metadata = {"zoom_factor": zoom_factor}
+        if stage_position_um is not None:
+            extra_metadata["stage_position_um"] = stage_position_um
+
+        acquisition_start_datetime = datetime.strptime(start_text, start_format) if start_text else None
+
+        plane_z_offsets_um = None
+        frames_per_slice = None
+        if self._metadata_num_planes > 1:
+            plane_z_offsets_um = [plane_index * z_step_um for plane_index in range(self._metadata_num_planes)]
+            frames_per_slice = self._frames_per_slice
+
+        return Metadata(
+            acquisition_start_datetime=acquisition_start_datetime,
+            plane_z_offsets_um=plane_z_offsets_um,
+            channel_name=self.channel_name,
+            scan_line_rate=scan_line_rate,
+            frames_per_slice=frames_per_slice,
+            acquisition_software_name="ScanImage",
+            acquisition_software_version=version,
+            extra_metadata=extra_metadata,
         )
 
     def get_image_shape(self) -> tuple[int, int]:
@@ -964,6 +1073,12 @@ class ScanImageImagingExtractor(ImagingExtractor):
         >>> channel_names = ScanImageImagingExtractor.get_available_channel_names('path/to/file.tif')
         >>> print(f"Available channels: {channel_names}")
         """
+        legacy_header = _read_legacy_header(file_path)
+        if legacy_header is not None:
+            header = _translate_legacy_header(legacy_header)
+            channel_names = header["SI.hChannels.channelName"]
+            return [channel_names[channel_number - 1] for channel_number in header["SI.hChannels.channelSave"]]
+
         from tifffile import read_scanimage_metadata
 
         with open(file_path, "rb") as fh:
@@ -1031,6 +1146,9 @@ class ScanImageImagingExtractor(ImagingExtractor):
         timestamps: numpy.ndarray or None
             The timestamps for the data stream, or None if native timestamps are not available.
         """
+        # ScanImage 3.x and 4.x record no time for each frame
+        if self._legacy_header is not None:
+            return None
         # Reading the frame headers is slow, so the timestamps are kept after the first read
         if self._native_timestamps is None:
             self._native_timestamps = self._read_timestamps_from_frame_headers()
@@ -1078,7 +1196,7 @@ class ScanImageImagingExtractor(ImagingExtractor):
         return timestamps
 
     def _has_native_timestamps(self) -> bool:
-        return True
+        return self._legacy_header is None
 
     @staticmethod
     def extract_timestamp_from_page(page) -> float:
@@ -1142,6 +1260,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Number of depth planes.
 
         """
+        legacy_header = _read_legacy_header(file_path)
+        if legacy_header is not None:
+            return _translate_legacy_header(legacy_header)["SI.hStackManager.numSlices"]
+
         from tifffile import read_scanimage_metadata
 
         with open(file_path, "rb") as fh:
@@ -1169,6 +1291,10 @@ class ScanImageImagingExtractor(ImagingExtractor):
             Number of frames per slice.
 
         """
+        legacy_header = _read_legacy_header(file_path)
+        if legacy_header is not None:
+            return _translate_legacy_header(legacy_header)["SI.hStackManager.framesPerSlice"]
+
         from tifffile import read_scanimage_metadata
 
         with open(file_path, "rb") as fh:
@@ -1275,8 +1401,8 @@ class ScanImageImagingExtractor(ImagingExtractor):
 class ScanImageLegacyImagingExtractor(ImagingExtractor):
     """Specialized extractor for reading TIFF files produced via ScanImage.
 
-    This implementation is for legacy purposes and is not recommended for use.
-    Please use ScanImageTiffSinglePlaneImagingExtractor or ScanImageTiffMultiPlaneImagingExtractor instead.
+    Deprecated and removed in or after May 2027. Use ScanImageImagingExtractor, which reads the files of ScanImage 3.x
+    and 4.x with their channels, planes and rate from the header.
     """
 
     extractor_name = "ScanImageLegacyImagingExtractor"
@@ -1299,6 +1425,13 @@ class ScanImageLegacyImagingExtractor(ImagingExtractor):
         sampling_frequency : float
             The frequency at which the frames were sampled, in Hz.
         """
+        warn(
+            "ScanImageLegacyImagingExtractor is deprecated and will be removed in or after May 2027. Use "
+            "ScanImageImagingExtractor, which reads the files of ScanImage 3.x and 4.x with their channels, planes and "
+            "rate from the header.",
+            FutureWarning,
+            stacklevel=2,
+        )
         ScanImageTiffReader = _get_scanimage_reader()
 
         super().__init__()

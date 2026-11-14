@@ -52,12 +52,6 @@ class SbxImagingExtractor(ImagingExtractor):
         if self._channel_names is None:
             self._channel_names = [f"channel_{ch}" for ch in range(self._info["nChan"])]
 
-        self._kwargs = {
-            "file_path": str(Path(file_path).absolute()),
-            "sampling_frequency": self._sampling_frequency,
-            "channel_names": self._channel_names,
-        }
-
     @staticmethod
     def _return_mat_and_sbx_filepaths(file_path):
         """Return the `.mat` and `.sbx` file paths from a given file path pointing to either of them.
@@ -122,9 +116,7 @@ class SbxImagingExtractor(ImagingExtractor):
             info["fold_lines"] = 0
             info["fov_repeats"] = 1
 
-        info["frame_rate"] = int(
-            info["resfreq"] / info["config"]["lines"] * (2 - info["scanmode"]) * info["fov_repeats"]
-        )
+        info["frame_rate"] = info["resfreq"] / info["config"]["lines"] * (2 - info["scanmode"]) * info["fov_repeats"]
         # SIMA:
         info["nsamples"] = int(info["sz"][1]) * int(info["recordsPerBuffer"]) * int(info["nChan"] * 2)
         # SIMA:

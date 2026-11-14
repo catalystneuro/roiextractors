@@ -6,6 +6,7 @@ ImagingExtractor
     Abstract class that contains all the meta-data and input data from the imaging data.
 """
 
+import inspect
 import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
@@ -19,16 +20,89 @@ from ._metadata import Metadata, _get_cropped_metadata
 from .core_utils import _convert_bytes_to_str, _convert_seconds_to_str
 
 
+def _bind_init_arguments(cls: type, args: tuple, kwargs: dict) -> dict:
+    """Map the arguments of a constructor call onto the parameter names of ``cls.__init__``, defaults applied.
+
+    Keyword-variadic arguments are flattened into the result and a positional-variadic tuple keeps its parameter
+    name, so the result is a complete description of the call. An empty dict is returned when the arguments do not
+    bind, which happens when ``cls.__new__(cls)`` is called without arguments by ``copy`` and friends.
+    """
+    try:
+        signature = inspect.signature(cls.__init__)
+        bound = signature.bind(None, *args, **kwargs)
+    except (TypeError, ValueError):
+        return {}
+    bound.apply_defaults()
+    arguments = {}
+    for name, parameter in list(signature.parameters.items())[1:]:
+        value = bound.arguments[name]
+        if parameter.kind is inspect.Parameter.VAR_KEYWORD:
+            arguments.update(value)
+        else:
+            arguments[name] = value
+    return arguments
+
+
+def _rebuild_view(parent: "ImagingExtractor", method_name: str, method_kwargs: dict) -> "ImagingExtractor":
+    """Call the method that made a view again on its rebuilt parent; the target of ``__reduce__`` for views."""
+    return getattr(parent, method_name)(**method_kwargs)
+
+
+def _rebuild_imaging_extractor(cls: type, init_kwargs: dict) -> "ImagingExtractor":
+    """Call the constructor again with the recorded arguments; the target of ``ImagingExtractor.__reduce__``."""
+    signature = inspect.signature(cls.__init__)
+    args = []
+    kwargs = dict(init_kwargs)
+    for name, parameter in list(signature.parameters.items())[1:]:
+        if parameter.kind is inspect.Parameter.VAR_POSITIONAL:
+            args.extend(kwargs.pop(name, ()))
+        elif parameter.kind is inspect.Parameter.POSITIONAL_ONLY and name in kwargs:
+            args.append(kwargs.pop(name))
+    return cls(*args, **kwargs)
+
+
 class ImagingExtractor(ABC):
     """Abstract class that contains all the meta-data and input data from the imaging data."""
 
+    def __new__(cls, *args, **kwargs):
+        """Record the constructor arguments before ``__init__`` runs, so any extractor can be rebuilt from them."""
+        instance = super().__new__(cls)
+        instance._init_kwargs = _bind_init_arguments(cls, args, kwargs)
+        return instance
+
     def __init__(self, *args, **kwargs) -> None:
         """Initialize the ImagingExtractor object."""
-        self._args = args
-        self._kwargs = kwargs
         self._times = None
+        self._time_shift = 0.0
+        self._native_timestamps_cache = None
+        # A view made by copying its parent, as (parent, method name, method kwargs), since its construction is the
+        # one of the parent
+        self._view_of = None
         self.name = self.__class__.__name__
         self.is_volumetric = False
+
+    def _get_state(self) -> dict:
+        """Return what was set on this extractor after construction, carried by ``pickle`` next to the construction."""
+        return {"times": self._times, "time_shift": self._time_shift}
+
+    def _set_state(self, state: dict) -> None:
+        self._times = state["times"]
+        self._time_shift = state["time_shift"]
+
+    def __reduce__(self):
+        """Pickle the construction and the state rather than the instance dict, so file handles never cross a process."""
+        if self._view_of is not None:
+            return (_rebuild_view, self._view_of, self._get_state())
+        return (_rebuild_imaging_extractor, (type(self), self._init_kwargs), self._get_state())
+
+    def __setstate__(self, state: dict) -> None:
+        self._set_state(state)
+
+    def __copy__(self):
+        """Keep ``copy.copy`` a shallow copy of the state, which ``__reduce__`` would otherwise turn into a rebuild."""
+        new = self.__class__.__new__(self.__class__)
+        new.__dict__.update(self.__dict__)
+        return new
 
     def _repr_text(self) -> str:
         """Generate text representation of the ImagingExtractor object."""
@@ -330,19 +404,18 @@ class ImagingExtractor(ABC):
         if end_sample is None:
             end_sample = self.get_num_samples()
 
-        # Return cached timestamps if available
+        # Times set with set_times take precedence
         if self._times is not None:
-            return self._times[start_sample:end_sample]
+            return self._times[start_sample:end_sample] + self._time_shift
 
         # See if native timetstamps are available from the format
         if self._has_native_timestamps():
-            native_timestamps = self.get_native_timestamps()
-            self._times = native_timestamps  # Cache the native timestamps
-            return native_timestamps[start_sample:end_sample]
+            native_timestamps = self._get_cached_native_timestamps()
+            return native_timestamps[start_sample:end_sample] + self._time_shift
 
         # Fallback to calculated timestamps from sampling frequency
         sample_indices = np.arange(start_sample, end_sample)
-        return self._get_native_t_start() + sample_indices / self.get_sampling_frequency()
+        return self._get_native_t_start() + self._time_shift + sample_indices / self.get_sampling_frequency()
 
     def time_to_sample_indices(self, times: float | ArrayLike) -> float | np.ndarray:
         """Convert user-inputted times (in seconds) to sample indices.
@@ -357,13 +430,27 @@ class ImagingExtractor(ABC):
         sample_indices: float or array-like
             The corresponding sample indices.
         """
-        # Ensure native timestamps are cached if available
-        if self._times is None and self._has_native_timestamps():
-            self._times = self.get_native_timestamps()  # Cache the native timestamps
         if self._times is not None:
-            return (np.searchsorted(self._times, times, side="right") - 1).astype("int64")
+            timestamps = self._times
+        elif self._has_native_timestamps():
+            timestamps = self._get_cached_native_timestamps()
         else:
-            return np.round((times - self._get_native_t_start()) * self.get_sampling_frequency()).astype("int64")
+            timestamps = None
+        if timestamps is not None:
+            unshifted_times = np.asarray(times) - self._time_shift
+            return (np.searchsorted(timestamps, unshifted_times, side="right") - 1).astype("int64")
+        else:
+            start_time = self._get_native_t_start() + self._time_shift
+            return np.round((times - start_time) * self.get_sampling_frequency()).astype("int64")
+
+    def _get_cached_native_timestamps(self) -> np.ndarray:
+        """Read the native timestamps once and keep them apart from the times set with ``set_times``.
+
+        The cache is not part of the state that ``pickle`` carries, so a rebuilt extractor reads the file again.
+        """
+        if self._native_timestamps_cache is None:
+            self._native_timestamps_cache = self.get_native_timestamps()
+        return self._native_timestamps_cache
 
     def set_times(self, times: ArrayLike) -> None:
         """Set the recording times (in seconds) for each frame.
@@ -389,6 +476,36 @@ class ImagingExtractor(ABC):
             )
 
         self._times = np.array(times).astype("float64", copy=False)
+        self._time_shift = 0.0
+
+    def shift_times(self, shift: float) -> None:
+        """Shift every timestamp of the extractor by a constant.
+
+        The shift is stored as a number and added when the timestamps are read, so no array is built or changed.
+        Shifts add up, and ``set_times()`` resets them.
+
+        Parameters
+        ----------
+        shift : float
+            The amount, in seconds, to add to every timestamp.
+        """
+        self._time_shift += float(shift)
+
+    def get_start_time(self) -> float:
+        """Return the time, in seconds, of the first sample.
+
+        Only the first timestamp is read, and the shift from ``shift_times()`` is included.
+
+        Returns
+        -------
+        start_time : float
+            The time of the first sample.
+        """
+        if self._times is not None:
+            return float(self._times[0]) + self._time_shift
+        if self._has_native_timestamps():
+            return float(self.get_native_timestamps(start_sample=0, end_sample=1)[0]) + self._time_shift
+        return self._get_native_t_start() + self._time_shift
 
     def _has_native_timestamps(self) -> bool:
         """Report whether the format records timestamps for this extractor.
@@ -596,6 +713,7 @@ class SampleSlicedImagingExtractor(ImagingExtractor):
         super().__init__()
         if getattr(self._parent_imaging, "_times") is not None:
             self._times = self._parent_imaging._times[start_sample:end_sample]
+        self._time_shift = self._parent_imaging._time_shift
 
         # Inherit volumetric properties from parent
         self.is_volumetric = self._parent_imaging.is_volumetric
@@ -757,6 +875,7 @@ class _FieldOfViewSlicedImagingExtractor(ImagingExtractor):
         # Copy time vector from parent if it exists
         if getattr(self._parent_imaging, "_times") is not None:
             self._times = self._parent_imaging._times
+        self._time_shift = self._parent_imaging._time_shift
 
         # Inherit volumetric properties from parent
         self.is_volumetric = self._parent_imaging.is_volumetric

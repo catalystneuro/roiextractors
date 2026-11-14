@@ -371,6 +371,8 @@ class BrukerTiffImagingExtractor(MultiTIFFMultiPageExtractor):
         ``PVStateShard``. On volumetric data the z offset of each plane is the position of the z device that moves
         between planes (``zDevice``) in the frames of the first volume, minus that of the first plane.
         """
+        if self._metadata_parent is not None:
+            return super()._unified_metadata
         state = self._xml_root.find("PVStateShard")
 
         # The rows run along the Y axis and the columns along the X axis

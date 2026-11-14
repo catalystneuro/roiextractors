@@ -17,20 +17,30 @@ from .setup_paths import OPHYS_DATA_PATH
 
 # Define the path to the ScanImage test files
 SCANIMAGE_PATH = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
+SCANIMAGE_FORMAT_4_PATH = SCANIMAGE_PATH / "tiff_format_version_4"
+SCANIMAGE_LEGACY_PATH = SCANIMAGE_PATH / "legacy"
 
 
-def test_old_scan_image_version():
-    """Test that an error informative error is raised when using an old ScanImage version."""
-    file_path = SCANIMAGE_PATH / "sample_scanimage_version_3_8.tiff"
-
-    with pytest.raises(ValueError):
-        ScanImageImagingExtractor(file_path=file_path)
+def test_legacy_header_without_frame_rate_raises():
+    """A 3.x header without `state.acq.frameRate`, as a lab variant writes it, raises `NotImplementedError`."""
+    file_path = (
+        SCANIMAGE_LEGACY_PATH
+        / "time_structure"
+        / "slow_stack_frames_averaged_two_channels_state_header_without_software_version"
+        / "stack_01002.tif"
+    )
+    expected_message = (
+        "This ScanImage header has no frame rate (state.acq.frameRate), so the timing cannot be read. Please open an "
+        "issue with an example file at https://github.com/catalystneuro/roiextractors/issues"
+    )
+    with pytest.raises(NotImplementedError, match=re.escape(expected_message)):
+        ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
 
 
 def test_scanimage_2026_raises(tmp_path):
     """ScanImage 2026 files raise `NotImplementedError` until we have one to read their frame selection from."""
     # No 2026 file exists on gin, so a 2022 file gets the version of 2026, a replacement of the same length
-    source_path = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
+    source_path = SCANIMAGE_FORMAT_4_PATH / "time_structure" / "planar_frames_averaged_version_2022_0" / "planar.tif"
     file_path = tmp_path / "scanimage_2026.tif"
     file_bytes = source_path.read_bytes()
     file_path.write_bytes(file_bytes.replace(b"SI.VERSION_MAJOR = 2022", b"SI.VERSION_MAJOR = 2026"))
@@ -50,24 +60,29 @@ class TestScanImageExtractor:
     def test_planar_two_channels_single_file(self):
         """Test with planar (non-volumetric) two-channel data in a single file.
 
-        File: planar_two_ch_single_files_00001_00001.tif
+        File: planar_00001_00001.tif
         Metadata:
         - Acquisition mode: grab
-        - 1000 samples (frames)
+        - 3 samples (frames)
         - Volumetric: False but `SI.hStackManager.enable` is set to `True`
         - Frame shape: (20, 20)
         - Channels: 2 (`Channel 1` and `Channel 2`)
         - Frames per slice: 1
         - Frame rate: 523.926 Hz
         - Volume rate: 523.926 Hz
-        - Pages/IDFs: 2000
+        - Pages/IDFs: 6
 
         This test verifies that the extractor correctly:
         1. Identifies the data as non-volumetric despite `SI.hStackManager.enable` being True
         2. Extracts the correct metadata (sampling frequency, frame count, dimensions)
         3. Retrieves the correct data for both channels
         """
-        file_path = SCANIMAGE_PATH / "planar_two_channels_single_file" / "planar_two_ch_single_files_00001_00001.tif"
+        file_path = (
+            SCANIMAGE_FORMAT_4_PATH
+            / "acquisition_setup"
+            / "planar_two_channels_one_slice_stack_version_2021_0"
+            / "planar_00001_00001.tif"
+        )
 
         # Test with Channel 1
         extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
@@ -80,7 +95,7 @@ class TestScanImageExtractor:
         assert extractor_ch2.is_volumetric == False
         assert extractor_ch2.get_sampling_frequency() == 523.926
         assert extractor_ch2.get_image_shape() == (20, 20)
-        assert extractor_ch2.get_num_samples() == 1000
+        assert extractor_ch2.get_num_samples() == 3
 
         # Get data from both extractors
         extractor_data_ch1 = extractor_ch1.get_series()
@@ -103,8 +118,8 @@ class TestScanImageExtractor:
             assert tiff_data.shape[1] == 2, "Tiff data should have 2 channels"
 
             # Compare a subset of the data for each channel
-            # We'll check the first 10 frames
-            num_frames_to_check = 10
+            # We'll check the first 3 frames
+            num_frames_to_check = 3
 
             # Get the tiff data for each channel
             tiff_ch1 = tiff_data[:num_frames_to_check, 0, :, :]  # Channel 1 (index 0)
@@ -134,19 +149,24 @@ class TestScanImageVolumetricWithFlybackFrames:
 
     def test_volumetric_two_channels_single_file(self):
         """
-        file_name: `vol_two_ch_single_file_00001_00001.tif`
+        file_name: `volume_00001_00001.tif`
         Metadata:
         - Acquisition mode: grab
-        - 100 samples (volumes)
+        - 3 samples (volumes)
         - Volumetric: True (9 slices and 7 flyback frames)
         - Frame shape: 20 x 20
         - Channels: 2 (`Channel 1` and `Channel 2`)
         - Frames per slice: 1
         - Frame rate: 523.926 Hz
         - Volume rate: 32.7454 Hz
-        - Pages/IDFs: 3200
+        - Pages/IDFs: 96
         """
-        file_path = SCANIMAGE_PATH / "volumetric_two_channels_single_file" / "vol_two_ch_single_file_00001_00001.tif"
+        file_path = (
+            SCANIMAGE_FORMAT_4_PATH
+            / "time_structure"
+            / "volumetric_flyback_frames_two_channels_version_2021_0"
+            / "volume_00001_00001.tif"
+        )
 
         # Test with Channel 1
         extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
@@ -154,7 +174,7 @@ class TestScanImageVolumetricWithFlybackFrames:
         assert extractor_ch1.num_flyback_frames_per_channel == 7
         assert extractor_ch1.get_sampling_frequency() == 32.7454
 
-        ifds = 3200
+        ifds = 96
         num_channels = 2
         total_frames_per_cycle = (
             extractor_ch1.get_num_planes() + extractor_ch1.num_flyback_frames_per_channel
@@ -228,7 +248,7 @@ class TestScanImageVolumetricWithFlybackFrames:
 
     def test_volumetric_two_channels_multi_file(self):
         """
-        First File: vol_two_ch_multi_files_00001_00001.tif
+        First File: volume_00001_00001.tif
         Metadata:
         - Acquisition mode: grab
         - Volumetric: True (9 slices and 7 flyback frames)
@@ -237,9 +257,14 @@ class TestScanImageVolumetricWithFlybackFrames:
         - Frames per slice: 1
         - Frame rate: 523.926 Hz
         - Volume rate: 32.7454 Hz
-        - Pages/IDFs: 320 in each of the 10 files.
+        - Pages/IDFs: 32 in each of the 3 files.
         """
-        file_path = SCANIMAGE_PATH / "volumetric_two_channels_multi_file" / "vol_two_ch_multi_files_00001_00001.tif"
+        file_path = (
+            SCANIMAGE_FORMAT_4_PATH
+            / "binary_data_layout"
+            / "volumetric_flyback_frames_two_channels_split_over_files_version_2021_0"
+            / "volume_00001_00001.tif"
+        )
 
         # Test with Channel 1
         extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
@@ -247,7 +272,7 @@ class TestScanImageVolumetricWithFlybackFrames:
         assert extractor_ch1.num_flyback_frames_per_channel == 7
         assert extractor_ch1.get_sampling_frequency() == 32.7454
 
-        ifds = 320 * 10
+        ifds = 32 * 3
         num_channels = 2
         total_frames_per_cycle = (
             extractor_ch1.get_num_planes() + extractor_ch1.num_flyback_frames_per_channel
@@ -279,7 +304,7 @@ class TestScanImageVolumetricWithFlybackFrames:
             extractor_data_ch2.shape == expected_shape
         ), f"Channel 2: Expected shape {expected_shape}, got {extractor_data_ch2.shape}"
 
-        ifds_per_file = 320  # Number of frames in each file
+        ifds_per_file = 32  # Number of frames in each file
         samples_per_file = ifds_per_file // total_frames_per_cycle
 
         # Test only the samples that fit completely within each file
@@ -345,49 +370,10 @@ class TestScanImageVolumetricWithFlybackFrames:
 class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
     """Test the ScanImage extractor classes with files that have multiple frames per slice."""
 
-    def test_volumetric_data_single_channel_single_file(self):
-        """Test with volumetric data that has multiple frames per slice.
-
-        File: scanimage_20220801_volume.tif
-        Metadata:
-        - Acquisition mode: grab
-        - Volumetric: True (20 slices)
-        - Channels: 1 (single channel)
-        - Frames per slice: 8
-        - Frame rate: 30.0141 Hz
-        - Volume rate: 0.187588 Hz
-        - Pages/IDFs: 20
-        - num_frames_per_volume: 160
-
-        This file does not have enough samples to do a full slice extraction. It has 20 slices
-        and 8 frames per slice but only 20 pages of data. This means that only data from the first three
-        depths are included. Skipping this test for now
-        """
-
-        return
-
-    def test_volumetric_data_single_channel_single_file_2(self):
-        """Test with a multi-volume ScanImage file with frames per slice > 1.
-
-        File: scanimage_20220801_multivolume.tif
-        Metadata:
-        - Volumetric: True (multiple planes)
-        - Channels: 1 (single channel)
-        - Image shape: 512 x 512
-        - Frames per slice: 8
-        - num_ifds: 20
-        - num_slices: 10
-
-        This test does not have enough samples to do a full slice extraction. It has 20 slices
-        and 8 frames per slice but only 20 pages of data. This means that only data from the first three
-        depths are included. Skipping this test for now.
-        """
-        return
-
     def test_volumetric_data_multi_channel_single_file(self):
         """Test with volumetric data acquired in grab mode with multiple frames per depth.
 
-        File: scanimage_20220923_noroi.tif
+        File: slow_stack_frames_saved_channels_one_and_four_version_2023_0/stack.tif
         Metadata:
         - Acquisition mode: grab
         - Volumetric: True (multiple planes)
@@ -395,11 +381,16 @@ class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
         - Frames per depth: 2
         - Frame rate: 29.1248 Hz
         - Volume rate: 7.28119 Hz
-        - Image shape: 256 x 256
+        - Image shape: 64 x 64
         - Num_slices: 2
         - IFDS/Pages: 24
         """
-        file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
+        file_path = (
+            SCANIMAGE_FORMAT_4_PATH
+            / "time_structure"
+            / "slow_stack_frames_saved_channels_one_and_four_version_2023_0"
+            / "stack.tif"
+        )
 
         frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(file_path)
         assert frames_per_slice == 2, "File should have 2 slices per sample"
@@ -412,9 +403,9 @@ class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
         extractor_sample_1 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4", slice_sample=0)
 
         assert extractor_sample_1.is_volumetric == True
-        assert extractor_sample_1.get_frame_shape() == (256, 256)
+        assert extractor_sample_1.get_frame_shape() == (64, 64)
         assert extractor_sample_1.get_num_planes() == 2
-        assert extractor_sample_1.get_sample_shape() == (256, 256, 2)
+        assert extractor_sample_1.get_sample_shape() == (64, 64, 2)
         assert extractor_sample_1.get_sampling_frequency() == 14.5517
 
         frames_in_dataset = 24
@@ -426,9 +417,9 @@ class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
 
         extractor_sample_2 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4", slice_sample=1)
         assert extractor_sample_2.is_volumetric == True
-        assert extractor_sample_2.get_frame_shape() == (256, 256)
+        assert extractor_sample_2.get_frame_shape() == (64, 64)
         assert extractor_sample_2.get_num_planes() == 2
-        assert extractor_sample_2.get_sample_shape() == (256, 256, 2)
+        assert extractor_sample_2.get_sample_shape() == (64, 64, 2)
 
         assert extractor_sample_2.get_sampling_frequency() == 14.5517
 
@@ -496,7 +487,7 @@ class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
     def test_volumetric_data_multi_channel_single_file_2(self):
         """Test with multi-channel volumetric data with frames per slice > 1.
 
-        File: scanimage_20220923_roi.tif
+        File: multi_roi_slow_stack_two_rois_channels_one_and_four_version_2023_0/stack.tif
         Metadata:
         - Volumetric: True (multiple planes)
         - Channels: Multiple ['Channel 1', 'Channel 4'
@@ -505,11 +496,16 @@ class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
         - Volume rate: 7.28119 Hz
         - IFDS/Pages: 24
         - Num slices: 2
-        - Image shape: 528 x 256
+        - Image shape: 132 x 64
 
         """
 
-        file_path = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
+        file_path = (
+            SCANIMAGE_FORMAT_4_PATH
+            / "acquisition_setup"
+            / "multi_roi_slow_stack_two_rois_channels_one_and_four_version_2023_0"
+            / "stack.tif"
+        )
 
         frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(file_path)
         assert frames_per_slice == 2, "File should have 2 slices per sample"
@@ -523,7 +519,7 @@ class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
         extractor_sample_2 = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 1", slice_sample=1)
 
         assert extractor_sample_1.is_volumetric == True
-        assert extractor_sample_1.get_image_shape() == (528, 256)
+        assert extractor_sample_1.get_image_shape() == (132, 64)
         assert extractor_sample_1.get_sampling_frequency() == 7.28119
 
         frames_in_dataset = 24
@@ -535,7 +531,7 @@ class TestScanImageExtractorVolumetricMultiSamplesPerDepth:
         assert extractor_sample_1.get_num_samples() == expected_samples
 
         assert extractor_sample_2.is_volumetric == True
-        assert extractor_sample_2.get_image_shape() == (528, 256)
+        assert extractor_sample_2.get_image_shape() == (132, 64)
         assert extractor_sample_2.get_sampling_frequency() == 7.28119
         expected_samples_2 = expected_samples
         assert extractor_sample_2.get_num_samples() == expected_samples_2
@@ -601,7 +597,7 @@ class TestScanImageExtractorVMultiSamplesPerDepthAsOneVolumetricSeries:
     def test_volumetric_data_multi_channel_single_file(self):
         """Test interleaving of slice samples with volumetric data.
 
-        File: scanimage_20220923_noroi.tif
+        File: slow_stack_frames_saved_channels_one_and_four_version_2023_0/stack.tif
         Metadata:
         - Acquisition mode: grab
         - Volumetric: True (multiple planes)
@@ -609,7 +605,7 @@ class TestScanImageExtractorVMultiSamplesPerDepthAsOneVolumetricSeries:
         - Frames per depth: 2
         - Frame rate: 29.1248 Hz
         - Volume rate: 7.28119 Hz
-        - Image shape: 256 x 256
+        - Image shape: 64 x 64
         - Num_slices: 2
         - IFDS/Pages: 24
 
@@ -618,7 +614,12 @@ class TestScanImageExtractorVMultiSamplesPerDepthAsOneVolumetricSeries:
         2. The interleaved data matches the individual slice_sample data in the correct order
         3. The number of samples is multiplied by frames_per_slice
         """
-        file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
+        file_path = (
+            SCANIMAGE_FORMAT_4_PATH
+            / "time_structure"
+            / "slow_stack_frames_saved_channels_one_and_four_version_2023_0"
+            / "stack.tif"
+        )
 
         # Create extractors with and without slice_sample
         extractor_full = ScanImageImagingExtractor(
@@ -659,7 +660,7 @@ class TestScanImageExtractorVMultiSamplesPerDepthAsOneVolumetricSeries:
     def test_volumetric_data_multi_channel_single_file_2(self):
         """Test with multi-channel volumetric data with frames per slice > 1.
 
-        File: scanimage_20220923_roi.tif
+        File: multi_roi_slow_stack_two_rois_channels_one_and_four_version_2023_0/stack.tif
         Metadata:
         - Volumetric: True (multiple planes)
         - Channels: Multiple ['Channel 1', 'Channel 4'
@@ -668,11 +669,16 @@ class TestScanImageExtractorVMultiSamplesPerDepthAsOneVolumetricSeries:
         - Volume rate: 7.28119 Hz
         - IFDS/Pages: 24
         - Num slices: 2
-        - Image shape: 528 x 256
+        - Image shape: 132 x 64
 
         """
 
-        file_path = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
+        file_path = (
+            SCANIMAGE_FORMAT_4_PATH
+            / "acquisition_setup"
+            / "multi_roi_slow_stack_two_rois_channels_one_and_four_version_2023_0"
+            / "stack.tif"
+        )
         extractor_full = ScanImageImagingExtractor(
             file_paths=[file_path],
             channel_name="Channel 1",
@@ -715,7 +721,7 @@ class TestScanImageVolumetricPlaneSlicing:
     def test_plane_index_parameter_single_channel(self):
         """Test the plane_index parameter with volumetric single channel data.
 
-        File: vol_one_ch_single_files_00002_00001.tif
+        File: volume_00002_00001.tif
         Metadata:
         - Acquisition mode: grab
         - Volumetric: True (9 slices and 7 flyback frames)
@@ -724,7 +730,7 @@ class TestScanImageVolumetricPlaneSlicing:
         - Frames per slice: 1
         - Frame rate: 523.926 Hz
         - Volume rate: 32.7454 Hz
-        - Pages/IDFs: 1600
+        - Pages/IDFs: 48
 
         This test verifies that the plane_index parameter correctly extracts a specific plane
         from volumetric data and behaves as if the data is not volumetric. It tests:
@@ -733,7 +739,12 @@ class TestScanImageVolumetricPlaneSlicing:
         3. Extracting the last plane (plane_index=8)
         4. Comparing the extracted planes with the corresponding planes in the full volumetric data
         """
-        file_path = SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
+        file_path = (
+            SCANIMAGE_FORMAT_4_PATH
+            / "time_structure"
+            / "volumetric_flyback_frames_single_channel_version_2021_0"
+            / "volume_00002_00001.tif"
+        )
 
         # Create an extractor with plane_index=0 (first plane)
         extractor_plane0 = ScanImageImagingExtractor(file_path=file_path, plane_index=0)
@@ -802,7 +813,7 @@ class TestScanImageVolumetricPlaneSlicing:
     def test_plane_index_with_multiple_frames_per_slice(self):
         """Test the plane_index parameter with slice_sample for multi-channel volumetric data.
 
-        File: scanimage_20220923_noroi.tif
+        File: slow_stack_frames_saved_channels_one_and_four_version_2023_0/stack.tif
         Metadata:
         - Acquisition mode: grab
         - Volumetric: True (2 planes)
@@ -810,7 +821,7 @@ class TestScanImageVolumetricPlaneSlicing:
         - Frames per slice: 2
         - Frame rate: 29.1248 Hz
         - Volume rate: 7.28119 Hz
-        - Image shape: 256 x 256
+        - Image shape: 64 x 64
         - IFDS/Pages: 24
 
         This test verifies that the plane_index parameter works correctly when combined with
@@ -821,7 +832,12 @@ class TestScanImageVolumetricPlaneSlicing:
         4. Extracting plane 1 with slice_sample=1
         5. Comparing the extracted data with the corresponding planes in the regular extractors
         """
-        file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
+        file_path = (
+            SCANIMAGE_FORMAT_4_PATH
+            / "time_structure"
+            / "slow_stack_frames_saved_channels_one_and_four_version_2023_0"
+            / "stack.tif"
+        )
 
         # Create extractors with different combinations of slice_sample and plane_index
         extractor_slice_sample_0_plane_0 = ScanImageImagingExtractor(
@@ -889,8 +905,8 @@ class TestScanImageVolumetricPlaneSlicing:
         data_slice_sample_1 = extractor_slice_sample_1.get_series()
 
         # Predefine expected shapes for easier readability
-        expected_shape_plane = (extractor_slice_sample_0_plane_0.get_num_samples(), 256, 256)
-        expected_shape_full = (extractor_slice_sample_0.get_num_samples(), 256, 256, 2)
+        expected_shape_plane = (extractor_slice_sample_0_plane_0.get_num_samples(), 64, 64)
+        expected_shape_full = (extractor_slice_sample_0.get_num_samples(), 64, 64, 2)
 
         # Verify the shape of the data
         assert data_slice_sample_0_plane_0.shape == expected_shape_plane, f"Data shape should be {expected_shape_plane}"
@@ -943,7 +959,9 @@ class TestTimestampExtraction:
         filtered for the selected channel.
         """
 
-        file_path = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
+        file_path = (
+            SCANIMAGE_FORMAT_4_PATH / "time_structure" / "planar_two_channels_loop_version_2023_1" / "planar_00001.tif"
+        )
 
         extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
         extractor_ch2 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
@@ -965,14 +983,16 @@ class TestTimestampExtraction:
         from tifffile import TiffFile
 
         all_file_paths = [
-            "scanimage_20240320_multifile_00001.tif",
-            "scanimage_20240320_multifile_00002.tif",
-            "scanimage_20240320_multifile_00003.tif",
+            "planar_00001.tif",
+            "planar_00002.tif",
+            "planar_00003.tif",
         ]
 
         all_timestamps = []
         for file_name in all_file_paths:
-            file_path = SCANIMAGE_PATH / file_name
+            file_path = (
+                SCANIMAGE_FORMAT_4_PATH / "time_structure" / "planar_two_channels_loop_version_2023_1" / file_name
+            )
             if not file_path.exists():
                 raise FileNotFoundError(f"File {file_path} does not exist.")
             # Read the metadata from the TIFF file
@@ -1014,7 +1034,9 @@ class TestTimestampExtraction:
 
     def test_slice_keeps_file_times_after_parent_set_times(self):
         """A slice keeps the timestamps of the frame headers when times are set on its parent afterwards."""
-        file_path = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
+        file_path = (
+            SCANIMAGE_FORMAT_4_PATH / "time_structure" / "planar_two_channels_loop_version_2023_1" / "planar_00001.tif"
+        )
         parent = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
         sliced = parent.slice_samples(start_sample=1, end_sample=4)
         header_timestamps = parent.get_native_timestamps()
@@ -1036,12 +1058,15 @@ class TestTimestampExtraction:
             - get_native_timestamps works correctly when accessing a specific plane using plane_index
             - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
 
-        File: vol_no_flyback_00001_00001.tif
+        File: volume_00001_00001.tif
         """
 
         # Test file path - volumetric data without flyback frames
         file_path = (
-            SCANIMAGE_PATH / "volumetric_single_channel_single_file_no_flyback" / "vol_no_flyback_00001_00001.tif"
+            SCANIMAGE_FORMAT_4_PATH
+            / "time_structure"
+            / "volumetric_no_flyback_frames_single_channel_version_2021_0"
+            / "volume_00001_00001.tif"
         )
 
         # Get raw timestamps for reference
@@ -1108,7 +1133,7 @@ class TestTimestampExtraction:
             - get_native_timestamps works correctly when accessing a specific plane using plane_index
             - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
 
-        File: vol_one_ch_single_files_00002_00001.tif
+        File: volume_00002_00001.tif
 
         Metadata:
         - Acquisition mode: grab
@@ -1118,11 +1143,16 @@ class TestTimestampExtraction:
         - Frames per slice: 1
         - Frame rate: 523.926 Hz
         - Volume rate: 32.7454 Hz
-        - Pages/IDFs: 1600
+        - Pages/IDFs: 48
         """
 
         # Test file path - volumetric data with flyback frames
-        file_path = SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
+        file_path = (
+            SCANIMAGE_FORMAT_4_PATH
+            / "time_structure"
+            / "volumetric_flyback_frames_single_channel_version_2021_0"
+            / "volume_00002_00001.tif"
+        )
 
         # Extract raw timestamps directly from TIFF file
         with TiffReader(file_path) as tiff:
@@ -1218,7 +1248,7 @@ class TestTimestampExtraction:
             - get_native_timestamps works correctly when using both slice_sample and plane_index
             - When plane_index is used, timestamps reflect the timestamps of the frames at that plane
 
-        File: scanimage_20220923_noroi.tif
+        File: slow_stack_frames_saved_channels_one_and_four_version_2023_0/stack.tif
 
         Metadata:
         - Acquisition mode: grab
@@ -1227,12 +1257,17 @@ class TestTimestampExtraction:
         - Frames per depth: 2
         - Frame rate: 29.1248 Hz
         - Volume rate: 7.28119 Hz
-        - Image shape: 256 x 256
+        - Image shape: 64 x 64
         - Num_slices: 2
         - IFDS/Pages: 24
         """
 
-        file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
+        file_path = (
+            SCANIMAGE_FORMAT_4_PATH
+            / "time_structure"
+            / "slow_stack_frames_saved_channels_one_and_four_version_2023_0"
+            / "stack.tif"
+        )
 
         # Part 1: Test with regular volumetric extractor
         # Create extractor with slice_sample=0
@@ -1354,9 +1389,9 @@ def test_file_paths_parameter():
     """
     # Get the paths to the multi-file dataset
     file_paths = [
-        SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif",
-        SCANIMAGE_PATH / "scanimage_20240320_multifile_00002.tif",
-        SCANIMAGE_PATH / "scanimage_20240320_multifile_00003.tif",
+        SCANIMAGE_FORMAT_4_PATH / "time_structure" / "planar_two_channels_loop_version_2023_1" / "planar_00001.tif",
+        SCANIMAGE_FORMAT_4_PATH / "time_structure" / "planar_two_channels_loop_version_2023_1" / "planar_00002.tif",
+        SCANIMAGE_FORMAT_4_PATH / "time_structure" / "planar_two_channels_loop_version_2023_1" / "planar_00003.tif",
     ]
 
     # Create extractor with explicit file_paths parameter
@@ -1372,7 +1407,7 @@ def test_file_paths_parameter():
 
     # Verify the data is loaded correctly
     assert extractor.get_num_samples() == 10 * 3, "Should have 10 samples per file"
-    assert extractor.get_image_shape() == (512, 512), "Image shape should be correct"
+    assert extractor.get_image_shape() == (64, 64), "Image shape should be correct"
 
 
 def test_missing_file_detection(tmp_path):
@@ -1384,11 +1419,13 @@ def test_missing_file_detection(tmp_path):
     """
 
     # Create copies of files 1 and 3 (skip file 2)
-    source_files = ["scanimage_20240320_multifile_00001.tif", "scanimage_20240320_multifile_00003.tif"]
+    source_files = ["planar_00001.tif", "planar_00003.tif"]
 
     # Copy the files, resolving any symlinks to avoid problems with git-annex
     for file_name in source_files:
-        source_path = (SCANIMAGE_PATH / file_name).resolve()
+        source_path = (
+            SCANIMAGE_FORMAT_4_PATH / "time_structure" / "planar_two_channels_loop_version_2023_1" / file_name
+        ).resolve()
         dest_path = tmp_path / file_name
         shutil.copy(source_path, dest_path)
 
@@ -1418,14 +1455,16 @@ def test_non_integer_file_warning(tmp_path):
     """
     # Create copies of all normal files (1, 2, 3)
     source_files = [
-        "scanimage_20240320_multifile_00001.tif",
-        "scanimage_20240320_multifile_00002.tif",
-        "scanimage_20240320_multifile_00003.tif",
+        "planar_00001.tif",
+        "planar_00002.tif",
+        "planar_00003.tif",
     ]
 
     # Copy the files, resolving any symlinks to ensure cross-platform compatibility
     for file_name in source_files:
-        source_path = (SCANIMAGE_PATH / file_name).resolve()
+        source_path = (
+            SCANIMAGE_FORMAT_4_PATH / "time_structure" / "planar_two_channels_loop_version_2023_1" / file_name
+        ).resolve()
         dest_path = tmp_path / file_name
         shutil.copy(source_path, dest_path)
 
@@ -1434,9 +1473,14 @@ def test_non_integer_file_warning(tmp_path):
         assert dest_path.stat().st_size > 0, f"File {dest_path} is empty"
 
     # Create a file that does not follow the integer sequence
-    non_integer_file = "scanimage_20240320_multifile_abc.tif"
+    non_integer_file = "planar_abc.tif"
     non_integer_path = tmp_path / non_integer_file
-    shutil.copy((SCANIMAGE_PATH / source_files[0]).resolve(), non_integer_path)
+    shutil.copy(
+        (
+            SCANIMAGE_FORMAT_4_PATH / "time_structure" / "planar_two_channels_loop_version_2023_1" / source_files[0]
+        ).resolve(),
+        non_integer_path,
+    )
 
     # Verify the the copy was created correctly
     assert non_integer_path.exists(), f"Non-integer file {non_integer_path} was not created correctly"
@@ -1455,13 +1499,21 @@ def test_non_integer_file_warning(tmp_path):
         assert all(Path(fp).name in source_files for fp in extractor.file_paths), "Unexpected files in extractor"
 
 
-def test_file_without_file_index_is_read_alone():
+def test_file_without_file_index_is_read_alone(tmp_path):
     """A file whose name does not end in a file index, for example a renamed one, is read alone.
 
     `scanimage_20220923_roi.tif` sits in the same folder and shares its prefix, so a search for the rest of the
     sequence finds two files without a file index and would drop both, including the one passed.
     """
-    file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
+    source_path = (
+        SCANIMAGE_FORMAT_4_PATH
+        / "time_structure"
+        / "slow_stack_frames_saved_channels_one_and_four_version_2023_0"
+        / "stack.tif"
+    ).resolve()
+    file_path = tmp_path / "scanimage_20220923_noroi.tif"
+    shutil.copy(source_path, file_path)
+    shutil.copy(source_path, tmp_path / "scanimage_20220923_roi.tif")
     extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1", slice_sample=0)
     assert extractor.file_paths == [file_path]
     assert extractor.get_num_samples() == 3
@@ -1476,17 +1528,29 @@ def test_get_frames_per_slice():
     an extractor instance.
     """
     # Test with single frame per slice file
-    single_frame_file = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
+    single_frame_file = (
+        SCANIMAGE_FORMAT_4_PATH / "time_structure" / "planar_two_channels_loop_version_2023_1" / "planar_00001.tif"
+    )
     frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(single_frame_file)
     assert frames_per_slice == 10, "File should have 1 frame per slice"
 
     # Test with multiple frames per slice file
-    multi_frame_file = SCANIMAGE_PATH / "scanimage_20220801_volume.tif"
+    multi_frame_file = (
+        SCANIMAGE_FORMAT_4_PATH
+        / "time_structure"
+        / "slow_stack_frames_averaged_one_volume_version_2022_0"
+        / "stack.tif"
+    )
     frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(multi_frame_file)
     assert frames_per_slice == 8, "File should have 8 frames per slice"
 
     # Test with another multiple frames per slice file
-    multi_frame_file2 = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
+    multi_frame_file2 = (
+        SCANIMAGE_FORMAT_4_PATH
+        / "acquisition_setup"
+        / "multi_roi_slow_stack_two_rois_channels_one_and_four_version_2023_0"
+        / "stack.tif"
+    )
     frames_per_slice = ScanImageImagingExtractor.get_frames_per_slice(multi_frame_file2)
     assert frames_per_slice == 2, "File should have 2 frames per slice"
 
@@ -1498,7 +1562,12 @@ def test_get_availale_channel_names():
     channel names from ScanImage TIFF files without needing to create an extractor instance.
     """
     # Test with volumetric file (should still work even though extractor initialization would fail)
-    volumetric_file = SCANIMAGE_PATH / "scanimage_20220923_roi.tif"
+    volumetric_file = (
+        SCANIMAGE_FORMAT_4_PATH
+        / "acquisition_setup"
+        / "multi_roi_slow_stack_two_rois_channels_one_and_four_version_2023_0"
+        / "stack.tif"
+    )
     volumetric_channel_names = ScanImageImagingExtractor.get_available_channel_names(volumetric_file)
     assert isinstance(volumetric_channel_names, list), "Channel names should be returned as a list"
     assert len(volumetric_channel_names) >= 1, "Should extract at least one channel name"
@@ -1511,13 +1580,13 @@ class TestGetOriginalFrameIndices:
     def test_planar_single_channel_single_file(self):
         """Test get_original_frame_indices with planar single channel data.
 
-        File: scanimage_20220801_single.tif
+        File: planar_frames_averaged_version_2022_0/planar.tif
         Metadata:
         - Volumetric: False (single plane)
         - Channels: 1
         - Frames: 3
         - Frame rate: 15.2379 Hz
-        - Image shape: 1024 x 1024
+        - Image shape: 64 x 64
 
         This test verifies that:
         1. The method returns the correct number of frame indices
@@ -1525,7 +1594,7 @@ class TestGetOriginalFrameIndices:
         3. Frame indices are within the valid range
         4. For planar data, frame indices should be sequential (0, 1, 2, ...)
         """
-        file_path = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
+        file_path = SCANIMAGE_FORMAT_4_PATH / "time_structure" / "planar_frames_averaged_version_2022_0" / "planar.tif"
         extractor = ScanImageImagingExtractor(file_path=str(file_path))
 
         # Get original frame indices
@@ -1540,12 +1609,12 @@ class TestGetOriginalFrameIndices:
     def test_planar_multi_channel_single_file(self):
         """Test get_original_frame_indices with planar multi-channel data.
 
-        File: planar_two_ch_single_files_00001_00001.tif
+        File: planar_00001_00001.tif
         Metadata:
         - Volumetric: False
         - Channels: 2 (Channel 1 and Channel 2)
-        - Frames per channel: 1000
-        - Total frames: 2000
+        - Frames per channel: 3
+        - Total frames: 6
         - Frame rate: 523.926 Hz
 
         This test verifies that:
@@ -1553,7 +1622,12 @@ class TestGetOriginalFrameIndices:
         2. Different channels have different frame index patterns
         3. Frame indices map to the correct channel data
         """
-        file_path = SCANIMAGE_PATH / "planar_two_channels_single_file" / "planar_two_ch_single_files_00001_00001.tif"
+        file_path = (
+            SCANIMAGE_FORMAT_4_PATH
+            / "acquisition_setup"
+            / "planar_two_channels_one_slice_stack_version_2021_0"
+            / "planar_00001_00001.tif"
+        )
 
         # Test with Channel 1
         extractor_ch1 = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
@@ -1583,7 +1657,7 @@ class TestGetOriginalFrameIndices:
     def test_planar_multi_channel_multi_file(self):
         """Test get_original_frame_indices with multi-file planar data.
 
-        Files: scanimage_20240320_multifile_0000[1-3].tif
+        Files: planar_two_channels_loop_version_2023_1/planar_0000[1-3].tif
         Metadata:
         - Volumetric: False
         - Channels: 2
@@ -1596,7 +1670,9 @@ class TestGetOriginalFrameIndices:
         2. File offsets are properly calculated
         3. Frame indices span across multiple files correctly
         """
-        file_path = SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif"
+        file_path = (
+            SCANIMAGE_FORMAT_4_PATH / "time_structure" / "planar_two_channels_loop_version_2023_1" / "planar_00001.tif"
+        )
         extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
 
         frame_indices = extractor.get_original_frame_indices()
@@ -1619,7 +1695,7 @@ class TestGetOriginalFrameIndices:
     def test_volumetric_single_channel_no_flyback(self):
         """Test get_original_frame_indices with volumetric data without flyback frames.
 
-        File: vol_no_flyback_00001_00001.tif
+        File: volume_00001_00001.tif
         Metadata:
         - Volumetric: True (9 planes)
         - Channels: 1
@@ -1633,7 +1709,10 @@ class TestGetOriginalFrameIndices:
         3. No flyback frame handling is needed
         """
         file_path = (
-            SCANIMAGE_PATH / "volumetric_single_channel_single_file_no_flyback" / "vol_no_flyback_00001_00001.tif"
+            SCANIMAGE_FORMAT_4_PATH
+            / "time_structure"
+            / "volumetric_no_flyback_frames_single_channel_version_2021_0"
+            / "volume_00001_00001.tif"
         )
         extractor = ScanImageImagingExtractor(file_path=file_path)
 
@@ -1656,7 +1735,7 @@ class TestGetOriginalFrameIndices:
     def test_volumetric_single_channel_with_flyback(self):
         """Test get_original_frame_indices with volumetric data with flyback frames.
 
-        File: vol_one_ch_single_files_00002_00001.tif
+        File: volume_00002_00001.tif
         Metadata:
         - Volumetric: True (9 planes + 7 flyback frames)
         - Channels: 1
@@ -1668,7 +1747,12 @@ class TestGetOriginalFrameIndices:
         2. Frame indices correctly map to the last imaging plane before flyback
         3. File offsets are correctly calculated
         """
-        file_path = SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
+        file_path = (
+            SCANIMAGE_FORMAT_4_PATH
+            / "time_structure"
+            / "volumetric_flyback_frames_single_channel_version_2021_0"
+            / "volume_00002_00001.tif"
+        )
         extractor = ScanImageImagingExtractor(file_path=file_path)
 
         frame_indices = extractor.get_original_frame_indices()
@@ -1702,7 +1786,12 @@ class TestGetOriginalFrameIndices:
         2. Different plane_index values produce different frame indices
         3. The plane_index parameter is correctly validated
         """
-        file_path = SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
+        file_path = (
+            SCANIMAGE_FORMAT_4_PATH
+            / "time_structure"
+            / "volumetric_flyback_frames_single_channel_version_2021_0"
+            / "volume_00002_00001.tif"
+        )
 
         # Test with plane_index=0 (first plane)
         full_extractor = ScanImageImagingExtractor(file_path=file_path)
@@ -1720,7 +1809,7 @@ class TestGetOriginalFrameIndices:
     def test_slice_sample_parameter(self):
         """Test get_original_frame_indices with slice_sample parameter.
 
-        File: scanimage_20220923_noroi.tif
+        File: slow_stack_frames_saved_channels_one_and_four_version_2023_0/stack.tif
         Dataset characteristics:
         - Volumetric: True (2 planes)
         - Channels: 2 (['Channel 1', 'Channel 4'])
@@ -1732,7 +1821,12 @@ class TestGetOriginalFrameIndices:
         This test verifies that the method returns the correct frame indices
         for a specific slice_sample, accounting for the data interleaving pattern.
         """
-        file_path = SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"
+        file_path = (
+            SCANIMAGE_FORMAT_4_PATH
+            / "time_structure"
+            / "slow_stack_frames_saved_channels_one_and_four_version_2023_0"
+            / "stack.tif"
+        )
 
         # Test with slice_sample=0, Channel 4
         extractor = ScanImageImagingExtractor(file_paths=[file_path], channel_name="Channel 4", slice_sample=0)
@@ -1768,7 +1862,7 @@ class TestGetOriginalFrameIndices:
 class TestScanImageFieldOfViewSlicing:
     """Test the memory-efficient ``slice_field_of_view`` override on ScanImageImagingExtractor."""
 
-    PLANAR_FILE = SCANIMAGE_PATH / "scanimage_20220801_single.tif"
+    PLANAR_FILE = SCANIMAGE_FORMAT_4_PATH / "time_structure" / "planar_frames_averaged_version_2022_0" / "planar.tif"
 
     def test_returns_scanimage_extractor_type(self):
         """The sliced view is a ScanImageImagingExtractor, not the generic wrapper, so format methods remain."""
@@ -1837,9 +1931,11 @@ def read_scanimage_pages(file_paths, page_indices):
 
 class TestScanImageImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
-    extractor_kwargs = dict(file_path=SCANIMAGE_PATH / "scanimage_20220801_single.tif")
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_FORMAT_4_PATH / "time_structure" / "planar_frames_averaged_version_2022_0" / "planar.tif"
+    )
     expected_num_samples = 3
-    expected_sample_shape = (1024, 1024)
+    expected_sample_shape = (64, 64)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1"]
     # frameTimestamps_sec of pages 0 to 2
@@ -1847,11 +1943,11 @@ class TestScanImageImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin
     expected_sampling_frequency = 15.2379 / 8  # scanFrameRate / logAverageFactor, each frame is the mean of 8 scans
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2022, 8, 8, 16, 44, 29, 124000),  # epoch = [2022  8  8 16 44 29.124]
-        # imagingFovUm has its corners at ±135 µm in x and y, over linesPerFrame and pixelsPerLine 1024
-        pixel_height_um=270.0 / 1024,
-        pixel_width_um=270.0 / 1024,
-        field_of_view_height_um=270.0,
-        field_of_view_width_um=270.0,
+        # imagingFovUm has its corners at -135 and -118.125 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=16.875 / 64,
+        pixel_width_um=16.875 / 64,
+        field_of_view_height_um=16.875,
+        field_of_view_width_um=16.875,
         channel_name="Channel 1",
         scan_line_rate=1 / 6.31018e-05,  # 1 / linePeriod
         acquisition_software_name="ScanImage",
@@ -1860,7 +1956,9 @@ class TestScanImageImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin
 
     def check_series(self, series):
         """Sample `sample` is page `sample`: one channel and one plane, each page a saved frame."""
-        file_paths = [SCANIMAGE_PATH / "scanimage_20220801_single.tif"]
+        file_paths = [
+            SCANIMAGE_FORMAT_4_PATH / "time_structure" / "planar_frames_averaged_version_2022_0" / "planar.tif"
+        ]
         page_indices = list(range(self.expected_num_samples))
         expected_series = read_scanimage_pages(file_paths, page_indices)
         assert_array_equal(series, expected_series)
@@ -1869,10 +1967,13 @@ class TestScanImageImagingExtractorPlanarSingleChannel(ImagingExtractorTestMixin
 class TestScanImageImagingExtractorPlanarTwoChannels(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
     extractor_kwargs = dict(
-        file_path=SCANIMAGE_PATH / "planar_two_channels_single_file" / "planar_two_ch_single_files_00001_00001.tif",
+        file_path=SCANIMAGE_FORMAT_4_PATH
+        / "acquisition_setup"
+        / "planar_two_channels_one_slice_stack_version_2021_0"
+        / "planar_00001_00001.tif",
         channel_name="Channel 1",
     )
-    expected_num_samples = 1000
+    expected_num_samples = 3
     expected_sample_shape = (20, 20)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1", "Channel 2"]
@@ -1896,7 +1997,12 @@ class TestScanImageImagingExtractorPlanarTwoChannels(ImagingExtractorTestMixin):
         """Sample `sample` is page `2 * sample + channel`, the two channels saved in turn."""
         channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
         channel_index = self.expected_channel_names.index(channel_name)
-        file_paths = [SCANIMAGE_PATH / "planar_two_channels_single_file" / "planar_two_ch_single_files_00001_00001.tif"]
+        file_paths = [
+            SCANIMAGE_FORMAT_4_PATH
+            / "acquisition_setup"
+            / "planar_two_channels_one_slice_stack_version_2021_0"
+            / "planar_00001_00001.tif"
+        ]
         page_indices = [2 * sample + channel_index for sample in range(self.expected_num_samples)]
         expected_series = read_scanimage_pages(file_paths, page_indices)
         assert_array_equal(series, expected_series)
@@ -1905,10 +2011,14 @@ class TestScanImageImagingExtractorPlanarTwoChannels(ImagingExtractorTestMixin):
 class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
     extractor_kwargs = dict(
-        file_path=SCANIMAGE_PATH / "scanimage_20240320_multifile_00001.tif", channel_name="Channel 1"
+        file_path=SCANIMAGE_FORMAT_4_PATH
+        / "time_structure"
+        / "planar_two_channels_loop_version_2023_1"
+        / "planar_00001.tif",
+        channel_name="Channel 1",
     )
     expected_num_samples = 30  # 10 samples in each of the 3 files
-    expected_sample_shape = (512, 512)
+    expected_sample_shape = (64, 64)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1", "Channel 2"]
     # frameTimestamps_sec of pages 0, 2 and 4 of the first file, the frames of Channel 1
@@ -1916,11 +2026,11 @@ class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
     expected_sampling_frequency = 98.83842317607626  # scanFrameRate
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2024, 3, 26, 15, 7, 53, 110000),  # epoch = [2024  3 26 15  7 53.110]
-        # imagingFovUm has its corners at ±135 µm in x and y, over linesPerFrame and pixelsPerLine 512
-        pixel_height_um=270.0 / 512,
-        pixel_width_um=270.0 / 512,
-        field_of_view_height_um=270.0,
-        field_of_view_width_um=270.0,
+        # imagingFovUm has its corners at -135 and -101.25 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=33.75 / 64,
+        pixel_width_um=33.75 / 64,
+        field_of_view_height_um=33.75,
+        field_of_view_width_um=33.75,
         channel_name="Channel 1",
         scan_line_rate=1 / 1.775004e-05,  # 1 / linePeriod
         acquisition_software_name="ScanImage",
@@ -1931,7 +2041,11 @@ class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
         """Sample `sample` is page `2 * sample + channel` across the 3 files, the two channels saved in turn."""
         channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
         channel_index = self.expected_channel_names.index(channel_name)
-        file_paths = sorted(SCANIMAGE_PATH.glob("scanimage_20240320_multifile_*.tif"))
+        file_paths = sorted(
+            (SCANIMAGE_FORMAT_4_PATH / "time_structure" / "planar_two_channels_loop_version_2023_1").glob(
+                "planar_*.tif"
+            )
+        )
         page_indices = [2 * sample + channel_index for sample in range(self.expected_num_samples)]
         expected_series = read_scanimage_pages(file_paths, page_indices)
         assert_array_equal(series, expected_series)
@@ -1940,9 +2054,12 @@ class TestScanImageImagingExtractorPlanarMultiFile(ImagingExtractorTestMixin):
 class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
     extractor_kwargs = dict(
-        file_path=SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
+        file_path=SCANIMAGE_FORMAT_4_PATH
+        / "time_structure"
+        / "volumetric_flyback_frames_single_channel_version_2021_0"
+        / "volume_00002_00001.tif"
     )
-    expected_num_samples = 100  # 1600 pages / (9 planes + 7 flyback frames)
+    expected_num_samples = 3  # 48 pages / (9 planes + 7 flyback frames)
     expected_sample_shape = (20, 20, 9)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1"]
@@ -1994,7 +2111,10 @@ class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorT
     def check_series(self, series):
         """Plane `plane` of sample `sample` is page `16 * sample + plane`: 9 planes and 7 flyback frames per volume."""
         file_paths = [
-            SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
+            SCANIMAGE_FORMAT_4_PATH
+            / "time_structure"
+            / "volumetric_flyback_frames_single_channel_version_2021_0"
+            / "volume_00002_00001.tif"
         ]
         page_indices = [[16 * sample + plane for plane in range(9)] for sample in range(self.expected_num_samples)]
         expected_series = read_scanimage_pages(file_paths, page_indices)
@@ -2004,9 +2124,12 @@ class TestScanImageImagingExtractorVolumetricWithFlybackFrames(ImagingExtractorT
 class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
     extractor_kwargs = dict(
-        file_path=SCANIMAGE_PATH / "volumetric_single_channel_single_file_no_flyback" / "vol_no_flyback_00001_00001.tif"
+        file_path=SCANIMAGE_FORMAT_4_PATH
+        / "time_structure"
+        / "volumetric_no_flyback_frames_single_channel_version_2021_0"
+        / "volume_00001_00001.tif"
     )
-    expected_num_samples = 10
+    expected_num_samples = 3  # 27 pages / 9 planes
     expected_sample_shape = (20, 20, 9)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1"]
@@ -2053,7 +2176,10 @@ class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTes
     def check_series(self, series):
         """Plane `plane` of sample `sample` is page `9 * sample + plane`: 9 planes and no flyback frames per volume."""
         file_paths = [
-            SCANIMAGE_PATH / "volumetric_single_channel_single_file_no_flyback" / "vol_no_flyback_00001_00001.tif"
+            SCANIMAGE_FORMAT_4_PATH
+            / "time_structure"
+            / "volumetric_no_flyback_frames_single_channel_version_2021_0"
+            / "volume_00001_00001.tif"
         ]
         page_indices = [[9 * sample + plane for plane in range(9)] for sample in range(self.expected_num_samples)]
         expected_series = read_scanimage_pages(file_paths, page_indices)
@@ -2063,9 +2189,12 @@ class TestScanImageImagingExtractorVolumetricNoFlybackFrames(ImagingExtractorTes
 class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
     extractor_kwargs = dict(
-        file_path=SCANIMAGE_PATH / "volumetric_single_channel_multi_file" / "vol_one_ch_multi_files_00001_00001.tif"
+        file_path=SCANIMAGE_FORMAT_4_PATH
+        / "binary_data_layout"
+        / "volumetric_flyback_frames_single_channel_split_over_files_version_2021_0"
+        / "volume_00001_00001.tif"
     )
-    expected_num_samples = 100  # 10 files of 160 pages / (9 planes + 7 flyback frames)
+    expected_num_samples = 3  # 3 files of 16 pages / (9 planes + 7 flyback frames)
     expected_sample_shape = (20, 20, 9)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1"]
@@ -2115,11 +2244,17 @@ class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin
         assert self.extractor.num_flyback_frames_per_channel == 7
 
     def check_series(self, series):
-        """Plane `plane` of sample `sample` is page `16 * sample + plane`, numbered across the 10 files.
+        """Plane `plane` of sample `sample` is page `16 * sample + plane`, numbered across the 3 files.
 
         Each volume has 9 planes and 7 flyback frames.
         """
-        file_paths = sorted((SCANIMAGE_PATH / "volumetric_single_channel_multi_file").glob("*.tif"))
+        file_paths = sorted(
+            (
+                SCANIMAGE_FORMAT_4_PATH
+                / "binary_data_layout"
+                / "volumetric_flyback_frames_single_channel_split_over_files_version_2021_0"
+            ).glob("*.tif")
+        )
         page_indices = [[16 * sample + plane for plane in range(9)] for sample in range(self.expected_num_samples)]
         expected_series = read_scanimage_pages(file_paths, page_indices)
         assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
@@ -2128,10 +2263,13 @@ class TestScanImageImagingExtractorVolumetricMultiFile(ImagingExtractorTestMixin
 class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
     extractor_kwargs = dict(
-        file_path=SCANIMAGE_PATH / "volumetric_two_channels_single_file" / "vol_two_ch_single_file_00001_00001.tif",
+        file_path=SCANIMAGE_FORMAT_4_PATH
+        / "time_structure"
+        / "volumetric_flyback_frames_two_channels_version_2021_0"
+        / "volume_00001_00001.tif",
         channel_name="Channel 1",
     )
-    expected_num_samples = 100  # 3200 pages / (2 channels * (9 planes + 7 flyback frames))
+    expected_num_samples = 3  # 96 pages / (2 channels * (9 planes + 7 flyback frames))
     expected_sample_shape = (20, 20, 9)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1", "Channel 2"]
@@ -2183,7 +2321,12 @@ class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMix
         """
         channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
         channel_index = self.expected_channel_names.index(channel_name)
-        file_paths = [SCANIMAGE_PATH / "volumetric_two_channels_single_file" / "vol_two_ch_single_file_00001_00001.tif"]
+        file_paths = [
+            SCANIMAGE_FORMAT_4_PATH
+            / "time_structure"
+            / "volumetric_flyback_frames_two_channels_version_2021_0"
+            / "volume_00001_00001.tif"
+        ]
         page_indices = [
             [2 * (16 * sample + plane) + channel_index for plane in range(9)]
             for sample in range(self.expected_num_samples)
@@ -2195,10 +2338,13 @@ class TestScanImageImagingExtractorVolumetricTwoChannels(ImagingExtractorTestMix
 class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
     extractor_kwargs = dict(
-        file_path=SCANIMAGE_PATH / "volumetric_two_channels_multi_file" / "vol_two_ch_multi_files_00001_00001.tif",
+        file_path=SCANIMAGE_FORMAT_4_PATH
+        / "binary_data_layout"
+        / "volumetric_flyback_frames_two_channels_split_over_files_version_2021_0"
+        / "volume_00001_00001.tif",
         channel_name="Channel 1",
     )
-    expected_num_samples = 100  # 10 files of 320 pages / (2 channels * (9 planes + 7 flyback frames))
+    expected_num_samples = 3  # 3 files of 32 pages / (2 channels * (9 planes + 7 flyback frames))
     expected_sample_shape = (20, 20, 9)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1", "Channel 2"]
@@ -2244,13 +2390,19 @@ class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtract
     )
 
     def check_series(self, series):
-        """Plane `plane` of sample `sample` is page `2 * (16 * sample + plane) + channel`, numbered across the 10 files.
+        """Plane `plane` of sample `sample` is page `2 * (16 * sample + plane) + channel`, numbered across the 3 files.
 
         The two channels are saved in turn, and each volume has 9 planes and 7 flyback frames.
         """
         channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
         channel_index = self.expected_channel_names.index(channel_name)
-        file_paths = sorted((SCANIMAGE_PATH / "volumetric_two_channels_multi_file").glob("*.tif"))
+        file_paths = sorted(
+            (
+                SCANIMAGE_FORMAT_4_PATH
+                / "binary_data_layout"
+                / "volumetric_flyback_frames_two_channels_split_over_files_version_2021_0"
+            ).glob("*.tif")
+        )
         page_indices = [
             [2 * (16 * sample + plane) + channel_index for plane in range(9)]
             for sample in range(self.expected_num_samples)
@@ -2262,10 +2414,13 @@ class TestScanImageImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtract
 class TestScanImageImagingExtractorSinglePlaneOfVolume(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
     extractor_kwargs = dict(
-        file_path=SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif",
+        file_path=SCANIMAGE_FORMAT_4_PATH
+        / "time_structure"
+        / "volumetric_flyback_frames_single_channel_version_2021_0"
+        / "volume_00002_00001.tif",
         plane_index=0,
     )
-    expected_num_samples = 100
+    expected_num_samples = 3
     expected_sample_shape = (20, 20)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1"]
@@ -2290,7 +2445,10 @@ class TestScanImageImagingExtractorSinglePlaneOfVolume(ImagingExtractorTestMixin
     def check_series(self, series):
         """Sample `sample` is page `16 * sample`, plane 0 of a volume of 9 planes and 7 flyback frames."""
         file_paths = [
-            SCANIMAGE_PATH / "volumetric_single_channel_single_file" / "vol_one_ch_single_files_00002_00001.tif"
+            SCANIMAGE_FORMAT_4_PATH
+            / "time_structure"
+            / "volumetric_flyback_frames_single_channel_version_2021_0"
+            / "volume_00002_00001.tif"
         ]
         page_indices = [16 * sample for sample in range(self.expected_num_samples)]
         expected_series = read_scanimage_pages(file_paths, page_indices)
@@ -2300,10 +2458,15 @@ class TestScanImageImagingExtractorSinglePlaneOfVolume(ImagingExtractorTestMixin
 class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
     extractor_kwargs = dict(
-        file_path=SCANIMAGE_PATH / "scanimage_20220923_noroi.tif", channel_name="Channel 1", slice_sample=0
+        file_path=SCANIMAGE_FORMAT_4_PATH
+        / "time_structure"
+        / "slow_stack_frames_saved_channels_one_and_four_version_2023_0"
+        / "stack.tif",
+        channel_name="Channel 1",
+        slice_sample=0,
     )
     expected_num_samples = 3  # 24 pages / (2 channels * 2 planes * 2 frames per slice)
-    expected_sample_shape = (256, 256, 2)
+    expected_sample_shape = (64, 64, 2)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1", "Channel 4"]
     # frameTimestamps_sec of page 8 * sample + 4: Channel 1, the first of the 2 frames of each slice, and the last of
@@ -2317,11 +2480,11 @@ class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixi
     expected_sampling_frequency = 14.5517  # scanVolumeRate
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2023, 9, 22, 12, 46, 9, 383000),  # epoch = [2023  9 22 12 46 9.383]
-        # imagingFovUm has its corners at ±2151.11 µm in x and y, over linesPerFrame and pixelsPerLine 256
-        pixel_height_um=4302.22 / 256,
-        pixel_width_um=4302.22 / 256,
-        field_of_view_height_um=4302.22,
-        field_of_view_width_um=4302.22,
+        # imagingFovUm has its corners at -2151.11 and -1075.555 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=1075.555 / 64,
+        pixel_width_um=1075.555 / 64,
+        field_of_view_height_um=1075.555,
+        field_of_view_width_um=1075.555,
         plane_z_offsets_um=[
             0.0,
             1.0,
@@ -2340,7 +2503,12 @@ class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixi
         """
         channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
         channel_index = self.expected_channel_names.index(channel_name)
-        file_paths = [SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"]
+        file_paths = [
+            SCANIMAGE_FORMAT_4_PATH
+            / "time_structure"
+            / "slow_stack_frames_saved_channels_one_and_four_version_2023_0"
+            / "stack.tif"
+        ]
         page_indices = [
             [8 * sample + 4 * plane + channel_index for plane in range(2)]
             for sample in range(self.expected_num_samples)
@@ -2352,12 +2520,15 @@ class TestScanImageImagingExtractorMultiSamplesPerDepth(ImagingExtractorTestMixi
 class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
     extractor_kwargs = dict(
-        file_path=SCANIMAGE_PATH / "scanimage_20220923_noroi.tif",
+        file_path=SCANIMAGE_FORMAT_4_PATH
+        / "time_structure"
+        / "slow_stack_frames_saved_channels_one_and_four_version_2023_0"
+        / "stack.tif",
         channel_name="Channel 1",
         interleave_slice_samples=True,
     )
     expected_num_samples = 6  # 3 samples for each of the 2 frames per slice
-    expected_sample_shape = (256, 256, 2)
+    expected_sample_shape = (64, 64, 2)
     expected_dtype = np.dtype("int16")
     expected_channel_names = ["Channel 1", "Channel 4"]
     # frameTimestamps_sec of page 8 * volume + 4 + 2 * frame of the slice: Channel 1 and the last of the 2 planes,
@@ -2373,11 +2544,11 @@ class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtrac
     expected_sampling_frequency = 14.5517
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2023, 9, 22, 12, 46, 9, 383000),  # epoch = [2023  9 22 12 46 9.383]
-        # imagingFovUm has its corners at ±2151.11 µm in x and y, over linesPerFrame and pixelsPerLine 256
-        pixel_height_um=4302.22 / 256,
-        pixel_width_um=4302.22 / 256,
-        field_of_view_height_um=4302.22,
-        field_of_view_width_um=4302.22,
+        # imagingFovUm has its corners at -2151.11 and -1075.555 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=1075.555 / 64,
+        pixel_width_um=1075.555 / 64,
+        field_of_view_height_um=1075.555,
+        field_of_view_width_um=1075.555,
         plane_z_offsets_um=[
             0.0,
             1.0,
@@ -2397,11 +2568,121 @@ class TestScanImageImagingExtractorMultiSamplesPerDepthInterleaved(ImagingExtrac
         """
         channel_name = self.extractor_kwargs.get("channel_name", self.expected_channel_names[0])
         channel_index = self.expected_channel_names.index(channel_name)
-        file_paths = [SCANIMAGE_PATH / "scanimage_20220923_noroi.tif"]
+        file_paths = [
+            SCANIMAGE_FORMAT_4_PATH
+            / "time_structure"
+            / "slow_stack_frames_saved_channels_one_and_four_version_2023_0"
+            / "stack.tif"
+        ]
         page_indices = [
             [8 * (sample // 2) + 4 * plane + 2 * (sample % 2) + channel_index for plane in range(2)]
             for sample in range(self.expected_num_samples)
         ]
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
+
+
+class TestScanImageImagingExtractorBoundedStackVersion2021(ImagingExtractorTestMixin):
+    """A 2021.0 bounded stack acquires the 12 slices of `actualNumSlices`, of 10 frames each, while `numSlices` is 11.
+
+    The stack is one volume, so the samples interleave its 10 frames per slice, as the mixin needs more than one sample.
+    """
+
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_FORMAT_4_PATH
+        / "time_structure"
+        / "slow_stack_frames_saved_galvo_galvo_bounded_stack_version_2021_0"
+        / "stack_00003.tif",
+        interleave_slice_samples=True,
+    )
+    expected_num_samples = 10  # 120 pages / 12 planes, one sample for each of the 10 frames per slice
+    expected_sample_shape = (64, 64, 12)
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1"]
+    # frameTimestamps_sec of page 110 + sample: frame `sample` of the last of the 12 planes, as ScanImage gives a
+    # volume the time of its last plane. The frame times start again from 0 at each slice
+    expected_native_timestamps = [0.0, 0.938163, 1.876326]
+    # frameTimestamps_sec of page 10 * plane + sample, a list per plane
+    expected_plane_native_timestamps = [[0.0, 0.938163, 1.876326] for plane in range(12)]
+    # scanVolumeRate, best effort: the interleaved samples are frames of one volume, so no single rate describes them
+    expected_sampling_frequency = 0.00888261
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2023, 1, 25, 16, 41, 43, 359000),  # epoch = [2023,1,25,16,41,43.359]
+        # imagingFovUm has its corners at -79.133 and -60.6734875 µm in x, -88.5698 and -70.1102875 µm in y,
+        # over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=18.4595125 / 64,
+        pixel_width_um=18.4595125 / 64,
+        field_of_view_height_um=18.4595125,
+        field_of_view_width_um=18.4595125,
+        # zs runs from 1.6 µm in steps of `stackZStepSize` 5 µm, a position for each of the 10 frames of a slice
+        plane_z_offsets_um=[5.0 * plane for plane in range(12)],
+        channel_name="Channel 1",
+        scan_line_rate=1 / 0.0018304,  # 1 / linePeriod
+        frames_per_slice=10,  # framesPerSlice
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2021.0.0",  # VERSION_MAJOR, VERSION_MINOR and VERSION_UPDATE
+    )
+
+    def check_series(self, series):
+        """Plane `plane` of sample `sample` is page `10 * plane + sample`: one volume of 12 planes of 10 frames."""
+        file_paths = [self.extractor_kwargs["file_path"]]
+        page_indices = [[10 * plane + sample for plane in range(12)] for sample in range(self.expected_num_samples)]
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
+
+
+class TestScanImageImagingExtractorAveragedStackVersion2022(ImagingExtractorTestMixin):
+    """A 2022.0 stack of two volumes of 10 slices that averages the 8 frames of each slice into one saved frame."""
+
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_FORMAT_4_PATH
+        / "time_structure"
+        / "slow_stack_frames_averaged_two_volumes_version_2022_0"
+        / "stack.tif"
+    )
+    expected_num_samples = 2  # 20 pages / 10 planes, one page per slice
+    expected_sample_shape = (64, 64, 10)
+    expected_dtype = np.dtype("int16")
+    expected_channel_names = ["Channel 1"]
+    # frameTimestamps_sec of page 10 * sample + 9, as ScanImage gives a volume the time of its last plane
+    expected_native_timestamps = [5.50996541, 10.8869159]
+    # frameTimestamps_sec of page 10 * sample + plane, a list per plane
+    expected_plane_native_timestamps = [
+        [0.23328839, 6.1025892],
+        [1.25116313, 6.62375852],
+        [1.80776582, 7.160587],
+        [2.32006298, 7.6904751],
+        [2.86493642, 8.21039241],
+        [3.39251932, 8.73574176],
+        [3.93576162, 9.26942721],
+        [4.4583038, 9.80753479],
+        [4.98766763, 10.35675628],
+        [5.50996541, 10.8869159],
+    ]
+    expected_sampling_frequency = 0.375176  # scanVolumeRate
+    expected_metadata = dict(
+        acquisition_start_datetime=datetime(2022, 8, 8, 16, 56, 7, 329000),  # epoch = [2022  8  8 16 56 7.329]
+        # imagingFovUm has its corners at -135 and -101.25 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=33.75 / 64,
+        pixel_width_um=33.75 / 64,
+        field_of_view_height_um=33.75,
+        field_of_view_width_um=33.75,
+        # zs = [742.467 ... 761.359 ... 912.489], a position for each of the 8 scanned frames of a slice, minus the
+        # first plane
+        plane_z_offsets_um=[0.0, 18.892, 37.783, 56.674, 75.565, 94.457, 113.348, 132.239, 151.13, 170.022],
+        channel_name="Channel 1",
+        scan_line_rate=1 / 6.31018e-05,  # 1 / linePeriod
+        frames_per_slice=1,  # framesPerSlice 8 over logAverageFactor 8, the frames of a slice in the file
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="2022.0.0",  # VERSION_MAJOR, VERSION_MINOR and VERSION_UPDATE
+    )
+
+    def check_series(self, series):
+        """Plane `plane` of sample `sample` is page `10 * sample + plane`: one channel and 10 planes per volume."""
+        file_paths = [self.extractor_kwargs["file_path"]]
+        page_indices = [[10 * sample + plane for plane in range(10)] for sample in range(self.expected_num_samples)]
         expected_series = read_scanimage_pages(file_paths, page_indices)
         assert_array_equal(series, np.moveaxis(expected_series, 1, -1))
 
@@ -2413,7 +2694,10 @@ SCANIMAGE_FORMAT_3_PATH = SCANIMAGE_PATH / "tiff_format_version_3"
 class TestScanImageImagingExtractorPlanarVersion2017b(ImagingExtractorTestMixin):
     extractor_cls = ScanImageImagingExtractor
     extractor_kwargs = dict(
-        file_path=SCANIMAGE_FORMAT_3_PATH / "planar" / "single_channel_resonant_version_2017b" / "planar_00002.tif"
+        file_path=SCANIMAGE_FORMAT_3_PATH
+        / "acquisition_setup"
+        / "planar_single_channel_resonant_version_2017b"
+        / "planar_00002.tif"
     )
     expected_num_samples = 10
     expected_sample_shape = (64, 64)
@@ -2424,11 +2708,11 @@ class TestScanImageImagingExtractorPlanarVersion2017b(ImagingExtractorTestMixin)
     expected_sampling_frequency = 30.0321  # scanFrameRate, with logAverageFactor 1
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2019, 4, 25, 15, 56, 55, 537000),  # epoch = [2019  4 25 15 56 55.537]
-        # imagingFovUm has its corners at ±311.342 µm in x and y, over linesPerFrame and pixelsPerLine 64
-        pixel_height_um=622.684 / 64,
-        pixel_width_um=622.684 / 64,
-        field_of_view_height_um=622.684,
-        field_of_view_width_um=622.684,
+        # imagingFovUm has its corners at -311.342 and -233.5065 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=77.8355 / 64,
+        pixel_width_um=77.8355 / 64,
+        field_of_view_height_um=77.8355,
+        field_of_view_width_um=77.8355,
         channel_name="Channel 1",
         scan_line_rate=1 / 6.30638e-05,  # 1 / linePeriod
         acquisition_software_name="ScanImage",
@@ -2449,8 +2733,8 @@ class TestScanImageImagingExtractorFastZOneFramePerVolumeVersion2019a(ImagingExt
     extractor_cls = ScanImageImagingExtractor
     extractor_kwargs = dict(
         file_path=SCANIMAGE_FORMAT_3_PATH
-        / "planar"
-        / "fast_z_enabled_one_frame_per_volume_version_2019a"
+        / "acquisition_setup"
+        / "planar_fast_z_enabled_one_frame_per_volume_version_2019a"
         / "planar_00001.tif"
     )
     expected_num_samples = 10
@@ -2462,11 +2746,11 @@ class TestScanImageImagingExtractorFastZOneFramePerVolumeVersion2019a(ImagingExt
     expected_sampling_frequency = 49.5783  # scanFrameRate, with logAverageFactor 1
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2021, 6, 23, 20, 35, 13, 509000),  # epoch = [2021  6 23 20 35 13.509]
-        # imagingFovUm has its corners at ±4.5 µm in x and y, over linesPerFrame and pixelsPerLine 64
-        pixel_height_um=9.0 / 64,
-        pixel_width_um=9.0 / 64,
-        field_of_view_height_um=9.0,
-        field_of_view_width_um=9.0,
+        # imagingFovUm has its corners at -4.5 and -2.25 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=2.25 / 64,
+        pixel_width_um=2.25 / 64,
+        field_of_view_height_um=2.25,
+        field_of_view_width_um=2.25,
         channel_name="Channel 1",
         scan_line_rate=1 / 6.30316e-05,  # 1 / linePeriod
         acquisition_software_name="ScanImage",
@@ -2485,8 +2769,8 @@ class TestScanImageImagingExtractorFastZVolumeVersion2016b(ImagingExtractorTestM
     extractor_cls = ScanImageImagingExtractor
     extractor_kwargs = dict(
         file_path=SCANIMAGE_FORMAT_3_PATH
-        / "volumetric"
-        / "single_channel_resonant_version_2016b"
+        / "acquisition_setup"
+        / "volumetric_single_channel_resonant_version_2016b"
         / "volume_00001_00001.tif"
     )
     expected_num_samples = 2  # 12 pages / 6 planes
@@ -2507,11 +2791,11 @@ class TestScanImageImagingExtractorFastZVolumeVersion2016b(ImagingExtractorTestM
     expected_sampling_frequency = 9.71251  # scanVolumeRate
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2018, 12, 17, 14, 11, 16, 12000),  # epoch = [2018 12 17 14 11 16.012]
-        # imagingFovUm has its corners at ±10.9688 µm in x and y, over linesPerFrame and pixelsPerLine 64
-        pixel_height_um=21.9376 / 64,
-        pixel_width_um=21.9376 / 64,
-        field_of_view_height_um=21.9376,
-        field_of_view_width_um=21.9376,
+        # imagingFovUm has its corners at -10.9688 and -5.4844 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=5.4844 / 64,
+        pixel_width_um=5.4844 / 64,
+        field_of_view_height_um=5.4844,
+        field_of_view_width_um=5.4844,
         plane_z_offsets_um=[0.0, 3.0, 6.0, 9.0, 12.0, 15.0],  # zs = [42.5 45.5 ... 57.5], minus the first plane
         channel_name="Channel 1",
         scan_line_rate=1 / 6.30878e-05,  # 1 / linePeriod
@@ -2534,8 +2818,8 @@ class TestScanImageImagingExtractorPlanarChannelsOneAndThreeVersion53(ImagingExt
     extractor_cls = ScanImageImagingExtractor
     extractor_kwargs = dict(
         file_path=SCANIMAGE_FORMAT_3_PATH
-        / "planar"
-        / "channels_one_and_three_as_column_vector_linear_version_5_3"
+        / "acquisition_setup"
+        / "planar_channels_one_and_three_as_column_vector_linear_version_5_3"
         / "planar_00001.tif",
         channel_name="Channel 3",
     )
@@ -2548,12 +2832,12 @@ class TestScanImageImagingExtractorPlanarChannelsOneAndThreeVersion53(ImagingExt
     expected_sampling_frequency = 8.46402  # scanFrameRate, with logAverageFactor 1
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2020, 1, 27, 15, 25, 47, 67000),  # epoch = [2020,1,27,15,25,47.067]
-        # imagingFovUm has its corners at ±10.8491 µm in y, the rows, and ±21.6982 µm in x, the columns, over
-        # linesPerFrame and pixelsPerLine 64. The pixels are not square
-        pixel_height_um=21.6982 / 64,
-        pixel_width_um=43.3964 / 64,
-        field_of_view_height_um=21.6982,
-        field_of_view_width_um=43.3964,
+        # imagingFovUm has its corners at -21.6982 and -10.8491 µm in x, -10.8491 and 0 µm in y,
+        # over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=10.8491 / 64,
+        pixel_width_um=10.8491 / 64,
+        field_of_view_height_um=10.8491,
+        field_of_view_width_um=10.8491,
         channel_name="Channel 3",
         scan_line_rate=1 / 0.0009152,  # 1 / linePeriod
         acquisition_software_name="ScanImage",
@@ -2574,8 +2858,8 @@ class TestScanImageImagingExtractorFastZFlybackTwoChannelsVersion2016b(ImagingEx
     extractor_cls = ScanImageImagingExtractor
     extractor_kwargs = dict(
         file_path=SCANIMAGE_FORMAT_3_PATH
-        / "volumetric"
-        / "flyback_frames_two_channels_resonant_version_2016b"
+        / "time_structure"
+        / "volumetric_flyback_frames_two_channels_resonant_version_2016b"
         / "volume_00001.tif",
         channel_name="Channel 2",
     )
@@ -2604,11 +2888,11 @@ class TestScanImageImagingExtractorFastZFlybackTwoChannelsVersion2016b(ImagingEx
     expected_sampling_frequency = 6.11546  # scanVolumeRate
     expected_metadata = dict(
         acquisition_start_datetime=datetime(2017, 7, 17, 13, 33, 44, 377000),  # epoch = [2017  7 17 13 33 44.377]
-        # imagingFovUm has its corners at ±27 µm in x and y, over linesPerFrame and pixelsPerLine 64
-        pixel_height_um=54.0 / 64,
-        pixel_width_um=54.0 / 64,
-        field_of_view_height_um=54.0,
-        field_of_view_width_um=54.0,
+        # imagingFovUm has its corners at -27 and -13.5 µm in x and y, over linesPerFrame and pixelsPerLine 64
+        pixel_height_um=13.5 / 64,
+        pixel_width_um=13.5 / 64,
+        field_of_view_height_um=13.5,
+        field_of_view_width_um=13.5,
         plane_z_offsets_um=[
             0.0,
             4.0,
@@ -2647,8 +2931,8 @@ def test_slow_stack_version_2017b():
     """A 2017b stack without fast z has the planes of `numSlices`, 17, of 6 frames each in one volume of 102 pages."""
     file_path = (
         SCANIMAGE_FORMAT_3_PATH
-        / "multiple_frames_per_slice"
-        / "frames_saved_resonant_version_2017b"
+        / "time_structure"
+        / "slow_stack_frames_saved_resonant_version_2017b"
         / "stack_00001.tif"
     )
     extractor = ScanImageImagingExtractor(file_path=file_path, slice_sample=0)
@@ -2659,3 +2943,166 @@ def test_slow_stack_version_2017b():
     page_indices = [[6 * plane for plane in range(17)]]
     expected_series = read_scanimage_pages([file_path], page_indices)
     assert_array_equal(extractor.get_series(), np.moveaxis(expected_series, 1, -1))
+
+
+class TestScanImageImagingExtractorPlanarVersion38(ImagingExtractorTestMixin):
+    """A 3.8 time series, whose settings are `state.*` lines in the description of the first page."""
+
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_LEGACY_PATH / "acquisition_setup" / "planar_single_channel_version_3_8" / "planar.tif"
+    )
+    expected_num_samples = 10  # 10 pages, one channel
+    expected_sample_shape = (256, 256)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["Channel 1"]  # savingChannel1=1, and 3.x names no channels
+    expected_native_timestamps = None  # 3.x records no time for each frame
+    expected_sampling_frequency = 3.90625  # state.acq.frameRate, with numAvgFramesSave=1
+    expected_metadata = dict(
+        # state.internal.triggerTimeString='10/9/2017 16:57:07.967', month first
+        acquisition_start_datetime=datetime(2017, 10, 9, 16, 57, 7, 967000),
+        channel_name="Channel 1",
+        scan_line_rate=1000.0,  # 1 / state.acq.msPerLine=1
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="3.8",  # state.software.version
+    )
+
+    def check_series(self, series):
+        """Sample `sample` is page `sample`: one channel and one plane."""
+        file_paths = [self.extractor_kwargs["file_path"]]
+        page_indices = list(range(self.expected_num_samples))
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, expected_series)
+
+
+class TestScanImageImagingExtractorPlanarVersion4(ImagingExtractorTestMixin):
+    """A ScanImage 4 time series, whose settings are `scanimage.SI4.*` lines in the description of every page."""
+
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_LEGACY_PATH / "acquisition_setup" / "planar_single_channel_version_4" / "planar.tif"
+    )
+    expected_num_samples = 20  # 20 pages, one channel
+    expected_sample_shape = (64, 64)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["Channel 1"]  # channelsSave = 1, and 4.x names no channels
+    expected_native_timestamps = None  # 4.x records no time for each frame
+    # scanFrameRate, with acqNumAveragedFrames = 1. framerate_user = 15.42 is not applied, framerate_user_check = 0
+    expected_sampling_frequency = 30.838
+    expected_metadata = dict(
+        # triggerClockTimeFirst = '17-04-2015 14:35:56.050', day first
+        acquisition_start_datetime=datetime(2015, 4, 17, 14, 35, 56, 50000),
+        channel_name="Channel 1",
+        scan_line_rate=1 / 6.25e-05,  # 1 / scanLinePeriod
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="B.1.0",  # versionMajor = 'B' and versionMinor = '1.0'
+    )
+
+    def check_series(self, series):
+        """Sample `sample` is page `sample`: one channel and one plane."""
+        file_paths = [self.extractor_kwargs["file_path"]]
+        page_indices = list(range(self.expected_num_samples))
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, expected_series)
+
+
+class TestScanImageImagingExtractorPlanarInt16Version42(ImagingExtractorTestMixin):
+    """The fifth file of a 4.2 time series, read alone, with int16 pixels."""
+
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_LEGACY_PATH
+        / "binary_data_layout"
+        / "planar_single_channel_int16_version_4_2"
+        / "planar_001_005.tif"
+    )
+    expected_num_samples = 10  # 10 pages, one channel
+    expected_sample_shape = (64, 64)
+    expected_dtype = np.dtype("int16")  # channelsDataType = 'int16'
+    expected_channel_names = ["Channel 1"]  # channelsSave = 1
+    expected_native_timestamps = None  # 4.x records no time for each frame
+    expected_sampling_frequency = 29.965  # scanFrameRate, with acqNumAveragedFrames = 1
+    expected_metadata = dict(
+        # triggerClockTimeFirst = '17-08-2017 21:15:27.010', day first
+        acquisition_start_datetime=datetime(2017, 8, 17, 21, 15, 27, 10000),
+        channel_name="Channel 1",
+        scan_line_rate=1 / 6.3205e-05,  # 1 / scanLinePeriod
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="4.2.0",  # versionMajor = 4.2 and versionMinor = 0
+    )
+
+    def check_series(self, series):
+        """Sample `sample` is page `sample`: one channel and one plane."""
+        file_paths = [self.extractor_kwargs["file_path"]]
+        page_indices = list(range(self.expected_num_samples))
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, expected_series)
+
+
+def test_averaged_stack_version_3_6():
+    """A 3.6 stack of 50 slices and two channels that averages the 4 frames of each slice into one saved frame.
+
+    It is one volume, and the test class of the mixin needs more samples, as the 2017b stack above.
+    """
+    file_path = (
+        SCANIMAGE_LEGACY_PATH
+        / "time_structure"
+        / "slow_stack_frames_averaged_two_channels_version_3_6"
+        / "stack_001.tif"
+    )
+    # savingChannel1=1 and savingChannel2=1, and 3.x names no channels
+    assert ScanImageImagingExtractor.get_available_channel_names(file_path) == ["Channel 1", "Channel 2"]
+    extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
+    # 100 pages / (50 slices * 2 channels), one page per slice and channel
+    assert extractor.get_sample_shape() == (64, 64, 50)
+    assert extractor.get_num_samples() == 1
+    # frameRate=1.953125 over the 50 slices of numberOfFrames=4 scanned frames
+    assert extractor.get_sampling_frequency() == pytest.approx(1.953125 / (50 * 4))
+    assert extractor.get_native_timestamps() is None  # 3.x records no time for each frame
+    expected_metadata = dict(
+        # state.internal.triggerTimeString='2/16/2012 14:27:59.845', month first
+        acquisition_start_datetime=datetime(2012, 2, 16, 14, 27, 59, 845000),
+        plane_z_offsets_um=[0.5 * plane for plane in range(50)],  # zStepSize=0.5 from the first slice
+        channel_name="Channel 2",
+        scan_line_rate=500.0,  # 1 / state.acq.msPerLine=2
+        frames_per_slice=1,  # averaging=1 saves one frame per slice
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="3.6",  # state.software.version
+    )
+    assert extractor.metadata.to_populated_dict(include_extra=False) == expected_metadata
+    # state.acq.zoomFactor=50 and state.motor.absXPosition, absYPosition and absZPosition
+    expected_extra_metadata = dict(zoom_factor=50.0, stage_position_um=[-4101.76, -2989.92, -1410.32])
+    assert extractor.metadata.extra_metadata == expected_extra_metadata
+    # Plane `plane` of Channel 2 is page `2 * plane + 1`, the two channels saved in turn at each slice
+    page_indices = [[2 * plane + 1 for plane in range(50)]]
+    expected_series = read_scanimage_pages([file_path], page_indices)
+    assert_array_equal(extractor.get_series(), np.moveaxis(expected_series, 1, -1))
+
+
+@pytest.mark.parametrize(
+    "file_path, expected_extra_metadata",
+    [
+        (
+            SCANIMAGE_LEGACY_PATH / "acquisition_setup" / "planar_single_channel_version_3_8" / "planar.tif",
+            # state.acq.zoomFactor=2 and state.motor.absXPosition, absYPosition and absZPosition
+            dict(zoom_factor=2.0, stage_position_um=[659.6, -10386.6, -8068.4]),
+        ),
+        (
+            SCANIMAGE_LEGACY_PATH / "acquisition_setup" / "planar_single_channel_version_4" / "planar.tif",
+            # scanZoomFactor = 2.7 and motorPosition = [-4345.36 -6331.8 2489.28]
+            dict(zoom_factor=2.7, stage_position_um=[-4345.36, -6331.8, 2489.28]),
+        ),
+        (
+            SCANIMAGE_LEGACY_PATH
+            / "binary_data_layout"
+            / "planar_single_channel_int16_version_4_2"
+            / "planar_001_005.tif",
+            # scanZoomFactor = 1.8, and motorPosition = [] without a motorized stage
+            dict(zoom_factor=1.8),
+        ),
+    ],
+)
+def test_legacy_extra_metadata(file_path, expected_extra_metadata):
+    """ScanImage 3.x and 4.x put the zoom and the position of the motorized stage in `extra_metadata`."""
+    extractor = ScanImageImagingExtractor(file_path=file_path)
+    assert extractor.metadata.extra_metadata == expected_extra_metadata

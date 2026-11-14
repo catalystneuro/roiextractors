@@ -2,6 +2,7 @@
 
 import re
 import shutil
+from datetime import datetime
 
 import numpy as np
 import pytest
@@ -9,7 +10,7 @@ from numpy.testing import assert_array_equal
 from tifffile import TiffFile
 
 from roiextractors import OMETiffImagingExtractor
-from tests.extractor_mixins import ImagingExtractorTestMixin
+from tests.extractor_mixins import ImagingExtractorTestMixin, check_metadata
 from tests.setup_paths import OPHYS_DATA_PATH
 
 OME_TIFF_PATH = OPHYS_DATA_PATH / "imaging_datasets" / "OME-TIFF"
@@ -60,6 +61,10 @@ class TestOMETiffImagingExtractor:
         file_path = folder_path / "multifile-Z1.ome.tiff"
 
         extractor = OMETiffImagingExtractor(file_path, sampling_frequency=1.0)
+
+        expected_metadata = {"acquisition_start_datetime": datetime(2010, 3, 2, 15, 8, 59)}
+        with pytest.warns(UserWarning, match="The metadata API is experimental"):
+            check_metadata(extractor.metadata, expected_metadata)
 
         assert extractor.get_num_samples() == 1
         assert extractor.get_image_shape() == (24, 18)
@@ -160,6 +165,17 @@ class TestOMETiffImagingExtractor:
         extractor = OMETiffImagingExtractor(ome_file, sampling_frequency=1.0, channel_name="Ch1")
         assert extractor.get_num_samples() == 5
 
+        expected_metadata = {
+            "acquisition_start_datetime": datetime(2024, 5, 27, 19, 46, 12),
+            "pixel_height_um": 1.129400083410842,
+            "pixel_width_um": 1.1245597973390813,
+            "field_of_view_height_um": 72.28160533829389,
+            "field_of_view_width_um": 71.9718270297012,
+            "channel_name": "Ch1",
+        }
+        with pytest.warns(UserWarning, match="The metadata API is experimental"):
+            check_metadata(extractor.metadata, expected_metadata)
+
     def test_invalid_channel_name_shows_available(self):
         """Test that error message shows available channel names."""
         bruker_path = OPHYS_DATA_PATH / "imaging_datasets" / "BrukerTif" / "TSeries-20240527-001"
@@ -178,10 +194,9 @@ def read_ome_series(file_path, channel_index):
     """Read a channel with `tifffile` from the OME-XML, as (time, rows, columns) or (time, rows, columns, depth).
 
     `tifffile` builds the array from the OME-XML, independently of the extractor, across files when the OME-XML names
-    several. `is_shaped=False` makes it read the OME-XML instead of the shape that `tifffile` itself wrote into the
-    stubs when they were made.
+    several.
     """
-    with TiffFile(file_path, is_shaped=False) as tiff_file:
+    with TiffFile(file_path) as tiff_file:
         series = tiff_file.series[0]
         axes = series.axes
         data = series.asarray()
@@ -296,7 +311,10 @@ class TestOMETiffImagingExtractorPlanarTwoChannelsMultiFile(ImagingExtractorTest
     expected_channel_names = ["0", "1"]
     expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
-    expected_metadata = {}
+    expected_metadata = {
+        "acquisition_start_datetime": datetime(2013, 1, 15, 17, 2, 41),
+        "experimenter": ["Maimoon Nasim"],
+    }
 
     def check_series(self, series):
         """The series is the channel of the array that `tifffile` builds from the OME-XML."""
@@ -363,7 +381,10 @@ class TestOMETiffImagingExtractorVolumetricTwoChannelsMultiFile(ImagingExtractor
     expected_channel_names = ["0", "1"]
     expected_native_timestamps = None
     expected_sampling_frequency = 1.0  # passed to the constructor
-    expected_metadata = {}
+    expected_metadata = {
+        "acquisition_start_datetime": datetime(2013, 1, 15, 17, 2, 48),
+        "experimenter": ["Maimoon Nasim"],
+    }
 
     def check_series(self, series):
         """The series is the channel of the array that `tifffile` builds from the OME-XML."""

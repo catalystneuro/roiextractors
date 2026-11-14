@@ -7,11 +7,11 @@ from numpy.testing import assert_array_equal
 
 from roiextractors import ThorTiffImagingExtractor
 
-from .extractor_mixins import ImagingExtractorTestMixin
+from .extractor_mixins import ImagingExtractorTestMixin, check_metadata
 from .setup_paths import OPHYS_DATA_PATH
 
 # Path to the test data
-TEST_DIR = OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "single_channel_single_plane" / "20231018-002"
+TEST_DIR = OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "acquisition_setup" / "planar_single_channel"
 FILE_PATH = TEST_DIR / "ChanA_001_001_001_001.tif"
 
 
@@ -26,7 +26,18 @@ class TestThorTiffImagingExtractor(ImagingExtractorTestMixin):
     expected_channel_names = ["ChanA"]
     expected_native_timestamps = None  # the OME-XML has a DeltaT for the first plane only
     expected_sampling_frequency = 13.967  # frameRate, streaming capture without averaging
-    expected_metadata = {}
+    expected_metadata = {
+        "acquisition_start_datetime": datetime(2023, 10, 18, 17, 39, 19, tzinfo=timezone.utc),
+        "pixel_height_um": 0.884,
+        "pixel_width_um": 0.884,
+        "field_of_view_height_um": 452.7,
+        "field_of_view_width_um": 452.7,
+        "channel_name": "ChanA",
+        "acquisition_software_name": "ThorImageLS",
+        "acquisition_software_version": "5.0.2023.10041",
+        "objective_magnification": 16.0,
+        "session_id": "20231018-002",
+    }
 
     def check_series(self, series):
         """Each sample is the page of the file named for its timepoint, `<channel>_001_001_001_<sample + 1>.tif`."""
@@ -66,7 +77,13 @@ class TestThorTiffImagingExtractor(ImagingExtractorTestMixin):
             assert extractor._get_channel_names() == channel_names
 
 
-VOLUMETRIC_DIR = OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "multi_channel_multi_plane" / "lzw_compressed"
+VOLUMETRIC_DIR = (
+    OPHYS_DATA_PATH
+    / "imaging_datasets"
+    / "ThorlabsTiff"
+    / "binary_data_layout"
+    / "two_channels_three_planes_lzw_compressed"
+)
 
 
 class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
@@ -88,7 +105,19 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
         [0.384067, 2.36012, 4.33632],
         [0.777047, 2.74819, 4.72219],
     ]
-    expected_metadata = {}
+    expected_metadata = {
+        "acquisition_start_datetime": datetime(2019, 11, 21, 10, 15, 18, tzinfo=timezone.utc),
+        "pixel_height_um": 0.593,
+        "pixel_width_um": 0.593,
+        "field_of_view_height_um": 75.88,
+        "field_of_view_width_um": 75.88,
+        "plane_z_offsets_um": [0.0, 15.0, 30.0],
+        "channel_name": "ChanA",
+        "acquisition_software_name": "ThorImageLS",
+        "acquisition_software_version": "3.2.2018.4241",
+        "objective_magnification": 22.2222222222222,
+        "session_id": "Untitled_003",
+    }
 
     def check_series(self, series):
         """Each plane of each sample is the page of `<channel>_0001_0001_<plane + 1>_<sample + 1>.tif`, in Z and T capture."""
@@ -120,6 +149,7 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
         """Selecting the other channel reads other pages."""
         other = ThorTiffImagingExtractor(file_path=self.file_path, channel_name="ChanB")
         assert not np.array_equal(self.extractor.get_series(), other.get_series())
+        check_metadata(other.metadata, {**self.expected_metadata, "channel_name": "ChanB"})
 
     def test_get_available_channel_names(self):
         """Every name discovery returns can be passed back as `channel_name`."""
@@ -131,7 +161,7 @@ class TestThorTiffImagingExtractorVolumetric(ImagingExtractorTestMixin):
 
 
 STREAMING_AVERAGING_DIR = (
-    OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "single_channel_single_plane" / "streaming_frame_averaging"
+    OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "time_structure" / "streaming_frame_averaging"
 )
 
 
@@ -146,7 +176,18 @@ class TestThorTiffImagingExtractorStreamingFrameAveraging(ImagingExtractorTestMi
     expected_channel_names = ["ChanA"]
     expected_native_timestamps = None  # streaming capture, where DeltaT is not the time of the scan
     expected_sampling_frequency = 90.037 / 9  # frameRate / averageNum, each saved frame is the mean of 9 scans
-    expected_metadata = {}
+    expected_metadata = {
+        "acquisition_start_datetime": datetime(2025, 4, 14, 17, 7, 32, tzinfo=timezone.utc),
+        "pixel_height_um": 0.304,
+        "pixel_width_um": 0.304,
+        "field_of_view_height_um": 77.78,
+        "field_of_view_width_um": 116.67,
+        "channel_name": "ChanA",
+        "acquisition_software_name": "ThorImageLS",
+        "acquisition_software_version": "4.1.2021.9131",
+        "objective_magnification": 22.2222,
+        "session_id": "250414-MB010B-2xRSET-jGC8s-9AVG-Day1-F02_001",
+    }
 
     def check_series(self, series):
         """Each sample is the page of the file named for its timepoint."""
@@ -159,9 +200,7 @@ class TestThorTiffImagingExtractorStreamingFrameAveraging(ImagingExtractorTestMi
             assert_array_equal(sample, expected_sample)
 
 
-FAST_Z_STREAMING_DIR = (
-    OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "single_channel_multi_plane" / "fast_z_streaming"
-)
+FAST_Z_STREAMING_DIR = OPHYS_DATA_PATH / "imaging_datasets" / "ThorlabsTiff" / "time_structure" / "fast_z_streaming"
 
 
 class TestThorTiffImagingExtractorFastZStreaming(ImagingExtractorTestMixin):
@@ -175,7 +214,19 @@ class TestThorTiffImagingExtractorFastZStreaming(ImagingExtractorTestMixin):
     expected_channel_names = ["ChanB"]
     expected_native_timestamps = None  # streaming capture, where DeltaT is not the time of the scan
     expected_sampling_frequency = 58.32 / (7 + 2)  # frameRate / (steps + flybackFrames), 7 planes and 2 flyback scans
-    expected_metadata = {}
+    expected_metadata = {
+        "acquisition_start_datetime": datetime(2018, 2, 16, 20, 40, 49, tzinfo=timezone.utc),
+        "pixel_height_um": 0.476,
+        "pixel_width_um": 0.476,
+        "field_of_view_height_um": 121.78,
+        "field_of_view_width_um": 121.78,
+        "plane_z_offsets_um": [0.0, 7.0, 14.0, 21.0, 28.0, 35.0, 42.0],
+        "channel_name": "ChanB",
+        "acquisition_software_name": "ThorImageLS",
+        "acquisition_software_version": "3.0.2016.10131",
+        "objective_magnification": 22.2,
+        "session_id": "2R60F02_Gcamp6s_after_control_LH_00001",
+    }
 
     def check_series(self, series):
         """Each (sample, plane) position holds the page of the file named for that plane and volume.

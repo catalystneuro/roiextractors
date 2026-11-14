@@ -5,6 +5,7 @@ constructor, and adds the checks specific to the format as methods of the subcla
 """
 
 import inspect
+import pickle
 import re
 import warnings
 
@@ -312,6 +313,62 @@ class ImagingExtractorTestMixin:
                 num_expected_samples = len(expected_plane_native_timestamps)
                 first_plane_native_timestamps = plane_native_timestamps[:num_expected_samples]
                 assert_allclose(first_plane_native_timestamps, expected_plane_native_timestamps)
+
+    def test_pickle_round_trip(self, setup_extractor):
+        """A pickled extractor comes back as the same class, with the same dtype, data and timestamps.
+
+        A worker process receives the extractor this way. An extractor that holds an open file or a handle fails at
+        `pickle.dumps`, and a constructor argument the extractor does not record comes back as other data or times.
+        """
+        unpickled = pickle.loads(pickle.dumps(self.extractor))
+
+        assert type(unpickled) is type(self.extractor)
+        assert unpickled.get_dtype() == self.extractor.get_dtype()
+        assert_array_equal(unpickled.get_series(), self.extractor.get_series())
+        assert_array_equal(unpickled.get_timestamps(), self.extractor.get_timestamps())
+
+    # The warning that the metadata API is experimental is checked in `tests/test_internals/test_metadata.py`
+    @pytest.mark.filterwarnings("ignore:The metadata API is experimental:UserWarning")
+    def test_pickle_does_not_grow_after_reading(self, setup_extractor):
+        """Reading the data, the timestamps or the metadata does not add what was read to the pickle.
+
+        A worker can read those from the file itself, so a cache that travels with the extractor is sent for nothing.
+        """
+        payload_before_reading = pickle.dumps(self.extractor)
+
+        self.extractor.get_series()
+        self.extractor.get_timestamps()
+        self.extractor.metadata
+
+        payload_after_reading = pickle.dumps(self.extractor)
+        assert len(payload_after_reading) == len(payload_before_reading)
+
+    def test_pickle_round_trip_of_overridden_views(self, setup_extractor):
+        """A view made by the format's own `slice_field_of_view` or `select_plane` comes back as that view.
+
+        The generic views of `ImagingExtractor` are the same code for every format and are tested with the mock in
+        `tests/test_internals/test_serialization.py`, so this runs only on formats that override a view method.
+        """
+        extractor_class = type(self.extractor)
+        is_slice_field_of_view_overridden = (
+            extractor_class.slice_field_of_view is not ImagingExtractor.slice_field_of_view
+        )
+        is_select_plane_overridden = extractor_class.select_plane is not ImagingExtractor.select_plane
+
+        views = []
+        if is_slice_field_of_view_overridden:
+            views.append(self.extractor.slice_field_of_view(row_start=1, row_end=4, column_start=4, column_end=6))
+        if self.extractor.is_volumetric and is_select_plane_overridden:
+            last_plane_index = self.expected_sample_shape[2] - 1
+            views.append(self.extractor.select_plane(last_plane_index))
+        if not views:
+            pytest.skip("The views of this format are the generic ones, tested with the mock")
+
+        for view in views:
+            unpickled_view = pickle.loads(pickle.dumps(view))
+            assert type(unpickled_view) is type(view)
+            assert_array_equal(unpickled_view.get_series(), view.get_series())
+            assert_array_equal(unpickled_view.get_timestamps(), view.get_timestamps())
 
     # The warning that the metadata API is experimental is checked in `tests/test_internals/test_metadata.py`
     @pytest.mark.filterwarnings("ignore:The metadata API is experimental:UserWarning")

@@ -228,3 +228,22 @@ class TestSampleSlicedTimestampInheritance:
             sample_sliced_segmentation.get_timestamps(),
             self.parent_extractor.get_timestamps()[self.start_sample : self.end_sample],
         )
+
+    def test_slice_samples_and_parent_shift_independently(self):
+        """A slice takes its parent's shift when it is created, and later shifts of one do not move the other."""
+        self.parent_extractor.shift_times(1.0)
+        sample_sliced_segmentation = self.parent_extractor.slice_samples(
+            start_sample=self.start_sample, end_sample=self.end_sample
+        )
+        np.testing.assert_array_almost_equal(
+            sample_sliced_segmentation.get_timestamps(),
+            self.parent_extractor.get_timestamps()[self.start_sample : self.end_sample],
+        )
+
+        sliced_timestamps = sample_sliced_segmentation.get_timestamps()
+        self.parent_extractor.shift_times(5.0)
+        np.testing.assert_array_almost_equal(sample_sliced_segmentation.get_timestamps(), sliced_timestamps)
+
+        parent_timestamps = self.parent_extractor.get_timestamps()
+        sample_sliced_segmentation.shift_times(3.0)
+        np.testing.assert_array_almost_equal(self.parent_extractor.get_timestamps(), parent_timestamps)

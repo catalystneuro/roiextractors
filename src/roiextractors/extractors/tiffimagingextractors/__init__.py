@@ -6,6 +6,8 @@ tiffimagingextractor
     A ImagingExtractor for TIFF files.
 scanimagetiffimagingextractor
     Specialized extractor for reading TIFF files produced via ScanImage.
+scanimagemultiroiimagingextractor
+    Extractor for one ROI of a ScanImage multi-ROI (mesoscope) TIFF file.
 brukertiffimagingextractor
     Specialized extractor for reading TIFF files produced via Bruker.
 micromanagertiffimagingextractor
@@ -23,6 +25,8 @@ ScanImageLegacyImagingExtractor
     Legacy extractor for reading TIFF files produced via ScanImage v3.8.
 ScanImageImagingExtractor
     Specialized extractor for reading TIFF files produced via ScanImage.
+ScanImageMultiROIImagingExtractor
+    Extractor for one ROI of a ScanImage multi-ROI (mesoscope) TIFF file.
 BrukerTiffMultiPlaneImagingExtractor
     Specialized extractor for reading TIFF files produced via Bruker.
 BrukerTiffSinglePlaneImagingExtractor
@@ -45,6 +49,7 @@ from .scanimagetiffimagingextractor import (
     ScanImageImagingExtractor,
     ScanImageLegacyImagingExtractor,
 )
+from .scanimagemultiroiimagingextractor import ScanImageMultiROIImagingExtractor
 from .thortiffimagingextractor import ThorTiffImagingExtractor
 from .multitiffmultipageextractor import MultiTIFFMultiPageExtractor
 from .ometiffimagingextractor import OMETiffImagingExtractor

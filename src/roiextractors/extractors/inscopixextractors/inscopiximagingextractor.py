@@ -2,10 +2,12 @@
 
 import platform
 from datetime import datetime
+from functools import cached_property
 from typing import Any
 
 import numpy as np
 
+from ..._metadata import Metadata
 from ...extraction_tools import PathType
 from ...imagingextractor import ImagingExtractor
 
@@ -60,6 +62,44 @@ class InscopixImagingExtractor(ImagingExtractor):
 
     def get_dtype(self) -> np.dtype:
         return np.dtype(self.movie.data_type)
+
+    @cached_property
+    def _unified_metadata(self) -> Metadata:
+        acquisition_info = self.movie.get_acquisition_info() or {}
+        spacing = self.movie.spacing._impl
+        pixel_height_um = spacing.pixel_height._as_float()
+        pixel_width_um = spacing.pixel_width._as_float()
+        num_rows, num_columns = self.get_image_shape()
+        exposure_time_ms = acquisition_info.get("Exposure Time (ms)")
+        date_of_birth = acquisition_info.get("Animal Date of Birth")
+        experimenter = acquisition_info.get("Experimenter Name")
+        sex = acquisition_info.get("Animal Sex")
+        sex_mapping = {"m": "M", "male": "M", "f": "F", "female": "F", "u": "U", "unknown": "U", "o": "O", "other": "O"}
+
+        return Metadata(
+            acquisition_start_datetime=self._get_session_start_time(),
+            pixel_height_um=pixel_height_um,
+            pixel_width_um=pixel_width_um,
+            field_of_view_height_um=pixel_height_um * num_rows,
+            field_of_view_width_um=pixel_width_um * num_columns,
+            excitation_mode="one-photon",
+            exposure_time=None if exposure_time_ms is None else exposure_time_ms / 1000,
+            camera_gain=acquisition_info.get("Microscope Gain"),
+            led_power_excitation_mW_per_mm2=acquisition_info.get("Microscope EX LED Power (mw/mm^2)"),
+            led_power_orange_green_mW_per_mm2=acquisition_info.get("Microscope OG LED Power (mw/mm^2)"),
+            microscope_name=acquisition_info.get("Microscope Type") or None,
+            microscope_manufacturer="Inscopix",
+            microscope_serial_number=acquisition_info.get("Microscope Serial Number") or None,
+            acquisition_software_version=acquisition_info.get("Acquisition SW Version") or None,
+            subject_id=acquisition_info.get("Animal ID") or None,
+            subject_species=acquisition_info.get("Animal Species") or None,
+            subject_sex=sex_mapping.get(sex.lower()) if sex else None,
+            subject_weight_g=acquisition_info.get("Animal Weight") or None,
+            subject_date_of_birth=datetime.fromisoformat(date_of_birth) if date_of_birth else None,
+            subject_description=acquisition_info.get("Animal Description") or None,
+            session_id=acquisition_info.get("Session Name") or None,
+            experimenter=[experimenter] if experimenter else None,
+        )
 
     def _get_session_start_time(self) -> datetime | None:
         """

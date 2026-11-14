@@ -1,8 +1,10 @@
+import re
 import shutil
 import tempfile
 from pathlib import Path
 
 import numpy as np
+import pytest
 from hdmf.testing import TestCase
 from numpy.testing import assert_array_equal
 
@@ -157,3 +159,23 @@ class TestSuite2pSegmentationExtractor(TestCase):
         extractor = Suite2pSegmentationExtractor(folder_path=self.folder_path, channel_name="chan2")
         images_dict = extractor.get_images_dict()
         assert_array_equal(images_dict["mean"], self.second_channel_mean_image)
+
+
+def test_second_channel_without_frames_raises():
+    """A second channel saved with no frames raises instead of reporting the frames of ops.npy.
+
+    Suite2p 0.11.0 to 0.12.1 write this output when the single-page files of a two-channel recording are read with the
+    default TIFF input: the second channel gets no frames, so its traces have zero columns while ops.npy declares 300.
+    """
+    folder_path = (
+        OPHYS_DATA_PATH
+        / "segmentation_datasets"
+        / "suite2p"
+        / "files_with_errors"
+        / "version_0_12_1"
+        / "second_channel_without_frames"
+        / "suite2p"
+    )
+
+    with pytest.raises(ValueError, match=re.escape("F_chan2.npy has shape (7, 0)")):
+        Suite2pSegmentationExtractor(folder_path=folder_path, channel_name="chan2")

@@ -63,11 +63,13 @@ To satisfy these constraints, the timestamp API separates concerns into distinct
       |
       '-- timestamps computed from the start time and the sampling rate
 
+Whichever times it returns, ``get_timestamps()`` adds the shift from ``shift_times()`` when it is
+called.
+
 A consumer such as NeuroConv first asks ``has_time_vector()``. If it is ``True``, the times are a
 vector and the consumer reads them with ``get_timestamps()``. If it is ``False``, they are
-computed from the start time and the sampling rate, and the consumer can write the start, the
-first value of ``get_timestamps(end_sample=1)``, and the rate without allocating the full array
-(constraint 3).
+computed from the start time and the sampling rate, and the consumer can write the start, from
+``get_start_time()``, and the rate without allocating any array (constraint 3).
 
 ``has_time_vector()`` answers without reading any timestamps: each extractor states whether its
 format records them, and some can only tell from the file, the way ``OMETiffImagingExtractor``
@@ -104,6 +106,16 @@ here is a data-correctness bug.
 The cost of the decorator is small: extractors without native timestamps write a two-line
 override that returns ``None``. The benefit is that every extractor author is required to
 consciously opt out rather than accidentally inheriting a default they may not know exists.
+
+
+Why a shift is stored as a number
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``shift_times()`` adds to a number that ``get_timestamps()`` adds to whatever times it returns, and it
+never writes into a stored array. Shifting the array in place would also move every array that shares
+memory with it, like the view a slice keeps of its parent's timestamps, and shifting native timestamps
+that have not been read would mean reading them first. Keeping the shift apart also leaves the start
+that the format records intact, so the times of the source can always be read again.
 
 
 Copy vs. view semantics for sliced timestamps
@@ -144,7 +156,8 @@ directions:
 
 In both cases, the replacement (rather than mutation) of ``_times`` means the view is either
 preserved or abandoned, never partially modified. The result is the memory efficiency of views
-with the isolation of copies.
+with the isolation of copies. A slice also takes its parent's shift from ``shift_times()`` when it is
+created, as a number of its own, so a later shift of either does not move the other.
 
 See
 `PR #498 <https://github.com/catalystneuro/roiextractors/pull/498>`_ for the original discussion.

@@ -29,9 +29,17 @@ def test_get_scanimage_reader():
 @pytest.mark.parametrize(
     "filename, expected_key, expected_value",
     [
-        ("sample_scanimage_version_3_8.tiff", "state.software.version", "3.8"),
-        ("scanimage_20220801_single.tif", "SI.VERSION_MAJOR", "2022"),
-        ("scanimage_20220923_roi.tif", "SI.VERSION_MAJOR", "2023"),
+        ("legacy/acquisition_setup/planar_single_channel_version_3_8/planar.tif", "state.software.version", "3.8"),
+        (
+            "tiff_format_version_4/time_structure/planar_frames_averaged_version_2022_0/planar.tif",
+            "SI.VERSION_MAJOR",
+            "2022",
+        ),
+        (
+            "tiff_format_version_4/acquisition_setup/multi_roi_slow_stack_two_rois_channels_one_and_four_version_2023_0/stack.tif",
+            "SI.VERSION_MAJOR",
+            "2023",
+        ),
     ],
 )
 def test_extract_extra_metadata(filename, expected_key, expected_value):
@@ -64,7 +72,7 @@ def test_parse_matlab_vector_invalid():
     "filename, expected_metadata",
     [
         (
-            "scanimage_20220801_single.tif",
+            "tiff_format_version_4/time_structure/planar_frames_averaged_version_2022_0/planar.tif",
             {
                 "sampling_frequency": 15.2379,
                 "num_channels": 1,
@@ -106,17 +114,17 @@ def test_parse_matlab_vector_invalid():
                                 "UserData": None,
                                 "roiUuid": "4309FD6B19453539",
                                 "roiUuiduint64": 4.830670712e18,
-                                "centerXY": [0, 0],
-                                "sizeXY": [18, 18],
+                                "centerXY": [-8.4375, -8.4375],
+                                "sizeXY": [1.125, 1.125],
                                 "rotationDegrees": 0,
                                 "enable": 1,
-                                "pixelResolutionXY": [1024, 1024],
+                                "pixelResolutionXY": [64, 64],
                                 "pixelToRefTransform": [
                                     [0.017578125, 0, -9.008789063],
                                     [0, 0.017578125, -9.008789063],
                                     [0, 0, 1],
                                 ],
-                                "affine": [[18, 0, -9], [0, 18, -9], [0, 0, 1]],
+                                "affine": [[1.125, 0, -9], [0, 1.125, -9], [0, 0, 1]],
                             },
                             "discretePlaneMode": 0,
                             "powers": None,
@@ -141,7 +149,7 @@ def test_parse_matlab_vector_invalid():
             },
         ),
         (
-            "scanimage_20220923_roi.tif",
+            "tiff_format_version_4/acquisition_setup/multi_roi_slow_stack_two_rois_channels_one_and_four_version_2023_0/stack.tif",
             {
                 "sampling_frequency": 29.1248,
                 "num_channels": 2,
@@ -172,19 +180,19 @@ def test_parse_matlab_vector_invalid():
                                     "UserData": None,
                                     "roiUuid": "2B42EE3A0B039B9E",
                                     "roiUuiduint64": 3.117315825e18,
-                                    "centerXY": [0.2141430948, -6.019800333],
-                                    "sizeXY": [3.616638935, 3.521464226],
+                                    "centerXY": [-1.142096506, -7.340349418],
+                                    "sizeXY": [0.9041597338, 0.8803660565],
                                     "rotationDegrees": 0,
                                     "enable": 1,
-                                    "pixelResolutionXY": [256, 256],
+                                    "pixelResolutionXY": [64, 64],
                                     "pixelToRefTransform": [
                                         [0.01412749584, 0, -1.601240121],
                                         [0, 0.01375571963, -7.787410306],
                                         [0, 0, 1],
                                     ],
                                     "affine": [
-                                        [3.616638935, 0, -1.594176373],
-                                        [0, 3.521464226, -7.780532446],
+                                        [0.9041597338, 0, -1.594176373],
+                                        [0, 0.8803660565, -7.780532446],
                                         [0, 0, 1],
                                     ],
                                 },
@@ -211,19 +219,19 @@ def test_parse_matlab_vector_invalid():
                                     "UserData": None,
                                     "roiUuid": "A02889BA5E5501AB",
                                     "roiUuiduint64": 1.154062548e19,
-                                    "centerXY": [2.664891847, 6.376705491],
-                                    "sizeXY": [3.616638935, 3.759400998],
+                                    "centerXY": [1.308652246, 4.966930117],
+                                    "sizeXY": [0.9041597338, 0.9398502495],
                                     "rotationDegrees": 0,
                                     "enable": 1,
-                                    "pixelResolutionXY": [256, 256],
+                                    "pixelResolutionXY": [64, 64],
                                     "pixelToRefTransform": [
                                         [0.01412749584, 0, 0.8495086314],
                                         [0, 0.01468516015, 4.489662412],
                                         [0, 0, 1],
                                     ],
                                     "affine": [
-                                        [3.616638935, 0, 0.8565723794],
-                                        [0, 3.759400998, 4.497004992],
+                                        [0.9041597338, 0, 0.8565723794],
+                                        [0, 0.9398502495, 4.497004992],
                                         [0, 0, 1],
                                     ],
                                 },
@@ -260,7 +268,15 @@ def test_parse_metadata(filename, expected_metadata):
 
 
 def test_parse_metadata_v3_8():
-    file_path = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage" / "sample_scanimage_version_3_8.tiff"
+    file_path = (
+        OPHYS_DATA_PATH
+        / "imaging_datasets"
+        / "ScanImage"
+        / "legacy"
+        / "acquisition_setup"
+        / "planar_single_channel_version_3_8"
+        / "planar.tif"
+    )
     metadata = extract_extra_metadata(file_path)
     metadata = parse_metadata_v3_8(metadata)
     expected_metadata = {"sampling_frequency": 3.90625, "num_channels": 1, "num_planes": 1}
@@ -270,9 +286,12 @@ def test_parse_metadata_v3_8():
 @pytest.mark.parametrize(
     "filename, expected_timestamps",
     [
-        ("scanimage_20220801_single.tif", [0.45951611, 0.98468446, 1.50985974]),
         (
-            "scanimage_20220923_roi.tif",
+            "tiff_format_version_4/time_structure/planar_frames_averaged_version_2022_0/planar.tif",
+            [0.45951611, 0.98468446, 1.50985974],
+        ),
+        (
+            "tiff_format_version_4/acquisition_setup/multi_roi_slow_stack_two_rois_channels_one_and_four_version_2023_0/stack.tif",
             [
                 0.0,
                 0.0,
