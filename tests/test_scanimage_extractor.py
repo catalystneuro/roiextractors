@@ -18,14 +18,23 @@ from .setup_paths import OPHYS_DATA_PATH
 # Define the path to the ScanImage test files
 SCANIMAGE_PATH = OPHYS_DATA_PATH / "imaging_datasets" / "ScanImage"
 SCANIMAGE_FORMAT_4_PATH = SCANIMAGE_PATH / "tiff_format_version_4"
+SCANIMAGE_LEGACY_PATH = SCANIMAGE_PATH / "legacy"
 
 
-def test_old_scan_image_version():
-    """Test that an error informative error is raised when using an old ScanImage version."""
-    file_path = SCANIMAGE_PATH / "legacy" / "acquisition_setup" / "planar_single_channel_version_3_8" / "planar.tif"
-
-    with pytest.raises(ValueError):
-        ScanImageImagingExtractor(file_path=file_path)
+def test_legacy_header_without_frame_rate_raises():
+    """A 3.x header without `state.acq.frameRate`, as a lab variant writes it, raises `NotImplementedError`."""
+    file_path = (
+        SCANIMAGE_LEGACY_PATH
+        / "time_structure"
+        / "slow_stack_frames_averaged_two_channels_state_header_without_software_version"
+        / "stack_01002.tif"
+    )
+    expected_message = (
+        "This ScanImage header has no frame rate (state.acq.frameRate), so the timing cannot be read. Please open an "
+        "issue with an example file at https://github.com/catalystneuro/roiextractors/issues"
+    )
+    with pytest.raises(NotImplementedError, match=re.escape(expected_message)):
+        ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 1")
 
 
 def test_scanimage_2026_raises(tmp_path):
@@ -2934,3 +2943,158 @@ def test_slow_stack_version_2017b():
     page_indices = [[6 * plane for plane in range(17)]]
     expected_series = read_scanimage_pages([file_path], page_indices)
     assert_array_equal(extractor.get_series(), np.moveaxis(expected_series, 1, -1))
+
+
+class TestScanImageImagingExtractorPlanarVersion38(ImagingExtractorTestMixin):
+    """A 3.8 time series, whose settings are `state.*` lines in the description of the first page."""
+
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_LEGACY_PATH / "acquisition_setup" / "planar_single_channel_version_3_8" / "planar.tif"
+    )
+    expected_num_samples = 10  # 10 pages, one channel
+    expected_sample_shape = (256, 256)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["Channel 1"]  # savingChannel1=1, and 3.x names no channels
+    expected_native_timestamps = None  # 3.x records no time for each frame
+    expected_sampling_frequency = 3.90625  # state.acq.frameRate, with numAvgFramesSave=1
+    expected_metadata = dict(
+        # state.internal.triggerTimeString='10/9/2017 16:57:07.967', month first
+        acquisition_start_datetime=datetime(2017, 10, 9, 16, 57, 7, 967000),
+        channel_name="Channel 1",
+        scan_line_rate=1000.0,  # 1 / state.acq.msPerLine=1
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="3.8",  # state.software.version
+    )
+
+    def check_series(self, series):
+        """Sample `sample` is page `sample`: one channel and one plane."""
+        file_paths = [self.extractor_kwargs["file_path"]]
+        page_indices = list(range(self.expected_num_samples))
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, expected_series)
+
+
+class TestScanImageImagingExtractorPlanarVersion4(ImagingExtractorTestMixin):
+    """A ScanImage 4 time series, whose settings are `scanimage.SI4.*` lines in the description of every page."""
+
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(file_path=SCANIMAGE_LEGACY_PATH / "planar" / "single_channel_version_4" / "planar.tif")
+    expected_num_samples = 20  # 20 pages, one channel
+    expected_sample_shape = (64, 64)
+    expected_dtype = np.dtype("uint16")
+    expected_channel_names = ["Channel 1"]  # channelsSave = 1, and 4.x names no channels
+    expected_native_timestamps = None  # 4.x records no time for each frame
+    # scanFrameRate, with acqNumAveragedFrames = 1. framerate_user = 15.42 is not applied, framerate_user_check = 0
+    expected_sampling_frequency = 30.838
+    expected_metadata = dict(
+        # triggerClockTimeFirst = '17-04-2015 14:35:56.050', day first
+        acquisition_start_datetime=datetime(2015, 4, 17, 14, 35, 56, 50000),
+        channel_name="Channel 1",
+        scan_line_rate=1 / 6.25e-05,  # 1 / scanLinePeriod
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="B.1.0",  # versionMajor = 'B' and versionMinor = '1.0'
+    )
+
+    def check_series(self, series):
+        """Sample `sample` is page `sample`: one channel and one plane."""
+        file_paths = [self.extractor_kwargs["file_path"]]
+        page_indices = list(range(self.expected_num_samples))
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, expected_series)
+
+
+class TestScanImageImagingExtractorPlanarInt16Version42(ImagingExtractorTestMixin):
+    """The fifth file of a 4.2 time series, read alone, with int16 pixels."""
+
+    extractor_cls = ScanImageImagingExtractor
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_LEGACY_PATH / "planar" / "single_channel_int16_version_4_2" / "planar_001_005.tif"
+    )
+    expected_num_samples = 10  # 10 pages, one channel
+    expected_sample_shape = (64, 64)
+    expected_dtype = np.dtype("int16")  # channelsDataType = 'int16'
+    expected_channel_names = ["Channel 1"]  # channelsSave = 1
+    expected_native_timestamps = None  # 4.x records no time for each frame
+    expected_sampling_frequency = 29.965  # scanFrameRate, with acqNumAveragedFrames = 1
+    expected_metadata = dict(
+        # triggerClockTimeFirst = '17-08-2017 21:15:27.010', day first
+        acquisition_start_datetime=datetime(2017, 8, 17, 21, 15, 27, 10000),
+        channel_name="Channel 1",
+        scan_line_rate=1 / 6.3205e-05,  # 1 / scanLinePeriod
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="4.2.0",  # versionMajor = 4.2 and versionMinor = 0
+    )
+
+    def check_series(self, series):
+        """Sample `sample` is page `sample`: one channel and one plane."""
+        file_paths = [self.extractor_kwargs["file_path"]]
+        page_indices = list(range(self.expected_num_samples))
+        expected_series = read_scanimage_pages(file_paths, page_indices)
+        assert_array_equal(series, expected_series)
+
+
+def test_averaged_stack_version_3_6():
+    """A 3.6 stack of 50 slices and two channels that averages the 4 frames of each slice into one saved frame.
+
+    It is one volume, and the test class of the mixin needs more samples, as the 2017b stack above.
+    """
+    file_path = (
+        SCANIMAGE_LEGACY_PATH
+        / "time_structure"
+        / "slow_stack_frames_averaged_two_channels_version_3_6"
+        / "stack_001.tif"
+    )
+    # savingChannel1=1 and savingChannel2=1, and 3.x names no channels
+    assert ScanImageImagingExtractor.get_available_channel_names(file_path) == ["Channel 1", "Channel 2"]
+    extractor = ScanImageImagingExtractor(file_path=file_path, channel_name="Channel 2")
+    # 100 pages / (50 slices * 2 channels), one page per slice and channel
+    assert extractor.get_sample_shape() == (64, 64, 50)
+    assert extractor.get_num_samples() == 1
+    # frameRate=1.953125 over the 50 slices of numberOfFrames=4 scanned frames
+    assert extractor.get_sampling_frequency() == pytest.approx(1.953125 / (50 * 4))
+    assert extractor.get_native_timestamps() is None  # 3.x records no time for each frame
+    expected_metadata = dict(
+        # state.internal.triggerTimeString='2/16/2012 14:27:59.845', month first
+        acquisition_start_datetime=datetime(2012, 2, 16, 14, 27, 59, 845000),
+        plane_z_offsets_um=[0.5 * plane for plane in range(50)],  # zStepSize=0.5 from the first slice
+        channel_name="Channel 2",
+        scan_line_rate=500.0,  # 1 / state.acq.msPerLine=2
+        frames_per_slice=1,  # averaging=1 saves one frame per slice
+        acquisition_software_name="ScanImage",
+        acquisition_software_version="3.6",  # state.software.version
+    )
+    assert extractor.metadata.to_populated_dict(include_extra=False) == expected_metadata
+    # state.acq.zoomFactor=50 and state.motor.absXPosition, absYPosition and absZPosition
+    expected_extra_metadata = dict(zoom_factor=50.0, stage_position_um=[-4101.76, -2989.92, -1410.32])
+    assert extractor.metadata.extra_metadata == expected_extra_metadata
+    # Plane `plane` of Channel 2 is page `2 * plane + 1`, the two channels saved in turn at each slice
+    page_indices = [[2 * plane + 1 for plane in range(50)]]
+    expected_series = read_scanimage_pages([file_path], page_indices)
+    assert_array_equal(extractor.get_series(), np.moveaxis(expected_series, 1, -1))
+
+
+@pytest.mark.parametrize(
+    "file_path, expected_extra_metadata",
+    [
+        (
+            SCANIMAGE_LEGACY_PATH / "acquisition_setup" / "planar_single_channel_version_3_8" / "planar.tif",
+            # state.acq.zoomFactor=2 and state.motor.absXPosition, absYPosition and absZPosition
+            dict(zoom_factor=2.0, stage_position_um=[659.6, -10386.6, -8068.4]),
+        ),
+        (
+            SCANIMAGE_LEGACY_PATH / "planar" / "single_channel_version_4" / "planar.tif",
+            # scanZoomFactor = 2.7 and motorPosition = [-4345.36 -6331.8 2489.28]
+            dict(zoom_factor=2.7, stage_position_um=[-4345.36, -6331.8, 2489.28]),
+        ),
+        (
+            SCANIMAGE_LEGACY_PATH / "planar" / "single_channel_int16_version_4_2" / "planar_001_005.tif",
+            # scanZoomFactor = 1.8, and motorPosition = [] without a motorized stage
+            dict(zoom_factor=1.8),
+        ),
+    ],
+)
+def test_legacy_extra_metadata(file_path, expected_extra_metadata):
+    """ScanImage 3.x and 4.x put the zoom and the position of the motorized stage in `extra_metadata`."""
+    extractor = ScanImageImagingExtractor(file_path=file_path)
+    assert extractor.metadata.extra_metadata == expected_extra_metadata
