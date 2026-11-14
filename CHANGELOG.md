@@ -1,4 +1,4 @@
-# v0.10.1 (Upcoming)
+# v0.11.0 (November 14th, 2026)
 
 ### Features
 * `ScanImageImagingExtractor` now reads files from ScanImage 3.x and 4.x, whose settings are text in the description of their pages. The channels, the planes and frames per slice of a stack, the frame averaging and the rate come from the header, so a two-channel stack returns one channel and its planes. The metadata has the acquisition start from the trigger time, the line rate, the z offsets of the planes and the software version, and `extra_metadata` has the zoom and the position of the motorized stage. These versions record no time for each frame and no pixel size. Stacks recorded with ScanImage 4 and 3.x headers without a frame rate raise `NotImplementedError`.
