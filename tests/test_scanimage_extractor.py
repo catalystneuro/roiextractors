@@ -2979,7 +2979,9 @@ class TestScanImageImagingExtractorPlanarVersion4(ImagingExtractorTestMixin):
     """A ScanImage 4 time series, whose settings are `scanimage.SI4.*` lines in the description of every page."""
 
     extractor_cls = ScanImageImagingExtractor
-    extractor_kwargs = dict(file_path=SCANIMAGE_LEGACY_PATH / "planar" / "single_channel_version_4" / "planar.tif")
+    extractor_kwargs = dict(
+        file_path=SCANIMAGE_LEGACY_PATH / "acquisition_setup" / "planar_single_channel_version_4" / "planar.tif"
+    )
     expected_num_samples = 20  # 20 pages, one channel
     expected_sample_shape = (64, 64)
     expected_dtype = np.dtype("uint16")
@@ -3009,7 +3011,10 @@ class TestScanImageImagingExtractorPlanarInt16Version42(ImagingExtractorTestMixi
 
     extractor_cls = ScanImageImagingExtractor
     extractor_kwargs = dict(
-        file_path=SCANIMAGE_LEGACY_PATH / "planar" / "single_channel_int16_version_4_2" / "planar_001_005.tif"
+        file_path=SCANIMAGE_LEGACY_PATH
+        / "binary_data_layout"
+        / "planar_single_channel_int16_version_4_2"
+        / "planar_001_005.tif"
     )
     expected_num_samples = 10  # 10 pages, one channel
     expected_sample_shape = (64, 64)
@@ -3083,12 +3088,15 @@ def test_averaged_stack_version_3_6():
             dict(zoom_factor=2.0, stage_position_um=[659.6, -10386.6, -8068.4]),
         ),
         (
-            SCANIMAGE_LEGACY_PATH / "planar" / "single_channel_version_4" / "planar.tif",
+            SCANIMAGE_LEGACY_PATH / "acquisition_setup" / "planar_single_channel_version_4" / "planar.tif",
             # scanZoomFactor = 2.7 and motorPosition = [-4345.36 -6331.8 2489.28]
             dict(zoom_factor=2.7, stage_position_um=[-4345.36, -6331.8, 2489.28]),
         ),
         (
-            SCANIMAGE_LEGACY_PATH / "planar" / "single_channel_int16_version_4_2" / "planar_001_005.tif",
+            SCANIMAGE_LEGACY_PATH
+            / "binary_data_layout"
+            / "planar_single_channel_int16_version_4_2"
+            / "planar_001_005.tif",
             # scanZoomFactor = 1.8, and motorPosition = [] without a motorized stage
             dict(zoom_factor=1.8),
         ),
